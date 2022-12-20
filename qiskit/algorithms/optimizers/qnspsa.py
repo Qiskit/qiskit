@@ -12,13 +12,18 @@
 
 """The QN-SPSA optimizer."""
 
-from typing import Any, Iterator, Optional, Union, Callable, Dict
+from __future__ import annotations
+from typing import Any, Iterator, Callable
+import warnings
 
 import numpy as np
 from qiskit.providers import Backend
 from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
+
+from qiskit.primitives import BaseSampler, Sampler
+from qiskit.algorithms.state_fidelities import ComputeUncompute
 
 from .spsa import SPSA, CALLBACK, TERMINATIONCHECKER, _batch_evaluate
 
@@ -60,6 +65,37 @@ class QNSPSA(SPSA):
             import numpy as np
             from qiskit.algorithms.optimizers import QNSPSA
             from qiskit.circuit.library import PauliTwoDesign
+            from qiskit.primitives import Estimator, Sampler
+            from qiskit.quantum_info import Pauli
+
+            # problem setup
+            ansatz = PauliTwoDesign(2, reps=1, seed=2)
+            observable = Pauli("ZZ")
+            initial_point = np.random.random(ansatz.num_parameters)
+
+            # loss function
+            estimator = Estimator()
+
+            def loss(x):
+                result = estimator.run([ansatz], [observable], [x]).result()
+                return np.real(result.values[0])
+
+            # fidelity for estimation of the geometric tensor
+            sampler = Sampler()
+            fidelity = QNSPSA.get_fidelity(ansatz, sampler)
+
+            # run QN-SPSA
+            qnspsa = QNSPSA(fidelity, maxiter=300)
+            result = qnspsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
+
+        This is a legacy version solving the same problem but using Qiskit Opflow instead
+        of the Qiskit Primitives. Note however, that this usage is pending deprecation.
+
+        .. code-block:: python
+
+            import numpy as np
+            from qiskit.algorithms.optimizers import QNSPSA
+            from qiskit.circuit.library import PauliTwoDesign
             from qiskit.opflow import Z, StateFn
 
             ansatz = PauliTwoDesign(2, reps=1, seed=2)
@@ -87,18 +123,17 @@ class QNSPSA(SPSA):
         fidelity: FIDELITY,
         maxiter: int = 100,
         blocking: bool = True,
-        allowed_increase: Optional[float] = None,
-        learning_rate: Optional[Union[float, Callable[[], Iterator]]] = None,
-        perturbation: Optional[Union[float, Callable[[], Iterator]]] = None,
-        last_avg: int = 1,
-        resamplings: Union[int, Dict[int, int]] = 1,
-        perturbation_dims: Optional[int] = None,
-        regularization: Optional[float] = None,
+        allowed_increase: float | None = None,
+        learning_rate: float | Callable[[], Iterator] | None = None,
+        perturbation: float | Callable[[], Iterator] | None = None,
+        resamplings: int | dict[int, int] = 1,
+        perturbation_dims: int | None = None,
+        regularization: float | None = None,
         hessian_delay: int = 0,
-        lse_solver: Optional[Callable[[np.ndarray, np.ndarray], np.ndarray]] = None,
-        initial_hessian: Optional[np.ndarray] = None,
-        callback: Optional[CALLBACK] = None,
-        termination_checker: Optional[TERMINATIONCHECKER] = None,
+        lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
+        initial_hessian: np.ndarray | None = None,
+        callback: CALLBACK | None = None,
+        termination_checker: TERMINATIONCHECKER | None = None,
     ) -> None:
         r"""
         Args:
@@ -121,8 +156,6 @@ class QNSPSA(SPSA):
                 approximation of the gradients. Can be either a float or a generator yielding
                 the perturbation magnitudes per step.
                 If ``perturbation`` is set ``learning_rate`` must also be provided.
-            last_avg: Return the average of the ``last_avg`` parameters instead of just the
-                last parameter values.
             resamplings: The number of times the gradient (and Hessian) is sampled using a random
                 direction to construct a gradient estimate. Per default the gradient is estimated
                 using only one random direction. If an integer, all iterations use the same number
@@ -187,7 +220,9 @@ class QNSPSA(SPSA):
         self._nfev += 6
 
         loss_values = _batch_evaluate(loss, loss_points, self._max_evals_grouped)
-        fidelity_values = _batch_evaluate(self.fidelity, fidelity_points, self._max_evals_grouped)
+        fidelity_values = _batch_evaluate(
+            self.fidelity, fidelity_points, self._max_evals_grouped, unpack_points=True
+        )
 
         # compute the gradient approximation and additionally return the loss function evaluations
         gradient_estimate = (loss_values[0] - loss_values[1]) / (2 * eps) * delta1
@@ -195,7 +230,7 @@ class QNSPSA(SPSA):
         # compute the preconditioner point estimate
         diff = fidelity_values[2] - fidelity_values[0]
         diff -= fidelity_values[3] - fidelity_values[1]
-        diff /= 2 * eps ** 2
+        diff /= 2 * eps**2
 
         rank_one = np.outer(delta1, delta2)
         # -0.5 factor comes from the fact that we need -0.5 * fidelity
@@ -204,7 +239,7 @@ class QNSPSA(SPSA):
         return np.mean(loss_values), gradient_estimate, hessian_estimate
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         """The optimizer settings in a dictionary format."""
         # re-use serialization from SPSA
         settings = super().settings
@@ -219,10 +254,91 @@ class QNSPSA(SPSA):
     @staticmethod
     def get_fidelity(
         circuit: QuantumCircuit,
-        backend: Optional[Union[Backend, QuantumInstance]] = None,
-        expectation: Optional[ExpectationBase] = None,
+        backend: Backend | QuantumInstance | None = None,
+        expectation: ExpectationBase | None = None,
+        *,
+        sampler: BaseSampler | None = None,
     ) -> Callable[[np.ndarray, np.ndarray], float]:
         r"""Get a function to compute the fidelity of ``circuit`` with itself.
+
+        .. note::
+
+            Using this function with a backend and expectation converter is pending deprecation,
+            instead pass a Qiskit Primitive sampler, such as :class:`~.Sampler`.
+            The sampler can be passed as keyword argument or, positionally, as second argument.
+
+        Let ``circuit`` be a parameterized quantum circuit performing the operation
+        :math:`U(\theta)` given a set of parameters :math:`\theta`. Then this method returns
+        a function to evaluate
+
+        .. math::
+
+            F(\theta, \phi) = \big|\langle 0 | U^\dagger(\theta) U(\phi) |0\rangle  \big|^2.
+
+        The output of this function can be used as input for the ``fidelity`` to the
+        :class:~`qiskit.algorithms.optimizers.QNSPSA` optimizer.
+
+        Args:
+            circuit: The circuit preparing the parameterized ansatz.
+            backend: *Pending deprecation.* A backend of quantum instance to evaluate the circuits.
+                If None, plain matrix multiplication will be used.
+            expectation: *Pending deprecation.* An expectation converter to specify how the expected
+                value is computed. If a shot-based readout is used this should be set to
+                ``PauliExpectation``.
+            sampler: A sampler primitive to sample from a quantum state.
+
+        Returns:
+            A handle to the function :math:`F`.
+
+        """
+        # allow passing sampler by position
+        if isinstance(backend, BaseSampler):
+            sampler = backend
+            backend = None
+
+        if expectation is None and backend is None and sampler is None:
+            sampler = Sampler()
+
+        if expectation is not None or backend is not None:
+            warnings.warn(
+                "Passing a backend and expectation converter to QNSPSA.get_fidelity is pending "
+                "deprecation and will be deprecated in a future release. Instead, pass a "
+                "sampler primitive.",
+                stacklevel=2,
+                category=PendingDeprecationWarning,
+            )
+            return QNSPSA._legacy_get_fidelity(circuit, backend, expectation)
+
+        fid = ComputeUncompute(sampler)
+
+        num_parameters = circuit.num_parameters
+
+        def fidelity(values_x, values_y):
+            values_x = np.reshape(values_x, (-1, num_parameters)).tolist()
+            batch_size_x = len(values_x)
+
+            values_y = np.reshape(values_y, (-1, num_parameters)).tolist()
+            batch_size_y = len(values_y)
+
+            result = fid.run(
+                batch_size_x * [circuit], batch_size_y * [circuit], values_x, values_y
+            ).result()
+            return np.asarray(result.fidelities)
+
+        return fidelity
+
+    @staticmethod
+    def _legacy_get_fidelity(
+        circuit: QuantumCircuit,
+        backend: Backend | QuantumInstance | None = None,
+        expectation: ExpectationBase | None = None,
+    ) -> Callable[[np.ndarray, np.ndarray], float]:
+        r"""PENDING DEPRECATION. Get a function to compute the fidelity of ``circuit`` with itself.
+
+        .. note::
+
+            This method is pending deprecation. Instead use the :class:`~.ComputeUncompute`
+            class which implements the fidelity calculation in the same fashion as this method.
 
         Let ``circuit`` be a parameterized quantum circuit performing the operation
         :math:`U(\theta)` given a set of parameters :math:`\theta`. Then this method returns
@@ -268,17 +384,27 @@ class QNSPSA(SPSA):
             sampler = CircuitSampler(backend)
 
             def fidelity(values_x, values_y=None):
-                if values_y is not None:  # no batches
+                # no batches
+                if isinstance(values_x, np.ndarray) and isinstance(values_y, np.ndarray):
                     value_dict = dict(
                         zip(params_x[:] + params_y[:], values_x.tolist() + values_y.tolist())
                     )
-                else:
+                # legacy batching -- remove once QNSPSA.get_fidelity is only supported with sampler
+                elif values_y is None:
                     value_dict = {p: [] for p in params_x[:] + params_y[:]}
                     for values_xy in values_x:
                         for value_x, param_x in zip(values_xy[0, :], params_x):
                             value_dict[param_x].append(value_x)
 
                         for value_y, param_y in zip(values_xy[1, :], params_y):
+                            value_dict[param_y].append(value_y)
+                else:
+                    value_dict = {p: [] for p in params_x[:] + params_y[:]}
+                    for values_i_x, values_i_y in zip(values_x, values_y):
+                        for value_x, param_x in zip(values_i_x, params_x):
+                            value_dict[param_x].append(value_x)
+
+                        for value_y, param_y in zip(values_i_y, params_y):
                             value_dict[param_y].append(value_y)
 
                 return np.abs(sampler.convert(expression, params=value_dict).eval()) ** 2

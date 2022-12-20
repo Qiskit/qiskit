@@ -148,19 +148,22 @@ class PauliSumOp(PrimitiveOp):
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
 
+        if isinstance(other_reduced, PauliOp):
+            other_reduced = PauliSumOp(
+                SparsePauliOp(other_reduced.primitive, coeffs=[other_reduced.coeff])
+            )
+
         if not isinstance(other_reduced, PauliSumOp):
             return False
 
         if isinstance(self_reduced.coeff, ParameterExpression) or isinstance(
             other_reduced.coeff, ParameterExpression
         ):
-            return (
-                self_reduced.coeff == other_reduced.coeff
-                and self_reduced.primitive == other_reduced.primitive
+            return self_reduced.coeff == other_reduced.coeff and self_reduced.primitive.equiv(
+                other_reduced.primitive
             )
-        return (
-            len(self_reduced) == len(other_reduced)
-            and self_reduced.primitive == other_reduced.primitive
+        return len(self_reduced) == len(other_reduced) and self_reduced.primitive.equiv(
+            other_reduced.primitive
         )
 
     def _expand_dim(self, num_qubits: int) -> "PauliSumOp":
@@ -210,7 +213,7 @@ class PauliSumOp(PrimitiveOp):
         if length > self.num_qubits:
             spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
         else:
-            spop = self.primitive
+            spop = self.primitive.copy()
 
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permu_arr = np.arange(length)[np.argsort(permutation)]

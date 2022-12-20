@@ -15,14 +15,8 @@ Parameter Class for variable parameters.
 
 from uuid import uuid4
 
+from qiskit.utils import optionals as _optionals
 from .parameterexpression import ParameterExpression
-
-try:
-    import symengine
-
-    HAS_SYMENGINE = True
-except ImportError:
-    HAS_SYMENGINE = False
 
 
 class Parameter(ParameterExpression):
@@ -81,11 +75,13 @@ class Parameter(ParameterExpression):
                 be any unicode string, e.g. "ϕ".
         """
         self._name = name
-        if not HAS_SYMENGINE:
+        if not _optionals.HAS_SYMENGINE:
             from sympy import Symbol
 
             symbol = Symbol(name)
         else:
+            import symengine
+
             symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
@@ -126,10 +122,12 @@ class Parameter(ParameterExpression):
 
     def __setstate__(self, state):
         self._name = state["name"]
-        if not HAS_SYMENGINE:
+        if not _optionals.HAS_SYMENGINE:
             from sympy import Symbol
 
             symbol = Symbol(self._name)
         else:
+            import symengine
+
             symbol = symengine.Symbol(self._name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)

@@ -107,6 +107,7 @@ class ParamShift(CircuitGradient):
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
+
         Raises:
             OpflowError: If the parameters are given in an invalid format.
 
@@ -146,6 +147,7 @@ class ParamShift(CircuitGradient):
             operator: The operator containing circuits we are taking the derivative of.
             params: The parameters (ω) we are taking the derivative with respect to. If
                     a ParameterVector is provided, each parameter will be shifted.
+
         Returns:
             param_shifted_op: An operator object which evaluates to the respective gradients.
 
@@ -205,8 +207,13 @@ class ParamShift(CircuitGradient):
 
             shifted_ops = []
             summed_shifted_op = None
-            for m, param_occurence in enumerate(circ._parameter_table[param]):
-                param_index = param_occurence[1]
+
+            iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circ.data)}
+
+            for param_reference in circ._parameter_table[param]:
+                original_gate, param_index = param_reference
+                m = iref_to_data_index[id(original_gate)]
+
                 pshift_op = deepcopy(operator)
                 mshift_op = deepcopy(operator)
 
@@ -214,8 +221,8 @@ class ParamShift(CircuitGradient):
                 pshift_circ = self.get_unique_circuits(pshift_op)[0]
                 mshift_circ = self.get_unique_circuits(mshift_op)[0]
 
-                pshift_gate = pshift_circ._parameter_table[param][m][0]
-                mshift_gate = mshift_circ._parameter_table[param][m][0]
+                pshift_gate = pshift_circ.data[m].operation
+                mshift_gate = mshift_circ.data[m].operation
 
                 p_param = pshift_gate.params[param_index]
                 m_param = mshift_gate.params[param_index]
@@ -285,7 +292,7 @@ class ParamShift(CircuitGradient):
             TypeError: if ``x`` is not DictStateFn, VectorStateFn or their list.
 
         """
-        # In the probability gradient case, the amplitudes still need to be converted
+        # Note: In the probability gradient case, the amplitudes still need to be converted
         # into sampling probabilities.
 
         def get_primitives(item):

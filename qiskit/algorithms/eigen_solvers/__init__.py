@@ -14,5 +14,6 @@
 
 from .numpy_eigen_solver import NumPyEigensolver
 from .eigen_solver import Eigensolver, EigensolverResult
+from .vqd import VQD, VQDResult
 
-__all__ = ["NumPyEigensolver", "Eigensolver", "EigensolverResult"]
+__all__ = ["NumPyEigensolver", "Eigensolver", "EigensolverResult", "VQD", "VQDResult"]

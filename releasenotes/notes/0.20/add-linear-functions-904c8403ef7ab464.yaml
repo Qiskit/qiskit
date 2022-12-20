@@ -1,0 +1,24 @@
+---
+
+features:
+  - |
+    Added a new gate class, :class:`.LinearFunction`, that efficiently encodes
+    a linear function (i.e. a function that can be represented by a sequence
+    of :class:`.CXGate` and :class:`.SwapGate` gates).
+  - |
+    Added a new transpiler pass :class:`.CollectLinearFunctions` that collects
+    blocks of consecutive :class:`.CXGate` and :class:`.SwapGate` gates in a
+    circuit, and replaces each block with a :class:`.LinearFunction` gate.
+  - |
+    Added a new transpiler pass :class:`.LinearFunctionsSynthesis`
+    that synthesizes any :class:`.LinearFunction` gates in using the
+    `Patel-Markov-Hayes algorithm <https://arxiv.org/abs/quant-ph/0302002>`__.
+    When combined with the :class:`.CollectLinearFunctions` transpiler pass
+    this enables to collect blocks of consecutive :class:`.CXGate` and
+    :class:`.SwapGate` gates in a circuit, and re-synthesize them using the
+    `Patel-Markov-Hayes algorithm <https://arxiv.org/abs/quant-ph/0302002>`__.
+  - |
+    Added a new transpiler pass :class:`.LinearFunctionsToPermutations` that
+    replaces a :class:`.LinearFunction` gate by a :class:`.Permutation` circuit
+    whenever possible.
+

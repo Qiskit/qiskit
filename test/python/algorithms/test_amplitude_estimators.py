@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,6 +27,7 @@ from qiskit.algorithms import (
     EstimationProblem,
 )
 from qiskit.quantum_info import Operator, Statevector
+from qiskit.primitives import Sampler
 
 
 class BernoulliStateIn(QuantumCircuit):
@@ -72,9 +73,9 @@ class SineIntegral(QuantumCircuit):
         self.h(qr_state)
 
         # apply the sine/cosine term
-        self.ry(2 * 1 / 2 / 2 ** num_qubits, qr_objective[0])
+        self.ry(2 * 1 / 2 / 2**num_qubits, qr_objective[0])
         for i, qubit in enumerate(qr_state):
-            self.cry(2 * 2 ** i / 2 ** num_qubits, qubit, qr_objective[0])
+            self.cry(2 * 2**i / 2**num_qubits, qubit, qr_objective[0])
 
 
 @ddt
@@ -94,12 +95,8 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             seed_simulator=2,
             seed_transpiler=2,
         )
-        self._unitary = QuantumInstance(
-            backend=BasicAer.get_backend("unitary_simulator"),
-            shots=1,
-            seed_simulator=42,
-            seed_transpiler=91,
-        )
+
+        self._sampler = Sampler(options={"seed": 2})
 
         def qasm(shots=100):
             return QuantumInstance(
@@ -110,6 +107,11 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             )
 
         self._qasm = qasm
+
+        def sampler_shots(shots=100):
+            return Sampler(options={"shots": shots, "seed": 2})
+
+        self._sampler_shots = sampler_shots
 
     @idata(
         [
@@ -130,8 +132,31 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
         problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
 
         result = qae.estimate(problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
         self._statevector.reset_execution_results()
+        for key, value in expect.items():
+            self.assertAlmostEqual(
+                value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
+            )
+
+    @idata(
+        [
+            [0.2, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.2}],
+            [0.49, AmplitudeEstimation(3), {"estimation": 0.5, "mle": 0.49}],
+            [0.2, MaximumLikelihoodAmplitudeEstimation([0, 1, 2]), {"estimation": 0.2}],
+            [0.49, MaximumLikelihoodAmplitudeEstimation(3), {"estimation": 0.49}],
+            [0.2, IterativeAmplitudeEstimation(0.1, 0.1), {"estimation": 0.2}],
+            [0.49, IterativeAmplitudeEstimation(0.001, 0.01), {"estimation": 0.49}],
+            [0.2, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.199}],
+            [0.12, FasterAmplitudeEstimation(0.1, 2, rescale=False), {"estimation": 0.12}],
+        ]
+    )
+    @unpack
+    def test_sampler(self, prob, qae, expect):
+        """sampler test"""
+        qae.sampler = self._sampler
+        problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
+
+        result = qae.estimate(problem)
         for key, value in expect.items():
             self.assertAlmostEqual(
                 value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
@@ -169,6 +194,38 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
             )
 
+    @idata(
+        [
+            [0.2, 100, AmplitudeEstimation(4), {"estimation": 0.500000, "mle": 0.562783}],
+            [0.0, 1000, AmplitudeEstimation(2), {"estimation": 0.0, "mle": 0.0}],
+            [
+                0.2,
+                100,
+                MaximumLikelihoodAmplitudeEstimation([0, 1, 2, 4, 8]),
+                {"estimation": 0.474790},
+            ],
+            [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {"estimation": 0.811711}],
+            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.199073}],
+            [
+                0.12,
+                100,
+                FasterAmplitudeEstimation(0.01, 3, rescale=False),
+                {"estimation": 0.120016},
+            ],
+        ]
+    )
+    @unpack
+    def test_sampler_with_shots(self, prob, shots, qae, expect):
+        """sampler with shots test"""
+        qae.sampler = self._sampler_shots(shots)
+        problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
+
+        result = qae.estimate(problem)
+        for key, value in expect.items():
+            self.assertAlmostEqual(
+                value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
+            )
+
     @data(True, False)
     def test_qae_circuit(self, efficient_circuit):
         """Test circuits resulting from canonical amplitude estimation.
@@ -197,7 +254,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
             if efficient_circuit:
                 qae.grover_operator = BernoulliGrover(prob)
                 for power in range(m):
-                    circuit.cry(2 * 2 ** power * angle, qr_eval[power], qr_objective[0])
+                    circuit.cry(2 * 2**power * angle, qr_eval[power], qr_objective[0])
             else:
                 oracle = QuantumCircuit(1)
                 oracle.z(0)
@@ -207,7 +264,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 grover_op = GroverOperator(oracle, state_preparation)
                 for power in range(m):
                     circuit.compose(
-                        grover_op.power(2 ** power).control(),
+                        grover_op.power(2**power).control(),
                         qubits=[qr_eval[power], qr_objective[0]],
                         inplace=True,
                     )
@@ -286,7 +343,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                 # Q^(2^j) operator
                 if efficient_circuit:
                     qae.grover_operator = BernoulliGrover(prob)
-                    circuit.ry(2 * 2 ** power * angle, q_objective[0])
+                    circuit.ry(2 * 2**power * angle, q_objective[0])
 
                 else:
                     oracle = QuantumCircuit(1)
@@ -294,7 +351,7 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
                     state_preparation = QuantumCircuit(1)
                     state_preparation.ry(angle, 0)
                     grover_op = GroverOperator(oracle, state_preparation)
-                    for _ in range(2 ** power):
+                    for _ in range(2**power):
                         circuit.compose(grover_op, inplace=True)
                 circuits += [circuit]
 
@@ -322,6 +379,8 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
             seed_transpiler=41,
         )
 
+        self._sampler = Sampler(options={"seed": 123})
+
         def qasm(shots=100):
             return QuantumInstance(
                 backend=BasicAer.get_backend("qasm_simulator"),
@@ -331,6 +390,11 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
             )
 
         self._qasm = qasm
+
+        def sampler_shots(shots=100):
+            return Sampler(options={"shots": shots, "seed": 7192})
+
+        self._sampler_shots = sampler_shots
 
     @idata(
         [
@@ -350,8 +414,29 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # result = qae.run(self._statevector)
         result = qae.estimate(estimation_problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
         self._statevector.reset_execution_results()
+        for key, value in expect.items():
+            self.assertAlmostEqual(
+                value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
+            )
+
+    @idata(
+        [
+            [2, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.270290}],
+            [4, MaximumLikelihoodAmplitudeEstimation(4), {"estimation": 0.0}],
+            [3, IterativeAmplitudeEstimation(0.1, 0.1), {"estimation": 0.0}],
+            [3, FasterAmplitudeEstimation(0.01, 1), {"estimation": 0.017687}],
+        ]
+    )
+    @unpack
+    def test_sampler(self, n, qae, expect):
+        """sampler end-to-end test"""
+        # construct factories for A and Q
+        # qae.state_preparation = SineIntegral(n)
+        qae.sampler = self._sampler
+        estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
+
+        result = qae.estimate(estimation_problem)
         for key, value in expect.items():
             self.assertAlmostEqual(
                 value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
@@ -370,6 +455,27 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         """QASM simulator end-to-end test."""
         # construct factories for A and Q
         qae.quantum_instance = self._qasm(shots)
+        estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
+
+        result = qae.estimate(estimation_problem)
+        for key, value in expect.items():
+            self.assertAlmostEqual(
+                value, getattr(result, key), places=3, msg=f"estimate `{key}` failed"
+            )
+
+    @idata(
+        [
+            [4, 10, AmplitudeEstimation(2), {"estimation": 0.0, "mle": 0.0}],
+            [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {"estimation": 0.0}],
+            [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {"estimation": 0.0}],
+            [3, 1000, FasterAmplitudeEstimation(0.1, 4), {"estimation": 0.000551}],
+        ]
+    )
+    @unpack
+    def test_sampler_with_shots(self, n, shots, qae, expect):
+        """Sampler with shots end-to-end test."""
+        # construct factories for A and Q
+        qae.sampler = self._sampler_shots(shots)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         result = qae.estimate(estimation_problem)
@@ -409,7 +515,6 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # statevector simulator
         result = qae.estimate(estimation_problem)
-        self.assertGreater(self._statevector.time_taken, 0.0)
         self._statevector.reset_execution_results()
         methods = ["lr", "fi", "oi"]  # short for likelihood_ratio, fisher, observed_fisher
         alphas = [0.1, 0.00001, 0.9]  # alpha shouldn't matter in statevector
@@ -438,7 +543,6 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # statevector simulator
         result = qae.estimate(estimation_problem)
-        self.assertGreaterEqual(self._statevector.time_taken, 0.0)
         self._statevector.reset_execution_results()
         confint = result.confidence_interval
         # confidence interval based on statevector should be empty, as we are sure of the result
@@ -457,6 +561,10 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 @ddt
 class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
     """Specific tests for Faster AE."""
+
+    def setUp(self):
+        super().setUp()
+        self._sampler = Sampler(options={"seed": 2})
 
     def test_rescaling(self):
         """Test the rescaling."""
@@ -488,6 +596,28 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
         # assert the result is correct
         self.assertAlmostEqual(result.estimation, prob)
+
+        # assert no rescaling was used
+        theta = np.mean(result.theta_intervals[-1])
+        value_without_scaling = np.sin(theta) ** 2
+        self.assertAlmostEqual(result.estimation, value_without_scaling)
+
+    def test_sampler_run_without_rescaling(self):
+        """Run Faster AE without rescaling if the amplitude is in [0, 1/4]."""
+        # construct estimation problem
+        prob = 0.11
+        a_op = QuantumCircuit(1)
+        a_op.ry(2 * np.arcsin(np.sqrt(prob)), 0)
+        problem = EstimationProblem(a_op, objective_qubits=[0])
+
+        # construct algo without rescaling
+        fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, sampler=self._sampler)
+
+        # run the algo
+        result = fae.estimate(problem)
+
+        # assert the result is correct
+        self.assertAlmostEqual(result.estimation, prob, places=2)
 
         # assert no rescaling was used
         theta = np.mean(result.theta_intervals[-1])

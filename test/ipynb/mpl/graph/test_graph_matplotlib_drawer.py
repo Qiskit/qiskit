@@ -18,14 +18,14 @@ import json
 import os
 from contextlib import contextmanager
 
-from qiskit.visualization.state_visualization import state_drawer
 from qiskit import BasicAer, execute
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
-from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.utils import optionals
+from qiskit.visualization.state_visualization import state_drawer
 from qiskit.visualization.counts_visualization import plot_histogram
 from qiskit.visualization.gate_map import plot_gate_map, plot_coupling_map
-from qiskit.test.mock.fake_provider import (
+from qiskit.providers.fake_provider import (
     FakeArmonk,
     FakeBelem,
     FakeCasablanca,
@@ -34,7 +34,7 @@ from qiskit.test.mock.fake_provider import (
     FakeManhattan,
 )
 
-if HAS_MATPLOTLIB:
+if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
 else:
     raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
@@ -170,6 +170,19 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         counts = {"11": 500, "00": 500}
 
         self.graph_count_drawer(counts, filename="histogram.png")
+
+    def test_plot_histogram_with_rest(self):
+        """test plot_histogram with 2 datasets and number_to_keep"""
+        data = [{"00": 3, "01": 5, "10": 6, "11": 12}]
+        self.graph_count_drawer(data, number_to_keep=2, filename="histogram_with_rest.png")
+
+    def test_plot_histogram_2_sets_with_rest(self):
+        """test plot_histogram with 2 datasets and number_to_keep"""
+        data = [
+            {"00": 3, "01": 5, "10": 6, "11": 12},
+            {"00": 5, "01": 7, "10": 6, "11": 12},
+        ]
+        self.graph_count_drawer(data, number_to_keep=2, filename="histogram_2_sets_with_rest.png")
 
     def test_plot_histogram_color(self):
         """Test histogram with single color"""

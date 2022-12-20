@@ -25,6 +25,9 @@ from qiskit.circuit.quantumregister import QuantumRegister
 class YGate(Gate):
     r"""The single-qubit Pauli-Y gate (:math:`\sigma_y`).
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.y` method.
+
     **Matrix Representation:**
 
     .. math::
@@ -111,13 +114,16 @@ class YGate(Gate):
         r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the Y gate."""
         return numpy.array([[0, -1j], [1j, 0]], dtype=dtype)
 
 
 class CYGate(ControlledGate):
     r"""Controlled-Y gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cy` method.
 
     **Circuit symbol:**
 

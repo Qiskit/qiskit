@@ -11,6 +11,9 @@
 # that they have been altered from the originals.
 
 r"""
+
+.. _pulse_builder:
+
 =============
 Pulse Builder
 =============
@@ -77,7 +80,7 @@ Pulse programming has a simple imperative style. This leaves the programmer
 to worry about the raw experimental physics of pulse programming and not
 constructing cumbersome data structures.
 
-We can optionally pass a :class:`~qiskit.providers.BaseBackend` to
+We can optionally pass a :class:`~qiskit.providers.Backend` to
 :func:`build` to enable enhanced functionality. Below, we prepare a Bell state
 by automatically compiling the required pulses from their gate-level
 representations, while simultaneously applying a long decoupling pulse to a
@@ -90,7 +93,7 @@ automatically lowered to be run as a pulse program:
     import math
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeOpenPulse3Q
+    from qiskit.providers.fake_provider import FakeOpenPulse3Q
 
     # TODO: This example should use a real mock backend.
     backend = FakeOpenPulse3Q()
@@ -124,7 +127,7 @@ In the example below we demonstrate some more features of the pulse builder:
 
     from qiskit import pulse, QuantumCircuit
     from qiskit.pulse import library
-    from qiskit.test.mock import FakeOpenPulse2Q
+    from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
     backend = FakeOpenPulse2Q()
 
@@ -240,7 +243,7 @@ Methods to return the correct channels for the respective qubit indices.
 .. jupyter-execute::
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -266,7 +269,7 @@ Pulse instructions are available within the builder interface. Here's an example
 .. jupyter-execute::
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -299,6 +302,7 @@ Pulse instructions are available within the builder interface. Here's an example
     call
     delay
     play
+    reference
     set_frequency
     set_phase
     shift_frequency
@@ -339,8 +343,6 @@ be used to align all pulses as late as possible in a pulse program.
     align_sequential
     circuit_scheduler_settings
     frequency_offset
-    inline
-    pad
     phase_offset
     transpiler_settings
 
@@ -353,7 +355,7 @@ Macros help you add more complex functionality to your pulse program.
 .. jupyter-execute::
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -385,7 +387,7 @@ with :func:`call`.
     import math
 
     from qiskit import pulse
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -412,7 +414,7 @@ how the program is built.
 
     from qiskit import pulse
 
-    from qiskit.test.mock import FakeArmonk
+    from qiskit.providers.fake_provider import FakeArmonk
 
     backend = FakeArmonk()
 
@@ -442,6 +444,8 @@ import collections
 import contextvars
 import functools
 import itertools
+import sys
+import uuid
 import warnings
 from contextlib import contextmanager
 from typing import (
@@ -473,11 +477,16 @@ from qiskit.pulse import (
     macros,
     library,
     transforms,
-    utils,
 )
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
+
+if sys.version_info >= (3, 8):
+    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+else:
+    from singledispatchmethod import singledispatchmethod
+
 
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
@@ -543,7 +552,7 @@ class _PulseBuilder:
             duplication.
 
         Args:
-            backend (Union[Backend, BaseBackend]): Input backend to use in
+            backend (Backend): Input backend to use in
                 builder. If not set certain functionality will be unavailable.
             block: Initital ``ScheduleBlock`` to build on.
             name: Name of pulse program to be built.
@@ -557,7 +566,7 @@ class _PulseBuilder:
         Raises:
             PulseError: When invalid ``default_alignment`` or `block` is specified.
         """
-        #: BaseBackend: Backend instance for context builder.
+        #: Backend: Backend instance for context builder.
         self._backend = backend
 
         #: Union[None, ContextVar]: Token for this ``_PulseBuilder``'s ``ContextVar``.
@@ -583,8 +592,7 @@ class _PulseBuilder:
             if isinstance(block, ScheduleBlock):
                 root_block = block
             elif isinstance(block, Schedule):
-                root_block = ScheduleBlock()
-                root_block.append(instructions.Call(subroutine=block))
+                root_block = self._naive_typecast_schedule(block)
             else:
                 raise exceptions.PulseError(
                     f"Input `block` type {block.__class__.__name__} is "
@@ -627,7 +635,7 @@ class _PulseBuilder:
         """Returns the builder backend if set.
 
         Returns:
-            Optional[Union[Backend, BaseBackend]]: The builder's backend.
+            Optional[Backend]: The builder's backend.
         """
         return self._backend
 
@@ -648,7 +656,7 @@ class _PulseBuilder:
         """Get current context.
 
         Notes:
-            New instruction can be added by `.append_block` or `.append_instruction` method.
+            New instruction can be added by `.append_subroutine` or `.append_instruction` method.
             Use above methods rather than directly accessing to the current context.
         """
         return self._context_stack[-1]
@@ -690,7 +698,7 @@ class _PulseBuilder:
 
         while len(self._context_stack) > 1:
             current = self.pop_context()
-            self.append_block(current)
+            self.append_subroutine(current)
 
         return self._context_stack[0]
 
@@ -704,7 +712,7 @@ class _PulseBuilder:
             lazy_circuit = self._lazy_circuit
             # reset lazy circuit
             self._lazy_circuit = self._new_circuit()
-            self.call_subroutine(subroutine=self._compile_circuit(lazy_circuit))
+            self.call_subroutine(self._compile_circuit(lazy_circuit))
 
     def _compile_circuit(self, circ) -> Schedule:
         """Take a QuantumCircuit and output the pulse schedule associated with the circuit."""
@@ -729,17 +737,42 @@ class _PulseBuilder:
         """
         self._context_stack[-1].append(instruction)
 
-    @_compile_lazy_circuit_before
-    def append_block(self, context_block: ScheduleBlock):
-        """Add a :class:`ScheduleBlock` to the builder's context schedule.
+    def append_reference(self, name: str, *extra_keys: str):
+        """Add external program as a :class:`~qiskit.pulse.instructions.Reference` instruction.
 
         Args:
-            context_block: ScheduleBlock to append to the current context block.
+            name: Name of subroutine.
+            extra_keys: Assistance keys to uniquely specify the subroutine.
         """
-        # ignore empty context
-        if len(context_block) > 0:
-            self._context_stack[-1].append(context_block)
+        inst = instructions.Reference(name, *extra_keys)
+        self.append_instruction(inst)
 
+    @_compile_lazy_circuit_before
+    def append_subroutine(self, subroutine: Union[Schedule, ScheduleBlock]):
+        """Append a :class:`ScheduleBlock` to the builder's context schedule.
+
+        This operation doesn't create a reference. Subroutine is directly
+        appended to current context schedule.
+
+        Args:
+            subroutine: ScheduleBlock to append to the current context block.
+
+        Raises:
+            PulseError: When subroutine is not Schedule nor ScheduleBlock.
+        """
+        if not isinstance(subroutine, (ScheduleBlock, Schedule)):
+            raise exceptions.PulseError(
+                f"'{subroutine.__class__.__name__}' is not valid data format in the builder. "
+                "'Schedule' and 'ScheduleBlock' can be appended to the builder context."
+            )
+
+        if len(subroutine) == 0:
+            return
+        if isinstance(subroutine, Schedule):
+            subroutine = self._naive_typecast_schedule(subroutine)
+        self._context_stack[-1].append(subroutine)
+
+    @singledispatchmethod
     def call_subroutine(
         self,
         subroutine: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
@@ -751,7 +784,7 @@ class _PulseBuilder:
 
         The ``subroutine`` is appended to the context schedule as a call instruction.
         This logic just generates a convenient program representation in the compiler.
-        Thus this doesn't affect execution of inline subroutines.
+        Thus, this doesn't affect execution of inline subroutines.
         See :class:`~pulse.instructions.Call` for more details.
 
         Args:
@@ -766,46 +799,95 @@ class _PulseBuilder:
 
         Raises:
             PulseError:
-                - When specified parameter is not contained in the subroutine
                 - When input subroutine is not valid data format.
         """
-        if isinstance(subroutine, circuit.QuantumCircuit):
-            self._compile_lazy_circuit()
-            subroutine = self._compile_circuit(subroutine)
+        raise exceptions.PulseError(
+            f"Subroutine type {subroutine.__class__.__name__} is "
+            "not valid data format. Call QuantumCircuit, "
+            "Schedule, or ScheduleBlock."
+        )
 
-        empty_subroutine = True
-        if isinstance(subroutine, Schedule):
-            if len(subroutine.instructions) > 0:
-                empty_subroutine = False
-        elif isinstance(subroutine, ScheduleBlock):
-            if len(subroutine.blocks) > 0:
-                empty_subroutine = False
+    @call_subroutine.register
+    def _(
+        self,
+        target_block: ScheduleBlock,
+        name: Optional[str] = None,
+        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        **kw_params: ParameterValueType,
+    ):
+        if len(target_block) == 0:
+            return
+
+        # Create local parameter assignment
+        local_assignment = dict()
+        for param_name, value in kw_params.items():
+            params = target_block.get_parameters(param_name)
+            if not params:
+                raise exceptions.PulseError(
+                    f"Parameter {param_name} is not defined in the target subroutine. "
+                    f'{", ".join(map(str, target_block.parameters))} can be specified.'
+                )
+            for param in params:
+                local_assignment[param] = value
+
+        if value_dict:
+            if local_assignment.keys() & value_dict.keys():
+                warnings.warn(
+                    "Some parameters provided by 'value_dict' conflict with one through "
+                    "keyword arguments. Parameter values in the keyword arguments "
+                    "are overridden by the dictionary values.",
+                    UserWarning,
+                )
+            local_assignment.update(value_dict)
+
+        if local_assignment:
+            target_block = target_block.assign_parameters(local_assignment, inplace=False)
+
+        if name is None:
+            # Add unique string, not to accidentally override existing reference entry.
+            keys = (target_block.name, uuid.uuid4().hex)
         else:
-            raise exceptions.PulseError(
-                f"Subroutine type {subroutine.__class__.__name__} is "
-                "not valid data format. Call QuantumCircuit, "
-                "Schedule, or ScheduleBlock."
-            )
+            keys = (name,)
 
-        if not empty_subroutine:
-            param_value_map = {}
-            for param_name, assigned_value in kw_params.items():
-                param_objs = subroutine.get_parameters(param_name)
-                if len(param_objs) > 0:
-                    for param_obj in param_objs:
-                        param_value_map[param_obj] = assigned_value
-                else:
-                    raise exceptions.PulseError(
-                        f"Parameter {param_name} is not defined in the target subroutine. "
-                        f'{", ".join(map(str, subroutine.parameters))} can be specified.'
-                    )
+        self.append_reference(*keys)
+        self.get_context().assign_references({keys: target_block}, inplace=True)
 
-            if value_dict:
-                param_value_map.update(value_dict)
+    @call_subroutine.register
+    def _(
+        self,
+        target_schedule: Schedule,
+        name: Optional[str] = None,
+        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        **kw_params: ParameterValueType,
+    ):
+        if len(target_schedule) == 0:
+            return
 
-            call_def = instructions.Call(subroutine, param_value_map, name)
+        self.call_subroutine(
+            self._naive_typecast_schedule(target_schedule),
+            name=name,
+            value_dict=value_dict,
+            **kw_params,
+        )
 
-            self.append_instruction(call_def)
+    @call_subroutine.register
+    def _(
+        self,
+        target_circuit: circuit.QuantumCircuit,
+        name: Optional[str] = None,
+        value_dict: Optional[Dict[ParameterExpression, ParameterValueType]] = None,
+        **kw_params: ParameterValueType,
+    ):
+        if len(target_circuit) == 0:
+            return
+
+        self._compile_lazy_circuit()
+        self.call_subroutine(
+            self._compile_circuit(target_circuit),
+            name=name,
+            value_dict=value_dict,
+            **kw_params,
+        )
 
     @_requires_backend
     def call_gate(self, gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
@@ -844,6 +926,21 @@ class _PulseBuilder:
 
         self._lazy_circuit.append(gate, qargs=qargs)
 
+    @staticmethod
+    def _naive_typecast_schedule(schedule: Schedule):
+        # Naively convert into ScheduleBlock
+        from qiskit.pulse.transforms import inline_subroutines, flatten, pad
+
+        preprocessed_schedule = inline_subroutines(flatten(schedule))
+        pad(preprocessed_schedule, inplace=True, pad_with=instructions.TimeBlockade)
+
+        # default to left alignment, namely ASAP scheduling
+        target_block = ScheduleBlock(name=schedule.name)
+        for _, inst in preprocessed_schedule.instructions:
+            target_block.append(inst, inplace=True)
+
+        return target_block
+
 
 def build(
     backend=None,
@@ -860,7 +957,7 @@ def build(
     .. jupyter-execute::
 
         from qiskit import execute, pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -879,7 +976,7 @@ def build(
         qiskit.execute(pulse_prog, backend)
 
     Args:
-        backend (Union[Backend, BaseBackend]): A Qiskit backend. If not supplied certain
+        backend (Backend): A Qiskit backend. If not supplied certain
             builder functionality will be unavailable.
         schedule: A pulse ``ScheduleBlock`` in which your pulse program will be built.
         name: Name of pulse program to be built.
@@ -929,7 +1026,7 @@ def active_backend():
     """Get the backend of the currently active builder context.
 
     Returns:
-        Union[Backend, BaseBackend]: The active backend in the currently active
+        Backend: The active backend in the currently active
             builder context.
 
     Raises:
@@ -947,21 +1044,9 @@ def append_schedule(schedule: Union[Schedule, ScheduleBlock]):
     """Call a schedule by appending to the active builder's context block.
 
     Args:
-        schedule: Schedule to append.
-
-    Raises:
-        PulseError: When input `schedule` is invalid data format.
+        schedule: Schedule or ScheduleBlock to append.
     """
-    if isinstance(schedule, Schedule):
-        _active_builder().append_instruction(instructions.Call(subroutine=schedule))
-    elif isinstance(schedule, ScheduleBlock):
-        _active_builder().append_block(schedule)
-    else:
-        raise exceptions.PulseError(
-            f"Input program {schedule.__class__.__name__} is not "
-            "acceptable program format. Input `Schedule` or "
-            "`ScheduleBlock`."
-        )
+    _active_builder().append_subroutine(schedule)
 
 
 def append_instruction(instruction: instructions.Instruction):
@@ -991,7 +1076,7 @@ def num_qubits() -> int:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1041,7 +1126,7 @@ def qubit_channels(qubit: int) -> Set[chans.Channel]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1080,7 +1165,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1102,7 +1187,7 @@ def active_circuit_scheduler_settings() -> Dict[str, Any]:  # pylint: disable=in
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1155,7 +1240,7 @@ def align_left() -> ContextManager[None]:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1193,7 +1278,7 @@ def align_right() -> AlignmentKind:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1231,7 +1316,7 @@ def align_sequential() -> AlignmentKind:
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1282,7 +1367,7 @@ def align_equispaced(duration: Union[int, ParameterExpression]) -> AlignmentKind
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1343,7 +1428,7 @@ def align_func(
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1369,63 +1454,7 @@ def general_transforms(alignment_context: AlignmentKind) -> ContextManager[None]
         yield
     finally:
         current = builder.pop_context()
-        builder.append_block(current)
-
-
-@utils.deprecated_functionality
-@contextmanager
-def inline() -> ContextManager[None]:
-    """Deprecated. Inline all instructions within this context into the parent context,
-    inheriting the scheduling policy of the parent context.
-
-    .. warning:: This will cause all scheduling directives within this context
-        to be ignored.
-    """
-
-    def _flatten(block):
-        for inst in block.blocks:
-            if isinstance(inst, ScheduleBlock):
-                yield from _flatten(inst)
-            else:
-                yield inst
-
-    builder = _active_builder()
-
-    # set a placeholder
-    builder.push_context(transforms.AlignLeft())
-    try:
-        yield
-    finally:
-        placeholder = builder.pop_context()
-        for inst in _flatten(placeholder):
-            builder.append_instruction(inst)
-
-
-@contextmanager
-def pad(*chs: chans.Channel) -> ContextManager[None]:  # pylint: disable=unused-argument
-    """Deprecated. Pad all available timeslots with delays upon exiting context.
-
-    Args:
-        chs: Channels to pad with delays. Defaults to all channels in context
-            if none are supplied.
-
-    Yields:
-        None
-    """
-    warnings.warn(
-        "Context-wise padding is being deprecated. Requested padding is being ignored. "
-        "Now the pulse builder generate a program in `ScheduleBlock` representation. "
-        "The padding with delay as a blocker is no longer necessary for this program. "
-        "However, if you still want delays, you can convert the output program "
-        "into `Schedule` representation by calling "
-        "`qiskit.pulse.transforms.target_qobj_transform`. Then, you can apply "
-        "`qiskit.pulse.transforms.pad` to the converted schedule. ",
-        DeprecationWarning,
-    )
-    try:
-        yield
-    finally:
-        pass
+        builder.append_subroutine(current)
 
 
 @contextmanager
@@ -1437,7 +1466,7 @@ def transpiler_settings(**settings) -> ContextManager[None]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1464,7 +1493,7 @@ def circuit_scheduler_settings(**settings) -> ContextManager[None]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1592,7 +1621,7 @@ def drive_channel(qubit: int) -> chans.DriveChannel:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1612,7 +1641,7 @@ def measure_channel(qubit: int) -> chans.MeasureChannel:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1632,7 +1661,7 @@ def acquire_channel(qubit: int) -> chans.AcquireChannel:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -1655,7 +1684,7 @@ def control_channels(*qubits: Iterable[int]) -> List[chans.ControlChannel]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
         with pulse.build(backend):
@@ -1739,18 +1768,17 @@ def acquire(
 
         from qiskit import pulse
 
-        d0 = pulse.MeasureChannel(0)
+        acq0 = pulse.AcquireChannel(0)
         mem0 = pulse.MemorySlot(0)
 
         with pulse.build() as pulse_prog:
-            pulse.acquire(100, d0, mem0)
+            pulse.acquire(100, acq0, mem0)
 
             # measurement metadata
             kernel = pulse.configuration.Kernel('linear_discriminator')
-            pulse.acquire(100, d0, mem0, kernel=kernel)
+            pulse.acquire(100, acq0, mem0, kernel=kernel)
 
-    .. note:: The type of data acquire will depend on the execution
-        ``meas_level``.
+    .. note:: The type of data acquire will depend on the execution ``meas_level``.
 
     Args:
         duration: Duration to acquire data for
@@ -1892,89 +1920,158 @@ def snapshot(label: str, snapshot_type: str = "statevector"):
 
 
 def call(
-    target: Union[circuit.QuantumCircuit, Schedule, ScheduleBlock],
+    target: Optional[Union[circuit.QuantumCircuit, Schedule, ScheduleBlock]],
     name: Optional[str] = None,
     value_dict: Optional[Dict[ParameterValueType, ParameterValueType]] = None,
     **kw_params: ParameterValueType,
 ):
-    """Call the ``target`` within the currently active builder context with arbitrary
+    """Call the subroutine within the currently active builder context with arbitrary
     parameters which will be assigned to the target program.
 
     .. note::
-        The ``target`` program is inserted as a ``Call`` instruction.
-        This instruction defines a subroutine. See :class:`~qiskit.pulse.instructions.Call`
-        for more details.
+
+        If the ``target`` program is a :class:`.ScheduleBlock`, then a :class:`.Reference`
+        instruction will be created and appended to the current context.
+        The ``target`` program will be immediately assigned to the current scope as a subroutine.
+        If the ``target`` program is :class:`.Schedule`, it will be wrapped by the
+        :class:`.Call` instruction and appended to the current context to avoid
+        a mixed representation of :class:`.ScheduleBlock` and :class:`.Schedule`.
+        If the ``target`` program is a :class:`.QuantumCircuit` it will be scheduled
+        and the new :class:`.Schedule` will be added as a :class:`.Call` instruction.
 
     Examples:
 
-    .. code-block:: python
+        1. Calling a schedule block (recommended)
 
-        from qiskit import circuit, pulse, schedule, transpile
-        from qiskit.test.mock import FakeOpenPulse2Q
+        .. jupyter-execute::
 
-        backend = FakeOpenPulse2Q()
+            from qiskit import circuit, pulse
+            from qiskit.providers.fake_provider import FakeBogotaV2
 
-        qc = circuit.QuantumCircuit(2)
-        qc.cx(0, 1)
-        qc_transpiled = transpile(qc, optimization_level=3)
-        sched = schedule(qc_transpiled, backend)
+            backend = FakeBogotaV2()
 
-        with pulse.build(backend) as pulse_prog:
-                pulse.call(sched)
+            with pulse.build() as x_sched:
+                pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+            with pulse.build() as pulse_prog:
+                pulse.call(x_sched)
+
+            print(pulse_prog)
+
+        The actual program is stored in the reference table attached to the schedule.
+
+        .. jupyter-execute::
+
+            print(pulse_prog.references)
+
+        In addition, you can call a parameterized target program with parameter assignment.
+
+        .. jupyter-execute::
+
+            amp = circuit.Parameter("amp")
+
+            with pulse.build() as subroutine:
+                pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
+
+            with pulse.build() as pulse_prog:
+                pulse.call(subroutine, amp=0.1)
+                pulse.call(subroutine, amp=0.3)
+
+            print(pulse_prog)
+
+        If there is a name collision between parameters, you can distinguish them by specifying
+        each parameter object in a python dictionary. For example,
+
+        .. jupyter-execute::
+
+            amp1 = circuit.Parameter('amp')
+            amp2 = circuit.Parameter('amp')
+
+            with pulse.build() as subroutine:
+                pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
+                pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(1))
+
+            with pulse.build() as pulse_prog:
+                pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.3})
+
+            print(pulse_prog)
+
+        2. Calling a schedule
+
+        .. jupyter-execute::
+
+            x_sched = backend.instruction_schedule_map.get("x", (0,))
+
+            with pulse.build(backend) as pulse_prog:
+                pulse.call(x_sched)
+
+            print(pulse_prog)
+
+        Currently, the backend calibrated gates are provided in the form of :class:`~.Schedule`.
+        The parameter assignment mechanism is available also for schedules.
+        However, the called schedule is not treated as a reference.
+
+        3. Calling a quantum circuit
+
+        .. jupyter-execute::
+
+            backend = FakeBogotaV2()
+
+            qc = circuit.QuantumCircuit(1)
+            qc.x(0)
+
+            with pulse.build(backend) as pulse_prog:
                 pulse.call(qc)
 
-    This function can optionally take parameter dictionary with the parameterized target program.
+            print(pulse_prog)
 
-    .. code-block:: python
+        .. warning::
 
-        from qiskit import circuit, pulse
-
-        amp = circuit.Parameter('amp')
-
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp, 40), pulse.DriveChannel(0))
-
-        with pulse.build() as main_prog:
-            pulse.call(subroutine, amp=0.1)
-            pulse.call(subroutine, amp=0.3)
-
-    If there is any parameter name collision, you can distinguish them by specifying
-    each parameter object as a python dictionary. Otherwise ``amp1`` and ``amp2`` will be
-    updated with the same value.
-
-    .. code-block:: python
-
-        from qiskit import circuit, pulse
-
-        amp1 = circuit.Parameter('amp')
-        amp2 = circuit.Parameter('amp')
-
-        with pulse.build() as subroutine:
-            pulse.play(pulse.Gaussian(160, amp1, 40), pulse.DriveChannel(0))
-            pulse.play(pulse.Gaussian(160, amp2, 40), pulse.DriveChannel(1))
-
-        with pulse.build() as main_prog:
-            pulse.call(subroutine, value_dict={amp1: 0.1, amp2: 0.2})
+            Calling a circuit from a schedule is not encouraged. Currently, the Qiskit execution model
+            is migrating toward the pulse gate model, where schedules are attached to
+            circuits through the :meth:`.QuantumCircuit.add_calibration` method.
 
     Args:
         target: Target circuit or pulse schedule to call.
-        name: Name of subroutine if defined.
-        value_dict: Parameter object and assigned value mapping. This is more precise way to
-            identify a parameter since mapping is managed with unique object id rather than
-            name. Especially there is any name collision in a parameter table.
-        kw_params: Parameter values to bind to the target subroutine
-            with string parameter names. If there are parameter name overlapping,
-            these parameters are updated with the same assigned value.
-
-    Raises:
-        exceptions.PulseError: If the input ``target`` type is not supported.
+        name: Optional. A unique name of subroutine if defined. When the name is explicitly
+            provided, one cannot call different schedule blocks with the same name.
+        value_dict: Optional. Parameters assigned to the ``target`` program.
+            If this dictionary is provided, the ``target`` program is copied and
+            then stored in the main built schedule and its parameters are assigned to the given values.
+            This dictionary is keyed on :class:`~.Parameter` objects,
+            allowing parameter name collision to be avoided.
+        kw_params: Alternative way to provide parameters.
+            Since this is keyed on the string parameter name,
+            the parameters having the same name are all updated together.
+            If you want to avoid name collision, use ``value_dict`` with :class:`~.Parameter`
+            objects instead.
     """
-    if not isinstance(target, (circuit.QuantumCircuit, Schedule, ScheduleBlock)):
-        raise exceptions.PulseError(
-            f'Target of type "{target.__class__.__name__}" is not supported.'
-        )
-
     _active_builder().call_subroutine(target, name, value_dict, **kw_params)
+
+
+def reference(name: str, *extra_keys: str):
+    """Refer to undefined subroutine by string keys.
+
+    A :class:`~qiskit.pulse.instructions.Reference` instruction is implicitly created
+    and a schedule can be separately registered to the reference at a later stage.
+
+    .. code-block:: python
+
+        from qiskit import pulse
+
+        with pulse.build() as main_prog:
+            pulse.reference("x_gate", "q0")
+
+        with pulse.build() as subroutine:
+            pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+        main_prog.assign_references(subroutine_dict={("x_gate", "q0"): subroutine})
+
+    Args:
+        name: Name of subroutine.
+        extra_keys: Helper keys to uniquely specify the subroutine.
+    """
+    _active_builder().append_reference(name, *extra_keys)
 
 
 # Directives
@@ -1991,7 +2088,7 @@ def barrier(*channels_or_qubits: Union[chans.Channel, int], name: Optional[str] 
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2130,7 +2227,7 @@ def measure(
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2191,7 +2288,10 @@ def measure(
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
-    _active_builder().call_subroutine(measure_sched)
+    # prepare unique reference name based on qubit and memory slot index.
+    qubits_repr = "&".join(map(str, qubits))
+    mslots_repr = "&".join(map(lambda r: str(r.index), registers))
+    _active_builder().call_subroutine(measure_sched, name=f"measure_{qubits_repr}..{mslots_repr}")
 
     if len(qubits) == 1:
         return registers[0]
@@ -2211,7 +2311,7 @@ def measure_all() -> List[chans.MemorySlot]:
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2237,7 +2337,7 @@ def measure_all() -> List[chans.MemorySlot]:
 
     # note this is not a subroutine.
     # just a macro to automate combination of stimulus and acquisition.
-    _active_builder().call_subroutine(measure_sched)
+    _active_builder().call_subroutine(measure_sched, name="measure_all")
 
     return registers
 
@@ -2251,7 +2351,7 @@ def delay_qubits(duration: int, *qubits: Union[int, Iterable[int]]):
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse3Q
+        from qiskit.providers.fake_provider import FakeOpenPulse3Q
 
         backend = FakeOpenPulse3Q()
 
@@ -2292,7 +2392,7 @@ def call_gate(gate: circuit.Gate, qubits: Tuple[int, ...], lazy: bool = True):
         from qiskit import pulse
         from qiskit.pulse import builder
         from qiskit.circuit.library import standard_gates as gates
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2343,7 +2443,7 @@ def cx(control: int, target: int):  # pylint: disable=invalid-name
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2370,7 +2470,7 @@ def u1(theta: float, qubit: int):  # pylint: disable=invalid-name
         import math
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2397,7 +2497,7 @@ def u2(phi: float, lam: float, qubit: int):  # pylint: disable=invalid-name
         import math
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2424,7 +2524,7 @@ def u3(theta: float, phi: float, lam: float, qubit: int):  # pylint: disable=inv
         import math
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 
@@ -2449,7 +2549,7 @@ def x(qubit: int):
     .. jupyter-execute::
 
         from qiskit import pulse
-        from qiskit.test.mock import FakeOpenPulse2Q
+        from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
         backend = FakeOpenPulse2Q()
 

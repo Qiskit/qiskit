@@ -14,153 +14,39 @@
 """Tests for error mitigation routines."""
 
 import unittest
+from collections import Counter
+
 import numpy as np
-from numpy import array
-from ddt import ddt, data, unpack
-from qiskit import QiskitError
-from qiskit.test import QiskitTestCase
-from qiskit.result import Counts
-from qiskit.result import CorrelatedReadoutMitigator
-from qiskit.result import LocalReadoutMitigator
+
+from qiskit import QiskitError, QuantumCircuit
+from qiskit.quantum_info import Statevector
+from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.result import (
+    CorrelatedReadoutMitigator,
+    Counts,
+    LocalReadoutMitigator,
+)
 from qiskit.result.mitigation.utils import (
-    z_diagonal,
     counts_probability_vector,
-    str2diag,
     expval_with_stddev,
     stddev,
+    str2diag,
 )
-from qiskit.test.mock import FakeYorktown
-from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.result.utils import marginal_counts
+from qiskit.test import QiskitTestCase
+from qiskit.providers.fake_provider import FakeYorktown
 
 
-@ddt
 class TestReadoutMitigation(QiskitTestCase):
     """Tests for correlated and local readout mitigation."""
 
-    test_data = {
-        "test_1": {
-            "local_method_matrices": [
-                array([[0.996525, 0.002], [0.003475, 0.998]]),
-                array([[0.991175, 0.00415], [0.008825, 0.99585]]),
-                array([[0.9886, 0.00565], [0.0114, 0.99435]]),
-            ],
-            "correlated_method_matrix": array(
-                [
-                    [
-                        9.771e-01,
-                        1.800e-03,
-                        4.600e-03,
-                        0.000e00,
-                        5.600e-03,
-                        0.000e00,
-                        0.000e00,
-                        0.000e00,
-                    ],
-                    [
-                        3.200e-03,
-                        9.799e-01,
-                        0.000e00,
-                        3.400e-03,
-                        0.000e00,
-                        5.800e-03,
-                        0.000e00,
-                        1.000e-04,
-                    ],
-                    [
-                        8.000e-03,
-                        0.000e00,
-                        9.791e-01,
-                        2.400e-03,
-                        1.000e-04,
-                        0.000e00,
-                        5.700e-03,
-                        0.000e00,
-                    ],
-                    [
-                        0.000e00,
-                        8.300e-03,
-                        3.200e-03,
-                        9.834e-01,
-                        0.000e00,
-                        0.000e00,
-                        0.000e00,
-                        5.300e-03,
-                    ],
-                    [
-                        1.170e-02,
-                        0.000e00,
-                        0.000e00,
-                        0.000e00,
-                        9.810e-01,
-                        2.500e-03,
-                        5.000e-03,
-                        0.000e00,
-                    ],
-                    [
-                        0.000e00,
-                        9.900e-03,
-                        0.000e00,
-                        0.000e00,
-                        3.900e-03,
-                        9.823e-01,
-                        0.000e00,
-                        3.500e-03,
-                    ],
-                    [
-                        0.000e00,
-                        0.000e00,
-                        1.310e-02,
-                        0.000e00,
-                        9.400e-03,
-                        1.000e-04,
-                        9.857e-01,
-                        1.200e-03,
-                    ],
-                    [
-                        0.000e00,
-                        1.000e-04,
-                        0.000e00,
-                        1.080e-02,
-                        0.000e00,
-                        9.300e-03,
-                        3.600e-03,
-                        9.899e-01,
-                    ],
-                ]
-            ),
-            "num_qubits": 3,
-            "shots": 10000,
-            "circuits": {
-                "ghz_3_qubits": {
-                    "counts_ideal": {"111": 5000, "000": 5000},
-                    "counts_noise": {
-                        "111": 4955,
-                        "000": 4886,
-                        "001": 16,
-                        "100": 46,
-                        "010": 36,
-                        "101": 23,
-                        "011": 29,
-                        "110": 9,
-                    },
-                },
-                "first_qubit_h_3_qubits": {
-                    "counts_ideal": {"000": 5000, "001": 5000},
-                    "counts_noise": {
-                        "000": 4844,
-                        "001": 4962,
-                        "100": 56,
-                        "101": 65,
-                        "011": 37,
-                        "010": 35,
-                        "110": 1,
-                    },
-                },
-            },
-        }
-    }
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.rng = np.random.default_rng(42)
 
-    def compare_results(self, res1, res2):
+    @staticmethod
+    def compare_results(res1, res2):
         """Compare the results between two runs"""
         res1_total_shots = sum(res1.values())
         res2_total_shots = sum(res2.values())
@@ -172,200 +58,259 @@ class TestReadoutMitigation(QiskitTestCase):
             total += abs(val1 - val2) ** 2
         return total
 
-    @data([test_data["test_1"]])
-    @unpack
-    def test_mitigation_improvement(self, circuits_data):
-        """Test whether readout mitigation led to more accurate results"""
-        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
-        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
+    @staticmethod
+    def mitigators(assignment_matrices, qubits=None):
+        """Generates the mitigators to test for given assignment matrices"""
+        full_assignment_matrix = assignment_matrices[0]
+        for m in assignment_matrices[1:]:
+            full_assignment_matrix = np.kron(full_assignment_matrix, m)
+        CRM = CorrelatedReadoutMitigator(full_assignment_matrix, qubits)
+        LRM = LocalReadoutMitigator(assignment_matrices, qubits)
         mitigators = [CRM, LRM]
-        for circuit_name, circuit_data in circuits_data["circuits"].items():
-            counts_ideal = Counts(circuit_data["counts_ideal"])
-            counts_noise = Counts(circuit_data["counts_noise"])
-            probs_noise = {
-                key: value / circuits_data["shots"] for key, value in counts_noise.items()
-            }
-            unmitigated_error = self.compare_results(counts_ideal, counts_noise)
-            # TODO: verify mitigated stddev is larger
-            unmitigated_stddev = stddev(probs_noise, circuits_data["shots"])
-            for mitigator in mitigators:
-                mitigated_quasi_probs = mitigator.quasi_probabilities(counts_noise)
-                mitigated_probs = (
-                    mitigated_quasi_probs.nearest_probability_distribution().binary_probabilities()
+        return mitigators
+
+    @staticmethod
+    def simulate_circuit(circuit, assignment_matrix, num_qubits, shots=1024):
+        """Simulates the given circuit under the given readout noise"""
+        probs = Statevector.from_instruction(circuit).probabilities()
+        noisy_probs = assignment_matrix @ probs
+        labels = [bin(a)[2:].zfill(num_qubits) for a in range(2**num_qubits)]
+        results = TestReadoutMitigation.rng.choice(labels, size=shots, p=noisy_probs)
+        return Counts(dict(Counter(results)))
+
+    @staticmethod
+    def ghz_3_circuit():
+        """A 3-qubit circuit generating |000>+|111>"""
+        c = QuantumCircuit(3)
+        c.h(0)
+        c.cx(0, 1)
+        c.cx(1, 2)
+        return (c, "ghz_3_ciruit", 3)
+
+    @staticmethod
+    def first_qubit_h_3_circuit():
+        """A 3-qubit circuit generating |000>+|001>"""
+        c = QuantumCircuit(3)
+        c.h(0)
+        return (c, "first_qubit_h_3_circuit", 3)
+
+    @staticmethod
+    def assignment_matrices():
+        """A 3-qubit readout noise assignment matrices"""
+        return LocalReadoutMitigator(backend=FakeYorktown())._assignment_mats[0:3]
+
+    @staticmethod
+    def counts_data(circuit, assignment_matrices, shots=1024):
+        """Generates count data for the noisy and noiseless versions of the circuit simulation"""
+        full_assignment_matrix = assignment_matrices[0]
+        for m in assignment_matrices[1:]:
+            full_assignment_matrix = np.kron(full_assignment_matrix, m)
+        num_qubits = len(assignment_matrices)
+        ideal_assignment_matrix = np.eye(2**num_qubits)
+        counts_ideal = TestReadoutMitigation.simulate_circuit(
+            circuit, ideal_assignment_matrix, num_qubits, shots
+        )
+        counts_noise = TestReadoutMitigation.simulate_circuit(
+            circuit, full_assignment_matrix, num_qubits, shots
+        )
+        probs_noise = {key: value / shots for key, value in counts_noise.items()}
+        return counts_ideal, counts_noise, probs_noise
+
+    def test_mitigation_improvement(self):
+        """Test whether readout mitigation led to more accurate results"""
+        shots = 1024
+        assignment_matrices = self.assignment_matrices()
+        num_qubits = len(assignment_matrices)
+        mitigators = self.mitigators(assignment_matrices)
+        circuit, circuit_name, num_qubits = self.ghz_3_circuit()
+        counts_ideal, counts_noise, probs_noise = self.counts_data(
+            circuit, assignment_matrices, shots
+        )
+        unmitigated_error = self.compare_results(counts_ideal, counts_noise)
+        unmitigated_stddev = stddev(probs_noise, shots)
+
+        for mitigator in mitigators:
+            mitigated_quasi_probs = mitigator.quasi_probabilities(counts_noise)
+            mitigated_probs = (
+                mitigated_quasi_probs.nearest_probability_distribution().binary_probabilities(
+                    num_bits=num_qubits
                 )
-                mitigated_error = self.compare_results(counts_ideal, mitigated_probs)
-                self.assertTrue(
-                    mitigated_error < unmitigated_error * 0.8,
-                    "Mitigator {} did not improve circuit {} measurements".format(
+            )
+            mitigated_error = self.compare_results(counts_ideal, mitigated_probs)
+            self.assertLess(
+                mitigated_error,
+                unmitigated_error * 0.8,
+                "Mitigator {} did not improve circuit {} measurements".format(
+                    mitigator, circuit_name
+                ),
+            )
+            mitigated_stddev_upper_bound = mitigated_quasi_probs._stddev_upper_bound
+            max_unmitigated_stddev = max(unmitigated_stddev.values())
+            self.assertGreaterEqual(
+                mitigated_stddev_upper_bound,
+                max_unmitigated_stddev,
+                "Mitigator {} on circuit {} gave stddev upper bound {} "
+                "while unmitigated stddev maximum is {}".format(
+                    mitigator,
+                    circuit_name,
+                    mitigated_stddev_upper_bound,
+                    max_unmitigated_stddev,
+                ),
+            )
+
+    def test_expectation_improvement(self):
+        """Test whether readout mitigation led to more accurate results
+        and that its standard deviation is increased"""
+        shots = 1024
+        assignment_matrices = self.assignment_matrices()
+        mitigators = self.mitigators(assignment_matrices)
+        num_qubits = len(assignment_matrices)
+        diagonals = []
+        diagonals.append("IZ0")
+        diagonals.append("101")
+        diagonals.append("IZZ")
+        qubit_index = {i: i for i in range(num_qubits)}
+        circuit, circuit_name, num_qubits = self.ghz_3_circuit()
+        counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
+        probs_ideal, _ = counts_probability_vector(counts_ideal, qubit_index=qubit_index)
+        probs_noise, _ = counts_probability_vector(counts_noise, qubit_index=qubit_index)
+        for diagonal in diagonals:
+            if isinstance(diagonal, str):
+                diagonal = str2diag(diagonal)
+            unmitigated_expectation, unmitigated_stddev = expval_with_stddev(
+                diagonal, probs_noise, shots=counts_noise.shots()
+            )
+            ideal_expectation = np.dot(probs_ideal, diagonal)
+            unmitigated_error = np.abs(ideal_expectation - unmitigated_expectation)
+            for mitigator in mitigators:
+                mitigated_expectation, mitigated_stddev = mitigator.expectation_value(
+                    counts_noise, diagonal
+                )
+                mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
+                self.assertLess(
+                    mitigated_error,
+                    unmitigated_error,
+                    "Mitigator {} did not improve circuit {} expectation computation for diagonal {} "
+                    "ideal: {}, unmitigated: {} mitigated: {}".format(
+                        mitigator,
+                        circuit_name,
+                        diagonal,
+                        ideal_expectation,
+                        unmitigated_expectation,
+                        mitigated_expectation,
+                    ),
+                )
+                self.assertGreaterEqual(
+                    mitigated_stddev,
+                    unmitigated_stddev,
+                    "Mitigator {} did not increase circuit {} the standard deviation".format(
                         mitigator, circuit_name
                     ),
                 )
-                mitigated_stddev_upper_bound = mitigated_quasi_probs._stddev_upper_bound
-                max_unmitigated_stddev = max(unmitigated_stddev.values())
-                self.assertTrue(
-                    mitigated_stddev_upper_bound >= max_unmitigated_stddev,
-                    "Mitigator {} on circuit {} gave stddev upper bound {} "
-                    "while unmitigated stddev maximum is {}".format(
-                        mitigator,
-                        circuit_name,
-                        mitigated_stddev_upper_bound,
-                        max_unmitigated_stddev,
-                    ),
-                )
 
-    @data([test_data["test_1"]])
-    @unpack
-    def test_expectation_improvement(self, circuits_data):
-        """Test whether readout mitigation led to more accurate results
-        and that its standard deviation is increased"""
-        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
-        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
-        num_qubits = circuits_data["num_qubits"]
-        diagonals = []
-        diagonals.append(z_diagonal(2 ** num_qubits))
-        diagonals.append("IZ0")
-        diagonals.append("ZZZ")
-        diagonals.append("101")
-        diagonals.append("IZI")
-        mitigators = [CRM, LRM]
-        qubit_index = {i: i for i in range(num_qubits)}
-        for circuit_name, circuit_data in circuits_data["circuits"].items():
-            counts_ideal = Counts(circuit_data["counts_ideal"])
-            counts_noise = Counts(circuit_data["counts_noise"])
-            probs_ideal, _ = counts_probability_vector(counts_ideal, qubit_index=qubit_index)
-            probs_noise, _ = counts_probability_vector(counts_noise, qubit_index=qubit_index)
-            for diagonal in diagonals:
-                if isinstance(diagonal, str):
-                    diagonal = str2diag(diagonal)
-                unmitigated_expectation, unmitigated_stddev = expval_with_stddev(
-                    diagonal, probs_noise, shots=counts_noise.shots()
-                )
-                ideal_expectation = np.dot(probs_ideal, diagonal)
-                unmitigated_error = np.abs(ideal_expectation - unmitigated_expectation)
-                for mitigator in mitigators:
-                    mitigated_expectation, mitigated_stddev = mitigator.expectation_value(
-                        counts_noise, diagonal
-                    )
-                    mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
-                    self.assertTrue(
-                        mitigated_error < unmitigated_error,
-                        "Mitigator {} did not improve circuit {} measurements".format(
-                            mitigator, circuit_name
-                        ),
-                    )
-                    self.assertTrue(
-                        mitigated_stddev >= unmitigated_stddev,
-                        "Mitigator {} did not increase circuit {} the standard deviation".format(
-                            mitigator, circuit_name
-                        ),
-                    )
-
-    @data([test_data["test_1"]])
-    @unpack
-    def test_clbits_parameter(self, circuits_data):
+    def test_clbits_parameter(self):
         """Test whether the clbits parameter is handled correctly"""
-        # counts_ideal is {'000': 5000, '001': 5000}
-        counts_ideal_12 = Counts({"00": 10000})
-        counts_ideal_02 = Counts({"00": 5000, "01": 5000})
-        counts_noise = Counts(
-            {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
-        )
-        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
-        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
-        mitigators = [CRM, LRM]
+        shots = 10000
+        assignment_matrices = self.assignment_matrices()
+        mitigators = self.mitigators(assignment_matrices)
+        circuit, _, _ = self.first_qubit_h_3_circuit()
+        counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
+        counts_ideal_12 = marginal_counts(counts_ideal, [1, 2])
+        counts_ideal_02 = marginal_counts(counts_ideal, [0, 2])
+
         for mitigator in mitigators:
             mitigated_probs_12 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[1, 2], clbits=[1, 2])
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=2)
             )
             mitigated_error = self.compare_results(counts_ideal_12, mitigated_probs_12)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly marganalize for qubits 1,2".format(mitigator),
             )
 
             mitigated_probs_02 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[0, 2], clbits=[0, 2])
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=2)
             )
             mitigated_error = self.compare_results(counts_ideal_02, mitigated_probs_02)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly marganalize for qubits 0,2".format(mitigator),
             )
 
-    @data([test_data["test_1"]])
-    @unpack
-    def test_qubits_parameter(self, circuits_data):
+    def test_qubits_parameter(self):
         """Test whether the qubits parameter is handled correctly"""
-        counts_ideal_012 = Counts({"000": 5000, "001": 5000})
-        counts_ideal_210 = Counts({"000": 5000, "100": 5000})
-        counts_ideal_102 = Counts({"000": 5000, "010": 5000})
-        counts_noise = Counts(
-            {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
-        )
-        CRM = CorrelatedReadoutMitigator(circuits_data["correlated_method_matrix"])
-        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"])
-        mitigators = [CRM, LRM]
+        shots = 10000
+        assignment_matrices = self.assignment_matrices()
+        mitigators = self.mitigators(assignment_matrices)
+        circuit, _, _ = self.first_qubit_h_3_circuit()
+        counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
+        counts_ideal_012 = counts_ideal
+        counts_ideal_210 = Counts({"000": counts_ideal["000"], "100": counts_ideal["001"]})
+        counts_ideal_102 = Counts({"000": counts_ideal["000"], "010": counts_ideal["001"]})
+
         for mitigator in mitigators:
             mitigated_probs_012 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[0, 1, 2])
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly handle qubit order 0, 1, 2".format(mitigator),
             )
 
             mitigated_probs_210 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly handle qubit order 2, 1, 0".format(mitigator),
             )
 
             mitigated_probs_102 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[1, 0, 2])
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_102, mitigated_probs_102)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly handle qubit order 1, 0, 2".format(mitigator),
             )
 
-    @data([test_data["test_1"]])
-    @unpack
-    def test_repeated_qubits_parameter(self, circuits_data):
+    def test_repeated_qubits_parameter(self):
         """Tests the order of mitigated qubits."""
-        counts_ideal_012 = Counts({"000": 5000, "001": 5000})
-        counts_ideal_210 = Counts({"000": 5000, "100": 5000})
-        counts_noise = Counts(
-            {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
-        )
-        CRM = CorrelatedReadoutMitigator(
-            circuits_data["correlated_method_matrix"], qubits=[0, 1, 2]
-        )
-        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"], qubits=[0, 1, 2])
-        mitigators = [CRM, LRM]
+        shots = 10000
+        assignment_matrices = self.assignment_matrices()
+        mitigators = self.mitigators(assignment_matrices, qubits=[0, 1, 2])
+        circuit, _, _ = self.first_qubit_h_3_circuit()
+        counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
+        counts_ideal_012 = counts_ideal
+        counts_ideal_210 = Counts({"000": counts_ideal["000"], "100": counts_ideal["001"]})
+
         for mitigator in mitigators:
             mitigated_probs_210 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[2, 1, 0])
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_210, mitigated_probs_210)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly handle qubit order 2,1,0".format(mitigator),
             )
 
@@ -373,51 +318,50 @@ class TestReadoutMitigation(QiskitTestCase):
             mitigated_probs_012 = (
                 mitigator.quasi_probabilities(counts_noise)
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=3)
             )
             mitigated_error = self.compare_results(counts_ideal_012, mitigated_probs_012)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly handle qubit order 0,1,2 (the expected default)".format(
                     mitigator
                 ),
             )
 
-    @data([test_data["test_1"]])
-    @unpack
-    def test_qubits_subset_parameter(self, circuits_data):
+    def test_qubits_subset_parameter(self):
         """Tests mitigation on a subset of the initial set of qubits."""
-        counts_ideal_2 = Counts({"0": 5000, "1": 5000})
-        counts_ideal_6 = Counts({"0": 10000})
 
-        counts_noise = Counts(
-            {"000": 4844, "001": 4962, "100": 56, "101": 65, "011": 37, "010": 35, "110": 1}
-        )
-        CRM = CorrelatedReadoutMitigator(
-            circuits_data["correlated_method_matrix"], qubits=[2, 4, 6]
-        )
-        LRM = LocalReadoutMitigator(circuits_data["local_method_matrices"], qubits=[2, 4, 6])
-        mitigators = [CRM, LRM]
+        shots = 10000
+        assignment_matrices = self.assignment_matrices()
+        mitigators = self.mitigators(assignment_matrices, qubits=[2, 4, 6])
+        circuit, _, _ = self.first_qubit_h_3_circuit()
+        counts_ideal, counts_noise, _ = self.counts_data(circuit, assignment_matrices, shots)
+        counts_ideal_2 = marginal_counts(counts_ideal, [0])
+        counts_ideal_6 = marginal_counts(counts_ideal, [2])
+
         for mitigator in mitigators:
             mitigated_probs_2 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[2])
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=1)
             )
             mitigated_error = self.compare_results(counts_ideal_2, mitigated_probs_2)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly handle qubit subset".format(mitigator),
             )
 
             mitigated_probs_6 = (
                 mitigator.quasi_probabilities(counts_noise, qubits=[6])
                 .nearest_probability_distribution()
-                .binary_probabilities()
+                .binary_probabilities(num_bits=1)
             )
             mitigated_error = self.compare_results(counts_ideal_6, mitigated_probs_6)
-            self.assertTrue(
-                mitigated_error < 0.001,
+            self.assertLess(
+                mitigated_error,
+                0.001,
                 "Mitigator {} did not correctly handle qubit subset".format(mitigator),
             )
             diagonal = str2diag("ZZ")
@@ -426,8 +370,9 @@ class TestReadoutMitigation(QiskitTestCase):
                 counts_noise, diagonal, qubits=[2, 6]
             )
             mitigated_error = np.abs(ideal_expectation - mitigated_expectation)
-            self.assertTrue(
-                mitigated_error < 0.1,
+            self.assertLess(
+                mitigated_error,
+                0.1,
                 "Mitigator {} did not improve circuit expectation".format(mitigator),
             )
 
@@ -435,8 +380,7 @@ class TestReadoutMitigation(QiskitTestCase):
         """Test whether a local mitigator can be created directly from backend properties"""
         backend = FakeYorktown()
         num_qubits = len(backend.properties().qubits)
-        rng = np.random.default_rng(42)
-        probs = rng.random((num_qubits, 2))
+        probs = TestReadoutMitigation.rng.random((num_qubits, 2))
         for qubit_idx, qubit_prop in enumerate(backend.properties().qubits):
             for prop in qubit_prop:
                 if prop.name == "prob_meas1_prep0":
@@ -454,7 +398,7 @@ class TestReadoutMitigation(QiskitTestCase):
                 ]
             )
             mats.append(mat)
-        LRM_from_matrices = LocalReadoutMitigator(amats=mats)
+        LRM_from_matrices = LocalReadoutMitigator(assignment_matrices=mats)
         self.assertTrue(
             matrix_equal(
                 LRM_from_backend.assignment_matrix(), LRM_from_matrices.assignment_matrix()
@@ -489,6 +433,44 @@ class TestReadoutMitigation(QiskitTestCase):
             cm.exception.message,
             "Assignment matrix columns must be valid probability distributions",
         )
+
+    def test_expectation_value_endian(self):
+        """Test that endian for expval is little."""
+        mitigators = self.mitigators(self.assignment_matrices())
+        counts = Counts({"10": 3, "11": 24, "00": 74, "01": 923})
+        for mitigator in mitigators:
+            expval, _ = mitigator.expectation_value(counts, diagonal="IZ", qubits=[0, 1])
+            self.assertAlmostEqual(expval, -1.0, places=0)
+
+    def test_quasi_probabilities_shots_passing(self):
+        """Test output of LocalReadoutMitigator.quasi_probabilities
+
+        We require the number of shots to be set in the output.
+        """
+        mitigator = LocalReadoutMitigator([np.array([[0.9, 0.1], [0.1, 0.9]])], qubits=[0])
+        counts = Counts({"10": 3, "11": 24, "00": 74, "01": 923})
+        quasi_dist = mitigator.quasi_probabilities(counts)
+        self.assertEqual(quasi_dist.shots, sum(counts.values()))
+
+        # custom number of shots
+        quasi_dist = mitigator.quasi_probabilities(counts, shots=1025)
+        self.assertEqual(quasi_dist.shots, 1025)
+
+
+class TestLocalReadoutMitigation(QiskitTestCase):
+    """Tests specific to the local readout mitigator"""
+
+    def test_assignment_matrix(self):
+        """Tests that the local mitigator generates the full assignment matrix correctly"""
+        qubits = [7, 2, 3]
+        assignment_matrices = LocalReadoutMitigator(backend=FakeYorktown())._assignment_mats[0:3]
+        expected_assignment_matrix = np.kron(
+            np.kron(assignment_matrices[2], assignment_matrices[1]), assignment_matrices[0]
+        )
+        expected_mitigation_matrix = np.linalg.inv(expected_assignment_matrix)
+        LRM = LocalReadoutMitigator(assignment_matrices, qubits)
+        self.assertTrue(matrix_equal(expected_mitigation_matrix, LRM.mitigation_matrix()))
+        self.assertTrue(matrix_equal(expected_assignment_matrix, LRM.assignment_matrix()))
 
 
 if __name__ == "__main__":

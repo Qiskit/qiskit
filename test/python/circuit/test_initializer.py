@@ -17,6 +17,7 @@ Initialize test.
 import math
 import unittest
 import numpy as np
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit import QuantumRegister
@@ -26,8 +27,10 @@ from qiskit import execute, assemble, BasicAer
 from qiskit.quantum_info import state_fidelity, Statevector, Operator
 from qiskit.exceptions import QiskitError
 from qiskit.test import QiskitTestCase
+from qiskit.extensions.quantum_initializer import Initialize
 
 
+@ddt
 class TestInitialize(QiskitTestCase):
     """Qiskit Initialize tests."""
 
@@ -72,7 +75,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(2)
         statevector = Statevector.from_label("11")
         qc.initialize(statevector, [0, 1])
-        self.assertEqual(qc.data[0][0].params, desired_vector)
+        self.assertEqual(qc.data[0].operation.params, desired_vector)
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
@@ -320,7 +323,7 @@ class TestInitialize(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.initialize(desired_vector_2, [qr[0]])
 
-        job = execute(qc1 + qc2, BasicAer.get_backend("statevector_simulator"))
+        job = execute(qc1.compose(qc2), BasicAer.get_backend("statevector_simulator"))
         result = job.result()
         quantum_state = result.get_statevector()
         fidelity = state_fidelity(quantum_state, desired_vector_2)
@@ -406,7 +409,7 @@ class TestInitialize(QiskitTestCase):
         self.assertTrue(desired_sv == actual_sv)
 
     def _remove_resets(self, circ):
-        circ.data = [tup for tup in circ.data if tup[0].name != "reset"]
+        circ.data = [instr for instr in circ.data if instr.operation.name != "reset"]
 
     def test_global_phase_random(self):
         """Test global phase preservation with random state vectors"""
@@ -416,12 +419,12 @@ class TestInitialize(QiskitTestCase):
         for n_qubits in [1, 2, 4]:
             for irep in range(repeats):
                 with self.subTest(i=f"{n_qubits}_{irep}"):
-                    dim = 2 ** n_qubits
+                    dim = 2**n_qubits
                     qr = QuantumRegister(n_qubits)
                     initializer = QuantumCircuit(qr)
                     target = random_statevector(dim)
                     initializer.initialize(target, qr)
-                    uninit = initializer.data[0][0].definition
+                    uninit = initializer.data[0].operation.definition
                     self._remove_resets(uninit)
                     evolve = Statevector(uninit)
                     self.assertEqual(target, evolve)
@@ -434,17 +437,40 @@ class TestInitialize(QiskitTestCase):
             Statevector([1j / np.sqrt(2), 1j / np.sqrt(2)]),
         ]
         n_qubits = 1
-        dim = 2 ** n_qubits
+        dim = 2**n_qubits
         qr = QuantumRegister(n_qubits)
         for target in target_list:
             with self.subTest(i=target):
                 initializer = QuantumCircuit(qr)
                 initializer.initialize(target, qr)
                 # need to get rid of the resets in order to use the Operator class
-                disentangler = Operator(initializer.data[0][0].definition.data[1][0])
+                disentangler = Operator(initializer.data[0].operation.definition.data[1].operation)
                 zero = Statevector.from_int(0, dim)
                 actual = zero & disentangler
                 self.assertEqual(target, actual)
+
+    @data(2, "11", [1 / math.sqrt(2), 0, 0, 1 / math.sqrt(2)])
+    def test_decompose_contains_stateprep(self, state):
+        """Test initialize decomposes to a StatePreparation and reset"""
+        qc = QuantumCircuit(2)
+        qc.initialize(state)
+        decom_circ = qc.decompose()
+
+        self.assertEqual(decom_circ.data[0].operation.name, "reset")
+        self.assertEqual(decom_circ.data[1].operation.name, "reset")
+        self.assertEqual(decom_circ.data[2].operation.name, "state_preparation")
+
+    def test_mutating_params(self):
+        """Test mutating Initialize params correctly updates StatePreparation params"""
+        init = Initialize("11")
+        init.params = "00"
+        qr = QuantumRegister(2)
+        qc = QuantumCircuit(qr)
+        qc.append(init, qr)
+        decom_circ = qc.decompose()
+
+        self.assertEqual(decom_circ.data[2].operation.name, "state_preparation")
+        self.assertEqual(decom_circ.data[2].operation.params, ["0", "0"])
 
 
 class TestInstructionParam(QiskitTestCase):
@@ -457,7 +483,7 @@ class TestInstructionParam(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.diagonal(list(diag), [0])
 
-        params = qc.data[0][0].params
+        params = qc.data[0].operation.params
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )
@@ -475,7 +501,7 @@ class TestInstructionParam(QiskitTestCase):
         vec = np.array([0, 0 + 1j])
         qc.initialize(vec, 0)
 
-        params = qc.data[0][0].params
+        params = qc.data[0].operation.params
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )

@@ -163,7 +163,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         num_state_qubits: Optional[int] = None,
         coeffs: Optional[List[float]] = None,
         basis: str = "Y",
-        reverse: bool = False,
         name: str = "poly",
     ) -> None:
         """Prepare an approximation to a state with amplitudes specified by a polynomial.
@@ -173,19 +172,10 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
                 i-th power of x. Defaults to linear: [0, 1].
             basis: The type of Pauli rotation ('X', 'Y', 'Z').
-            reverse: If True, apply the polynomial with the reversed list of qubits
-                (i.e. q_n as q_0, q_n-1 as q_1, etc).
             name: The name of the circuit.
         """
         # set default internal parameters
         self._coeffs = coeffs or [0, 1]
-        self._reverse = reverse
-        if self._reverse is True:
-            warnings.warn(
-                "The reverse flag has been deprecated. "
-                "Use circuit.reverse_bits() to reverse order of qubits.",
-                DeprecationWarning,
-            )
 
         # initialize super (after setting coeffs)
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
@@ -222,15 +212,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         if self.coeffs:
             return len(self.coeffs) - 1
         return 0
-
-    @property
-    def reverse(self) -> bool:
-        """Whether to apply the rotations on the reversed list of qubits.
-
-        Returns:
-            True, if the rotations are applied on the reversed list, False otherwise.
-        """
-        return self._reverse
 
     @property
     def num_ancilla_qubits(self):
@@ -332,14 +313,9 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         for c in rotation_coeffs:
             qr_control = []
-            if self.reverse:
-                for i, _ in enumerate(c):
-                    if c[i] > 0:
-                        qr_control.append(qr_state[qr_state.size - i - 1])
-            else:
-                for i, _ in enumerate(c):
-                    if c[i] > 0:
-                        qr_control.append(qr_state[i])
+            for i, _ in enumerate(c):
+                if c[i] > 0:
+                    qr_control.append(qr_state[i])
 
             # apply controlled rotations
             if len(qr_control) > 1:

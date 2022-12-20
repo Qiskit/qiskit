@@ -195,18 +195,27 @@ class DrawerCanvas:
         """Set new time breaks."""
         self._time_breaks = sorted(new_breaks, key=lambda x: x[0])
 
-    def load_program(self, program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule]):
+    def load_program(
+        self,
+        program: Union[
+            pulse.Waveform,
+            pulse.ParametricPulse,
+            pulse.SymbolicPulse,
+            pulse.Schedule,
+            pulse.ScheduleBlock,
+        ],
+    ):
         """Load a program to draw.
 
         Args:
-            program: `Waveform`, `ParametricPulse`, or `Schedule` to draw.
+            program: Pulse program or waveform to draw.
 
         Raises:
             VisualizationError: When input program is invalid data format.
         """
         if isinstance(program, (pulse.Schedule, pulse.ScheduleBlock)):
             self._schedule_loader(program)
-        elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse)):
+        elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse, pulse.SymbolicPulse)):
             self._waveform_loader(program)
         else:
             raise VisualizationError("Data type %s is not supported." % type(program))
@@ -217,7 +226,10 @@ class DrawerCanvas:
         # set title
         self.fig_title = self.layout["figure_title"](program=program, device=self.device)
 
-    def _waveform_loader(self, program: Union[pulse.Waveform, pulse.ParametricPulse]):
+    def _waveform_loader(
+        self,
+        program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.SymbolicPulse],
+    ):
         """Load Waveform instance.
 
         This function is sub-routine of py:method:`load_program`.

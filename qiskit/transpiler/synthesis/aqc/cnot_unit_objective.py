@@ -78,7 +78,7 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         # rename parameters just to make shorter and make use of our dictionary
         thetas = param_values
         n = self._num_qubits
-        d = int(2 ** n)
+        d = int(2**n)
         cnots = self._cnots
         num_cnots = self.num_cnots
 
@@ -178,12 +178,12 @@ class DefaultCNOTUnitObjective(CNOTUnitObjective):
         # the partial derivative of the circuit with respect to an angle
         # is the same circuit with the corresponding pauli gate, multiplied
         # by a global phase of -1j / 2, next to the rotation gate (it commutes)
-        pauli_x = np.multiply(-1j / 2, np.array([[0, 1], [1, 0]]))
-        pauli_y = np.multiply(-1j / 2, np.array([[0, -1j], [1j, 0]]))
-        pauli_z = np.multiply(-1j / 2, np.array([[1, 0], [0, -1]]))
+        pauli_x = np.multiply(-1j / 2, np.asarray([[0, 1], [1, 0]]))
+        pauli_y = np.multiply(-1j / 2, np.asarray([[0, -1j], [1j, 0]]))
+        pauli_z = np.multiply(-1j / 2, np.asarray([[1, 0], [0, -1]]))
 
         n = self._num_qubits
-        d = int(2 ** n)
+        d = int(2**n)
         cnots = self._cnots
         num_cnots = self.num_cnots
 

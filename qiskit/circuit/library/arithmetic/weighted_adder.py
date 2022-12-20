@@ -13,7 +13,6 @@
 """Compute the weighted sum of qubit states."""
 
 from typing import List, Optional
-import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumRegister, AncillaRegister, QuantumCircuit
@@ -198,19 +197,6 @@ class WeightedAdder(BlueprintCircuit):
             The number of additional control qubits required (0 or 1).
         """
         return int(self.num_sum_qubits > 2)
-
-    @property
-    def num_ancilla_qubits(self) -> int:
-        """Deprecated. Use num_ancillas instead."""
-        warnings.warn(
-            "The WeightedAdder.num_ancilla_qubits property is deprecated "
-            "as of 0.17.0. It will be removed no earlier than 3 months after the release "
-            "date. You should use the num_ancillas property instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.num_control_qubits + self.num_carry_qubits
-        # return self.num_ancillas
 
     def _check_configuration(self, raise_on_failure=True):
         """Check if the current configuration is valid."""

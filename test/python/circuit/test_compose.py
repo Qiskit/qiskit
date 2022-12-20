@@ -21,12 +21,14 @@ from qiskit.pulse import Schedule
 from qiskit.circuit import (
     QuantumRegister,
     ClassicalRegister,
+    Clbit,
     QuantumCircuit,
+    Qubit,
     Parameter,
     Gate,
     Instruction,
 )
-from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate
+from qiskit.circuit.library import HGate, RZGate, CXGate, CCXGate, TwoLocal
 from qiskit.test import QiskitTestCase
 
 
@@ -586,11 +588,109 @@ class TestCircuitCompose(QiskitTestCase):
 
         with self.subTest("wrapping a unitary circuit"):
             qc = qc_init.compose(qc_unitary, wrap=True)
-            self.assertIsInstance(qc.data[1][0], Gate)
+            self.assertIsInstance(qc.data[1].operation, Gate)
 
         with self.subTest("wrapping a non-unitary circuit"):
             qc = qc_init.compose(qc_nonunitary, wrap=True)
-            self.assertIsInstance(qc.data[1][0], Instruction)
+            self.assertIsInstance(qc.data[1].operation, Instruction)
+
+    def test_single_bit_condition(self):
+        """Test that compose can correctly handle circuits that contain conditions on single
+        bits.  This is a regression test of the bug that broke qiskit-experiments in gh-7653."""
+        base = QuantumCircuit(1, 1)
+        base.x(0).c_if(0, True)
+        test = QuantumCircuit(1, 1).compose(base)
+        self.assertIsNot(base.clbits[0], test.clbits[0])
+        self.assertEqual(base, test)
+        self.assertIs(test.data[0].operation.condition[0], test.clbits[0])
+
+    def test_condition_mapping_ifelseop(self):
+        """Test that the condition in an `IfElseOp` is correctly mapped to a new set of bits and
+        registers."""
+        base_loose = Clbit()
+        base_creg = ClassicalRegister(2)
+        base_qreg = QuantumRegister(1)
+        base = QuantumCircuit(base_qreg, [base_loose], base_creg)
+        with base.if_test((base_loose, True)):
+            base.x(0)
+        with base.if_test((base_creg, 3)):
+            base.x(0)
+
+        test_loose = Clbit()
+        test_creg = ClassicalRegister(2)
+        test_qreg = QuantumRegister(1)
+        test = QuantumCircuit(test_qreg, [test_loose], test_creg).compose(base)
+
+        bit_instruction = test.data[0].operation
+        reg_instruction = test.data[1].operation
+        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition, (test_loose, True))
+        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition, (test_creg, 3))
+
+    def test_condition_mapping_whileloopop(self):
+        """Test that the condition in a `WhileLoopOp` is correctly mapped to a new set of bits and
+        registers."""
+        base_loose = Clbit()
+        base_creg = ClassicalRegister(2)
+        base_qreg = QuantumRegister(1)
+        base = QuantumCircuit(base_qreg, [base_loose], base_creg)
+        with base.while_loop((base_loose, True)):
+            base.x(0)
+        with base.while_loop((base_creg, 3)):
+            base.x(0)
+
+        test_loose = Clbit()
+        test_creg = ClassicalRegister(2)
+        test_qreg = QuantumRegister(1)
+        test = QuantumCircuit(test_qreg, [test_loose], test_creg).compose(base)
+
+        bit_instruction = test.data[0].operation
+        reg_instruction = test.data[1].operation
+        self.assertIs(bit_instruction.condition[0], test_loose)
+        self.assertEqual(bit_instruction.condition, (test_loose, True))
+        self.assertIs(reg_instruction.condition[0], test_creg)
+        self.assertEqual(reg_instruction.condition, (test_creg, 3))
+
+    def test_compose_no_clbits_in_one(self):
+        """Test combining a circuit with cregs to one without"""
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+
+        qc = QuantumCircuit(2)
+        qc.measure_all()
+        out = ansatz.compose(qc)
+        self.assertEqual(out.clbits, qc.clbits)
+
+    def test_compose_no_clbits_in_one_inplace(self):
+        """Test combining a circuit with cregs to one without inplace"""
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+
+        qc = QuantumCircuit(2)
+        qc.measure_all()
+        ansatz.compose(qc, inplace=True)
+        self.assertEqual(ansatz.clbits, qc.clbits)
+
+    def test_compose_no_clbits_in_one_multireg(self):
+        """Test combining a circuit with cregs to one without, multi cregs"""
+        ansatz = TwoLocal(2, rotation_blocks="ry", entanglement_blocks="cx")
+
+        qa = QuantumRegister(2, "q")
+        ca = ClassicalRegister(2, "a")
+        cb = ClassicalRegister(2, "b")
+        qc = QuantumCircuit(qa, ca, cb)
+        qc.measure(0, cb[1])
+        out = ansatz.compose(qc)
+        self.assertEqual(out.clbits, qc.clbits)
+        self.assertEqual(out.cregs, qc.cregs)
+
+    def test_compose_noclbits_registerless(self):
+        """Combining a circuit with cregs to one without, registerless case"""
+        inner = QuantumCircuit([Qubit(), Qubit()], [Clbit(), Clbit()])
+        inner.measure([0, 1], [0, 1])
+        outer = QuantumCircuit(2)
+        outer.compose(inner, inplace=True)
+        self.assertEqual(outer.clbits, inner.clbits)
+        self.assertEqual(outer.cregs, [])
 
 
 if __name__ == "__main__":

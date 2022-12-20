@@ -95,7 +95,7 @@ class Waveform(Pulse):
             samples[clip_where] = clipped_samples
             samples_norm[clip_where] = np.abs(clipped_samples)
 
-        if np.any(samples_norm > 1.0) and self.limit_amplitude:
+        if np.any(samples_norm > 1.0) and self._limit_amplitude:
             amp = np.max(samples_norm)
             raise PulseError(
                 f"Pulse contains sample with norm {amp} greater than 1+epsilon."

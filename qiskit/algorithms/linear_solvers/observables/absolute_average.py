@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,12 +18,13 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.opflow import I, Z, TensoredOp
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_system_observable import LinearSystemObservable
 
 
 class AbsoluteAverage(LinearSystemObservable):
-    r"""An observable for the absolute average of a linear system of equations solution.
+    r"""The deprecated observable for the absolute average of a linear system of equations solution.
 
     For a vector :math:`x=(x_1,...,x_N)`, the absolute average is defined as
     :math:`\abs{\frac{1}{N}\sum_{i=1}^{N}x_i}`.
@@ -32,12 +33,16 @@ class AbsoluteAverage(LinearSystemObservable):
 
         .. jupyter-execute::
 
+            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
-            from qiskit.algorithms.linear_solvers.observables.absolute_average import
-             AbsoluteAverage
+            from qiskit.algorithms.linear_solvers.observables.absolute_average import \
+            AbsoluteAverage
+            from qiskit.opflow import StateFn
 
-            observable = AbsoluteAverage()
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                observable = AbsoluteAverage()
             vector = [1.0, -2.1, 3.2, -4.3]
 
             init_state = vector / np.linalg.norm(vector)
@@ -57,6 +62,13 @@ class AbsoluteAverage(LinearSystemObservable):
             # Obtain analytical evaluation
             exact = observable.evaluate_classically(init_state)
     """
+
+    @deprecate_function(
+        "The AbsoluteAverage class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
+    def __init__(self) -> None:
+        super().__init__()
 
     def observable(self, num_qubits: int) -> Union[TensoredOp, List[TensoredOp]]:
         """The observable operator.
@@ -105,7 +117,7 @@ class AbsoluteAverage(LinearSystemObservable):
             else:
                 raise ValueError("Solution probability must be given as a single value.")
 
-        return np.real(np.sqrt(solution / (2 ** num_qubits)) / scaling)
+        return np.real(np.sqrt(solution / (2**num_qubits)) / scaling)
 
     def evaluate_classically(self, solution: Union[np.array, QuantumCircuit]) -> float:
         """Evaluates the given observable on the solution to the linear system.

@@ -16,9 +16,11 @@ import numpy as np
 
 from qiskit.result import models
 from qiskit.result import marginal_counts
+from qiskit.result import marginal_distribution
 from qiskit.result import Result
 from qiskit.qobj import QobjExperimentHeader
 from qiskit.test import QiskitTestCase
+from qiskit.exceptions import QiskitError
 
 
 class TestResultOperations(QiskitTestCase):
@@ -34,6 +36,19 @@ class TestResultOperations(QiskitTestCase):
         )
 
         super().setUp()
+
+    def generate_qiskit_result(self):
+        """Generate standard Result for testing"""
+        memory = [hex(ii) for ii in range(8)]
+        counts = {m: 1 for m in memory}
+        data_1 = models.ExperimentResultData(counts=counts, memory=memory)
+        exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result_1 = models.ExperimentResult(
+            shots=8, success=True, data=data_1, header=exp_result_header_1
+        )
+
+        result = Result(results=[exp_result_1], **self.base_result_args)
+        return result
 
     def test_counts_no_header(self):
         """Test that counts are extracted properly without header."""
@@ -106,7 +121,8 @@ class TestResultOperations(QiskitTestCase):
             "results=[ExperimentResult(shots=14, success=True, "
             "meas_level=2, data=ExperimentResultData(counts={'0x0': 4,"
             " '0x2': 10}), header=QobjExperimentHeader(creg_sizes="
-            "[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4))])"
+            "[['c0', 2], ['c0', 1], ['c1', 1]], memory_slots=4))], date=None, "
+            "status=None, header=None)"
         )
         self.assertEqual(expected, repr(result))
 
@@ -167,17 +183,45 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(marginal_counts(result.get_counts(), [0, 1]), expected_marginal_counts)
         self.assertEqual(marginal_counts(result.get_counts(), [1, 0]), expected_marginal_counts)
 
+    def test_marginal_distribution(self):
+        """Test that counts are marginalized correctly."""
+        raw_counts = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
+        data = models.ExperimentResultData(counts=raw_counts)
+        exp_result_header = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
+        exp_result = models.ExperimentResult(
+            shots=54, success=True, data=data, header=exp_result_header
+        )
+        result = Result(results=[exp_result], **self.base_result_args)
+        expected_marginal_counts = {"00": 4, "01": 27, "10": 23}
+        expected_reverse = {"00": 4, "10": 27, "01": 23}
+
+        self.assertEqual(
+            marginal_distribution(result.get_counts(), [0, 1]), expected_marginal_counts
+        )
+        self.assertEqual(marginal_distribution(result.get_counts(), [1, 0]), expected_reverse)
+        # test with register spacing, bitstrings are in form of "00 00" for register split
+        data = models.ExperimentResultData(counts=raw_counts)
+        exp_result_header = QobjExperimentHeader(creg_sizes=[["c0", 2], ["c1", 2]], memory_slots=4)
+        exp_result = models.ExperimentResult(
+            shots=54, success=True, data=data, header=exp_result_header
+        )
+        result = Result(results=[exp_result], **self.base_result_args)
+        self.assertEqual(
+            marginal_distribution(result.get_counts(), [0, 1]), expected_marginal_counts
+        )
+        self.assertEqual(marginal_distribution(result.get_counts(), [1, 0]), expected_reverse)
+
     def test_marginal_counts_result(self):
         """Test that a Result object containing counts marginalizes correctly."""
         raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0xE": 8}
-        data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
+        data_1 = models.ExperimentResultData(counts=raw_counts_1)
         exp_result_header_1 = QobjExperimentHeader(creg_sizes=[["c0", 4]], memory_slots=4)
         exp_result_1 = models.ExperimentResult(
             shots=54, success=True, data=data_1, header=exp_result_header_1
         )
 
         raw_counts_2 = {"0x2": 5, "0x3": 8}
-        data_2 = models.ExperimentResultData(counts=dict(**raw_counts_2))
+        data_2 = models.ExperimentResultData(counts=raw_counts_2)
         exp_result_header_2 = QobjExperimentHeader(creg_sizes=[["c0", 2]], memory_slots=2)
         exp_result_2 = models.ExperimentResult(
             shots=13, success=True, data=data_2, header=exp_result_header_2
@@ -187,9 +231,94 @@ class TestResultOperations(QiskitTestCase):
 
         expected_marginal_counts_1 = {"00": 4, "01": 27, "10": 23}
         expected_marginal_counts_2 = {"0": 5, "1": 8}
+        expected_marginal_counts_none = {
+            "0000": 4,
+            "0001": 7,
+            "0010": 10,
+            "0110": 5,
+            "1001": 11,
+            "1101": 9,
+            "1110": 8,
+        }
 
         self.assertEqual(marginal_counts(result, [0, 1]).get_counts(0), expected_marginal_counts_1)
         self.assertEqual(marginal_counts(result, [0]).get_counts(1), expected_marginal_counts_2)
+        self.assertEqual(marginal_counts(result, None).get_counts(0), expected_marginal_counts_none)
+
+    def test_marginal_counts_result_memory(self):
+        """Test that a Result object containing memory marginalizes correctly."""
+        result = self.generate_qiskit_result()
+        marginal_result = marginal_counts(result, indices=[0])
+        marginal_memory = marginal_result.results[0].data.memory
+        self.assertEqual(marginal_memory, [hex(ii % 2) for ii in range(8)])
+
+    def test_marginal_counts_result_memory_nonzero_indices(self):
+        """Test that a Result object containing memory marginalizes correctly."""
+        result = self.generate_qiskit_result()
+        index = 2
+        marginal_result = marginal_counts(result, indices=[index])
+        marginal_memory = marginal_result.results[0].data.memory
+        mask = 1 << index
+        expected = [hex((ii & mask) >> index) for ii in range(8)]
+        self.assertEqual(marginal_memory, expected)
+
+    def test_marginal_counts_result_memory_indices_None(self):
+        """Test that a Result object containing memory marginalizes correctly."""
+        result = self.generate_qiskit_result()
+        memory = "should not be touched"
+        result.results[0].data.memory = memory
+        marginal_result = marginal_counts(result, indices=None)
+        marginal_memory = marginal_result.results[0].data.memory
+        self.assertEqual(marginal_memory, memory)
+
+    def test_marginal_counts_result_invalid_indices(self):
+        """Test that a Result object containing memory marginalizes correctly inplace."""
+
+        result = self.generate_qiskit_result()
+        with self.assertRaises(QiskitError):
+            _ = marginal_counts(result, indices=[0, 1, 100], inplace=True)
+
+    def test_marginal_counts_result_marginalize_memory(self):
+        """Test that a Result object containing memory marginalizes correctly inplace."""
+
+        result = self.generate_qiskit_result()
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=True, marginalize_memory=False
+        )
+        self.assertFalse(hasattr(marginal_result.results[0].data, "memory"))
+        result = self.generate_qiskit_result()
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=True, marginalize_memory=None
+        )
+        self.assertTrue(hasattr(marginal_result.results[0].data, "memory"))
+        result = self.generate_qiskit_result()
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=True, marginalize_memory=True
+        )
+        self.assertTrue(hasattr(marginal_result.results[0].data, "memory"))
+
+        result = self.generate_qiskit_result()
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=False, marginalize_memory=False
+        )
+        self.assertFalse(hasattr(marginal_result.results[0].data, "memory"))
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=False, marginalize_memory=None
+        )
+        self.assertTrue(hasattr(marginal_result.results[0].data, "memory"))
+        marginal_result = marginal_counts(
+            result, indices=[0], inplace=False, marginalize_memory=True
+        )
+        self.assertTrue(hasattr(marginal_result.results[0].data, "memory"))
+
+    def test_marginal_counts_result_inplace(self):
+        """Test that a Result object containing memory marginalizes correctly inplace."""
+        result = self.generate_qiskit_result()
+
+        marginal_result = marginal_counts(result, indices=[0], inplace=True)
+        self.assertEqual(id(result), id(marginal_result))
+        marginal_memory = marginal_result.results[0].data.memory
+        self.assertEqual(marginal_memory, [hex(ii % 2) for ii in range(8)])
 
     def test_marginal_counts_result_creg_sizes(self):
         """Test that marginal_counts with Result input properly changes creg_sizes."""
@@ -603,3 +732,18 @@ class TestResultOperationsFailed(QiskitTestCase):
         self.assertEqual(
             'Result for experiment "99" could not be found.', context.exception.message
         )
+
+    def test_marginal_counts_no_cregs(self):
+        """Test that marginal_counts without cregs See qiskit-terra/6430."""
+        raw_counts_1 = {"0x0": 4, "0x1": 7, "0x2": 10, "0x6": 5, "0x9": 11, "0xD": 9, "0x12": 8}
+        data_1 = models.ExperimentResultData(counts=dict(**raw_counts_1))
+        exp_result_header_1 = QobjExperimentHeader(memory_slots=5)
+        exp_result_1 = models.ExperimentResult(
+            shots=54, success=True, data=data_1, header=exp_result_header_1
+        )
+
+        result = Result(results=[exp_result_1], **self.base_result_args)
+
+        _ = marginal_counts(result, indices=[0])
+        marginal_counts_result = marginal_counts(result, indices=[0])
+        self.assertEqual(marginal_counts_result.get_counts(), {"0": 27, "1": 27})

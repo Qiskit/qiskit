@@ -20,6 +20,7 @@ import warnings
 
 from enum import Enum
 from typing import Union
+import numpy as np
 
 from qiskit.pulse import channels, instructions, library
 from qiskit.pulse.configuration import Kernel, Discriminator
@@ -40,10 +41,51 @@ class ParametricPulseShapes(Enum):
     value is its mapping to the OpenPulse Command in Qiskit.
     """
 
-    gaussian = library.Gaussian
-    gaussian_square = library.GaussianSquare
-    drag = library.Drag
-    constant = library.Constant
+    gaussian = "Gaussian"
+    gaussian_square = "GaussianSquare"
+    drag = "Drag"
+    constant = "Constant"
+
+    @classmethod
+    def from_instance(
+        cls,
+        instance: Union[library.ParametricPulse, library.SymbolicPulse],
+    ) -> "ParametricPulseShapes":
+        """Get Qobj name from the pulse class instance.
+
+        Args:
+            instance: Symbolic or ParametricPulse class.
+
+        Returns:
+            Qobj name.
+
+        Raises:
+            QiskitError: When pulse instance is not recognizable type.
+        """
+        if isinstance(instance, library.SymbolicPulse):
+            return cls(instance.pulse_type)
+        if isinstance(instance, library.parametric_pulses.Gaussian):
+            return ParametricPulseShapes.gaussian
+        if isinstance(instance, library.parametric_pulses.GaussianSquare):
+            return ParametricPulseShapes.gaussian_square
+        if isinstance(instance, library.parametric_pulses.Drag):
+            return ParametricPulseShapes.drag
+        if isinstance(instance, library.parametric_pulses.Constant):
+            return ParametricPulseShapes.constant
+
+        raise QiskitError(f"'{instance}' is not valid pulse type.")
+
+    @classmethod
+    def to_type(cls, name: str) -> library.SymbolicPulse:
+        """Get symbolic pulse class from the name.
+
+        Args:
+            name: Qobj name of the pulse.
+
+        Returns:
+            Corresponding class.
+        """
+        return getattr(library, cls[name].value)
 
 
 class ConversionMethodBinder:
@@ -383,13 +425,19 @@ class InstructionToQobjConverter:
         Returns:
             dict: Dictionary of required parameters.
         """
-        if isinstance(instruction.pulse, library.ParametricPulse):
+        if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
+            params = dict(instruction.pulse.parameters)
+            # IBM backends expect "amp" to be the complex amplitude
+            if "amp" in params and "angle" in params:
+                params["amp"] = complex(params["amp"] * np.exp(1j * params["angle"]))
+                del params["angle"]
+
             command_dict = {
                 "name": "parametric_pulse",
-                "pulse_shape": ParametricPulseShapes(type(instruction.pulse)).name,
+                "pulse_shape": ParametricPulseShapes.from_instance(instruction.pulse).name,
                 "t0": shift + instruction.start_time,
                 "ch": instruction.channel.name,
-                "parameters": instruction.pulse.parameters,
+                "parameters": params,
             }
         else:
             command_dict = {
@@ -682,10 +730,12 @@ class QobjToInstructionConverter:
             )
             short_pulse_id = hashlib.md5(base_str.encode("utf-8")).hexdigest()[:4]
             pulse_name = f"{instruction.pulse_shape}_{short_pulse_id}"
+        params = dict(instruction.parameters)
+        if "amp" in params and isinstance(params["amp"], complex):
+            params["angle"] = np.angle(params["amp"])
+            params["amp"] = np.abs(params["amp"])
 
-        pulse = ParametricPulseShapes[instruction.pulse_shape].value(
-            **instruction.parameters, name=pulse_name
-        )
+        pulse = ParametricPulseShapes.to_type(instruction.pulse_shape)(**params, name=pulse_name)
         return instructions.Play(pulse, channel) << t0
 
     @bind_name("snapshot")

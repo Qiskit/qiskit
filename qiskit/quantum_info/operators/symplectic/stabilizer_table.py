@@ -13,12 +13,14 @@
 Symplectic Stabilizer Table Class
 """
 
+from warnings import warn
+
 import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
-from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 
 
 class StabilizerTable(PauliTable, AdjointMixin):
@@ -183,6 +185,12 @@ class StabilizerTable(PauliTable, AdjointMixin):
             The input array is not copied so multiple Pauli and Stabilizer tables
             can share the same underlying array.
         """
+        warn(
+            "The StabilizerTable class has been superseded by PauliList and is pending deprecation. "
+            "This class will be deprecated in the future release and subsequently removed after that.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         if isinstance(data, str) and phase is None:
             pauli, phase = StabilizerTable._from_label(data)
         elif isinstance(data, StabilizerTable):
@@ -948,7 +956,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=float)
         for i in range(self.size):
             ret[i] = self._to_matrix(self._array[i], self._phase[i])

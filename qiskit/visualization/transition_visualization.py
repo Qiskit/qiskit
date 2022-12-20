@@ -162,8 +162,8 @@ def visualize_transition(circuit, trace=False, saveas=None, fpg=100, spg=2):
         from matplotlib import pyplot as plt
         from matplotlib import animation
         from mpl_toolkits.mplot3d import Axes3D
-        from qiskit.visualization.bloch import Bloch
-        from qiskit.visualization.exceptions import VisualizationError
+        from .bloch import Bloch
+        from .exceptions import VisualizationError
 
         has_matplotlib = True
     except ImportError:
