@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug where :class:`~.BackendSampler` failed to set the ``shots`` attribute
+    of the returned :class:`~.QuasiDistribution`.

@@ -162,14 +162,14 @@ class BackendSampler(BaseSampler):
         counts = _prepare_counts(result)
         shots = sum(counts[0].values())
 
-        probabilies = []
+        probabilities = []
         metadata: list[dict[str, Any]] = [{}] * len(circuits)
         for count in counts:
             prob_dist = {k: v / shots for k, v in count.int_outcomes().items()}
-            probabilies.append(QuasiDistribution(prob_dist))
+            probabilities.append(QuasiDistribution(prob_dist, shots=shots))
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        return SamplerResult(probabilies, metadata)
+        return SamplerResult(probabilities, metadata)
 
     def _transpile(self):
         from qiskit.compiler import transpile
