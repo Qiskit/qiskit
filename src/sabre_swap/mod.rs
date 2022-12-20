@@ -30,10 +30,10 @@ use rand::prelude::SliceRandom;
 use rand::prelude::*;
 use rand_pcg::Pcg64Mcg;
 use rayon::prelude::*;
-use retworkx_core::dictmap::*;
-use retworkx_core::petgraph::prelude::*;
-use retworkx_core::petgraph::visit::EdgeRef;
-use retworkx_core::shortest_path::dijkstra;
+use rustworkx_core::dictmap::*;
+use rustworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::visit::EdgeRef;
+use rustworkx_core::shortest_path::dijkstra;
 
 use crate::getenv_use_multiple_threads;
 use crate::nlayout::NLayout;
@@ -155,9 +155,38 @@ pub fn build_swap_map(
     seed: Option<u64>,
     layout: &mut NLayout,
     num_trials: usize,
+    run_in_parallel: Option<bool>,
 ) -> (SwapMap, PyObject) {
-    let run_in_parallel = getenv_use_multiple_threads() && num_trials > 1;
     let dist = distance_matrix.as_array();
+    let (swap_map, gate_order) = build_swap_map_inner(
+        num_qubits,
+        dag,
+        neighbor_table,
+        &dist,
+        heuristic,
+        seed,
+        layout,
+        num_trials,
+        run_in_parallel,
+    );
+    (swap_map, gate_order.into_pyarray(py).into())
+}
+
+pub fn build_swap_map_inner(
+    num_qubits: usize,
+    dag: &SabreDAG,
+    neighbor_table: &NeighborTable,
+    dist: &ArrayView2<f64>,
+    heuristic: &Heuristic,
+    seed: Option<u64>,
+    layout: &mut NLayout,
+    num_trials: usize,
+    run_in_parallel: Option<bool>,
+) -> (SwapMap, Vec<usize>) {
+    let run_in_parallel = match run_in_parallel {
+        Some(run_in_parallel) => run_in_parallel,
+        None => getenv_use_multiple_threads() && num_trials > 1,
+    };
     let coupling_graph: DiGraph<(), ()> = cmap_from_neighor_table(neighbor_table);
     let outer_rng = match seed {
         Some(seed) => Pcg64Mcg::seed_from_u64(seed),
@@ -178,7 +207,7 @@ pub fn build_swap_map(
                         num_qubits,
                         dag,
                         neighbor_table,
-                        &dist,
+                        dist,
                         &coupling_graph,
                         heuristic,
                         seed_trial,
@@ -202,7 +231,7 @@ pub fn build_swap_map(
                     num_qubits,
                     dag,
                     neighbor_table,
-                    &dist,
+                    dist,
                     &coupling_graph,
                     heuristic,
                     seed_trial,
@@ -217,7 +246,7 @@ pub fn build_swap_map(
         SwapMap {
             map: result.out_map,
         },
-        result.gate_order.into_pyarray(py).into(),
+        result.gate_order,
     )
 }
 

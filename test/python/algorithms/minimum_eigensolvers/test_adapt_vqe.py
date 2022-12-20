@@ -17,6 +17,8 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt, data, unpack
 
+import numpy as np
+
 from qiskit.algorithms.minimum_eigensolvers import VQE
 from qiskit.algorithms.minimum_eigensolvers.adapt_vqe import AdaptVQE, TerminationCriterion
 from qiskit.algorithms.optimizers import SLSQP
@@ -92,6 +94,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         expected_eigenvalue = -1.85727503
 
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
+        np.testing.assert_allclose(res.eigenvalue_history, [expected_eigenvalue], rtol=1e-6)
 
     def test_converged(self):
         """Test to check termination criteria"""
@@ -161,6 +164,17 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         res = calc._compute_gradients(operator=SparsePauliOp("Y"), theta=[])
         # compare with manually computed reference value
         self.assertAlmostEqual(res[0][0], 2.0)
+
+    def test_supports_aux_operators(self):
+        """Test that auxiliary operators are supported"""
+        calc = AdaptVQE(VQE(Estimator(), self.ansatz, self.optimizer))
+        res = calc.compute_minimum_eigenvalue(operator=self.h2_op, aux_operators=[self.h2_op])
+
+        expected_eigenvalue = -1.85727503
+
+        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
+        self.assertAlmostEqual(res.aux_operators_evaluated[0][0], expected_eigenvalue, places=6)
+        np.testing.assert_allclose(res.eigenvalue_history, [expected_eigenvalue], rtol=1e-6)
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ import io
 import logging
 import inspect
 
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
@@ -1024,25 +1024,24 @@ def target_to_backend_properties(target: Target):
         if gate != "measure":
             for qargs, props in qargs_list.items():
                 property_list = []
-                if props is not None:
-                    if props.duration is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_length",
-                                "unit": "s",
-                                "value": props.duration,
-                            }
-                        )
-                    if props.error is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_error",
-                                "unit": "",
-                                "value": props.error,
-                            }
-                        )
+                if getattr(props, "duration", None) is not None:
+                    property_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "gate_length",
+                            "unit": "s",
+                            "value": props.duration,
+                        }
+                    )
+                if getattr(props, "error", None) is not None:
+                    property_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": props.error,
+                        }
+                    )
                 if property_list:
                     gates.append(
                         {
@@ -1059,25 +1058,24 @@ def target_to_backend_properties(target: Target):
                     continue
                 qubit = qargs[0]
                 props_list = []
-                if props is not None:
-                    if props.error is not None:
-                        props_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "readout_error",
-                                "unit": "",
-                                "value": props.error,
-                            }
-                        )
-                    if props.duration is not None:
-                        props_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "readout_length",
-                                "unit": "s",
-                                "value": props.duration,
-                            }
-                        )
+                if getattr(props, "error", None) is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_error",
+                            "unit": "",
+                            "value": props.error,
+                        }
+                    )
+                if getattr(props, "duration", None) is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_length",
+                            "unit": "s",
+                            "value": props.duration,
+                        }
+                    )
                 if not props_list:
                     qubit_props = {}
                     break

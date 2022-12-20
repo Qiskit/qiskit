@@ -1466,31 +1466,18 @@ class TestTranspile(QiskitTestCase):
         phi = Parameter("ϕ")
         lam = Parameter("λ")
         target = Target(num_qubits=2)
-        target.add_instruction(UGate(theta, phi, lam))
-        target.add_instruction(CXGate())
-        target.add_instruction(Measure())
+        target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(Measure(), {(0,): None, (1,): None})
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
         qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
-        if opt_level != 3:
-            qc.measure(qubit_reg, clbit_reg)
-        result = transpile(qc, target=target, optimization_level=opt_level)
-        # The Unitary synthesis optimization pass results for optimization level 3
-        # results in a different output than the other optimization levels
-        # and can differ based on fp precision. To avoid relying on a hard match
-        # do a unitary equiv
 
-        if opt_level == 3:
-            result_op = Operator.from_circuit(result)
-            self.assertTrue(result_op.equiv(qc))
-        else:
-            expected = QuantumCircuit(qubit_reg, clbit_reg)
-            expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
-            expected.cx(qubit_reg[0], qubit_reg[1])
-            expected.measure(qubit_reg, clbit_reg)
-            self.assertEqual(result, expected)
+        result = transpile(qc, target=target, optimization_level=opt_level)
+
+        self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
 
     # TODO: Add optimization level 2 and 3 after they support control flow
     # compilation
@@ -1554,6 +1541,27 @@ class TestTranspile(QiskitTestCase):
             transpiled,
             qubit_mapping={qubit: index for index, qubit in enumerate(transpiled.qubits)},
         )
+
+    @data(1, 2, 3)
+    def test_transpile_identity_circuit_no_target(self, opt_level):
+        """Test circuit equivalent to identity is optimized away for all optimization levels >0.
+
+        Reproduce taken from https://github.com/Qiskit/qiskit-terra/issues/9217
+        """
+        qr1 = QuantumRegister(3, "state")
+        qr2 = QuantumRegister(2, "ancilla")
+        cr = ClassicalRegister(2, "c")
+        qc = QuantumCircuit(qr1, qr2, cr)
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[0], qr1[1])
+        qc.h(qr1[0])
+
+        empty_qc = QuantumCircuit(qr1, qr2, cr)
+        result = transpile(qc, optimization_level=opt_level)
+        self.assertEqual(empty_qc, result)
 
 
 @ddt
