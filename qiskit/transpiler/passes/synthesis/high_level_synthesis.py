@@ -22,7 +22,11 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.synthesis.clifford import synth_clifford_full
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
-from qiskit.synthesis.linear.linear_circuits_utils import _optimize_cx_4_options, _compare_circuits
+from qiskit.synthesis.linear.linear_circuits_utils import (
+    _optimize_cx_4_options,
+    _compare_circuits,
+    _check_coupling_map,
+)
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
@@ -210,7 +214,33 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
 
 class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
-    """Linear function synthesis plugin based on the Kutin-Moulton-Smithline method."""
+    """Linear function synthesis plugin based on the Kutin-Moulton-Smithline method.
+
+    The plugin also supports the following plugin-specific options that can be passed
+    in ``__init__`` and ``run`` methods:
+
+    * coupling_map: CouplingMap of the target backend or ``None``. If this coupling map
+      is not ``None``, then the synthesized quantum circuit should adhere to the imposed
+      connectivity constraints. Note that the synthesis algorithm is allowed to return
+      ``None`` when it is unable to synthesize the desired circuit.
+    * qubits: the sequence of qubits over which the ``high_level_object`` is defined.
+      This is only used in the case that the coupling map is not ``None``.
+    * opt_count: an option to prioritize count over depth when multiple synthesized
+      circuits are available.
+    * all_mats: an option to synthesize quantum circuits for the matrix, its transpose,
+      its inverse, and its inverse transpose, choosing the best implementation.
+    * max_paths: when the coupling map is not ``None``, the internally used synthesis
+      algorithm needs to pick a hamiltonian path through ``qubits``. By default, only one
+      hamiltonian pass is considered. This option allows to increase the maximum number
+      of paths that should be considered, choosing the best implementation.
+    * orig_circuit: an option to also consider the original implementation of the linear
+      function when available, choosing the best implementation. Note that the original
+      implementation might not adhere to the coupling map.
+
+    The output of the ``run`` method should either be ``None`` if the circuit could
+    not be synthesized, a ``QuantumCircuit``, or a pair consisting of a quantum circuit
+    and an ordered list of qubits.
+    """
 
     def __init__(self, **options):
         self._options = options
@@ -238,10 +268,10 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
         # over which the LNN synthesis is applied.
         best_path = None
 
-        if consider_original_circuit:
-            best_decomposition = high_level_object.original_circuit
-
         if not coupling_map:
+            if consider_original_circuit:
+                best_decomposition = high_level_object.original_circuit
+
             if not consider_all_mats:
                 decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
             else:
@@ -259,6 +289,12 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
         else:
             # Consider the coupling map over the qubits on which the linear function is applied.
             reduced_map = coupling_map.reduce(qubits)
+
+            # We can consider the original definition if it's compliant with the reduced map.
+            if consider_original_circuit and _check_coupling_map(
+                high_level_object.original_circuit, reduced_map
+            ):
+                best_decomposition = high_level_object.original_circuit
 
             # Find one or more paths through the coupling map (when such exist).
             considered_paths = _hamiltonian_paths(reduced_map, max_paths)
@@ -288,7 +324,27 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
 
 class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
-    """Linear function synthesis plugin based on the Patel-Markov-Hayes method."""
+    """Linear function synthesis plugin based on the Patel-Markov-Hayes method.
+
+    The plugin also supports the following plugin-specific options that can be passed
+    in ``__init__`` and ``run`` methods:
+
+    * coupling_map: CouplingMap of the target backend or ``None``. If this coupling map
+      is not ``None``, then the synthesized quantum circuit should adhere to the imposed
+      connectivity constraints. Note that the synthesis algorithm is allowed to return
+      ``None`` when it is unable to synthesize the desired circuit.
+    * opt_count: an option to prioritize count over depth when multiple synthesized
+      circuits are available.
+    * all_mats: an option to synthesize quantum circuits for the matrix, its transpose,
+      its inverse, and its inverse transpose, choosing the best implementation.
+    * orig_circuit: an option to also consider the original implementation of the linear
+      function when available, choosing the best implementation. Note that the original
+      implementation might not adhere to the coupling map.
+
+    The output of the ``run`` method should either be ``None`` if the circuit could
+    not be synthesized, a ``QuantumCircuit``, or a pair consisting of a quantum circuit
+    and an ordered list of qubits.
+    """
 
     def __init__(self, **options):
         self._options = options

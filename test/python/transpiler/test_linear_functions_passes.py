@@ -681,11 +681,40 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         qct2 = pm.run(qc2)
         self.assertIn("linear_function", qct2.count_ops().keys())
 
-    def test_synthesis_using_kms_with_original_circuit(self):
+    def test_synthesis_using_kms_with_compliant_original_circuit(self):
         """Test high level synthesis of linear functions using the KMSSynthesisLinearFunction
         plugin when the linear function is created from some linear circuit. If the coupling
-        map does not have a hamiltonian path but the ``orig_circuit`` option is 1, the linear
-        function should be synthesized."""
+        map does not have a hamiltonian path but the ``orig_circuit`` option is 1 and the linear
+        function is adheres to the coupling map, the linear function should be synthesized."""
+        qcl = QuantumCircuit(4)
+        qcl.cx(0, 1)
+        qcl.cx(0, 2)
+        qcl.cx(0, 3)
+        linear_function = LinearFunction(qcl)
+
+        coupling_map = CouplingMap([(0, 1), (1, 2), (1, 3), (4, 3), (3, 5)])
+        coupling_map.make_symmetric()
+
+        qc = QuantumCircuit(6)
+        qc.append(linear_function, [3, 1, 4, 5])
+
+        # First, the case that synthesis does not apply and orig_circuit option is 0.
+        config = HLSConfig(linear_function=[("kms", {"orig_circuit": 0})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qct = pm.run(qc)
+        self.assertIn("linear_function", qct.count_ops().keys())
+
+        # Second, the case that synthesis does not apply but orig_circuit option is 1.
+        config = HLSConfig(linear_function=[("kms", {"orig_circuit": 1})])
+        pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
+        qct = pm.run(qc)
+        self.assertNotIn("linear_function", qct.count_ops().keys())
+
+    def test_synthesis_using_kms_with_non_compliant_original_circuit(self):
+        """Test high level synthesis of linear functions using the KMSSynthesisLinearFunction
+        plugin when the linear function is created from some linear circuit. If the coupling
+        map does not have a hamiltonian path but the ``orig_circuit`` option is 1 yet the linear
+        function does not adhere to the coupling map, the linear function should not be synthesized."""
         qcl = QuantumCircuit(4)
         qcl.cx(0, 1)
         qcl.cx(0, 2)
@@ -708,7 +737,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         config = HLSConfig(linear_function=[("kms", {"orig_circuit": 1})])
         pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
         qct = pm.run(qc)
-        self.assertNotIn("linear_function", qct.count_ops().keys())
+        self.assertIn("linear_function", qct.count_ops().keys())
 
     def test_synthesis_with_multiple_methods(self):
         """Test high level synthesis with multiple methods."""

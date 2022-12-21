@@ -152,3 +152,18 @@ def _compare_circuits(
     )
 
     return count2_is_better or depth2_is_better
+
+
+def _check_coupling_map(qc: QuantumCircuit, coupling_list: list) -> bool:
+    """Returns whether a linear quantum circuit (consisting of CX and SWAP gates)
+    only has connections from the coupling_list."""
+    coupling_list_set = set(coupling_list)
+    for circuit_instruction in qc.data:
+        qargs = circuit_instruction.qubits
+        if len(qargs) != 2:
+            return False
+        q0 = qc.find_bit(circuit_instruction.qubits[0]).index
+        q1 = qc.find_bit(circuit_instruction.qubits[1]).index
+        if (q0, q1) not in coupling_list_set:
+            return False
+    return True
