@@ -193,7 +193,7 @@ class XXDecomposer:
     @staticmethod
     def _strength_to_infidelity(basis_fidelity, approximate=False):
         """
-        Converts a dictionary mapping ZX strengths to fidelities to a dictionary mapping ZX
+        Converts a dictionary mapping XX strengths to fidelities to a dictionary mapping XX
         strengths to infidelities. Also supports one of the other formats Qiskit uses: if only a
         lone float is supplied, it extends it from CX over CX/2 and CX/3 by linear decay.
         """
@@ -228,7 +228,8 @@ class XXDecomposer:
             unitary (Operator or ndarray): 4x4 unitary to synthesize.
             basis_fidelity (dict or float): Fidelity of basis gates. Can be either (1) a dictionary
                 mapping XX angle values to fidelity at that angle; or (2) a single float f,
-                interpreted as {pi: f, pi/2: f/2, pi/3: f/3} .
+                interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
+                If given, overrides the basis_fidelity given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0 .
         Returns:
             QuantumCircuit: Synthesized circuit.

@@ -1086,14 +1086,23 @@ class TwoQubitBasisDecomposer:
 
     @deprecate_arguments({"target": "unitary"})
     def __call__(
-        self, unitary, basis_fidelity: float = None, *, _num_basis_uses: int = None
+        self, unitary, basis_fidelity: float = None, approximate=True, *, _num_basis_uses: int = None
     ) -> QuantumCircuit:
         """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
         that each basis application has a finite `basis_fidelity`.
 
-        You can force a particular approximation by passing _num_basis_uses.
+        Args:
+            unitary (Operator or ndarray): 4x4 unitary to synthesize.
+            basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate.
+                If given, overrides basis_fidelity given at init.
+            approximate (bool): Approximates if basis fidelities are less than 1.0.
+            _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
+        Returns:
+            QuantumCircuit: Synthesized circuit.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
+        if approximate is False:
+            basis_fidelity = 1.0
         unitary = np.asarray(unitary, dtype=complex)
 
         target_decomposed = TwoQubitWeylDecomposition(unitary)
