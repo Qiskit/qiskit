@@ -22,7 +22,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.synthesis.clifford import synth_clifford_full
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
-from qiskit.synthesis.linear.linear_circuits_utils import optimize_cx_4_options, _compare_circuits
+from qiskit.synthesis.linear.linear_circuits_utils import _optimize_cx_4_options, _compare_circuits
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
@@ -245,7 +245,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
             if not consider_all_mats:
                 decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
             else:
-                decomposition = optimize_cx_4_options(
+                decomposition = _optimize_cx_4_options(
                     synth_cnot_depth_line_kms,
                     high_level_object.linear,
                     optimize_count=optimize_count,
@@ -269,7 +269,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
                 if not consider_all_mats:
                     decomposition = synth_cnot_depth_line_kms(permuted_linear_function.linear)
                 else:
-                    decomposition = optimize_cx_4_options(
+                    decomposition = _optimize_cx_4_options(
                         synth_cnot_depth_line_kms,
                         permuted_linear_function.linear,
                         optimize_count=False,
@@ -323,7 +323,7 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
             if not consider_all_mats:
                 decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
             else:
-                decomposition = optimize_cx_4_options(
+                decomposition = _optimize_cx_4_options(
                     synth_cnot_count_full_pmh,
                     high_level_object.linear,
                     optimize_count=optimize_count,

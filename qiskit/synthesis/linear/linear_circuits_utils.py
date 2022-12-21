@@ -42,7 +42,7 @@ def transpose_cx_circ(qc: QuantumCircuit):
     return transposed_circ
 
 
-def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: bool = True):
+def _optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: bool = True):
     """Get the best implementation of a circuit implementing a binary invertible matrix M,
     by considering all four options: M,M^(-1),M^T,M^(-1)^T.
     Optimizing either the CX count or the depth.

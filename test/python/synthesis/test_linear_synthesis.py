@@ -25,7 +25,7 @@ from qiskit.synthesis.linear import (
     check_invertible_binary_matrix,
     calc_inverse_matrix,
 )
-from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, optimize_cx_4_options
+from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, _optimize_cx_4_options
 from qiskit.test import QiskitTestCase
 
 
@@ -43,7 +43,7 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         for optimized in [True, False]:
-            optimized_qc = optimize_cx_4_options(
+            optimized_qc = _optimize_cx_4_options(
                 synth_cnot_count_full_pmh, mat, optimize_count=optimized
             )
             self.assertEqual(optimized_qc.depth(), 4)
@@ -60,7 +60,7 @@ class TestLinearSynth(QiskitTestCase):
         mat = LinearFunction(qc).linear
 
         for optimized in [True, False]:
-            optimized_qc = optimize_cx_4_options(
+            optimized_qc = _optimize_cx_4_options(
                 synth_cnot_count_full_pmh, mat, optimize_count=optimized
             )
             self.assertEqual(optimized_qc.depth(), 4)
@@ -94,11 +94,11 @@ class TestLinearSynth(QiskitTestCase):
         qc.cx(1, 0)
         mat = LinearFunction(qc).linear
 
-        optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=True)
+        optimized_qc = _optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=True)
         self.assertEqual(optimized_qc.depth(), 17)
         self.assertEqual(optimized_qc.count_ops()["cx"], 20)
 
-        optimized_qc = optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=False)
+        optimized_qc = _optimize_cx_4_options(synth_cnot_count_full_pmh, mat, optimize_count=False)
         self.assertEqual(optimized_qc.depth(), 15)
         self.assertEqual(optimized_qc.count_ops()["cx"], 23)
 
