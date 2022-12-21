@@ -86,10 +86,12 @@ class Kraus(QuantumChannel):
         # If the input is a list or tuple we assume it is a list of Kraus
         # matrices, if it is a numpy array we assume that it is a single Kraus
         # operator
+        # TODO properly handle array construction from ragged data (like tuple(np.ndarray, None))
+        # and document these accepted input cases. See also Qiskit/qiskit-terra#9307.
         if isinstance(data, (list, tuple, np.ndarray)):
             # Check if it is a single unitary matrix A for channel:
             # E(rho) = A * rho * A^\dagger
-            if isinstance(data, np.ndarray) or np.array(data).ndim == 2:
+            if _is_matrix(data):
                 # Convert single Kraus op to general Kraus pair
                 kraus = ([np.asarray(data, dtype=complex)], None)
                 shape = kraus[0][0].shape
@@ -318,6 +320,14 @@ class Kraus(QuantumChannel):
             kraus_r = [val * k for k in self._data[1]]
         ret._data = (kraus_l, kraus_r)
         return ret
+
+
+def _is_matrix(data):
+    # return True if data is a 2-d array/tuple/list
+    if not isinstance(data, np.ndarray):
+        data = np.array(data, dtype=object)
+
+    return data.ndim == 2
 
 
 # Update docstrings for API docs
