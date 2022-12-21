@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,bad-docstring-quotes
 
 """Matplotlib classes for pulse visualization."""
 
@@ -44,11 +44,17 @@ from qiskit.pulse import (
     SetPhase,
 )
 from qiskit.pulse.schedule import ScheduleComponent
+from qiskit.utils.deprecation import deprecate_function
 
 
 class EventsOutputChannels:
     """Pulse dataset for channel."""
 
+    @deprecate_function(
+        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
+        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
+        " In no less than 6 months the old objects will be completely removed.",
+    )
     def __init__(self, t0: int, tf: int):
         """Create new channel dataset.
 
@@ -278,6 +284,11 @@ class EventsOutputChannels:
 class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
+    @deprecate_function(
+        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
+        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
+        " In no less than 6 months the old objects will be completely removed.",
+    )
     def __init__(self, style: PulseStyle):
         """Create new figure.
 
@@ -373,6 +384,12 @@ class WaveformDrawer:
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
+    @deprecate_function(
+        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
+        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
+        " In no less than 6 months the old objects will be completely removed.",
+        stacklevel=3,
+    )
     def __init__(self, style: SchedStyle):
         """Create new figure.
 

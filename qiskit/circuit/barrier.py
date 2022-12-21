@@ -27,8 +27,6 @@ class Barrier(Instruction):
         (and if there are no barriers they act on the whole circuit). This only comes into play
         when using the transpile or execute functions in Qiskit (execute includes a transpile step)"""
 
-    _directive = True
-
     def __init__(self, num_qubits, label=None):
         """Create new barrier instruction.
 
