@@ -1,10 +1,10 @@
 ---
 fixes:
   - |
-    Fixed bad handling of ``__init_subclass__`` by :func:`~qiskit.utils.wrap_method`
+    Fixed bad handling of ``classmethod``s by :func:`~qiskit.utils.wrap_method`
     in Python 3.11. Previously, in Python 3.11, ``wrap_method`` would wrap the
-    unbounded function of ``__init_subclass__`` and then fail when invoked
-    because the bound class object was not passed to the function. Starting in
-    Python 3.11.1, this issue affected :class:`~qiskit.test.QiskitTestCase`,
+    unbounded function of ``classmethod`` and then fail when invoked because
+    the bound class object was not passed to the function. Starting in Python
+    3.11.1, this issue affected :class:`~qiskit.test.QiskitTestCase`,
     preventing it from being imported by other test code. Fixed `#9291
     <https://github.com/Qiskit/qiskit-terra/issues/9291>`__.
