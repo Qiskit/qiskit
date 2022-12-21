@@ -1130,12 +1130,15 @@ class TestParameters(QiskitTestCase):
     def test_compile_with_ufunc(self):
         """Test compiling of circuit with unbounded parameters
         after we apply universal functions."""
-        phi = Parameter("phi")
+        phi1 = Parameter("phi1")
+        phi2 = Parameter("phi2")
         qc = QuantumCircuit(1)
-        qc.rx(numpy.cos(phi), 0)
+        qc.rx(numpy.abs(phi1), 0)
+        qc.rx(numpy.cos(phi2), 0)
         backend = BasicAer.get_backend("qasm_simulator")
         qc_aer = transpile(qc, backend)
-        self.assertIn(phi, qc_aer.parameters)
+        self.assertIn(phi1, qc_aer.parameters)
+        self.assertIn(phi2, qc_aer.parameters)
 
     def test_parametervector_resize(self):
         """Test the resize method of the parameter vector."""
