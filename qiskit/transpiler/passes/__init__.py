@@ -135,7 +135,7 @@ Circuit Analysis
    DAGLongestPath
 
 Synthesis
-=============
+=========
 
 .. autosummary::
    :toctree: ../stubs/
@@ -144,6 +144,8 @@ Synthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
+   SolovayKitaev
+   SolovayKitaevSynthesis
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -247,6 +249,8 @@ from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import SolovayKitaev
+from .synthesis import SolovayKitaevSynthesis
 
 # calibration
 from .calibration import PulseGates
