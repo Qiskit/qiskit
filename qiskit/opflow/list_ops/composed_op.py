@@ -15,8 +15,8 @@
 from functools import partial, reduce
 from typing import List, Optional, Union, cast, Dict
 
-import numpy as np
 from numbers import Number
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
