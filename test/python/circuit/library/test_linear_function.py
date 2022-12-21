@@ -239,6 +239,22 @@ class TestLinearFunctions(QiskitTestCase):
         linear_function = LinearFunction(mat)
         self.assertIsNone(linear_function.original_circuit)
 
+    def test_permute(self):
+        """Tests correctness of ``permute`` method."""
+        mat = [[1, 1, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0]]
+
+        # This means: 2->0, 0->1, 1->2, 3->3
+        perm = [2, 0, 1, 3]
+
+        permuted_matrix = LinearFunction(mat).permute(perm).linear.astype(int)
+
+        # expected matrix is obtained by first reordering columns
+        # according to the permutation pattern, i.e.
+        # [[0, 1, 1, 0], [0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0]],
+        # and then reordering rows of the matrix.
+        expected_matrix = [[0, 0, 0, 1], [0, 1, 1, 0], [0, 0, 1, 0], [1, 0, 0, 0]]
+        self.assertTrue(np.all(permuted_matrix == expected_matrix))
+
 
 if __name__ == "__main__":
     unittest.main()
