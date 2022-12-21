@@ -529,5 +529,5 @@ class TestWrapMethod(QiskitTestCase):
         class Dummy:
             pass
 
-        with self.assertRaisesRegex(ValueError, "Method 'bad' is not defined for class 'Dummy'"):
+        with self.assertRaisesRegex(AttributeError, "bad"):
             wrap_method(Dummy, "bad", before=lambda self: None)
