@@ -59,6 +59,7 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    CSdgGate
    SwapGate
    iSwapGate
+   BGate
    SXGate
    SXdgGate
    TGate
@@ -90,6 +91,7 @@ from .ecr import ECRGate
 from .s import SGate, SdgGate, CSGate, CSdgGate
 from .swap import SwapGate, CSwapGate
 from .iswap import iSwapGate
+from .b import BGate
 from .sx import SXGate, SXdgGate, CSXGate
 from .dcx import DCXGate
 from .t import TGate, TdgGate
@@ -158,6 +160,7 @@ def get_standard_gate_name_mapping():
         CSdgGate(),
         SwapGate(),
         iSwapGate(),
+        BGate(),
         SXdgGate(),
         TGate(),
         TdgGate(),
