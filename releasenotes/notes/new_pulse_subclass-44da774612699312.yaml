@@ -12,6 +12,7 @@ features:
 
     The new subclass removes the non-unique nature of the `amp`,`angle` representation,
     and correctly compares pulses according to their complex amplitude.
+
 other:
   - |
     QPY version was bumped to 6. Following the introduction of :class:`~qiskit.pulse.library.ScalableSymbolicPulse`
