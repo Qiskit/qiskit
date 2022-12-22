@@ -38,6 +38,7 @@ QubitSpecifier = Union[
     Sequence[Union[Qubit, int]],
 ]
 
+
 class UCRXGate(UCPauliRotGate):
     """
     Uniformly controlled rotations (also called multiplexed rotations).
@@ -51,10 +52,7 @@ class UCRXGate(UCPauliRotGate):
 
 
 def ucrx(
-    self,
-    angle_list: List[float],
-    q_controls: Sequence[QubitSpecifier],
-    q_target: QubitSpecifier
+    self, angle_list: List[float], q_controls: Sequence[QubitSpecifier], q_target: QubitSpecifier
 ):
     r"""Attach a uniformly controlled (also called multiplexed) Rx rotation gate to a circuit.
 
