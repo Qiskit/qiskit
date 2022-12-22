@@ -40,6 +40,7 @@ from qiskit.transpiler.passes import Collect2qBlocks
 from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import GatesInBasis
+from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.runningpassmanager import ConditionalController
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -134,7 +135,13 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
         _choose_layout_1 = SabreLayout(
-            coupling_map, max_iterations=4, seed=seed_transpiler, swap_trials=20
+            coupling_map,
+            max_iterations=4,
+            seed=seed_transpiler,
+            swap_trials=20,
+            layout_trials=20,
+            skip_routing=pass_manager_config.routing_method is not None
+            and routing_method != "sabre",
         )
 
     # Choose routing pass
@@ -192,11 +199,20 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 "layout", layout_method, pass_manager_config, optimization_level=3
             )
         else:
+
+            def _swap_mapped(property_set):
+                return property_set["final_layout"] is None
+
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout_0, condition=_choose_layout_condition)
-            layout.append(_choose_layout_1, condition=_vf2_match_not_found)
-            layout += common.generate_embed_passmanager(coupling_map)
+            layout.append(
+                [BarrierBeforeFinalMeasurements(), _choose_layout_1], condition=_vf2_match_not_found
+            )
+            embed = common.generate_embed_passmanager(coupling_map)
+            layout.append(
+                [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+            )
         routing = routing_pm
     else:
         layout = None

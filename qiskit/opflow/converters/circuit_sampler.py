@@ -84,8 +84,6 @@ class CircuitSampler(ConverterBase):
         self._statevector = (
             statevector if statevector is not None else self.quantum_instance.is_statevector
         )
-        # Set to False until https://github.com/Qiskit/qiskit-aer/issues/1249 is closed.
-        param_qobj = False
         self._param_qobj = param_qobj
         self._attach_results = attach_results
 
