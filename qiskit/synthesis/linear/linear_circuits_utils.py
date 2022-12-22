@@ -18,7 +18,10 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
-from . import calc_inverse_matrix, check_invertible_binary_matrix
+from qiskit.synthesis.linear.linear_matrix_utils import (
+    calc_inverse_matrix,
+    check_invertible_binary_matrix,
+)
 
 
 def transpose_cx_circ(qc: QuantumCircuit):
@@ -62,7 +65,7 @@ def _optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: 
         raise QiskitError("The matrix is not invertible.")
 
     circuits = _cx_circuits_4_options(function, mat)
-    best_qc = _choose_best_circuit(circuits, optimize_count)
+    best_qc = _choose_best_linear_circuit(circuits, optimize_count)
     return best_qc
 
 
@@ -104,7 +107,7 @@ def _cx_circuits_4_options(function: Callable, mat: np.ndarray) -> List[QuantumC
     return circuits
 
 
-def _choose_best_circuit(
+def _choose_best_linear_circuit(
     circuits: List[QuantumCircuit], optimize_count: bool = True
 ) -> QuantumCircuit:
     """Returns the best quantum circuit either in terms of gate count or depth.
@@ -118,12 +121,29 @@ def _choose_best_circuit(
     """
     best_qc = circuits[0]
     for circuit in circuits[1:]:
-        if _compare_circuits(best_qc, circuit, optimize_count=optimize_count):
+        if _compare_linear_circuits(best_qc, circuit, optimize_count=optimize_count):
             best_qc = circuit
     return best_qc
 
 
-def _compare_circuits(
+def _linear_circuit_depth(qc: QuantumCircuit):
+    """Computes the depth of a linear circuit (that is, a circuit that only contains CX and SWAP
+    gates). This is similar to quantum circuit's depth method except that SWAPs are counted as
+    depth-3 gates.
+    """
+    qubit_depths = [0] * qc.num_qubits
+    bit_indices = {bit: idx for idx, bit in enumerate(qc.qubits)}
+    for instruction in qc.data:
+        if instruction.operation.name not in ["cx", "swap"]:
+            raise CircuitError("The circuit contains non-linear gates.")
+        new_depth = max(qubit_depths[bit_indices[q]] for q in instruction.qubits)
+        new_depth += 3 if instruction.operation.name == "swap" else 1
+        for q in instruction.qubits:
+            qubit_depths[bit_indices[q]] = new_depth
+    return max(qubit_depths)
+
+
+def _compare_linear_circuits(
     qc1: QuantumCircuit, qc2: QuantumCircuit, optimize_count: bool = True
 ) -> bool:
     """Compares two quantum circuits either in terms of gate count or depth.
@@ -136,11 +156,10 @@ def _compare_circuits(
     Returns:
         bool: ``False`` means that the first quantum circuit is "better", ``True`` means the second.
     """
-    # TODO: this is not fully correct if there are SWAP gates
     count1 = qc1.size()
-    depth1 = qc1.depth()
+    depth1 = _linear_circuit_depth(qc1)
     count2 = qc2.size()
-    depth2 = qc2.depth()
+    depth2 = _linear_circuit_depth(qc2)
 
     # Prioritize count, and if it has the same count, then also consider depth
     count2_is_better = (optimize_count and count1 > count2) or (
@@ -154,16 +173,17 @@ def _compare_circuits(
     return count2_is_better or depth2_is_better
 
 
-def _check_coupling_map(qc: QuantumCircuit, coupling_list: list) -> bool:
+def _linear_circuit_complies_with_coupling_map(qc: QuantumCircuit, coupling_list: list) -> bool:
     """Returns whether a linear quantum circuit (consisting of CX and SWAP gates)
-    only has connections from the coupling_list."""
+    only has connections from the coupling_list.
+    """
+    bit_indices = {bit: idx for idx, bit in enumerate(qc.qubits)}
     coupling_list_set = set(coupling_list)
     for circuit_instruction in qc.data:
-        qargs = circuit_instruction.qubits
-        if len(qargs) != 2:
+        if len(circuit_instruction.qubits) != 2:
             return False
-        q0 = qc.find_bit(circuit_instruction.qubits[0]).index
-        q1 = qc.find_bit(circuit_instruction.qubits[1]).index
+        q0 = bit_indices[circuit_instruction.qubits[0]]
+        q1 = bit_indices[circuit_instruction.qubits[1]]
         if (q0, q1) not in coupling_list_set:
             return False
     return True

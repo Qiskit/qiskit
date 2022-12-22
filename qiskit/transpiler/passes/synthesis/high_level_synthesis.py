@@ -24,8 +24,8 @@ from qiskit.synthesis.clifford import synth_clifford_full
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
 from qiskit.synthesis.linear.linear_circuits_utils import (
     _optimize_cx_4_options,
-    _compare_circuits,
-    _check_coupling_map,
+    _compare_linear_circuits,
+    _linear_circuit_complies_with_coupling_map,
 )
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
@@ -281,7 +281,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
                     optimize_count=optimize_count,
                 )
 
-            if not best_decomposition or _compare_circuits(
+            if not best_decomposition or _compare_linear_circuits(
                 best_decomposition, decomposition, optimize_count=optimize_count
             ):
                 best_decomposition = decomposition
@@ -291,7 +291,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
             reduced_map = coupling_map.reduce(qubits)
 
             # We can consider the original definition if it's compliant with the reduced map.
-            if consider_original_circuit and _check_coupling_map(
+            if consider_original_circuit and _linear_circuit_complies_with_coupling_map(
                 high_level_object.original_circuit, reduced_map
             ):
                 best_decomposition = high_level_object.original_circuit
@@ -311,7 +311,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
                         optimize_count=False,
                     )
 
-                if not best_decomposition or _compare_circuits(
+                if not best_decomposition or _compare_linear_circuits(
                     best_decomposition, decomposition, optimize_count=False
                 ):
                     best_decomposition = decomposition
@@ -385,7 +385,7 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
                     optimize_count=optimize_count,
                 )
 
-            if not best_decomposition or _compare_circuits(
+            if not best_decomposition or _compare_linear_circuits(
                 best_decomposition, decomposition, optimize_count=optimize_count
             ):
                 best_decomposition = decomposition
