@@ -625,14 +625,14 @@ class ScalableSymbolicPulse(SymbolicPulse):
         """
         # This should be removed once complex amp support is deprecated.
         if isinstance(amp, complex):
-            if angle is None:
+            if angle is None or angle == 0:
                 warnings.warn(
                     "Complex amp will be deprecated. "
                     "Use float amp (for the magnitude) and float angle instead.",
                     PendingDeprecationWarning,
                 )
             else:
-                raise PulseError("amp can't be complex with angle!=None")
+                raise PulseError("amp can't be complex with non zero angle")
 
         if angle is None:
             angle = 0
