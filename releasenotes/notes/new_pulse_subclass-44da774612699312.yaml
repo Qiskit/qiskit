@@ -3,7 +3,7 @@ features:
   - |
     Introduced a new subclass :class:`~qiskit.pulse.library.ScalableSymbolicPulse`, as a
     sub class of :class:`~qiskit.pulse.library.SymbolicPulse`. The new subclass behaves
-    the same way as :class:`~qiskit.pulse.library.SymbolicPulse`,
+    the same as :class:`~qiskit.pulse.library.SymbolicPulse`,
     except that it assumes that the envelope of the pulse includes a complex amplitude
     pre-factor of the form :math:`\text{amp}\times\exp\left(i\times\text{angle}\right)'.
     This envelope shape matches many common pulses, including all of the pulses in
