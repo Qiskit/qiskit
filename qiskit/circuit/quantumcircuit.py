@@ -1922,8 +1922,10 @@ class QuantumCircuit:
         """Return circuit depth (i.e., length of critical path).
 
         Args:
-            filter_function (callable): a function to filter out some instructions.
+            filter_function (callable): A function to filter instructions.
                 Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
+                Instructions for which the function returns False are ignored in the
+                computation of the circuit depth.
                 By default filters out "directives", such as barrier or snapshot.
 
         Returns:
