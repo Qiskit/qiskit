@@ -620,7 +620,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
 
         Raises:
             PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
-            PulseError: If both `amp` is complex and `angle` is not `None`.
+            PulseError: If both `amp` is complex and `angle` is not `None` or 0.
 
         """
         # This should be removed once complex amp support is deprecated.
@@ -632,7 +632,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
                     PendingDeprecationWarning,
                 )
             else:
-                raise PulseError("amp can't be complex with non zero angle")
+                raise PulseError("amp can't be complex with angle not None or 0")
 
         if angle is None:
             angle = 0
