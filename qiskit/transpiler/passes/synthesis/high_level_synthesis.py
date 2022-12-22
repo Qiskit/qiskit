@@ -25,7 +25,7 @@ from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_
 from qiskit.synthesis.linear.linear_circuits_utils import (
     _optimize_cx_4_options,
     _compare_linear_circuits,
-    _linear_circuit_complies_with_coupling_map,
+    _linear_circuit_check_map,
 )
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
@@ -291,7 +291,7 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
             reduced_map = coupling_map.reduce(qubits)
 
             # We can consider the original definition if it's compliant with the reduced map.
-            if consider_original_circuit and _linear_circuit_complies_with_coupling_map(
+            if consider_original_circuit and _linear_circuit_check_map(
                 high_level_object.original_circuit, reduced_map
             ):
                 best_decomposition = high_level_object.original_circuit

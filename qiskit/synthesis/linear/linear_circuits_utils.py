@@ -173,7 +173,7 @@ def _compare_linear_circuits(
     return count2_is_better or depth2_is_better
 
 
-def _linear_circuit_complies_with_coupling_map(qc: QuantumCircuit, coupling_list: list) -> bool:
+def _linear_circuit_check_map(qc: QuantumCircuit, coupling_list: list) -> bool:
     """Returns whether a linear quantum circuit (consisting of CX and SWAP gates)
     only has connections from the coupling_list.
     """
