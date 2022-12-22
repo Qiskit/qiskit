@@ -1,8 +1,9 @@
 ---
 features:
   - |
-    Introduced a new subclass :class:`~ScalabaleSymbolicPulse`, as a sub class of
-    :class:`~SymbolicPulse`. The new subclass behaves the same way as :class:`~SymbolicPulse`,
+    Introduced a new subclass :class:`~qiskit.pulse.library.ScalableSymbolicPulse`, as a
+    sub class of :class:`~qiskit.pulse.library.SymbolicPulse`. The new subclass behaves
+    the same way as :class:`~qiskit.pulse.library.SymbolicPulse`,
     except that it assumes that the envelope of the pulse includes a complex amplitude
     pre-factor of the form :math:`\text{amp}\times\exp\left(i\times\text{angle}\right)'.
     This envelope shape matches many common pulses, including all of the pulses in
@@ -13,6 +14,6 @@ features:
     and correctly compares pulses according to their complex amplitude.
 other:
   - |
-    QPY version was bumped to 6. Following the introduction of :class:`~ScalabaleSymbolicPulse`
-    the header of saved :class:`~SymbolicPulse` objects was modified to include
+    QPY version was bumped to 6. Following the introduction of :class:`~qiskit.pulse.library.ScalableSymbolicPulse`
+    the header of saved :class:`~qiskit.pulse.library.SymbolicPulse` objects was modified to include
     a `class_name` attribute, and the QPY version was bumped to reflect this.
