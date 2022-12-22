@@ -19,12 +19,24 @@ If the k control qubits are in the state ket(i) (in the computational bases),
 a single-qubit rotation R_x(a_i) is applied to the target qubit.
 """
 import math
-from typing import List, Union
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
+from typing import (
+    Union,
+    List,
+    Sequence,
+)
 
+# Types that can be coerced to a valid Qubit specifier in a circuit.
+QubitSpecifier = Union[
+    Qubit,
+    QuantumRegister,
+    int,
+    slice,
+    Sequence[Union[Qubit, int]],
+]
 
 class UCRXGate(UCPauliRotGate):
     """
@@ -41,8 +53,8 @@ class UCRXGate(UCPauliRotGate):
 def ucrx(
     self,
     angle_list: List[float],
-    q_controls: Union[QuantumRegister, List[Qubit]],
-    q_target: Union[QuantumRegister, Qubit],
+    q_controls: Sequence[QubitSpecifier],
+    q_target: QubitSpecifier
 ):
     r"""Attach a uniformly controlled (also called multiplexed) Rx rotation gate to a circuit.
 
@@ -50,13 +62,13 @@ def ucrx(
 
     Args:
         angle_list (List[float]): list of (real) rotation angles :math:`[a_0,...,a_{2^k-1}]`
-        q_controls (Union[QuantumRegister, List[Qubit]]): list of k control qubits
+        q_controls (Sequence[QubitSpecifier]): list of k control qubits
             (or empty list if no controls). The control qubits are ordered according to their
             significance in increasing order: For example if ``q_controls=[q[0],q[1]]``
             (with ``q = QuantumRegister(2)``), the rotation ``Rx(a_0)`` is performed if ``q[0]``
             and ``q[1]`` are in the state zero, the rotation ``Rx(a_1)`` is performed if ``q[0]``
             is in the state one and ``q[1]`` is in the state zero, and so on
-        q_target (Union[QuantumRegister, Qubit]): target qubit, where we act on with
+        q_target (QubitSpecifier): target qubit, where we act on with
             the single-qubit rotation gates
 
     Returns:
