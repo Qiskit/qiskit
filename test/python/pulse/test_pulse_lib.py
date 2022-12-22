@@ -19,7 +19,6 @@ import numpy as np
 from qiskit.circuit import Parameter
 from qiskit.pulse.library import (
     SymbolicPulse,
-    ScalableSymbolicPulse,
     Waveform,
     Constant,
     Gaussian,
@@ -258,25 +257,25 @@ class TestParametricPulses(QiskitTestCase):
     def test_repr(self):
         """Test the repr methods for parametric pulses."""
         gaus = Gaussian(duration=25, amp=0.7, sigma=4, angle=0.3)
-        self.assertEqual(repr(gaus), "Gaussian(duration=25, amp=0.7, sigma=4, angle=0.3)")
+        self.assertEqual(repr(gaus), "Gaussian(duration=25, sigma=4, amp=0.7, angle=0.3)")
         gaus = Gaussian(
             duration=25, amp=0.1 + 0.7j, sigma=4
         )  # Should be removed once the deprecation of complex
         # amp is completed.
-        self.assertEqual(repr(gaus), "Gaussian(duration=25, amp=(0.1+0.7j), sigma=4, angle=0)")
+        self.assertEqual(repr(gaus), "Gaussian(duration=25, sigma=4, amp=(0.1+0.7j), angle=0)")
         gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, width=3)
         self.assertEqual(
-            repr(gaus_square), "GaussianSquare(duration=20, amp=1.0, sigma=30, width=3, angle=0)"
+            repr(gaus_square), "GaussianSquare(duration=20, sigma=30, width=3, amp=1.0, angle=0)"
         )
         gaus_square = GaussianSquare(
             duration=20, sigma=30, amp=1.0, angle=0.2, risefall_sigma_ratio=0.1
         )
         self.assertEqual(
             repr(gaus_square),
-            "GaussianSquare(duration=20, amp=1.0, sigma=30, width=14.0, angle=0.2)",
+            "GaussianSquare(duration=20, sigma=30, width=14.0, amp=1.0, angle=0.2)",
         )
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
-        self.assertEqual(repr(drag), "Drag(duration=5, amp=0.5, sigma=7, beta=1, angle=0)")
+        self.assertEqual(repr(drag), "Drag(duration=5, sigma=7, beta=1, amp=0.5, angle=0)")
         const = Constant(duration=150, amp=0.1, angle=0.3)
         self.assertEqual(repr(const), "Constant(duration=150, amp=0.1, angle=0.3)")
 
@@ -532,21 +531,8 @@ class TestFunctionalPulse(QiskitTestCase):
 class TestScalableSymbolicPulse(QiskitTestCase):
     """ScalableSymbolicPulse tests"""
 
-    # pylint: disable=invalid-name
-    def test_amp_angle_verification(self):
-        """Test defining a custom pulse with no amp or angle"""
-        t, t1, t2, amp1, amp2 = sym.symbols("t, t1, t2, amp1, amp2")
-        envelope = sym.Piecewise((amp1, sym.And(t > t1, t < t2)), (amp2, sym.true))
-        with self.assertRaises(PulseError):
-            ScalableSymbolicPulse(
-                pulse_type="Custom",
-                duration=100,
-                parameters={"t1": 30, "t2": 80, "amp1": 0.1j, "amp2": 0.1j},
-                envelope=envelope,
-            )
-
     def test_scalable_comparison(self):
-        """Test equating of pulses with comparison_parameters."""
+        """Test equating of pulses"""
         # amp,angle comparison
         gaussian_negamp = Gaussian(duration=25, sigma=4, amp=-0.5, angle=0)
         gaussian_piphase = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi)

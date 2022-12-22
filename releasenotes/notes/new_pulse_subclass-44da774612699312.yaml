@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Introduced a new subclass :class:`ScalabaleSymbolicPulse`, as a sub class of
+    :class:`SymbolicPulse`. The new subclass behaves the same way as :class:`SymbolicPulse`,
+    except that it assumes that the envelope of the pulse includes a complex amplitude
+    pre-factor of the form :math:`\text{amp}\times\exp\left(i\times\text{angle}\right)'.
+    This envelope shape matches many common pulses, including all of the pulses in
+    the Qiskit Pulse library (which were also converted to 'amp','angle' representation in
+    this release).
+
+    The new subclass removes the non-unique nature of the `amp`,`angle` representation,
+    and correctly compares pulses according to their complex amplitude.
+other:
+  - |
+    QPY version was bumped to 6. Following the introduction of :class:`ScalabaleSymbolicPulse`
+    the header of saved :class:`SymbolicPulse` objects was modified to include
+    a `class_name` attribute, and the QPY version was bumped to reflect this.

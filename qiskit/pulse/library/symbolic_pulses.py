@@ -21,6 +21,7 @@ parameter constraints.
 import functools
 import warnings
 from typing import Any, Dict, List, Optional, Union, Callable
+from copy import deepcopy
 
 import numpy as np
 
@@ -547,11 +548,8 @@ class SymbolicPulse(Pulse):
         if self._envelope != other._envelope:
             return False
 
-        # SymbolicPulse requires parameters to be identical, but subclasses of SymbolicPulse
-        # Have different conditions.
-        if self.__class__ == SymbolicPulse:
-            if self.parameters != other.parameters:
-                return False
+        if self.parameters != other.parameters:
+            return False
 
         return True
 
@@ -578,8 +576,10 @@ class ScalableSymbolicPulse(SymbolicPulse):
     :class:`SymbolicPulse`, but its envelope is assumed to have a scalable form
     :math:`\text{amp}\times\exp\left(i\times\text{angle}\right)\times\text{F}
     \left(t,\text{parameters}\right)`,
-    where :math:`\text{F}` is some function describing the rest of the envelope.
-    Parameters `amp` and `angle` are assumed to appear in :attr:`SymbolicPulse.parameters`.
+    where :math:`\text{F}` is some function describing the rest of the envelope,
+    and both `amp` and `angle` are real (float). Note that both `amp` and `angle` are
+    stored in the :attr:`parameters` dictionary of the :class:`ScalableSymbolicPulse`
+    instance.
 
     When two :class:`ScalableSymbolicPulse` objects are equated, instead of comparing
     `amp` and `angle` individually, only the complex amplitude
@@ -590,6 +590,8 @@ class ScalableSymbolicPulse(SymbolicPulse):
         self,
         pulse_type: str,
         duration: Union[ParameterExpression, int],
+        amp: Union[ParameterExpression, float, complex],
+        angle: Union[ParameterExpression, float],
         parameters: Optional[Dict[str, Union[ParameterExpression, complex]]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
@@ -597,8 +599,50 @@ class ScalableSymbolicPulse(SymbolicPulse):
         constraints: Optional[sym.Expr] = None,
         valid_amp_conditions: Optional[sym.Expr] = None,
     ):
-        if "amp" not in parameters or "angle" not in parameters:
-            raise PulseError("ScalableSymbolicPulse must have parameters amp and angle")
+        """Create a scalable symbolic pulse.
+
+        Args:
+            pulse_type: Display name of this pulse shape.
+            duration: Duration of pulse.
+            amp: The magnitude of the complex amplitude of the pulse.
+            angle: The phase of the complex amplitude of the pulse.
+            parameters: Dictionary of pulse parameters that defines the pulse envelope.
+            name: Display name for this particular pulse envelope.
+            limit_amplitude: If ``True``, then limit the absolute value of the amplitude of the
+                waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+            envelope: Pulse envelope expression.
+            constraints: Pulse parameter constraint expression.
+            valid_amp_conditions: Extra conditions to skip a full-waveform check for the
+                amplitude limit. If this condition is not met, then the validation routine
+                will investigate the full-waveform and raise an error when the amplitude norm
+                of any data point exceeds 1.0. If not provided, the validation always
+                creates a full-waveform.
+
+        Raises:
+            PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
+            PulseError: If both `amp` is complex and `angle` is not `None`.
+
+        """
+        # This should be removed once complex amp support is deprecated.
+        if isinstance(amp, complex):
+            if angle is None:
+                warnings.warn(
+                    "Complex amp will be deprecated. "
+                    "Use float amp (for the magnitude) and float angle instead.",
+                    PendingDeprecationWarning,
+                )
+            else:
+                raise PulseError("amp can't be complex with angle!=None")
+
+        if angle is None:
+            angle = 0
+
+        if not isinstance(parameters, Dict):
+            parameters = {"amp": amp, "angle": angle}
+        else:
+            parameters = deepcopy(parameters)
+            parameters["amp"] = amp
+            parameters["angle"] = angle
 
         super().__init__(
             pulse_type=pulse_type,
@@ -611,10 +655,16 @@ class ScalableSymbolicPulse(SymbolicPulse):
             valid_amp_conditions=valid_amp_conditions,
         )
 
+    # pylint: disable=too-many-return-statements
     def __eq__(self, other: "ScalableSymbolicPulse") -> bool:
-        symbolic_pulse_comparison = super().__eq__(other)
-        if symbolic_pulse_comparison is not True:
-            return symbolic_pulse_comparison
+        if not isinstance(other, ScalableSymbolicPulse):
+            return NotImplemented
+
+        if self._pulse_type != other._pulse_type:
+            return False
+
+        if self._envelope != other._envelope:
+            return False
 
         complex_amp1 = self.amp * np.exp(1j * self.angle)
         complex_amp2 = other.amp * np.exp(1j * other.angle)
@@ -634,7 +684,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
 
         return True
 
-    # When __eq__ is modified, __hash__ is automatically set to None, and thus needs to be defined
+    # When __eq__ is modified, __hash__ is automatically set to None, and thus needs to be inherited
     # explicitly.
     __hash__ = SymbolicPulse.__hash__
 
@@ -710,25 +760,8 @@ class Gaussian(metaclass=_PulseType):
 
         Returns:
             ScalableSymbolicPulse instance.
-
-        Raises:
-            PulseError: If both complex amp and angle are provided as arguments.
         """
-        # This should be removed once complex amp support is deprecated.
-        if isinstance(amp, complex):
-            if angle is None:
-                warnings.warn(
-                    "Complex amp will be deprecated. "
-                    "Use float amp (for the magnitude) and float angle instead.",
-                    PendingDeprecationWarning,
-                )
-            else:
-                raise PulseError("amp can't be complex when providing angle")
-
-        if angle is None:
-            angle = 0
-
-        parameters = {"amp": amp, "sigma": sigma, "angle": angle}
+        parameters = {"sigma": sigma}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _angle = sym.symbols("t, duration, amp, sigma, angle")
@@ -744,6 +777,8 @@ class Gaussian(metaclass=_PulseType):
         instance = ScalableSymbolicPulse(
             pulse_type=cls.alias,
             duration=duration,
+            amp=amp,
+            angle=angle,
             parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
@@ -828,7 +863,6 @@ class GaussianSquare(metaclass=_PulseType):
 
         Raises:
             PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
-            PulseError: If both complex amp and angle are provided as arguments.
         """
         # Convert risefall_sigma_ratio into width which is defined in OpenPulse spec
         if width is None and risefall_sigma_ratio is None:
@@ -843,21 +877,7 @@ class GaussianSquare(metaclass=_PulseType):
         if width is None and risefall_sigma_ratio is not None:
             width = duration - 2.0 * risefall_sigma_ratio * sigma
 
-        # This should be removed once complex amp support is deprecated.
-        if isinstance(amp, complex):
-            if angle is None:
-                warnings.warn(
-                    "Complex amp will be deprecated. "
-                    "Use float amp (for the magnitude) and float angle instead.",
-                    PendingDeprecationWarning,
-                )
-            else:
-                raise PulseError("amp can't be complex when providing angle")
-
-        if angle is None:
-            angle = 0
-
-        parameters = {"amp": amp, "sigma": sigma, "width": width, "angle": angle}
+        parameters = {"sigma": sigma, "width": width}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _width, _angle = sym.symbols(
@@ -885,6 +905,8 @@ class GaussianSquare(metaclass=_PulseType):
         instance = ScalableSymbolicPulse(
             pulse_type=cls.alias,
             duration=duration,
+            amp=amp,
+            angle=angle,
             parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
@@ -963,25 +985,8 @@ class Drag(metaclass=_PulseType):
 
         Returns:
             ScalableSymbolicPulse instance.
-
-        Raises:
-            PulseError: If both complex amp and angle are provided as arguments.
         """
-        # This should be removed once complex amp support is deprecated.
-        if isinstance(amp, complex):
-            if angle is None:
-                warnings.warn(
-                    "Complex amp will be deprecated. "
-                    "Use float amp (for the magnitude) and float angle instead.",
-                    PendingDeprecationWarning,
-                )
-            else:
-                raise PulseError("amp can't be complex when providing angle")
-
-        if angle is None:
-            angle = 0
-
-        parameters = {"amp": amp, "sigma": sigma, "beta": beta, "angle": angle}
+        parameters = {"sigma": sigma, "beta": beta}
 
         # Prepare symbolic expressions
         _t, _duration, _amp, _sigma, _beta, _angle = sym.symbols(
@@ -1000,6 +1005,8 @@ class Drag(metaclass=_PulseType):
         instance = ScalableSymbolicPulse(
             pulse_type="Drag",
             duration=duration,
+            amp=amp,
+            angle=angle,
             parameters=parameters,
             name=name,
             limit_amplitude=limit_amplitude,
@@ -1044,26 +1051,7 @@ class Constant(metaclass=_PulseType):
 
         Returns:
             ScalableSymbolicPulse instance.
-
-        Raises:
-            PulseError: If both complex amp and angle are provided as arguments.
         """
-        # This should be removed once complex amp support is deprecated.
-        if isinstance(amp, complex):
-            if angle is None:
-                warnings.warn(
-                    "Complex amp will be deprecated. "
-                    "Use float amp (for the magnitude) and float angle instead.",
-                    PendingDeprecationWarning,
-                )
-            else:
-                raise PulseError("amp can't be complex when providing angle")
-
-        if angle is None:
-            angle = 0
-
-        parameters = {"amp": amp, "angle": angle}
-
         # Prepare symbolic expressions
         _t, _amp, _duration, _angle = sym.symbols("t, amp, duration, angle")
 
@@ -1085,7 +1073,8 @@ class Constant(metaclass=_PulseType):
         instance = ScalableSymbolicPulse(
             pulse_type="Constant",
             duration=duration,
-            parameters=parameters,
+            amp=amp,
+            angle=angle,
             name=name,
             limit_amplitude=limit_amplitude,
             envelope=envelope_expr,

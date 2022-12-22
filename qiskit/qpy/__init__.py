@@ -126,6 +126,16 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_6:
+
+Version 6
+=========
+
+Version 6 adds support for :class:`.~ScalableSymbolicPulse`. These objects are saved and read
+like `SymbolicPulse` objects, and the class name is added to the meta-data to correctly handle
+the class selection.
+
+
 .. _qpy_version_5:
 
 Version 5
