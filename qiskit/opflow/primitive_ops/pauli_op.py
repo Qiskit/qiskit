@@ -155,8 +155,8 @@ class PauliOp(PrimitiveOp):
         if front:
             return other.compose(new_self)
         # If self is identity, just return other.
-        if not any(new_self.primitive.x + new_self.primitive.z):
-            return other * new_self.coeff
+        # if not any(new_self.primitive.x + new_self.primitive.z):
+        #     return other * new_self.coeff
 
         # Both Paulis
         if isinstance(other, PauliOp):
