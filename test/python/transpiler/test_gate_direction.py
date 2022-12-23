@@ -280,7 +280,7 @@ class TestGateDirection(QiskitTestCase):
         swapped.add_instruction(gate, {(1, 0): None})
         self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
 
-    @ddt.data(RXXGate(pi / 3), RYYGate(pi / 3), RZZGate(pi / 3))
+    @ddt.data(CZGate(), RZXGate(pi / 3), RXXGate(pi / 3), RYYGate(pi / 3), RZZGate(pi / 3))
     def test_target_trivial(self, gate):
         """Test that trivial 2q gates are swapped correctly both if available and not available."""
         circuit = QuantumCircuit(2)
@@ -294,6 +294,19 @@ class TestGateDirection(QiskitTestCase):
         swapped.add_instruction(gate, {(1, 0): None})
 
         self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
+
+    @ddt.data(CZGate(), RXXGate(pi / 3), RYYGate(pi / 3), RZZGate(pi / 3))
+    def test_symmetric_gates(self, gate):
+        """Test symmetric gates on single direction coupling map."""
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [1, 0], [])
+
+        expected = QuantumCircuit(2)
+        expected.append(gate, [0, 1], [])
+
+        coupling = CouplingMap.from_line(2, bidirectional=False)
+        pass_ = GateDirection(coupling)
+        self.assertEqual(pass_(circuit), expected)
 
     def test_target_parameter_any(self):
         """Test that a parametrised 2q gate is replaced correctly both if available and not
