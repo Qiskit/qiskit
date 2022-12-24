@@ -14,34 +14,21 @@
 
 """Tests for Pauli operator class."""
 
-import unittest
 import itertools as it
+import unittest
 from functools import lru_cache
-
-import numpy as np
-from scipy.sparse import csr_matrix
-from ddt import ddt, data, unpack
-
-from qiskit import QuantumCircuit, transpile
 from test.python.opflow import QiskitOpflowTestCase
 
-from qiskit.opflow.primitive_ops import PauliOp
-from qiskit.opflow import (
-    DictStateFn,
-    EvolvedOp,
-    PauliOp,
-    SummedOp,
-    TensoredOp,
-    I,
-    X,
-    Y,
-    Z,
-    Zero,
-    OpflowError,
-)
-from qiskit.quantum_info.operators import Pauli, Operator
-from qiskit.quantum_info.operators.symplectic.pauli import _split_pauli_label, _phase_from_label
+import numpy as np
+from ddt import data, ddt, unpack
+from scipy.sparse import csr_matrix
+
+from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import Parameter
+from qiskit.opflow import DictStateFn, EvolvedOp, I, PauliOp, SummedOp, X, Y, Z, Zero
+from qiskit.quantum_info.operators import Operator, Pauli
+from qiskit.quantum_info.operators.symplectic.pauli import _phase_from_label, _split_pauli_label
+
 
 @lru_cache(maxsize=8)
 def pauli_group_labels(nq, full_group=True):
@@ -57,6 +44,7 @@ def operator_from_label(label):
     pauli, coeff = _split_pauli_label(label)
     coeff = (-1j) ** _phase_from_label(coeff)
     return coeff * Operator.from_label(pauli)
+
 
 @ddt
 class TestPauliOp(QiskitOpflowTestCase):
@@ -81,11 +69,9 @@ class TestPauliOp(QiskitOpflowTestCase):
         a = Parameter("a")
         b = Parameter("b")
         actual = PauliOp(Pauli("X"), a) + PauliOp(Pauli("Y"), b)
-        expected = SummedOp(
-            [PauliOp(Pauli("X"), a), PauliOp(Pauli("Y"), b)]
-        )
+        expected = SummedOp([PauliOp(Pauli("X"), a), PauliOp(Pauli("Y"), b)])
         self.assertEqual(actual, expected)
-    
+
     def test_adjoint(self):
         """adjoint test"""
         pauli_op = PauliOp(Pauli("XYZX"), coeff=3)
@@ -97,8 +83,8 @@ class TestPauliOp(QiskitOpflowTestCase):
         expected = PauliOp(Pauli("XXY"), coeff=-2j)
         self.assertEqual(~pauli_op, expected)
 
-        pauli_op = PauliOp(Pauli("XYZX"), coeff=2+3j)
-        expected = PauliOp(Pauli("XYZX"), coeff=2-3j)
+        pauli_op = PauliOp(Pauli("XYZX"), coeff=2 + 3j)
+        expected = PauliOp(Pauli("XYZX"), coeff=2 - 3j)
         self.assertEqual(~pauli_op, expected)
 
     @data(*it.product(pauli_group_labels(2, full_group=True), repeat=2))
@@ -117,7 +103,7 @@ class TestPauliOp(QiskitOpflowTestCase):
         """equality test"""
 
         self.assertEqual(I @ X, X)
-        self.assertEqual(I, I @ X)
+        self.assertEqual(X, I @ X)
 
         theta = Parameter("theta")
         pauli_op = theta * X ^ Z
@@ -126,7 +112,7 @@ class TestPauliOp(QiskitOpflowTestCase):
             coeff=1.0 * theta,
         )
         self.assertEqual(pauli_op, expected)
-    
+
     def test_eval(self):
         """eval test"""
         target0 = (X ^ Y ^ Z).eval("000")
@@ -134,13 +120,13 @@ class TestPauliOp(QiskitOpflowTestCase):
         expected = DictStateFn({"110": 1j})
         self.assertEqual(target0, expected)
         self.assertEqual(target1, expected)
-    
+
     def test_exp_i(self):
         """exp_i test"""
         target = (2 * X ^ Z).exp_i()
-        expected = EvolvedOp(PauliOp(Pauli('XZ'), coeff=2.0), coeff=1.0)
+        expected = EvolvedOp(PauliOp(Pauli("XZ"), coeff=2.0), coeff=1.0)
         self.assertEqual(target, expected)
-    
+
     @data(([1, 2, 4], "XIYZI"), ([2, 1, 0], "ZYX"))
     @unpack
     def test_permute(self, permutation, expected_pauli):
@@ -151,19 +137,11 @@ class TestPauliOp(QiskitOpflowTestCase):
 
         with self.subTest(msg="test permutated object"):
             self.assertEqual(permuted, expected)
-        
+
         with self.subTest(msg="test original object is unchanged"):
             original = PauliOp(Pauli("XYZ"))
             self.assertEqual(pauli_op, original)
-    
-    @data([1, 2, 1], [1, 2, -1])
-    def test_permute_invalid(self, permutation):
-        """Test the permute method raises an error on invalid permutations."""
-        pauli_sum = PauliOp(X ^ Y ^ Z)
 
-        with self.assertRaises(OpflowError):
-            pauli_sum.permute(permutation)
-    
     def test_primitive_strings(self):
         """primitive strings test"""
         target = (2 * X ^ Z).primitive_strings()
@@ -193,18 +171,14 @@ class TestPauliOp(QiskitOpflowTestCase):
         expected = np.kron(np.array([[0.0, 1.0], [1.0, 0.0]]), np.array([[0.0, -1j], [1j, 0.0]]))
         np.testing.assert_array_equal(target, expected)
 
-    def test_to_pauli_op(self):
-        """to_pauli_op test"""
-        target = X ^ Y
-        self.assertIsInstance(target, PauliOp)
-        expected = TensoredOp([X, Y])
-        self.assertEqual(target.to_pauli_op(), expected)
-    
     def test_to_spmatrix(self):
         """to_spmatrix test"""
         target = X ^ Y
-        expected = csr_matrix(np.kron(np.array([[0.0, 1.0], [1.0, 0.0]]), np.array([[0.0, -1j], [1j, 0.0]])))
+        expected = csr_matrix(
+            np.kron(np.array([[0.0, 1.0], [1.0, 0.0]]), np.array([[0.0, -1j], [1j, 0.0]]))
+        )
         self.assertEqual((target.to_spmatrix() - expected).nnz, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
