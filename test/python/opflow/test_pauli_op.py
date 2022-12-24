@@ -72,69 +72,77 @@ class TestPauliOp(QiskitOpflowTestCase):
 
     def test_adjoint(self):
         """adjoint test"""
-        pauli_op = PauliOp(Pauli("XYZX"), coeff=2)
-        expected = PauliOp(Pauli("XYZX"), coeff=6)
+        pauli_op = PauliOp(Pauli("-XYZX"), coeff=3)
+        expected = PauliOp(Pauli("XYZX"), coeff=-3)
 
-        self.assertEqual(pauli_sum.adjoint(), expected)
+        self.assertEqual(pauli_op.adjoint(), expected)
 
-        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=3j)
-        expected = PauliSumOp(SparsePauliOp(Pauli("XYZY")), coeff=-6j)
-        self.assertEqual(pauli_sum.adjoint(), expected)
+        pauli_op = PauliOp(Pauli("iXYZX"), coeff=3j)
+        expected = PauliOp(Pauli("XYZX"), coeff=-3j)
+        self.assertEqual(pauli_op.adjoint(), expected)
 
-        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("X"), coeffs=[1]))
-        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+        for pauli_label in ["I", "X", "Y", "Z"]:
+            pauli_op = PauliOp(Pauli(pauli_label), coeff=1)
+            expected = PauliOp(Pauli(pauli_label), coeff=1)
+            self.assertEqual(pauli_op.adjoint(), expected)
 
-        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("Y"), coeffs=[1]))
-        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+            pauli_op = PauliOp(Pauli("-" + pauli_label), coeff=1)
+            expected = PauliOp(Pauli(pauli_label), coeff=-1)
+            self.assertEqual(pauli_op.adjoint(), expected)
 
-        pauli_sum = PauliSumOp(SparsePauliOp(Pauli("Z"), coeffs=[1]))
-        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+            pauli_op = PauliOp(Pauli("i" + pauli_label), coeff=1)
+            expected = PauliOp(Pauli(pauli_label), coeff=-1j)
+            self.assertEqual(pauli_op.adjoint(), expected)
 
-        pauli_sum = (Z ^ Z) + (Y ^ I)
-        self.assertEqual(pauli_sum.adjoint(), pauli_sum)
+            pauli_op = PauliOp(Pauli("-i" + pauli_label), coeff=1)
+            expected = PauliOp(Pauli(pauli_label), coeff=1j)
+            self.assertEqual(pauli_op.adjoint(), expected)
 
     def test_equals(self):
         """equality test"""
 
-        self.assertNotEqual((X ^ X) + (Y ^ Y), X + Y)
-        self.assertEqual((X ^ X) + (Y ^ Y), (Y ^ Y) + (X ^ X))
-        self.assertEqual(0 * X + I, I)
-        self.assertEqual(I, 0 * X + I)
+        for pauli_label in ["I", "X", "Y", "Z"]:
+            pauli_op = PauliOp(Pauli(pauli_label), coeff=1)
+            expected = PauliOp(Pauli(pauli_label), coeff=1)
+            self.assertEqual(pauli_op.adjoint(), expected)
 
-        theta = ParameterVector("theta", 2)
-        pauli_sum0 = theta[0] * (X + Z)
-        pauli_sum1 = theta[1] * (X + Z)
-        expected = PauliSumOp(
-            SparsePauliOp(Pauli("X")) + SparsePauliOp(Pauli("Z")),
-            coeff=1.0 * theta[0],
+            pauli_op = PauliOp(Pauli("-" + pauli_label), coeff=1)
+            expected = PauliOp(Pauli(pauli_label), coeff=-1)
+            self.assertEqual(pauli_op.adjoint(), expected)
+
+            pauli_op = PauliOp(Pauli("i" + pauli_label), coeff=1)
+            expected = PauliOp(Pauli(pauli_label), coeff=1j)
+            self.assertEqual(pauli_op.adjoint(), expected)
+
+            pauli_op = PauliOp(Pauli("-i" + pauli_label), coeff=1)
+            expected = PauliOp(Pauli(pauli_label), coeff=-1j)
+            self.assertEqual(pauli_op.adjoint(), expected)
+
+        theta = Parameter("theta")
+        pauli_op = theta * X ^ Z
+        expected = PauliOp(
+            Pauli("XZ"),
+            coeff=1.0 * theta,
         )
-        self.assertEqual(pauli_sum0, expected)
-        self.assertNotEqual(pauli_sum1, expected)
+        self.assertEqual(pauli_op, expected)
 
     def test_tensor(self):
         """Test for tensor operation"""
-        with self.subTest("Test 1"):
-            pauli_sum = ((I - Z) ^ (I - Z)) + ((X - Y) ^ (X + Y))
-            expected = (I ^ I) - (I ^ Z) - (Z ^ I) + (Z ^ Z) + (X ^ X) + (X ^ Y) - (Y ^ X) - (Y ^ Y)
-            self.assertEqual(pauli_sum, expected)
+        pauli_op = X ^ Y ^ Z ^ I
+        expected = PauliOp(Pauli("XYZI"), coeff=1.0)
+        self.assertEqual(pauli_op, expected)
 
-        with self.subTest("Test 2"):
-            pauli_sum = (Z + I) ^ Z
-            expected = (Z ^ Z) + (I ^ Z)
-            self.assertEqual(pauli_sum, expected)
-
-        with self.subTest("Test 3"):
-            pauli_sum = Z ^ (Z + I)
-            expected = (Z ^ Z) + (Z ^ I)
-            self.assertEqual(pauli_sum, expected)
+        pauli_op = X ^ X ^ X
+        expected = PauliOp(Pauli("XXX"), coeff=1.0)
+        self.assertEqual(pauli_op, expected)
 
     @data(([1, 2, 4], "XIYZI"), ([2, 1, 0], "ZYX"))
     @unpack
     def test_permute(self, permutation, expected_pauli):
         """Test the permute method."""
-        pauli_sum = PauliSumOp(SparsePauliOp.from_list([("XYZ", 1)]))
-        expected = PauliSumOp(SparsePauliOp.from_list([(expected_pauli, 1)]))
-        permuted = pauli_sum.permute(permutation)
+        pauli_op = PauliOp(Pauli("XYZ", coeff=1.0))
+        expected = PauliOp(Pauli(expected_pauli, coeff=1.0))
+        permuted = pauli_op.permute(permutation)
 
         with self.subTest(msg="test permutated object"):
             self.assertEqual(permuted, expected)
