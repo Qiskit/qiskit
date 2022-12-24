@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,37 +10,53 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test PauliOp."""
+# pylint: disable=invalid-name
+
+"""Tests for Pauli operator class."""
 
 import unittest
-from itertools import product
-from test.python.opflow import QiskitOpflowTestCase
-from ddt import ddt, data, unpack
+import itertools as it
+from functools import lru_cache
 
 import numpy as np
 from scipy.sparse import csr_matrix
-from sympy import Symbol
+from ddt import ddt, data, unpack
 
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
+from test.python.opflow import QiskitOpflowTestCase
+
+from qiskit.opflow.primitive_ops import PauliOp
 from qiskit.opflow import (
-    CX,
-    CircuitStateFn,
     DictStateFn,
-    H,
-    I,
-    One,
-    OperatorStateFn,
+    EvolvedOp,
     PauliOp,
     SummedOp,
+    TensoredOp,
+    I,
     X,
     Y,
     Z,
     Zero,
     OpflowError,
 )
-from qiskit.quantum_info import Pauli, PauliTable
+from qiskit.quantum_info.operators import Pauli, Operator
+from qiskit.quantum_info.operators.symplectic.pauli import _split_pauli_label, _phase_from_label
+from qiskit.circuit import Parameter
 
+@lru_cache(maxsize=8)
+def pauli_group_labels(nq, full_group=True):
+    """Generate list of the N-qubit pauli group string labels"""
+    labels = ["".join(i) for i in it.product(("I", "X", "Y", "Z"), repeat=nq)]
+    if full_group:
+        labels = ["".join(i) for i in it.product(("", "-i", "-", "i"), labels)]
+    return labels
+
+
+def operator_from_label(label):
+    """Construct operator from full Pauli group label"""
+    pauli, coeff = _split_pauli_label(label)
+    coeff = (-1j) ** _phase_from_label(coeff)
+    return coeff * Operator.from_label(pauli)
 
 @ddt
 class TestPauliOp(QiskitOpflowTestCase):
@@ -64,59 +80,44 @@ class TestPauliOp(QiskitOpflowTestCase):
 
         a = Parameter("a")
         b = Parameter("b")
-        actual = PauliOp("X", a) + PauliOp("Y", b)
+        actual = PauliOp(Pauli("X"), a) + PauliOp(Pauli("Y"), b)
         expected = SummedOp(
-            [PauliOp("X", a), PauliOp("Y", b)]
+            [PauliOp(Pauli("X"), a), PauliOp(Pauli("Y"), b)]
         )
         self.assertEqual(actual, expected)
-
+    
     def test_adjoint(self):
         """adjoint test"""
-        pauli_op = PauliOp(Pauli("-XYZX"), coeff=3)
-        expected = PauliOp(Pauli("XYZX"), coeff=-3)
+        pauli_op = PauliOp(Pauli("XYZX"), coeff=3)
+        expected = PauliOp(Pauli("XYZX"), coeff=3)
 
-        self.assertEqual(pauli_op.adjoint(), expected)
+        self.assertEqual(~pauli_op, expected)
 
-        pauli_op = PauliOp(Pauli("iXYZX"), coeff=3j)
-        expected = PauliOp(Pauli("XYZX"), coeff=-3j)
-        self.assertEqual(pauli_op.adjoint(), expected)
+        pauli_op = PauliOp(Pauli("XXY"), coeff=2j)
+        expected = PauliOp(Pauli("XXY"), coeff=-2j)
+        self.assertEqual(~pauli_op, expected)
 
-        for pauli_label in ["I", "X", "Y", "Z"]:
-            pauli_op = PauliOp(Pauli(pauli_label), coeff=1)
-            expected = PauliOp(Pauli(pauli_label), coeff=1)
-            self.assertEqual(pauli_op.adjoint(), expected)
+        pauli_op = PauliOp(Pauli("XYZX"), coeff=2+3j)
+        expected = PauliOp(Pauli("XYZX"), coeff=2-3j)
+        self.assertEqual(~pauli_op, expected)
 
-            pauli_op = PauliOp(Pauli("-" + pauli_label), coeff=1)
-            expected = PauliOp(Pauli(pauli_label), coeff=-1)
-            self.assertEqual(pauli_op.adjoint(), expected)
-
-            pauli_op = PauliOp(Pauli("i" + pauli_label), coeff=1)
-            expected = PauliOp(Pauli(pauli_label), coeff=-1j)
-            self.assertEqual(pauli_op.adjoint(), expected)
-
-            pauli_op = PauliOp(Pauli("-i" + pauli_label), coeff=1)
-            expected = PauliOp(Pauli(pauli_label), coeff=1j)
-            self.assertEqual(pauli_op.adjoint(), expected)
+    @data(*it.product(pauli_group_labels(2, full_group=True), repeat=2))
+    @unpack
+    def test_compose(self, label1, label2):
+        """compose test"""
+        p1 = PauliOp(Pauli(label1))
+        p2 = PauliOp(Pauli(label2))
+        value = Operator(p1 @ p2)
+        op1 = operator_from_label(label1)
+        op2 = operator_from_label(label2)
+        target = op1 @ op2
+        self.assertEqual(value, target)
 
     def test_equals(self):
         """equality test"""
 
-        for pauli_label in ["I", "X", "Y", "Z"]:
-            pauli_op = PauliOp(Pauli(pauli_label), coeff=1)
-            expected = PauliOp(Pauli(pauli_label), coeff=1)
-            self.assertEqual(pauli_op.adjoint(), expected)
-
-            pauli_op = PauliOp(Pauli("-" + pauli_label), coeff=1)
-            expected = PauliOp(Pauli(pauli_label), coeff=-1)
-            self.assertEqual(pauli_op.adjoint(), expected)
-
-            pauli_op = PauliOp(Pauli("i" + pauli_label), coeff=1)
-            expected = PauliOp(Pauli(pauli_label), coeff=1j)
-            self.assertEqual(pauli_op.adjoint(), expected)
-
-            pauli_op = PauliOp(Pauli("-i" + pauli_label), coeff=1)
-            expected = PauliOp(Pauli(pauli_label), coeff=-1j)
-            self.assertEqual(pauli_op.adjoint(), expected)
+        self.assertEqual(I @ X, X)
+        self.assertEqual(I, I @ X)
 
         theta = Parameter("theta")
         pauli_op = theta * X ^ Z
@@ -125,203 +126,85 @@ class TestPauliOp(QiskitOpflowTestCase):
             coeff=1.0 * theta,
         )
         self.assertEqual(pauli_op, expected)
-
-    def test_tensor(self):
-        """Test for tensor operation"""
-        pauli_op = X ^ Y ^ Z ^ I
-        expected = PauliOp(Pauli("XYZI"), coeff=1.0)
-        self.assertEqual(pauli_op, expected)
-
-        pauli_op = X ^ X ^ X
-        expected = PauliOp(Pauli("XXX"), coeff=1.0)
-        self.assertEqual(pauli_op, expected)
-
+    
+    def test_eval(self):
+        """eval test"""
+        target0 = (X ^ Y ^ Z).eval("000")
+        target1 = (X ^ Y ^ Z).eval(Zero ^ 3)
+        expected = DictStateFn({"110": 1j})
+        self.assertEqual(target0, expected)
+        self.assertEqual(target1, expected)
+    
+    def test_exp_i(self):
+        """exp_i test"""
+        target = (2 * X ^ Z).exp_i()
+        expected = EvolvedOp(PauliOp(Pauli('XZ'), coeff=2.0), coeff=1.0)
+        self.assertEqual(target, expected)
+    
     @data(([1, 2, 4], "XIYZI"), ([2, 1, 0], "ZYX"))
     @unpack
     def test_permute(self, permutation, expected_pauli):
         """Test the permute method."""
-        pauli_op = PauliOp(Pauli("XYZ", coeff=1.0))
-        expected = PauliOp(Pauli(expected_pauli, coeff=1.0))
+        pauli_op = PauliOp(Pauli("XYZ"), coeff=1.0)
+        expected = PauliOp(Pauli(expected_pauli), coeff=1.0)
         permuted = pauli_op.permute(permutation)
 
         with self.subTest(msg="test permutated object"):
             self.assertEqual(permuted, expected)
-
+        
         with self.subTest(msg="test original object is unchanged"):
-            original = PauliSumOp(SparsePauliOp.from_list([("XYZ", 1)]))
-            self.assertEqual(pauli_sum, original)
-
+            original = PauliOp(Pauli("XYZ"))
+            self.assertEqual(pauli_op, original)
+    
     @data([1, 2, 1], [1, 2, -1])
     def test_permute_invalid(self, permutation):
         """Test the permute method raises an error on invalid permutations."""
-        pauli_sum = PauliSumOp(SparsePauliOp((X ^ Y ^ Z).primitive))
+        pauli_sum = PauliOp(X ^ Y ^ Z)
 
         with self.assertRaises(OpflowError):
             pauli_sum.permute(permutation)
-
-    def test_compose(self):
-        """compose test"""
-        target = (X + Z) @ (Y + Z)
-        expected = 1j * Z - 1j * Y - 1j * X + I
+    
+    def test_primitive_strings(self):
+        """primitive strings test"""
+        target = (2 * X ^ Z).primitive_strings()
+        expected = {"Pauli"}
         self.assertEqual(target, expected)
 
-        observable = (X ^ X) + (Y ^ Y) + (Z ^ Z)
-        state = CircuitStateFn((CX @ (X ^ H @ X)).to_circuit())
-        self.assertAlmostEqual((~OperatorStateFn(observable) @ state).eval(), -3)
-
-    def test_to_matrix(self):
-        """test for to_matrix method"""
-        target = (Z + Y).to_matrix()
-        expected = np.array([[1.0, -1j], [1j, -1]])
-        np.testing.assert_array_equal(target, expected)
-
-    def test_str(self):
-        """str test"""
-        target = 3.0 * (X + 2.0 * Y - 4.0 * Z)
-        expected = "3.0 * X\n+ 6.0 * Y\n- 12.0 * Z"
-        self.assertEqual(str(target), expected)
-
-        alpha = Parameter("α")
-        target = alpha * (X + 2.0 * Y - 4.0 * Z)
-        expected = "1.0*α * (\n  1.0 * X\n  + 2.0 * Y\n  - 4.0 * Z\n)"
-        self.assertEqual(str(target), expected)
-
-    def test_eval(self):
-        """eval test"""
-        target0 = (2 * (X ^ Y ^ Z) + 3 * (X ^ X ^ Z)).eval("000")
-        target1 = (2 * (X ^ Y ^ Z) + 3 * (X ^ X ^ Z)).eval(Zero ^ 3)
-        expected = DictStateFn({"110": (3 + 2j)})
-        self.assertEqual(target0, expected)
-        self.assertEqual(target1, expected)
-
-        phi = 0.5 * ((One + Zero) ^ 2)
-        zero_op = (Z + I) / 2
-        one_op = (I - Z) / 2
-        h1 = one_op ^ I
-        h2 = one_op ^ (one_op + zero_op)
-        h2a = one_op ^ one_op
-        h2b = one_op ^ zero_op
-        self.assertEqual((~OperatorStateFn(h1) @ phi).eval(), 0.5)
-        self.assertEqual((~OperatorStateFn(h2) @ phi).eval(), 0.5)
-        self.assertEqual((~OperatorStateFn(h2a) @ phi).eval(), 0.25)
-        self.assertEqual((~OperatorStateFn(h2b) @ phi).eval(), 0.25)
-
-        pauli_op = (Z ^ I ^ X) + (I ^ I ^ Y)
-        mat_op = pauli_op.to_matrix_op()
-        full_basis = ["".join(b) for b in product("01", repeat=pauli_op.num_qubits)]
-        for bstr1, bstr2 in product(full_basis, full_basis):
-            self.assertEqual(pauli_op.eval(bstr1).eval(bstr2), mat_op.eval(bstr1).eval(bstr2))
-
-    def test_exp_i(self):
-        """exp_i test"""
-        # TODO: add tests when special methods are added
-        pass
+    def test_tensor(self):
+        """tensor test"""
+        pauli_op = X ^ Y ^ Z
+        tensored_op = PauliOp(Pauli("XYZ"))
+        self.assertEqual(pauli_op, tensored_op)
 
     def test_to_instruction(self):
-        """test for to_instruction"""
-        target = ((X + Z) / np.sqrt(2)).to_instruction()
-        qc = QuantumCircuit(1)
-        qc.u(np.pi / 2, 0, np.pi, 0)
-        qc_out = transpile(target.definition, basis_gates=["u"])
-        self.assertEqual(qc_out, qc)
+        """to_instruction test"""
+        target = (X ^ Z).to_instruction()
+        qc = QuantumCircuit(2)
+        qc.u(0, 0, np.pi, 0)
+        qc.u(np.pi, 0, np.pi, 1)
+        qc_out = QuantumCircuit(2)
+        qc_out.append(target, qc_out.qubits)
+        qc_out = transpile(qc_out, basis_gates=["u"])
+        self.assertEqual(qc, qc_out)
+
+    def test_to_matrix(self):
+        """to_matrix test"""
+        target = (X ^ Y).to_matrix()
+        expected = np.kron(np.array([[0.0, 1.0], [1.0, 0.0]]), np.array([[0.0, -1j], [1j, 0.0]]))
+        np.testing.assert_array_equal(target, expected)
 
     def test_to_pauli_op(self):
-        """test to_pauli_op method"""
-        target = X + Y
-        self.assertIsInstance(target, PauliSumOp)
-        expected = SummedOp([X, Y])
+        """to_pauli_op test"""
+        target = X ^ Y
+        self.assertIsInstance(target, PauliOp)
+        expected = TensoredOp([X, Y])
         self.assertEqual(target.to_pauli_op(), expected)
-
-    def test_getitem(self):
-        """test get item method"""
-        target = X + Z
-        self.assertEqual(target[0], PauliSumOp(SparsePauliOp(X.primitive)))
-        self.assertEqual(target[1], PauliSumOp(SparsePauliOp(Z.primitive)))
-
-    def test_len(self):
-        """test len"""
-        target = X + Y + Z
-        self.assertEqual(len(target), 3)
-
-    def test_reduce(self):
-        """test reduce"""
-        target = X + X + Z
-        self.assertEqual(len(target.reduce()), 2)
-
+    
     def test_to_spmatrix(self):
-        """test to_spmatrix"""
-        target = X + Y
-        expected = csr_matrix([[0, 1 - 1j], [1 + 1j, 0]])
+        """to_spmatrix test"""
+        target = X ^ Y
+        expected = csr_matrix(np.kron(np.array([[0.0, 1.0], [1.0, 0.0]]), np.array([[0.0, -1j], [1j, 0.0]])))
         self.assertEqual((target.to_spmatrix() - expected).nnz, 0)
-
-    def test_from_list(self):
-        """test from_list"""
-        target = PauliSumOp.from_list(
-            [
-                ("II", -1.052373245772859),
-                ("IZ", 0.39793742484318045),
-                ("ZI", -0.39793742484318045),
-                ("ZZ", -0.01128010425623538),
-                ("XX", 0.18093119978423156),
-            ]
-        )
-        expected = (
-            -1.052373245772859 * (I ^ I)
-            + 0.39793742484318045 * (I ^ Z)
-            - 0.39793742484318045 * (Z ^ I)
-            - 0.01128010425623538 * (Z ^ Z)
-            + 0.18093119978423156 * (X ^ X)
-        )
-        self.assertEqual(target, expected)
-
-    def test_matrix_iter(self):
-        """Test PauliSumOp dense matrix_iter method."""
-        labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
-        coeffs = np.array([1, 2, 3, 4, 5, 6])
-        table = PauliTable.from_labels(labels)
-        coeff = 10
-        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
-        for idx, i in enumerate(op.matrix_iter()):
-            self.assertTrue(np.array_equal(i, coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix()))
-
-    def test_matrix_iter_sparse(self):
-        """Test PauliSumOp sparse matrix_iter method."""
-        labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
-        coeffs = np.array([1, 2, 3, 4, 5, 6])
-        coeff = 10
-        table = PauliTable.from_labels(labels)
-        op = PauliSumOp(SparsePauliOp(table, coeffs), coeff)
-        for idx, i in enumerate(op.matrix_iter(sparse=True)):
-            self.assertTrue(
-                np.array_equal(i.toarray(), coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix())
-            )
-
-    def test_is_hermitian(self):
-        """Test is_hermitian method"""
-        with self.subTest("True test"):
-            target = PauliSumOp.from_list(
-                [
-                    ("II", -1.052373245772859),
-                    ("IZ", 0.39793742484318045),
-                    ("ZI", -0.39793742484318045),
-                    ("ZZ", -0.01128010425623538),
-                    ("XX", 0.18093119978423156),
-                ]
-            )
-            self.assertTrue(target.is_hermitian())
-
-        with self.subTest("False test"):
-            target = PauliSumOp.from_list(
-                [
-                    ("II", -1.052373245772859),
-                    ("IZ", 0.39793742484318045j),
-                    ("ZI", -0.39793742484318045),
-                    ("ZZ", -0.01128010425623538),
-                    ("XX", 0.18093119978423156),
-                ]
-            )
-            self.assertFalse(target.is_hermitian())
-
 
 if __name__ == "__main__":
     unittest.main()
