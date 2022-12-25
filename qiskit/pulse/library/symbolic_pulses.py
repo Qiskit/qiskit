@@ -685,7 +685,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
         return True
 
     # When __eq__ is modified, __hash__ is automatically set to None, and thus needs to be inherited
-    # explicitly.
+    # explicitly
     __hash__ = SymbolicPulse.__hash__
 
 
