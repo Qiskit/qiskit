@@ -72,7 +72,7 @@ class BackendSampler(BaseSampler):
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
         self._preprocessed_circuits: list[QuantumCircuit] | None = None
-        self._transpiled_circuits: list[QuantumCircuit] | None = None
+        self._transpiled_circuits: list[QuantumCircuit] = []
         self._skip_transpilation = skip_transpilation
 
     def __new__(  # pylint: disable=signature-differs
@@ -108,8 +108,8 @@ class BackendSampler(BaseSampler):
         """
         if self._skip_transpilation:
             self._transpiled_circuits = list(self._circuits)
-        elif self._transpiled_circuits is None:
-            # Only transpile if have not done so yet
+        elif len(self._transpiled_circuits) < len(self._circuits):
+            # transpile only circuits that are not transpiled yet
             self._transpile()
         return self._transpiled_circuits
 
@@ -174,10 +174,10 @@ class BackendSampler(BaseSampler):
     def _transpile(self):
         from qiskit.compiler import transpile
 
-        self._transpiled_circuits = cast(
-            "list[QuantumCircuit]",
+        start = len(self._transpiled_circuits)
+        self._transpiled_circuits.extend(
             transpile(
-                self.preprocessed_circuits,
+                self.preprocessed_circuits[start:],
                 self.backend,
                 **self.transpile_options.__dict__,
             ),

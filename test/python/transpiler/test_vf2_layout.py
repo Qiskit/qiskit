@@ -12,6 +12,8 @@
 
 """Test the VF2Layout pass"""
 
+import io
+import pickle
 import unittest
 from math import pi
 
@@ -451,6 +453,17 @@ class TestVF2LayoutBackend(LayoutTestCase):
         # Assert layout is different from backend properties
         self.assertNotEqual(property_set["layout"], pm.property_set["layout"])
         self.assertLayout(circuit_to_dag(circuit), backend.coupling_map, pm.property_set)
+
+    def test_error_map_pickle(self):
+        """Test that the `ErrorMap` Rust structure correctly pickles and depickles."""
+        errors = {(0, 1): 0.2, (1, 0): 0.2, (0, 0): 0.05, (1, 1): 0.02}
+        error_map = ErrorMap.from_dict(errors)
+        with io.BytesIO() as fptr:
+            pickle.dump(error_map, fptr)
+            fptr.seek(0)
+            loaded = pickle.load(fptr)
+        self.assertEqual(len(loaded), len(errors))
+        self.assertEqual({k: loaded[k] for k in errors}, errors)
 
     def test_perfect_fit_Manhattan(self):
         """A circuit that fits perfectly in Manhattan (65 qubits)
