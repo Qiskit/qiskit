@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The :class:`~.Decompose`'s argument `gate` was deprecated in 0.19 and now is removed.
