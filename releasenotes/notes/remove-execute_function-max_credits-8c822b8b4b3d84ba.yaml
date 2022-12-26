@@ -1,4 +1,5 @@
 ---
 upgrade:
   - |
-    The function `qiskit.execute_function.execute` deprecated the argument `max_credits` and now is being removed.
+    The function `qiskit.execute_function.execute` and `qiskit.compiler.assembler.assemble`
+    deprecated the argument `max_credits` and now is being removed.
