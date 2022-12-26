@@ -12,8 +12,7 @@
 
 """Multiple-Control, Multiple-Target Gate."""
 
-import warnings
-from typing import Union, Callable, List, Tuple, Optional
+from typing import Union, Callable, List, Tuple
 
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -50,7 +49,6 @@ class MCMT(QuantumCircuit):
         gate: Union[Gate, Callable[[QuantumCircuit, Qubit, Qubit], Instruction]],
         num_ctrl_qubits: int,
         num_target_qubits: int,
-        label: Optional[str] = None,
     ) -> None:
         """Create a new multi-control multi-target gate.
 
@@ -60,22 +58,11 @@ class MCMT(QuantumCircuit):
                 If it is a callable, it will be casted to a Gate.
             num_ctrl_qubits: The number of control qubits.
             num_target_qubits: The number of target qubits.
-            label: The name for the controlled circuit block. If None, set to `C-name` where
-                `name` is `gate.name`.
 
         Raises:
             AttributeError: If the gate cannot be casted to a controlled gate.
             AttributeError: If the number of controls or targets is 0.
         """
-        if label is not None:
-            warnings.warn(
-                "The MCMT 'label' kwarg is deprecated as of qiskit-terra 0.19.0 and "
-                "will be removed no earlier than 3 months after the release date. "
-                "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
-                DeprecationWarning,
-                2,
-            )
-
         if num_ctrl_qubits == 0 or num_target_qubits == 0:
             raise AttributeError("Need at least one control and one target qubit.")
 
@@ -87,11 +74,7 @@ class MCMT(QuantumCircuit):
 
         # initialize the circuit object
         super().__init__(num_qubits, name="mcmt")
-
-        if label is None:
-            self._label = f"{num_target_qubits}-{self.gate.name.capitalize()}"
-        else:
-            self._label = label
+        self._label = f"{num_target_qubits}-{self.gate.name.capitalize()}"
 
         # build the circuit
         self._build()
@@ -109,30 +92,6 @@ class MCMT(QuantumCircuit):
 
         mcmt_gate = broadcasted_gate.control(self.num_ctrl_qubits)
         self.append(mcmt_gate, self.qubits, [])
-
-    @property
-    def label(self):
-        """Get label."""
-        warnings.warn(
-            "The MCMT 'label' property is deprecated as of qiskit-terra 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
-            DeprecationWarning,
-            2,
-        )
-        return self._label
-
-    @label.setter
-    def label(self, label):
-        """Set label."""
-        warnings.warn(
-            "The MCMT 'label' property is deprecated as of qiskit-terra 0.19.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
-            DeprecationWarning,
-            2,
-        )
-        self._label = label
 
     @property
     def num_ancilla_qubits(self):
@@ -180,19 +139,8 @@ class MCMT(QuantumCircuit):
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
         """Return the controlled version of the MCMT circuit."""
-        if label is not None:
-            warnings.warn(
-                "The MCMT.control 'label' kwarg is deprecated as of qiskit-terra 0.19.0 and "
-                "will be removed no earlier than 3 months after the release date. "
-                "For details, see https://github.com/Qiskit/qiskit-terra/issues/6934.",
-                DeprecationWarning,
-                2,
-            )
-
         if ctrl_state is None:  # TODO add ctrl state implementation by adding X gates
-            return MCMT(
-                self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits, label
-            )
+            return MCMT(self.gate, self.num_ctrl_qubits + num_ctrl_qubits, self.num_target_qubits)
         return super().control(num_ctrl_qubits, label, ctrl_state)
 
     def inverse(self):
