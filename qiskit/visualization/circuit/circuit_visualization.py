@@ -355,13 +355,9 @@ def _text_circuit_drawer(
         clbits,
         nodes,
         reverse_bits=reverse_bits,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
         encoding=encoding,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
         circuit=circuit,
     )
