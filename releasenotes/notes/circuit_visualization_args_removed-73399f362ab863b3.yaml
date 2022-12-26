@@ -1,4 +1,4 @@
 ---
 upgrade:
   - |
-    The :class:`~.TextDrawing` deprecated the arguments `layout`, `global_phase`, `qregs`, and `cregs` and now are being removed.
+    The :`~.TextDrawing` deprecated the arguments `layout`, `global_phase`, `qregs`, and `cregs` since 0.20. Now these arguments are being removed.
