@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The function `qiskit.execute_function.execute` deprecated the argument `max_credits` and now is being removed.

@@ -49,7 +49,6 @@ def execute(
     qobj_header=None,
     shots=None,  # common run options
     memory=None,
-    max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
     default_meas_los=None,  # schedule run options
@@ -168,10 +167,6 @@ def execute(
         memory (bool): If True, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
-
-        max_credits (int): DEPRECATED This parameter is deprecated as of Qiskit Terra 0.20.0
-            and will be removed in a future release. This parameter has no effect on modern
-            IBM Quantum systems, no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -314,14 +309,6 @@ def execute(
             inst_map=inst_map,
             meas_map=meas_map,
             method=scheduling_method,
-        )
-    if max_credits is not None:
-        warnings.warn(
-            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-            "and will be removed in a future release. This parameter has no effect on "
-            "modern IBM Quantum systems, and no alternative is necessary.",
-            DeprecationWarning,
-            stacklevel=2,
         )
 
     if qobj_id is not None:
