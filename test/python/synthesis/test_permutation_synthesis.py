@@ -73,6 +73,9 @@ class TestPermutationSynthesis(QiskitTestCase):
             for instruction in qc.data:
                 self.assertEqual(instruction.operation.name, "swap")
 
+            # Check that the depth of the circuit (measured in terms of SWAPs) is at most 2.
+            self.assertLessEqual(qc.depth(), 2)
+
             # Construct a linear function from the synthesized circuit, and
             # check that its permutation pattern matches the original pattern.
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
