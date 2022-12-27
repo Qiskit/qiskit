@@ -15,6 +15,7 @@
 import unittest
 import numpy as np
 
+from qiskit import QuantumRegister
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
@@ -27,17 +28,58 @@ class TestPermutationGate(QiskitTestCase):
 
     def test_permutation(self):
         """Test permutation circuit."""
-        circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
+        perm = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
         expected.swap(2, 3)
         expected = Operator(expected)
-        simulated = Operator(circuit)
+        simulated = Operator(perm)
         self.assertTrue(expected.equiv(simulated))
 
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
         self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+    def test_permutation_array(self):
+        """Test correctness of the ``__array__`` method."""
+        perm = Permutation(3, [1, 2, 0])
+        # The permutation pattern means q1->q0, q2->q1, q0->q2, or equivalently
+        # q0'=q1, q1'=q2, q2'=q0, where the primed values are the values after the
+        # permutation. The following matrix is the expected unitary matrix for this.
+        # As an example, the second column represents the result of applying
+        # the permutation to |001>, i.e. to q2=0, q1=0, q0=1. We should get
+        # q2'=q0=1, q1'=q2=0, q0'=q1=0, that is the state |100>. This corresponds
+        # to the "1" in the 5 row.
+        expected_op = np.array(
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 1, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 1, 0],
+                [0, 1, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 1, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1],
+            ]
+        )
+        self.assertTrue(np.array_equal(perm.__array__(dtype=int), expected_op))
+
+    def test_pattern(self):
+        """Test the ``pattern`` method."""
+        pattern = [1, 3, 5, 0, 4, 2]
+        perm = Permutation(6, pattern)
+        self.assertTrue(np.array_equal(perm.pattern, pattern))
+
+    def test_inverse(self):
+        """Test correctness of the ``inverse`` method."""
+        perm = Permutation(6, [1, 3, 5, 0, 4, 2])
+
+        # We have the permutation 1->0, 3->1, 5->2, 0->3, 4->4, 2->5.
+        # The inverse permutations is 0->1, 1->3, 2->5, 3->0, 4->4, 5->2, or
+        # after reordering 3->0, 0->1, 5->2, 1->3, 4->4, 2->5.
+        inverse_perm = perm.inverse()
+        expected_inverse_perm = Permutation(6, [3, 0, 5, 1, 4, 2])
+        self.assertTrue(np.array_equal(inverse_perm.pattern, expected_inverse_perm.pattern))
 
 
 class TestPermutationCircuit(QiskitTestCase):
@@ -80,6 +122,26 @@ class TestPermutationCircuit(QiskitTestCase):
         qc = QuantumCircuit(5, 1)
         qc.permutation([1, 2, 0], [2, 3, 4]).c_if(0, 1)
         self.assertIsNotNone(qc.data[0].operation.condition)
+
+    def test_qasm(self):
+        """Test qasm for circuits with permutations."""
+        qr = QuantumRegister(5, "q0")
+        circuit = QuantumCircuit(qr)
+        pattern = [2, 4, 3, 0, 1]
+        permutation = Permutation(5, pattern)
+        circuit.append(permutation, [0, 1, 2, 3, 4])
+        circuit.h(qr[0])
+        print(circuit.qasm())
+
+        expected_qasm = (
+            "OPENQASM 2.0;\n"
+            'include "qelib1.inc";\n'
+            "gate permutation__2_4_3_0_1_ q0,q1,q2,q3,q4 { swap q2,q3; swap q1,q4; swap q0,q3; }\n"
+            "qreg q0[5];\n"
+            "permutation__2_4_3_0_1_ q0[0],q0[1],q0[2],q0[3],q0[4];\n"
+            "h q0[0];\n"
+        )
+        self.assertEqual(expected_qasm, circuit.qasm())
 
 
 if __name__ == "__main__":
