@@ -1,0 +1,47 @@
+---
+upgrade:
+  - |
+    Upgrading :class:`~CollectCliffords` transpiler pass to collect and combine blocks
+    of "clifford gates" into :class:`qiskit.quantum_info.Clifford` objects, where the
+    "clifford gates" may now also include objects of type :class:`.LinearFunction`,
+    :class:`qiskit.quantum_info.Clifford`, and :class:`~qiskit.circuit.library.PauliGate`.
+    As an example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import LinearFunction, PauliGate
+        from qiskit.quantum_info.operators import Clifford
+        from qiskit.transpiler.passes import CollectCliffords
+        from qiskit.transpiler import PassManager
+
+        # Create a Clifford
+        cliff_circuit = QuantumCircuit(2)
+        cliff_circuit.cx(0, 1)
+        cliff_circuit.h(0)
+        cliff = Clifford(cliff_circuit)
+
+        # Create a linear function
+        lf = LinearFunction([[0, 1], [1, 0]])
+
+        # Create a pauli gate
+        pauli_gate = PauliGate("XYZ")
+
+        # Create a quantum circuit with the above and also simple clifford gates.
+        qc = QuantumCircuit(4)
+        qc.cz(0, 1)
+        qc.append(cliff, [0, 1])
+        qc.h(0)
+        qc.append(lf, [0, 2])
+        qc.append(pauli_gate, [0, 2, 1])
+        qc.x(2)
+
+        # Run CollectCliffords transpiler pass
+        qct = PassManager(CollectCliffords()).run(qc)
+
+    All the gates will be collected and combined into a single Clifford. Thus the final
+    circuit consists of a single Clifford object.
+
+fixes:
+  - |
+    Restoring the functionality to construct :class:`qiskit.quantum_info.Clifford`
+    objects from quantum circuits containing other :class:`qiskit.quantum_info.Clifford`
+    objects.
