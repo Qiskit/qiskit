@@ -58,10 +58,14 @@ class LayeredCircuit:
         qt is the type of the layer
         qn is the optional label to assign to qc
         """
-        assert isinstance(qc, QuantumCircuit)
-        assert isinstance(qt, str)
-        assert qt in self.valid_layer_types
-        assert qc.num_qubits == self.num_qubits
+        if not isinstance(qc, QuantumCircuit):
+            raise QiskitError("qc is not a QuantumCircuit.")
+        if not isinstance(qt, str):
+            raise QiskitError("qc type qt is not a string.")
+        if qt not in self.valid_layer_types:
+            raise QiskitError("qt is not one of the valid types.")
+        if qc.num_qubits != self.num_qubits:
+            raise QiskitError("num_qubits is not the same as qc.num_qubits.")
 
         if qn is not None:
             qc.name = qn
@@ -164,6 +168,7 @@ def synth_clifford_layers(
     layeredCircuit.append_layer(CZ1_circ, "CZ", "CZ1")
 
     # Add Pauli layer to fix the Clifford phase signs
+    # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.symplectic import Clifford
 
     clifford_target = Clifford(layeredCircuit.create_circuit())
@@ -199,10 +204,15 @@ def _create_graph_state(cliff, validate=False):
 
         # validate that the output matrix has the same rank
         if validate:
-            assert _compute_rank_square_matrix(stab[:, 0:num_qubits]) == rank
+            if _compute_rank_square_matrix(stab[:, 0:num_qubits]) != rank:
+                raise QiskitError("The matrix after Gauss elimination has wrong rank.")
             # validate that we have a num_qubits - rank zero rows
             for i in range(rank, num_qubits):
-                assert not stab[i, 0:num_qubits].any()
+                if stab[i, 0:num_qubits].any():
+                    raise QiskitError(
+                        "After Gauss elimination, the final num_qubits - rank rows"
+                        "contain non-zero elements"
+                    )
 
         for qubit in perm[rank:num_qubits]:
             H1_circ.h(qubit)
@@ -215,7 +225,8 @@ def _create_graph_state(cliff, validate=False):
         # validate that a layer of Hadamard gates and then appending cliff, provides a graph state.
         if validate:
             stabh = cliffh.stab_x
-            assert _compute_rank_square_matrix(stabh) == num_qubits
+            if _compute_rank_square_matrix(stabh) != num_qubits:
+                raise QiskitError("The state is not a graph state.")
 
     return H1_circ, cliffh
 
@@ -244,7 +255,10 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
 
     # Assert that stabz_update is a symmetric matrix.
     if validate:
-        assert (stabz_update == stabz_update.T).all()
+        if (stabz_update != stabz_update.T).any():
+            raise QiskitError(
+                "The multiplication of stabx_inv and stab_z is not a symmetric matrix."
+            )
 
     CZ1_circ = cz_synth_func(stabz_update, validate=validate)
 
@@ -284,7 +298,11 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
     destabz_update = np.matmul(calc_inverse_matrix(destabx), destabz) % 2
     # Assert that destabz_update is a symmetric matrix.
     if validate:
-        assert (destabz_update == destabz_update.T).all()
+        if (destabz_update != destabz_update.T).any():
+            raise QiskitError(
+                "The multiplication of the inverse of destabx and"
+                "destabz is not a symmetric matrix."
+            )
 
     S2_circ = QuantumCircuit(num_qubits)
     for i in range(0, num_qubits):
@@ -311,7 +329,8 @@ def _fix_pauli(cliff, cliff_target):
     """Given two Cliffords that differ by a Pauli, we find this Pauli."""
 
     num_qubits = cliff.num_qubits
-    assert cliff.num_qubits == cliff_target.num_qubits
+    if cliff.num_qubits != cliff_target.num_qubits:
+        raise QiskitError("num_qubits is not the same for the original clifford and the target.")
 
     # Compute the phase difference between the two Cliffords
     phase = [cliff.phase[k] ^ cliff_target.phase[k] for k in range(2 * num_qubits)]
@@ -346,7 +365,8 @@ def _check_gates(qc, allowed_gates):
     allowed_gates - list of strings
     """
     for inst, _, _ in qc.data:
-        assert inst.name in allowed_gates
+        if not inst.name in allowed_gates:
+            raise QiskitError("The gate name is not in the allowed_gates list.")
 
 
 def _default_cx_synth_func(cliff, validate):
@@ -356,7 +376,8 @@ def _default_cx_synth_func(cliff, validate):
 
     from qiskit.quantum_info.operators.symplectic import Clifford
 
-    assert isinstance(cliff, Clifford)
+    if not isinstance(cliff, Clifford):
+        raise QiskitError("cliff is not a Clifford element.")
 
     # Note: from the commutativity relations, we know that D = (A^T)^{-1},
     # and in fact we have already used this fact in _decompose_hadamard_free
