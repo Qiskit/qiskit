@@ -99,7 +99,6 @@ def _append_operation(clifford, operation, qargs=None):
     from qiskit.quantum_info import Clifford
 
     if isinstance(gate, Clifford):
-        # return _append_circuit(clifford, gate.to_circuit(), qargs)
         composed_clifford = clifford.compose(gate.copy(), qargs=qargs.copy(), front=False)
         clifford.tableau = composed_clifford.tableau
         return clifford
