@@ -13,11 +13,11 @@
 Circuit synthesis for the Clifford class into layers.
 
 References:
-    [1] Scott Aaronson and Daniel Gottesman, "Improved Simulation of Stabilizer Circuits",
-    Phys. Rev. A 70(052328), 2004. https://arxiv.org/abs/quant-ph/0406196
-    [2] Sergey Bravyi and Dmitri Maslov,
+    [1] Sergey Bravyi and Dmitri Maslov,
     "Hadamard-free circuits expose the structure of the Clifford group",
     https://arxiv.org/abs/2003.09412
+    [2] Scott Aaronson and Daniel Gottesman, "Improved Simulation of Stabilizer Circuits",
+    Phys. Rev. A 70(052328), 2004. https://arxiv.org/abs/quant-ph/0406196
 """
 # pylint: disable=invalid-name
 
@@ -40,7 +40,8 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 class LayeredCircuit:
     """Stores layered decomposition of the QuantumCircuit
     layers      = list of QuantumCircuits
-    layer_types = list of strings representing layer types
+    layer_types = list of strings representing layer types,
+                  namely, the type of gates that each layer contains.
     """
 
     def __init__(self, num_qubits):
@@ -95,8 +96,39 @@ def synth_clifford_layers(
     reverse_cliff=False,
     validate=False,
 ):
-    """Synthesis of a Clifford into layers."""
+    """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
+    described in Lemma 8 of [1].
 
+    For example, a 5-qubit Clifford is decomposed into the following layers:
+
+         ┌─────┐┌─────┐┌──────┐┌─────┐┌─────┐┌─────┐┌──────┐┌────────┐
+    q_0: ┤0    ├┤0    ├┤0     ├┤0    ├┤0    ├┤0    ├┤0     ├┤0       ├
+         │     ││     ││      ││     ││     ││     ││      ││        │
+    q_1: ┤1    ├┤1    ├┤1     ├┤1    ├┤1    ├┤1    ├┤1     ├┤1       ├
+         │     ││     ││      ││     ││     ││     ││      ││        │
+    q_2: ┤2 H1 ├┤2 S2 ├┤2 CZ2 ├┤2 CX ├┤2 H2 ├┤2 S1 ├┤2 CZ1 ├┤2 Pauli ├
+         │     ││     ││      ││     ││     ││     ││      ││        │
+    q_3: ┤3    ├┤3    ├┤3     ├┤3    ├┤3    ├┤3    ├┤3     ├┤3       ├
+         │     ││     ││      ││     ││     ││     ││      ││        │
+    q_4: ┤4    ├┤4    ├┤4     ├┤4    ├┤4    ├┤4    ├┤4     ├┤4       ├
+         └─────┘└─────┘└──────┘└─────┘└─────┘└─────┘└──────┘└────────┘
+
+    Args:
+        cliff (Clifford): a clifford operator.
+        cx_synth_func (Callable): a function to decompose the CX sub-circuit.
+        cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
+        cx_cz_synth_func (Callable): optional, a function to decompose the sub-circuits CZ and CX .
+        reverse_cliff (Boolean): if True, reverse the order of the qubits of the Clifford.
+        validate (Boolean): if True, validates the synthesis process.
+
+    Return:
+        QuantumCircuit: a circuit implementation of the Clifford.
+
+    Reference:
+        1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
+           structure of the Clifford group*,
+           `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
+    """
     cliff_cpy = cliff.copy()
     num_qubits = cliff.num_qubits
 
@@ -152,10 +184,9 @@ def _reverse_clifford(cliff):
 
 
 def _create_graph_state(cliff, validate=False):
-    """Apply Hadamard gates to a subset of the qubits
-    to make cliff.stab_x matrix have full rank.
+    """Apply Hadamard gates to a subset of the qubits to make cliff.stab_x matrix have full rank.
     Returns the QuantumCircuit H1_circ that includes the Hadamard gates.
-    The algorithm is based on Lemma 6 in [1]."""
+    The algorithm is based on Lemma 6 in [2]."""
 
     num_qubits = cliff.num_qubits
     rank = _compute_rank_square_matrix(cliff.stab_x)
@@ -190,8 +221,7 @@ def _create_graph_state(cliff, validate=False):
 
 
 def _decompose_graph_state(cliff, validate, cz_synth_func):
-    """Assumes that a stabilizer state of the Clifford cliff (denoted by U)
-    corresponds to a graph state.
+    """Assumes that a stabilizer state of the Clifford cliff (denoted by U) corresponds to a graph state.
     Decompose it into the layers S1 - CZ1 - H2, such that:
     S1 CZ1 H2 |0> = U |0>,
     where S1_circ is a circuit containing only S gates,
@@ -252,7 +282,7 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
         raise QiskitError("The given Clifford is not Hadamard-free.")
 
     destabz_update = np.matmul(calc_inverse_matrix(destabx), destabz) % 2
-    # Assert that E is a symmetric matrix.
+    # Assert that destabz_update is a symmetric matrix.
     if validate:
         assert (destabz_update == destabz_update.T).all()
 
@@ -312,7 +342,7 @@ def _fix_pauli(cliff, cliff_target):
 
 def _check_gates(qc, allowed_gates):
     """Check that quantum circuit qc consists only of allowed_gates.
-    qc - is QuantumCircuit
+    qc - a QuantumCircuit
     allowed_gates - list of strings
     """
     for inst, _, _ in qc.data:
