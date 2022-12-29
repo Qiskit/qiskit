@@ -48,6 +48,29 @@ class TestSamplerGradient(QiskitTestCase):
     """Test Sampler Gradient"""
 
     @combine(grad=gradient_factories)
+    def test_single_circuit(self, grad):
+        """Test the sampler gradient for a single circuit"""
+        sampler = Sampler()
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.p(a, 0)
+        qc.h(0)
+        qc.measure_all()
+        gradient = grad(sampler)
+        param_list = [[np.pi / 4], [0], [np.pi / 2]]
+        correct_results = [
+            [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
+            [{0: 0, 1: 0}],
+            [{0: -0.499999, 1: 0.499999}],
+        ]
+        for i, param in enumerate(param_list):
+            gradients = gradient.run(qc, [param]).result().gradients[0]
+            for j, quasi_dist in enumerate(gradients):
+                for k in quasi_dist:
+                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+
+    @combine(grad=gradient_factories)
     def test_gradient_p(self, grad):
         """Test the sampler gradient for p"""
         sampler = Sampler()

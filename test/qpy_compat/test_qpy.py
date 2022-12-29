@@ -25,11 +25,15 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate
 from qiskit.circuit.gate import Gate
+
+try:
+    from qiskit.qpy import dump, load
+except ModuleNotFoundError:
+    from qiskit.circuit.qpy_serialization import dump, load
 
 
 # This version pattern is taken from the pypa packaging project:
@@ -406,7 +410,7 @@ def generate_schedule_blocks():
             builder.set_phase(1.57, channels.DriveChannel(0))
             builder.shift_phase(0.1, channels.DriveChannel(1))
             builder.barrier(channels.DriveChannel(0), channels.DriveChannel(1))
-            builder.play(library.Gaussian(160, 0.1, 40), channels.DriveChannel(0))
+            builder.play(library.Gaussian(160, 0.1j, 40), channels.DriveChannel(0))
             builder.play(library.GaussianSquare(800, 0.1, 64, 544), channels.ControlChannel(0))
             builder.play(library.Drag(160, 0.1, 40, 1.5), channels.DriveChannel(1))
             builder.play(library.Constant(800, 0.1), channels.MeasureChannel(0))

@@ -171,7 +171,7 @@ def _get_cvar_aggregation(alpha):
             accumulated_percent = 0  # once alpha is reached, stop
             cvar = 0
             for probability, value in sorted_measurements:
-                cvar += value * max(probability, alpha - accumulated_percent)
+                cvar += value * min(probability, alpha - accumulated_percent)
                 accumulated_percent += probability
                 if accumulated_percent >= alpha:
                     break
@@ -181,19 +181,14 @@ def _get_cvar_aggregation(alpha):
     return aggregate
 
 
+_PARITY = np.array([-1 if bin(i).count("1") % 2 else 1 for i in range(256)], dtype=np.complex128)
+
+
 def _evaluate_sparsepauli(state: int, observable: SparsePauliOp) -> complex:
-    return sum(
-        coeff * _evaluate_bitstring(state, paulistring)
-        for paulistring, coeff in observable.label_iter()
-    )
-
-
-def _evaluate_bitstring(state: int, paulistring: str) -> float:
-    """Evaluate a bitstring on a Pauli label."""
-    n = len(paulistring) - 1
-    return np.prod(
-        [-1 if state & (1 << (n - i)) else 1 for i, pauli in enumerate(paulistring) if pauli == "Z"]
-    )
+    packed_uint8 = np.packbits(observable.paulis.z, axis=1, bitorder="little")
+    state_bytes = np.frombuffer(state.to_bytes(packed_uint8.shape[1], "little"), dtype=np.uint8)
+    reduced = np.bitwise_xor.reduce(packed_uint8 & state_bytes, axis=1)
+    return np.sum(observable.coeffs * _PARITY[reduced])
 
 
 def _check_observable_is_diagonal(observable: SparsePauliOp) -> bool:

@@ -39,6 +39,7 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import _err
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
+from qiskit.converters import circuit_to_dag
 
 
 θ = Parameter("θ")
@@ -135,6 +136,16 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(circuit)
         self.assertEqual(expected, result)
 
+    def test_optimize_away_idenity_no_target(self):
+        """Test identity run is removed for no target specified."""
+        circuit = QuantumCircuit(1)
+        circuit.h(0)
+        circuit.h(0)
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition())
+        result = passmanager.run(circuit)
+        self.assertEqual(QuantumCircuit(1), result)
+
     def test_optimize_error_over_target_1(self):
         """XZX is re-written as ZXZ, which is cheaper according to target."""
         qr = QuantumRegister(1, "qr")
@@ -147,7 +158,9 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Optimize1qGatesDecomposition(target=target))
         result = passmanager.run(circuit)
-        self.assertLess(_error(result, target, 0), _error(circuit, target, 0))
+        self.assertLess(
+            _error(circuit_to_dag(result), target, 0), _error(circuit_to_dag(circuit), target, 0)
+        )
 
     def test_optimize_error_over_target_2(self):
         """U is re-written as ZYZ, which is cheaper according to target."""
@@ -159,7 +172,9 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager = PassManager()
         passmanager.append(Optimize1qGatesDecomposition(target=target))
         result = passmanager.run(circuit)
-        self.assertLess(_error(result, target, 0), _error(circuit, target, 0))
+        self.assertLess(
+            _error(circuit_to_dag(result), target, 0), _error(circuit_to_dag(circuit), target, 0)
+        )
 
     def test_optimize_error_over_target_3(self):
         """U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given."""
