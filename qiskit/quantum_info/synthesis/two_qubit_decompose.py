@@ -1086,7 +1086,12 @@ class TwoQubitBasisDecomposer:
 
     @deprecate_arguments({"target": "unitary"})
     def __call__(
-        self, unitary, basis_fidelity: float = None, approximate=True, *, _num_basis_uses: int = None
+        self,
+        unitary,
+        basis_fidelity: float = None,
+        approximate=True,
+        *,
+        _num_basis_uses: int = None,
     ) -> QuantumCircuit:
         """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
         that each basis application has a finite `basis_fidelity`.
