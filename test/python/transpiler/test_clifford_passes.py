@@ -588,7 +588,7 @@ class TestCliffordPasses(QiskitTestCase):
         """Make sure that collecting Clifford gates and replacing them by Clifford
         works correctly when the gates include PauliGates."""
 
-        # Create a linear function over 2 qubits
+        # Create a pauli gate over 2 qubits
         pauli_gate = PauliGate("XY")
 
         qc = QuantumCircuit(3)
