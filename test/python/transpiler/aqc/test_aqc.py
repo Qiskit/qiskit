@@ -92,6 +92,38 @@ class TestAqc(QiskitTestCase):
         error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro") ** 2)
         self.assertTrue(error < 1e-3)
 
+    def test_aqc_determinant_minus_one(self):
+        """
+        Tests AQC on a matrix with determinant −1.
+        """
+        seed = 12345
+
+        num_qubits = int(3)
+        cnots = make_cnot_network(
+            num_qubits=num_qubits, network_layout="spin", connectivity_type="full", depth=0
+        )
+
+        optimizer = L_BFGS_B(maxiter=200)
+        aqc = AQC(optimizer=optimizer, seed=seed)
+
+        target_matrix = np.eye(2**num_qubits, dtype=int)
+        # Make a unitary with determinant −1 by swapping any two columns
+        target_matrix[:, 2], target_matrix[:, 3] = target_matrix[:, 3], target_matrix[:, 2].copy()
+
+        approximate_circuit = CNOTUnitCircuit(num_qubits, cnots)
+        approximating_objective = DefaultCNOTUnitObjective(num_qubits, cnots)
+
+        aqc.compile_unitary(
+            target_matrix=target_matrix,
+            approximate_circuit=approximate_circuit,
+            approximating_objective=approximating_objective,
+            initial_point=INITIAL_THETAS,
+        )
+
+        approx_matrix = Operator(approximate_circuit).data
+
+        error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro") ** 2)
+        self.assertTrue(error < 1e-3)
 
 if __name__ == "__main__":
     unittest.main()
