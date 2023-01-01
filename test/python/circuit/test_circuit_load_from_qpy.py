@@ -32,7 +32,7 @@ from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.qpy_serialization import dump, load
+from qiskit.qpy import dump, load
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 
@@ -1165,3 +1165,9 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertEqual(qc.qregs, new_circuit.qregs)
         self.assertEqual(qc.cregs, new_circuit.cregs)
+
+    def test_qpy_deprecation(self):
+        """Test the old import path's deprecations fire."""
+        with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
+            # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
+            from qiskit.circuit.qpy_serialization import dump, load
