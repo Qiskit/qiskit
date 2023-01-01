@@ -28,6 +28,7 @@ from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
     _compute_rank_square_matrix,
+    _gauss_elimination,
     _gauss_elimination_with_perm,
 )
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
@@ -105,17 +106,15 @@ def synth_clifford_layers(
 
     For example, a 5-qubit Clifford is decomposed into the following layers:
 
-         ┌─────┐┌─────┐┌──────┐┌─────┐┌─────┐┌─────┐┌──────┐┌────────┐
-    q_0: ┤0    ├┤0    ├┤0     ├┤0    ├┤0    ├┤0    ├┤0     ├┤0       ├
-         │     ││     ││      ││     ││     ││     ││      ││        │
-    q_1: ┤1    ├┤1    ├┤1     ├┤1    ├┤1    ├┤1    ├┤1     ├┤1       ├
-         │     ││     ││      ││     ││     ││     ││      ││        │
-    q_2: ┤2 H1 ├┤2 S2 ├┤2 CZ2 ├┤2 CX ├┤2 H2 ├┤2 S1 ├┤2 CZ1 ├┤2 Pauli ├
-         │     ││     ││      ││     ││     ││     ││      ││        │
-    q_3: ┤3    ├┤3    ├┤3     ├┤3    ├┤3    ├┤3    ├┤3     ├┤3       ├
-         │     ││     ││      ││     ││     ││     ││      ││        │
-    q_4: ┤4    ├┤4    ├┤4     ├┤4    ├┤4    ├┤4    ├┤4     ├┤4       ├
-         └─────┘└─────┘└──────┘└─────┘└─────┘└─────┘└──────┘└────────┘
+         ┌─────┐┌──────┐┌─────┐┌─────┐┌─────┐┌──────┐┌─────┐┌────────┐
+    q_0: ┤0    ├┤0     ├┤0    ├┤0    ├┤0    ├┤0     ├┤0    ├┤0       ├
+         │     ││      ││     ││     ││     ││      ││     ││        │
+    q_1: ┤1    ├┤1     ├┤1    ├┤1    ├┤1    ├┤1     ├┤1    ├┤1       ├
+         │  S2 ││  CZ2 ││  CX ││  H2 ││  S1 ││  CZ1 ││  H1 ││  Pauli │
+    q_2: ┤2    ├┤2     ├┤2    ├┤2    ├┤2    ├┤2     ├┤2    ├┤2       ├
+         │     ││      ││     ││     ││     ││      ││     ││        │
+    q_3: ┤3    ├┤3     ├┤3    ├┤3    ├┤3    ├┤3     ├┤3    ├┤3       ├
+         └─────┘└──────┘└─────┘└─────┘└─────┘└──────┘└─────┘└────────┘
 
     Args:
         cliff (Clifford): a clifford operator.
@@ -156,7 +155,6 @@ def synth_clifford_layers(
         cx_cz_synth_func=cx_cz_synth_func,
     )
 
-    layeredCircuit.append_layer(H1_circ, "H", "H1")
     layeredCircuit.append_layer(S2_circ, "S", "S2")
     layeredCircuit.append_layer(CZ2_circ, "CZ", "CZ2")
 
@@ -166,6 +164,8 @@ def synth_clifford_layers(
     layeredCircuit.append_layer(H2_circ, "H", "H2")
     layeredCircuit.append_layer(S1_circ, "S", "S1")
     layeredCircuit.append_layer(CZ1_circ, "CZ", "CZ1")
+
+    layeredCircuit.append_layer(H1_circ, "H", "H1")
 
     # Add Pauli layer to fix the Clifford phase signs
     # pylint: disable=cyclic-import
@@ -200,10 +200,17 @@ def _create_graph_state(cliff, validate=False):
 
     if rank < num_qubits:
         stab = cliff.stab
-        stab, perm = _gauss_elimination_with_perm(stab, num_qubits)
+        stab = _gauss_elimination(stab, num_qubits)
+
+        Cmat = stab[rank:num_qubits, num_qubits:]
+        Cmat = np.transpose(Cmat)
+        Cmat, perm = _gauss_elimination_with_perm(Cmat)
+        perm = perm[0 : num_qubits - rank]
 
         # validate that the output matrix has the same rank
         if validate:
+            if _compute_rank_square_matrix(Cmat) != num_qubits - rank:
+                raise QiskitError("The matrix Cmat after Gauss elimination has wrong rank.")
             if _compute_rank_square_matrix(stab[:, 0:num_qubits]) != rank:
                 raise QiskitError("The matrix after Gauss elimination has wrong rank.")
             # validate that we have a num_qubits - rank zero rows
@@ -214,13 +221,9 @@ def _create_graph_state(cliff, validate=False):
                         "contain non-zero elements"
                     )
 
-        for qubit in perm[rank:num_qubits]:
+        for qubit in perm:
             H1_circ.h(qubit)
-
-        cliffh = cliffh.adjoint()
-        for qubit in perm[rank:num_qubits]:
             _append_h(cliffh, qubit)
-        cliffh = cliffh.adjoint()
 
         # validate that a layer of Hadamard gates and then appending cliff, provides a graph state.
         if validate:

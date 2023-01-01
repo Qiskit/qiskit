@@ -120,7 +120,7 @@ def _gauss_elimination_with_perm(mat, ncols=None, full_elim=False):
     if ncols is not None:
         n = min(n, ncols)  # no. of active columns
 
-    perm = np.array(range(n))  # permutation on the rows
+    perm = np.array(range(m))  # permutation on the rows
 
     r = 0  # current rank
     k = 0  # current pivot column
