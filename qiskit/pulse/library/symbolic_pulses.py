@@ -17,7 +17,7 @@
 These are pulses which are described by symbolic equations for their envelopes and for their
 parameter constraints.
 """
-
+import copy
 import functools
 import warnings
 from typing import Any, Dict, List, Optional, Union, Callable
@@ -675,7 +675,10 @@ class ScalableSymbolicPulse(SymbolicPulse):
             if complex_amp1 != complex_amp2:
                 return False
         else:
-            if not np.isclose(complex_amp1, complex_amp2):
+            # Because the complex amp is calculated, numerical accuracy becomes an issue.
+            # We can't use np.isclose(), because we must have that equal pulses have the same hash,
+            # which requires us to bring the pulses to some agreed upon representation.
+            if np.round(complex_amp1, 6) != np.round(complex_amp2, 6):
                 return False
 
         for key in self.parameters:
@@ -684,9 +687,15 @@ class ScalableSymbolicPulse(SymbolicPulse):
 
         return True
 
-    # When __eq__ is modified, __hash__ is automatically set to None, and thus needs to be inherited
-    # explicitly
-    __hash__ = SymbolicPulse.__hash__
+    def __hash__(self) -> int:
+        if self.is_parameterized():
+            raise NotImplementedError(
+                "Hashing a scalable symbolic pulse with unassigned parameter is not supported."
+            )
+        params = copy.copy(self._params)
+        params["amp"] = np.round(params["amp"] * np.exp(1j * params["angle"]), 6)
+        del params["angle"]
+        return hash((self._pulse_type, self._envelope, self.duration, *tuple(params.items())))
 
 
 class _PulseType(type):

@@ -537,6 +537,7 @@ class TestScalableSymbolicPulse(QiskitTestCase):
         gaussian_negamp = Gaussian(duration=25, sigma=4, amp=-0.5, angle=0)
         gaussian_piphase = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi)
         self.assertEqual(gaussian_negamp, gaussian_piphase)
+        self.assertEqual(hash(gaussian_negamp), hash(gaussian_piphase))
 
         # Parameterized library pulses
         amp = Parameter("amp")
