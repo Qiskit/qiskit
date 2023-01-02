@@ -21,7 +21,7 @@ Overview
 ========
 
 The classical function compiler provides the necessary tools to map a classical
-irreversible functions into quantum circuits.  Below is a simple example of
+potentially irreversible functions into quantum circuits.  Below is a simple example of
 how to synthesize a simple boolean function defined using Python into a
 QuantumCircuit:
 
@@ -34,11 +34,11 @@ QuantumCircuit:
       def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
           return (not a and b and not c and d)
 
-      quantum_circuit = grover_oracle.synth()
+      quantum_circuit = grover_oracle.synth(registerless=False)
       quantum_circuit.draw()
 
-Following Qiskit's little-endian bit ordering convention, the left-most bit (`a`) is the most
-significant bit and the right-most bit (`d`) is the least significant bit. The resulting
+Following Qiskit's little-endian bit ordering convention, the left-most bit (``a``) is the most
+significant bit and the right-most bit (``d``) is the least significant bit.
 
 Supplementary Information
 =========================
