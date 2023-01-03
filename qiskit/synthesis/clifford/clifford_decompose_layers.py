@@ -40,43 +40,36 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 
 class LayeredCircuit:
     """Stores layered decomposition of the QuantumCircuit
-    layers      = list of QuantumCircuits
-    layer_types = list of strings representing layer types,
-                  namely, the type of gates that each layer contains.
+    layers is a list of QuantumCircuits
     """
 
-    def __init__(self, num_qubits):
-        # layers are QuantumCircuits
+    def __init__(self, num_qubits: int):
+        """Stores layered decomposition of the QuantumCircuit
+
+        Args:
+            num_qubits: number of qubits of the QuantumCircuit.
+        """
         self.num_qubits = num_qubits
         self.layers = []
-        self.layer_types = []
-        # S - for phase; P - for Pauli; "CXZ" - mixed CX/CZ
-        self.valid_layer_types = ("CX", "CZ", "CXZ", "H", "S", "P")
 
-    def append_layer(self, qc, qt, qn=None):
+    def append_layer(self, qc, qc_name=None):
         """Appends a new layer.
         qc is a quantum circuit
-        qt is the type of the layer
-        qn is the optional label to assign to qc
+        qc_name is the optional label to assign to qc
         """
         if not isinstance(qc, QuantumCircuit):
             raise QiskitError("qc is not a QuantumCircuit.")
-        if not isinstance(qt, str):
-            raise QiskitError("qc type qt is not a string.")
-        if qt not in self.valid_layer_types:
-            raise QiskitError("qt is not one of the valid types.")
         if qc.num_qubits != self.num_qubits:
             raise QiskitError("num_qubits is not the same as qc.num_qubits.")
 
-        if qn is not None:
-            qc.name = qn
+        if qc_name is not None:
+            qc.name = qc_name
         self.layers.append(qc)
-        self.layer_types.append(qt)
 
     def create_circuit(self):
         """Returns circuit obtained by appending all layers"""
         circ = QuantumCircuit(self.num_qubits)
-        for _, (qc, _) in enumerate(list(zip(self.layers, self.layer_types))):
+        for _, qc in enumerate(list(self.layers)):
             circ.append(qc, list(range(self.num_qubits)))
         return circ
 
@@ -87,8 +80,8 @@ class LayeredCircuit:
     def draw_detailed(self):
         """Prints circuit layer-by-layer"""
         print()
-        for i, (qc, qt) in enumerate(list(zip(self.layers, self.layer_types))):
-            print(f"Printing layer {i} of type {qt}")
+        for i, qc in enumerate(list(self.layers)):
+            print(f"Printing layer {i}")
             print(qc)
             print("")
 
@@ -155,17 +148,17 @@ def synth_clifford_layers(
         cx_cz_synth_func=cx_cz_synth_func,
     )
 
-    layeredCircuit.append_layer(S2_circ, "S", "S2")
-    layeredCircuit.append_layer(CZ2_circ, "CZ", "CZ2")
+    layeredCircuit.append_layer(S2_circ, "S2")
+    layeredCircuit.append_layer(CZ2_circ, "CZ2")
 
     CXinv = CX_circ.copy().inverse()
-    layeredCircuit.append_layer(CXinv, "CX", "CX")
+    layeredCircuit.append_layer(CXinv, "CX")
 
-    layeredCircuit.append_layer(H2_circ, "H", "H2")
-    layeredCircuit.append_layer(S1_circ, "S", "S1")
-    layeredCircuit.append_layer(CZ1_circ, "CZ", "CZ1")
+    layeredCircuit.append_layer(H2_circ, "H2")
+    layeredCircuit.append_layer(S1_circ, "S1")
+    layeredCircuit.append_layer(CZ1_circ, "CZ1")
 
-    layeredCircuit.append_layer(H1_circ, "H", "H1")
+    layeredCircuit.append_layer(H1_circ, "H1")
 
     # Add Pauli layer to fix the Clifford phase signs
     # pylint: disable=cyclic-import
@@ -173,7 +166,7 @@ def synth_clifford_layers(
 
     clifford_target = Clifford(layeredCircuit.create_circuit())
     pauli_circ = _fix_pauli(cliff, clifford_target)
-    layeredCircuit.append_layer(pauli_circ, "P", "Pauli")
+    layeredCircuit.append_layer(pauli_circ, "Pauli")
 
     return layeredCircuit.create_circuit()
 
