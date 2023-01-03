@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -74,11 +74,11 @@ class LayeredCircuit:
         return circ
 
     def draw(self):
-        """Prints the layered circuit."""
+        """Print the layered circuit."""
         print(self.create_circuit())
 
     def draw_detailed(self):
-        """Prints circuit layer-by-layer"""
+        """Print the circuit layer-by-layer"""
         print()
         for i, qc in enumerate(list(self.layers)):
             print(f"Printing layer {i}")
@@ -231,9 +231,9 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     """Assumes that a stabilizer state of the Clifford cliff (denoted by U) corresponds to a graph state.
     Decompose it into the layers S1 - CZ1 - H2, such that:
     S1 CZ1 H2 |0> = U |0>,
-    where S1_circ is a circuit containing only S gates,
-    CZ1_circ is a circuit containing only CZ gates, and
-    H2_circ is a circuit containing H gates on all qubits.
+    where S1_circ is a circuit that can contain only S gates,
+    CZ1_circ is a circuit that can contain only CZ gates, and
+    H2_circ is a circuit that can contain H gates on all qubits.
     """
     num_qubits = cliff.num_qubits
     rank = _compute_rank(cliff.stab_x)
@@ -278,9 +278,9 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
 def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_cz_synth_func):
     """Assumes that the Clifford cliff is Hadamard free.
     Decompose it into the layers S2 - CZ2 - CX, where
-    S2_circ is a circuit containing only S gates,
-    CZ2_circ is a circuit containing only CZ gates, and
-    CX_circ is a circuit containing CX gates on all qubits.
+    S2_circ is a circuit that can contain only S gates,
+    CZ2_circ is a circuit that can contain only CZ gates, and
+    CX_circ is a circuit that can contain CX gates on all qubits.
     """
 
     num_qubits = cliff.num_qubits
