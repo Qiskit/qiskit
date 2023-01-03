@@ -9,7 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""Circuit synthesis for the Clifford class into layers.
+"""
+Circuit synthesis for the Clifford class into layers.
 
 References:
 
