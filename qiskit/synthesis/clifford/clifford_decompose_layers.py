@@ -90,18 +90,6 @@ def synth_clifford_layers(
     """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
     described in Lemma 8 of [1].
 
-    For example, a 4-qubit Clifford is decomposed into the following layers:
-
-         ┌─────┐┌──────┐┌─────┐┌─────┐┌─────┐┌──────┐┌─────┐┌────────┐
-    q_0: ┤0    ├┤0     ├┤0    ├┤0    ├┤0    ├┤0     ├┤0    ├┤0       ├
-         │     ││      ││     ││     ││     ││      ││     ││        │
-    q_1: ┤1    ├┤1     ├┤1    ├┤1    ├┤1    ├┤1     ├┤1    ├┤1       ├
-         │  S2 ││  CZ2 ││  CX ││  H2 ││  S1 ││  CZ1 ││  H1 ││  Pauli │
-    q_2: ┤2    ├┤2     ├┤2    ├┤2    ├┤2    ├┤2     ├┤2    ├┤2       ├
-         │     ││      ││     ││     ││     ││      ││     ││        │
-    q_3: ┤3    ├┤3     ├┤3    ├┤3    ├┤3    ├┤3     ├┤3    ├┤3       ├
-         └─────┘└──────┘└─────┘└─────┘└─────┘└──────┘└─────┘└────────┘
-
     Args:
         cliff (Clifford): a clifford operator.
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
