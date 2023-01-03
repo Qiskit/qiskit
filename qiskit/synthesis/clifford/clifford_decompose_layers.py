@@ -11,15 +11,6 @@
 # that they have been altered from the originals.
 """
 Circuit synthesis for the Clifford class into layers.
-
-References:
-
-    [1] Sergey Bravyi and Dmitri Maslov,
-    "Hadamard-free circuits expose the structure of the Clifford group",
-    https://arxiv.org/abs/2003.09412
-    [2] Scott Aaronson and Daniel Gottesman, "Improved Simulation of Stabilizer Circuits",
-    Phys. Rev. A 70(052328), 2004. https://arxiv.org/abs/quant-ph/0406196
-
 """
 # pylint: disable=invalid-name
 
