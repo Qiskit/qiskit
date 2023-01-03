@@ -29,8 +29,7 @@ def check_invertible_binary_matrix(mat: np.ndarray):
     if len(mat.shape) != 2 or mat.shape[0] != mat.shape[1]:
         return False
 
-    mat = _gauss_elimination(mat)
-    rank = _compute_rank_after_gauss_elim(mat)
+    rank = _compute_rank(mat)
     return rank == mat.shape[0]
 
 
@@ -54,9 +53,7 @@ def random_invertible_binary_matrix(
     rank = 0
     while rank != num_qubits:
         mat = rng.integers(2, size=(num_qubits, num_qubits))
-        mat_gauss = mat.copy()
-        mat_gauss = _gauss_elimination(mat_gauss)
-        rank = _compute_rank_after_gauss_elim(mat_gauss)
+        rank = _compute_rank(mat)
     return mat
 
 
@@ -65,44 +62,7 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
     If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
     Mutates and returns the matrix mat."""
 
-    # Treat the matrix A as containing integer values
-    mat = np.array(mat, dtype=int, copy=False)
-
-    m = mat.shape[0]  # no. of rows
-    n = mat.shape[1]  # no. of columns
-    if ncols is not None:
-        n = min(n, ncols)  # no. of active columns
-
-    r = 0  # current rank
-    k = 0  # current pivot column
-    while (r < m) and (k < n):
-        is_non_zero = False
-        new_r = r
-        for j in range(k, n):
-            for i in range(r, m):
-                if mat[i][j]:
-                    is_non_zero = True
-                    k = j
-                    new_r = i
-                    break
-            if is_non_zero:
-                break
-        if not is_non_zero:
-            return mat  # A is in the canonical form
-
-        if new_r != r:
-            mat[[r, new_r]] = mat[[new_r, r]]
-
-        if full_elim:
-            for i in range(0, r):
-                if mat[i][k]:
-                    mat[i] = mat[i] ^ mat[r]
-
-        for i in range(r + 1, m):
-            if mat[i][k]:
-                mat[i] = mat[i] ^ mat[r]
-        r += 1
-
+    mat, _ = _gauss_elimination_with_perm(mat, ncols, full_elim)
     return mat
 
 
@@ -113,7 +73,7 @@ def _gauss_elimination_with_perm(mat, ncols=None, full_elim=False):
     was done on the rows during the process."""
 
     # Treat the matrix A as containing integer values
-    mat = np.array(mat, dtype=int, copy=False)
+    mat = np.array(mat, dtype=int, copy=True)
 
     m = mat.shape[0]  # no. of rows
     n = mat.shape[1]  # no. of columns
@@ -199,26 +159,10 @@ def _compute_rank_after_gauss_elim(mat):
     return np.sum(mat.any(axis=1))
 
 
-def _compute_rank_square_matrix(mat):
-    # This function takes as input a binary square matrix mat
-    # Returns the rank of A over the binary field F_2
-    n = mat.shape[1]
-    matx = np.identity(n, dtype=int)
-
-    for i in range(n):
-        y = np.dot(mat[i, :], matx) % 2
-        not_y = (y + 1) % 2
-        good = matx[:, np.nonzero(not_y)]
-        good = good[:, 0, :]
-        bad = matx[:, np.nonzero(y)]
-        bad = bad[:, 0, :]
-        if bad.shape[1] > 0:
-            bad = np.add(bad, np.roll(bad, 1, axis=1))
-            bad = bad % 2
-            bad = np.delete(bad, 0, axis=1)
-            matx = np.concatenate((good, bad), axis=1)
-    # now columns of X span the binary null-space of A
-    return n - matx.shape[1]
+def _compute_rank(mat):
+    """Given a matrix A computes its rank"""
+    mat = _gauss_elimination(mat)
+    return np.sum(mat.any(axis=1))
 
 
 def _row_op(mat, ctrl, trgt):

@@ -27,7 +27,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
-    _compute_rank_square_matrix,
+    _compute_rank,
     _gauss_elimination,
     _gauss_elimination_with_perm,
 )
@@ -194,7 +194,7 @@ def _create_graph_state(cliff, validate=False):
     The algorithm is based on Lemma 6 in [2]."""
 
     num_qubits = cliff.num_qubits
-    rank = _compute_rank_square_matrix(cliff.stab_x)
+    rank = _compute_rank(cliff.stab_x)
     H1_circ = QuantumCircuit(num_qubits)
     cliffh = cliff.copy()
 
@@ -209,9 +209,9 @@ def _create_graph_state(cliff, validate=False):
 
         # validate that the output matrix has the same rank
         if validate:
-            if _compute_rank_square_matrix(Cmat) != num_qubits - rank:
+            if _compute_rank(Cmat) != num_qubits - rank:
                 raise QiskitError("The matrix Cmat after Gauss elimination has wrong rank.")
-            if _compute_rank_square_matrix(stab[:, 0:num_qubits]) != rank:
+            if _compute_rank(stab[:, 0:num_qubits]) != rank:
                 raise QiskitError("The matrix after Gauss elimination has wrong rank.")
             # validate that we have a num_qubits - rank zero rows
             for i in range(rank, num_qubits):
@@ -228,7 +228,7 @@ def _create_graph_state(cliff, validate=False):
         # validate that a layer of Hadamard gates and then appending cliff, provides a graph state.
         if validate:
             stabh = cliffh.stab_x
-            if _compute_rank_square_matrix(stabh) != num_qubits:
+            if _compute_rank(stabh) != num_qubits:
                 raise QiskitError("The state is not a graph state.")
 
     return H1_circ, cliffh
@@ -243,7 +243,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     H2_circ is a circuit containing H gates on all qubits.
     """
     num_qubits = cliff.num_qubits
-    rank = _compute_rank_square_matrix(cliff.stab_x)
+    rank = _compute_rank(cliff.stab_x)
     cliff_cpy = cliff.copy()
     if rank < num_qubits:
         raise QiskitError("The stabilizer state is not a graph state.")
