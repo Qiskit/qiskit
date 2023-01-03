@@ -9,15 +9,16 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Circuit synthesis for the Clifford class into layers.
+"""Circuit synthesis for the Clifford class into layers.
 
 References:
+
     [1] Sergey Bravyi and Dmitri Maslov,
     "Hadamard-free circuits expose the structure of the Clifford group",
     https://arxiv.org/abs/2003.09412
     [2] Scott Aaronson and Daniel Gottesman, "Improved Simulation of Stabilizer Circuits",
     Phys. Rev. A 70(052328), 2004. https://arxiv.org/abs/quant-ph/0406196
+
 """
 # pylint: disable=invalid-name
 
@@ -97,7 +98,7 @@ def synth_clifford_layers(
     """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
     described in Lemma 8 of [1].
 
-    For example, a 5-qubit Clifford is decomposed into the following layers:
+    For example, a 4-qubit Clifford is decomposed into the following layers:
 
          ┌─────┐┌──────┐┌─────┐┌─────┐┌─────┐┌──────┐┌─────┐┌────────┐
     q_0: ┤0    ├┤0     ├┤0    ├┤0    ├┤0    ├┤0     ├┤0    ├┤0       ├
@@ -125,6 +126,7 @@ def synth_clifford_layers(
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
     """
+
     cliff_cpy = cliff.copy()
     num_qubits = cliff.num_qubits
 
@@ -192,7 +194,7 @@ def _create_graph_state(cliff, validate=False):
     cliffh = cliff.copy()
 
     if rank < num_qubits:
-        stab = cliff.stab
+        stab = cliff.stab[:, :-1]
         stab = _gauss_elimination(stab, num_qubits)
 
         Cmat = stab[rank:num_qubits, num_qubits:]
