@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added a new synthesis method of a Clifford circuit into layers, based on Bravyi and Maslov
+    (arxiv:2003.09412).
+    It decomposes the Clifford into 8 layers of gates.
+    There are two layers of CZ gates, and one layer of CX gates.
