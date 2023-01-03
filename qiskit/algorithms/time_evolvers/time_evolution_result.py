@@ -12,8 +12,10 @@
 
 """Class for holding time evolution result."""
 from __future__ import annotations
+import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.quantum_info import Statevector
 from qiskit.algorithms.list_or_dict import ListOrDict
 from ..algorithm_result import AlgorithmResult
 
@@ -23,16 +25,22 @@ class TimeEvolutionResult(AlgorithmResult):
     Class for holding time evolution result.
 
     Attributes:
-        evolved_state (QuantumCircuit): An evolved quantum state.
+        evolved_state (QuantumCircuit|Statevector): An evolved quantum state.
         aux_ops_evaluated (ListOrDict[tuple[complex, complex]] | None): Optional list of
             observables for which expected values on an evolved state are calculated. These values
             are in fact tuples formatted as (mean, standard deviation).
+        observables (ListOrDict[tuple[np.ndarray, np.ndarray]] | None): Optional list of
+            observables for which expected on an evolved state are calculated at each timestep.
+            These values are in fact lists of tuples formatted as (mean, standard deviation).
+            times (np.array | None): Optional list of times at wich each observable has been evaluated.
     """
 
     def __init__(
         self,
-        evolved_state: QuantumCircuit,
+        evolved_state: QuantumCircuit | Statevector,
         aux_ops_evaluated: ListOrDict[tuple[complex, complex]] | None = None,
+        observables: ListOrDict[tuple[np.ndarray, np.ndarray]] | None = None,
+        times: np.ndarray | None = None,
     ):
         """
         Args:
@@ -40,7 +48,12 @@ class TimeEvolutionResult(AlgorithmResult):
             aux_ops_evaluated: Optional list of observables for which expected values on an evolved
                 state are calculated. These values are in fact tuples formatted as (mean, standard
                 deviation).
+            observables: Optional list of observables for which expected values for each timestep.
+                These values are in fact tuples formatted as (mean array, standard deviation array).
+            times: Optional list of times at which each observable has been evaluated.
         """
 
         self.evolved_state = evolved_state
         self.aux_ops_evaluated = aux_ops_evaluated
+        self.observables = observables
+        self.times = times

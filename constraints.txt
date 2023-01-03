@@ -6,3 +6,12 @@ jsonschema==3.2.0
 # a seaborn import. This pin can be removed when compatibility with those
 # packages is fixed
 jupyter-core==4.11.2
+
+# ipywidgets 8.0.3 started emitting deprecation warnings via a seaborn import.
+# This pin can be removed when compatibility with those packages is fixed.
+ipywidgets<8.0.3
+
+# coverage 7.0.0 breaks with Python 3.8.15 upon the import
+#   from coverage.files import FnmatchMatcher
+# since this is in Python 3.8 itself and not Qiskit, pinning this for now.
+coverage<7.0
