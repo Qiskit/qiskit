@@ -22,8 +22,6 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.quantum_info import random_clifford
 from qiskit.synthesis.clifford.clifford_decompose_layers import (
-    _default_cx_synth_func,
-    _default_cz_synth_func,
     synth_clifford_layers,
 )
 
@@ -40,9 +38,7 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
         samples = 10
         for _ in range(samples):
             cliff = random_clifford(num_qubits, seed=rng)
-            circ = synth_clifford_layers(
-                cliff, _default_cx_synth_func, _default_cz_synth_func, validate=True
-            )
+            circ = synth_clifford_layers(cliff, validate=True)
             cliff_target = Clifford(circ)
             self.assertEqual(cliff, cliff_target)
 

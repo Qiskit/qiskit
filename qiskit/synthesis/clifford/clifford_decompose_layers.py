@@ -20,6 +20,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
+    check_invertible_binary_matrix,
     _compute_rank,
     _gauss_elimination,
     _gauss_elimination_with_perm,
@@ -29,6 +30,39 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
     _append_s,
     _append_cz,
 )
+
+
+def _default_cx_synth_func(mat, validate):
+    """
+    Construct the layer of CX gates from a boolean invertible matrix mat.
+    """
+    if validate:
+        if not check_invertible_binary_matrix(mat):
+            raise QiskitError("The matrix for CX circuit is not invertible.")
+
+    CX_circ = synth_cnot_count_full_pmh(mat)
+
+    if validate:
+        _check_gates(CX_circ, ("cx", "swap"))
+
+    return CX_circ
+
+
+def _default_cz_synth_func(symmetric_mat, validate):
+    """
+    Construct the layer of CZ gates from a symmetric matrix.
+    """
+    nq = symmetric_mat.shape[0]
+    qc = QuantumCircuit(nq)
+
+    for j in range(nq):
+        for i in range(0, j):
+            if symmetric_mat[i][j]:
+                qc.cz(i, j)
+
+    if validate:
+        _check_gates(qc, "cz")
+    return qc
 
 
 class LayeredCircuit:
@@ -81,10 +115,9 @@ class LayeredCircuit:
 
 def synth_clifford_layers(
     cliff,
-    cx_synth_func,
-    cz_synth_func,
+    cx_synth_func=_default_cx_synth_func,
+    cz_synth_func=_default_cz_synth_func,
     cx_cz_synth_func=None,
-    reverse_cliff=False,
     validate=False,
 ):
     """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
@@ -95,7 +128,6 @@ def synth_clifford_layers(
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
         cx_cz_synth_func (Callable): optional, a function to decompose the sub-circuits CZ and CX .
-        reverse_cliff (Boolean): if True, reverse the order of the qubits of the Clifford.
         validate (Boolean): if True, validates the synthesis process.
 
     Return:
@@ -109,10 +141,6 @@ def synth_clifford_layers(
 
     cliff_cpy = cliff.copy()
     num_qubits = cliff.num_qubits
-
-    if reverse_cliff:
-        # Reverse the order of qubits
-        cliff_cpy = _reverse_clifford(cliff)
 
     layeredCircuit = LayeredCircuit(num_qubits)
 
@@ -295,10 +323,8 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
 
     CZ2_circ = cz_synth_func(destabz_update, validate=validate)
 
-    cliff_cpy = cliff.copy()
-    cliff_cpy.destab_z = np.zeros((num_qubits, num_qubits))
-    cliff_cpy.phase = np.zeros(2 * num_qubits)
-    CX_circ = cx_synth_func(cliff_cpy, validate=validate)
+    mat = destabx.transpose()
+    CX_circ = cx_synth_func(mat, validate=validate)
 
     return S2_circ, CZ2_circ, CX_circ
 
@@ -345,46 +371,3 @@ def _check_gates(qc, allowed_gates):
     for inst, _, _ in qc.data:
         if not inst.name in allowed_gates:
             raise QiskitError("The gate name is not in the allowed_gates list.")
-
-
-def _default_cx_synth_func(cliff, validate):
-    """
-    Assume that the Clifford is of the form [A, 0; 0, D].
-    Construct the layer of CX gates for this Clifford."""
-
-    from qiskit.quantum_info.operators.symplectic import Clifford
-
-    if not isinstance(cliff, Clifford):
-        raise QiskitError("cliff is not a Clifford element.")
-
-    # Note: from the commutativity relations, we know that D = (A^T)^{-1},
-    # and in fact we have already used this fact in _decompose_hadamard_free
-
-    num_qubits = cliff.num_qubits
-    if not (cliff.stab_x == np.zeros((num_qubits, num_qubits))).all():
-        if not (cliff.destab_z == np.zeros((num_qubits, num_qubits))).all():
-            raise QiskitError("The given Clifford is not linear reversible.")
-
-    CX_circ = synth_cnot_count_full_pmh(cliff.destab_x.transpose())
-
-    if validate:
-        _check_gates(CX_circ, ("cx", "swap"))
-
-    return CX_circ
-
-
-def _default_cz_synth_func(symmetric_mat, validate):
-    """
-    Construct the layer of CZ gates from a symmetric matrix.
-    """
-    nq = symmetric_mat.shape[0]
-    qc = QuantumCircuit(nq)
-
-    for j in range(nq):
-        for i in range(0, j):
-            if symmetric_mat[i][j]:
-                qc.cz(i, j)
-
-    if validate:
-        _check_gates(qc, "cz")
-    return qc
