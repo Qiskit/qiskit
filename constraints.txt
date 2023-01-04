@@ -19,3 +19,4 @@ coverage<7.0
 # With nbconvert 7.2.7 docs jobs start hanging executing jupyter-execute
 # cells. Pin until the issue is resolved.
 nbconvert==7.2.6
+jupyter-server==1.23.3
