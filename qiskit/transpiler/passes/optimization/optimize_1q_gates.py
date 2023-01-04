@@ -34,7 +34,7 @@ _CHOP_THRESHOLD = 1e-15
 class Optimize1qGates(TransformationPass):
     """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
-    def __init__(self, basis=None, eps=1e-15):
+    def __init__(self, basis=None, eps=1e-15, target=None):
         """Optimize1qGates initializer.
 
         Args:
@@ -42,10 +42,14 @@ class Optimize1qGates(TransformationPass):
                 of this pass, the basis is the set intersection between the `basis` parameter and
                 the set `{'u1','u2','u3', 'u', 'p'}`.
             eps (float): EPS to check against
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``basis`` and this are specified then this argument will take
+                precedence and ``basis`` will be ignored.
         """
         super().__init__()
-        self.basis = basis if basis else ["u1", "u2", "u3"]
+        self.basis = set(basis) if basis else {"u1", "u2", "u3"}
         self.eps = eps
+        self.target = target
 
     def run(self, dag):
         """Run the Optimize1qGates pass on `dag`.
@@ -64,10 +68,16 @@ class Optimize1qGates(TransformationPass):
         runs = dag.collect_runs(["u1", "u2", "u3", "u", "p"])
         runs = _split_runs_on_parameters(runs)
         for run in runs:
-            if use_p:
-                right_name = "p"
+            if self.target is not None:
+                if self.target.instruction_supported("p", run[0].qargs):
+                    right_name = "p"
+                else:
+                    right_name = "u1"
             else:
-                right_name = "u1"
+                if use_p:
+                    right_name = "p"
+                else:
+                    right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
             right_global_phase = 0
             for current_node in run:
@@ -256,16 +266,30 @@ class Optimize1qGates(TransformationPass):
                 ):
                     right_name = "nop"
 
-            if right_name == "u2" and "u2" not in self.basis:
-                if use_u:
-                    right_name = "u"
-                else:
-                    right_name = "u3"
-            if right_name in ("u1", "p") and right_name not in self.basis:
-                if use_u:
-                    right_name = "u"
-                else:
-                    right_name = "u3"
+            if self.target is not None:
+                if right_name == "u2" and not self.target.instruction_supported("u2", run[0].qargs):
+                    if self.target.instruction_supported("u", run[0].qargs):
+                        right_name = "u"
+                    else:
+                        right_name = "u3"
+                if right_name in ("u1", "p") and not self.target.instruction_supported(
+                    right_name, run[0].qargs
+                ):
+                    if self.target.instruction_supported("u", run[0].qargs):
+                        right_name = "u"
+                    else:
+                        right_name = "u3"
+            else:
+                if right_name == "u2" and "u2" not in self.basis:
+                    if use_u:
+                        right_name = "u"
+                    else:
+                        right_name = "u3"
+                if right_name in ("u1", "p") and right_name not in self.basis:
+                    if use_u:
+                        right_name = "u"
+                    else:
+                        right_name = "u3"
 
             new_op = Gate(name="", num_qubits=1, params=[])
             if right_name == "u1":

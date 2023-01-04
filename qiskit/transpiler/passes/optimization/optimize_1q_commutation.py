@@ -61,18 +61,20 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
     # NOTE: A run from `dag.collect_1q_runs` is always nonempty, so we sometimes use an empty list
     #       to signify the absence of a run.
 
-    def __init__(self, basis=None, run_to_completion=False):
+    def __init__(self, basis=None, run_to_completion=False, target=None):
         """
         Args:
             basis (List[str]): See also `Optimize1qGatesDecomposition`.
             run_to_completion (bool): If `True`, this pass retries until it is unable to do any more
                 work.  If `False`, it finds and performs one optimization, and for full optimization
                 the user is obligated to re-call the pass until the output stabilizes.
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``basis`` and this are specified then this argument will take
+                precedence and ``basis`` will be ignored.
         """
         super().__init__()
 
-        self._basis = basis
-        self._optimize1q = Optimize1qGatesDecomposition(basis)
+        self._optimize1q = Optimize1qGatesDecomposition(basis=basis, target=target)
         self._run_to_completion = run_to_completion
 
     @staticmethod
