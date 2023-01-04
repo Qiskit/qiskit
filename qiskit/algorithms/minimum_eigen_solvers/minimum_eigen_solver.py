@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,7 +24,7 @@ from ..list_or_dict import ListOrDict
 
 
 class MinimumEigensolver(ABC):
-    """Pending deprecation: Minimum Eigensolver Interface.
+    """Deprecated: Minimum Eigensolver Interface.
 
     The Minimum Eigensolver interface has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver` interface.
@@ -37,11 +37,10 @@ class MinimumEigensolver(ABC):
     """
 
     @deprecate_function(
-        "The Minimum Eigensolver interface has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver interface. "
-        "This interface will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+        "The Minimum Eigensolver interface is deprecated as of Qiskit Terra 0.24.0 and "
+        "will be removed no sooner than 3 months after the release date. Instead, use "
+        "the qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver interface.",
+        category=DeprecationWarning,
     )
     def __init__(self) -> None:
         pass
@@ -83,7 +82,7 @@ class MinimumEigensolver(ABC):
 
 
 class MinimumEigensolverResult(AlgorithmResult):
-    """Pending deprecation: Minimum Eigensolver Result.
+    """Deprecated: Minimum Eigensolver Result.
 
     The MinimumEigensolverResult class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult` class.
@@ -93,11 +92,10 @@ class MinimumEigensolverResult(AlgorithmResult):
     """
 
     @deprecate_function(
-        "The MinimumEigensolverResult class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+        "The MinimumEigensolverResult class is deprecated as of Qiskit Terra 0.24.0 and "
+        "will be removed no sooner than 3 months after the release date. Instead, use "
+        "the qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class.",
+        category=DeprecationWarning,
     )
     def __init__(self) -> None:
         super().__init__()

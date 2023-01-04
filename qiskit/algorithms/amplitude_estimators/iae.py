@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -71,7 +71,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 each iteration, can be 'chernoff' for the Chernoff intervals or 'beta' for the
                 Clopper-Pearson intervals (default)
             min_ratio: Minimal q-ratio (:math:`K_{i+1} / K_i`) for FindNextK
-            quantum_instance: Pending deprecation\: Quantum Instance or Backend
+            quantum_instance: Deprecated\: Quantum Instance or Backend
             sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
@@ -97,10 +97,10 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         # set quantum instance
         if quantum_instance is not None:
             warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
+                "The quantum_instance argument is deprecated as of Qiskit Terra 0.24.0 and "
+                "will be removed no sooner than 3 months after the release date. Instead, use "
+                "the sampler argument as a replacement.",
+                category=DeprecationWarning,
             )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -133,13 +133,13 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
     @property
     @deprecate_function(
-        "The IterativeAmplitudeEstimation.quantum_instance getter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+        "The IterativeAmplitudeEstimation.quantum_instance getter is deprecated "
+        "as of Qiskit Terra 0.24.0 and "
+        "will be removed no sooner than 3 months after the release date.",
+        category=DeprecationWarning,
     )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation; Get the quantum instance.
+        """Deprecated; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -148,13 +148,13 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
     @quantum_instance.setter
     @deprecate_function(
-        "The IterativeAmplitudeEstimation.quantum_instance setter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+        "The IterativeAmplitudeEstimation.quantum_instance setter is deprecated "
+        "as of Qiskit Terra 0.24.0 and "
+        "will be removed no sooner than 3 months after the release date.",
+        category=DeprecationWarning,
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Pending deprecation; Set quantum instance.
+        """Deprecated; Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.

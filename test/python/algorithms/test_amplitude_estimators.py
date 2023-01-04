@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """Test the quantum amplitude estimation algorithm."""
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from ddt import ddt, idata, data, unpack
@@ -128,7 +129,13 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     @unpack
     def test_statevector(self, prob, qae, expect):
         """statevector test"""
-        qae.quantum_instance = self._statevector
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qae.quantum_instance = self._statevector
+        self.assertTrue(len(caught_warnings) > 0)
         problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
 
         result = qae.estimate(problem)
@@ -185,7 +192,13 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     @unpack
     def test_qasm(self, prob, shots, qae, expect):
         """qasm test"""
-        qae.quantum_instance = self._qasm(shots)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qae.quantum_instance = self._qasm(shots)
+        self.assertTrue(len(caught_warnings) > 0)
         problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
 
         result = qae.estimate(problem)
@@ -407,12 +420,15 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     @unpack
     def test_statevector(self, n, qae, expect):
         """Statevector end-to-end test"""
-        # construct factories for A and Q
-        # qae.state_preparation = SineIntegral(n)
-        qae.quantum_instance = self._statevector
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qae.quantum_instance = self._statevector
+        self.assertTrue(len(caught_warnings) > 0)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
-        # result = qae.run(self._statevector)
         result = qae.estimate(estimation_problem)
         self._statevector.reset_execution_results()
         for key, value in expect.items():
@@ -454,7 +470,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def test_qasm(self, n, shots, qae, expect):
         """QASM simulator end-to-end test."""
         # construct factories for A and Q
-        qae.quantum_instance = self._qasm(shots)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qae.quantum_instance = self._qasm(shots)
+        self.assertTrue(len(caught_warnings) > 0)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         result = qae.estimate(estimation_problem)
@@ -510,7 +532,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def test_confidence_intervals(self, qae, key, expect):
         """End-to-end test for all confidence intervals."""
         n = 3
-        qae.quantum_instance = self._statevector
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qae.quantum_instance = self._statevector
+        self.assertTrue(len(caught_warnings) > 0)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         # statevector simulator
@@ -527,7 +555,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         # qasm simulator
         shots = 100
         alpha = 0.01
-        qae.quantum_instance = self._qasm(shots)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qae.quantum_instance = self._qasm(shots)
+        self.assertTrue(len(caught_warnings) > 0)
         result = qae.estimate(estimation_problem)
         for method, expected_confint in expect.items():
             confint = qae.compute_confidence_interval(result, alpha, method)
@@ -537,7 +571,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def test_iqae_confidence_intervals(self):
         """End-to-end test for the IQAE confidence interval."""
         n = 3
-        qae = IterativeAmplitudeEstimation(0.1, 0.01, quantum_instance=self._statevector)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qae = IterativeAmplitudeEstimation(0.1, 0.01, quantum_instance=self._statevector)
+        self.assertTrue(len(caught_warnings) > 0)
         expected_confint = (0.1984050, 0.3511015)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
@@ -551,7 +591,13 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # qasm simulator
         shots = 100
-        qae.quantum_instance = self._qasm(shots)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qae.quantum_instance = self._qasm(shots)
+        self.assertTrue(len(caught_warnings) > 0)
         result = qae.estimate(estimation_problem)
         confint = result.confidence_interval
         np.testing.assert_array_almost_equal(confint, expected_confint)
@@ -589,8 +635,13 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
         # construct algo without rescaling
         backend = BasicAer.get_backend("statevector_simulator")
-        fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, quantum_instance=backend)
-
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, quantum_instance=backend)
+        self.assertTrue(len(caught_warnings) > 0)
         # run the algo
         result = fae.estimate(problem)
 
@@ -633,8 +684,13 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
         # construct algo without rescaling
         backend = BasicAer.get_backend("statevector_simulator")
-        fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
-
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
+        self.assertTrue(len(caught_warnings) > 0)
         # run the algo
         with self.assertWarns(Warning):
             _ = fae.estimate(problem)
@@ -668,8 +724,13 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
             BasicAer.get_backend(backend_str), seed_simulator=2, seed_transpiler=2
         )
         # cannot use rescaling with a custom grover operator
-        fae = FasterAmplitudeEstimation(0.01, 5, rescale=False, quantum_instance=backend)
-
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            fae = FasterAmplitudeEstimation(0.01, 5, rescale=False, quantum_instance=backend)
+        self.assertTrue(len(caught_warnings) > 0)
         # run the algo
         result = fae.estimate(problem)
 
