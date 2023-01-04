@@ -55,7 +55,7 @@ fontname=helvetica;
 label="[5] ";
 labeljust=l;
 17 [color=red, fontname=helvetica, label=CheckMap, shape=rectangle];
-18 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+18 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=dashed];
 18 -> 17;
 19 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
 19 -> 17;

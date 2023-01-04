@@ -42,10 +42,11 @@ class CheckMap(AnalysisPass):
         else:
             self.qargs = set()
             if target is not None:
-                for edge in target.qargs:
-                    if len(edge) == 2:
-                        self.qargs.add(edge)
-                        self.qargs.add((edge[1], edge[0]))
+                if target.qargs is not None:
+                    for edge in target.qargs:
+                        if len(edge) == 2:
+                            self.qargs.add(edge)
+                            self.qargs.add((edge[1], edge[0]))
             else:
                 for edge in coupling_map.get_edges():
                     self.qargs.add(edge)
