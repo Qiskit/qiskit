@@ -41,6 +41,7 @@ def _default_cx_synth_func(mat, validate):
             raise QiskitError("The matrix for CX circuit is not invertible.")
 
     CX_circ = synth_cnot_count_full_pmh(mat)
+    CX_circ.name = "CX"
 
     if validate:
         _check_gates(CX_circ, ("cx", "swap"))
@@ -53,7 +54,7 @@ def _default_cz_synth_func(symmetric_mat, validate):
     Construct the layer of CZ gates from a symmetric matrix.
     """
     nq = symmetric_mat.shape[0]
-    qc = QuantumCircuit(nq)
+    qc = QuantumCircuit(nq, name="CZ")
 
     for j in range(nq):
         for i in range(0, j):
@@ -63,54 +64,6 @@ def _default_cz_synth_func(symmetric_mat, validate):
     if validate:
         _check_gates(qc, "cz")
     return qc
-
-
-class LayeredCircuit:
-    """Stores layered decomposition of the QuantumCircuit
-    layers is a list of QuantumCircuits
-    """
-
-    def __init__(self, num_qubits: int):
-        """Stores layered decomposition of the QuantumCircuit
-
-        Args:
-            num_qubits: number of qubits of the QuantumCircuit.
-        """
-        self.num_qubits = num_qubits
-        self.layers = []
-
-    def append_layer(self, qc, qc_name=None):
-        """Appends a new layer.
-        qc is a quantum circuit
-        qc_name is the optional label to assign to qc
-        """
-        if not isinstance(qc, QuantumCircuit):
-            raise QiskitError("qc is not a QuantumCircuit.")
-        if qc.num_qubits != self.num_qubits:
-            raise QiskitError("num_qubits is not the same as qc.num_qubits.")
-
-        if qc_name is not None:
-            qc.name = qc_name
-        self.layers.append(qc)
-
-    def create_circuit(self):
-        """Returns circuit obtained by appending all layers"""
-        circ = QuantumCircuit(self.num_qubits)
-        for _, qc in enumerate(list(self.layers)):
-            circ.append(qc, list(range(self.num_qubits)))
-        return circ
-
-    def draw(self):
-        """Print the layered circuit."""
-        print(self.create_circuit())
-
-    def draw_detailed(self):
-        """Print the circuit layer-by-layer"""
-        print()
-        for i, qc in enumerate(list(self.layers)):
-            print(f"Printing layer {i}")
-            print(qc)
-            print("")
 
 
 def synth_clifford_layers(
@@ -142,7 +95,8 @@ def synth_clifford_layers(
     cliff_cpy = cliff.copy()
     num_qubits = cliff.num_qubits
 
-    layeredCircuit = LayeredCircuit(num_qubits)
+    qubit_list = list(range(num_qubits))
+    layeredCircuit = QuantumCircuit(num_qubits)
 
     H1_circ, cliff1 = _create_graph_state(cliff_cpy, validate=validate)
 
@@ -158,27 +112,27 @@ def synth_clifford_layers(
         cx_cz_synth_func=cx_cz_synth_func,
     )
 
-    layeredCircuit.append_layer(S2_circ, "S2")
-    layeredCircuit.append_layer(CZ2_circ, "CZ2")
+    layeredCircuit.append(S2_circ, qubit_list)
+    layeredCircuit.append(CZ2_circ, qubit_list)
 
     CXinv = CX_circ.copy().inverse()
-    layeredCircuit.append_layer(CXinv, "CX")
+    layeredCircuit.append(CXinv, qubit_list)
 
-    layeredCircuit.append_layer(H2_circ, "H2")
-    layeredCircuit.append_layer(S1_circ, "S1")
-    layeredCircuit.append_layer(CZ1_circ, "CZ1")
+    layeredCircuit.append(H2_circ, qubit_list)
+    layeredCircuit.append(S1_circ, qubit_list)
+    layeredCircuit.append(CZ1_circ, qubit_list)
 
-    layeredCircuit.append_layer(H1_circ, "H1")
+    layeredCircuit.append(H1_circ, qubit_list)
 
     # Add Pauli layer to fix the Clifford phase signs
     # pylint: disable=cyclic-import
     from qiskit.quantum_info.operators.symplectic import Clifford
 
-    clifford_target = Clifford(layeredCircuit.create_circuit())
+    clifford_target = Clifford(layeredCircuit)
     pauli_circ = _fix_pauli(cliff, clifford_target)
-    layeredCircuit.append_layer(pauli_circ, "Pauli")
+    layeredCircuit.append(pauli_circ, qubit_list)
 
-    return layeredCircuit.create_circuit()
+    return layeredCircuit
 
 
 def _reverse_clifford(cliff):
@@ -198,7 +152,7 @@ def _create_graph_state(cliff, validate=False):
 
     num_qubits = cliff.num_qubits
     rank = _compute_rank(cliff.stab_x)
-    H1_circ = QuantumCircuit(num_qubits)
+    H1_circ = QuantumCircuit(num_qubits, name="H1")
     cliffh = cliff.copy()
 
     if rank < num_qubits:
@@ -251,8 +205,8 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     if rank < num_qubits:
         raise QiskitError("The stabilizer state is not a graph state.")
 
-    S1_circ = QuantumCircuit(num_qubits)
-    H2_circ = QuantumCircuit(num_qubits)
+    S1_circ = QuantumCircuit(num_qubits, name="S1")
+    H2_circ = QuantumCircuit(num_qubits, name="H2")
 
     stabx = cliff.stab_x
     stabz = cliff.stab_z
@@ -310,7 +264,7 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
                 "destabz is not a symmetric matrix."
             )
 
-    S2_circ = QuantumCircuit(num_qubits)
+    S2_circ = QuantumCircuit(num_qubits, name="S2")
     for i in range(0, num_qubits):
         if destabz_update[i][i]:
             S2_circ.s(i)
@@ -349,7 +303,7 @@ def _fix_pauli(cliff, cliff_target):
     C = np.matmul(Ainv, phase) % 2
 
     # Create the Pauli
-    pauli_circ = QuantumCircuit(num_qubits)
+    pauli_circ = QuantumCircuit(num_qubits, name="Pauli")
     for k in range(num_qubits):
         destab = C[k]
         stab = C[k + num_qubits]
