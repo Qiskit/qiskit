@@ -619,13 +619,18 @@ class QuantumInstance:
                 else:
                     circuits[0:0] = cal_circuits
                     prepended_calibration_circuits = len(cal_circuits)
+                    if hasattr(self.run_config, "parameterizations"):
+                        cal_run_config = copy.deepcopy(self.run_config)
+                        cal_run_config.parameterizations[0:0] = [[]] * len(cal_circuits)
+                    else:
+                        cal_run_config = self.run_config
                     result = run_circuits(
                         circuits,
                         self._backend,
                         qjob_config=self.qjob_config,
                         backend_options=self.backend_options,
                         noise_config=self._noise_config,
-                        run_config=self.run_config.to_dict(),
+                        run_config=cal_run_config.to_dict(),
                         job_callback=self._job_callback,
                         max_job_retries=self._max_job_retries,
                     )
