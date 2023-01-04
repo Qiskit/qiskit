@@ -171,7 +171,7 @@ class InstructionToQobjConverter:
         )
 
     @_convert_instruction.register(instructions.Acquire)
-    def _(
+    def _convert_acquire(
         self,
         instruction,
         time_offset: int,
@@ -228,7 +228,7 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @_convert_instruction.register(instructions.SetFrequency)
-    def _(
+    def _convert_set_frequency(
         self,
         instruction,
         time_offset: int,
@@ -251,7 +251,7 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @_convert_instruction.register(instructions.ShiftFrequency)
-    def _(
+    def _convert_shift_frequency(
         self,
         instruction,
         time_offset: int,
@@ -274,7 +274,7 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @_convert_instruction.register(instructions.SetPhase)
-    def _(
+    def _convert_set_phase(
         self,
         instruction,
         time_offset: int,
@@ -297,7 +297,7 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @_convert_instruction.register(instructions.ShiftPhase)
-    def _(
+    def _convert_shift_phase(
         self,
         instruction,
         time_offset: int,
@@ -320,7 +320,7 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @_convert_instruction.register(instructions.Delay)
-    def _(
+    def _convert_delay(
         self,
         instruction,
         time_offset: int,
@@ -343,7 +343,7 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @_convert_instruction.register(instructions.Play)
-    def _(
+    def _convert_play(
         self,
         instruction,
         time_offset: int,
@@ -381,7 +381,7 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @_convert_instruction.register(instructions.Snapshot)
-    def _(
+    def _convert_snapshot(
         self,
         instruction,
         time_offset: int,
