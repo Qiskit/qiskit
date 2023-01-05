@@ -455,9 +455,9 @@ def generate_scheduling(
             "asap": ASAPScheduleAnalysis,
             "as_soon_as_possible": ASAPScheduleAnalysis,
         }
-        scheduling.append(TimeUnitConversion(instruction_durations))
+        scheduling.append(TimeUnitConversion(instruction_durations, target=target))
         try:
-            scheduling.append(scheduler[scheduling_method](instruction_durations))
+            scheduling.append(scheduler[scheduling_method](instruction_durations, target=target))
         except KeyError as ex:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
     elif instruction_durations:
@@ -466,7 +466,9 @@ def generate_scheduling(
             return property_set["contains_delay"]
 
         scheduling.append(ContainsInstruction("delay"))
-        scheduling.append(TimeUnitConversion(instruction_durations), condition=_contains_delay)
+        scheduling.append(
+            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+        )
     if (
         timing_constraints.granularity != 1
         or timing_constraints.min_length != 1

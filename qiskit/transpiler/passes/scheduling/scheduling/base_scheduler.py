@@ -22,6 +22,7 @@ from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class BaseScheduler(AnalysisPass):
@@ -29,14 +30,20 @@ class BaseScheduler(AnalysisPass):
 
     CONDITIONAL_SUPPORTED = (Gate, Delay)
 
-    def __init__(self, durations: InstructionDurations):
+    def __init__(self, durations: InstructionDurations = None, target: Target = None):
         """Scheduler initializer.
 
         Args:
             durations: Durations of instructions to be used in scheduling
+            target: The :class:`~.Target` representing the target backend, if both
+                  ``durations`` and this are specified then this argument will take
+                  precedence and ``durations`` will be ignored.
+
         """
         super().__init__()
         self.durations = durations
+        if target is not None:
+            self.durations = target.durations()
 
         # Ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))

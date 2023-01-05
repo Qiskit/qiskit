@@ -20,6 +20,13 @@ features:
       * :class:`~.Optimize1qGatesSimpleCommutation`
       * :class:`~.Optimize1qGates`
       * :class:`~.CheckCXDirection`
+      * :class:`~.ALAPSchedule`
+      * :class:`~.ASAPSchedule`
+      * :class:`~.ALAPScheduleAnalysis`
+      * :class:`~.ASAPScheduleAnalysis`
+      * :class:`~.DynamicalDecoupling`
+      * :class:`~.PadDynamicalDecoupling`
+      * :class:`~.TimeUnitConversion`
   - |
     The pass manager construction helper function :func:`~.generate_scheduling`
     has a new keyword argument ``target`` which is used to specify a :class:`~.Target`
