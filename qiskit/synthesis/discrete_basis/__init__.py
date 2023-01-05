@@ -50,7 +50,7 @@ with an L2-error of approximately 0.01.
 
 Examples:
 
-    .. jupyter-execute::
+    .. code-block::
 
         import numpy as np
         from qiskit.circuit import QuantumCircuit
@@ -76,6 +76,18 @@ Examples:
 
         print('Error:', np.linalg.norm(Operator(circuit).data - Operator(discretized).data))
 
+    .. parsed-literal::
+
+        Original circuit:
+           ┌─────────┐
+        q: ┤ Rx(0.8) ├
+           └─────────┘
+        Discretized circuit:
+        global phase: 7π/8
+           ┌───┐┌───┐┌───┐
+        q: ┤ H ├┤ T ├┤ H ├
+           └───┘└───┘└───┘
+        Error: 2.828408279166474
 
 References:
 

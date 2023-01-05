@@ -18,6 +18,7 @@ import ipywidgets as wid
 from IPython.display import display
 from qiskit import QuantumCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 
 try:
     import pygments
@@ -27,6 +28,22 @@ try:
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
+
+
+@_optionals.HAS_MATPLOTLIB.require_in_call
+def _generate_circuit_library_visualiztion(circuit: QuantumCircuit):
+    import matplotlib.pyplot as plt
+
+    circuit = circuit.decompose()
+    ops = circuit.count_ops()
+    num_nl = circuit.num_nonlocal_gates()
+    circuit.draw("mpl")
+    plt.table(
+        [[circuit.name], [circuit.width()], [circuit.depth()], [sum(ops.values())], [num_nl]],
+        rowLabels=["Circuit Name", "Width", "Depth", "Total Gates", "Non-local Gates"],
+        loc="bottom",
+    )
+    plt.show()
 
 
 def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:

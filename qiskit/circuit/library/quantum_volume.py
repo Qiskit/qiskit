@@ -32,23 +32,20 @@ class QuantumVolume(QuantumCircuit):
 
     **Reference Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import QuantumVolume
-        import qiskit.tools.jupyter
-        circuit = QuantumVolume(5, 6, seed=10)
-        circuit.draw('mpl')
+       from qiskit.circuit.library import QuantumVolume
+       circuit = QuantumVolume(5, 6, seed=10)
+       circuit.draw('mpl')
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import QuantumVolume
-        import qiskit.tools.jupyter
-        circuit = QuantumVolume(5, 6, seed=10, classical_permutation=False)
-        %circuit_library_info circuit.decompose()
+       from qiskit.circuit.library import QuantumVolume
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+       circuit = QuantumVolume(5, 6, seed=10, classical_permutation=False)
+       _generate_circuit_library_visualiztion(circuit.decompose())
 
     **References:**
 

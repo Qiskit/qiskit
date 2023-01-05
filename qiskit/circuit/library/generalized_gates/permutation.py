@@ -47,24 +47,21 @@ class Permutation(QuantumCircuit):
             CircuitError: if permutation pattern is malformed.
 
         Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit.library import Permutation
-                import qiskit.tools.jupyter
-                A = [2,4,3,0,1]
-                circuit = Permutation(5, A)
-                circuit.draw('mpl')
+               from qiskit.circuit.library import Permutation
+               A = [2,4,3,0,1]
+               circuit = Permutation(5, A)
+               circuit.draw('mpl')
 
         Expanded Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit.library import Permutation
-                import qiskit.tools.jupyter
-                A = [2,4,3,0,1]
-                circuit = Permutation(5, A)
-                %circuit_library_info circuit.decompose()
+               from qiskit.circuit.library import Permutation
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+               A = [2,4,3,0,1]
+               circuit = Permutation(5, A)
+               _generate_circuit_library_visualiztion(circuit.decompose())
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):

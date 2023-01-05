@@ -208,13 +208,12 @@ class MCMTVChain(MCMT):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import MCMTVChain, ZGate
-        import qiskit.tools.jupyter
-        circuit = MCMTVChain(ZGate(), 2, 2)
-        %circuit_library_info circuit.decompose()
+       from qiskit.circuit.library import MCMTVChain, ZGate
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+       circuit = MCMTVChain(ZGate(), 2, 2)
+       _generate_circuit_library_visualiztion(circuit.decompose())
 
     **Examples:**
 
