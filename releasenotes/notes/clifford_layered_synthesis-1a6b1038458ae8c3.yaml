@@ -1,7 +1,21 @@
 ---
 features:
   - |
-    Added a new synthesis method of a Clifford circuit into layers, based on Bravyi and Maslov
-    (arxiv:2003.09412).
+    Added a new synthesis method of a Clifford circuit into layers, based on a paper by
+    Bravyi and Maslov (arxiv:2003.09412).
     It decomposes the Clifford into 8 layers of gates.
     There are two layers of CZ gates, and one layer of CX gates.
+
+    For example, a 5-qubit Clifford circuit is decomposed into the following layers:
+
+        from from qiskit.quantum_info import random_clifford
+        from qiskit.synthesis.clifford.clifford_decompose_layers import synth_clifford_layers
+        cliff = random_clifford(num_qubits)
+        circ = synth_clifford_layers(cliff)
+        print (circ)
+
+    This method will allow to decompose a Clifford circuit in 2-qubit depth 7n+2 for
+    linear nearest neighbor (LNN) connectivity.
+    Since a CZ circuit can be decomposed in 2-qubit depth 2n by arxiv:1705.09176,
+    and a CX-CZ circuit can be decomposed in 2-qubit depth 2n by arxiv:2210.16195.
+    These algorithms will be added in future PRs.
