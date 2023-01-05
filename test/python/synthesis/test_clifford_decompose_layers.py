@@ -41,6 +41,15 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
             circ = synth_clifford_layers(cliff, validate=True)
             cliff_target = Clifford(circ)
             self.assertEqual(cliff, cliff_target)
+            # Verify the layered structure
+            self.assertEqual(circ.data[0].operation.name, "S2")
+            self.assertEqual(circ.data[1].operation.name, "CZ")
+            self.assertEqual(circ.data[2].operation.name, "CX_dg")
+            self.assertEqual(circ.data[3].operation.name, "H2")
+            self.assertEqual(circ.data[4].operation.name, "S1")
+            self.assertEqual(circ.data[5].operation.name, "CZ")
+            self.assertEqual(circ.data[6].operation.name, "H1")
+            self.assertEqual(circ.data[7].operation.name, "Pauli")
 
 
 if __name__ == "__main__":
