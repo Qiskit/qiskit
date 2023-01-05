@@ -842,9 +842,11 @@ def GaussianSquareDrag(
     This pulse shape is similar to :class:`~.GaussianSquare` but uses
     :class:`~.Drag` for its rise and fall instead of :class:`~.Gaussian`. The
     addition of the DRAG component of the rise and fall is sometimes helpful in
-    suppressing the spectral content of the pulse at frequencies near the
-    fundamental frequency of the drive which can cause unwanted excitation of
-    spectators close in frequency to that fundamental frequency.
+    suppressing the spectral content of the pulse at frequencies near to, but
+    slightly offset from, the fundamental frequency of the drive. When there is
+    a spectator qubit close in frequency to the fundamental frequency,
+    suppressing the drive at the spectator's frequency can help avoid unwanted
+    excitation of the spectator.
 
     Exactly one of the ``risefall_sigma_ratio`` and ``width`` parameters has to be specified.
 
