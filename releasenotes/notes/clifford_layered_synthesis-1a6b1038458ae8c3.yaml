@@ -10,7 +10,7 @@ features:
 
         from from qiskit.quantum_info import random_clifford
         from qiskit.synthesis.clifford.clifford_decompose_layers import synth_clifford_layers
-        cliff = random_clifford(num_qubits)
+        cliff = random_clifford(5)
         circ = synth_clifford_layers(cliff)
         print (circ)
 
