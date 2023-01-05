@@ -56,160 +56,158 @@ defined as:
 Supplementary Information
 =========================
 
-.. dropdown:: Quantum Circuit with conditionals
-   :animate: fade-in-slide-down
+.. rubric:: Quantum Circuit with conditionals
 
-   When building a quantum circuit, there can be interest in applying a certain gate only
-   if a classical register has a specific value. This can be done with the
-   :meth:`InstructionSet.c_if` method.
+When building a quantum circuit, there can be interest in applying a certain gate only
+if a classical register has a specific value. This can be done with the
+:meth:`InstructionSet.c_if` method.
 
-   In the following example, we start with a single-qubit circuit formed by only a Hadamard gate
-   (:class:`~.HGate`), in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle`
-   with equal probability.
+In the following example, we start with a single-qubit circuit formed by only a Hadamard gate
+(:class:`~.HGate`), in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle`
+with equal probability.
 
-   .. jupyter-execute::
+.. jupyter-execute::
 
-      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister
+  from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister
 
-      qr = QuantumRegister(1)
-      cr = ClassicalRegister(1)
-      qc = QuantumCircuit(qr, cr)
-      qc.h(0)
-      qc.measure(0, 0)
-      qc.draw('mpl')
+  qr = QuantumRegister(1)
+  cr = ClassicalRegister(1)
+  qc = QuantumCircuit(qr, cr)
+  qc.h(0)
+  qc.measure(0, 0)
+  qc.draw('mpl')
 
-   .. jupyter-execute::
+.. jupyter-execute::
 
-      backend = BasicAer.get_backend('qasm_simulator')
-      tqc = transpile(qc, backend)
-      counts = backend.run(tqc).result().get_counts()
+  backend = BasicAer.get_backend('qasm_simulator')
+  tqc = transpile(qc, backend)
+  counts = backend.run(tqc).result().get_counts()
 
-      print(counts)
+  print(counts)
 
-   Now, we add an :class:`~.XGate` only if the value of the :class:`~.ClassicalRegister` is 0.
-   That way, if the state is :math:`|0\\rangle`, it will be changed to :math:`|1\\rangle` and
-   if the state is :math:`|1\\rangle`, it will not be changed at all, so the final state will
-   always be :math:`|1\\rangle`.
+Now, we add an :class:`~.XGate` only if the value of the :class:`~.ClassicalRegister` is 0.
+That way, if the state is :math:`|0\\rangle`, it will be changed to :math:`|1\\rangle` and
+if the state is :math:`|1\\rangle`, it will not be changed at all, so the final state will
+always be :math:`|1\\rangle`.
 
-   .. jupyter-execute::
+.. jupyter-execute::
 
-      qc.x(0).c_if(cr, 0)
-      qc.measure(0, 0)
+  qc.x(0).c_if(cr, 0)
+  qc.measure(0, 0)
 
-      qc.draw('mpl')
+  qc.draw('mpl')
 
-   .. jupyter-execute::
+.. jupyter-execute::
 
-      tqc = transpile(qc, backend)
-      counts = backend.run(tqc).result().get_counts()
+  tqc = transpile(qc, backend)
+  counts = backend.run(tqc).result().get_counts()
 
-      print(counts)
-
-
-.. dropdown:: Quantum Circuit Properties
-   :animate: fade-in-slide-down
-
-   When constructing quantum circuits, there are several properties that help quantify
-   the "size" of the circuits, and their ability to be run on a noisy quantum device.
-   Some of these, like number of qubits, are straightforward to understand, while others
-   like depth and number of tensor components require a bit more explanation.  Here we will
-   explain all of these properties, and, in preparation for understanding how circuits change
-   when run on actual devices, highlight the conditions under which they change.
-
-   Consider the following circuit:
-
-   .. jupyter-execute::
-
-      from qiskit import QuantumCircuit
-      qc = QuantumCircuit(12)
-      for idx in range(5):
-         qc.h(idx)
-         qc.cx(idx, idx+5)
-
-      qc.cx(1, 7)
-      qc.x(8)
-      qc.cx(1, 9)
-      qc.x(7)
-      qc.cx(1, 11)
-      qc.swap(6, 11)
-      qc.swap(6, 9)
-      qc.swap(6, 10)
-      qc.x(6)
-      qc.draw()
-
-   From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
-   Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
-   can do single-qubit gates on all the qubits simultaneously, the number of qubits in this
-   circuit is equal to the **width** of the circuit:
-
-   .. jupyter-execute::
-
-      qc.width()
+  print(counts)
 
 
-   We can also just get the number of qubits directly:
+.. rubric:: Quantum Circuit Properties
 
-   .. jupyter-execute::
+When constructing quantum circuits, there are several properties that help quantify
+the "size" of the circuits, and their ability to be run on a noisy quantum device.
+Some of these, like number of qubits, are straightforward to understand, while others
+like depth and number of tensor components require a bit more explanation.  Here we will
+explain all of these properties, and, in preparation for understanding how circuits change
+when run on actual devices, highlight the conditions under which they change.
 
-      qc.num_qubits
+Consider the following circuit:
 
+.. jupyter-execute::
 
-   .. important::
+  from qiskit import QuantumCircuit
+  qc = QuantumCircuit(12)
+  for idx in range(5):
+     qc.h(idx)
+     qc.cx(idx, idx+5)
 
-      For a quantum circuit composed from just qubits, the circuit width is equal
-      to the number of qubits. This is the definition used in quantum computing. However,
-      for more complicated circuits with classical registers, and classically controlled gates,
-      this equivalence breaks down. As such, from now on we will not refer to the number of
-      qubits in a quantum circuit as the width.
+  qc.cx(1, 7)
+  qc.x(8)
+  qc.cx(1, 9)
+  qc.x(7)
+  qc.cx(1, 11)
+  qc.swap(6, 11)
+  qc.swap(6, 9)
+  qc.swap(6, 10)
+  qc.x(6)
+  qc.draw()
 
+From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
+Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
+can do single-qubit gates on all the qubits simultaneously, the number of qubits in this
+circuit is equal to the **width** of the circuit:
 
-   It is also straightforward to get the number and type of the gates in a circuit using
-   :meth:`QuantumCircuit.count_ops`:
+.. jupyter-execute::
 
-   .. jupyter-execute::
-
-      qc.count_ops()
-
-
-   We can also get just the raw count of operations by computing the circuits
-   :meth:`QuantumCircuit.size`:
-
-   .. jupyter-execute::
-
-      qc.size()
-
-
-   A particularly important circuit property is known as the circuit **depth**.  The depth
-   of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
-   parallel, it takes to complete the computation defined by the circuit.  Because quantum
-   gates take time to implement, the depth of a circuit roughly corresponds to the amount of
-   time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
-   is one important quantity used to measure if a quantum circuit can be run on a device.
-
-   The depth of a quantum circuit has a mathematical definition as the longest path in a
-   directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
-   experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
-   with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
-   graphically:
-
-   .. image:: /source_images/depth.gif
+  qc.width()
 
 
-   .. raw:: html
+We can also just get the number of qubits directly:
 
-      <br><br>
+.. jupyter-execute::
 
-
-   We can verify our graphical result using :meth:`QuantumCircuit.depth`:
-
-   .. jupyter-execute::
-
-      qc.depth()
+  qc.num_qubits
 
 
-   .. raw:: html
+.. important::
 
-      <br>
+  For a quantum circuit composed from just qubits, the circuit width is equal
+  to the number of qubits. This is the definition used in quantum computing. However,
+  for more complicated circuits with classical registers, and classically controlled gates,
+  this equivalence breaks down. As such, from now on we will not refer to the number of
+  qubits in a quantum circuit as the width.
+
+
+It is also straightforward to get the number and type of the gates in a circuit using
+:meth:`QuantumCircuit.count_ops`:
+
+.. jupyter-execute::
+
+  qc.count_ops()
+
+
+We can also get just the raw count of operations by computing the circuits
+:meth:`QuantumCircuit.size`:
+
+.. jupyter-execute::
+
+  qc.size()
+
+
+A particularly important circuit property is known as the circuit **depth**.  The depth
+of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
+parallel, it takes to complete the computation defined by the circuit.  Because quantum
+gates take time to implement, the depth of a circuit roughly corresponds to the amount of
+time it takes the quantum computer to execute the circuit.  Thus, the depth of a circuit
+is one important quantity used to measure if a quantum circuit can be run on a device.
+
+The depth of a quantum circuit has a mathematical definition as the longest path in a
+directed acyclic graph (DAG).  However, such a definition is a bit hard to grasp, even for
+experts.  Fortunately, the depth of a circuit can be easily understood by anyone familiar
+with playing `Tetris <https://en.wikipedia.org/wiki/Tetris>`_.  Lets see how to compute this
+graphically:
+
+.. image:: /source_images/depth.gif
+
+
+.. raw:: html
+
+  <br><br>
+
+
+We can verify our graphical result using :meth:`QuantumCircuit.depth`:
+
+.. jupyter-execute::
+
+  qc.depth()
+
+
+.. raw:: html
+
+  <br>
 
 Quantum Circuit API
 ===================

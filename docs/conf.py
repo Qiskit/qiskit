@@ -41,7 +41,6 @@ extensions = [
     "jupyter_sphinx",
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
-    "sphinx_design",
 ]
 templates_path = ["_templates"]
 
