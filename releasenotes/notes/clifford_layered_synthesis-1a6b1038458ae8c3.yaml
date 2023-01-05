@@ -9,7 +9,7 @@ features:
     For example, a 5-qubit Clifford circuit is decomposed into the following layers:
 
         from from qiskit.quantum_info import random_clifford
-        from qiskit.synthesis.clifford.clifford_decompose_layers import synth_clifford_layers
+        from qiskit.synthesis.clifford import synth_clifford_layers
         cliff = random_clifford(5)
         circ = synth_clifford_layers(cliff)
         print (circ)

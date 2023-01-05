@@ -21,9 +21,7 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.quantum_info import random_clifford
-from qiskit.synthesis.clifford.clifford_decompose_layers import (
-    synth_clifford_layers,
-)
+from qiskit.synthesis.clifford import synth_clifford_layers
 
 
 @ddt

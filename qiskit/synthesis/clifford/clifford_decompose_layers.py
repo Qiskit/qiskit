@@ -77,13 +77,14 @@ def synth_clifford_layers(
     described in Lemma 8 of [1].
 
     For example, a 5-qubit Clifford circuit is decomposed into the following layers:
-        .. jupyter-execute::
-            :hide-code:
-            from from qiskit.quantum_info import random_clifford
-            from qiskit.synthesis.clifford.clifford_decompose_layers import synth_clifford_layers
-            cliff = random_clifford(5)
-            circ = synth_clifford_layers(cliff)
-            circ.draw('mpl')
+
+    .. jupyter-execute::
+
+        from from qiskit.quantum_info import random_clifford
+        from qiskit.synthesis.clifford import synth_clifford_layers
+        cliff = random_clifford(5)
+        circ = synth_clifford_layers(cliff)
+        circ.draw('mpl')
 
     Args:
         cliff (Clifford): a clifford operator.
