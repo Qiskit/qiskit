@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`.SamplingVQE` where the ``aggregation`` did not have an effect.
+    Now the aggregation function and CVaR expectation value can correctly be specified.

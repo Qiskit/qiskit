@@ -16,9 +16,9 @@ from copy import copy
 import logging
 from collections import deque
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import CXGate, RZXGate
-from qiskit.converters import circuit_to_dag
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
@@ -157,18 +157,19 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         NOTE: Returns None when resynthesis is not possible.
         """
         if len(new_run) == 0:
-            return QuantumCircuit(1)
+            dag = DAGCircuit()
+            dag.add_qreg(QuantumRegister(1))
+            return dag
 
         return self._optimize1q._resynthesize_run(new_run)
 
     @staticmethod
-    def _replace_subdag(dag, old_run, new_circ):
+    def _replace_subdag(dag, old_run, new_dag):
         """
         Replaces a nonempty sequence `old_run` of `DAGNode`s, assumed to be a complete chain in
         `dag`, with the circuit `new_circ`.
         """
 
-        new_dag = circuit_to_dag(new_circ)
         node_map = dag.substitute_node_with_dag(old_run[0], new_dag)
 
         for node in old_run[1:]:
@@ -219,11 +220,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
             if self._optimize1q._substitution_checks(
                 dag,
                 (preceding_run or []) + run + (succeeding_run or []),
-                (
-                    (new_preceding_run or QuantumCircuit(1)).data
-                    + (new_run or QuantumCircuit(1)).data
-                    + (new_succeeding_run or QuantumCircuit(1)).data
-                ),
+                new_preceding_run.op_nodes() + new_run.op_nodes() + new_succeeding_run.op_nodes(),
                 self._optimize1q._basis_gates,
                 qubit_indices[run[0].qargs[0]],
             ):

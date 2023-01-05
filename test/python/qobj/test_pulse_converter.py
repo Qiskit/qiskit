@@ -92,14 +92,14 @@ class TestInstructionToQobjConverter(QiskitTestCase):
     def test_constant_pulse_instruction(self):
         """Test that parametric pulses are correctly converted to PulseQobjInstructions."""
         converter = InstructionToQobjConverter(PulseQobjInstruction, meas_level=2)
-        instruction = Play(Constant(duration=25, amp=1), ControlChannel(2))
+        instruction = Play(Constant(duration=25, amp=1, angle=np.pi), ControlChannel(2))
 
         valid_qobj = PulseQobjInstruction(
             name="parametric_pulse",
             pulse_shape="constant",
             ch="u2",
             t0=20,
-            parameters={"duration": 25, "amp": 1},
+            parameters={"duration": 25, "amp": 1 * np.exp(1j * np.pi)},
         )
         self.assertEqual(converter(20, instruction), valid_qobj)
 
@@ -200,7 +200,8 @@ class TestQobjToInstructionConverter(QiskitTestCase):
     def test_parametric_pulses(self):
         """Test converted qobj from ParametricInstruction."""
         instruction = Play(
-            Gaussian(duration=25, sigma=15, amp=-0.5 + 0.2j, name="pulse1"), DriveChannel(0)
+            Gaussian(duration=25, sigma=15, amp=0.5, angle=np.pi / 2, name="pulse1"),
+            DriveChannel(0),
         )
         qobj = PulseQobjInstruction(
             name="parametric_pulse",
@@ -208,12 +209,12 @@ class TestQobjToInstructionConverter(QiskitTestCase):
             pulse_shape="gaussian",
             ch="d0",
             t0=0,
-            parameters={"duration": 25, "sigma": 15, "amp": -0.5 + 0.2j},
+            parameters={"duration": 25, "sigma": 15, "amp": 0.5j},
         )
         converted_instruction = self.converter(qobj)
         self.assertEqual(converted_instruction.start_time, 0)
         self.assertEqual(converted_instruction.duration, 25)
-        self.assertEqual(converted_instruction.instructions[0][-1], instruction)
+        self.assertAlmostEqual(converted_instruction.instructions[0][-1], instruction)
         self.assertEqual(converted_instruction.instructions[0][-1].pulse.name, "pulse1")
 
     def test_parametric_pulses_no_label(self):

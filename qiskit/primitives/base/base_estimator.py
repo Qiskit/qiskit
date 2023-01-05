@@ -176,7 +176,7 @@ class BaseEstimator(BasePrimitive):
     def run(
         self,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-        observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
     ) -> Job:
@@ -203,7 +203,9 @@ class BaseEstimator(BasePrimitive):
 
         Args:
             circuits: one or more circuit objects.
-            observables: one or more observable objects.
+            observables: one or more observable objects. Several formats are allowed;
+                importantly, ``str`` should follow the string representation format for
+                :class:`~qiskit.quantum_info.Pauli` objects.
             parameter_values: concrete parameters to be bound.
             run_options: runtime options used for circuit execution.
 
@@ -242,7 +244,7 @@ class BaseEstimator(BasePrimitive):
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
-        observables: tuple[BaseOperator | PauliSumOp, ...],
+        observables: tuple[SparsePauliOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> Job:
@@ -255,19 +257,13 @@ class BaseEstimator(BasePrimitive):
     ################################################################################
     @staticmethod
     def _validate_observables(
-        observables: Sequence[BaseOperator | PauliSumOp] | BaseOperator | PauliSumOp,
-    ) -> tuple[BaseOperator | PauliSumOp, ...]:
-        if isinstance(observables, (BaseOperator, PauliSumOp)):
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+    ) -> tuple[SparsePauliOp, ...]:
+        if isinstance(observables, str) or not isinstance(observables, Sequence):
             observables = (observables,)
-        elif not isinstance(observables, Sequence) or not all(
-            isinstance(obs, (BaseOperator, PauliSumOp)) for obs in observables
-        ):
-            raise TypeError("Invalid observables, expected Sequence[BaseOperator|PauliSumOp].")
-        elif not isinstance(observables, tuple):
-            observables = tuple(observables)
         if len(observables) == 0:
             raise ValueError("No observables were provided.")
-        return observables
+        return tuple(init_observable(obs) for obs in observables)
 
     @staticmethod
     def _cross_validate_circuits_observables(
