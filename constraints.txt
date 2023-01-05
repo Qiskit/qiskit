@@ -20,3 +20,4 @@ coverage<7.0
 # cells. Pin until the issue is resolved.
 nbconvert==7.2.6
 jupyter-server==1.23.3
+nbformat==5.7.0
