@@ -18,7 +18,7 @@ from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeArmonk
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeArmonk
 from qiskit.utils import has_aer
 
 
@@ -376,7 +376,7 @@ class TestBlockOperation(BaseTestBlock):
 
         with pulse.build(name="test_block") as sched_block:
             pulse.play(pulse.Constant(160, 1.0), pulse.DriveChannel(0))
-            pulse.acquire(50, pulse.MeasureChannel(0), pulse.MemorySlot(0))
+            pulse.acquire(50, pulse.AcquireChannel(0), pulse.MemorySlot(0))
 
         backend = FakeArmonk()
         test_result = backend.run(sched_block).result()
@@ -478,6 +478,24 @@ class TestBlockEquality(BaseTestBlock):
         block1 += pulse.Play(self.test_waveform0, self.d1)
 
         block2 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block2 += pulse.Play(self.test_waveform0, self.d1)
+        block2 += pulse.Play(self.test_waveform0, self.d0)
+
+        self.assertNotEqual(block1, block2)
+
+    def test_instruction_out_of_order_sequential_more(self):
+        """Test equality is False if three blocks have instructions in different order.
+
+        This could detect a particular bug as discussed in this thread:
+        https://github.com/Qiskit/qiskit-terra/pull/8005#discussion_r966191018
+        """
+        block1 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block1 += pulse.Play(self.test_waveform0, self.d0)
+        block1 += pulse.Play(self.test_waveform0, self.d0)
+        block1 += pulse.Play(self.test_waveform0, self.d1)
+
+        block2 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block2 += pulse.Play(self.test_waveform0, self.d0)
         block2 += pulse.Play(self.test_waveform0, self.d1)
         block2 += pulse.Play(self.test_waveform0, self.d0)
 
@@ -729,20 +747,3 @@ class TestParametrizedBlockOperation(BaseTestBlock):
         ref_sched = ref_sched.insert(90, pulse.Delay(10, self.d0))
 
         self.assertScheduleEqual(block, ref_sched)
-
-    def test_assigned_amplitude_is_complex(self):
-        """Test pulse amp parameter is always complex valued.
-
-        Note that IBM backend treats "amp" as a special parameter,
-        and this should be complex value otherwise IBM backends raise 8042 error.
-
-        "Pulse parameter "amp" must be specified as a list of the form [real, imag]"
-        """
-        amp = circuit.Parameter("amp")
-        block = pulse.ScheduleBlock()
-        block += pulse.Play(pulse.Constant(100, amp), pulse.DriveChannel(0))
-
-        assigned_block = block.assign_parameters({amp: 0.1}, inplace=True)
-
-        assigned_amp = assigned_block.blocks[0].pulse.amp
-        self.assertIsInstance(assigned_amp, complex)

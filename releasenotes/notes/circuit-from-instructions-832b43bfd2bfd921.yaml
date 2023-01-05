@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added the method :meth:`.QuantumCircuit.from_instructions`
+    for constructing a quantum circuit from an iterable of instructions.

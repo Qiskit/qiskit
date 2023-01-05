@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -35,10 +35,17 @@ class AQC:
 
     * Approximate objective is tightly coupled with the approximate circuit implementation and
       provides two methods for computing objective function and gradient with respect to approximate
-      circuit parameters. This objective is passed to the optimizer. Currently, there's only one
-      implementation based on 4-rotations CNOT unit blocks: :class:`.DefaultCNOTUnitObjective`. This
-      is a naive implementation of the objective function and gradient and may suffer from performance
-      issues.
+      circuit parameters. This objective is passed to the optimizer. Currently, there are two
+      implementations based on 4-rotations CNOT unit blocks: :class:`.DefaultCNOTUnitObjective` and
+      its accelerated version :class:`.FastCNOTUnitObjective`. Both implementations share the same
+      idea of maximization the Hilbert-Schmidt product between the target matrix and its
+      approximation. The former implementation approach should be considered as a baseline one. It
+      may suffer from performance issues, and is mostly suitable for a small number of qubits
+      (up to 5 or 6), whereas the latter, accelerated one, can be applied to larger problems.
+
+    * One should take into consideration the exponential growth of matrix size with the number of
+      qubits because the implementation not only creates a potentially large target matrix, but
+      also allocates a number of temporary memory buffers comparable in size to the target matrix.
     """
 
     def __init__(
@@ -49,8 +56,8 @@ class AQC:
         """
         Args:
             optimizer: an optimizer to be used in the optimization procedure of the search for
-                the best approximate circuit. By default :obj:`.L_BFGS_B` is used with max iterations
-                is set to 1000.
+                the best approximate circuit. By default, :obj:`.L_BFGS_B` is used with max
+                iterations set to 1000.
             seed: a seed value to be user by a random number generator.
         """
         super().__init__()

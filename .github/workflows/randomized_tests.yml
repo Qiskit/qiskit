@@ -20,8 +20,12 @@ jobs:
           pip install -c constraints.txt -e .
           pip install "qiskit-ibmq-provider" -c constraints.txt
           pip install "qiskit-aer"
+        env:
+          SETUPTOOLS_ENABLE_FEATURES: "legacy-editable"
       - name: Run randomized tests
         run: make test_randomized
+        env:
+          RUST_BACKTRACE: 1
       - name: Create comment on failed test run
         if: ${{ failure() }}
         uses: peter-evans/create-or-update-comment@v1

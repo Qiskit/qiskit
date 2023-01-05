@@ -1,0 +1,30 @@
+---
+
+features:
+  - |
+    Introduced a new optimizer to Qiskit library, which adds support to the
+    optimization of parameters of variational quantum algorithms. This is
+    the Univariate Marginal Distribution Algorithm (UMDA), which is a specific
+    type of the Estimation of Distribution Algorithms.  For example::
+
+      from qiskit.opflow import X, Z, I
+      from qiskit import Aer
+      from qiskit.algorithms.optimizers import UMDA
+      from qiskit.algorithms import QAOA
+      from qiskit.utils import QuantumInstance
+
+      H2_op = (-1.052373245772859 * I ^ I) + \
+              (0.39793742484318045 * I ^ Z) + \
+              (-0.39793742484318045 * Z ^ I) + \
+              (-0.01128010425623538 * Z ^ Z) + \
+              (0.18093119978423156 * X ^ X)
+
+      p = 2  # Toy example: 2 layers with 2 parameters in each layer: 4 variables
+
+      opt = UMDA(maxiter=100, size_gen=20)
+      backend = Aer.get_backend('statevector_simulator')
+      vqe = QAOA(opt,
+                 quantum_instance=QuantumInstance(backend=backend),
+                 reps=p)
+
+      result = vqe.compute_minimum_eigenvalue(operator=H2_op)

@@ -24,7 +24,6 @@ from qiskit import QuantumRegister
 from qiskit import execute
 from qiskit.test import QiskitTestCase
 from qiskit.compiler import transpile
-from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info import Operator
 from qiskit.extensions.quantum_initializer.isometry import Isometry
 
@@ -69,7 +68,7 @@ class TestIsometry(QiskitTestCase):
         unitary = result.get_unitary(qc)
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
         iso_desired = iso
-        self.assertTrue(matrix_equal(iso_from_circuit, iso_desired, ignore_phase=True))
+        self.assertTrue(np.allclose(iso_from_circuit, iso_desired))
 
     @data(
         np.eye(2, 2),
@@ -108,7 +107,7 @@ class TestIsometry(QiskitTestCase):
         result = execute(qc, simulator).result()
         unitary = result.get_unitary(qc)
         iso_from_circuit = unitary[::, 0 : 2**num_q_input]
-        self.assertTrue(matrix_equal(iso_from_circuit, iso, ignore_phase=True))
+        self.assertTrue(np.allclose(iso_from_circuit, iso))
 
     @data(
         np.eye(2, 2),

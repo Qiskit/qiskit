@@ -24,7 +24,7 @@ class PadDelay(BasePadding):
 
     Consecutive delays will be merged in the output of this pass.
 
-    .. code-block::python
+    .. code-block:: python
 
         durations = InstructionDurations([("x", None, 160), ("cx", None, 800)])
 

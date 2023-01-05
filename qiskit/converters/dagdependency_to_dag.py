@@ -37,7 +37,7 @@ def dagdependency_to_dag(dagdependency):
     for register in dagdependency.cregs.values():
         dagcircuit.add_creg(register)
 
-    for node in dagdependency.get_nodes():
+    for node in dagdependency.topological_nodes():
         # Get arguments for classical control (if any)
         inst = node.op.copy()
         dagcircuit.apply_operation_back(inst, node.qargs, node.cargs)

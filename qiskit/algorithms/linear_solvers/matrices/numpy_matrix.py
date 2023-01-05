@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,22 +17,26 @@ import numpy as np
 import scipy as sp
 
 from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_system_matrix import LinearSystemMatrix
 
 
 class NumPyMatrix(LinearSystemMatrix):
-    """Class of matrices given as a numpy array.
+    """The deprecated class of matrices given as a numpy array.
 
     Examples:
 
         .. jupyter-execute::
 
+            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumPyMatrix
 
-            matrix = NumPyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                matrix = NumPyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
                                [0, 1 / 6, 1 / 2, 1 / 6], [0, 0, 1 / 6, 1 / 2]]))
             power = 2
 
@@ -44,6 +48,10 @@ class NumPyMatrix(LinearSystemMatrix):
             qc.append(matrix.power(power).control(), list(range(circ_qubits)))
     """
 
+    @deprecate_function(
+        "The NumPyMatrix class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         matrix: np.ndarray,

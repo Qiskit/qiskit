@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZZ-rotation gate."""
-
+from cmath import exp
 from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -22,6 +22,9 @@ class RZZGate(Gate):
     r"""A parametric 2-qubit :math:`Z \otimes Z` interaction (rotation about ZZ).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rzz` method.
 
     **Circuit Symbol:**
 
@@ -122,10 +125,10 @@ class RZZGate(Gate):
         itheta2 = 1j * float(self.params[0]) / 2
         return numpy.array(
             [
-                [numpy.exp(-itheta2), 0, 0, 0],
-                [0, numpy.exp(itheta2), 0, 0],
-                [0, 0, numpy.exp(itheta2), 0],
-                [0, 0, 0, numpy.exp(-itheta2)],
+                [exp(-itheta2), 0, 0, 0],
+                [0, exp(itheta2), 0, 0],
+                [0, 0, exp(itheta2), 0],
+                [0, 0, 0, exp(-itheta2)],
             ],
             dtype=dtype,
         )

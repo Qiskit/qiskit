@@ -28,7 +28,7 @@ const PARALLEL_THRESHOLD: usize = 19;
 // https://stackoverflow.com/a/67191480/14033130
 // and adjust for f64 usage
 #[inline]
-fn fast_sum(values: &[f64]) -> f64 {
+pub fn fast_sum(values: &[f64]) -> f64 {
     let chunks = values.chunks_exact(LANES);
     let remainder = chunks.remainder();
 

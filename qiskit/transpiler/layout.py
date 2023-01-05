@@ -18,6 +18,9 @@ Virtual (qu)bits are tuples, e.g. `(QuantumRegister(3, 'qr'), 2)` or simply `qr[
 Physical (qu)bits are integers.
 """
 
+from dataclasses import dataclass
+from typing import Dict
+
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
 from qiskit.converters import isinstanceint
@@ -157,18 +160,26 @@ class Layout:
     def add(self, virtual_bit, physical_bit=None):
         """
         Adds a map element between `bit` and `physical_bit`. If `physical_bit` is not
-        defined, `bit` will be mapped to a new physical bit (extending the length of the
-        layout by one.)
+        defined, `bit` will be mapped to a new physical bit.
 
         Args:
             virtual_bit (tuple): A (qu)bit. For example, (QuantumRegister(3, 'qr'), 2).
             physical_bit (int): A physical bit. For example, 3.
         """
         if physical_bit is None:
-            physical_candidate = len(self)
-            while physical_candidate in self._p2v:
-                physical_candidate += 1
-            physical_bit = physical_candidate
+            if len(self._p2v) == 0:
+                physical_bit = 0
+            else:
+                max_physical = max(self._p2v)
+                # Fill any gaps in the existing bits
+                for physical_candidate in range(max_physical):
+                    if physical_candidate not in self._p2v:
+                        physical_bit = physical_candidate
+                        break
+                # If there are no free bits in the allocated physical bits add new ones
+                else:
+                    physical_bit = max_physical + 1
+
         self[virtual_bit] = physical_bit
 
     def add_register(self, reg):
@@ -355,3 +366,11 @@ class Layout:
         for qreg in qregs:
             out.add_register(qreg)
         return out
+
+
+@dataclass
+class TranspileLayout:
+    """Layout attributes from output circuit from transpiler."""
+
+    initial_layout: Layout
+    input_qubit_mapping: Dict[Qubit, int]

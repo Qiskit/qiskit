@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixes the bug that take exponential time and does not terminate when
-    :class:`~qiskit.quantum_info.Pauli` is input to
-    :meth:`~qiskit.primitives.utils.init_observables`.

@@ -85,7 +85,7 @@ class TestMCMT(QiskitTestCase):
             with self.subTest(input_gate=input_gate):
                 mcmt = MCMT(input_gate, 2, 2)
                 if isinstance(input_gate, QuantumCircuit):
-                    self.assertEqual(mcmt.gate.definition[0][0], XGate())
+                    self.assertEqual(mcmt.gate.definition[0].operation, XGate())
                     self.assertEqual(len(mcmt.gate.definition), 1)
                 else:
                     self.assertEqual(mcmt.gate, XGate())

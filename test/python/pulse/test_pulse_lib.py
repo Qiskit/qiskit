@@ -121,6 +121,29 @@ class TestParametricPulses(QiskitTestCase):
         Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
 
+    # This test should be removed once deprecation of complex amp is completed.
+    def test_complex_amp_deprecation(self):
+        """Test that deprecation warnings and errors are raised for complex amp,
+        and that pulses are equivalent."""
+
+        # Test deprecation warnings and errors:
+        with self.assertWarns(PendingDeprecationWarning):
+            Gaussian(duration=25, sigma=4, amp=0.5j)
+        with self.assertWarns(PendingDeprecationWarning):
+            GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
+        with self.assertRaises(PulseError):
+            Gaussian(duration=25, sigma=4, amp=0.5j, angle=1)
+        with self.assertRaises(PulseError):
+            GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100, angle=0.1)
+
+        # Test that new and old API pulses are the same:
+        gauss_pulse_complex_amp = Gaussian(duration=25, sigma=4, amp=0.5j)
+        gauss_pulse_amp_angle = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi / 2)
+        np.testing.assert_almost_equal(
+            gauss_pulse_amp_angle.get_waveform().samples,
+            gauss_pulse_complex_amp.get_waveform().samples,
+        )
+
     def test_gaussian_pulse(self):
         """Test that Gaussian sample pulse matches the pulse library."""
         gauss = Gaussian(duration=25, sigma=4, amp=0.5j)
@@ -226,32 +249,35 @@ class TestParametricPulses(QiskitTestCase):
     def test_parameters(self):
         """Test that the parameters can be extracted as a dict through the `parameters`
         attribute."""
-        drag = Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
-        self.assertEqual(set(drag.parameters.keys()), {"duration", "amp", "sigma", "beta"})
+        drag = Drag(duration=25, amp=0.2, sigma=7.8, beta=4, angle=0.2)
+        self.assertEqual(set(drag.parameters.keys()), {"duration", "amp", "sigma", "beta", "angle"})
         const = Constant(duration=150, amp=1)
-        self.assertEqual(set(const.parameters.keys()), {"duration", "amp"})
+        self.assertEqual(set(const.parameters.keys()), {"duration", "amp", "angle"})
 
     def test_repr(self):
         """Test the repr methods for parametric pulses."""
-        gaus = Gaussian(duration=25, amp=0.7, sigma=4)
-        self.assertEqual(repr(gaus), "Gaussian(duration=25, amp=(0.7+0j), sigma=4)")
+        gaus = Gaussian(duration=25, amp=0.7, sigma=4, angle=0.3)
+        self.assertEqual(repr(gaus), "Gaussian(duration=25, amp=0.7, sigma=4, angle=0.3)")
+        gaus = Gaussian(
+            duration=25, amp=0.1 + 0.7j, sigma=4
+        )  # Should be removed once the deprecation of complex
+        # amp is completed.
+        self.assertEqual(repr(gaus), "Gaussian(duration=25, amp=(0.1+0.7j), sigma=4, angle=0)")
         gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, width=3)
         self.assertEqual(
-            repr(gaus_square), "GaussianSquare(duration=20, amp=(1+0j), sigma=30, width=3)"
+            repr(gaus_square), "GaussianSquare(duration=20, amp=1.0, sigma=30, width=3, angle=0)"
         )
-        gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, risefall_sigma_ratio=0.1)
+        gaus_square = GaussianSquare(
+            duration=20, sigma=30, amp=1.0, angle=0.2, risefall_sigma_ratio=0.1
+        )
         self.assertEqual(
-            repr(gaus_square), "GaussianSquare(duration=20, amp=(1+0j), sigma=30, width=14.0)"
+            repr(gaus_square),
+            "GaussianSquare(duration=20, amp=1.0, sigma=30, width=14.0, angle=0.2)",
         )
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
-        self.assertEqual(repr(drag), "Drag(duration=5, amp=(0.5+0j), sigma=7, beta=1)")
-        const = Constant(duration=150, amp=0.1 + 0.4j)
-        self.assertEqual(repr(const), "Constant(duration=150, amp=(0.1+0.4j))")
-
-    def test_complex_param_is_complex(self):
-        """Check that complex param 'amp' is cast to complex."""
-        const = Constant(duration=150, amp=1)
-        self.assertIsInstance(const.amp, complex)
+        self.assertEqual(repr(drag), "Drag(duration=5, amp=0.5, sigma=7, beta=1, angle=0)")
+        const = Constant(duration=150, amp=0.1, angle=0.3)
+        self.assertEqual(repr(const), "Constant(duration=150, amp=0.1, angle=0.3)")
 
     def test_param_validation(self):
         """Test that parametric pulse parameters are validated when initialized."""
@@ -290,6 +316,14 @@ class TestParametricPulses(QiskitTestCase):
             waveform = Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j)
             self.assertGreater(np.abs(waveform.amp), 1.0)
 
+    def test_gaussian_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j)
+
+        waveform = Gaussian(duration=100, sigma=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
     def test_gaussian_square_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
         with self.assertRaises(PulseError):
@@ -298,6 +332,16 @@ class TestParametricPulses(QiskitTestCase):
         with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
             waveform = GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10)
             self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_gaussian_square_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            GaussianSquare(duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10)
+
+        waveform = GaussianSquare(
+            duration=100, sigma=1.0, amp=1.1 + 0.8j, width=10, limit_amplitude=False
+        )
+        self.assertGreater(np.abs(waveform.amp), 1.0)
 
     def test_drag_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
@@ -308,6 +352,14 @@ class TestParametricPulses(QiskitTestCase):
             waveform = Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j)
             self.assertGreater(np.abs(waveform.amp), 1.0)
 
+    def test_drag_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j)
+
+        waveform = Drag(duration=100, sigma=1.0, beta=1.0, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
     def test_constant_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
         with self.assertRaises(PulseError):
@@ -316,6 +368,14 @@ class TestParametricPulses(QiskitTestCase):
         with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
             waveform = Constant(duration=100, amp=1.1 + 0.8j)
             self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_constant_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Constant(duration=100, amp=1.1 + 0.8j)
+
+        waveform = Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
 
     def test_get_parameters(self):
         """Test getting pulse parameters as attribute."""
@@ -383,6 +443,65 @@ class TestParametricPulses(QiskitTestCase):
         waveform = custom_pulse.get_waveform()
         reference = np.concatenate([-0.1 * np.ones(30), 0.1j * np.ones(50), -0.1 * np.ones(20)])
         np.testing.assert_array_almost_equal(waveform.samples, reference)
+
+    def test_no_subclass(self):
+        """Test no dedicated pulse subclass is created."""
+
+        gaussian_pulse = Gaussian(160, 0.1, 40)
+        self.assertIs(type(gaussian_pulse), SymbolicPulse)
+
+        gaussian_square_pulse = GaussianSquare(800, 0.1, 64, 544)
+        self.assertIs(type(gaussian_square_pulse), SymbolicPulse)
+
+        drag_pulse = Drag(160, 0.1, 40, 1.5)
+        self.assertIs(type(drag_pulse), SymbolicPulse)
+
+        constant_pulse = Constant(800, 0.1)
+        self.assertIs(type(constant_pulse), SymbolicPulse)
+
+    def test_gaussian_deprecated_type_check(self):
+        """Test isinstance check works with deprecation."""
+        gaussian_pulse = Gaussian(160, 0.1, 40)
+
+        self.assertTrue(isinstance(gaussian_pulse, SymbolicPulse))
+        with self.assertWarns(PendingDeprecationWarning):
+            self.assertTrue(isinstance(gaussian_pulse, Gaussian))
+            self.assertFalse(isinstance(gaussian_pulse, GaussianSquare))
+            self.assertFalse(isinstance(gaussian_pulse, Drag))
+            self.assertFalse(isinstance(gaussian_pulse, Constant))
+
+    def test_gaussian_square_deprecated_type_check(self):
+        """Test isinstance check works with deprecation."""
+        gaussian_square_pulse = GaussianSquare(800, 0.1, 64, 544)
+
+        self.assertTrue(isinstance(gaussian_square_pulse, SymbolicPulse))
+        with self.assertWarns(PendingDeprecationWarning):
+            self.assertFalse(isinstance(gaussian_square_pulse, Gaussian))
+            self.assertTrue(isinstance(gaussian_square_pulse, GaussianSquare))
+            self.assertFalse(isinstance(gaussian_square_pulse, Drag))
+            self.assertFalse(isinstance(gaussian_square_pulse, Constant))
+
+    def test_drag_deprecated_type_check(self):
+        """Test isinstance check works with deprecation."""
+        drag_pulse = Drag(160, 0.1, 40, 1.5)
+
+        self.assertTrue(isinstance(drag_pulse, SymbolicPulse))
+        with self.assertWarns(PendingDeprecationWarning):
+            self.assertFalse(isinstance(drag_pulse, Gaussian))
+            self.assertFalse(isinstance(drag_pulse, GaussianSquare))
+            self.assertTrue(isinstance(drag_pulse, Drag))
+            self.assertFalse(isinstance(drag_pulse, Constant))
+
+    def test_constant_deprecated_type_check(self):
+        """Test isinstance check works with deprecation."""
+        constant_pulse = Constant(160, 0.1, 40, 1.5)
+
+        self.assertTrue(isinstance(constant_pulse, SymbolicPulse))
+        with self.assertWarns(PendingDeprecationWarning):
+            self.assertFalse(isinstance(constant_pulse, Gaussian))
+            self.assertFalse(isinstance(constant_pulse, GaussianSquare))
+            self.assertFalse(isinstance(constant_pulse, Drag))
+            self.assertTrue(isinstance(constant_pulse, Constant))
 
 
 class TestFunctionalPulse(QiskitTestCase):

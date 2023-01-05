@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with the backend primitive classes :class:`~.BackendSampler`
+    and :class:`~.BackendEstimator` which prevented running with a
+    :class:`~.BackendV1` instance that does not have a ``max_experiments``
+    field set in its :class:`~.BackendConfiguration`.

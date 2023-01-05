@@ -162,7 +162,10 @@ class DrawerCanvas:
 
             try:
                 program = transpile(
-                    program, scheduling_method="alap", instruction_durations=InstructionDurations()
+                    program,
+                    scheduling_method="alap",
+                    instruction_durations=InstructionDurations(),
+                    optimization_level=0,
                 )
             except TranspilerError as ex:
                 raise VisualizationError(
@@ -170,15 +173,15 @@ class DrawerCanvas:
                     "operations with unknown delays. This cannot be visualized."
                 ) from ex
 
-        for t0, (inst, qargs, cargs) in zip(program.op_start_times, program.data):
-            bits = qargs + cargs
-            for bit_pos, bit in enumerate(qargs + cargs):
-                if not isinstance(inst, not_gate_like):
+        for t0, instruction in zip(program.op_start_times, program.data):
+            bits = list(instruction.qubits) + list(instruction.clbits)
+            for bit_pos, bit in enumerate(bits):
+                if not isinstance(instruction.operation, not_gate_like):
                     # Generate draw object for gates
                     gate_source = types.ScheduledGate(
                         t0=t0,
-                        operand=inst,
-                        duration=inst.duration,
+                        operand=instruction.operation,
+                        duration=instruction.operation.duration,
                         bits=bits,
                         bit_position=bit_pos,
                     )
@@ -188,13 +191,15 @@ class DrawerCanvas:
                             self.add_data(datum)
                     if len(bits) > 1 and bit_pos == 0:
                         # Generate draw object for gate-gate link
-                        line_pos = t0 + 0.5 * inst.duration
-                        link_source = types.GateLink(t0=line_pos, opname=inst.name, bits=bits)
+                        line_pos = t0 + 0.5 * instruction.operation.duration
+                        link_source = types.GateLink(
+                            t0=line_pos, opname=instruction.operation.name, bits=bits
+                        )
                         for gen in self.generator["gate_links"]:
                             obj_generator = partial(gen, formatter=self.formatter)
                             for datum in obj_generator(link_source):
                                 self.add_data(datum)
-                if isinstance(inst, circuit.Barrier):
+                if isinstance(instruction.operation, circuit.Barrier):
                     # Generate draw object for barrier
                     barrier_source = types.Barrier(t0=t0, bits=bits, bit_position=bit_pos)
                     for gen in self.generator["barriers"]:
@@ -202,7 +207,7 @@ class DrawerCanvas:
                         for datum in obj_generator(barrier_source):
                             self.add_data(datum)
 
-        self.bits = program.qubits + program.clbits
+        self.bits = list(program.qubits) + list(program.clbits)
         for bit in self.bits:
             for gen in self.generator["bits"]:
                 # Generate draw objects for bit

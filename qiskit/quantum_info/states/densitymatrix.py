@@ -32,7 +32,6 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 
-# pylint: disable=import-error
 from qiskit._accelerate.pauli_expval import density_expval_pauli_no_x, density_expval_pauli_with_x
 
 
@@ -329,7 +328,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         # Unitary evolution by an Operator
         if not isinstance(other, Operator):
-            other = Operator(other)
+            dims = self.dims(qargs=qargs)
+            other = Operator(other, input_dims=dims, output_dims=dims)
         return self._evolve_operator(other, qargs=qargs)
 
     def reverse_qargs(self):
@@ -729,17 +729,17 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 )
             )
         qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
-        for instr, qregs, cregs in other.definition:
-            if cregs:
+        for instruction in other.definition:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply instruction with classical registers: {instr.name}"
+                    f"Cannot apply instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [qubit_indices[tup] for tup in qregs]
+                new_qargs = [qubit_indices[tup] for tup in instruction.qubits]
             else:
-                new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
-            self._append_instruction(instr, qargs=new_qargs)
+                new_qargs = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
+            self._append_instruction(instruction.operation, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):
         """Return a new statevector by applying an instruction."""

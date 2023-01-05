@@ -17,7 +17,6 @@ import os
 
 import csv
 import numpy as np
-from qiskit.utils import algorithm_globals
 from qiskit.utils.deprecation import deprecate_arguments
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
@@ -272,37 +271,3 @@ class ADAM(Optimizer):
         result.fun = fun(params_new)
         result.nfev = self._t
         return result
-
-    def optimize(
-        self,
-        num_vars: int,
-        objective_function: Callable[[np.ndarray], float],
-        gradient_function: Optional[Callable[[np.ndarray], float]] = None,
-        variable_bounds: Optional[List[Tuple[float, float]]] = None,
-        initial_point: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, float, int]:
-        """Perform optimization.
-
-        Args:
-            num_vars: Number of parameters to be optimized.
-            objective_function: Handle to a function that computes the objective function.
-            gradient_function: Handle to a function that computes the gradient of the objective
-                function.
-            variable_bounds: deprecated
-            initial_point: The initial point for the optimization.
-
-        Returns:
-            A tuple (point, value, nfev) where\n
-                point: is a 1D numpy.ndarray[float] containing the solution\n
-                value: is a float with the objective function value\n
-                nfev: is the number of objective function calls
-
-        """
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        if initial_point is None:
-            initial_point = algorithm_globals.random.random(num_vars)
-
-        result = self.minimize(objective_function, initial_point, gradient_function)
-        return result.x, result.fun, result.nfev

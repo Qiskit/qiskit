@@ -82,8 +82,6 @@ class CircuitSampler(ConverterBase):
         self._statevector = (
             statevector if statevector is not None else self.quantum_instance.is_statevector
         )
-        # Set to False until https://github.com/Qiskit/qiskit-aer/issues/1249 is closed.
-        param_qobj = False
         self._param_qobj = param_qobj
         self._attach_results = attach_results
 
@@ -400,9 +398,9 @@ class CircuitSampler(ConverterBase):
             return float(inst_param.bind(param_mappings))
 
         gate_index = 0
-        for inst, _, _ in circuit.data:
+        for instruction in circuit.data:
             param_index = 0
-            for inst_param in inst.params:
+            for inst_param in instruction.operation.params:
                 val = resolve_param(inst_param)
                 if val is not None:
                     param_key = (gate_index, param_index)

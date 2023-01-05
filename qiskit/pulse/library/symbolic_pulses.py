@@ -19,6 +19,7 @@ parameter constraints.
 """
 
 import functools
+import warnings
 from typing import Any, Dict, List, Optional, Union, Callable
 
 import numpy as np
@@ -69,8 +70,14 @@ def _lifted_gaussian(
     Returns:
         Symbolic equation.
     """
-    gauss = sym.exp(-(((t - center) / sigma) ** 2) / 2)
-    offset = sym.exp(-(((t_zero - center) / sigma) ** 2) / 2)
+    # Sympy automatically does expand.
+    # This causes expression inconsistency after qpy round-trip serializing through sympy.
+    # See issue for details: https://github.com/symengine/symengine.py/issues/409
+    t_shifted = (t - center).expand()
+    t_offset = (t_zero - center).expand()
+
+    gauss = sym.exp(-((t_shifted / sigma) ** 2) / 2)
+    offset = sym.exp(-((t_offset / sigma) ** 2) / 2)
 
     return (gauss - offset) / (1 - offset)
 
@@ -368,11 +375,6 @@ class SymbolicPulse(Pulse):
     even within the environment not having original class definition loaded.
     This mechanism also allows us to easily share a pulse program including
     custom pulse instructions with collaborators.
-
-    .. note::
-
-        Currently QPY serialization of :class:`SymbolicPulse` is not available.
-        This feature will be implemented shortly.
     """
 
     __slots__ = (
@@ -426,13 +428,6 @@ class SymbolicPulse(Pulse):
         )
         if parameters is None:
             parameters = {}
-
-        # TODO remove this.
-        #  This is due to convention in IBM Quantum backends where "amp" is treated as a
-        #  special parameter that must be defined in the form [real, imaginary].
-        #  this check must be removed because Qiskit pulse should be backend agnostic.
-        if "amp" in parameters and not isinstance(parameters["amp"], ParameterExpression):
-            parameters["amp"] = complex(parameters["amp"])
 
         self._pulse_type = pulse_type
         self._params = parameters
@@ -513,7 +508,7 @@ class SymbolicPulse(Pulse):
                     f"Assigned parameters {param_repr} violate following constraint: {const_repr}."
                 )
 
-        if self.limit_amplitude:
+        if self._limit_amplitude:
             if self._valid_amp_conditions is not None:
                 fargs = _get_expression_args(self._valid_amp_conditions, self.parameters)
                 check_full_waveform = not bool(self._valid_amp_conditions_lam(*fargs))
@@ -573,50 +568,110 @@ class SymbolicPulse(Pulse):
         )
 
 
-class Gaussian(SymbolicPulse):
+class _PulseType(type):
+    """Metaclass to warn at isinstance check."""
+
+    def __instancecheck__(cls, instance):
+        cls_alias = getattr(cls, "alias", None)
+
+        # TODO promote this to Deprecation warning in future.
+        #  Once type information usage is removed from user code,
+        #  we will convert pulse classes into functions.
+        warnings.warn(
+            "Typechecking with the symbolic pulse subclass will be deprecated. "
+            f"'{cls_alias}' subclass instance is turned into SymbolicPulse instance. "
+            f"Use self.pulse_type == '{cls_alias}' instead.",
+            PendingDeprecationWarning,
+        )
+
+        if not isinstance(instance, SymbolicPulse):
+            return False
+        return instance.pulse_type == cls_alias
+
+    def __getattr__(cls, item):
+        # For pylint. A SymbolicPulse subclass must implement several methods
+        # such as .get_waveform and .validate_parameters.
+        # In addition, they conventionally offer attribute-like access to the pulse parameters,
+        # for example, instance.amp returns instance._params["amp"].
+        # If pulse classes are directly instantiated, pylint yells no-member
+        # since the pulse class itself implements nothing. These classes just
+        # behave like a factory by internally instantiating the SymbolicPulse and return it.
+        # It is not realistic to write disable=no-member across qiskit packages.
+        return NotImplemented
+
+
+class Gaussian(metaclass=_PulseType):
     r"""A lifted and truncated pulse envelope shaped according to the Gaussian function whose
     mean is centered at the center of the pulse (duration / 2):
 
     .. math::
 
         f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
-        f(x) &= \text{amp} \times \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
+        f(x) &= \text{A} \times  \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
 
-    where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
+    where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling, and
+    :math:`\text{A} = \text{amp} \times \exp\left(i\times\text{angle}\right)`.
     """
 
-    def __init__(
-        self,
+    alias = "Gaussian"
+
+    def __new__(
+        cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
+        amp: Union[complex, float, ParameterExpression],
         sigma: Union[float, ParameterExpression],
+        angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ):
+    ) -> SymbolicPulse:
         """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
-            amp: The amplitude of the Gaussian envelope.
+            amp: The magnitude of the amplitude of the Gaussian envelope.
+                    Complex amp support will be deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
+            angle: The angle of the complex amplitude of the Gaussian envelope. Default value 0.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
+        Returns:
+            SymbolicPulse instance.
+
+        Raises:
+            PulseError: If both complex amp and angle are provided as arguments.
         """
-        parameters = {"amp": amp, "sigma": sigma}
+        # This should be removed once complex amp support is deprecated.
+        if isinstance(amp, complex):
+            if angle is None:
+                warnings.warn(
+                    "Complex amp will be deprecated. "
+                    "Use float amp (for the magnitude) and float angle instead.",
+                    PendingDeprecationWarning,
+                )
+            else:
+                raise PulseError("amp can't be complex when providing angle")
+
+        if angle is None:
+            angle = 0
+
+        parameters = {"amp": amp, "sigma": sigma, "angle": angle}
 
         # Prepare symbolic expressions
-        _t, _duration, _amp, _sigma = sym.symbols("t, duration, amp, sigma")
+        _t, _duration, _amp, _sigma, _angle = sym.symbols("t, duration, amp, sigma, angle")
         _center = _duration / 2
 
-        envelope_expr = _amp * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
+        envelope_expr = (
+            _amp * sym.exp(sym.I * _angle) * _lifted_gaussian(_t, _center, _duration + 1, _sigma)
+        )
+
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        super().__init__(
-            pulse_type=self.__class__.__name__,
+        instance = SymbolicPulse(
+            pulse_type=cls.alias,
             duration=duration,
             parameters=parameters,
             name=name,
@@ -625,10 +680,12 @@ class Gaussian(SymbolicPulse):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        self.validate_parameters()
+        instance.validate_parameters()
+
+        return instance
 
 
-class GaussianSquare(SymbolicPulse):
+class GaussianSquare(metaclass=_PulseType):
     """A square pulse with a Gaussian shaped risefall on both sides lifted such that
     its first sample is zero.
 
@@ -660,37 +717,47 @@ class GaussianSquare(SymbolicPulse):
                     \\biggr)\
                 & \\text{risefall} + \\text{width} \\le x\
         \\end{cases}\\\\
-        f(x) &= \\text{amp} \\times \\frac{f'(x) - f'(-1)}{1-f'(-1)},\
+        f(x) &= \\text{A} \\times \\frac{f'(x) - f'(-1)}{1-f'(-1)},\
             \\quad 0 \\le x < \\text{duration}
 
-    where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
+    where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling, and
+    :math:`\\text{A} = \\text{amp} \\times \\exp\\left(i\\times\\text{angle}\\right)`.
     """
 
-    def __init__(
-        self,
+    alias = "GaussianSquare"
+
+    def __new__(
+        cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
+        amp: Union[complex, float, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         width: Optional[Union[float, ParameterExpression]] = None,
+        angle: Optional[Union[float, ParameterExpression]] = None,
         risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ):
+    ) -> SymbolicPulse:
         """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
-            amp: The amplitude of the Gaussian and of the square pulse.
+            amp: The magnitude of the amplitude of the Gaussian and square pulse.
+                    Complex amp support will be deprecated.
             sigma: A measure of how wide or narrow the Gaussian risefall is; see the class
                    docstring for more details.
             width: The duration of the embedded square pulse.
+            angle: The angle of the complex amplitude of the pulse. Default value 0.
             risefall_sigma_ratio: The ratio of each risefall duration to sigma.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
+        Returns:
+            SymbolicPulse instance.
+
         Raises:
             PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
+            PulseError: If both complex amp and angle are provided as arguments.
         """
         # Convert risefall_sigma_ratio into width which is defined in OpenPulse spec
         if width is None and risefall_sigma_ratio is None:
@@ -705,10 +772,26 @@ class GaussianSquare(SymbolicPulse):
         if width is None and risefall_sigma_ratio is not None:
             width = duration - 2.0 * risefall_sigma_ratio * sigma
 
-        parameters = {"amp": amp, "sigma": sigma, "width": width}
+        # This should be removed once complex amp support is deprecated.
+        if isinstance(amp, complex):
+            if angle is None:
+                warnings.warn(
+                    "Complex amp will be deprecated. "
+                    "Use float amp (for the magnitude) and float angle instead.",
+                    PendingDeprecationWarning,
+                )
+            else:
+                raise PulseError("amp can't be complex when providing angle")
+
+        if angle is None:
+            angle = 0
+
+        parameters = {"amp": amp, "sigma": sigma, "width": width, "angle": angle}
 
         # Prepare symbolic expressions
-        _t, _duration, _amp, _sigma, _width = sym.symbols("t, duration, amp, sigma, width")
+        _t, _duration, _amp, _sigma, _width, _angle = sym.symbols(
+            "t, duration, amp, sigma, width, angle"
+        )
         _center = _duration / 2
 
         _sq_t0 = _center - _width / 2
@@ -717,14 +800,19 @@ class GaussianSquare(SymbolicPulse):
         _gaussian_ledge = _lifted_gaussian(_t, _sq_t0, -1, _sigma)
         _gaussian_redge = _lifted_gaussian(_t, _sq_t1, _duration + 1, _sigma)
 
-        envelope_expr = _amp * sym.Piecewise(
-            (_gaussian_ledge, _t <= _sq_t0), (_gaussian_redge, _t >= _sq_t1), (1, True)
+        envelope_expr = (
+            _amp
+            * sym.exp(sym.I * _angle)
+            * sym.Piecewise(
+                (_gaussian_ledge, _t <= _sq_t0), (_gaussian_redge, _t >= _sq_t1), (1, True)
+            )
         )
+
         consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        super().__init__(
-            pulse_type=self.__class__.__name__,
+        instance = SymbolicPulse(
+            pulse_type=cls.alias,
             duration=duration,
             parameters=parameters,
             name=name,
@@ -733,15 +821,12 @@ class GaussianSquare(SymbolicPulse):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        self.validate_parameters()
+        instance.validate_parameters()
 
-    @property
-    def risefall_sigma_ratio(self):
-        """Return risefall_sigma_ratio. This is auxiliary parameter to define width."""
-        return (self.duration - self.width) / (2.0 * self.sigma)
+        return instance
 
 
-class Drag(SymbolicPulse):
+class Drag(metaclass=_PulseType):
     """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component and lifting applied.
 
@@ -753,13 +838,14 @@ class Drag(SymbolicPulse):
     .. math::
 
         g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
-        g'(x) &= \\text{amp}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
+        g'(x) &= \\text{A}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
         f(x) &=  g'(x) \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
             \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr),
             \\quad 0 \\le x < \\text{duration}
 
-    where :math:`g(x)` is a standard unlifted Gaussian waveform and
-    :math:`g'(x)` is the lifted :class:`~qiskit.pulse.library.Gaussian` waveform.
+    where :math:`g(x)` is a standard unlifted Gaussian waveform, :math:`g'(x)` is the lifted
+    :class:`~qiskit.pulse.library.Gaussian` waveform, and
+    :math:`\\text{A} = \\text{amp} \\times \\exp\\left(i\\times\\text{angle}\\right)`.
 
     References:
         1. |citation1|_
@@ -778,43 +864,70 @@ class Drag(SymbolicPulse):
            Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
 
-    def __init__(
-        self,
+    alias = "Drag"
+
+    def __new__(
+        cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
+        amp: Union[complex, float, ParameterExpression],
         sigma: Union[float, ParameterExpression],
         beta: Union[float, ParameterExpression],
+        angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ):
+    ) -> SymbolicPulse:
         """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
-            amp: The amplitude of the Drag envelope.
+            amp: The magnitude of the amplitude of the DRAG envelope.
+                    Complex amp support will be deprecated.
             sigma: A measure of how wide or narrow the Gaussian peak is; described mathematically
                    in the class docstring.
             beta: The correction amplitude.
+            angle: The angle of the complex amplitude of the DRAG envelope. Default value 0.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+        Returns:
+            SymbolicPulse instance.
+
+        Raises:
+            PulseError: If both complex amp and angle are provided as arguments.
         """
-        parameters = {"amp": amp, "sigma": sigma, "beta": beta}
+        # This should be removed once complex amp support is deprecated.
+        if isinstance(amp, complex):
+            if angle is None:
+                warnings.warn(
+                    "Complex amp will be deprecated. "
+                    "Use float amp (for the magnitude) and float angle instead.",
+                    PendingDeprecationWarning,
+                )
+            else:
+                raise PulseError("amp can't be complex when providing angle")
+
+        if angle is None:
+            angle = 0
+
+        parameters = {"amp": amp, "sigma": sigma, "beta": beta, "angle": angle}
 
         # Prepare symbolic expressions
-        _t, _duration, _amp, _sigma, _beta = sym.symbols("t, duration, amp, sigma, beta")
+        _t, _duration, _amp, _sigma, _beta, _angle = sym.symbols(
+            "t, duration, amp, sigma, beta, angle"
+        )
         _center = _duration / 2
 
         _gauss = _lifted_gaussian(_t, _center, _duration + 1, _sigma)
         _deriv = -(_t - _center) / (_sigma**2) * _gauss
 
-        envelope_expr = _amp * (_gauss + sym.I * _beta * _deriv)
+        envelope_expr = _amp * sym.exp(sym.I * _angle) * (_gauss + sym.I * _beta * _deriv)
 
         consts_expr = _sigma > 0
         valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
-        super().__init__(
-            pulse_type=self.__class__.__name__,
+        instance = SymbolicPulse(
+            pulse_type="Drag",
             duration=duration,
             parameters=parameters,
             name=name,
@@ -823,38 +936,65 @@ class Drag(SymbolicPulse):
             constraints=consts_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        self.validate_parameters()
+        instance.validate_parameters()
+
+        return instance
 
 
-class Constant(SymbolicPulse):
+class Constant(metaclass=_PulseType):
     """A simple constant pulse, with an amplitude value and a duration:
 
     .. math::
 
-        f(x) = amp    ,  0 <= x < duration
+        f(x) = \\text{amp}\\times\\exp\\left(i\\text{angle}\\right)    ,  0 <= x < duration
         f(x) = 0      ,  elsewhere
     """
 
-    def __init__(
-        self,
+    alias = "Constant"
+
+    def __new__(
+        cls,
         duration: Union[int, ParameterExpression],
-        amp: Union[complex, ParameterExpression],
+        amp: Union[complex, float, ParameterExpression],
+        angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ):
+    ) -> SymbolicPulse:
         """Create new pulse instance.
 
         Args:
             duration: Pulse length in terms of the sampling period `dt`.
-            amp: The amplitude of the constant square pulse.
+            amp: The magnitude of the amplitude of the square envelope.
+                    Complex amp support will be deprecated.
+            angle: The angle of the complex amplitude of the square envelope. Default value 0.
             name: Display name for this pulse envelope.
             limit_amplitude: If ``True``, then limit the amplitude of the
                 waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+        Returns:
+            SymbolicPulse instance.
+
+        Raises:
+            PulseError: If both complex amp and angle are provided as arguments.
         """
-        parameters = {"amp": amp}
+        # This should be removed once complex amp support is deprecated.
+        if isinstance(amp, complex):
+            if angle is None:
+                warnings.warn(
+                    "Complex amp will be deprecated. "
+                    "Use float amp (for the magnitude) and float angle instead.",
+                    PendingDeprecationWarning,
+                )
+            else:
+                raise PulseError("amp can't be complex when providing angle")
+
+        if angle is None:
+            angle = 0
+
+        parameters = {"amp": amp, "angle": angle}
 
         # Prepare symbolic expressions
-        _t, _amp, _duration = sym.symbols("t, amp, duration")
+        _t, _amp, _duration, _angle = sym.symbols("t, amp, duration, angle")
 
         # Note this is implemented using Piecewise instead of just returning amp
         # directly because otherwise the expression has no t dependence and sympy's
@@ -863,11 +1003,16 @@ class Constant(SymbolicPulse):
         # ParametricPulse.get_waveform().
         #
         # See: https://github.com/sympy/sympy/issues/5642
-        envelope_expr = _amp * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
+        envelope_expr = (
+            _amp
+            * sym.exp(sym.I * _angle)
+            * sym.Piecewise((1, sym.And(_t >= 0, _t <= _duration)), (0, True))
+        )
+
         valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
-        super().__init__(
-            pulse_type=self.__class__.__name__,
+        instance = SymbolicPulse(
+            pulse_type="Constant",
             duration=duration,
             parameters=parameters,
             name=name,
@@ -875,4 +1020,6 @@ class Constant(SymbolicPulse):
             envelope=envelope_expr,
             valid_amp_conditions=valid_amp_conditions_expr,
         )
-        self.validate_parameters()
+        instance.validate_parameters()
+
+        return instance

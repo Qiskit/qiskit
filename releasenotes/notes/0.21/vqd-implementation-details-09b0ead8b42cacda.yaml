@@ -1,0 +1,33 @@
+---
+features:
+  - |
+    The algorithm iteratively computes each eigenstate by starting from the ground 
+    state (which is computed as in VQE) and then optimising a modified cost function 
+    that tries to compute eigen states that are orthogonal to the states computed in 
+    the previous iterations and have the lowest energy when computed over the ansatz.
+    The interface implemented is very similar to that of VQE and is of the form:
+
+    .. code-block:: python
+
+      from qiskit.algorithms import VQD
+      from qiskit.utils import QuantumInstance
+      from qiskit.circuit.library import TwoLocal
+      from qiskit.algorithms.optimizers import COBYLA
+      from qiskit import BasicAer
+      from qiskit.opflow import I,Z,X
+
+      h2_op = (
+          -1.052373245772859 * (I ^ I)
+          + 0.39793742484318045 * (I ^ Z)
+          - 0.39793742484318045 * (Z ^ I)
+          - 0.01128010425623538 * (Z ^ Z)
+          + 0.18093119978423156 * (X ^ X)
+      )
+
+      vqd = VQD(k =2, ansatz = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz"),optimizer = COBYLA(maxiter = 0), quantum_instance = QuantumInstance(
+                  BasicAer.get_backend("qasm_simulator"), shots = 2048)
+              )
+      vqd_res = vqd.compute_eigenvalues(op)
+    
+    This particular code snippet generates 2 eigenvalues (ground and 1st excited state)
+    Tests have also been implemented.

@@ -17,19 +17,34 @@ QPY serialization (:mod:`qiskit.qpy`)
 
 .. currentmodule:: qiskit.qpy
 
+QPY is a binary serialization format for :class:`~.QuantumCircuit` and
+:class:`~.ScheduleBlock` objects that is designed to be cross-platform,
+Python version agnostic, and backwards compatible moving forward. QPY should
+be used if you need a mechanism to save or copy between systems a
+:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock` that preserves the full
+Qiskit object structure (except for custom attributes defined outside of
+Qiskit code). This differs from other serialization formats like
+`OpenQASM <https://github.com/openqasm/openqasm>`__ (2.0 or 3.0) which has a
+different abstraction model and can result in a loss of information contained
+in the original circuit (or is unable to represent some aspects of the
+Qiskit objects) or Python's `pickle <https://docs.python.org/3/library/pickle.html>`__
+which will preserve the Qiskit object exactly but will only work for a single Qiskit
+version (it is also
+`potentially insecure <https://docs.python.org/3/library/pickle.html#module-pickle>`__).
+
 *********
 Using QPY
 *********
 
 Using QPY is defined to be straightforward and mirror the user API of the
 serializers in Python's standard library, ``pickle`` and ``json``. There are
-2 user facing functions: :func:`qiskit.circuit.qpy_serialization.dump` and
-:func:`qiskit.circuit.qpy_serialization.load` which are used to dump QPY data
+2 user facing functions: :func:`qiskit.qpy.dump` and
+:func:`qiskit.qpy.load` which are used to dump QPY data
 to a file object and load circuits from QPY data in a file object respectively.
 For example::
 
     from qiskit.circuit import QuantumCircuit
-    from qiskit.circuit import qpy_serialization
+    from qiskit import qpy
 
     qc = QuantumCircuit(2, name='Bell', metadata={'test': True})
     qc.h(0)
@@ -37,10 +52,21 @@ For example::
     qc.measure_all()
 
     with open('bell.qpy', 'wb') as fd:
-        qpy_serialization.dump(qc, fd)
+        qpy.dump(qc, fd)
 
     with open('bell.qpy', 'rb') as fd:
-        new_qc = qpy_serialization.load(fd)[0]
+        new_qc = qpy.load(fd)[0]
+
+The :func:`qiskit.qpy.dump` function also lets you
+include multiple circuits in a single QPY file::
+
+    with open('twenty_bells.qpy', 'wb') as fd:
+        qpy.dump([qc] * 20, fd)
+
+and then loading that file will return a list with all the circuits
+
+    with open('twenty_bells.qpy', 'rb') as fd:
+        twenty_new_bells = qpy.load(fd)
 
 API documentation
 =================
@@ -105,9 +131,250 @@ circuits in the data.
 Version 5
 =========
 
-Version 5 changes from :ref:`qpy_version_4` by changing two payloads the INSTRUCTION metadata
-payload and the CUSTOM_INSTRUCTION block. These now have new fields to better account for
-:class:`~.ControlledGate` objects in a circuit.
+Version 5 changes from :ref:`qpy_version_4` by adding support for :class:`.~ScheduleBlock`
+and changing two payloads the INSTRUCTION metadata payload and the CUSTOM_INSTRUCTION block.
+These now have new fields to better account for :class:`~.ControlledGate` objects in a circuit.
+In addition, new payload MAP_ITEM is defined to implement the :ref:`qpy_mapping` block.
+
+With the support of :class:`.~ScheduleBlock`, now :class:`~.QuantumCircuit` can be
+serialized together with :attr:`~.QuantumCircuit.calibrations`, or
+`Pulse Gates <https://qiskit.org/documentation/tutorials/circuits_advanced/05_pulse_gates.html>`_.
+In QPY version 5 and above, :ref:`qpy_circuit_calibrations` payload is
+packed after the :ref:`qpy_instructions` block.
+
+In QPY version 5 and above,
+
+.. code-block:: c
+
+    struct {
+        char type;
+    }
+
+immediately follows the file header block to represent the program type stored in the file.
+
+- When ``type==c``, :class:`~.QuantumCircuit` payload follows
+- When ``type==s``, :class:`~.ScheduleBlock` payload follows
+
+.. note::
+
+    Different programs cannot be packed together in the same file.
+    You must create different files for different program types.
+    Multiple objects with the same type can be saved in a single file.
+
+.. _qpy_schedule_block:
+
+SCHEDULE_BLOCK
+--------------
+
+:class:`~.ScheduleBlock` is first supported in QPY Version 5. This allows
+users to save pulse programs in the QPY binary format as follows:
+
+.. code-block:: python
+
+    from qiskit import pulse, qpy
+
+    with pulse.build() as schedule:
+        pulse.play(pulse.Gaussian(160, 0.1, 40), pulse.DriveChannel(0))
+
+    with open('schedule.qpy', 'wb') as fd:
+        qpy.dump(qc, fd)
+
+    with open('schedule.qpy', 'rb') as fd:
+        new_qc = qpy.load(fd)[0]
+
+Note that circuit and schedule block are serialized and deserialized through
+the same QPY interface. Input data type is implicitly analyzed and
+no extra option is required to save the schedule block.
+
+SCHEDULE_BLOCK_HEADER
+---------------------
+
+:class:`~.ScheduleBlock` block starts with the following header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        uint64_t metadata_size;
+        uint16_t num_element;
+    }
+
+which is immediately followed by ``name_size`` utf8 bytes of schedule name and
+``metadata_size`` utf8 bytes of the JSON serialized metadata dictionary
+attached to the schedule.
+
+Then, alignment context of the schedule block starts with ``char``
+representing the supported context type followed by the :ref:`qpy_sequence` block representing
+the parameters associated with the alignment context :attr:`AlignmentKind._context_params`.
+The context type char is mapped to each alignment subclass as follows:
+
+- ``l``: :class:`~.AlignLeft`
+- ``r``: :class:`~.AlignRight`
+- ``s``: :class:`~.AlignSequential`
+- ``e``: :class:`~.AlignEquispaced`
+
+Note that :class:`~.AlignFunc` context is not supported becasue of the callback function
+stored in the context parameters.
+
+This alignment block is further followed by ``num_element`` length of block elements which may
+consist of nested schedule blocks and schedule instructions.
+Each schedule instruction starts with ``char`` representing the instruction type
+followed by the :ref:`qpy_sequence` block representing the instruction
+:attr:`~qiskit.pulse.instructions.Instruction.operands`.
+Note that the data structure of pulse :class:`~qiskit.pulse.instructions.Instruction`
+is unified so that instance can be uniquely determied by the class and a tuple of operands.
+The mapping of type char to the instruction subclass is defined as follows:
+
+- ``a``: :class:`~qiskit.pulse.instructions.Acquire` instruction
+- ``p``: :class:`~qiskit.pulse.instructions.Play` instruction
+- ``d``: :class:`~qiskit.pulse.instructions.Delay` instruction
+- ``f``: :class:`~qiskit.pulse.instructions.SetFrequency` instruction
+- ``g``: :class:`~qiskit.pulse.instructions.ShiftFrequency` instruction
+- ``q``: :class:`~qiskit.pulse.instructions.SetPhase` instruction
+- ``r``: :class:`~qiskit.pulse.instructions.ShiftPhase` instruction
+- ``b``: :class:`~qiskit.pulse.instructions.RelativeBarrier` instruction
+- ``t``: :class:`~qiskit.pulse.instructions.TimeBlockade` instruction
+
+The operands of these instances can be serialized through the standard QPY value serialization
+mechanism, however there are special object types that only appear in the schedule operands.
+Since the operands are serialized as :ref:`qpy_sequence`, each element must be packed with the
+INSTRUCTION_PARAM pack struct, where each payload starts with a header block consists of
+the char ``type`` and uint64_t ``size``.
+Special objects start with the following type key:
+
+- ``c``: :class:`~qiskit.pulse.channels.Channel`
+- ``w``: :class:`~qiskit.pulse.library.Waveform`
+- ``s``: :class:`~qiskit.pulse.library.SymbolicPulse`
+
+.. _qpy_schedule_channel:
+
+CHANNEL
+-------
+
+Channel block starts with channel subtype ``char`` that maps an object data to
+:class:`~qiskit.pulse.channels.Channel` subclass. Mapping is defined as follows:
+
+- ``d``: :class:`~qiskit.pulse.channels.DriveChannel`
+- ``c``: :class:`~qiskit.pulse.channels.ControlChannel`
+- ``m``: :class:`~qiskit.pulse.channels.MeasureChannel`
+- ``a``: :class:`~qiskit.pulse.channels.AcquireChannel`
+- ``e``: :class:`~qiskit.pulse.channels.MemorySlot`
+- ``r``: :class:`~qiskit.pulse.channels.RegisterSlot`
+
+The key is immediately followed by the channel index serialized as the INSTRUCTION_PARAM.
+
+.. _qpy_schedule_waveform:
+
+Waveform
+--------
+
+Waveform block starts with WAVEFORM header:
+
+.. code-block:: c
+
+    struct {
+        double epsilon;
+        uint32_t data_size;
+        _bool amp_limited;
+    }
+
+which is followed by ``data_size`` bytes of complex ``ndarray`` binary generated by numpy.save_.
+This represents the complex IQ data points played on a quantum device.
+:attr:`~qiskit.pulse.library.Waveform.name` is saved after the samples in the
+INSTRUCTION_PARAM pack struct, which can be string or ``None``.
+
+.. _numpy.save: https://numpy.org/doc/stable/reference/generated/numpy.save.html
+
+.. _qpy_schedule_symbolic_pulse:
+
+SymbolicPulse
+-------------
+
+SymbolicPulse block starts with SYMBOLIC_PULSE header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t type_size;
+        uint16_t envelope_size;
+        uint16_t constraints_size;
+        uint16_t valid_amp_conditions_size;
+        _bool amp_limited;
+    }
+
+which is followed by ``type_size`` utf8 bytes of :attr:`.SymbolicPulse.pulse_type` string
+that represents a class of waveform, such as "Gaussian" or "GaussianSquare".
+Then, ``envelope_size``, ``constraints_size``, ``valid_amp_conditions_size`` utf8 bytes of
+serialized symbolic expressions are generated for :attr:`.SymbolicPulse.envelope`,
+:attr:`.SymbolicPulse.constraints`, and :attr:`.SymbolicPulse.valid_amp_conditions`, respectively.
+Since string representation of these expressions are usually lengthy,
+the expression binary is generated by the python zlib_ module with data compression.
+
+To uniquely specify a pulse instance, we also need to store the associated parameters,
+which consist of ``duration`` and the rest of parameters as a dictionary.
+Dictionary parameters are first dumped in the :ref:`qpy_mapping` form, and then ``duration``
+is dumped with the INSTRUCTION_PARAM pack struct.
+Lastly, :attr:`~qiskit.pulse.library.SymbolicPulse.name` is saved also with the
+INSTRUCTION_PARAM pack struct, which can be string or ``None``.
+
+.. _zlib: https://docs.python.org/3/library/zlib.html
+
+.. _qpy_mapping:
+
+MAPPING
+-------
+
+The MAPPING is a representation for arbitrary mapping object. This is a fixed length
+:ref:`qpy_sequence` of key-value pair represented by the MAP_ITEM payload.
+
+A MAP_ITEM starts with a header defined as:
+
+.. code-block:: c
+
+    struct {
+        uint16_t key_size;
+        char type;
+        uint16_t size;
+    }
+
+which is immediately followed by the ``key_size`` utf8 bytes representing
+the dictionary key in string and ``size`` utf8 bytes of arbitrary object data of
+QPY serializable ``type``.
+
+.. _qpy_circuit_calibrations:
+
+CIRCUIT_CALIBRATIONS
+--------------------
+
+The CIRCUIT_CALIBRATIONS block is a dictionary to define pulse calibrations of the custom
+instruction set. This block starts with the following CALIBRATION header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t num_cals;
+    }
+
+which is followed by the ``num_cals`` length of calibration entries, each starts with
+the CALIBRATION_DEF header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t name_size;
+        uint16_t num_qubits;
+        uint16_t num_params;
+        char type;
+    }
+
+The calibration definition header is then followed by ``name_size`` utf8 bytes of
+the gate name, ``num_qubits`` length of integers representing a sequence of qubits,
+and ``num_params`` length of INSTRUCTION_PARAM payload for parameters
+associated to the custom instruction.
+The ``type`` indicates the class of pulse program which is either, in pricinple,
+:class:`~.ScheduleBlock` or :class:`~.Schedule`. As of QPY Version 5,
+only :class:`~.ScheduleBlock` payload is supported.
+Finally, :ref:`qpy_schedule_block` payload is packed for each CALIBRATION_DEF entry.
 
 INSTRUCTION
 -----------

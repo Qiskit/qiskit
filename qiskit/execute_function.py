@@ -229,7 +229,7 @@ def execute(
             experiments will be executed. Each list element (bind) should be of the form
             ``{Parameter1: value1, Parameter2: value2, ...}``. All binds will be
             executed across all experiments, e.g. if parameter_binds is a
-            length-n list, and there are m experiments, a total of :math:`m x n`
+            length-:math:`n` list, and there are :math:`m` experiments, a total of :math:`m \\times n`
             experiments will be run (one for each experiment/bind pair).
 
         schedule_circuit (bool): If ``True``, ``experiments`` will be converted to

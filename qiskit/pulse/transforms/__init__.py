@@ -17,6 +17,8 @@ Pulse Transforms (:mod:`qiskit.pulse.transforms`)
 The pulse transforms provide transformation routines to reallocate and optimize
 pulse programs for backends.
 
+.. _pulse_alignments:
+
 Alignments
 ==========
 
@@ -36,6 +38,8 @@ These are all subtypes of the abstract base class :class:`AlignmentKind`.
 
 .. autoclass:: AlignmentKind
 
+
+.. _pulse_canonical_transform:
 
 Canonicalization
 ================
@@ -57,6 +61,8 @@ OpenPulse backends.
    remove_trivial_barriers
 
 
+.. _pulse_dag:
+
 DAG
 ===
 
@@ -68,6 +74,8 @@ optimization of instructions and equality checks.
 
    block_to_dag
 
+
+.. _pulse_transform_chain:
 
 Composite transform
 ===================
@@ -81,7 +89,7 @@ A sequence of transformations to generate a target code.
 
 """
 
-from qiskit.pulse.transforms.alignments import (
+from .alignments import (
     AlignEquispaced,
     AlignFunc,
     AlignLeft,
@@ -90,9 +98,9 @@ from qiskit.pulse.transforms.alignments import (
     AlignmentKind,
 )
 
-from qiskit.pulse.transforms.base_transforms import target_qobj_transform
+from .base_transforms import target_qobj_transform
 
-from qiskit.pulse.transforms.canonicalization import (
+from .canonicalization import (
     add_implicit_acquires,
     align_measures,
     block_to_schedule,
@@ -104,4 +112,4 @@ from qiskit.pulse.transforms.canonicalization import (
     remove_trivial_barriers,
 )
 
-from qiskit.pulse.transforms.dag import block_to_dag
+from .dag import block_to_dag
