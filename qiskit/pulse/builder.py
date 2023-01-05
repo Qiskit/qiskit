@@ -2010,7 +2010,18 @@ def call(
 
         .. parsed-literal::
 
-            ScheduleBlock(ScheduleBlock(Play(Gaussian(duration=160, amp=(0.1+0j), sigma=40), DriveChannel(0)), name="block0", transform=AlignLeft()), name="block1", transform=AlignLeft())
+            ScheduleBlock(
+                ScheduleBlock(
+                    Play(
+                        Gaussian(duration=160, amp=(0.1+0j), sigma=40),
+                        DriveChannel(0)
+                    ),
+                    name="block0",
+                    transform=AlignLeft()
+                ),
+                name="block1",
+                transform=AlignLeft()
+            )
 
         The actual program is stored in the reference table attached to the schedule.
 
@@ -2021,7 +2032,7 @@ def call(
         .. parsed-literal::
 
             ReferenceManager:
-              - ('block0', '634b3b50bd684e26a673af1fbd2d6c81'): ScheduleBlock(Play(Gaussian(duration=160, amp=(0.1...
+              - ('block0', '634b3b50bd684e26a673af1fbd2d6c81'): ScheduleBlock(Play(Gaussian(...
 
         In addition, you can call a parameterized target program with parameter assignment.
 
@@ -2040,7 +2051,26 @@ def call(
 
         .. parsed-literal::
 
-            ScheduleBlock(ScheduleBlock(Play(Gaussian(duration=160, amp=(0.1+0j), sigma=40), DriveChannel(0)), name="block2", transform=AlignLeft()), ScheduleBlock(Play(Gaussian(duration=160, amp=(0.3+0j), sigma=40), DriveChannel(0)), name="block2", transform=AlignLeft()), name="block3", transform=AlignLeft())
+            ScheduleBlock(
+                ScheduleBlock(
+                    Play(
+                        Gaussian(duration=160, amp=(0.1+0j), sigma=40),
+                        DriveChannel(0)
+                    ),
+                    name="block2",
+                    transform=AlignLeft()
+                ),
+                ScheduleBlock(
+                    Play(
+                        Gaussian(duration=160, amp=(0.3+0j), sigma=40),
+                        DriveChannel(0)
+                    ),
+                    name="block2",
+                    transform=AlignLeft()
+                ),
+                name="block3",
+                transform=AlignLeft()
+            )
 
         If there is a name collision between parameters, you can distinguish them by specifying
         each parameter object in a python dictionary. For example,
@@ -2061,7 +2091,16 @@ def call(
 
         .. parsed-literal::
 
-            ScheduleBlock(ScheduleBlock(Play(Gaussian(duration=160, amp=(0.1+0j), sigma=40), DriveChannel(0)), Play(Gaussian(duration=160, amp=(0.3+0j), sigma=40), DriveChannel(1)), name="block4", transform=AlignLeft()), name="block5", transform=AlignLeft())
+            ScheduleBlock(
+                ScheduleBlock(
+                    Play(Gaussian(duration=160, amp=(0.1+0j), sigma=40), DriveChannel(0)),
+                    Play(Gaussian(duration=160, amp=(0.3+0j), sigma=40), DriveChannel(1)),
+                    name="block4",
+                    transform=AlignLeft()
+                ),
+                name="block5",
+                transform=AlignLeft()
+            )
 
         2. Calling a schedule
 
@@ -2076,7 +2115,30 @@ def call(
 
         .. parsed-literal::
 
-            ScheduleBlock(Call(Schedule((0, Play(Drag(duration=160, amp=(0.18989731546729305+0j), sigma=40, beta=-1.201258305015517, name='drag_86a8'), DriveChannel(0), name='drag_86a8')), name="x"), name='x'), name="block6", transform=AlignLeft())
+            ScheduleBlock(
+                Call(
+                    Schedule(
+                        (
+                            0,
+                            Play(
+                                Drag(
+                                    duration=160,
+                                    amp=(0.18989731546729305+0j),
+                                    sigma=40,
+                                    beta=-1.201258305015517,
+                                    name='drag_86a8'
+                                ),
+                                DriveChannel(0),
+                                name='drag_86a8'
+                            )
+                        ),
+                        name="x"
+                    ),
+                    name='x'
+                ),
+                name="block6",
+                transform=AlignLeft()
+            )
 
         Currently, the backend calibrated gates are provided in the form of :class:`~.Schedule`.
         The parameter assignment mechanism is available also for schedules.
@@ -2098,7 +2160,30 @@ def call(
 
         .. parsed-literal::
 
-            ScheduleBlock(Call(Schedule((0, Play(Drag(duration=160, amp=(0.18989731546729305+0j), sigma=40, beta=-1.201258305015517, name='drag_86a8'), DriveChannel(0), name='drag_86a8')), name="circuit-87"), name='circuit-87'), name="block7", transform=AlignLeft())
+            ScheduleBlock(
+                Call(
+                    Schedule(
+                        (
+                            0,
+                            Play(
+                                Drag(
+                                    duration=160,
+                                    amp=(0.18989731546729305+0j),
+                                    sigma=40,
+                                    beta=-1.201258305015517,
+                                    name='drag_86a8'
+                                ),
+                                DriveChannel(0),
+                                name='drag_86a8'
+                            )
+                        ),
+                        name="circuit-87"
+                    ),
+                    name='circuit-87'
+                ),
+                name="block7",
+                transform=AlignLeft()
+            )
 
         .. warning::
 

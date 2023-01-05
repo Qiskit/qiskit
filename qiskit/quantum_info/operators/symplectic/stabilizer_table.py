@@ -405,11 +405,23 @@ class StabilizerTable(PauliTable, AdjointMixin):
         .. parsed-literal::
 
             Initial Ordering
-            StabilizerTable: ['-YZ', '+IX', '-ZI', '+II', '-IY', '-II', '-XI', '-IX', '-ZX', '-ZZ', '+XY', '+XZ', '-YX', '-YI', '+ZI', '+ZX', '+ZY', '+IZ', '-ZY', '+YZ', '-IZ', '-XX', '+XI', '+YI', '+XX', '+IY', '+ZZ', '-XY', '-YY', '+YX', '+YY', '-XZ']
+            StabilizerTable: [
+                '-YZ', '+IX', '-ZI', '+II', '-IY', '-II', '-XI', '-IX', '-ZX', '-ZZ', '+XY', '+XZ',
+                '-YX', '-YI', '+ZI', '+ZX', '+ZY', '+IZ', '-ZY', '+YZ', '-IZ', '-XX', '+XI', '+YI',
+                '+XX', '+IY', '+ZZ', '-XY', '-YY', '+YX', '+YY', '-XZ'
+            ]
             Lexicographically sorted
-            StabilizerTable: ['+II', '-II', '+IX', '-IX', '-IY', '+IY', '+IZ', '-IZ', '-XI', '+XI', '-XX', '+XX', '+XY', '-XY', '+XZ', '-XZ', '-YI', '+YI', '-YX', '+YX', '-YY', '+YY', '-YZ', '+YZ', '-ZI', '+ZI', '-ZX', '+ZX', '+ZY', '-ZY', '-ZZ', '+ZZ']
+            StabilizerTable: [
+                '+II', '-II', '+IX', '-IX', '-IY', '+IY', '+IZ', '-IZ', '-XI', '+XI', '-XX', '+XX',
+                '+XY', '-XY', '+XZ', '-XZ', '-YI', '+YI', '-YX', '+YX', '-YY', '+YY', '-YZ', '+YZ',
+                '-ZI', '+ZI', '-ZX', '+ZX', '+ZY', '-ZY', '-ZZ', '+ZZ'
+            ]
             Weight sorted
-            StabilizerTable: ['+II', '-II', '+IX', '-IX', '-IY', '+IY', '+IZ', '-IZ', '-XI', '+XI', '-YI', '+YI', '-ZI', '+ZI', '-XX', '+XX', '+XY', '-XY', '+XZ', '-XZ', '-YX', '+YX', '-YY', '+YY', '-YZ', '+YZ', '-ZX', '+ZX', '+ZY', '-ZY', '-ZZ', '+ZZ']
+            StabilizerTable: [
+                '+II', '-II', '+IX', '-IX', '-IY', '+IY', '+IZ', '-IZ', '-XI', '+XI', '-YI', '+YI',
+                '-ZI', '+ZI', '-XX', '+XX', '+XY', '-XY', '+XZ', '-XZ', '-YX', '+YX', '-YY', '+YY',
+                '-YZ', '+YZ', '-ZX', '+ZX', '+ZY', '-ZY', '-ZZ', '+ZZ'
+            ]
 
         Args:
             weight (bool): optionally sort by weight if True (Default: False).

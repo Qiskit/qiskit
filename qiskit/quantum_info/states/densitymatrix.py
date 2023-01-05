@@ -639,7 +639,12 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
             .. parsed-literal::
 
-               {'00|00': (0.4999999999999999+0j), '10|00': (-0.4999999999999999-0j), '00|10': (-0.4999999999999999+0j), '10|10': (0.4999999999999999+0j)}
+               {
+                   '00|00': (0.4999999999999999+0j),
+                   '10|00': (-0.4999999999999999-0j),
+                   '00|10': (-0.4999999999999999+0j),
+                   '10|10': (0.4999999999999999+0j)
+               }
 
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system

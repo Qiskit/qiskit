@@ -788,9 +788,11 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     if backend_version <= 1:
         num_qubits = backend.configuration().n_qubits
         cmap = backend.configuration().coupling_map
+        cmap_len = len(cmap)
     else:
         num_qubits = backend.num_qubits
         cmap = backend.coupling_map
+        cmap_len = cmap.graph.num_edges()
 
     qubits = []
     qubit_labels = [None] * num_qubits
@@ -825,7 +827,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     for k in qubits:
         qcolors[k] = "k"
 
-    lcolors = ["#648fff"] * cmap.graph.num_edges()
+    lcolors = ["#648fff"] * cmap_len
 
     for idx, edge in enumerate(cmap):
         if edge[0] in qubits and edge[1] in qubits:

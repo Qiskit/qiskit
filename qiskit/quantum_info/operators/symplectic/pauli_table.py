@@ -454,11 +454,20 @@ class PauliTable(BaseOperator, AdjointMixin):
         .. parsed-literal::
 
             Initial Ordering
-            PauliTable: ['IZ', 'XZ', 'ZY', 'YI', 'YZ', 'IX', 'II', 'ZI', 'IY', 'XY', 'XI', 'YY', 'ZX', 'XX', 'ZZ', 'YX']
+            PauliTable: [
+                'IZ', 'XZ', 'ZY', 'YI', 'YZ', 'IX', 'II', 'ZI', 'IY', 'XY', 'XI', 'YY', 'ZX',
+                'XX', 'ZZ', 'YX'
+            ]
             Lexicographically sorted
-            PauliTable: ['II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ', 'YI', 'YX', 'YY', 'YZ', 'ZI', 'ZX', 'ZY', 'ZZ']
+            PauliTable: [
+                'II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ', 'YI', 'YX', 'YY', 'YZ', 'ZI',
+                'ZX', 'ZY', 'ZZ'
+            ]
             Weight sorted
-            PauliTable: ['II', 'IX', 'IY', 'IZ', 'XI', 'YI', 'ZI', 'XX', 'XY', 'XZ', 'YX', 'YY', 'YZ', 'ZX', 'ZY', 'ZZ']
+            PauliTable: [
+                'II', 'IX', 'IY', 'IZ', 'XI', 'YI', 'ZI', 'XX', 'XY', 'XZ', 'YX', 'YY', 'YZ',
+                'ZX', 'ZY', 'ZZ'
+            ]
 
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
