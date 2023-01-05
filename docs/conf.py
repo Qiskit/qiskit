@@ -15,6 +15,10 @@
 """Sphinx documentation builder."""
 
 # -- General configuration ---------------------------------------------------
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
 import datetime
 
 project = "Qiskit"
