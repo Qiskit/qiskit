@@ -12,14 +12,13 @@
 
 """Tests for PVQD."""
 import unittest
-import warnings
 from functools import partial
 
 import numpy as np
 from ddt import data, ddt, unpack
 
 from qiskit import QiskitError
-from qiskit.algorithms.evolvers import EvolutionProblem
+from qiskit.algorithms.time_evolvers import TimeEvolutionProblem
 from qiskit.algorithms.optimizers import L_BFGS_B, SPSA, GradientDescent, OptimizerResult
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.algorithms.time_evolvers.pvqd import PVQD
@@ -97,15 +96,9 @@ class TestPVQD(QiskitTestCase):
             optimizer=optimizer,
             num_timesteps=num_timesteps,
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            problem = EvolutionProblem(
-                hamiltonian, time, aux_operators=[hamiltonian, self.observable]
-            )
-        self.assertTrue(len(caught_warnings) > 0)
+        problem = TimeEvolutionProblem(
+            hamiltonian, time, aux_operators=[hamiltonian, self.observable]
+        )
         result = pvqd.evolve(problem)
 
         self.assertTrue(len(result.fidelities) == 3)
@@ -185,15 +178,9 @@ class TestPVQD(QiskitTestCase):
             optimizer=L_BFGS_B(),
             num_timesteps=0,
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            problem = EvolutionProblem(
-                self.hamiltonian, time=0.01, aux_operators=[self.hamiltonian, self.observable]
-            )
-        self.assertTrue(len(caught_warnings) > 0)
+        problem = TimeEvolutionProblem(
+            self.hamiltonian, time=0.01, aux_operators=[self.hamiltonian, self.observable]
+        )
         with self.assertRaises(ValueError):
             _ = pvqd.evolve(problem)
 
@@ -213,15 +200,9 @@ class TestPVQD(QiskitTestCase):
             num_timesteps=10,
             initial_guess=initial_guess,
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            problem = EvolutionProblem(
-                self.hamiltonian, time=0.1, aux_operators=[self.hamiltonian, self.observable]
-            )
-        self.assertTrue(len(caught_warnings) > 0)
+        problem = TimeEvolutionProblem(
+            self.hamiltonian, time=0.1, aux_operators=[self.hamiltonian, self.observable]
+        )
         result = pvqd.evolve(problem)
 
         observables = result.aux_ops_evaluated
@@ -230,13 +211,7 @@ class TestPVQD(QiskitTestCase):
 
     def test_zero_parameters(self):
         """Test passing an ansatz with zero parameters raises an error."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            problem = EvolutionProblem(self.hamiltonian, time=0.02)
-        self.assertTrue(len(caught_warnings) > 0)
+        problem = TimeEvolutionProblem(self.hamiltonian, time=0.02)
         sampler = Sampler()
         fidelity_primitive = ComputeUncompute(sampler)
 
@@ -254,17 +229,11 @@ class TestPVQD(QiskitTestCase):
         """Test passing an initial state raises an error for now."""
         initial_state = QuantumCircuit(2)
         initial_state.x(0)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            problem = EvolutionProblem(
-                self.hamiltonian,
-                time=0.02,
-                initial_state=initial_state,
-            )
-        self.assertTrue(len(caught_warnings) > 0)
+        problem = TimeEvolutionProblem(
+            self.hamiltonian,
+            time=0.02,
+            initial_state=initial_state,
+        )
         sampler = Sampler()
         fidelity_primitive = ComputeUncompute(sampler)
 
@@ -280,15 +249,9 @@ class TestPVQD(QiskitTestCase):
 
     def test_aux_ops_raises(self):
         """Test passing auxiliary operators with no estimator raises an error."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            problem = EvolutionProblem(
-                self.hamiltonian, time=0.02, aux_operators=[self.hamiltonian, self.observable]
-            )
-        self.assertTrue(len(caught_warnings) > 0)
+        problem = TimeEvolutionProblem(
+            self.hamiltonian, time=0.02, aux_operators=[self.hamiltonian, self.observable]
+        )
         sampler = Sampler()
         fidelity_primitive = ComputeUncompute(sampler)
 
@@ -354,13 +317,7 @@ class TestPVQDUtils(QiskitTestCase):
             estimator=estimator,
             optimizer=optimizer,
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            problem = EvolutionProblem(self.hamiltonian, time=0.01)
-        self.assertTrue(len(caught_warnings) > 0)
+        problem = TimeEvolutionProblem(self.hamiltonian, time=0.01)
         for circuit, expected_support in tests:
             with self.subTest(circuit=circuit, expected_support=expected_support):
                 pvqd.ansatz = circuit

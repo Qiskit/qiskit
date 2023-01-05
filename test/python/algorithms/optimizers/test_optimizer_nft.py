@@ -13,14 +13,13 @@
 """ Test of NFT optimizer """
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils import algorithm_globals
 from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.optimizers import NFT
-from qiskit.algorithms import VQE
+from qiskit.algorithms.minimum_eigensolvers import VQE
+from qiskit.primitives import Estimator
 
 
 class TestOptimizerNFT(QiskitAlgorithmsTestCase):
@@ -28,8 +27,7 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        algorithm_globals.random_seed = 50
         self.qubit_op = PauliSumOp.from_list(
             [
                 ("II", -1.052373245772859),
@@ -42,22 +40,12 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
 
     def test_nft(self):
         """Test NFT optimizer by using it"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            vqe = VQE(
-                ansatz=RealAmplitudes(),
-                optimizer=NFT(),
-                quantum_instance=QuantumInstance(
-                    BasicAer.get_backend("statevector_simulator"),
-                    seed_simulator=algorithm_globals.random_seed,
-                    seed_transpiler=algorithm_globals.random_seed,
-                ),
-            )
-            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
+        vqe = VQE(
+            Estimator(),
+            ansatz=RealAmplitudes(),
+            optimizer=NFT(),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857275, places=6)
 
 
