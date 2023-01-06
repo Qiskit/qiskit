@@ -11,7 +11,7 @@ features:
 
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         import numpy as np
         from qiskit import QuantumCircuit

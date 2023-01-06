@@ -53,15 +53,13 @@ class HiddenLinearFunction(QuantumCircuit):
 
     **Reference Circuit:**
 
-        .. jupyter-execute::
-            :hide-code:
+        .. plot::
 
-            from qiskit.circuit.library import HiddenLinearFunction
-            import qiskit.tools.jupyter
-            A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-            circuit = HiddenLinearFunction(A)
-            %circuit_library_info circuit
-
+           from qiskit.circuit.library import HiddenLinearFunction
+           from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+           A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+           circuit = HiddenLinearFunction(A)
+           _generate_circuit_library_visualization(circuit)
 
     **Reference:**
 
