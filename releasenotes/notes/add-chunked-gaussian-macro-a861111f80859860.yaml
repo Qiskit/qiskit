@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Two symbolic pulse factories :func:`.GaussianFallEdge` and :func:`.GaussianRiseEdge`
+    have been added to the pulse library. These pulses are expected to
+    be used by the pulse chunking macros.
+  - |
+    A pulse macro function :func:`~.qiskit.pulse.macros.chunking_gaussian_square`
+    has been added. This function generates a pulse schedule of a single
+    Gaussian square pulse which is divided into multiple pieces.
+    This representation may allow the backend pulse controller to efficiently store
+    the full waveform of very long Gaussian square pulse in its waveform memory,
+    and may enable experimentalists to efficiently write a particular experiment program
+    requiring long pulse irradiation, such as resonator spectroscopy.

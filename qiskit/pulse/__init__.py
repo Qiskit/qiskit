@@ -140,6 +140,8 @@ from qiskit.pulse.library import (
     Constant,
     Drag,
     Gaussian,
+    GaussianFallEdge,
+    GaussianRiseEdge,
     GaussianSquare,
     ParametricPulse,
     SymbolicPulse,
