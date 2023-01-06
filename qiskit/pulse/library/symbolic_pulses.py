@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Union, Callable
 
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
@@ -1023,3 +1023,133 @@ class Constant(metaclass=_PulseType):
         instance.validate_parameters()
 
         return instance
+
+
+def GaussianRiseEdge(
+    duration: ParameterValueType,
+    amp: ParameterValueType,
+    angle: ParameterValueType,
+    sigma: ParameterValueType,
+    risefall_sigma_ratio: ParameterValueType,
+    name: Optional[str] = None,
+    limit_amplitude: bool = True,
+) -> SymbolicPulse:
+    """A symbolic pulse of the Gaussian rise followed by a square tone.
+
+    The length of the Gaussian ramping is
+
+    .. math::
+
+        L_{\\text{edge}} = \\text{sigma} \\times \\text{risefall_sigma_ratio}
+
+    which must be :math:`L_{\\text{edge}} \\leq \\text{duration}`.
+    The rest of the pulse become a flat-top with the constant amplitude.
+    This pulse starts from the rising edge and ends with the flat-top.
+
+    .. note::
+
+        Note that this pulse is expected to be used internally by other chunked pulses.
+
+    Args:
+        duration: Duration of the entire pulse.
+        amp: The magnitude of the amplitude of the Gaussian rise.
+        angle: The angle of the complex amplitude of the pulse.
+        sigma: A measure of how wide or narrow the rise is.
+        risefall_sigma_ratio: The ratio of ramping part length to the sigma.
+        name: Display name for this pulse.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        SymbolicPulse instance.
+    """
+    _t, _duration, _amp, _angle, _sigma, _risefall = sym.symbols(
+        "t, duration, amp, angle, sigma, risefall"
+    )
+    _sq_t0 = _sigma * _risefall
+    _gaussian_right_edge = _lifted_gaussian(_t, _sq_t0, -1, _sigma)
+
+    envelope_expr = (
+        _amp
+        * sym.exp(sym.I * _angle)
+        * sym.Piecewise((_gaussian_right_edge, _t <= _sq_t0), (1, True))
+    )
+
+    instance = SymbolicPulse(
+        pulse_type="GaussianRiseEdge",
+        duration=duration,
+        parameters={"amp": amp, "angle": angle, "sigma": sigma, "risefall": risefall_sigma_ratio},
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=sym.LessThan(_sigma * _risefall, _duration),
+        valid_amp_conditions=sym.LessThan(sym.Abs(_amp), 1.0),
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def GaussianFallEdge(
+    duration: ParameterValueType,
+    amp: ParameterValueType,
+    angle: ParameterValueType,
+    sigma: ParameterValueType,
+    risefall_sigma_ratio: ParameterValueType,
+    name: Optional[str] = None,
+    limit_amplitude: bool = True,
+) -> SymbolicPulse:
+    """A symbolic pulse of the Gaussian fall following a square tone.
+
+    The length of the Gaussian ramping is
+
+    .. math::
+
+        L_{\\text{edge}} = \\text{sigma} \\times \\text{risefall_sigma_ratio}
+
+    which must be :math:`L_{\\text{edge}} \\leq \\text{duration}`.
+    The rest of the pulse become a flat-top with the constant amplitude.
+    This pulse starts from the flat-top and ends with the falling edge.
+
+    .. note::
+
+        Note that this pulse is expected to be used internally by other chunked pulses.
+
+    Args:
+        duration: Duration of the entire pulse.
+        amp: The magnitude of the amplitude of the Gaussian fall.
+        angle: The angle of the complex amplitude of the pulse.
+        sigma: A measure of how wide or narrow the fall is.
+        risefall_sigma_ratio: The ratio of ramping part length to the sigma.
+        name: Display name for this pulse.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        SymbolicPulse instance.
+    """
+    _t, _duration, _amp, _angle, _sigma, _risefall = sym.symbols(
+        "t, duration, amp, angle, sigma, risefall"
+    )
+    _sq_t0 = _duration - _sigma * _risefall
+    _gaussian_left_edge = _lifted_gaussian(_t, _sq_t0, _duration + 1, _sigma)
+
+    envelope_expr = (
+        _amp
+        * sym.exp(sym.I * _angle)
+        * sym.Piecewise((_gaussian_left_edge, _t >= _sq_t0), (1, True))
+    )
+
+    instance = SymbolicPulse(
+        pulse_type="GaussianRiseEdge",
+        duration=duration,
+        parameters={"amp": amp, "angle": angle, "sigma": sigma, "risefall": risefall_sigma_ratio},
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=sym.LessThan(_sigma * _risefall, _duration),
+        valid_amp_conditions=sym.LessThan(sym.Abs(_amp), 1.0),
+    )
+    instance.validate_parameters()
+
+    return instance

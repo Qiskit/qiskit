@@ -22,6 +22,8 @@ from qiskit.pulse.library import (
     Waveform,
     Constant,
     Gaussian,
+    GaussianFallEdge,
+    GaussianRiseEdge,
     GaussianSquare,
     Drag,
     gaussian,
@@ -191,6 +193,110 @@ class TestParametricPulses(QiskitTestCase):
         This previously used to raise an exception: see gh-7882."""
         pulse = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
         pulse.validate_parameters()
+
+    def test_gauss_square_rise(self):
+        """Test that GaussianRiseEdge sample pulse matches expectations."""
+        duration = 160
+        amp = 0.1
+        angle = np.pi / 2
+        sigma = 64
+        risefall_sigma_ratio = 2
+
+        gs_rise = GaussianRiseEdge(
+            duration=duration,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+        )
+
+        gaussian_samples = (
+            Gaussian(
+                duration=2 * sigma * risefall_sigma_ratio,
+                amp=amp,
+                angle=angle,
+                sigma=sigma,
+            )
+            .get_waveform()
+            .samples
+        )
+
+        gs_rise_samples_ref = np.full(duration, amp * np.exp(1j * angle))
+        t_ramp = sigma * risefall_sigma_ratio
+        gs_rise_samples_ref[:t_ramp] = gaussian_samples[:t_ramp]
+
+        np.testing.assert_array_almost_equal(gs_rise.get_waveform().samples, gs_rise_samples_ref)
+
+    def test_gauss_square_rise_validation(self):
+        """Test GaussianRiseEdge duration validation."""
+        amp = 0.1
+        angle = np.pi / 2
+        sigma = 64
+        risefall_sigma_ratio = 2
+
+        # invalid duration (too short)
+        too_short_duration = sigma * risefall_sigma_ratio - 1
+
+        with self.assertRaises(PulseError):
+            GaussianRiseEdge(
+                duration=too_short_duration,
+                amp=amp,
+                angle=angle,
+                sigma=sigma,
+                risefall_sigma_ratio=risefall_sigma_ratio,
+            )
+
+    def test_gauss_square_fall(self):
+        """Test that GaussianRiseFall sample pulse matches expectations."""
+        duration = 160
+        amp = 0.1
+        angle = np.pi / 2
+        sigma = 64
+        risefall_sigma_ratio = 2
+
+        gs_fall = GaussianFallEdge(
+            duration=duration,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+        )
+
+        gaussian_samples = (
+            Gaussian(
+                duration=2 * sigma * risefall_sigma_ratio,
+                amp=amp,
+                angle=angle,
+                sigma=sigma,
+            )
+            .get_waveform()
+            .samples
+        )
+
+        gs_fall_samples_ref = np.full(duration, amp * np.exp(1j * angle))
+        t_ramp = sigma * risefall_sigma_ratio
+        gs_fall_samples_ref[duration - t_ramp :] = gaussian_samples[t_ramp:]
+
+        np.testing.assert_array_almost_equal(gs_fall.get_waveform().samples, gs_fall_samples_ref)
+
+    def test_gauss_square_fall_validation(self):
+        """Test GaussianRiseFall duration validation."""
+        amp = 0.1
+        angle = np.pi / 2
+        sigma = 64
+        risefall_sigma_ratio = 2
+
+        # invalid duration (too short)
+        too_short_duration = sigma * risefall_sigma_ratio - 1
+
+        with self.assertRaises(PulseError):
+            GaussianFallEdge(
+                duration=too_short_duration,
+                amp=amp,
+                angle=angle,
+                sigma=sigma,
+                risefall_sigma_ratio=risefall_sigma_ratio,
+            )
 
     def test_drag_pulse(self):
         """Test that the Drag sample pulse matches the pulse library."""

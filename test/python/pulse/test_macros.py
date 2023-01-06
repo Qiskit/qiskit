@@ -12,6 +12,7 @@
 
 """Test cases for Pulse Macro functions."""
 
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from qiskit.pulse import (
     Schedule,
     AcquireChannel,
@@ -19,12 +20,16 @@ from qiskit.pulse import (
     InstructionScheduleMap,
     MeasureChannel,
     MemorySlot,
+    Constant,
+    GaussianFallEdge,
+    GaussianRiseEdge,
     GaussianSquare,
     Play,
+    DriveChannel,
 )
 from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
-from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from qiskit.pulse.transforms import block_to_schedule
 from qiskit.test import QiskitTestCase
 
 
@@ -105,3 +110,157 @@ class TestMeasureAll(QiskitTestCase):
         sched = macros.measure_all(self.backend)
         expected = Schedule(self.inst_map.get("measure", [0, 1]))
         self.assertEqual(sched.instructions, expected.instructions)
+
+
+class TestPlayChunkedPulse(QiskitTestCase):
+    """Pulse macro test cases that plays chunked pulse within the builder context."""
+
+    def setUp(self):
+        super().setUp()
+        self.backend = FakeOpenPulse2Q()
+
+    def test_chunked_gaussian(self):
+        """Test playing chunk divided Gaussian square pulse.
+
+        Get pulse granularity from the fake backend.
+        """
+        channel = DriveChannel(0)
+        duration = 1200
+        amp = 0.1
+        angle = 0.0
+        sigma = 64
+        risefall_sigma_ratio = 2
+
+        gs_block = macros.chunking_gaussian_square(
+            duration=duration,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+            chunk_size=256,
+            min_chunk_number=3,
+            channel=channel,
+            granularity=16,
+        )
+        schedule_to_test = block_to_schedule(gs_block)
+
+        rise = GaussianRiseEdge(
+            duration=224,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+        )
+        flat = Constant(
+            duration=256,
+            amp=amp,
+            angle=angle,
+        )
+        fall = GaussianFallEdge(
+            duration=224,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+        )
+
+        ref_schedule = Schedule()
+        ref_schedule.insert(0, Play(rise, channel), inplace=True)
+        ref_schedule.insert(224, Play(flat, channel), inplace=True)
+        ref_schedule.insert(480, Play(flat, channel), inplace=True)
+        ref_schedule.insert(736, Play(flat, channel), inplace=True)
+        ref_schedule.insert(992, Play(fall, channel), inplace=True)
+
+        self.assertEqual(schedule_to_test, ref_schedule)
+
+    def test_chunked_gaussian_short(self):
+        """Test playing a single Gaussian square pulse.
+
+        When duration is shorter than minimum chunk size, it plays a normal GaussianSquare pulse.
+        """
+        channel = DriveChannel(0)
+        duration = 800
+        amp = 0.1
+        angle = 0.0
+        sigma = 64
+        risefall_sigma_ratio = 2
+
+        gs_block = macros.chunking_gaussian_square(
+            duration=duration,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+            chunk_size=256,
+            min_chunk_number=3,
+            channel=channel,
+            granularity=16,
+        )
+        schedule_to_test = block_to_schedule(gs_block)
+
+        gs_pulse = GaussianSquare(
+            duration=duration,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+        )
+        ref_schedule = Schedule()
+        ref_schedule.insert(0, Play(gs_pulse, channel), inplace=True)
+
+        self.assertEqual(schedule_to_test, ref_schedule)
+
+    def test_chunked_gaussian_invalid_chunk_size(self):
+        """Test chunked Gaussian with invalid chunk size.
+
+        Chunk size must be rounded to the nearest valid value with warning.
+        """
+        channel = DriveChannel(0)
+        duration = 1200
+        amp = 0.1
+        angle = 0.0
+        sigma = 64
+        risefall_sigma_ratio = 2
+
+        with self.assertWarns(UserWarning):
+            gs_block = macros.chunking_gaussian_square(
+                duration=duration,
+                amp=amp,
+                angle=angle,
+                sigma=sigma,
+                risefall_sigma_ratio=risefall_sigma_ratio,
+                chunk_size=256,
+                min_chunk_number=3,
+                channel=channel,
+                granularity=10,
+            )
+        schedule_to_test = block_to_schedule(gs_block)
+
+        rise = GaussianRiseEdge(
+            duration=230,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+        )
+        flat = Constant(
+            duration=250,
+            amp=amp,
+            angle=angle,
+        )
+        fall = GaussianFallEdge(
+            duration=230,
+            amp=amp,
+            angle=angle,
+            sigma=sigma,
+            risefall_sigma_ratio=risefall_sigma_ratio,
+        )
+
+        ref_schedule = Schedule()
+        ref_schedule.insert(0, Play(rise, channel), inplace=True)
+        ref_schedule.insert(230, Play(flat, channel), inplace=True)
+        ref_schedule.insert(480, Play(flat, channel), inplace=True)
+        ref_schedule.insert(730, Play(flat, channel), inplace=True)
+        ref_schedule.insert(980, Play(fall, channel), inplace=True)
+
+        self.assertEqual(schedule_to_test, ref_schedule)
