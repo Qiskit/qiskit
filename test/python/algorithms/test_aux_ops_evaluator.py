@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 """Tests evaluator of auxiliary operators for algorithms."""
 
 import unittest
+import warnings
 from typing import Tuple, Union
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -85,10 +86,15 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[OperatorBase],
         quantum_instance: Union[QuantumInstance, Backend],
     ):
-        result = eval_observables(
-            quantum_instance, quantum_state, observables, expectation, self.threshold
-        )
-
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            result = eval_observables(
+                quantum_instance, quantum_state, observables, expectation, self.threshold
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
             np.testing.assert_array_almost_equal(
