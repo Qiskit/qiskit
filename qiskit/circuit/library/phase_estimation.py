@@ -73,12 +73,12 @@ class PhaseEstimation(QuantumCircuit):
 
                from qiskit.circuit import QuantumCircuit
                from qiskit.circuit.library import PhaseEstimation
-               from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
                unitary = QuantumCircuit(2)
                unitary.x(0)
                unitary.y(1)
                circuit = PhaseEstimation(3, unitary)
-               _generate_circuit_library_visualiztion(circuit)
+               _generate_circuit_library_visualization(circuit)
         """
         qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
         qr_state = QuantumRegister(unitary.num_qubits, "q")

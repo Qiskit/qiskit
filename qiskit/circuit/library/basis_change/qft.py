@@ -41,9 +41,9 @@ class QFT(BlueprintCircuit):
     .. plot::
 
        from qiskit.circuit.library import QFT
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
        circuit = QFT(4)
-       _generate_circuit_library_visualiztion(circuit)
+       _generate_circuit_library_visualization(circuit)
 
     The inverse QFT can be obtained by calling the ``inverse`` method on this class.
     The respective circuit diagram is:
@@ -51,9 +51,9 @@ class QFT(BlueprintCircuit):
     .. plot::
 
        from qiskit.circuit.library import QFT
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
        circuit = QFT(4).inverse()
-       _generate_circuit_library_visualiztion(circuit)
+       _generate_circuit_library_visualization(circuit)
 
     One method to reduce circuit depth is to implement the QFT approximately by ignoring
     controlled-phase rotations where the angle is beneath a threshold. This is discussed
@@ -67,9 +67,9 @@ class QFT(BlueprintCircuit):
     .. plot::
 
        from qiskit.circuit.library import QFT
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
        circuit = QFT(5, approximation_degree=2)
-       _generate_circuit_library_visualiztion(circuit)
+       _generate_circuit_library_visualization(circuit)
 
     """
 

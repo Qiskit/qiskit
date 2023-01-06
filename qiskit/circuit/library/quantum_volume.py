@@ -43,9 +43,9 @@ class QuantumVolume(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import QuantumVolume
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
        circuit = QuantumVolume(5, 6, seed=10, classical_permutation=False)
-       _generate_circuit_library_visualiztion(circuit.decompose())
+       _generate_circuit_library_visualization(circuit.decompose())
 
     **References:**
 

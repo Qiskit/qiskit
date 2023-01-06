@@ -176,7 +176,7 @@ class Statevector(QuantumState, TolerancesMixin):
                 from numpy import sqrt
                 from qiskit.quantum_info import Statevector
                 sv=Statevector([1/sqrt(2), 0, 0, -1/sqrt(2)])
-                sv.draw(output='latex')
+                sv.draw(output='hinton')
 
         """
         # pylint: disable=cyclic-import

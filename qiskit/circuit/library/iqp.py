@@ -47,10 +47,10 @@ class IQP(QuantumCircuit):
         .. plot::
 
            from qiskit.circuit.library import IQP
-           from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+           from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
            A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
            circuit = IQP(A)
-           _generate_circuit_library_visualiztion(circuit.decompose())
+           _generate_circuit_library_visualization(circuit.decompose())
 
     **References:**
 

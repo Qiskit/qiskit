@@ -33,9 +33,9 @@ class AND(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import AND
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
        circuit = AND(5)
-       _generate_circuit_library_visualiztion(circuit)
+       _generate_circuit_library_visualization(circuit)
 
     Using flags we can negate qubits or skip them. For instance, if we have 5 qubits and want to
     return ``True`` if the first qubit is ``False`` and the last two are ``True`` we use the flags
@@ -44,9 +44,9 @@ class AND(QuantumCircuit):
     .. plot::
 
        from qiskit.circuit.library import AND
-       from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
        circuit = AND(5, flags=[-1, 0, 0, 1, 1])
-       _generate_circuit_library_visualiztion(circuit)
+       _generate_circuit_library_visualization(circuit)
 
     """
 

@@ -58,10 +58,10 @@ class Permutation(QuantumCircuit):
             .. plot::
 
                from qiskit.circuit.library import Permutation
-               from qiskit.tools.jupyter.library import _generate_circuit_library_visualiztion
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
                A = [2,4,3,0,1]
                circuit = Permutation(5, A)
-               _generate_circuit_library_visualiztion(circuit.decompose())
+               _generate_circuit_library_visualization(circuit.decompose())
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
