@@ -444,7 +444,7 @@ Supplementary Information
    a scheduling phase can be applied to optionally account for all the idle time in the circuit.
    At a high level the scheduling can be thought of as inserting delays into the circuit to account
    for idle time on the qubits between the execution of instructions. For example, if we start with a
-   circuit such as a ghz circuit and then call :func:`~.transpile` on it with ``scheduling_method``
+   circuit such as a GHZ circuit and then call :func:`~.transpile` on it with ``scheduling_method``
    set:
 
    .. plot::
