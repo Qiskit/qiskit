@@ -8,7 +8,7 @@ features:
     :meth:`.QuantumCircuit.draw` this label will be printed at the top of the
     ``barrier``.
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
 

@@ -48,9 +48,9 @@ def dag_drawer(dag, scale=0.7, filename=None, style="color"):
         InvalidFileError: when filename provided is not valid
 
     Example:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
-            %matplotlib inline
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag

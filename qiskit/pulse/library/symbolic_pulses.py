@@ -304,7 +304,7 @@ class SymbolicPulse(Pulse):
     This is how a user can instantiate a symbolic pulse instance.
     In this example, we instantiate a custom `Sawtooth` envelope.
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.pulse.library import SymbolicPulse
 
@@ -319,9 +319,11 @@ class SymbolicPulse(Pulse):
     the envelope and constraints. However, this instance cannot generate waveforms
     without knowing the envelope definition. Now you need to provide the envelope.
 
-    .. jupyter-execute::
+    .. plot::
+       :include-source:
 
         import sympy
+        from qiskit.pulse.library import SymbolicPulse
 
         t, amp, freq = sympy.symbols("t, amp, freq")
         envelope = 2 * amp * (freq * t - sympy.floor(1 / 2 + freq * t))
