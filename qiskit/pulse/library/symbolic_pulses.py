@@ -1141,7 +1141,7 @@ def GaussianFallEdge(
     )
 
     instance = SymbolicPulse(
-        pulse_type="GaussianRiseEdge",
+        pulse_type="GaussianFallEdge",
         duration=duration,
         parameters={"amp": amp, "angle": angle, "sigma": sigma, "risefall": risefall_sigma_ratio},
         name=name,
