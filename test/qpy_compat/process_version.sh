@@ -20,12 +20,17 @@ if [[ ${parts[1]} -lt 18 ]] ; then
     exit 0
 fi
 echo "Building venv for qiskit-terra $version"
-python -m venv $version
-./$version/bin/pip install "qiskit-terra==$version"
-mkdir qpy_$version
-pushd qpy_$version
-echo "Generating qpy files with qiskit-terra $version"
-../$version/bin/python ../test_qpy.py generate --version=$version
+if [[ ! -d qpy_$version ]] ; then
+    python -m venv $version
+    ./$version/bin/pip install "qiskit-terra==$version"
+    mkdir qpy_$version
+    pushd qpy_$version
+    echo "Generating qpy files with qiskit-terra $version"
+    ../$version/bin/python ../test_qpy.py generate --version=$version
+else
+    echo "Using cached QPY files for $version"
+    pushd qpy_$version
+fi
 echo "Loading qpy files from $version with dev qiskit-terra"
 ../qiskit_venv/bin/python ../test_qpy.py load --version=$version
 popd
