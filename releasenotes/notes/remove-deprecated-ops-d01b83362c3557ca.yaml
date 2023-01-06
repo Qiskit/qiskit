@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Remove ``qiskit.circuit.measure.measure`` and ``qiskit.circuit.reset.reset`` 
+    functions deprecated since 0.19.
