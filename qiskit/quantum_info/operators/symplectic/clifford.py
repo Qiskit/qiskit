@@ -51,7 +51,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     be obtained by calling the :meth:`to_dict` method. This representation is
     also used if a Clifford object is printed as in the following example
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import Clifford
@@ -70,6 +70,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
         # Print the Clifford stabilizer rows
         print(cliff.to_labels(mode="S"))
+
+    .. parsed-literal::
+
+        Clifford: Stabilizer = ['+XX', '+ZZ'], Destabilizer = ['+IZ', '+XI']
+        ['+IZ', '+XI']
+        ['+XX', '+ZZ']
 
     **Circuit Conversion**
 

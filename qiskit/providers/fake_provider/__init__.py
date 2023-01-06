@@ -31,38 +31,34 @@ Example Usage
 
 Here is an example of using a fake backend for transpilation and simulation.
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
-    from qiskit import QuantumCircuit
-    from qiskit.providers.fake_provider import FakeManilaV2
+   from qiskit import QuantumCircuit
+   from qiskit.providers.fake_provider import FakeManilaV2
+   from qiskit import transpile
+   from qiskit.tools.visualization import plot_histogram
 
-    # Get a fake backend from the fake provider
-    backend = FakeManilaV2()
 
-    # Create a simple circuit
-    circuit = QuantumCircuit(3)
-    circuit.h(0)
-    circuit.cx(0,1)
-    circuit.cx(0,2)
-    circuit.measure_all()
-    circuit.draw()
+   # Get a fake backend from the fake provider
+   backend = FakeManilaV2()
 
-.. jupyter-execute::
+   # Create a simple circuit
+   circuit = QuantumCircuit(3)
+   circuit.h(0)
+   circuit.cx(0,1)
+   circuit.cx(0,2)
+   circuit.measure_all()
+   circuit.draw('mpl')
 
-    from qiskit import transpile
+   # Transpile the ideal circuit to a circuit that can be directly executed by the backend
+   transpiled_circuit = transpile(circuit, backend)
+   transpiled_circuit.draw('mpl')
 
-    # Transpile the ideal circuit to a circuit that can be directly executed by the backend
-    transpiled_circuit = transpile(circuit, backend)
-    transpiled_circuit.draw()
-
-.. jupyter-execute::
-
-    from qiskit.tools.visualization import plot_histogram
-
-    # Run the transpiled circuit using the simulated fake backend
-    job = backend.run(transpiled_circuit)
-    counts = job.result().get_counts()
-    plot_histogram(counts)
+   # Run the transpiled circuit using the simulated fake backend
+   job = backend.run(transpiled_circuit)
+   counts = job.result().get_counts()
+   plot_histogram(counts)
 
 .. important::
 
