@@ -170,12 +170,13 @@ class Statevector(QuantumState, TolerancesMixin):
 
             Plot one of the Bell states
 
-            .. jupyter-execute::
+            .. plot::
+               :include-source:
 
                 from numpy import sqrt
                 from qiskit.quantum_info import Statevector
                 sv=Statevector([1/sqrt(2), 0, 0, -1/sqrt(2)])
-                sv.draw(output='latex')
+                sv.draw(output='hinton')
 
         """
         # pylint: disable=cyclic-import
@@ -524,7 +525,7 @@ class Statevector(QuantumState, TolerancesMixin):
             Consider a 2-qubit product state
             :math:`|\\psi\\rangle=|+\\rangle\\otimes|0\\rangle`.
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import Statevector
 
@@ -542,10 +543,16 @@ class Statevector(QuantumState, TolerancesMixin):
                 probs_qubit_1 = psi.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
+            .. parsed-literal::
+
+                probs: [0.5 0.  0.5 0. ]
+                Qubit-0 probs: [1. 0.]
+                Qubit-1 probs: [0.5 0.5]
+
             We can also permute the order of qubits in the ``qargs`` list
             to change the qubit position in the probabilities output
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import Statevector
 
@@ -559,6 +566,12 @@ class Statevector(QuantumState, TolerancesMixin):
                 # but swapping qubits 0 and 1 in output
                 probs_swapped = psi.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
+
+            .. parsed-literal::
+
+                probs: [0.5 0.  0.5 0. ]
+                Swapped probs: [0.5 0.5 0.  0. ]
+
         """
         probs = self._subsystem_probabilities(
             np.abs(self.data) ** 2, self._op_shape.dims_l(), qargs=qargs
@@ -758,17 +771,21 @@ class Statevector(QuantumState, TolerancesMixin):
             The ket-form of a 2-qubit statevector
             :math:`|\psi\rangle = |-\rangle\otimes |0\rangle`
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import Statevector
 
                 psi = Statevector.from_label('-0')
                 print(psi.to_dict())
 
+            .. parsed-literal::
+
+                {'00': (0.7071067811865475+0j), '10': (-0.7071067811865475+0j)}
+
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system
 
-            .. jupyter-execute::
+            .. code-block::
 
                 import numpy as np
                 from qiskit.quantum_info import Statevector
@@ -779,11 +796,15 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(3, 3))
                 print(psi.to_dict())
 
+            .. parsed-literal::
+
+                {'00': (0.7071067811865475+0j), '22': (0.7071067811865475+0j)}
+
             For large subsystem dimensions delimiters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
-            .. jupyter-execute::
+            .. code-block::
 
                 import numpy as np
                 from qiskit.quantum_info import Statevector
@@ -793,6 +814,11 @@ class Statevector(QuantumState, TolerancesMixin):
                 vec[-1] = 1 / np.sqrt(2)
                 psi = Statevector(vec, dims=(2, 10))
                 print(psi.to_dict())
+
+            .. parsed-literal::
+
+                {'00': (0.7071067811865475+0j), '91': (0.7071067811865475+0j)}
+
         """
         return self._vector_to_dict(
             self.data, self._op_shape.dims_l(), decimals=decimals, string_labels=True
