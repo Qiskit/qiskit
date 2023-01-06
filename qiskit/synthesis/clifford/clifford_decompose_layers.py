@@ -76,16 +76,6 @@ def synth_clifford_layers(
     """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
     described in Lemma 8 of [1].
 
-    For example, a 5-qubit Clifford circuit is decomposed into the following layers:
-
-    .. jupyter-execute::
-
-        from from qiskit.quantum_info import random_clifford
-        from qiskit.synthesis.clifford import synth_clifford_layers
-        cliff = random_clifford(5)
-        circ = synth_clifford_layers(cliff)
-        circ.draw('mpl')
-
     Args:
         cliff (Clifford): a clifford operator.
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
@@ -100,6 +90,16 @@ def synth_clifford_layers(
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
+
+    For example, a 5-qubit Clifford circuit is decomposed into the following layers:
+
+    .. jupyter-execute::
+
+        from from qiskit.quantum_info import random_clifford
+        from qiskit.synthesis.clifford import synth_clifford_layers
+        cliff = random_clifford(5)
+        circ = synth_clifford_layers(cliff)
+        circ.draw('mpl')
     """
 
     cliff_cpy = cliff.copy()
