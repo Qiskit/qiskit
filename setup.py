@@ -33,6 +33,11 @@ with open(README_PATH) as readme_file:
     )
 
 
+qasm3_import_extras = [
+    # Pinned exactly, because we're including the optional effectively as an alternative to
+    # vendoring the package's code into Terra.
+    "qiskit-qasm3-import==0.1.0",
+]
 visualization_extras = [
     "matplotlib>=3.3",
     "ipywidgets>=7.3.0",
@@ -81,6 +86,7 @@ setup(
     include_package_data=True,
     python_requires=">=3.7",
     extras_require={
+        "qasm3-import": qasm3_import_extras,
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
@@ -88,7 +94,7 @@ setup(
         "toqm": toqm_requirements,
         # Note: 'all' only includes extras that are stable and work on the majority of Python
         # versions and OSes supported by Terra. You have to ask for anything else explicitly.
-        "all": visualization_extras + z3_requirements + csp_requirements,
+        "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",

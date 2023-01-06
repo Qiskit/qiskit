@@ -117,6 +117,11 @@ External Python Libraries
       - Various LaTeX-based visualizations, especially the circuit drawers, need access to the
         `pylatexenc <https://github.com/phfaist/pylatexenc>`__ project to work correctly.
 
+    * - .. py:data:: HAS_QASM3_IMPORT
+      - The functions :func:`.qasm3.load` and :func:`.qasm3.loads` for importing OpenQASM 3 programs
+        into :class:`.QuantumCircuit` instances use `an external importer package
+        <https://jakelishman.github.io/qiskit-qasm3-import>`__.
+
     * - .. py:data:: HAS_SEABORN
       - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.  Some
         of these are built using `Seaborn <https://seaborn.pydata.org/>`__, which must be installed
@@ -263,6 +268,9 @@ HAS_PYLATEX = _LazyImportTester(
     },
     name="pylatexenc",
     install="pip install pylatexenc",
+)
+HAS_QASM3_IMPORT = _LazyImportTester(
+    "qiskit_qasm3_import", install="pip install qiskit_qasm3_import"
 )
 HAS_SEABORN = _LazyImportTester("seaborn", install="pip install seaborn")
 HAS_SKLEARN = _LazyImportTester(
