@@ -19,9 +19,10 @@ import numpy
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates import PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import pi
+
+from .p import PhaseGate
 
 
 class ZGate(Gate):

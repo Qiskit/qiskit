@@ -17,8 +17,9 @@ from typing import Optional
 import numpy as np
 
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates import XXPlusYYGate
 from qiskit.circuit.quantumregister import QuantumRegister
+
+from .xx_plus_yy import XXPlusYYGate
 
 
 class iSwapGate(Gate):
