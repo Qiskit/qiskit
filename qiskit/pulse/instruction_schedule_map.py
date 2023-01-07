@@ -26,244 +26,22 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
     inst_map = backend.defaults().instruction_schedule_map
 
 """
-from abc import ABCMeta, abstractmethod
-import inspect
 import functools
 import warnings
 from collections import defaultdict
-from enum import IntEnum
-from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple, Sequence, Any
+from typing import Callable, Iterable, List, Tuple, Union, Optional
 
-from qiskit.qobj.pulse_qobj import PulseQobjInstruction
-from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.pulse.calibration_entries import (
+    CalibrationPublisher,
+    CalibrationEntry,
+    ScheduleDef,
+    CallableDef,
+    PulseQobjDef,
+)
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
-
-Generator = NamedTuple(
-    "Generator",
-    [("function", Union[Callable, Schedule, ScheduleBlock]), ("signature", inspect.Signature)],
-)
-
-
-class CalibrationPublisher(IntEnum):
-    """Defines who defined schedule entry."""
-
-    BACKEND_PROVIDER = 0
-    QISKIT = 1
-    EXPERIMENT_SERVICE = 2
-
-
-class CalibrationEntry(metaclass=ABCMeta):
-    """A calibration entry."""
-
-    @abstractmethod
-    def define(self, definition: Any):
-        """Attach definition to the calibration entry.
-
-        Args:
-            definition: Definition of this entry.
-        """
-        pass
-
-    @abstractmethod
-    def get_signature(self) -> inspect.Signature:
-        """Return signature object associated with entry definition.
-
-        Returns:
-            Signature object.
-        """
-        pass
-
-    @abstractmethod
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
-        """Generate schedule from entry definition.
-
-        Args:
-            args: Command parameters.
-            kwargs: Command keyword parameters.
-
-        Returns:
-            Pulse schedule with assigned parameters.
-        """
-        pass
-
-
-class ScheduleDef(CalibrationEntry):
-    """A calibration entry provided by in-memory Pulse representation."""
-
-    def __init__(self, arguments: Optional[Sequence[str]] = None):
-        """Define an empty entry.
-
-        Args:
-            arguments: User provided argument names for this entry, if parameterized.
-        """
-        self._user_arguments = arguments
-
-        self._definition = None
-        self._signature = None
-
-    def _parse_argument(self):
-        """Generate signature from program and user provided argument names."""
-        # This doesn't assume multiple parameters with the same name
-        # Parameters with the same name are treated identically
-        all_argnames = set(map(lambda x: x.name, self._definition.parameters))
-
-        if self._user_arguments:
-            if set(self._user_arguments) != all_argnames:
-                raise PulseError(
-                    "Specified arguments don't match with schedule parameters. "
-                    f"{self._user_arguments} != {self._definition.parameters}."
-                )
-            argnames = list(self._user_arguments)
-        else:
-            argnames = sorted(all_argnames)
-
-        params = []
-        for argname in argnames:
-            param = inspect.Parameter(
-                argname,
-                kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            )
-            params.append(param)
-        signature = inspect.Signature(
-            parameters=params,
-            return_annotation=type(self._definition),
-        )
-        self._signature = signature
-
-    def define(self, definition: Union[Schedule, ScheduleBlock]):
-        self._definition = definition
-        self._parse_argument()
-
-    def get_signature(self) -> inspect.Signature:
-        return self._signature
-
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
-        if not args and not kwargs:
-            return self._definition
-        try:
-            to_bind = self.get_signature().bind_partial(*args, **kwargs)
-        except TypeError as ex:
-            raise PulseError("Assigned parameter doesn't match with schedule parameters.") from ex
-        value_dict = {}
-        for param in self._definition.parameters:
-            # Schedule allows partial bind. This results in parameterized Schedule.
-            try:
-                value_dict[param] = to_bind.arguments[param.name]
-            except KeyError:
-                pass
-        return self._definition.assign_parameters(value_dict, inplace=False)
-
-    def __eq__(self, other):
-        # This delegates equality check to Schedule or ScheduleBlock.
-        return self._definition == other._definition
-
-    def __str__(self):
-        out = f"Schedule {self._definition.name}"
-        params_str = ", ".join(self.get_signature().parameters.keys())
-        if params_str:
-            out += f"({params_str})"
-        return out
-
-
-class CallableDef(CalibrationEntry):
-    """A calibration entry provided by python callback function."""
-
-    def __init__(self):
-        """Define an empty entry."""
-        self._definition = None
-        self._signature = None
-
-    def define(self, definition: Callable):
-        self._definition = definition
-        self._signature = inspect.signature(definition)
-
-    def get_signature(self) -> inspect.Signature:
-        return self._signature
-
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
-        try:
-            # Python function doesn't allow partial bind, but default value can exist.
-            to_bind = self._signature.bind(*args, **kwargs)
-            to_bind.apply_defaults()
-        except TypeError as ex:
-            raise PulseError("Assigned parameter doesn't match with function signature.") from ex
-
-        return self._definition(**to_bind.arguments)
-
-    def __eq__(self, other):
-        # We cannot evaluate function equality without parsing python AST.
-        # This simply compares wether they are the same object.
-        return self._definition is other._definition
-
-    def __str__(self):
-        params_str = ", ".join(self.get_signature().parameters.keys())
-        return f"Callable {self._definition.__name__}({params_str})"
-
-
-class PulseQobjDef(ScheduleDef):
-    """A calibration entry provided by Qobj instruction sequence."""
-
-    def __init__(
-        self,
-        arguments: Optional[Sequence[str]] = None,
-        converter: Optional[QobjToInstructionConverter] = None,
-        name: Optional[str] = None,
-    ):
-        """Define an empty entry.
-
-        Args:
-            arguments: User provided argument names for this entry, if parameterized.
-            converter: Optional. Qobj to Qiskit converter.
-            name: Name of schedule.
-        """
-        super().__init__(arguments=arguments)
-
-        self._converter = converter or QobjToInstructionConverter()
-        self._name = name
-        self._source = None
-
-    def _build_schedule(self):
-        """Build pulse schedule from cmd-def sequence."""
-        schedule = Schedule(name=self._name)
-        for qobj_inst in self._source:
-            for qiskit_inst in self._converter._get_sequences(qobj_inst):
-                schedule.insert(qobj_inst.t0, qiskit_inst, inplace=True)
-        schedule.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
-
-        self._definition = schedule
-        self._parse_argument()
-
-    def define(self, definition: List[PulseQobjInstruction]):
-        # This doesn't generate signature immediately, because of lazy schedule build.
-        self._source = definition
-
-    def get_signature(self) -> inspect.Signature:
-        if self._definition is None:
-            self._build_schedule()
-        return super().get_signature()
-
-    def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
-        if self._definition is None:
-            self._build_schedule()
-        return super().get_schedule(*args, **kwargs)
-
-    def __eq__(self, other):
-        if isinstance(other, PulseQobjDef):
-            # If both objects are Qobj just check Qobj equality.
-            return self._source == other._source
-        if isinstance(other, ScheduleDef) and self._definition is None:
-            # To compare with other scheudle def, this also generates schedule object from qobj.
-            self._build_schedule()
-        return self._definition == other._definition
-
-    def __str__(self):
-        if self._definition is None:
-            # Avoid parsing schedule for pretty print.
-            return "PulseQobj"
-        return super().__str__()
 
 
 class InstructionScheduleMap:
@@ -284,7 +62,7 @@ class InstructionScheduleMap:
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
 
-        # Do not use lambda function for nested defaultdict, i.e. lambda: defaultdict(Generator).
+        # Do not use lambda function for nested defaultdict, i.e. lambda: defaultdict(CalibrationEntry).
         # This crashes qiskit parallel. Note that parallel framework passes args as
         # pickled object, however lambda function cannot be pickled.
         self._map = defaultdict(functools.partial(defaultdict, CalibrationEntry))

@@ -28,7 +28,8 @@ import inspect
 import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
-from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap, CalibrationEntry
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.calibration_entries import CalibrationEntry
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
