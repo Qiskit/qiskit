@@ -213,7 +213,7 @@ class PulseQobjDef(ScheduleDef):
         """
         super().__init__(arguments=arguments)
 
-        self._converter = converter or QobjToInstructionConverter()
+        self._converter = converter or QobjToInstructionConverter(pulse_library=[])
         self._name = name
         self._source = None
 
