@@ -113,7 +113,6 @@ from .discrete import (
 from .parametric_pulses import ParametricPulse
 from .symbolic_pulses import (
     SymbolicPulse,
-    ScalableSymbolicPulse,
     Gaussian,
     GaussianSquare,
     GaussianSquareDrag,
