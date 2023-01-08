@@ -17,7 +17,6 @@
 These are pulses which are described by symbolic equations for their envelopes and for their
 parameter constraints.
 """
-import copy
 import functools
 import warnings
 from typing import Any, Dict, List, Optional, Union, Callable
@@ -92,7 +91,8 @@ def _is_amplitude_valid(envelope_lam: Callable, envelope: sym.Expr, parameters: 
     Args:
         envelope_lam: The SymbolicPulse's lambdified envelope_lam expression.
         envelope: The SymbolicPulse's envelope expressions.
-        parameters: The SymbolicPulse's parameters.items() (assumed to be binded) converted to tuple (for hashability).
+        parameters: The SymbolicPulse's parameters.items() (assumed to be binded) converted
+            to tuple (for hashability).
 
     Returns:
         Return True if no sample point exceeds 1.0 in absolute value.
@@ -525,7 +525,9 @@ class SymbolicPulse(Pulse):
                 # Check full waveform only when the condition is satisified or
                 # evaluation condition is not provided.
                 # This operation is slower due to overhead of 'get_waveform'.
-                if not _is_amplitude_valid(self._envelope_lam, self._envelope, tuple(self.parameters.items())):
+                if not _is_amplitude_valid(
+                    self._envelope_lam, self._envelope, tuple(self.parameters.items())
+                ):
                     param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
                     raise PulseError(
                         f"Maximum pulse amplitude norm exceeds 1.0 with parameters {param_repr}."
@@ -565,6 +567,9 @@ class SymbolicPulse(Pulse):
             param_repr,
             f", name='{self.name}'" if self.name is not None else "",
         )
+
+    def __hash__(self) -> int:
+        raise NotImplementedError
 
 
 class ScalableSymbolicPulse(SymbolicPulse):
@@ -617,7 +622,6 @@ class ScalableSymbolicPulse(SymbolicPulse):
                 creates a full-waveform.
 
         Raises:
-            PulseError: When not all parameters are listed in the attribute :attr:`PARAM_DEF`.
             PulseError: If both `amp` is complex and `angle` is not `None` or 0.
 
         """
@@ -681,6 +685,9 @@ class ScalableSymbolicPulse(SymbolicPulse):
                 return False
 
         return True
+
+    def __hash__(self) -> int:
+        raise NotImplementedError
 
 
 class _PulseType(type):
@@ -999,7 +1006,7 @@ def GaussianSquareDrag(
             waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
 
     Returns:
-        SymbolicPulse instance.
+        ScalableSymbolicPulse instance.
 
     Raises:
         PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
@@ -1017,7 +1024,7 @@ def GaussianSquareDrag(
     if width is None and risefall_sigma_ratio is not None:
         width = duration - 2.0 * risefall_sigma_ratio * sigma
 
-    parameters = {"amp": amp, "sigma": sigma, "width": width, "beta": beta, "angle": angle}
+    parameters = {"sigma": sigma, "width": width, "beta": beta}
 
     # Prepare symbolic expressions
     _t, _duration, _amp, _sigma, _beta, _width, _angle = sym.symbols(
@@ -1045,9 +1052,11 @@ def GaussianSquareDrag(
     consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width)
     valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0, sym.Abs(_beta) < _sigma)
 
-    instance = SymbolicPulse(
+    instance = ScalableSymbolicPulse(
         pulse_type="GaussianSquareDrag",
         duration=duration,
+        amp=amp,
+        angle=angle,
         parameters=parameters,
         name=name,
         limit_amplitude=limit_amplitude,
