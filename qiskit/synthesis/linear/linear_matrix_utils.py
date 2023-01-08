@@ -60,7 +60,7 @@ def random_invertible_binary_matrix(
 def _gauss_elimination(mat, ncols=None, full_elim=False):
     """Gauss elimination of a matrix mat with m rows and n columns.
     If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-    Mutates and returns the matrix mat."""
+    Returns the matrix mat."""
 
     mat, _ = _gauss_elimination_with_perm(mat, ncols, full_elim)
     return mat
@@ -69,8 +69,8 @@ def _gauss_elimination(mat, ncols=None, full_elim=False):
 def _gauss_elimination_with_perm(mat, ncols=None, full_elim=False):
     """Gauss elimination of a matrix mat with m rows and n columns.
     If full_elim = True, it allows full elimination of mat[:, 0 : ncols]
-    Mutates and returns the matrix mat, and the permutation perm that
-    was done on the rows during the process."""
+    Returns the matrix mat, and the permutation perm that was done on the rows during the process.
+    perm[0 : rank] represents the indices of linearly independent rows in the original matrix."""
 
     # Treat the matrix A as containing integer values
     mat = np.array(mat, dtype=int, copy=True)
