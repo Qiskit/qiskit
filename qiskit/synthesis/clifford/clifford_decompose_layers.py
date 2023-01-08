@@ -95,7 +95,7 @@ def synth_clifford_layers(
         cliff (Clifford): a clifford operator.
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
-        cx_cz_synth_func (Callable): optional, a function to decompose the sub-circuits CZ and CX .
+        cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
         validate (Boolean): if True, validates the synthesis process.
 
     Return:
@@ -161,9 +161,29 @@ def _reverse_clifford(cliff):
 
 
 def _create_graph_state(cliff, validate=False):
-    """Apply Hadamard gates to a subset of the qubits to make cliff.stab_x matrix have full rank.
-    Returns the QuantumCircuit H1_circ that includes the Hadamard gates.
-    The algorithm is based on Lemma 6 in [2]."""
+    """Given a Clifford cliff (denoted by U) that induces a stabilizer state U |0>,
+    apply a layer H1 of Hadamard gates to a subset of the qubits to make H1 U |0> into a graph state,
+    namely to make cliff.stab_x matrix have full rank.
+    Returns the QuantumCircuit H1_circ that includes the Hadamard gates and the updated Clifford
+    that induces the graph state.
+    The algorithm is based on Lemma 6 in [2].
+
+    Args:
+        cliff (Clifford): a clifford operator.
+        validate (Boolean): if True, validates the synthesis process.
+
+    Return:
+        H1_circ: a circuit containing a layer of Hadamard gates.
+        cliffh: cliffh.stab_x has full rank.
+
+    Raises:
+        QiskitError: if there are errors in the Gauss elimination process.
+
+    Reference:
+        2. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,
+           Phys. Rev. A 70, 052328 (2004).
+           `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
+    """
 
     num_qubits = cliff.num_qubits
     rank = _compute_rank(cliff.stab_x)
@@ -213,7 +233,22 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
     where S1_circ is a circuit that can contain only S gates,
     CZ1_circ is a circuit that can contain only CZ gates, and
     H2_circ is a circuit that can contain H gates on all qubits.
+
+    Args:
+        cliff (Clifford): a clifford operator corresponding to a graph state, cliff.stab_x has full rank.
+        validate (Boolean): if True, validates the synthesis process.
+        cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
+
+    Return:
+        S1_circ: a circuit that can contain only S gates.
+        CZ1_circ: a circuit that can contain only CZ gates.
+        H2_circ: a circuit containing a layer of Hadamard gates.
+        cliff_cpy: a Hadamard-free Clifford.
+
+    Raises:
+        QiskitError: if cliff does not induce a graph state.
     """
+
     num_qubits = cliff.num_qubits
     rank = _compute_rank(cliff.stab_x)
     cliff_cpy = cliff.copy()
@@ -259,7 +294,22 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
     Decompose it into the layers S2 - CZ2 - CX, where
     S2_circ is a circuit that can contain only S gates,
     CZ2_circ is a circuit that can contain only CZ gates, and
-    CX_circ is a circuit that can contain CX gates on all qubits.
+    CX_circ is a circuit that can contain CX gates.
+
+    Args:
+        cliff (Clifford): a Hadamard-free clifford operator.
+        validate (Boolean): if True, validates the synthesis process.
+        cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
+        cx_synth_func (Callable): a function to decompose the CX sub-circuit.
+        cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
+
+    Return:
+        S2_circ: a circuit that can contain only S gates.
+        CZ2_circ: a circuit that can contain only CZ gates.
+        CX_circ: a circuit that can contain only CX gates.
+
+    Raises:
+        QiskitError: if cliff is not Hadamard free.
     """
 
     num_qubits = cliff.num_qubits
