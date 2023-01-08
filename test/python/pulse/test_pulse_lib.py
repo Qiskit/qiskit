@@ -388,17 +388,6 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=-7.8, beta=4)
 
-    def test_hash_generation(self):
-        """Test if pulse generate unique hash."""
-        test_hash = [
-            hash(GaussianSquare(duration=688, amp=0.1 + 0.1j, sigma=64, width=432))
-            for _ in range(10)
-        ]
-
-        ref_hash = [test_hash[0] for _ in range(10)]
-
-        self.assertListEqual(test_hash, ref_hash)
-
     def test_gaussian_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
         with self.assertRaises(PulseError):
@@ -648,7 +637,6 @@ class TestScalableSymbolicPulse(QiskitTestCase):
         gaussian_negamp = Gaussian(duration=25, sigma=4, amp=-0.5, angle=0)
         gaussian_piphase = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi)
         self.assertEqual(gaussian_negamp, gaussian_piphase)
-        self.assertEqual(hash(gaussian_negamp), hash(gaussian_piphase))
 
         # Parameterized library pulses
         amp = Parameter("amp")

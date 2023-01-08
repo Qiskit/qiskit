@@ -84,20 +84,23 @@ def _lifted_gaussian(
 
 
 @functools.lru_cache(maxsize=None)
-def _is_amplitude_valid(symbolic_pulse: "SymbolicPulse") -> bool:
+def _is_amplitude_valid(envelope_lam: Callable, envelope: sym.Expr, parameters: tuple) -> bool:
     """A helper function to validate maximum amplitude limit.
 
     Result is cached for better performance.
 
     Args:
-        symbolic_pulse: A pulse to validate.
+        envelope_lam: The SymbolicPulse's lambdified envelope_lam expression.
+        envelope: The SymbolicPulse's envelope expressions.
+        parameters: The SymbolicPulse's parameters.items() (assumed to be binded) converted to tuple (for hashability).
 
     Returns:
         Return True if no sample point exceeds 1.0 in absolute value.
     """
     try:
+        fargs = _get_expression_args(envelope, dict(parameters))
         # Instantiation of Waveform does automatic amplitude validation.
-        symbolic_pulse.get_waveform()
+        Waveform(samples=envelope_lam(*fargs))
         return True
     except PulseError:
         return False
@@ -522,7 +525,7 @@ class SymbolicPulse(Pulse):
                 # Check full waveform only when the condition is satisified or
                 # evaluation condition is not provided.
                 # This operation is slower due to overhead of 'get_waveform'.
-                if not _is_amplitude_valid(self):
+                if not _is_amplitude_valid(self._envelope_lam, self._envelope, tuple(self.parameters.items())):
                     param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
                     raise PulseError(
                         f"Maximum pulse amplitude norm exceeds 1.0 with parameters {param_repr}."
@@ -554,13 +557,6 @@ class SymbolicPulse(Pulse):
             return False
 
         return True
-
-    def __hash__(self) -> int:
-        if self.is_parameterized():
-            raise NotImplementedError(
-                "Hashing a symbolic pulse with unassigned parameter is not supported."
-            )
-        return hash((self._pulse_type, self._envelope, self.duration, *tuple(self._params.items())))
 
     def __repr__(self) -> str:
         param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
@@ -677,10 +673,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
             if complex_amp1 != complex_amp2:
                 return False
         else:
-            # Because the complex amp is calculated, numerical accuracy becomes an issue.
-            # We can't use np.isclose(), because we must have that equal pulses have the same hash,
-            # which requires us to bring the pulses to some agreed upon representation.
-            if np.round(complex_amp1, 6) != np.round(complex_amp2, 6):
+            if not np.isclose(complex_amp1, complex_amp2):
                 return False
 
         for key in self.parameters:
@@ -688,16 +681,6 @@ class ScalableSymbolicPulse(SymbolicPulse):
                 return False
 
         return True
-
-    def __hash__(self) -> int:
-        if self.is_parameterized():
-            raise NotImplementedError(
-                "Hashing a scalable symbolic pulse with unassigned parameter is not supported."
-            )
-        params = copy.copy(self._params)
-        params["amp"] = np.round(params["amp"] * np.exp(1j * params["angle"]), 6)
-        del params["angle"]
-        return hash((self._pulse_type, self._envelope, self.duration, *tuple(params.items())))
 
 
 class _PulseType(type):
