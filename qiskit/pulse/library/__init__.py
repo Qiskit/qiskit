@@ -116,6 +116,7 @@ from .symbolic_pulses import (
     ScalableSymbolicPulse,
     Gaussian,
     GaussianSquare,
+    GaussianSquareDrag,
     Drag,
     Constant,
 )
