@@ -393,7 +393,7 @@ class AstInterpreter:
         return None
 
     def _gate_rules_to_qiskit_circuit(self, node, params):
-        """From a gate definition in qasm, to a QuantumCircuit format."""
+        """From a gate definition in OpenQASM, to a QuantumCircuit format."""
         rules = []
         qreg = QuantumRegister(node["n_bits"])
         bit_args = {node["bits"][i]: q for i, q in enumerate(qreg)}

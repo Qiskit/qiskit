@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""QASM nodes."""
+"""OpenQASM2 nodes."""
 
 from .barrier import Barrier
 from .binaryop import BinaryOp

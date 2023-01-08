@@ -1572,11 +1572,11 @@ class QuantumCircuit:
         filename: Optional[str] = None,
         encoding: Optional[str] = None,
     ) -> Optional[str]:
-        """Return OpenQASM string.
+        """Return OpenQASM2 string.
 
         Args:
-            formatted (bool): Return formatted Qasm string.
-            filename (str): Save Qasm to file with name 'filename'.
+            formatted (bool): Return formatted OpenQASM 2.0 string.
+            filename (str): Save OpenQASM 2.0 to file with name 'filename'.
             encoding (str): Optionally specify the encoding to use for the
                 output file if ``filename`` is specified. By default this is
                 set to the system's default encoding (ie whatever
@@ -1594,7 +1594,7 @@ class QuantumCircuit:
         """
 
         if self.num_parameters > 0:
-            raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
+            raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.0")
 
         existing_gate_names = [
             "barrier",
@@ -1729,7 +1729,7 @@ class QuantumCircuit:
             if not HAS_PYGMENTS:
                 raise MissingOptionalLibraryError(
                     libname="pygments>2.4",
-                    name="formatted QASM output",
+                    name="formatted OpenQASM2 output",
                     pip_install="pip install pygments",
                 )
             code = pygments.highlight(
@@ -2401,24 +2401,24 @@ class QuantumCircuit:
 
     @staticmethod
     def from_qasm_file(path: str) -> "QuantumCircuit":
-        """Take in a QASM file and generate a QuantumCircuit object.
+        """Take in a OpenQASM2 file and generate a QuantumCircuit object.
 
         Args:
-          path (str): Path to the file for a QASM program
+          path (str): Path to the file for a OpenQASM2 program
         Return:
-          QuantumCircuit: The QuantumCircuit object for the input QASM
+          QuantumCircuit: The QuantumCircuit object for the input OpenQASM2
         """
         qasm = Qasm(filename=path)
         return _circuit_from_qasm(qasm)
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
-        """Take in a QASM string and generate a QuantumCircuit object.
+        """Take in a OpenQASM2 string and generate a QuantumCircuit object.
 
         Args:
-          qasm_str (str): A QASM program string
+          qasm_str (str): A OpenQASM2 program string
         Return:
-          QuantumCircuit: The QuantumCircuit object for the input QASM
+          QuantumCircuit: The QuantumCircuit object for the input OpenQASM2
         """
         qasm = Qasm(data=qasm_str)
         return _circuit_from_qasm(qasm)
@@ -4815,7 +4815,7 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
 def _insert_composite_gate_definition_qasm(
     string_temp: str, existing_composite_circuits: List[Instruction], extension_lib: str
 ) -> str:
-    """Insert composite gate definition QASM code right after extension library in the header"""
+    """Insert composite gate definition OpenQASM2 code right after extension library in the header"""
 
     gate_definition_string = ""
 

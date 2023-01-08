@@ -63,7 +63,7 @@ class SPSA(Optimizer):
 
         SPSA can be used in the presence of noise, and it is therefore indicated in situations
         involving measurement uncertainty on a quantum computation when finding a minimum.
-        If you are executing a variational algorithm using a Quantum ASseMbly Language (QASM)
+        If you are executing a variational algorithm using an OpenQASM
         simulator or a real device, SPSA would be the most recommended choice among the optimizers
         provided here.
 

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Node for an OPENQASM unary operator."""
+"""Node for an OpenQASM2 unary operator."""
 
 import operator
 
@@ -25,7 +25,7 @@ VALID_OPERATORS = {
 
 
 class UnaryOperator(Node):
-    """Node for an OPENQASM unary operator.
+    """Node for an OpenQASM2 unary operator.
 
     This node has no children. The data is in the value field.
     """
@@ -45,5 +45,5 @@ class UnaryOperator(Node):
             raise NodeException(f"internal error: undefined prefix '{self.value}'") from ex
 
     def qasm(self):
-        """Return QASM representation."""
+        """Return OpenQASM2 representation."""
         return self.value

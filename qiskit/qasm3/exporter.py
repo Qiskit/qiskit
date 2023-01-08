@@ -128,7 +128,7 @@ class Exporter:
             basis_gates: the basic defined gate set of the backend.
             disable_constants: if ``True``, always emit floating-point constants for numeric
                 parameter values.  If ``False`` (the default), then values close to multiples of
-                QASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
+                OpenQASM 3 constants (``pi``, ``euler``, and ``tau``) will be emitted in terms of those
                 constants instead, potentially improving accuracy in the output.
             alias_classical_registers: If ``True``, then classical bit and classical register
                 declarations will look similar to quantum declarations, where the whole set of bits
@@ -149,13 +149,13 @@ class Exporter:
         self.indent = indent
 
     def dumps(self, circuit):
-        """Convert the circuit to QASM 3, returning the result as a string."""
+        """Convert the circuit to OpenQASM 3, returning the result as a string."""
         with io.StringIO() as stream:
             self.dump(circuit, stream)
             return stream.getvalue()
 
     def dump(self, circuit, stream):
-        """Convert the circuit to QASM 3, dumping the result to a file or text stream."""
+        """Convert the circuit to OpenQASM 3, dumping the result to a file or text stream."""
         builder = QASM3Builder(
             circuit,
             includeslist=self.includes,
@@ -861,7 +861,7 @@ class QASM3Builder:
         else:
             loop_parameter_ast = self._register_variable(loop_parameter)
         if isinstance(indexset, range):
-            # QASM 3 uses inclusive ranges on both ends, unlike Python.
+            # OpenQASM 3 uses inclusive ranges on both ends, unlike Python.
             indexset_ast = ast.Range(
                 start=self.build_integer(indexset.start),
                 end=self.build_integer(indexset.stop - 1),
@@ -872,7 +872,7 @@ class QASM3Builder:
                 indexset_ast = ast.IndexSet([self.build_integer(value) for value in indexset])
             except QASM3ExporterError:
                 raise QASM3ExporterError(
-                    "The values in QASM 3 'for' loops must all be integers, but received"
+                    "The values in OpenQASM 3 'for' loops must all be integers, but received"
                     f" '{indexset}'."
                 ) from None
         body_ast = self.build_program_block(loop_circuit)

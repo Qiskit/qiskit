@@ -117,7 +117,7 @@ def assemble(
             ``n_qubits.``
         schedule_los: Experiment level (ie circuit or schedule) LO frequency configurations for
             qubit drive and measurement channels. These values override the job level values from
-            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for qasm
+            ``default_qubit_los`` and ``default_meas_los``. Frequencies are in Hz. Settable for OpenQASM2
             and pulse jobs.
         meas_level: Set the appropriate level of the measurement output for pulse experiments.
         meas_return: Level of measurement data for the backend to return.

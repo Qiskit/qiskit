@@ -31,7 +31,7 @@ class QobjDictField(SimpleNamespace):
         self.__dict__.update(kwargs)
 
     def to_dict(self):
-        """Return a dictionary format representation of the QASM Qobj.
+        """Return a dictionary format representation of the OpenQASM2 Qobj.
 
         Returns:
             dict: The dictionary form of the QobjHeader.

@@ -105,7 +105,7 @@ def _assemble_circuit(
     if calibrations:
         config.calibrations = calibrations
 
-    # Convert conditionals from QASM-style (creg ?= int) to qobj-style
+    # Convert conditionals from OpenQASM2-style (creg ?= int) to qobj-style
     # (register_bit ?= 1), by assuming device has unlimited register slots
     # (supported only for simulators). Map all measures to a register matching
     # their clbit_index, create a new register slot for every conditional gate
@@ -213,7 +213,7 @@ def _extract_common_calibrations(
     and delete them from their local experiments.
 
     Args:
-        experiments: The list of Qasm experiments that are being assembled into one qobj
+        experiments: The list of OpenQASM experiments that are being assembled into one qobj
 
     Returns:
         The input experiments with modified calibrations, and common calibrations, if there

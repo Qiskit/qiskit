@@ -48,5 +48,5 @@ class BinaryOperator(Node):
             raise NodeException(f"internal error: undefined operator '{self.value}'") from ex
 
     def qasm(self):
-        """Return the QASM representation."""
+        """Return the OpenQASM2 representation."""
         return self.value

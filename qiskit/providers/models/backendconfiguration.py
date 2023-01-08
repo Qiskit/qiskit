@@ -33,9 +33,9 @@ class GateConfig:
     """Class representing a Gate Configuration
 
     Attributes:
-        name: the gate name as it will be referred to in Qasm.
+        name: the gate name as it will be referred to in OpenQASM.
         parameters: variable names for the gate parameters (if any).
-        qasm_def: definition of this gate in terms of Qasm primitives U
+        qasm_def: definition of this gate in terms of OpenQASM 2 primitives U
                   and CX.
     """
 
@@ -52,10 +52,10 @@ class GateConfig:
         """Initialize a GateConfig object
 
         Args:
-            name (str): the gate name as it will be referred to in Qasm.
+            name (str): the gate name as it will be referred to in OpenQASM.
             parameters (list): variable names for the gate parameters (if any)
                                as a list of strings.
-            qasm_def (str): definition of this gate in terms of Qasm primitives
+            qasm_def (str): definition of this gate in terms of OpenQASM2 primitives
                             U and CX.
             coupling_map (list): An optional coupling map for the gate. In
                 the form of a list of lists of integers representing the qubit
@@ -195,7 +195,7 @@ class UchannelLO:
 
 
 class QasmBackendConfiguration:
-    """Class representing a Qasm Backend Configuration.
+    """Class representing a OpenQASM Backend Configuration.
 
     Attributes:
         backend_name: backend name.

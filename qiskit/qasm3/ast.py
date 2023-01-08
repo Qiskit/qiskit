@@ -208,7 +208,7 @@ class IndexSet(ASTNode):
 
 
 class Constant(Expression, enum.Enum):
-    """A constant value defined by the QASM 3 spec."""
+    """A constant value defined by the OpenQASM 3 spec."""
 
     PI = enum.auto()
     EULER = enum.auto()

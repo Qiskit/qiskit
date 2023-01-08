@@ -131,7 +131,7 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
 
 
 def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
-    """Generate a QASM widget with header for a quantum circuit.
+    """Generate a OpenQASM widget with header for a quantum circuit.
 
     Args:
         circuit: Input quantum circuit.
