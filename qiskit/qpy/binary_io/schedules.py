@@ -87,7 +87,7 @@ def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
 
     # List of pulses in the library in QPY version 5 and below:
     legacy_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
-    class_name = "SymbolicPulse"
+    class_name = "SymbolicPulse"  # Default class name, if not in the library
 
     if pulse_type in legacy_library_pulses:
         # Once complex amp support will be deprecated we will need:
@@ -112,14 +112,9 @@ def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
 
 
 def _read_symbolic_pulse(file_obj, version):
-    if version < 6:
-        make = formats.SYMBOLIC_PULSE._make
-        pack = formats.SYMBOLIC_PULSE_PACK
-        size = formats.SYMBOLIC_PULSE_SIZE
-    else:
-        make = formats.SYMBOLIC_PULSE_V2._make
-        pack = formats.SYMBOLIC_PULSE_PACK_V2
-        size = formats.SYMBOLIC_PULSE_SIZE_V2
+    make = formats.SYMBOLIC_PULSE._make
+    pack = formats.SYMBOLIC_PULSE_PACK
+    size = formats.SYMBOLIC_PULSE_SIZE
 
     header = make(
         struct.unpack(
@@ -127,8 +122,6 @@ def _read_symbolic_pulse(file_obj, version):
             file_obj.read(size),
         )
     )
-    if version >= 6:
-        class_name = file_obj.read(header.class_name_size).decode(common.ENCODE)
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
     envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
     constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
@@ -139,9 +132,62 @@ def _read_symbolic_pulse(file_obj, version):
         version=version,
         vectors={},
     )
-    if version < 6:
-        envelope, class_name = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
-        # Note that parameters is mutated during the function call
+    envelope, class_name = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
+    # Note that parameters is mutated during the function call
+
+    duration = value.read_value(file_obj, version, {})
+    name = value.read_value(file_obj, version, {})
+
+    if class_name == "SymbolicPulse":
+        return library.SymbolicPulse(
+            pulse_type=pulse_type,
+            duration=duration,
+            parameters=parameters,
+            name=name,
+            limit_amplitude=header.amp_limited,
+            envelope=envelope,
+            constraints=constraints,
+            valid_amp_conditions=valid_amp_conditions,
+        )
+    elif class_name == "ScalableSymbolicPulse":
+        return library.ScalableSymbolicPulse(
+            pulse_type=pulse_type,
+            duration=duration,
+            amp=parameters["amp"],
+            angle=parameters["angle"],
+            parameters=parameters,
+            name=name,
+            limit_amplitude=header.amp_limited,
+            envelope=envelope,
+            constraints=constraints,
+            valid_amp_conditions=valid_amp_conditions,
+        )
+    else:
+        raise NotImplementedError(f"Unknown class '{class_name}'")
+
+
+def _read_symbolic_pulse_v6(file_obj, version):
+    make = formats.SYMBOLIC_PULSE_V2._make
+    pack = formats.SYMBOLIC_PULSE_PACK_V2
+    size = formats.SYMBOLIC_PULSE_SIZE_V2
+
+    header = make(
+        struct.unpack(
+            pack,
+            file_obj.read(size),
+        )
+    )
+    class_name = file_obj.read(header.class_name_size).decode(common.ENCODE)
+    pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
+    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
+    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
+    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
+    parameters = common.read_mapping(
+        file_obj,
+        deserializer=value.loads_value,
+        version=version,
+        vectors={},
+    )
 
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
@@ -195,7 +241,10 @@ def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
-        return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
+        if version < 6:
+            return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
+        else:
+            return common.data_from_binary(data_bytes, _read_symbolic_pulse_v6, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
 
