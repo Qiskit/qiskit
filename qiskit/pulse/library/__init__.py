@@ -92,6 +92,7 @@ Parametric Pulse Representation
    Drag
    Gaussian
    GaussianSquare
+   GaussianSquareDrag
 
 """
 
