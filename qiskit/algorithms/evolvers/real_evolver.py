@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,7 +20,7 @@ from .evolution_result import EvolutionResult
 
 
 class RealEvolver(ABC):
-    """Pending deprecation: Interface for Quantum Real Time Evolution.
+    """Deprecated: Interface for Quantum Real Time Evolution.
 
     The RealEvolver interface has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.RealTimeEvolver` interface.
@@ -30,11 +30,10 @@ class RealEvolver(ABC):
     """
 
     @deprecate_function(
-        "The RealEvolver interface has been superseded by the "
-        "qiskit.algorithms.time_evolvers.RealTimeEvolver interface. "
-        "This interface will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+        "The RealEvolver interface is deprecated as of Qiskit Terra 0.23.0 and "
+        "will be removed no sooner than 3 months after the release date. Instead, use "
+        "the qiskit.algorithms.time_evolvers.RealEvolver interface.",
+        category=DeprecationWarning,
     )
     def __init__(self) -> None:
         pass
