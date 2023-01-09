@@ -67,9 +67,7 @@ class HHL(LinearSolver):
     It is replaced by the tutorial at
     `HHL <https://qiskit.org/textbook/ch-applications/hhl_tutorial.html>`_
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             import warnings
             import numpy as np
