@@ -19,11 +19,11 @@ from ddt import data, ddt
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit.circuit import Parameter, ParameterVector
 from qiskit.algorithms.gradients import LinCombQFI, DerivativeType, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
 from qiskit.utils import algorithm_globals
-from qiskit.quantum_info import SparsePauliOp, Pauli
+from qiskit.quantum_info import SparsePauliOp, Pauli, Statevector
 from qiskit.algorithms import TimeEvolutionProblem, VarQRTE
 from qiskit.algorithms.time_evolvers.variational import (
     RealMcLachlanPrinciple,
@@ -40,6 +40,37 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 11
         np.random.seed(self.seed)
+
+    def test_time_dependent_hamiltonian(self):
+        """Simple test case with a time dependent Hamiltonian."""
+        t = Parameter("t")
+        hamiltonian = t * PauliSumOp.from_list([("Z", 1)])
+
+        x = ParameterVector("x", 3)
+        circuit = QuantumCircuit(1)
+        circuit.rz(x[0], 0)
+        circuit.ry(x[1], 0)
+        circuit.rz(x[2], 0)
+
+        initial_parameters = np.array([0, np.pi / 2, 0])
+
+        def expected_state(time):
+            # possible with pen and paper as the Hamiltonian is diagonal
+            return 1 / np.sqrt(2) * np.array([np.exp(-0.5j * time**2), np.exp(0.5j * time**2)])
+
+        final_time = 0.75
+        evolution_problem = TimeEvolutionProblem(hamiltonian, final_time)
+
+        estimator = Estimator()
+        varqrte = VarQRTE(circuit, initial_parameters, estimator=estimator)
+
+        result = varqrte.evolve(evolution_problem)
+
+        # TODO absolutely change this access by adding parameters to the result object
+        final_parameters = [float(inst.operation.params[0]) for inst in result.evolved_state.data]
+        final_state = Statevector(circuit.bind_parameters(final_parameters))
+
+        self.assertTrue(final_state.equiv(expected_state(final_time)))
 
     def test_run_d_1_with_aux_ops(self):
         """Test VarQRTE for d = 1 and t = 0.1 with evaluating auxiliary operators and the Forward
