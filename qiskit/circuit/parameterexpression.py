@@ -100,6 +100,7 @@ class ParameterExpression:
                               they will be bound.
             allow_unknown_parameters: If ``False``, raises an error if ``parameter_values``
                 contains Parameters in the keys outside those present in the expression.
+                If ``True``, any such parameters are simply ignored.
 
         Raises:
             CircuitError:
