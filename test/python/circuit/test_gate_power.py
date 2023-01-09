@@ -22,6 +22,8 @@ from ddt import data, ddt, unpack
 from qiskit.circuit import Gate, QuantumCircuit
 from qiskit.extensions import (
     CPhaseGate,
+    CSdgGate,
+    CSGate,
     CXGate,
     IGate,
     PhaseGate,
@@ -33,7 +35,9 @@ from qiskit.extensions import (
     RZGate,
     RZXGate,
     RZZGate,
+    SdgGate,
     SGate,
+    TdgGate,
     TGate,
     UnitaryGate,
     XXMinusYYGate,
@@ -219,6 +223,8 @@ class TestEfficientGatePowering(QiskitTestCase):
 
     @data(
         (CPhaseGate(0.1), CPhaseGate),
+        (CSdgGate(), CPhaseGate),
+        (CSGate(), CPhaseGate),
         (IGate(), IGate),
         (PhaseGate(-0.1), PhaseGate),
         (RGate(0.1, 0.1), RGate),
@@ -229,8 +235,10 @@ class TestEfficientGatePowering(QiskitTestCase):
         (RZGate(0.1), RZGate),
         (RZXGate(-0.1), RZXGate),
         (RZZGate(-0.1), RZZGate),
+        (SdgGate(), PhaseGate),
         (SGate(), PhaseGate),
         (TGate(), PhaseGate),
+        (TdgGate(), PhaseGate),
         (XXMinusYYGate(-0.1, 0.1), XXMinusYYGate),
         (XXPlusYYGate(0.1, 0.1), XXPlusYYGate),
         (ZGate(), PhaseGate),

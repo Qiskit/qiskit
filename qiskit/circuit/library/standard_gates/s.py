@@ -18,7 +18,7 @@ import numpy
 
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library.standard_gates.p import PhaseGate
+from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.qasm import pi
 
@@ -146,6 +146,10 @@ class SdgGate(Gate):
         """Return a numpy.array for the Sdg gate."""
         return numpy.array([[1, 0], [0, -1j]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(-0.5 * numpy.pi * exponent)
+
 
 class CSGate(ControlledGate):
     r"""Controlled-S gate.
@@ -218,6 +222,10 @@ class CSGate(ControlledGate):
         if dtype is not None:
             return numpy.asarray(mat, dtype=dtype)
         return mat
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return CPhaseGate(0.5 * numpy.pi * exponent)
 
 
 class CSdgGate(ControlledGate):
@@ -297,3 +305,7 @@ class CSdgGate(ControlledGate):
         if dtype is not None:
             return numpy.asarray(mat, dtype=dtype)
         return mat
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return CPhaseGate(-0.5 * numpy.pi * exponent)

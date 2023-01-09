@@ -145,3 +145,7 @@ class TdgGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
         return numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(-0.25 * numpy.pi * exponent)
