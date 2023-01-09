@@ -146,12 +146,17 @@ class ParameterExpression:
 
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
-    def subs(self, parameter_map: Dict) -> "ParameterExpression":
+    def subs(
+        self, parameter_map: Dict, allow_unknown_parameters: bool = False
+    ) -> "ParameterExpression":
         """Returns a new Expression with replacement Parameters.
 
         Args:
             parameter_map: Mapping from Parameters in self to the ParameterExpression
                            instances with which they should be replaced.
+            allow_unknown_parameters: If ``False``, raises an error if ``parameter_map``
+                contains Parameters in the keys outside those present in the expression.
+                If ``True``, any such parameters are simply ignored.
 
         Raises:
             CircuitError:
@@ -162,36 +167,38 @@ class ParameterExpression:
         Returns:
             A new expression with the specified parameters replaced.
         """
-        inbound_parameters = set()
-        inbound_names = {}
-        for replacement_expr in parameter_map.values():
-            for p in replacement_expr.parameters:
-                inbound_parameters.add(p)
-                inbound_names[p.name] = p
+        if not allow_unknown_parameters:
+            self._raise_if_passed_unknown_parameters(parameter_map.keys())
 
-        self._raise_if_passed_unknown_parameters(parameter_map.keys())
+        inbound_names = {
+            p.name: p
+            for replacement_expr in parameter_map.values()
+            for p in replacement_expr.parameters
+        }
         self._raise_if_parameter_names_conflict(inbound_names, parameter_map.keys())
+
+        # Include existing parameters in self not set to be replaced.
+        new_parameter_symbols = {
+            p: s for p, s in self._parameter_symbols.items() if p not in parameter_map
+        }
+
         if _optionals.HAS_SYMENGINE:
             import symengine
 
-            new_parameter_symbols = {p: symengine.Symbol(p.name) for p in inbound_parameters}
+            symbol_type = symengine.Symbol
         else:
             from sympy import Symbol
 
-            new_parameter_symbols = {p: Symbol(p.name) for p in inbound_parameters}
-
-        # Include existing parameters in self not set to be replaced.
-        new_parameter_symbols.update(
-            {p: s for p, s in self._parameter_symbols.items() if p not in parameter_map}
-        )
+            symbol_type = Symbol
 
         # If new_param is an expr, we'll need to construct a matching sympy expr
         # but with our sympy symbols instead of theirs.
-
-        symbol_map = {
-            self._parameter_symbols[old_param]: new_param._symbol_expr
-            for old_param, new_param in parameter_map.items()
-        }
+        symbol_map = {}
+        for old_param, new_param in parameter_map.items():
+            if old_param in self._parameters:
+                symbol_map[self._parameter_symbols[old_param]] = new_param._symbol_expr
+                for p in new_param.parameters:
+                    new_parameter_symbols[p] = symbol_type(p.name)
 
         substituted_symbol_expr = self._symbol_expr.subs(symbol_map)
 

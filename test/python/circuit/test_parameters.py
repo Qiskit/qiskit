@@ -1253,6 +1253,17 @@ class TestParameterExpressions(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "not present"):
             expr.subs({y: z})
 
+    def test_sub_allow_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+        expr = x + 2
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        subbed = expr.subs({y: z}, allow_unknown_parameters=True)
+        self.assertEqual(subbed, expr)
+
     def test_raise_if_subbing_in_parameter_name_conflict(self):
         """Verify we raise if substituting in conflicting parameter names."""
         x = Parameter("x")
