@@ -10,7 +10,7 @@ features:
 
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit import QuantumCircuit
       top = QuantumCircuit(1)
