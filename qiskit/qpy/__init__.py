@@ -138,6 +138,7 @@ the class selection.
 `SymbolicPulse` block now starts with SYMBOLIC_PULSE_V2 header:
 
 .. code-block:: c
+
     struct {
         uint16_t class_name_size;
         uint16_t type_size;
