@@ -15,7 +15,6 @@
 
 import math
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
-import warnings
 
 
 def get_unique_backends():
