@@ -58,7 +58,7 @@ class TestPowerSgate(QiskitTestCase):
     def test_sgate_int(self, n):
         """Test Sgate.power(n) method with n as integer."""
         result = SGate().power(n)
-
+        self.assertIsInstance(result, PhaseGate)
         self.assertEqual(Operator(result), Operator(SGate()).power(n))
 
     results = {
@@ -244,7 +244,7 @@ class TestEfficientGatePowering(QiskitTestCase):
         exponents = (-5, -0.5, -0.1, 0, 0.1, 0.5, 5)
         for exponent in exponents:
             result = gate.power(exponent)
-            assert isinstance(result, output_gate_type)
+            self.assertIsInstance(result, output_gate_type)
             expected = scipy.linalg.fractional_matrix_power(np.array(gate), exponent)
             np.testing.assert_allclose(np.array(result), expected, atol=1e-8)
 
