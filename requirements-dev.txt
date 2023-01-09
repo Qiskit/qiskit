@@ -19,7 +19,6 @@ reno>=3.4.0
 Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
 sphinx-autodoc-typehints~=1.18,!=1.19.3
-jupyter-sphinx
 sphinx-design>=0.2.0
 pygments>=2.4
 scikit-learn>=0.20.0
