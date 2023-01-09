@@ -2,5 +2,4 @@
 fixes:
   - |
     Fix :meth:`qiskit.quantum_info.analysis.Z2Symmetries.find_z2_symmetries` which was resulting in
-    errors in some cases. The error was due to a mistake in the definition of an escape condition for a
-    loop. This case was not covered by the tests so a corresponding test was added.
+    errors in some symmetry cases.
