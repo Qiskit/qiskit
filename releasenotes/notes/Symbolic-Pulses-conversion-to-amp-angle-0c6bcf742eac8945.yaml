@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    The pulses in the Qiskit Pulse library
+
+      * :class:`~qiskit.pulse.library.Gaussian`
+      * :class:`~qiskit.pulse.library.GaussianSquare`
+      * :class:`~qiskit.pulse.library.Drag`
+      * :class:`~qiskit.pulse.library.Constant`
+
+    can be initialized with new parameter angle, such that two float parameters could be provided - `amp`,`angle`.
+    Initialization with complex `amp` will be supported until it will be deprecated in future version. However,
+    Providing complex `amp` with a finite `angle` will result in `PulseError`.
+    For example, instead of calling `Gaussian(duration=100,sigma=20,amp=0.5j)` one
+    should use `Gaussian(duration=100,sigma=20,amp=0.5,angle=np.pi/2)`. The pulse envelope which used to be
+    defined as `amp * ...` is in turn defined as `amp * exp(1j * angle) * ...`. This change aims to better support
+    Qiskit Experiments where the amplitude and angle of pulses are calibrated in separate experiments.

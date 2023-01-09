@@ -75,7 +75,7 @@ class TestInitialize(QiskitTestCase):
         qc = QuantumCircuit(2)
         statevector = Statevector.from_label("11")
         qc.initialize(statevector, [0, 1])
-        self.assertEqual(qc.data[0][0].params, desired_vector)
+        self.assertEqual(qc.data[0].operation.params, desired_vector)
 
     def test_bell_state(self):
         """Initialize a Bell state on 2 qubits."""
@@ -323,7 +323,7 @@ class TestInitialize(QiskitTestCase):
         qc2 = QuantumCircuit(qr, cr)
         qc2.initialize(desired_vector_2, [qr[0]])
 
-        job = execute(qc1 + qc2, BasicAer.get_backend("statevector_simulator"))
+        job = execute(qc1.compose(qc2), BasicAer.get_backend("statevector_simulator"))
         result = job.result()
         quantum_state = result.get_statevector()
         fidelity = state_fidelity(quantum_state, desired_vector_2)
@@ -409,7 +409,7 @@ class TestInitialize(QiskitTestCase):
         self.assertTrue(desired_sv == actual_sv)
 
     def _remove_resets(self, circ):
-        circ.data = [tup for tup in circ.data if tup[0].name != "reset"]
+        circ.data = [instr for instr in circ.data if instr.operation.name != "reset"]
 
     def test_global_phase_random(self):
         """Test global phase preservation with random state vectors"""
@@ -424,7 +424,7 @@ class TestInitialize(QiskitTestCase):
                     initializer = QuantumCircuit(qr)
                     target = random_statevector(dim)
                     initializer.initialize(target, qr)
-                    uninit = initializer.data[0][0].definition
+                    uninit = initializer.data[0].operation.definition
                     self._remove_resets(uninit)
                     evolve = Statevector(uninit)
                     self.assertEqual(target, evolve)
@@ -444,7 +444,7 @@ class TestInitialize(QiskitTestCase):
                 initializer = QuantumCircuit(qr)
                 initializer.initialize(target, qr)
                 # need to get rid of the resets in order to use the Operator class
-                disentangler = Operator(initializer.data[0][0].definition.data[1][0])
+                disentangler = Operator(initializer.data[0].operation.definition.data[1].operation)
                 zero = Statevector.from_int(0, dim)
                 actual = zero & disentangler
                 self.assertEqual(target, actual)
@@ -456,9 +456,9 @@ class TestInitialize(QiskitTestCase):
         qc.initialize(state)
         decom_circ = qc.decompose()
 
-        self.assertEqual(decom_circ.data[0][0].name, "reset")
-        self.assertEqual(decom_circ.data[1][0].name, "reset")
-        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
+        self.assertEqual(decom_circ.data[0].operation.name, "reset")
+        self.assertEqual(decom_circ.data[1].operation.name, "reset")
+        self.assertEqual(decom_circ.data[2].operation.name, "state_preparation")
 
     def test_mutating_params(self):
         """Test mutating Initialize params correctly updates StatePreparation params"""
@@ -469,8 +469,8 @@ class TestInitialize(QiskitTestCase):
         qc.append(init, qr)
         decom_circ = qc.decompose()
 
-        self.assertEqual(decom_circ.data[2][0].name, "state_preparation")
-        self.assertEqual(decom_circ.data[2][0].params, ["0", "0"])
+        self.assertEqual(decom_circ.data[2].operation.name, "state_preparation")
+        self.assertEqual(decom_circ.data[2].operation.params, ["0", "0"])
 
 
 class TestInstructionParam(QiskitTestCase):
@@ -483,7 +483,7 @@ class TestInstructionParam(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.diagonal(list(diag), [0])
 
-        params = qc.data[0][0].params
+        params = qc.data[0].operation.params
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )
@@ -501,7 +501,7 @@ class TestInstructionParam(QiskitTestCase):
         vec = np.array([0, 0 + 1j])
         qc.initialize(vec, 0)
 
-        params = qc.data[0][0].params
+        params = qc.data[0].operation.params
         self.assertTrue(
             all(isinstance(p, complex) and not isinstance(p, np.number) for p in params)
         )

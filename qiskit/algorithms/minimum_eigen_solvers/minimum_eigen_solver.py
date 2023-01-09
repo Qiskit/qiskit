@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,17 +18,32 @@ from typing import Optional, Tuple
 import numpy as np
 
 from qiskit.opflow import OperatorBase
+from qiskit.utils.deprecation import deprecate_function
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
 
 class MinimumEigensolver(ABC):
-    """The Minimum Eigensolver Interface.
+    """Deprecated: Minimum Eigensolver Interface.
+
+    The Minimum Eigensolver interface has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver` interface.
+    This interface will be deprecated in a future release and subsequently
+    removed after that.
 
     Algorithms that can compute a minimum eigenvalue for an operator
     may implement this interface to allow different algorithms to be
     used interchangeably.
     """
+
+    @deprecate_function(
+        "The Minimum Eigensolver interface is deprecated as of Qiskit Terra 0.23.0 and "
+        "will be removed no sooner than 3 months after the release date. Instead, use "
+        "the qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver interface.",
+        category=DeprecationWarning,
+    )
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def compute_minimum_eigenvalue(
@@ -67,8 +82,21 @@ class MinimumEigensolver(ABC):
 
 
 class MinimumEigensolverResult(AlgorithmResult):
-    """Minimum Eigensolver Result."""
+    """Deprecated: Minimum Eigensolver Result.
 
+    The MinimumEigensolverResult class has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The MinimumEigensolverResult class is deprecated as of Qiskit Terra 0.23.0 and "
+        "will be removed no sooner than 3 months after the release date. Instead, use "
+        "the qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class.",
+        category=DeprecationWarning,
+    )
     def __init__(self) -> None:
         super().__init__()
         self._eigenvalue = None

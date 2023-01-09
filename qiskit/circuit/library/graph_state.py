@@ -39,15 +39,14 @@ class GraphState(QuantumCircuit):
 
     **Reference Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GraphState
-        import qiskit.tools.jupyter
-        import retworkx as rx
-        G = rx.generators.cycle_graph(5)
-        circuit = GraphState(rx.adjacency_matrix(G))
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GraphState
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import rustworkx as rx
+       G = rx.generators.cycle_graph(5)
+       circuit = GraphState(rx.adjacency_matrix(G))
+       _generate_circuit_library_visualization(circuit)
 
     **References:**
 

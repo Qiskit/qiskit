@@ -28,8 +28,6 @@ class HoareOptimizer(TransformationPass):
     https://arxiv.org/abs/1810.00375
     """
 
-    # pylint: disable=import-error
-
     def __init__(self, size=10):
         """
         Args:
@@ -218,7 +216,7 @@ class HoareOptimizer(TransformationPass):
                 gate = gate.base_gate
                 node.op = gate
                 node.name = gate.name
-                node.qargs = [(ctrlqb + trgtqb)[qi] for qi in qb_idx]
+                node.qargs = tuple((ctrlqb + trgtqb)[qi] for qi in qb_idx)
                 _, ctrlvar, trgtqb, trgtvar = self._seperate_ctrl_trgt(node)
 
                 ctrl_ones = z3.And(*ctrlvar)

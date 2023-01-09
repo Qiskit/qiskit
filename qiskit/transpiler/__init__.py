@@ -60,22 +60,22 @@ Supplementary Information
    operations. In the present case of IBM Q devices, the native gate set can be found by querying
    the devices themselves, and looking for the corresponding attribute in their configuration:
 
-   .. jupyter-execute::
-      :hide-code:
-      :hide-output:
+   .. code-block::
 
-      from qiskit.test.mock import FakeVigo
-      backend = FakeVigo()
+      from qiskit.providers.fake_provider import FakeVigoV2
+      backend = FakeVigoV2()
 
-   .. jupyter-execute::
+      print(backend.operation_names)
 
-      backend.configuration().basis_gates
+   .. parsed-literal::
 
+      ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
 
    Every quantum circuit run on an IBM Q device must be expressed using only these basis gates.
    For example, suppose one wants to run a simple phase estimation circuit:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       import numpy as np
       from qiskit import QuantumCircuit
@@ -94,18 +94,39 @@ Supplementary Information
    decompose the circuit to show what it would look like in the native gate set of
    the IBM Quantum devices:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
-      qc_basis = qc.decompose()
+      import numpy as np
+      from qiskit import QuantumCircuit
+      from qiskit import transpile
+      from qiskit.providers.fake_provider import FakeVigoV2
+
+      qc = QuantumCircuit(2, 1)
+
+      qc.h(0)
+      qc.x(1)
+      qc.cp(np.pi/4, 0, 1)
+      qc.h(0)
+      qc.measure([0], [0])
+      qc.draw(output='mpl')
+
+      backend = FakeVigoV2()
+
+      qc_basis = transpile(qc, backend)
       qc_basis.draw(output='mpl')
 
 
    A few things to highlight.  First, the circuit has gotten longer with respect to the
    initial one.  This can be verified by checking the depth of the circuits:
 
-   .. jupyter-execute::
+   .. code-block::
 
       print('Original depth:', qc.depth(), 'Decomposed Depth:', qc_basis.depth())
+
+   .. parsed-literal::
+
+       Original depth: 4 Decomposed Depth: 10
 
    Second, although we had a single controlled gate, the fact that it was not in the basis
    set means that, when expanded, it requires more than a single `cx` gate to implement.
@@ -117,7 +138,10 @@ Supplementary Information
    1. A SWAP gate is not a native gate on the IBM Q devices, and must be decomposed into
       three CNOT gates:
 
-      .. jupyter-execute::
+      .. plot::
+         :include-source:
+
+         from qiskit import QuantumCircuit
 
          swap_circ = QuantumCircuit(2)
          swap_circ.swap(0, 1)
@@ -134,7 +158,10 @@ Supplementary Information
       that our basis gate set includes only single- and two-qubit gates, it is obvious that
       this gate must be decomposed.  This decomposition is quite costly:
 
-      .. jupyter-execute::
+      .. plot::
+         :include-source:
+
+         from qiskit import QuantumCircuit
 
          ccx_circ = QuantumCircuit(3)
          ccx_circ.ccx(0, 1, 2)
@@ -187,17 +214,18 @@ Supplementary Information
    The choice of `initial_layout` can mean the difference between getting a result,
    and getting nothing but noise.
 
-   Lets see what layouts are automatically picked at various optimization levels.  The modified
+   Let's see what layouts are automatically picked at various optimization levels.  The modified
    circuits returned by :func:`qiskit.compiler.transpile` have this initial layout information
    in them, and we can view this layout selection graphically using
    :func:`qiskit.visualization.plot_circuit_layout`:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       from qiskit import QuantumCircuit, transpile
       from qiskit.visualization import plot_circuit_layout
-      from qiskit.test.mock import FakeVigo
-      backend = FakeVigo()
+      from qiskit.providers.fake_provider import FakeVigoV2
+      backend = FakeVigoV2()
 
       ghz = QuantumCircuit(3, 3)
       ghz.h(0)
@@ -209,26 +237,63 @@ Supplementary Information
 
    - **Layout Using Optimization Level 0**
 
-      .. jupyter-execute::
+      .. plot::
+         :include-source:
 
-         new_circ_lv0 = transpile(ghz, backend=backend, optimization_level=0)
-         plot_circuit_layout(new_circ_lv0, backend)
+          from qiskit import QuantumCircuit, transpile
+          from qiskit.visualization import plot_circuit_layout
+          from qiskit.providers.fake_provider import FakeVigoV2
+          backend = FakeVigoV2()
 
+          ghz = QuantumCircuit(3, 3)
+          ghz.h(0)
+          ghz.cx(0,range(1,3))
+          ghz.barrier()
+          ghz.measure(range(3), range(3))
+          ghz.draw(output='mpl')
+
+          new_circ_lv0 = transpile(ghz, backend=backend, optimization_level=0)
+          plot_circuit_layout(new_circ_lv0, backend)
 
    - **Layout Using Optimization Level 3**
 
-      .. jupyter-execute::
+      .. plot::
+         :include-source:
 
-         new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
-         plot_circuit_layout(new_circ_lv3, backend)
+          from qiskit import QuantumCircuit, transpile
+          from qiskit.visualization import plot_circuit_layout
+          from qiskit.providers.fake_provider import FakeVigoV2
+          backend = FakeVigoV2()
 
+          ghz = QuantumCircuit(3, 3)
+          ghz.h(0)
+          ghz.cx(0,range(1,3))
+          ghz.barrier()
+          ghz.measure(range(3), range(3))
+          ghz.draw(output='mpl')
+
+          new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
+          plot_circuit_layout(new_circ_lv3, backend)
 
    It is completely possible to specify your own initial layout.  To do so we can
    pass a list of integers to :func:`qiskit.compiler.transpile` via the `initial_layout`
    keyword argument, where the index labels the virtual qubit in the circuit and the
    corresponding value is the label for the physical qubit to map onto:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
+
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.visualization import plot_circuit_layout
+      from qiskit.providers.fake_provider import FakeVigoV2
+      backend = FakeVigoV2()
+
+      ghz = QuantumCircuit(3, 3)
+      ghz.h(0)
+      ghz.cx(0,range(1,3))
+      ghz.barrier()
+      ghz.measure(range(3), range(3))
+      ghz.draw(output='mpl')
 
       # Virtual -> physical
       #    0    ->    3
@@ -268,20 +333,18 @@ Supplementary Information
    In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disconnected)
    `initial_layout`:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       import matplotlib.pyplot as plt
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
       ghz.h(0)
       ghz.cx(0,range(1,5))
       ghz.draw(output='mpl')
-
-
-   .. jupyter-execute::
 
       depths = []
       for _ in range(100):
@@ -329,11 +392,12 @@ Supplementary Information
       So the numbers below will likely change each time you run the code.
 
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       import matplotlib.pyplot as plt
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
@@ -342,7 +406,7 @@ Supplementary Information
       ghz.draw(output='mpl')
 
 
-   .. jupyter-execute::
+   .. code-block::
 
       for kk in range(4):
          circ = transpile(ghz, backend, optimization_level=kk)
@@ -351,6 +415,23 @@ Supplementary Information
          print('Gate counts:', circ.count_ops())
          print()
 
+   .. parsed-literal::
+
+        Optimization Level 0
+        Depth: 14
+        Gate counts: OrderedDict([('cx', 19), ('u2', 1)])
+
+        Optimization Level 1
+        Depth: 8
+        Gate counts: OrderedDict([('cx', 7), ('u2', 1)])
+
+        Optimization Level 2
+        Depth: 8
+        Gate counts: OrderedDict([('cx', 7), ('u2', 1)])
+
+        Optimization Level 3
+        Depth: 7
+        Gate counts: OrderedDict([('cx', 7), ('u2', 1)])
 
    .. raw:: html
 
@@ -363,22 +444,19 @@ Supplementary Information
    a scheduling phase can be applied to optionally account for all the idle time in the circuit.
    At a high level the scheduling can be thought of as inserting delays into the circuit to account
    for idle time on the qubits between the execution of instructions. For example, if we start with a
-   circuit such as:
+   circuit such as a GHZ circuit and then call :func:`~.transpile` on it with ``scheduling_method``
+   set:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       from qiskit import QuantumCircuit, transpile
-      from qiskit.test.mock import FakeBoeblingen
+      from qiskit.providers.fake_provider import FakeBoeblingen
       backend = FakeBoeblingen()
 
       ghz = QuantumCircuit(5)
       ghz.h(0)
       ghz.cx(0,range(1,5))
-      ghz.draw(output='mpl')
-
-   we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
-
-   .. jupyter-execute::
 
       circ = transpile(ghz, backend, scheduling_method="asap")
       circ.draw(output='mpl')
@@ -387,10 +465,19 @@ Supplementary Information
    account for idle time on each qubit. To get a better idea of the timing of the circuit we can
    also look at it with the :func:`.timeline.draw` function:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       from qiskit.visualization.timeline import draw as timeline_draw
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.providers.fake_provider import FakeBoeblingen
+      backend = FakeBoeblingen()
 
+      ghz = QuantumCircuit(5)
+      ghz.h(0)
+      ghz.cx(0,range(1,5))
+
+      circ = transpile(ghz, backend, scheduling_method="asap")
       timeline_draw(circ)
 
    The scheduling of a circuit involves two parts, analysis and constraint mapping followed by a
@@ -402,12 +489,12 @@ Supplementary Information
    additional passes can be run to account for any timing constraints on the target backend, such
    as alignment constraints. This is typically done with the
    :class:`~.ConstrainedReschedule` pass which will adjust the scheduling
-   set in the property set to the contraints of the target backend. Once all
+   set in the property set to the constraints of the target backend. Once all
    the scheduling and adjustments/rescheduling are finished a padding pass,
    such as :class:`~.PadDelay` or :class:`~.PadDynamicalDecoupling` is run
    to insert the instructions into the circuit, which completes the scheduling.
 
-   Scheduling Anaylsis with control flow instructions:
+   Scheduling Analysis with control flow instructions:
 
    When scheduling analysis passes run there are additional constraints on classical conditions
    and control flow instructions in a circuit. This section covers the details of these additional
@@ -446,7 +533,7 @@ Supplementary Information
    However, such optimization should be done by another pass,
    otherwise scheduling may break topological ordering of the original circuit.
 
-   Realistic control flow scheduling respecting for microarcitecture:
+   Realistic control flow scheduling respecting for microarchitecture:
 
    In the dispersive QND readout scheme, qubit is measured with microwave stimulus to qubit (Q)
    followed by resonator ring-down (depopulation). This microwave signal is recorded
@@ -593,6 +680,74 @@ Supplementary Information
 
       <br>
 
+.. dropdown:: Working with preset :class:`~.PassManager`
+   :animate: fade-in-slide-down
+
+   By default Qiskit includes functions to build preset :class:`~.PassManager` objects.
+   These preset passmanagers are what get used by the :func:`~.transpile` function
+   for each optimization level. If you'd like to work directly with a
+   preset pass manager you can use the :func:`~.generate_preset_pass_manager`
+   function to easily generate one. For example:
+
+   .. code-block:: python
+
+       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+       from qiskit.providers.fake_provider import FakeLagosV2
+
+       backend = FakeLagosV2()
+       pass_manager = generate_preset_pass_manager(3, backend)
+
+   which will generate a :class:`~.StagedPassManager` object for optimization level 3
+   targeting the :class:`~.FakeLagosV2` backend (equivalent to what is used internally
+   by :func:`~.transpile` with ``backend=FakeLagosV2()`` and ``optimization_level=3``).
+   You can use this just like working with any other :class:`~.PassManager`. However,
+   because it is a :class:`~.StagedPassManager` it also makes it easy to compose and/or
+   replace stages of the pipeline. For example, if you wanted to run a custom scheduling
+   stage using dynamical decoupling (via the :class:`~.PadDynamicalDecoupling` pass) and
+   also add initial logical optimization prior to routing you would do something like
+   (building off the previous example):
+
+   .. code-block:: python
+
+       from qiskit.circuit.library import XGate, HGate, RXGate, PhaseGate, TGate, TdgGate
+       from qiskit.transpiler import PassManager
+       from qiskit.transpiler.passes import ALAPScheduleAnalysis, PadDynamicalDecoupling
+       from qiskit.transpiler.passes import CXCancellation, InverseCancellation
+
+       backend_durations = backend.target.durations()
+       dd_sequence = [XGate(), XGate()]
+       scheduling_pm = PassManager([
+           ALAPScheduleAnalysis(backend_durations),
+           PadDynamicalDecoupling(backend_durations, dd_sequence),
+       ])
+       inverse_gate_list = [
+           HGate(),
+           (RXGate(np.pi / 4), RXGate(-np.pi / 4)),
+           (PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4)),
+           (TGate(), TdgGate()),
+
+       ])
+       logical_opt = PassManager([
+           CXCancellation(),
+           InverseCancellation([HGate(), (RXGate(np.pi / 4), RXGate(-np.pi / 4))
+       ])
+
+
+       # Add pre-layout stage to run extra logical optimization
+       pass_manager.pre_layout = logical_opt
+       # Set scheduling stage to custom pass manager
+       pass_manager.scheduling = scheduling_pm
+
+
+   Then when :meth:`~.StagedPassManager.run` is called on ``pass_manager`` the
+   ``logical_opt`` :class:`~.PassManager` will be called prior to the ``layout`` stage
+   and for the ``scheduling`` stage our custom :class:`~.PassManager`
+   ``scheduling_pm`` will be used.
+
+   .. raw:: html
+
+      <br>
+
 
 Transpiler API
 ==============
@@ -612,6 +767,7 @@ Pass Manager Construction
 .. autosummary::
    :toctree: ../stubs/
 
+   StagedPassManager
    PassManager
    PassManagerConfig
    PropertySet
@@ -667,6 +823,7 @@ Exceptions
 from .runningpassmanager import FlowController, ConditionalController, DoWhileController
 from .passmanager import PassManager
 from .passmanager_config import PassManagerConfig
+from .passmanager import StagedPassManager
 from .propertyset import PropertySet
 from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet

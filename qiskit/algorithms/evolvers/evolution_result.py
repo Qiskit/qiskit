@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,12 +17,26 @@ from typing import Optional, Union, Tuple
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.opflow import StateFn, OperatorBase
+from qiskit.utils.deprecation import deprecate_function
 from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):
-    """Class for holding evolution result."""
+    """Deprecated: Class for holding evolution result.
 
+    The EvolutionResult class has been superseded by the
+    :class:`qiskit.algorithms.time_evolvers.TimeEvolutionResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The EvolutionResult class is deprecated as of Qiskit Terra 0.23.0 and "
+        "will be removed no sooner than 3 months after the release date. Instead, use "
+        "the qiskit.algorithms.time_evolvers.TimeEvolutionResult class.",
+        category=DeprecationWarning,
+    )
     def __init__(
         self,
         evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],

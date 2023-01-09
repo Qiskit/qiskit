@@ -27,7 +27,7 @@ from qiskit.circuit import Gate, Instruction, Parameter
 from qiskit.circuit.library import RXGate
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 import qiskit.quantum_info as qi
 
 
@@ -149,10 +149,13 @@ class TestQuantumCircuitDisassembler(QiskitTestCase):
         self.assertEqual(run_config_out.memory_slots, 0)
         self.assertEqual(len(circuits), 1)
         # params array
-        assert_allclose(circuits[0]._data[0][0].params[0], circ._data[0][0].params[0])
+        assert_allclose(circuits[0]._data[0].operation.params[0], circ._data[0].operation.params[0])
         # all other data
-        self.assertEqual(circuits[0]._data[0][0].params[1:], circ._data[0][0].params[1:])
-        self.assertEqual(circuits[0]._data[0][1:], circ._data[0][1:])
+        self.assertEqual(
+            circuits[0]._data[0].operation.params[1:], circ._data[0].operation.params[1:]
+        )
+        self.assertEqual(circuits[0]._data[0].qubits, circ._data[0].qubits)
+        self.assertEqual(circuits[0]._data[0].clbits, circ._data[0].clbits)
         self.assertEqual(circuits[0]._data[1:], circ._data[1:])
         self.assertEqual({}, header)
 

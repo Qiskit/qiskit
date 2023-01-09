@@ -169,9 +169,9 @@ def execute(
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
 
-        max_credits (int): DEPRECATED This parameter is deprecated as of
-        Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
-        no effect on modern IBM Quantum systems, and no alternative is necessary.
+        max_credits (int): DEPRECATED This parameter is deprecated as of Qiskit Terra 0.20.0
+            and will be removed in a future release. This parameter has no effect on modern
+            IBM Quantum systems, no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -229,7 +229,7 @@ def execute(
             experiments will be executed. Each list element (bind) should be of the form
             ``{Parameter1: value1, Parameter2: value2, ...}``. All binds will be
             executed across all experiments, e.g. if parameter_binds is a
-            length-n list, and there are m experiments, a total of :math:`m x n`
+            length-:math:`n` list, and there are :math:`m` experiments, a total of :math:`m \\times n`
             experiments will be run (one for each experiment/bind pair).
 
         schedule_circuit (bool): If ``True``, ``experiments`` will be converted to
@@ -264,7 +264,7 @@ def execute(
     Example:
         Construct a 5-qubit GHZ circuit and execute 4321 shots on a backend.
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumCircuit, execute, BasicAer
 

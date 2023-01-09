@@ -93,6 +93,59 @@ class TestProbDistribution(QiskitTestCase):
         probs = ProbDistribution(in_probs)
         self.assertEqual(in_probs, probs.binary_probabilities())
 
+    def test_bin_no_prefix_w_heading_zeros_probs_bin_out(self):
+        """Test binary input without a 0b prefix with heading 0 and binary output."""
+        in_probs = {"00000": 2 / 7, "00001": 1 / 7, "00010": 1 / 7, "00011": 1 / 7, "00100": 2 / 7}
+        probs = ProbDistribution(in_probs)
+        self.assertEqual(in_probs, probs.binary_probabilities())
+
+    def test_bin_no_prefix_w_diff_heading_zero_probs_bin_out(self):
+        """Test binary input without a 0b prefix with heading 0 of different sizes and binary output."""
+        in_probs = {
+            "0": 3 / 5,
+            "01": 1 / 2,
+            "10": 7 / 20,
+            "011": 1 / 10,
+            "00100": -11 / 20,
+        }
+        probs = ProbDistribution(in_probs)
+        expected = {
+            "00000": 3 / 5,
+            "00001": 1 / 2,
+            "00010": 7 / 20,
+            "00011": 1 / 10,
+            "00100": -11 / 20,
+        }
+        self.assertEqual(expected, probs.binary_probabilities())
+
+    def test_bin_no_prefix_w_diff_heading_zero_probs_bin_out_padded(self):
+        """Test binary input without a 0b prefix with heading 0 of different sizes and binary output,
+        padded with zeros."""
+        in_probs = {
+            "0": 3 / 5,
+            "01": 1 / 2,
+            "10": 7 / 20,
+            "011": 1 / 10,
+            "00100": -11 / 20,
+        }
+        probs = ProbDistribution(in_probs)
+        expected = {
+            "0000000": 3 / 5,
+            "0000001": 1 / 2,
+            "0000010": 7 / 20,
+            "0000011": 1 / 10,
+            "0000100": -11 / 20,
+        }
+        self.assertEqual(expected, probs.binary_probabilities(7))
+
+    def test_bin_no_prefix_out_padded(self):
+        """Test binary input without a 0b prefix, padded with zeros."""
+        n = 5
+        in_probs = {"0": 1}
+        probs = ProbDistribution(in_probs)
+        expected = {"0" * n: 1}
+        self.assertEqual(expected, probs.binary_probabilities(num_bits=n))
+
     def test_hex_probs_bin_out_padded(self):
         """Test hexadecimal input and binary output, padded with zeros."""
         in_probs = {"0x0": 2 / 7, "0x1": 1 / 7, "0x2": 1 / 7, "0x3": 1 / 7, "0x4": 2 / 7}
@@ -114,6 +167,11 @@ class TestProbDistribution(QiskitTestCase):
         """Test empty input with binary output."""
         probs = ProbDistribution({})
         self.assertEqual(probs.binary_probabilities(), {})
+
+    def test_empty_bin_out_padding(self):
+        """Test empty input with binary output and padding."""
+        probs = ProbDistribution({})
+        self.assertEqual(probs.binary_probabilities(5), {})
 
     def test_invalid_keys(self):
         """Test invalid key type raises."""

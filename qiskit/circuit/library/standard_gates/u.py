@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
-
+import math
+from cmath import exp
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -24,17 +25,8 @@ from qiskit.circuit.exceptions import CircuitError
 class UGate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
 
-    Implemented using two X90 pulses on IBM Quantum systems:
-
-    .. math::
-        U(\theta, \phi, \lambda) =
-            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
-
-    Equivalent simplified form:
-
-    .. math::
-        U(\theta, \phi, \lambda) =
-            RZ(\phi + \pi/2) RX(\theta) RZ(\lambda - \pi/2)
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
 
     **Circuit symbol:**
 
@@ -55,6 +47,14 @@ class UGate(Gate):
                 \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
                 e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
             \end{pmatrix}
+
+    .. note::
+
+        The matrix representation shown here is the same as in the `OpenQASM 3.0 specification
+        <https://openqasm.com/language/gates.html#built-in-gates>`_,
+        which differs from the `OpenQASM 2.0 specification
+        <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
+        :math:`e^{i(\phi+\lambda)/2}`.
 
     **Examples:**
 
@@ -114,16 +114,15 @@ class UGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the U gate."""
         theta, phi, lam = (float(param) for param in self.params)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
         return numpy.array(
             [
-                [numpy.cos(theta / 2), -numpy.exp(1j * lam) * numpy.sin(theta / 2)],
-                [
-                    numpy.exp(1j * phi) * numpy.sin(theta / 2),
-                    numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2),
-                ],
+                [cos, -exp(1j * lam) * sin],
+                [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
             dtype=dtype,
         )
@@ -134,6 +133,9 @@ class CUGate(ControlledGate):
 
     This is a controlled version of the U gate (generic single qubit rotation),
     including a possible global phase :math:`e^{i\gamma}` of the U gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cu` method.
 
     **Circuit symbol:**
 

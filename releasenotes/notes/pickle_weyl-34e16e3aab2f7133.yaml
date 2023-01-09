@@ -1,0 +1,6 @@
+---
+
+fixes:
+  - |
+    The class `TwoQubitWeylDecomposition` and its subclasses are now pickle-safe, which is a partial fix for
+    `#7312 <https://github.com/Qiskit/qiskit-terra/issues/7312>`__

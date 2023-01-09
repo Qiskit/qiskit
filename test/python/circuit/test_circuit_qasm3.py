@@ -22,7 +22,7 @@ import unittest
 from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
-from qiskit.circuit import Parameter, Qubit, Clbit, Instruction
+from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate, Delay, Barrier
 from qiskit.test import QiskitTestCase
 from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError
 from qiskit.qasm3.exporter import QASM3Builder
@@ -297,9 +297,9 @@ class TestCircuitQASM3(QiskitTestCase):
         circuit = QuantumCircuit(qr, name="circuit")
         circuit.append(my_gate_inst1, [qr[0]])
         circuit.append(my_gate_inst2, [qr[0]])
-        my_gate_inst2_id = id(circuit.data[-1][0])
+        my_gate_inst2_id = id(circuit.data[-1].operation)
         circuit.append(my_gate_inst3, [qr[0]])
-        my_gate_inst3_id = id(circuit.data[-1][0])
+        my_gate_inst3_id = id(circuit.data[-1].operation)
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3;",
@@ -452,8 +452,8 @@ class TestCircuitQASM3(QiskitTestCase):
         circuit.append(custom.bind_parameters({parameter_a: 0.5}).to_gate(), [0])
         circuit.append(custom.bind_parameters({parameter_a: 1}).to_gate(), [0])
 
-        circuit_name_0 = circuit.data[0][0].definition.name
-        circuit_name_1 = circuit.data[1][0].definition.name
+        circuit_name_0 = circuit.data[0].operation.definition.name
+        circuit_name_1 = circuit.data[1].operation.definition.name
 
         expected_qasm = "\n".join(
             [
@@ -556,7 +556,7 @@ class TestCircuitQASM3(QiskitTestCase):
 
         qc = QuantumCircuit(2)
         qc.append(custom_gate, [0, 1])
-        custom_gate_id = id(qc.data[-1][0])
+        custom_gate_id = id(qc.data[-1].operation)
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3;",
@@ -733,6 +733,27 @@ class TestCircuitQASM3(QiskitTestCase):
         self.assertEqual(
             Exporter(includes=[], basis_gates=["cx", "z", "U"]).dumps(transpiled),
             expected_qasm,
+        )
+
+    def test_opaque_instruction_in_basis_gates(self):
+        """Test that an instruction that is set in the basis gates is output verbatim with no
+        definition."""
+        qc = QuantumCircuit(1)
+        qc.x(0)
+        qc.append(Gate("my_gate", 1, []), [0], [])
+
+        basis_gates = ["my_gate", "x"]
+        transpiled = transpile(qc, initial_layout=[0])
+        expected_qasm = "\n".join(
+            [
+                "OPENQASM 3;",
+                "x $0;",
+                "my_gate $0;",
+                "",
+            ]
+        )
+        self.assertEqual(
+            Exporter(includes=[], basis_gates=basis_gates).dumps(transpiled), expected_qasm
         )
 
     def test_reset_statement(self):
@@ -1441,7 +1462,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
     def test_basis_gates(self):
         """Teleportation with physical qubits"""
         qc = QuantumCircuit(3, 2)
-        first_h = qc.h(1)[0]
+        first_h = qc.h(1)[0].operation
         qc.cx(1, 2)
         qc.barrier()
         qc.cx(0, 1)
@@ -1449,12 +1470,12 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         qc.barrier()
         qc.measure([0, 1], [0, 1])
         qc.barrier()
-        first_x = qc.x(2).c_if(qc.clbits[1], 1)[0]
+        first_x = qc.x(2).c_if(qc.clbits[1], 1)[0].operation
         qc.z(2).c_if(qc.clbits[0], 1)
 
-        u2 = first_h.definition.data[0][0]
-        u3_1 = u2.definition.data[0][0]
-        u3_2 = first_x.definition.data[0][0]
+        u2 = first_h.definition.data[0].operation
+        u3_1 = u2.definition.data[0].operation
+        u3_2 = first_x.definition.data[0].operation
 
         expected_qasm = "\n".join(
             [
@@ -1515,14 +1536,14 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         qc.z(2).c_if(qc.clbits[0], 1)
 
         transpiled = transpile(qc, initial_layout=[0, 1, 2])
-        first_h = transpiled.data[0][0]
-        u2 = first_h.definition.data[0][0]
-        u3_1 = u2.definition.data[0][0]
-        first_x = transpiled.data[-2][0]
-        u3_2 = first_x.definition.data[0][0]
-        first_z = transpiled.data[-1][0]
-        u1 = first_z.definition.data[0][0]
-        u3_3 = u1.definition.data[0][0]
+        first_h = transpiled.data[0].operation
+        u2 = first_h.definition.data[0].operation
+        u3_1 = u2.definition.data[0].operation
+        first_x = transpiled.data[-2].operation
+        u3_2 = first_x.definition.data[0].operation
+        first_z = transpiled.data[-1].operation
+        u1 = first_z.definition.data[0].operation
+        u3_3 = u1.definition.data[0].operation
 
         expected_qasm = "\n".join(
             [
@@ -1590,7 +1611,7 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         circuit.append(custom.to_gate(), [qr_all_qubits[0], qr_r[0]])
 
         circuit.assign_parameters({parameter0: pi, parameter1: pi / 2}, inplace=True)
-        custom_id = id(circuit.data[0][0])
+        custom_id = id(circuit.data[0].operation)
 
         expected_qasm = "\n".join(
             [
@@ -1617,16 +1638,16 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
         circuit.sx(0)
         circuit.cx(0, 1)
 
-        rz = circuit.data[0][0]
-        u1_1 = rz.definition.data[0][0]
-        u3_1 = u1_1.definition.data[0][0]
-        sx = circuit.data[1][0]
-        sdg = sx.definition.data[0][0]
-        u1_2 = sdg.definition.data[0][0]
-        u3_2 = u1_2.definition.data[0][0]
-        h_ = sx.definition.data[1][0]
-        u2_1 = h_.definition.data[0][0]
-        u3_3 = u2_1.definition.data[0][0]
+        rz = circuit.data[0].operation
+        u1_1 = rz.definition.data[0].operation
+        u3_1 = u1_1.definition.data[0].operation
+        sx = circuit.data[1].operation
+        sdg = sx.definition.data[0].operation
+        u1_2 = sdg.definition.data[0].operation
+        u3_2 = u1_2.definition.data[0].operation
+        h_ = sx.definition.data[1].operation
+        u2_1 = h_.definition.data[0].operation
+        u3_3 = u2_1.definition.data[0].operation
         expected_qasm = "\n".join(
             [
                 "OPENQASM 3;",
@@ -1674,6 +1695,60 @@ class TestCircuitQASM3ExporterTemporaryCasesWithBadParameterisation(QiskitTestCa
             ]
         )
         self.assertEqual(Exporter(includes=[]).dumps(circuit), expected_qasm)
+
+    def test_unusual_conditions(self):
+        """Test that special QASM constructs such as ``measure`` are correctly handled when the
+        Terra instructions have old-style conditions."""
+        qc = QuantumCircuit(3, 2)
+        qc.h(0)
+        qc.measure(0, 0)
+        qc.measure(1, 1).c_if(0, True)
+        qc.reset([0, 1]).c_if(0, True)
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.break_loop().c_if(0, True)
+            qc.continue_loop().c_if(0, True)
+        # Terra forbids delay and barrier from being conditioned through `c_if`, but in theory they
+        # should work fine in a dynamic-circuits sense (although what a conditional barrier _means_
+        # is a whole other kettle of fish).
+        delay = Delay(16, "dt")
+        delay.condition = (qc.clbits[0], True)
+        qc.append(delay, [0], [])
+        barrier = Barrier(2)
+        barrier.condition = (qc.clbits[0], True)
+        qc.append(barrier, [0, 1], [])
+
+        expected = """
+OPENQASM 3;
+include "stdgates.inc";
+bit[2] c;
+qubit[3] _all_qubits;
+let q = _all_qubits[0:2];
+h q[0];
+c[0] = measure q[0];
+if (c[0] == 1) {
+  c[1] = measure q[1];
+}
+if (c[0] == 1) {
+  reset q[0];
+}
+if (c[0] == 1) {
+  reset q[1];
+}
+while (c[0] == 1) {
+  if (c[0] == 1) {
+    break;
+  }
+  if (c[0] == 1) {
+    continue;
+  }
+}
+if (c[0] == 1) {
+  delay[16dt] q[0];
+}
+if (c[0] == 1) {
+  barrier q[0], q[1];
+}"""
+        self.assertEqual(dumps(qc).strip(), expected.strip())
 
 
 @ddt

@@ -10,22 +10,30 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=missing-function-docstring
+
 """Translates gates to a target basis using a given equivalence library."""
 
+import sys
 import time
 import logging
 
 from itertools import zip_longest
 from collections import defaultdict
 
-import retworkx
+import rustworkx
 
-from qiskit.circuit import Gate, ParameterVector, QuantumRegister
-from qiskit.circuit.equivalence import Key
+from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
+from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.circuit.equivalence import Key
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
+if sys.version_info >= (3, 8):
+    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+else:
+    from singledispatchmethod import singledispatchmethod
 
 logger = logging.getLogger(__name__)
 
@@ -119,36 +127,12 @@ class BasisTranslator(TransformationPass):
         if self._target is None:
             basic_instrs = ["measure", "reset", "barrier", "snapshot", "delay"]
             target_basis = set(self._target_basis)
-            source_basis = set()
-            for node in dag.op_nodes():
-                if not dag.has_calibration_for(node):
-                    source_basis.add((node.name, node.op.num_qubits))
+            source_basis = set(self._extract_basis(dag))
             qargs_local_source_basis = {}
         else:
             basic_instrs = ["barrier", "snapshot"]
-            source_basis = set()
             target_basis = self._target.keys() - set(self._non_global_operations)
-            qargs_local_source_basis = defaultdict(set)
-            for node in dag.op_nodes():
-                qargs = tuple(qarg_indices[bit] for bit in node.qargs)
-                if dag.has_calibration_for(node):
-                    continue
-                # Treat the instruction as on an incomplete basis if the qargs are in the
-                # qargs_with_non_global_operation dictionary or if any of the qubits in qargs
-                # are a superset for a non-local operation. For example, if the qargs
-                # are (0, 1) and that's a global (ie no non-local operations on (0, 1)
-                # operation but there is a non-local operation on (1,) we need to
-                # do an extra non-local search for this op to ensure we include any
-                # single qubit operation for (1,) as valid. This pattern also holds
-                # true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
-                # and 1q operations in the same manner)
-                if qargs in self._qargs_with_non_global_operation or any(
-                    frozenset(qargs).issuperset(incomplete_qargs)
-                    for incomplete_qargs in self._qargs_with_non_global_operation
-                ):
-                    qargs_local_source_basis[frozenset(qargs)].add((node.name, node.op.num_qubits))
-                else:
-                    source_basis.add((node.name, node.op.num_qubits))
+            source_basis, qargs_local_source_basis = self._extract_basis_target(dag, qarg_indices)
 
         target_basis = set(target_basis).union(basic_instrs)
 
@@ -225,68 +209,49 @@ class BasisTranslator(TransformationPass):
         # Replace source instructions with target translations.
 
         replace_start_time = time.time()
-        for node in dag.op_nodes():
-            node_qargs = tuple(qarg_indices[bit] for bit in node.qargs)
-            qubit_set = frozenset(node_qargs)
 
-            if node.name in target_basis:
-                continue
-            if (
-                node_qargs in self._qargs_with_non_global_operation
-                and node.name in self._qargs_with_non_global_operation[node_qargs]
-            ):
-                continue
+        def apply_translation(dag, wire_map):
+            dag_updated = False
+            for node in dag.op_nodes():
+                node_qargs = tuple(wire_map[bit] for bit in node.qargs)
+                qubit_set = frozenset(node_qargs)
+                if node.name in target_basis:
+                    if isinstance(node.op, ControlFlowOp):
+                        flow_blocks = []
+                        for block in node.op.blocks:
+                            dag_block = circuit_to_dag(block)
+                            dag_updated = apply_translation(
+                                dag_block,
+                                {
+                                    inner: wire_map[outer]
+                                    for inner, outer in zip(block.qubits, node.qargs)
+                                },
+                            )
+                            if dag_updated:
+                                flow_circ_block = dag_to_circuit(dag_block)
+                            else:
+                                flow_circ_block = block
+                            flow_blocks.append(flow_circ_block)
+                        node.op = node.op.replace_blocks(flow_blocks)
+                    continue
+                if (
+                    node_qargs in self._qargs_with_non_global_operation
+                    and node.name in self._qargs_with_non_global_operation[node_qargs]
+                ):
+                    continue
 
-            if dag.has_calibration_for(node):
-                continue
-
-            def replace_node(node, instr_map):
-                target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
-                if len(node.op.params) != len(target_params):
-                    raise TranspilerError(
-                        "Translation num_params not equal to op num_params."
-                        "Op: {} {} Translation: {}\n{}".format(
-                            node.op.params, node.op.name, target_params, target_dag
-                        )
-                    )
-
-                if node.op.params:
-                    # Convert target to circ and back to assign_parameters, since
-                    # DAGCircuits won't have a ParameterTable.
-                    from qiskit.converters import dag_to_circuit, circuit_to_dag
-
-                    target_circuit = dag_to_circuit(target_dag)
-
-                    target_circuit.assign_parameters(
-                        dict(zip_longest(target_params, node.op.params)), inplace=True
-                    )
-
-                    bound_target_dag = circuit_to_dag(target_circuit)
+                if dag.has_calibration_for(node):
+                    continue
+                if qubit_set in extra_instr_map:
+                    self._replace_node(dag, node, extra_instr_map[qubit_set])
+                elif (node.op.name, node.op.num_qubits) in instr_map:
+                    self._replace_node(dag, node, instr_map)
                 else:
-                    bound_target_dag = target_dag
+                    raise TranspilerError(f"BasisTranslator did not map {node.name}.")
+                dag_updated = True
+            return dag_updated
 
-                if len(bound_target_dag.op_nodes()) == 1 and len(
-                    bound_target_dag.op_nodes()[0].qargs
-                ) == len(node.qargs):
-                    dag_op = bound_target_dag.op_nodes()[0].op
-                    # dag_op may be the same instance as other ops in the dag,
-                    # so if there is a condition, need to copy
-                    if node.op.condition:
-                        dag_op = dag_op.copy()
-                    dag.substitute_node(node, dag_op, inplace=True)
-
-                    if bound_target_dag.global_phase:
-                        dag.global_phase += bound_target_dag.global_phase
-                else:
-                    dag.substitute_node_with_dag(node, bound_target_dag)
-
-            if qubit_set in extra_instr_map:
-                replace_node(node, extra_instr_map[qubit_set])
-            elif (node.op.name, node.op.num_qubits) in instr_map:
-                replace_node(node, instr_map)
-            else:
-                raise TranspilerError(f"BasisTranslator did not map {node.name}.")
-
+        apply_translation(dag, qarg_indices)
         replace_end_time = time.time()
         logger.info(
             "Basis translation instructions replaced in %.3fs.",
@@ -295,13 +260,115 @@ class BasisTranslator(TransformationPass):
 
         return dag
 
+    def _replace_node(self, dag, node, instr_map):
+        target_params, target_dag = instr_map[node.op.name, node.op.num_qubits]
+        if len(node.op.params) != len(target_params):
+            raise TranspilerError(
+                "Translation num_params not equal to op num_params."
+                "Op: {} {} Translation: {}\n{}".format(
+                    node.op.params, node.op.name, target_params, target_dag
+                )
+            )
+
+        if node.op.params:
+            # Convert target to circ and back to assign_parameters, since
+            # DAGCircuits won't have a ParameterTable.
+            target_circuit = dag_to_circuit(target_dag)
+
+            target_circuit.assign_parameters(
+                dict(zip_longest(target_params, node.op.params)), inplace=True
+            )
+
+            bound_target_dag = circuit_to_dag(target_circuit)
+        else:
+            bound_target_dag = target_dag
+
+        if len(bound_target_dag.op_nodes()) == 1 and len(
+            bound_target_dag.op_nodes()[0].qargs
+        ) == len(node.qargs):
+            dag_op = bound_target_dag.op_nodes()[0].op
+            # dag_op may be the same instance as other ops in the dag,
+            # so if there is a condition, need to copy
+            if getattr(node.op, "condition", None):
+                dag_op = dag_op.copy()
+            dag.substitute_node(node, dag_op, inplace=True)
+
+            if bound_target_dag.global_phase:
+                dag.global_phase += bound_target_dag.global_phase
+        else:
+            dag.substitute_node_with_dag(node, bound_target_dag)
+
+    @singledispatchmethod
+    def _extract_basis(self, circuit):
+        return circuit
+
+    @_extract_basis.register
+    def _(self, dag: DAGCircuit):
+        for node in dag.op_nodes():
+            if not dag.has_calibration_for(node):
+                yield (node.name, node.op.num_qubits)
+            if isinstance(node.op, ControlFlowOp):
+                for block in node.op.blocks:
+                    yield from self._extract_basis(block)
+
+    @_extract_basis.register
+    def _(self, circ: QuantumCircuit):
+        for instr_context in circ.data:
+            instr, _, _ = instr_context
+            if not circ.has_calibration_for(instr_context):
+                yield (instr.name, instr.num_qubits)
+            if isinstance(instr, ControlFlowOp):
+                for block in instr.blocks:
+                    yield from self._extract_basis(block)
+
+    def _extract_basis_target(
+        self, dag, qarg_indices, source_basis=None, qargs_local_source_basis=None
+    ):
+        if source_basis is None:
+            source_basis = set()
+        if qargs_local_source_basis is None:
+            qargs_local_source_basis = defaultdict(set)
+        for node in dag.op_nodes():
+            qargs = tuple(qarg_indices[bit] for bit in node.qargs)
+            if dag.has_calibration_for(node):
+                continue
+            # Treat the instruction as on an incomplete basis if the qargs are in the
+            # qargs_with_non_global_operation dictionary or if any of the qubits in qargs
+            # are a superset for a non-local operation. For example, if the qargs
+            # are (0, 1) and that's a global (ie no non-local operations on (0, 1)
+            # operation but there is a non-local operation on (1,) we need to
+            # do an extra non-local search for this op to ensure we include any
+            # single qubit operation for (1,) as valid. This pattern also holds
+            # true for > 2q ops too (so for 4q operations we need to check for 3q, 2q,
+            # and 1q operations in the same manner)
+            if qargs in self._qargs_with_non_global_operation or any(
+                frozenset(qargs).issuperset(incomplete_qargs)
+                for incomplete_qargs in self._qargs_with_non_global_operation
+            ):
+                qargs_local_source_basis[frozenset(qargs)].add((node.name, node.op.num_qubits))
+            else:
+                source_basis.add((node.name, node.op.num_qubits))
+            if isinstance(node.op, ControlFlowOp):
+                for block in node.op.blocks:
+                    block_dag = circuit_to_dag(block)
+                    source_basis, qargs_local_source_basis = self._extract_basis_target(
+                        block_dag,
+                        {
+                            inner: qarg_indices[outer]
+                            for inner, outer in zip(block.qubits, node.qargs)
+                        },
+                        source_basis=source_basis,
+                        qargs_local_source_basis=qargs_local_source_basis,
+                    )
+        return source_basis, qargs_local_source_basis
+
 
 class StopIfBasisRewritable(Exception):
-    """Custom exception that signals `retworkx.dijkstra_search` to stop."""
+    """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
-    """Handles events emitted during `retworkx.dijkstra_search`."""
+class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
+    """Handles events emitted during `rustworkx.dijkstra_search`."""
 
     def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
         self.graph = graph
@@ -346,7 +413,7 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
         if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
-            raise retworkx.visit.PruneSearch
+            raise rustworkx.visit.PruneSearch  # pylint: disable=no-member
 
     def edge_relaxed(self, edge):
         _, target, edata = edge
@@ -370,8 +437,8 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):
 
         cost_tot = 0
         rule = edge["rule"]
-        for gate, qargs, _ in rule.circuit:
-            key = Key(name=gate.name, num_qubits=len(qargs))
+        for instruction in rule.circuit:
+            key = Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
             cost_tot += self._opt_cost_map[key]
 
         source = edge["source"]
@@ -412,7 +479,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
 
     all_gates_in_lib = set()
 
-    graph = retworkx.PyDiGraph()
+    graph = rustworkx.PyDiGraph()
     nodes_to_indices = dict()
     num_gates_for_rule = dict()
 
@@ -427,7 +494,8 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         all_gates_in_lib.add(key)
         for equiv in equiv_lib._get_equivalences(key):
             sources = {
-                Key(name=gate.name, num_qubits=len(qargs)) for gate, qargs, _ in equiv.circuit
+                Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
+                for instruction in equiv.circuit
             }
             all_gates_in_lib |= sources
             edges = [
@@ -458,7 +526,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     graph.add_edges_from_no_data([(dummy, nodes_to_indices[key]) for key in target_basis_keys])
     rtn = None
     try:
-        retworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+        rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
     except StopIfBasisRewritable:
         rtn = vis.basis_transforms
 
@@ -486,8 +554,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             source_basis but not affected by basis_transforms will be included
             as a key mapping to itself.
     """
-
-    example_gates = {(node.op.name, node.op.num_qubits): node.op for node in source_dag.op_nodes()}
+    example_gates = _get_example_gates(source_dag)
     mapped_instrs = {}
 
     for gate_name, gate_num_qubits in source_basis:
@@ -523,7 +590,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
             ]
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-                from qiskit.converters import dag_to_circuit
 
                 logger.debug(
                     "Updating transform for mapped instr %s %s from \n%s",
@@ -533,7 +599,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
             for node in doomed_nodes:
-                from qiskit.converters import circuit_to_dag
 
                 replacement = equiv.assign_parameters(
                     dict(zip_longest(equiv_params, node.op.params))
@@ -544,7 +609,6 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 dag.substitute_node_with_dag(node, replacement_dag)
 
             if doomed_nodes and logger.isEnabledFor(logging.DEBUG):
-                from qiskit.converters import dag_to_circuit
 
                 logger.debug(
                     "Updated transform for mapped instr %s %s to\n%s",
@@ -554,3 +618,16 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                 )
 
     return mapped_instrs
+
+
+def _get_example_gates(source_dag):
+    def recurse(dag, example_gates=None):
+        example_gates = example_gates or {}
+        for node in dag.op_nodes():
+            example_gates[(node.op.name, node.op.num_qubits)] = node.op
+            if isinstance(node.op, ControlFlowOp):
+                for block in node.op.blocks:
+                    example_gates = recurse(circuit_to_dag(block), example_gates)
+        return example_gates
+
+    return recurse(source_dag)

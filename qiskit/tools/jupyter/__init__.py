@@ -61,7 +61,7 @@ Load Qiskit Job Watcher
 HTMLProgressBar
 ===============
 
-.. jupyter-execute::
+.. code-block::
 
     import numpy as np
     from qiskit.tools.parallel import parallel_map
@@ -74,7 +74,7 @@ HTMLProgressBar
 Qiskit version table
 ====================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %qiskit_version_table
@@ -83,7 +83,7 @@ Qiskit version table
 Qiskit copyright
 ================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %qiskit_copyright
@@ -91,7 +91,7 @@ Qiskit copyright
 Monospaced output
 =================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %monospaced_output
@@ -100,7 +100,7 @@ Monospaced output
 import warnings
 
 from IPython import get_ipython
-from qiskit.test.mock import FakeBackend
+from qiskit.providers.fake_provider import FakeBackend
 from qiskit.utils import optionals as _optionals
 from .jupyter_magics import ProgressBarMagic, StatusMagic
 from .progressbar import HTMLProgressBar
@@ -122,7 +122,6 @@ if _IP is not None:
 
         _IP.register_magics(BackendOverview)
         if _optionals.HAS_IBMQ:
-            # pylint: disable=import-error
             from qiskit.providers.ibmq import IBMQBackend  # pylint: disable=no-name-in-module
 
             HTML_FORMATTER = _IP.display_formatter.formatters["text/html"]

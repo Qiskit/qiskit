@@ -12,10 +12,10 @@
 
 """Tests for PauliList class."""
 
+import itertools
 import unittest
 from test import combine
 
-import itertools
 import numpy as np
 from ddt import ddt
 from scipy.sparse import csr_matrix
@@ -80,6 +80,14 @@ class TestPauliListInit(QiskitTestCase):
     def test_array_init(self):
         """Test array initialization."""
         # Matrix array initialization
+
+        with self.subTest(msg="Empty array"):
+            x = np.array([], dtype=bool).reshape((1, 0))
+            z = np.array([], dtype=bool).reshape((1, 0))
+            pauli_list = PauliList.from_symplectic(x, z)
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
+
         with self.subTest(msg="bool array"):
             z = np.array([[False], [True]])
             x = np.array([[False], [True]])
@@ -2026,6 +2034,40 @@ class TestPauliListMethods(QiskitTestCase):
         self.assertListEqual(value, value_h)
         self.assertListEqual(value_inv, value_s)
 
+    def test_phase_dtype_evolve_clifford(self):
+        """Test phase dtype during evolve method for Clifford gates."""
+        gates = (
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            SwapGate(),
+        )
+        dtypes = [
+            int,
+            np.int8,
+            np.uint8,
+            np.int16,
+            np.uint16,
+            np.int32,
+            np.uint32,
+            np.int64,
+            np.uint64,
+        ]
+        for gate, dtype in itertools.product(gates, dtypes):
+            z = np.ones(gate.num_qubits, dtype=bool)
+            x = np.ones(gate.num_qubits, dtype=bool)
+            phase = (np.sum(z & x) % 4).astype(dtype)
+            paulis = Pauli((z, x, phase))
+            evo = paulis.evolve(gate)
+            self.assertEqual(evo.phase.dtype, dtype)
+
     @combine(phase=(True, False))
     def test_evolve_clifford_qargs(self, phase):
         """Test evolve method for random Clifford"""
@@ -2058,20 +2100,54 @@ class TestPauliListMethods(QiskitTestCase):
 
         # checking that every input Pauli in pauli_list is in a group in the ouput
         output_labels = [pauli.to_label() for group in groups for pauli in group]
-        assert sorted(output_labels) == sorted(input_labels)
-
+        #     assert sorted(output_labels) == sorted(input_labels)
+        self.assertListEqual(sorted(output_labels), sorted(input_labels))
         # Within each group, every operator qubit-wise commutes with every other operator.
         for group in groups:
-            assert all(
-                qubitwise_commutes(pauli1, pauli2)
-                for pauli1, pauli2 in itertools.combinations(group, 2)
+            self.assertTrue(
+                all(
+                    qubitwise_commutes(pauli1, pauli2)
+                    for pauli1, pauli2 in itertools.combinations(group, 2)
+                )
             )
         # For every pair of groups, at least one element from one does not qubit-wise commute with
         # at least one element of the other.
         for group1, group2 in itertools.combinations(groups, 2):
-            assert not all(
-                qubitwise_commutes(group1_pauli, group2_pauli)
-                for group1_pauli, group2_pauli in itertools.product(group1, group2)
+            self.assertFalse(
+                all(
+                    qubitwise_commutes(group1_pauli, group2_pauli)
+                    for group1_pauli, group2_pauli in itertools.product(group1, group2)
+                )
+            )
+
+    def test_group_commuting(self):
+        """Test general grouping commuting operators"""
+
+        def commutes(left: Pauli, right: Pauli) -> bool:
+            return len(left) == len(right) and left.commutes(right)
+
+        input_labels = ["IY", "ZX", "XZ", "YI", "YX", "YY", "YZ", "ZI", "ZX", "ZY", "iZZ", "II"]
+        np.random.shuffle(input_labels)
+        pauli_list = PauliList(input_labels)
+        #  if qubit_wise=True, equivalent to test_group_qubit_wise_commuting
+        groups = pauli_list.group_commuting(qubit_wise=False)
+
+        # checking that every input Pauli in pauli_list is in a group in the ouput
+        output_labels = [pauli.to_label() for group in groups for pauli in group]
+        self.assertListEqual(sorted(output_labels), sorted(input_labels))
+        # Within each group, every operator commutes with every other operator.
+        for group in groups:
+            self.assertTrue(
+                all(commutes(pauli1, pauli2) for pauli1, pauli2 in itertools.combinations(group, 2))
+            )
+        # For every pair of groups, at least one element from one group does not commute with
+        # at least one element of the other.
+        for group1, group2 in itertools.combinations(groups, 2):
+            self.assertFalse(
+                all(
+                    commutes(group1_pauli, group2_pauli)
+                    for group1_pauli, group2_pauli in itertools.product(group1, group2)
+                )
             )
 
 

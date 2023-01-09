@@ -18,6 +18,7 @@ import numpy as np
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister
 from qiskit.circuit import Instruction
+from qiskit.circuit import Qubit
 from qiskit.circuit.library.data_preparation import StatePreparation
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
@@ -106,8 +107,9 @@ def initialize(self, params, qubits=None):
               to :math:`|1\rangle`. Example: setting params to 5 would initialize qubit 0 and qubit 2
               to :math:`|1\rangle` and qubit 1 to :math:`|0\rangle`.
 
-        qubits (QuantumRegister or int):
+        qubits (QuantumRegister or Qubit or int):
             * QuantumRegister: A list of qubits to be initialized [Default: None].
+            * Qubit: Single qubit to be initialized [Default: None].
             * int: Index of qubit to be initialized [Default: None].
             * list: Indexes of qubits to be initialized [Default: None].
 
@@ -117,7 +119,7 @@ def initialize(self, params, qubits=None):
     Examples:
         Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -140,7 +142,7 @@ def initialize(self, params, qubits=None):
         More information about labels for basis states are in
         :meth:`.Statevector.from_label`.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -159,8 +161,9 @@ def initialize(self, params, qubits=None):
             q_1: ┤1                 ├
                  └──────────────────┘
 
-        Initialize two qubits from an array of complex amplitudes
-        .. jupyter-execute::
+        Initialize two qubits from an array of complex amplitudes.
+
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -181,7 +184,7 @@ def initialize(self, params, qubits=None):
     """
     if qubits is None:
         qubits = self.qubits
-    elif isinstance(qubits, (int, np.integer, slice)):
+    elif isinstance(qubits, (int, np.integer, slice, Qubit)):
         qubits = [qubits]
     num_qubits = len(qubits) if isinstance(params, int) else None
 

@@ -13,9 +13,9 @@
 N-qubit Pauli Operator Class
 """
 # pylint: disable=invalid-name
-# pylint: disable=bad-docstring-quotes  # for deprecate_function decorator
 
 import re
+import warnings
 from typing import Dict
 
 import numpy as np
@@ -28,8 +28,7 @@ from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.mixins import generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli, _count_y
 
 
 class Pauli(BasePauli):
@@ -105,7 +104,7 @@ class Pauli(BasePauli):
 
     .. math::
 
-        P &= (-i)^{q + z\cdot x} Z^z \cdot X^x.
+        P = (-i)^{q + z\cdot x} Z^z \cdot X^x.
 
     The :math:`k`th qubit corresponds to the :math:`k`th entry in the
     :math:`z` and :math:`x` arrays
@@ -136,7 +135,7 @@ class Pauli(BasePauli):
 
     For example
 
-    .. code:
+    .. code-block:: python
 
         p = Pauli('-iXYZ')
 
@@ -167,9 +166,6 @@ class Pauli(BasePauli):
                 characters from ['+', '-', ''], ['1', ''], and ['i', 'j', ''] in this order,
                 e.g. '', '-1j' while a Pauli string is 1 or more characters of 'I', 'X', 'Y' or 'Z',
                 e.g. 'Z', 'XIYY'.
-            x (np.ndarray): DEPRECATED, symplectic x vector.
-            z (np.ndarray): DEPRECATED, symplectic z vector.
-            label (str): DEPRECATED, string label.
 
         Raises:
             QiskitError: if input array is invalid shape.
@@ -188,13 +184,27 @@ class Pauli(BasePauli):
             base_z, base_x, base_phase = self._from_scalar_op(data)
         elif isinstance(data, (QuantumCircuit, Instruction)):
             base_z, base_x, base_phase = self._from_circuit(data)
-        elif x is not None:  # DEPRECATED
+        elif x is not None:
             if z is None:
                 # Using old Pauli initialization with positional args instead of kwargs
                 z = data
-            base_z, base_x, base_phase = self._from_array_deprecated(z, x)
-        elif label is not None:  # DEPRECATED
-            base_z, base_x, base_phase = self._from_label_deprecated(label)
+            warnings.warn(
+                "Passing 'z' and 'x' arrays separately to 'Pauli' is deprecated as of"
+                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
+                " Use a tuple instead, such as 'Pauli((z, x[, phase]))'.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            base_z, base_x, base_phase = self._from_array(z, x)
+        elif label is not None:
+            warnings.warn(
+                "The 'label' keyword argument of 'Pauli' is deprecated as of"
+                " Qiskit Terra 0.17 and will be removed in version 0.23 or later."
+                " Pass the label positionally instead, such as 'Pauli(\"XYZ\")'.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            base_z, base_x, base_phase = self._from_label(label)
         else:
             raise QiskitError("Invalid input data for Pauli.")
 
@@ -276,12 +286,12 @@ class Pauli(BasePauli):
     def phase(self):
         """Return the group phase exponent for the Pauli."""
         # Convert internal ZX-phase convention of BasePauli to group phase
-        return np.mod(self._phase - self._count_y(), 4)[0]
+        return np.mod(self._phase - self._count_y(dtype=self._phase.dtype), 4)[0]
 
     @phase.setter
     def phase(self, value):
         # Convert group phase convention to internal ZX-phase convention
-        self._phase[:] = np.mod(value + self._count_y(), 4)
+        self._phase[:] = np.mod(value + self._count_y(dtype=self._phase.dtype), 4)
 
     @property
     def x(self):
@@ -323,7 +333,7 @@ class Pauli(BasePauli):
         self._z[0, qubits] = value.z
         self._x[0, qubits] = value.x
         # Add extra phase from new Pauli to current
-        self._phase += value._phase
+        self._phase = self._phase + value._phase
 
     def delete(self, qubits):
         """Return a Pauli with qubits deleted.
@@ -630,7 +640,7 @@ class Pauli(BasePauli):
         base_z = np.zeros((1, op.num_qubits), dtype=bool)
         base_x = np.zeros((1, op.num_qubits), dtype=bool)
         base_phase = np.mod(
-            cls._phase_from_complex(op.coeff) + np.sum(np.logical_and(base_z, base_x), axis=1), 4
+            cls._phase_from_complex(op.coeff) + _count_y(base_x, base_z), 4, dtype=int
         )
         return base_z, base_x, base_phase
 
@@ -677,364 +687,17 @@ class Pauli(BasePauli):
             ret.phase = cls._phase_from_complex(np.exp(1j * float(instr.global_phase)))
 
         # Recursively apply instructions
-        for dinstr, qregs, cregs in instr.data:
-            if cregs:
+        for inner in instr.data:
+            if inner.clbits:
                 raise QiskitError(
-                    f"Cannot apply instruction with classical registers: {dinstr.name}"
+                    f"Cannot apply instruction with classical bits: {inner.operation.name}"
                 )
-            if not isinstance(dinstr, (Barrier, Delay)):
-                next_instr = BasePauli(*cls._from_circuit(dinstr))
+            if not isinstance(inner.operation, (Barrier, Delay)):
+                next_instr = BasePauli(*cls._from_circuit(inner.operation))
                 if next_instr is not None:
-                    qargs = [tup.index for tup in qregs]
+                    qargs = [tup.index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
-
-    # ---------------------------------------------------------------------
-    # DEPRECATED methods from old Pauli class
-    # ---------------------------------------------------------------------
-
-    @classmethod
-    @deprecate_function(
-        "Initializing Pauli from `Pauli(label=l)` kwarg is deprecated as of "
-        "version 0.17.0 and will be removed no earlier than 3 months after "
-        "the release date. Use `Pauli(l)` instead."
-    )
-    def _from_label_deprecated(cls, label):
-        # Deprecated wrapper of `_from_label` so that a deprecation warning
-        # can be displaced during initialization with deprecated kwarg
-        return cls._from_label(label)
-
-    @classmethod
-    @deprecate_function(
-        "Initializing Pauli from `Pauli(z=z, x=x)` kwargs is deprecated as of "
-        "version 0.17.0 and will be removed no earlier than 3 months after "
-        "the release date. Use tuple initialization `Pauli((z, x))` instead."
-    )
-    def _from_array_deprecated(cls, z, x):
-        # Deprecated wrapper of `_from_array` so that a deprecation warning
-        # can be displaced during initialization with deprecated kwarg
-        return cls._from_array(z, x)
-
-    @staticmethod
-    def _make_np_bool(arr):
-        if not isinstance(arr, (list, np.ndarray, tuple)):
-            arr = [arr]
-        arr = np.asarray(arr).astype(bool)
-        return arr
-
-    @staticmethod
-    @deprecate_function(
-        "`from_label` is deprecated and will be removed no earlier than "
-        "3 months after the release date. Use Pauli(label) instead."
-    )
-    def from_label(label):
-        """DEPRECATED: Construct a Pauli from a string label.
-
-        This function is deprecated use ``Pauli(label)`` instead.
-
-        Args:
-            label (str): Pauli string label.
-
-        Returns:
-            Pauli: the constructed Pauli.
-
-        Raises:
-            QiskitError: If the input list is empty or contains invalid
-            Pauli strings.
-        """
-        if isinstance(label, tuple):
-            # Legacy usage from aqua
-            label = "".join(label)
-        return Pauli(label)
-
-    @staticmethod
-    @deprecate_function(
-        "sgn_prod is deprecated and will be removed no earlier than "
-        "3 months after the release date. Use `dot` instead."
-    )
-    def sgn_prod(p1, p2):
-        r"""
-        DEPRECATED: Multiply two Paulis and track the phase.
-
-        This function is deprecated. The Pauli class now handles full
-        Pauli group multiplication using :meth:`compose` or :meth:`dot`.
-
-        $P_3 = P_1 \otimes P_2$: X*Y
-
-        Args:
-            p1 (Pauli): pauli 1
-            p2 (Pauli): pauli 2
-
-        Returns:
-            Pauli: the multiplied pauli (without phase)
-            complex: the sign of the multiplication, 1, -1, 1j or -1j
-        """
-        pauli = p1.dot(p2)
-        return pauli[:], (-1j) ** pauli.phase
-
-    @deprecate_function(
-        "`to_spmatrix` is deprecated and will be removed no earlier than "
-        "3 months after the release date. Use `to_matrix(sparse=True)` instead."
-    )
-    def to_spmatrix(self):
-        r"""
-        DEPRECATED Convert Pauli to a sparse matrix representation (CSR format).
-
-        This function is deprecated. Use :meth:`to_matrix` with kwarg
-        ``sparse=True`` instead.
-
-        Returns:
-            scipy.sparse.csr_matrix: a sparse matrix with CSR format that
-            represents the pauli.
-        """
-        return self.to_matrix(sparse=True)
-
-    @deprecate_function(
-        "`kron` is deprecated and will be removed no earlier than "
-        "3 months after the release date of Qiskit Terra 0.17.0. "
-        "Use `expand` instead, but note this does not change "
-        "the operator in-place."
-    )
-    def kron(self, other):
-        r"""DEPRECATED: Kronecker product of two paulis.
-
-        This function is deprecated. Use :meth:`expand` instead.
-
-        Order is $P_2 (other) \otimes P_1 (self)$
-
-        Args:
-            other (Pauli): P2
-
-        Returns:
-            Pauli: self
-        """
-        pauli = self.expand(other)
-        self._z = pauli._z
-        self._x = pauli._x
-        self._phase = pauli._phase
-        self._op_shape = self._op_shape.expand(other._op_shape)
-        return self
-
-    @deprecate_function(
-        "`update_z` is deprecated and will be removed no earlier than "
-        "3 months after the release date. Use `Pauli.z = val` or "
-        "`Pauli.z[indices] = val` instead."
-    )
-    def update_z(self, z, indices=None):
-        """
-        DEPRECATED: Update partial or entire z.
-
-        This function is deprecated. Use the setter for :attr:`Z` instead.
-
-        Args:
-            z (numpy.ndarray or list): to-be-updated z
-            indices (numpy.ndarray or list or optional): to-be-updated qubit indices
-
-        Returns:
-            Pauli: self
-
-        Raises:
-            QiskitError: when updating whole z, the number of qubits must be the same.
-        """
-        phase = self.phase
-        z = self._make_np_bool(z)
-        if indices is None:
-            if len(self.z) != len(z):
-                raise QiskitError(
-                    "During updating whole z, you can not change the number of qubits."
-                )
-            self.z = z
-        else:
-            if not isinstance(indices, list) and not isinstance(indices, np.ndarray):
-                indices = [indices]
-            for p, idx in enumerate(indices):
-                self.z[idx] = z[p]
-        self.phase = phase
-        return self
-
-    @deprecate_function(
-        "`update_z` is deprecated and will be removed no earlier than "
-        "3 months after the release date. Use `Pauli.x = val` or "
-        "`Pauli.x[indices] = val` instead."
-    )
-    def update_x(self, x, indices=None):
-        """
-        DEPRECATED: Update partial or entire x.
-
-        This function is deprecated. Use the setter for :attr:`X` instead.
-
-        Args:
-            x (numpy.ndarray or list): to-be-updated x
-            indices (numpy.ndarray or list or optional): to-be-updated qubit indices
-
-        Returns:
-            Pauli: self
-
-        Raises:
-            QiskitError: when updating whole x, the number of qubits must be the same.
-        """
-        phase = self.phase
-        x = self._make_np_bool(x)
-        if indices is None:
-            if len(self.x) != len(x):
-                raise QiskitError(
-                    "During updating whole x, you can not change the number of qubits."
-                )
-            self.x = x
-        else:
-            if not isinstance(indices, list) and not isinstance(indices, np.ndarray):
-                indices = [indices]
-            for p, idx in enumerate(indices):
-                self.x[idx] = x[p]
-        self.phase = phase
-        return self
-
-    @deprecate_function(
-        "`insert_paulis` is deprecated and will be removed no earlier than "
-        "3 months after the release date. For similar functionality use "
-        "`Pauli.insert` instead."
-    )
-    def insert_paulis(self, indices=None, paulis=None, pauli_labels=None):
-        """
-        DEPRECATED: Insert or append pauli to the targeted indices.
-
-        This function is deprecated. Similar functionality can be obtained
-        using the :meth:`insert` method.
-
-        If indices is None, it means append at the end.
-
-        Args:
-            indices (list[int]): the qubit indices to be inserted
-            paulis (Pauli): the to-be-inserted or appended pauli
-            pauli_labels (list[str]): the to-be-inserted or appended pauli label
-
-        Note:
-            the indices refers to the location of original paulis,
-            e.g. if indices = [0, 2], pauli_labels = ['Z', 'I'] and original pauli = 'ZYXI'
-            the pauli will be updated to ZY'I'XI'Z'
-            'Z' and 'I' are inserted before the qubit at 0 and 2.
-
-        Returns:
-            Pauli: self
-
-        Raises:
-            QiskitError: provide both `paulis` and `pauli_labels` at the same time
-        """
-        if pauli_labels is not None:
-            if paulis is not None:
-                raise QiskitError("Please only provide either `paulis` or `pauli_labels`")
-            if isinstance(pauli_labels, str):
-                pauli_labels = list(pauli_labels)
-            # since pauli label is in reversed order.
-            label = "".join(pauli_labels[::-1])
-            paulis = self.from_label(label)
-
-        # Insert and update self
-        if indices is None:  # append
-            z = np.concatenate((self.z, paulis.z))
-            x = np.concatenate((self.x, paulis.x))
-        else:
-            if not isinstance(indices, list):
-                indices = [indices]
-            z = np.insert(self.z, indices, paulis.z)
-            x = np.insert(self.x, indices, paulis.x)
-        pauli = Pauli((z, x, self.phase + paulis.phase))
-        self._z = pauli._z
-        self._x = pauli._x
-        self._phase = pauli._phase
-        self._op_shape = pauli._op_shape
-        return self
-
-    @deprecate_function(
-        "`append_paulis` is deprecated and will be removed no earlier than "
-        "3 months after the release date. Use `Pauli.expand` instead."
-    )
-    def append_paulis(self, paulis=None, pauli_labels=None):
-        """
-        DEPRECATED: Append pauli at the end.
-
-        Args:
-            paulis (Pauli): the to-be-inserted or appended pauli
-            pauli_labels (list[str]): the to-be-inserted or appended pauli label
-
-        Returns:
-            Pauli: self
-        """
-        return self.insert_paulis(None, paulis=paulis, pauli_labels=pauli_labels)
-
-    @deprecate_function(
-        "`append_paulis` is deprecated and will be removed no earlier than "
-        "3 months after the release date. For equivalent functionality "
-        "use `Pauli.delete` instead."
-    )
-    def delete_qubits(self, indices):
-        """
-        DEPRECATED: Delete pauli at the indices.
-
-        This function is deprecated. Equivalent functionality can be obtained
-        using the :meth:`delete` method.
-
-        Args:
-            indices(list[int]): the indices of to-be-deleted paulis
-
-        Returns:
-            Pauli: self
-        """
-        pauli = self.delete(indices)
-        self._z = pauli._z
-        self._x = pauli._x
-        self._phase = pauli._phase
-        self._op_shape = pauli._op_shape
-        return self
-
-    @classmethod
-    @deprecate_function(
-        "`pauli_single` is deprecated and will be removed no earlier than "
-        "3 months after the release date."
-    )
-    def pauli_single(cls, num_qubits, index, pauli_label):
-        """
-        DEPRECATED: Generate single qubit pauli at index with pauli_label with length num_qubits.
-
-        Args:
-            num_qubits (int): the length of pauli
-            index (int): the qubit index to insert the single qubit
-            pauli_label (str): pauli
-
-        Returns:
-            Pauli: single qubit pauli
-        """
-        tmp = Pauli(pauli_label)
-        ret = Pauli((np.zeros(num_qubits, dtype=bool), np.zeros(num_qubits, dtype=bool)))
-        ret.x[index] = tmp.x[0]
-        ret.z[index] = tmp.z[0]
-        ret.phase = tmp.phase
-        return ret
-
-    @classmethod
-    @deprecate_function(
-        "`random` is deprecated and will be removed no earlier than "
-        "3 months after the release date. "
-        "Use `qiskit.quantum_info.random_pauli` instead"
-    )
-    def random(cls, num_qubits, seed=None):
-        """DEPRECATED: Return a random Pauli on number of qubits.
-
-        This function is deprecated use
-        :func:`~qiskit.quantum_info.random_pauli` instead.
-
-        Args:
-            num_qubits (int): the number of qubits
-            seed (int): Optional. To set a random seed.
-        Returns:
-            Pauli: the random pauli
-        """
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.random import (
-            random_pauli,
-        )
-
-        return random_pauli(num_qubits, group_phase=False, seed=seed)
 
 
 # ---------------------------------------------------------------------
