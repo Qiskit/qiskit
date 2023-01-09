@@ -19,7 +19,7 @@ parameter constraints.
 """
 import functools
 import warnings
-from typing import Any, Dict, List, Optional, Union, Callable
+from typing import Any, Dict, List, Optional, Union, Callable, Tuple
 from copy import deepcopy
 
 import numpy as np
@@ -83,7 +83,7 @@ def _lifted_gaussian(
 
 
 @functools.lru_cache(maxsize=None)
-def _is_amplitude_valid(envelope_lam: Callable, envelope: sym.Expr, parameters: tuple) -> bool:
+def _is_amplitude_valid(envelope_lam: Callable, time: Tuple[float, ...], *fargs: float) -> bool:
     """A helper function to validate maximum amplitude limit.
 
     Result is cached for better performance.
@@ -98,9 +98,9 @@ def _is_amplitude_valid(envelope_lam: Callable, envelope: sym.Expr, parameters: 
         Return True if no sample point exceeds 1.0 in absolute value.
     """
     try:
-        fargs = _get_expression_args(envelope, dict(parameters))
+        time = np.asarray(time, dtype=float)
         # Instantiation of Waveform does automatic amplitude validation.
-        Waveform(samples=envelope_lam(*fargs))
+        Waveform(samples=envelope_lam(time, *fargs))
         return True
     except PulseError:
         return False
@@ -525,9 +525,9 @@ class SymbolicPulse(Pulse):
                 # Check full waveform only when the condition is satisified or
                 # evaluation condition is not provided.
                 # This operation is slower due to overhead of 'get_waveform'.
-                if not _is_amplitude_valid(
-                    self._envelope_lam, self._envelope, tuple(self.parameters.items())
-                ):
+                fargs = _get_expression_args(self._envelope, self.parameters)
+
+                if not _is_amplitude_valid(self._envelope_lam, tuple(fargs.pop(0)), *fargs):
                     param_repr = ", ".join(f"{p}={v}" for p, v in self.parameters.items())
                     raise PulseError(
                         f"Maximum pulse amplitude norm exceeds 1.0 with parameters {param_repr}."
@@ -568,8 +568,7 @@ class SymbolicPulse(Pulse):
             f", name='{self.name}'" if self.name is not None else "",
         )
 
-    def __hash__(self) -> int:
-        raise NotImplementedError
+    __hash__ = None
 
 
 class ScalableSymbolicPulse(SymbolicPulse):
@@ -685,9 +684,6 @@ class ScalableSymbolicPulse(SymbolicPulse):
                 return False
 
         return True
-
-    def __hash__(self) -> int:
-        raise NotImplementedError
 
 
 class _PulseType(type):

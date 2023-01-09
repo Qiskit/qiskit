@@ -77,13 +77,33 @@ def _loads_symbolic_expr(expr_bytes):
     return expr
 
 
-def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
-    # In the transition to Qiskit Terra 0.23, the representation of library pulses was changed from
-    # complex "amp" to float "amp" and "angle". The existing library pulses in previous versions are
-    # handled here separately to conform with the new representation. To avoid role assumption for
-    # "amp" for custom pulses, only the library pulses are handled this way.
+def _read_symbolic_pulse(file_obj, version):
+    make = formats.SYMBOLIC_PULSE._make
+    pack = formats.SYMBOLIC_PULSE_PACK
+    size = formats.SYMBOLIC_PULSE_SIZE
 
-    # Note that parameters is mutated during the function call
+    header = make(
+        struct.unpack(
+            pack,
+            file_obj.read(size),
+        )
+    )
+    pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
+    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
+    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
+    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
+    parameters = common.read_mapping(
+        file_obj,
+        deserializer=value.loads_value,
+        version=version,
+        vectors={},
+    )
+
+    # In the transition to Qiskit Terra 0.23 (QPY version 6), the representation of library pulses
+    # was changed from complex "amp" to float "amp" and "angle". The existing library pulses in
+    # previous versions are handled here separately to conform with the new representation. To
+    # avoid role assumption for "amp" for custom pulses, only the library pulses are handled this
+    # way.
 
     # List of pulses in the library in QPY version 5 and below:
     legacy_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
@@ -107,33 +127,6 @@ def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
             PendingDeprecationWarning,
         )
         class_name = "ScalableSymbolicPulse"
-
-    return envelope, class_name
-
-
-def _read_symbolic_pulse(file_obj, version):
-    make = formats.SYMBOLIC_PULSE._make
-    pack = formats.SYMBOLIC_PULSE_PACK
-    size = formats.SYMBOLIC_PULSE_SIZE
-
-    header = make(
-        struct.unpack(
-            pack,
-            file_obj.read(size),
-        )
-    )
-    pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
-    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
-    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
-    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
-    parameters = common.read_mapping(
-        file_obj,
-        deserializer=value.loads_value,
-        version=version,
-        vectors={},
-    )
-    envelope, class_name = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
-    # Note that parameters is mutated during the function call
 
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
