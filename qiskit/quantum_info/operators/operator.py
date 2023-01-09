@@ -470,6 +470,10 @@ class Operator(LinearOp):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
+    def to_matrix(self):
+        """Convert operator to NumPy matrix."""
+        return self.data
+
     @classmethod
     def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
         """Perform a contraction using Numpy.einsum

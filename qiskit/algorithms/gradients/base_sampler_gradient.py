@@ -21,12 +21,12 @@ from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
 
-from qiskit import transpile
 from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseSampler
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
+from qiskit.transpiler.passes import TranslateParameterizedGates
 
 from .sampler_gradient_result import SamplerGradientResult
 from .utils import (
@@ -141,18 +141,15 @@ class BaseSamplerGradient(ABC):
             The list of gradient circuits, the list of parameter values, and the list of parameters.
             parameter_values and parameters are updated to match the gradient circuit.
         """
+        translator = TranslateParameterizedGates(supported_gates)
         g_circuits, g_parameter_values, g_parameter_sets = [], [], []
         for circuit, parameter_value_, parameter_set in zip(
             circuits, parameter_values, parameter_sets
         ):
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._gradient_circuit_cache:
-                transpiled_circuit = transpile(
-                    circuit, basis_gates=supported_gates, optimization_level=0
-                )
-                self._gradient_circuit_cache[circuit_key] = _assign_unique_parameters(
-                    transpiled_circuit
-                )
+                unrolled = translator(circuit)
+                self._gradient_circuit_cache[circuit_key] = _assign_unique_parameters(unrolled)
             gradient_circuit = self._gradient_circuit_cache[circuit_key]
             g_circuits.append(gradient_circuit.gradient_circuit)
             g_parameter_values.append(
