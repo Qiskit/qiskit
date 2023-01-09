@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -37,7 +37,7 @@ from qiskit.utils.deprecation import deprecate_function
 
 
 class TrotterQRTE(RealEvolver):
-    """Pending deprecation: Quantum Real Time Evolution using Trotterization.
+    """Deprecated: Quantum Real Time Evolution using Trotterization.
 
     The TrotterQRTE class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class.
@@ -46,9 +46,7 @@ class TrotterQRTE(RealEvolver):
 
     Type of Trotterization is defined by a ProductFormula provided.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             from qiskit.opflow import X, Z, Zero
             from qiskit.algorithms import EvolutionProblem, TrotterQRTE
@@ -69,10 +67,9 @@ class TrotterQRTE(RealEvolver):
     @deprecate_function(
         "The TrotterQRTE class has been superseded by the "
         "qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-        since="0.22.0",
+        "This class will be removed in the future.",
+        category=DeprecationWarning,
+        since="0.23.0",
     )
     def __init__(
         self,

@@ -264,7 +264,7 @@ def execute(
     Example:
         Construct a 5-qubit GHZ circuit and execute 4321 shots on a backend.
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumCircuit, execute, BasicAer
 

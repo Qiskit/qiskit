@@ -25,9 +25,7 @@ from .linear_system_matrix import LinearSystemMatrix
 class NumPyMatrix(LinearSystemMatrix):
     """The deprecated class of matrices given as a numpy array.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             import warnings
             import numpy as np

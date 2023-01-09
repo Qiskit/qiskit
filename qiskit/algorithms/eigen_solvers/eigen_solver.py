@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2022.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,7 +24,7 @@ from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):
-    """Pending deprecation: Eigensolver Interface.
+    """Deprecated: Eigensolver Interface.
 
     The Eigensolver interface has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.Eigensolver` interface.
@@ -39,10 +39,9 @@ class Eigensolver(ABC):
     @deprecate_function(
         "The Eigensolver interface has been superseded by the "
         "qiskit.algorithms.eigensolvers.Eigensolver interface. "
-        "This interface will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-        since="0.22.0",
+        "This interface will be removed in the future.",
+        category=DeprecationWarning,
+        since="0.23.0",
     )
     def __init__(self) -> None:
         pass
@@ -80,7 +79,7 @@ class Eigensolver(ABC):
 
 
 class EigensolverResult(AlgorithmResult):
-    """Pending deprecation: Eigensolver Result.
+    """Deprecated: Eigensolver Result.
 
     The EigensolverResult class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.EigensolverResult` class.
@@ -92,10 +91,9 @@ class EigensolverResult(AlgorithmResult):
     @deprecate_function(
         "The EigensolverResult class has been superseded by the "
         "qiskit.algorithms.eigensolvers.EigensolverResult class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-        since="0.22.0",
+        "This class will be removed in the future.",
+        category=DeprecationWarning,
+        since="0.23.0",
     )
     def __init__(self) -> None:
         super().__init__()

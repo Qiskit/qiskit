@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
-    r"""Pending deprecation: Variational Quantum Eigensolver algorithm.
+    r"""Deprecated: Variational Quantum Eigensolver algorithm.
 
     The VQE class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.VQE` class.
@@ -130,10 +130,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     @deprecate_function(
         "The VQE class has been superseded by the "
         "qiskit.algorithms.minimum_eigensolvers.VQE class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-        since="0.22.0",
+        "This class will be removed in the future.",
+        category=DeprecationWarning,
+        since="0.23.0",
     )
     def __init__(
         self,
@@ -658,7 +657,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
-    """Pending deprecation: VQE Result.
+    """Deprecated: VQE Result.
 
     The VQEResult class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.VQEResult` class.
@@ -670,10 +669,9 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
     @deprecate_function(
         "The VQEResult class has been superseded by the "
         "qiskit.algorithms.minimum_eigensolvers.VQEResult class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-        since="0.22.0",
+        "This class will be removed in the future.",
+        category=DeprecationWarning,
+        since="0.23.0",
     )
     def __init__(self) -> None:
         with warnings.catch_warnings():

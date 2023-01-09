@@ -28,9 +28,7 @@ from .linear_system_observable import LinearSystemObservable
 class MatrixFunctional(LinearSystemObservable):
     """The deprecated class for the matrix functional of the vector solution to the linear systems.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             import warnings
             import numpy as np

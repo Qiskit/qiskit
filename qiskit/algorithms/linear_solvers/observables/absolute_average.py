@@ -29,9 +29,7 @@ class AbsoluteAverage(LinearSystemObservable):
     For a vector :math:`x=(x_1,...,x_N)`, the absolute average is defined as
     :math:`\abs{\frac{1}{N}\sum_{i=1}^{N}x_i}`.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             import warnings
             import numpy as np
