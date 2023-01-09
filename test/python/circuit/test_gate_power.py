@@ -17,6 +17,7 @@ import unittest
 from typing import Type
 
 import numpy as np
+import scipy.linalg
 from ddt import data, ddt, unpack
 
 from qiskit.circuit import Gate, QuantumCircuit
@@ -47,13 +48,6 @@ from qiskit.extensions import (
 )
 from qiskit.quantum_info.operators import Operator
 from qiskit.test import QiskitTestCase
-
-
-def _unitary_matrix_power(mat: np.ndarray, exponent: float) -> np.ndarray:
-    """Compute the power of a unitary matrix."""
-    eigs, vecs = np.linalg.eig(mat)
-    eigs = np.diag(np.power(eigs, exponent, dtype=complex))
-    return vecs @ eigs @ vecs.T.conj()
 
 
 @ddt
@@ -240,7 +234,7 @@ class TestEfficientGatePowering(QiskitTestCase):
         (TGate(), PhaseGate),
         (TdgGate(), PhaseGate),
         (XXMinusYYGate(-0.1, 0.1), XXMinusYYGate),
-        (XXPlusYYGate(0.1, 0.1), XXPlusYYGate),
+        (XXPlusYYGate(2.1, 0.1), XXPlusYYGate),
         (ZGate(), PhaseGate),
         (iSwapGate(), XXPlusYYGate),
     )
@@ -251,7 +245,7 @@ class TestEfficientGatePowering(QiskitTestCase):
         for exponent in exponents:
             result = gate.power(exponent)
             assert isinstance(result, output_gate_type)
-            expected = _unitary_matrix_power(np.array(gate), exponent)
+            expected = scipy.linalg.fractional_matrix_power(np.array(gate), exponent)
             np.testing.assert_allclose(np.array(result), expected, atol=1e-8)
 
 
