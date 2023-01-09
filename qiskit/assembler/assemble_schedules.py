@@ -269,9 +269,9 @@ def _assemble_instructions(
     if acquire_instruction_map:
         if hasattr(run_config, "meas_map"):
             _validate_meas_map(acquire_instruction_map, run_config.meas_map)
-        for (time, _), instrs in acquire_instruction_map.items():
+        for (time, _), instruction_bundle in acquire_instruction_map.items():
             qobj_instructions.append(
-                instruction_converter.convert_bundled_acquires(time, instrs),
+                instruction_converter(time, instruction_bundle),
             )
 
     return qobj_instructions, max_memory_slot

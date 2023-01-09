@@ -25,7 +25,7 @@ potentially irreversible functions into quantum circuits.  Below is a simple exa
 how to synthesize a simple boolean function defined using Python into a
 QuantumCircuit:
 
-   .. jupyter-execute::
+   .. code-block::
 
       from qiskit.circuit.classicalfunction import classical_function
       from qiskit.circuit.classicalfunction.types import Int1
@@ -35,7 +35,18 @@ QuantumCircuit:
           return (not a and b and not c and d)
 
       quantum_circuit = grover_oracle.synth(registerless=False)
-      quantum_circuit.draw()
+      quantum_circuit.draw('text')
+      
+           d: ──o──
+                │  
+           c: ──■──
+                │  
+           b: ──o──
+                │  
+           a: ──■──
+              ┌─┴─┐
+      return: ┤ X ├
+              └───┘
 
 Following Qiskit's little-endian bit ordering convention, the left-most bit (``a``) is the most
 significant bit and the right-most bit (``d``) is the least significant bit.

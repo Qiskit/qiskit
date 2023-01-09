@@ -10,7 +10,7 @@ features:
     would initialize qubit 0 to :math:`|1\rangle` and qubit 1 to
     :math:`|0\rangle`.
 
-    .. jupyter-execute::
+    .. code-block::
     
         from qiskit.extensions import Initialize
         
