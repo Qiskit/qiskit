@@ -47,6 +47,7 @@ class ParametricPulseShapes(Enum):
 
     gaussian = "Gaussian"
     gaussian_square = "GaussianSquare"
+    gaussian_square_drag = "GaussianSquareDrag"
     drag = "Drag"
     constant = "Constant"
 
