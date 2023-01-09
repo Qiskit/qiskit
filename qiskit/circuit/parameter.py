@@ -15,7 +15,9 @@ Parameter Class for variable parameters.
 
 from uuid import uuid4
 
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
+
 from .parameterexpression import ParameterExpression
 
 
@@ -85,9 +87,16 @@ class Parameter(ParameterExpression):
             symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
-    def subs(self, parameter_map: dict):
+    def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""
-        return parameter_map[self]
+        if self in parameter_map:
+            return parameter_map[self]
+        if allow_unknown_parameters:
+            return self
+        raise CircuitError(
+            "Cannot bind Parameters ({}) not present in "
+            "expression.".format([str(p) for p in parameter_map])
+        )
 
     @property
     def name(self):

@@ -106,7 +106,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
 
 @ddt
 class TestParameters(QiskitTestCase):
-    """QuantumCircuit Operations tests."""
+    """Test Parameters."""
 
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
@@ -1161,6 +1161,26 @@ class TestParameters(QiskitTestCase):
             # name if the instance is not the same
             self.assertIs(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
+
+    def test_raise_if_sub_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        with self.assertRaisesRegex(CircuitError, "not present"):
+            x.subs({y: z})
+
+    def test_sub_allow_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        subbed = x.subs({y: z}, allow_unknown_parameters=True)
+        self.assertEqual(subbed, x)
 
 
 def _construct_circuit(param, qr):
