@@ -28,14 +28,6 @@ def get_unique_backends():
         QiskitError: No backends available.
         MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
     """
-    warnings.warn(
-        "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
-        "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
-        "in a future release. Instead you should use the qiskit-ibm-provider package "
-        "which is accessible from 'qiskit_ibm_provider'.",
-        DeprecationWarning,
-        stacklevel=3,
-    )
     try:
         from qiskit.providers.ibmq import IBMQ
     except ImportError as ex:
@@ -71,20 +63,11 @@ def backend_monitor(backend):
     Examples:
     .. code-block:: python
 
-       from qiskit import IBMQ
+       from qiskit.providers.ibmq import IBMQ
        from qiskit.tools.monitor import backend_monitor
        provider = IBMQ.get_provider(hub='ibm-q')
        backend_monitor(provider.backends.ibmq_lima)
     """
-    warnings.warn(
-
-        "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
-        "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
-        "in a future release. Instead you should use the qiskit-ibm-provider package "
-        "which is accessible from 'qiskit_ibm_provider'.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
     try:
         from qiskit.providers.ibmq import IBMQBackend
     except ImportError as ex:
@@ -193,7 +176,7 @@ def backend_overview():
 
         .. code-block:: python
 
-            from qiskit import IBMQ
+            from qiskit.providers.ibmq import IBMQ
             from qiskit.tools.monitor import backend_overview
             provider = IBMQ.get_provider(hub='ibm-q')
             backend_overview()
