@@ -56,7 +56,7 @@ class Permutation(Gate):
                 circuit = QuantumCircuit(5)
                 circuit.append(permutation, [0, 1, 2, 3, 4])
                 circuit.draw('mpl')
-               
+
         Expanded Circuit:
             .. plot::
 
