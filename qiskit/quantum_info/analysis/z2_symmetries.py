@@ -277,7 +277,10 @@ class Z2Symmetries:
                 # Build the single-qubit Pauli accordingly.
                 # Build the index list accordingly.
                 for key in ("Z_or_I", "X_or_I", "Y_or_I"):
-                    if _test_symmetry_row_col(row, col, test_idx[key], test_row[key]):
+                    current_test_result = _test_symmetry_row_col(
+                        row, col, test_idx[key], test_row[key]
+                    )
+                    if current_test_result:
                         sq_paulis.append(
                             Pauli((np.zeros(half_symm_shape), np.zeros(half_symm_shape)))
                         )
@@ -285,7 +288,9 @@ class Z2Symmetries:
                         sq_paulis[row].x[col] = pauli_bool[key][1]
                         sq_list.append(col)
                         break
-                break
+                if current_test_result:
+                    # We break out of the loop over columns only when one valid test is identified.
+                    break
 
         return cls(PauliList(pauli_symmetries), PauliList(sq_paulis), sq_list, None)
 
