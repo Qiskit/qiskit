@@ -162,7 +162,8 @@ class IBMQWrapper:
                     "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
                     "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
                     "in a future release. Instead you should use the qiskit-ibm-provider package "
-                    "which is accessible from 'qiskit_ibm_provider'.",
+                    "which is accessible from 'qiskit_ibm_provider'. You can install it with ",
+                    "'pip install qiskit_ibm_provider'",
                     DeprecationWarning,
                     stacklevel=2,
                 )
@@ -181,8 +182,9 @@ class IBMQWrapper:
                     "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
                     "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
                     "in a future release. Instead you should use the qiskit-ibm-provider package "
-                    "which is accessible from 'qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' "
-                    "with 'qiskit_ibm_provider.IBMProvider'",
+                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                    "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
+                    "'qiskit_ibm_provider.IBMProvider'",
                     DeprecationWarning,
                     stacklevel=2,
                 )
