@@ -170,7 +170,6 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             sampled_plus.eval(), [1, 0.5**0.5, (1 + 0.5**0.5), 1], decimal=1
         )
 
-    @unittest.skip("Skip until https://github.com/Qiskit/qiskit-aer/issues/1249 is closed.")
     def test_parameterized_qobj(self):
         """grouped pauli expectation test"""
         two_qubit_h2 = (

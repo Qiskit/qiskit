@@ -20,7 +20,17 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit import QuantumRegister, ControlFlowOp
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, CZGate, ECRGate, RZXGate
+from qiskit.circuit.library.standard_gates import (
+    RYGate,
+    HGate,
+    CXGate,
+    CZGate,
+    ECRGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+)
 
 
 class GateDirection(TransformationPass):
@@ -97,6 +107,30 @@ class GateDirection(TransformationPass):
         _rzx_dag.apply_operation_back(HGate(), [qr[1]], [])
         return _rzx_dag
 
+    @staticmethod
+    def _rxx_dag(parameter):
+        _rxx_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        _rxx_dag.add_qreg(qr)
+        _rxx_dag.apply_operation_back(RXXGate(parameter), [qr[1], qr[0]], [])
+        return _rxx_dag
+
+    @staticmethod
+    def _ryy_dag(parameter):
+        _ryy_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        _ryy_dag.add_qreg(qr)
+        _ryy_dag.apply_operation_back(RYYGate(parameter), [qr[1], qr[0]], [])
+        return _ryy_dag
+
+    @staticmethod
+    def _rzz_dag(parameter):
+        _rzz_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        _rzz_dag.add_qreg(qr)
+        _rzz_dag.apply_operation_back(RZZGate(parameter), [qr[1], qr[0]], [])
+        return _rzz_dag
+
     def _run_coupling_map(self, dag, wire_map, edges=None):
         if edges is None:
             edges = set(self.coupling_map.get_edges())
@@ -132,6 +166,12 @@ class GateDirection(TransformationPass):
                     dag.substitute_node_with_dag(node, replacement)
                 elif node.name == "rzx":
                     dag.substitute_node_with_dag(node, self._rzx_dag(*node.op.params))
+                elif node.name == "rxx":
+                    dag.substitute_node_with_dag(node, self._rxx_dag(*node.op.params))
+                elif node.name == "ryy":
+                    dag.substitute_node_with_dag(node, self._ryy_dag(*node.op.params))
+                elif node.name == "rzz":
+                    dag.substitute_node_with_dag(node, self._rzz_dag(*node.op.params))
                 else:
                     raise TranspilerError(
                         f"Flipping of gate direction is only supported "
@@ -179,6 +219,48 @@ class GateDirection(TransformationPass):
                     qargs=swapped, operation_class=RZXGate, parameters=node.op.params
                 ):
                     dag.substitute_node_with_dag(node, self._rzx_dag(*node.op.params))
+                else:
+                    raise TranspilerError(
+                        f"The circuit requires a connection between physical qubits {qargs}"
+                        f" for {node.name}"
+                    )
+            elif node.name == "rxx":
+                if self.target.instruction_supported(
+                    qargs=qargs, operation_class=RXXGate, parameters=node.op.params
+                ):
+                    continue
+                if self.target.instruction_supported(
+                    qargs=swapped, operation_class=RXXGate, parameters=node.op.params
+                ):
+                    dag.substitute_node_with_dag(node, self._rxx_dag(*node.op.params))
+                else:
+                    raise TranspilerError(
+                        f"The circuit requires a connection between physical qubits {qargs}"
+                        f" for {node.name}"
+                    )
+            elif node.name == "ryy":
+                if self.target.instruction_supported(
+                    qargs=qargs, operation_class=RYYGate, parameters=node.op.params
+                ):
+                    continue
+                if self.target.instruction_supported(
+                    qargs=swapped, operation_class=RYYGate, parameters=node.op.params
+                ):
+                    dag.substitute_node_with_dag(node, self._ryy_dag(*node.op.params))
+                else:
+                    raise TranspilerError(
+                        f"The circuit requires a connection between physical qubits {qargs}"
+                        f" for {node.name}"
+                    )
+            elif node.name == "rzz":
+                if self.target.instruction_supported(
+                    qargs=qargs, operation_class=RZZGate, parameters=node.op.params
+                ):
+                    continue
+                if self.target.instruction_supported(
+                    qargs=swapped, operation_class=RZZGate, parameters=node.op.params
+                ):
+                    dag.substitute_node_with_dag(node, self._rzz_dag(*node.op.params))
                 else:
                     raise TranspilerError(
                         f"The circuit requires a connection between physical qubits {qargs}"
