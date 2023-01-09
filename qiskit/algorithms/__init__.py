@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -77,7 +77,7 @@ Eigen Solvers
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain. These algorithms are pending deprecation.
+knowledge to do this in that application domain. These algorithms are deprecated.
 One should instead make use of the Eigensolver classes in the section below, which leverage
 Runtime primitives.
 
@@ -111,7 +111,7 @@ knowledge to do this in that application domain.
 Evolvers
 --------
 
-Pending deprecation: This package has been superseded by the package below. It will be
+Deprecated: This package has been superseded by the package below. It will be
 deprecated in a future release and subsequently removed after that:
 
 `Time Evolvers`_
@@ -155,12 +155,14 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
 
    RealTimeEvolver
    ImaginaryTimeEvolver
-   VarQITE
-   VarQRTE
    PVQD
    PVQDResult
    TimeEvolutionResult
    TimeEvolutionProblem
+   SciPyImaginaryEvolver
+   SciPyRealEvolver
+   VarQITE
+   VarQRTE
 
 
 Trotterization-based Quantum Real Time Evolution
@@ -214,7 +216,7 @@ Minimum Eigen Solvers
 ---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
-These algorithms are pending deprecation. One should instead make use of the
+These algorithms are deprecated. One should instead make use of the
 Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
 
 .. autosummary::
@@ -367,6 +369,8 @@ from .time_evolvers import (
     VarQRTE,
     PVQD,
     PVQDResult,
+    SciPyRealEvolver,
+    SciPyImaginaryEvolver
 )
 
 __all__ = [
@@ -422,6 +426,8 @@ __all__ = [
     "PhaseEstimationResult",
     "PVQD",
     "PVQDResult",
+    "SciPyRealEvolver",
+    "SciPyImaginaryEvolver",
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",

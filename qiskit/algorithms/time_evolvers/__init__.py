@@ -10,10 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Time Evolvers"""
+"""Quantum Time Evolution package."""
 
-from .imaginary_time_evolver import ImaginaryTimeEvolver
-from .real_time_evolver import RealTimeEvolver
 from .time_evolution_problem import TimeEvolutionProblem
 from .time_evolution_result import TimeEvolutionResult
 from .pvqd import PVQD, PVQDResult
@@ -27,5 +25,5 @@ __all__ = [
     "PVQD",
     "PVQDResult",
     "VarQITE",
-    "VarQRTE",
+    "VarQRTE"
 ]

@@ -9,7 +9,7 @@ features:
     For example, running a single transformation pass, such as
     :class:`~qiskit.transpiler.passes.BasisTranslator`, can be done with:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit import QuantumCircuit
       from qiskit.transpiler.passes import BasisTranslator
@@ -27,7 +27,7 @@ features:
     needs to be added as a parameter and it might be modified "in-place".
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit import QuantumCircuit
       from qiskit.transpiler.passes import Depth
