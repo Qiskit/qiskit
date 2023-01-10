@@ -107,13 +107,12 @@ def synth_clifford_layers(
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
     """
 
-    cliff_cpy = cliff.copy()
     num_qubits = cliff.num_qubits
 
     qubit_list = list(range(num_qubits))
     layeredCircuit = QuantumCircuit(num_qubits)
 
-    H1_circ, cliff1 = _create_graph_state(cliff_cpy, validate=validate)
+    H1_circ, cliff1 = _create_graph_state(cliff, validate=validate)
 
     H2_circ, CZ1_circ, S1_circ, cliff2 = _decompose_graph_state(
         cliff1, validate=validate, cz_synth_func=cz_synth_func
@@ -144,7 +143,7 @@ def synth_clifford_layers(
     from qiskit.quantum_info.operators.symplectic import Clifford
 
     clifford_target = Clifford(layeredCircuit)
-    pauli_circ = _fix_pauli(cliff, clifford_target)
+    pauli_circ = _calc_pauli_diff(cliff, clifford_target)
     layeredCircuit.append(pauli_circ, qubit_list)
 
     return layeredCircuit
@@ -348,7 +347,7 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
     return S2_circ, CZ2_circ, CX_circ
 
 
-def _fix_pauli(cliff, cliff_target):
+def _calc_pauli_diff(cliff, cliff_target):
     """Given two Cliffords that differ by a Pauli, we find this Pauli."""
 
     num_qubits = cliff.num_qubits
