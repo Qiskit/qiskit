@@ -12,8 +12,15 @@ features:
 
     The new subclass removes the non-unique nature of the `amp`,`angle` representation,
     and correctly compares pulses according to their complex amplitude.
-other:
+upgrade:
   - |
-    QPY version was bumped to 6. Following the introduction of :class:`~qiskit.pulse.library.ScalableSymbolicPulse`
-    the header of saved :class:`~qiskit.pulse.library.SymbolicPulse` objects was modified to include
-    a `class_name` attribute, and the QPY version was bumped to reflect this.
+    The QPY version format version emitted by :func:.qpy.dump has been
+    increased to version 6. This new format version is incompatible with the
+    previous versions and will result in an error when trying to load it with
+    a deserializer that isn't able to handle QPY version 6. This change was
+    necessary to support the introduction of :class:`~qiskit.pulse.library.ScalableSymbolicPulse`
+    which was handled by adding a `class_name_size` attribute to the header
+    of dumped :class:`~qiskit.pulse.library.SymbolicPulse` objects.
+  - |
+    The hashing option for :class:`~qiskit.pulse.library.SymbolicPulse` was removed
+    to better reflect their mutable nature (via parameter assignment).

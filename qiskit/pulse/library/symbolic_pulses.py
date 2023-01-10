@@ -90,20 +90,20 @@ def _is_amplitude_valid(envelope_lam: Callable, time: Tuple[float, ...], *fargs:
 
     Args:
         envelope_lam: The SymbolicPulse's lambdified envelope_lam expression.
-        envelope: The SymbolicPulse's envelope expressions.
-        parameters: The SymbolicPulse's parameters.items() (assumed to be binded) converted
-            to tuple (for hashability).
+        time: The SymbolicPulse's time array, given as a tuple for hashability.
+        fargs: The arguments for the lambdified envelope_lam, as given by `_get_expression_args`,
+            except for the time array.
 
     Returns:
         Return True if no sample point exceeds 1.0 in absolute value.
     """
-    try:
-        time = np.asarray(time, dtype=float)
-        # Instantiation of Waveform does automatic amplitude validation.
-        Waveform(samples=envelope_lam(time, *fargs))
-        return True
-    except PulseError:
+
+    time = np.asarray(time, dtype=float)
+    samples_norm = np.abs(envelope_lam(time, *fargs))
+    if np.any(samples_norm > 1.0):
         return False
+    else:
+        return True
 
 
 def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float]:
