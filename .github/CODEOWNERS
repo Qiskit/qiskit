@@ -23,7 +23,7 @@
 * @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
-algorithms/           @Qiskit/terra-core @manoelmarques @woodsp-ibm
+algorithms/           @Qiskit/terra-core @manoelmarques @woodsp-ibm @ElePT
 opflow/               @Qiskit/terra-core @manoelmarques @woodsp-ibm @ikkoham
 qiskit/utils/         @Qiskit/terra-core @manoelmarques @woodsp-ibm
 providers/            @Qiskit/terra-core @jyu00
