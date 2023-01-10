@@ -1,0 +1,11 @@
+---
+deprecations:
+  - |
+    The ``qiskit.IBMQ`` object is deprecated. This alias object lazily redirects
+    attribute access to ``qiskit.providers.ibmq.IBMQ``. As the
+    ``qiskit-ibmq-provider`` package has been supersceded by
+    ``qiskit-ibm-provider`` package which maintains its own namespace
+    maintaining this alias is no longer relevant with the new package. If you
+    were relying on the ``qiskit.IBMQ`` alias you should update your usage
+    to use ``qiskit.providers.ibmq.IBMQ`` directly instead (and also consider
+    migrating to ``qiskit-ibm-provider``).
