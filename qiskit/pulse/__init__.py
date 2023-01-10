@@ -141,6 +141,7 @@ from qiskit.pulse.library import (
     Drag,
     Gaussian,
     GaussianSquare,
+    GaussianSquareDrag,
     ParametricPulse,
     SymbolicPulse,
     Waveform,
