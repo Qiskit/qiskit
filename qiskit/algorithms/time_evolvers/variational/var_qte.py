@@ -36,8 +36,7 @@ from .solvers.ode.var_qte_ode_solver import (
     VarQTEOdeSolver,
 )
 from ..time_evolution_problem import TimeEvolutionProblem
-from ..time_evolution_result import TimeEvolutionResult
-
+from .var_qte_result import VarQTEResult
 
 class VarQTE(ABC):
     """Variational Quantum Time Evolution.
@@ -99,9 +98,9 @@ class VarQTE(ABC):
         self.imag_part_tol = imag_part_tol
         self.num_instability_tol = num_instability_tol
 
-    def evolve(self, evolution_problem: TimeEvolutionProblem) -> TimeEvolutionResult:
+    def evolve(self, evolution_problem: TimeEvolutionProblem) -> VarQTEResult:
         """
-        Apply Variational Quantum Imaginary Time Evolution (VarQITE) w.r.t. the given
+        Apply Variational Quantum Time Evolution (VarQTE) w.r.t. the given
         operator.
 
         Args:
@@ -124,7 +123,7 @@ class VarQTE(ABC):
             self.initial_parameters, self.ansatz.parameters
         )
 
-        evolved_state = self._evolve(
+        evolved_state, optimal_params = self._evolve(
             init_state_param_dict,
             evolution_problem.hamiltonian,
             evolution_problem.time,
@@ -139,7 +138,7 @@ class VarQTE(ABC):
                 evolution_problem.aux_operators,
             )
 
-        return TimeEvolutionResult(evolved_state, evaluated_aux_ops)
+        return VarQTEResult(evolved_state, evaluated_aux_ops, optimal_params)
 
     def _evolve(
         self,
@@ -187,7 +186,7 @@ class VarQTE(ABC):
         parameter_values = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
 
-        return self.ansatz.assign_parameters(param_dict_from_ode)
+        return self.ansatz.assign_parameters(param_dict_from_ode), parameter_values
 
     @staticmethod
     def _create_init_state_param_dict(

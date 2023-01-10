@@ -29,7 +29,7 @@ from qiskit.algorithms.time_evolvers.variational import (
     ImaginaryMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-
+from qiskit.quantum_info import Statevector
 
 @ddt
 class TestVarQITE(QiskitAlgorithmsTestCase):
@@ -101,10 +101,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             )
             evolution_result = var_qite.evolve(evolution_problem)
 
-            evolved_state = evolution_result.evolved_state
             aux_ops = evolution_result.aux_ops_evaluated
 
-            parameter_values = evolved_state.data[0][0].params
+            parameter_values = evolution_result.optimal_parameters
 
             expected_aux_ops = (-0.2177982985749799, 0.2556790598588627)
 
@@ -130,10 +129,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             )
             evolution_result = var_qite.evolve(evolution_problem)
 
-            evolved_state = evolution_result.evolved_state
             aux_ops = evolution_result.aux_ops_evaluated
 
-            parameter_values = evolved_state.data[0][0].params
+            parameter_values = evolution_result.optimal_parameters
 
             expected_aux_ops = (-0.200069, 0.269665)
 
@@ -274,6 +272,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         thetas_expected_shots = [1.83881002737137e-18, 2.43224994794434, -3.05311331771918e-18]
 
+        state_expected = Statevector([0.34849948+0.j, 0.93730897+0.j]).to_dict()
         # the expected final state is Statevector([0.34849948+0.j, 0.93730897+0.j])
 
         with self.subTest(msg="Test exact backend."):
@@ -285,12 +284,12 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=100
             )
             evolution_result = var_qite.evolve(evolution_problem)
-
             evolved_state = evolution_result.evolved_state
+            parameter_values = evolution_result.optimal_parameters
 
-            parameter_values = [
-                evolved_state.data[i][0].params[0] for i in range(len(thetas_expected))
-            ]
+            for key, evolved_value in Statevector(evolved_state).to_dict().items():
+                # np.allclose works with complex numbers
+                self.assertTrue(np.allclose(evolved_value, state_expected[key], 1e-02))
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(
@@ -311,9 +310,11 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
             evolved_state = evolution_result.evolved_state
 
-            parameter_values = [
-                evolved_state.data[i][0].params[0] for i in range(len(thetas_expected))
-            ]
+            parameter_values = evolution_result.optimal_parameters
+
+            for key, evolved_value in Statevector(evolved_state).to_dict().items():
+                # np.allclose works with complex numbers
+                self.assertTrue(np.allclose(evolved_value, state_expected[key], 1e-02))
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(
@@ -323,9 +324,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
     def _test_helper(self, observable, thetas_expected, time, var_qite, decimal):
         evolution_problem = TimeEvolutionProblem(observable, time)
         evolution_result = var_qite.evolve(evolution_problem)
-        evolved_state = evolution_result.evolved_state
-
-        parameter_values = evolved_state.data[0][0].params
+        parameter_values = evolution_result.optimal_parameters
 
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(
