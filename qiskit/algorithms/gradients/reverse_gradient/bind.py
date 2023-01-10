@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Bind parameter values to a parametrized circuit, accepting binds for parameters not existing in the circuit."""
+"""Bind values to a parametrized circuit, accepting binds for non-existing parameters in the circuit."""
 
 from __future__ import annotations
 from collections.abc import Iterable
@@ -28,7 +28,7 @@ def bind(
     This method also allows passing parameter binds to parameters that are not in the circuit,
     and thereby differs to :meth:`.QuantumCircuit.bind_parameters`.
     """
-    if not isinstance(circuits, list):
+    if not isinstance(circuits, Iterable):
         circuits = [circuits]
         return_list = False
     else:

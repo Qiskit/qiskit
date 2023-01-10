@@ -75,7 +75,7 @@ def gradient_lookup(gate: Gate) -> list[tuple[complex, QuantumCircuit]]:
 
 
 def derive_circuit(
-    circuit: QuantumCircuit, parameter: Parameter | None = None
+    circuit: QuantumCircuit, parameter: Parameter
 ) -> list[tuple[complex, QuantumCircuit]]:
     """Return the analytic gradient expression of the input circuit wrt. a single parameter.
 
@@ -109,24 +109,22 @@ def derive_circuit(
         NotImplementedError: If a non-unique parameter is added, as the product rule is not yet
             supported in this function.
     """
+    # this is added as useful user-warning, since sometimes ``ParameterExpression``s are
+    # passed around instead of ``Parameter``s
+    if not isinstance(parameter, Parameter):
+        raise ValueError("parameter  must be  None or of type Parameter.")
 
-    if parameter is not None:
-        # this is added as useful user-warning, since sometimes ``ParameterExpression``s are
-        # passed around instead of ``Parameter``s
-        if not isinstance(parameter, Parameter):
-            raise ValueError("parameter  must be  None or of type Parameter.")
+    if parameter not in circuit.parameters:
+        raise ValueError("Parameter not in this circuit.")
 
-        if parameter not in circuit.parameters:
-            raise ValueError("Parameter not in this circuit.")
-
-        if len(circuit._parameter_table[parameter]) > 1:
-            raise NotImplementedError("No product rule support yet, params must be unique.")
+    if len(circuit._parameter_table[parameter]) > 1:
+        raise NotImplementedError("No product rule support yet, params must be unique.")
 
     summands, op_context = [], []
     for i, op in enumerate(circuit.data):
         gate = op[0]
         op_context += [op[1:]]
-        if (parameter is None and len(gate.params) > 0) or parameter in gate.params:
+        if parameter in gate.params:
             coeffs_and_grads = gradient_lookup(gate)
             summands += [coeffs_and_grads]
         else:
