@@ -39,7 +39,7 @@ class VarQTEResult(TimeEvolutionResult):
         self,
         evolved_state: QuantumCircuit | Statevector,
         aux_ops_evaluated: ListOrDict[tuple[complex, complex]] | None = None,
-        optimal_parameters: np.ndarray | None = None
+        optimal_parameters: np.ndarray | None = None,
     ):
         """
         Args:

@@ -31,6 +31,7 @@ from qiskit.algorithms.time_evolvers.variational import (
 from qiskit.circuit.library import EfficientSU2
 from qiskit.quantum_info import Statevector
 
+
 @ddt
 class TestVarQITE(QiskitAlgorithmsTestCase):
     """Test Variational Quantum Imaginary Time Evolution algorithm."""
@@ -272,7 +273,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         thetas_expected_shots = [1.83881002737137e-18, 2.43224994794434, -3.05311331771918e-18]
 
-        state_expected = Statevector([0.34849948+0.j, 0.93730897+0.j]).to_dict()
+        state_expected = Statevector([0.34849948 + 0.0j, 0.93730897 + 0.0j]).to_dict()
         # the expected final state is Statevector([0.34849948+0.j, 0.93730897+0.j])
 
         with self.subTest(msg="Test exact backend."):

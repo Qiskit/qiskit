@@ -66,8 +66,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         result = varqrte.evolve(evolution_problem)
 
-        # TODO absolutely change this access by adding parameters to the result object
-        final_parameters = [float(inst.operation.params[0]) for inst in result.evolved_state.data]
+        final_parameters = result.optimal_parameters
         final_state = Statevector(circuit.bind_parameters(final_parameters))
 
         self.assertTrue(final_state.equiv(expected_state(final_time)))
@@ -133,10 +132,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             )
             evolution_result = var_qite.evolve(evolution_problem)
 
-            evolved_state = evolution_result.evolved_state
             aux_ops = evolution_result.aux_ops_evaluated
 
-            parameter_values = evolved_state.data[0][0].params
+            parameter_values = evolution_result.optimal_parameters
 
             expected_aux_ops = [0.06836996703935797, 0.7711574493422457]
 
@@ -162,10 +160,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             )
             evolution_result = var_qite.evolve(evolution_problem)
 
-            evolved_state = evolution_result.evolved_state
             aux_ops = evolution_result.aux_ops_evaluated
 
-            parameter_values = evolved_state.data[0][0].params
+            parameter_values = evolution_result.optimal_parameters
 
             expected_aux_ops = [
                 0.070436,
@@ -284,11 +281,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             )
             evolution_result = var_qrte.evolve(evolution_problem)
 
-            evolved_state = evolution_result.evolved_state
-
-            parameter_values = [
-                evolved_state.data[i][0].params[0] for i in range(len(thetas_expected))
-            ]
+            parameter_values = evolution_result.optimal_parameters
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(
@@ -309,11 +302,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
             evolution_result = var_qrte.evolve(evolution_problem)
 
-            evolved_state = evolution_result.evolved_state
-
-            parameter_values = [
-                evolved_state.data[i][0].params[0] for i in range(len(thetas_expected))
-            ]
+            parameter_values = evolution_result.optimal_parameters
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(
@@ -323,9 +312,8 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
     def _test_helper(self, observable, thetas_expected, time, var_qrte):
         evolution_problem = TimeEvolutionProblem(observable, time)
         evolution_result = var_qrte.evolve(evolution_problem)
-        evolved_state = evolution_result.evolved_state
 
-        parameter_values = evolved_state.data[0][0].params
+        parameter_values = evolution_result.optimal_parameters
 
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
