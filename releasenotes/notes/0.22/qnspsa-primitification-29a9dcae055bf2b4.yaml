@@ -1,16 +1,14 @@
 ---
 features:
   - |
-    Add support for the :class:`.BaseSampler` primitive in :func:`.QNSPSA.get_fidelity`.
-    Now, the fidelity function can be constructed as::
+    The :meth:`.QNSPSA.get_fidelity` static method now supports an optional
+    ``sampler`` argument which is used to provide an implementation of the
+    :class:`~.BaseSampler` interface (such as :class:`~.Sampler`,
+    :class:`~.BackendSampler`, or any provider implementations such as those
+    present in ``qiskit-ibm-runtime`` and ``qiskit-aer``) to compute the
+    fidelity of a :class:`~.QuantumCircuit`. For example::
 
       from qiskit.primitives import Sampler
       from qiskit.algorithms.optimizers import QNSPSA
 
       fidelity = QNSPSA.get_fidelity(my_circuit, Sampler())
-
-deprecations:
-  - |
-    Using a backend and expectation converter in :func:`.QNSPSA.get_fidelity` is
-    pending deprecation and will be deprecated in a future release. Instead, use
-    a :class:`.BaseSampler` to evaluate circuits, see also the features of this release.

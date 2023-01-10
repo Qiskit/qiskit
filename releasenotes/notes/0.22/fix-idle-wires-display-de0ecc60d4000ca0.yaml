@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    A bug in the ``mpl`` and ``latex`` circuit drawers, when
+    Fixed an issue in the ``mpl`` and ``latex`` circuit drawers, when
     setting the ``idle_wires`` option to False when there was
     a ``barrier`` in the circuit would cause the drawers to
     fail, has been fixed.
-    (see `#8313 <https://github.com/Qiskit/qiskit-terra/issues/8313>`__
+    Fixed `#8313 <https://github.com/Qiskit/qiskit-terra/issues/8313>`__

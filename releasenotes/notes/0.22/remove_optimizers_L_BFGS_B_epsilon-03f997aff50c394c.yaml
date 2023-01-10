@@ -1,7 +1,9 @@
 ---
 upgrade:
   - |
-    Arguments `epsilon` and `factr` of `~qiskit.algorithms.optimizers.L_BFGS_B`
-    and `factr` of `~qiskit.algorithms.optimizers.P_BFGS` have been removed and no longer
-    exist as per the deprecation notice from qiskit-terra
-    0.18.0 (released on Jul 12, 2021).
+    The deprecated arguments ``epsilon`` and ``factr`` for the constructor of
+    the  :class:`~.L_BFGS_B` optimizer class have been removed. These arguments
+    were originally deprecated as part of the 0.18.0 release (released on
+    July 12, 2021). Instead the ``ftol`` argument should be used, you
+    can refer to the `scipy docs <https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html.>`__
+    on the optimizer for more detail on the relationship between these arguments.

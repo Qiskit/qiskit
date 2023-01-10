@@ -12,6 +12,7 @@
 
 """Tests for quantum synthesis methods."""
 
+import pickle
 import unittest
 import contextlib
 import logging
@@ -178,6 +179,28 @@ class CheckDecompositions(QiskitTestCase):
         self.assertEqual(maxdiff, 0, msg=f"K2r matrix differs by {maxdiff}" + msg_base)
         self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
 
+    def assertRoundTripPickle(self, weyl1: TwoQubitWeylDecomposition):
+        """Fail if loads(dumps(weyl1)) not equal to weyl1"""
+
+        pkl = pickle.dumps(weyl1, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        weyl2 = pickle.loads(pkl)
+        msg_base = f"weyl1:\n{weyl1}\nweyl2:\n{repr(weyl2)}"
+        self.assertEqual(type(weyl1), type(weyl2), msg_base)
+        maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
+        self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
+        self.assertEqual(weyl1.a, weyl2.a, msg=msg_base)
+        self.assertEqual(weyl1.b, weyl2.b, msg=msg_base)
+        self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
+        maxdiff = np.max(np.abs(weyl1.K1l - weyl2.K1l))
+        self.assertEqual(maxdiff, 0, msg=f"K1l matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K1r - weyl2.K1r))
+        self.assertEqual(maxdiff, 0, msg=f"K1r matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K2l - weyl2.K2l))
+        self.assertEqual(maxdiff, 0, msg=f"K2l matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K2r - weyl2.K2r))
+        self.assertEqual(maxdiff, 0, msg=f"K2r matrix differs by {maxdiff}" + msg_base)
+        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
+
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.0e-12):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
@@ -212,6 +235,7 @@ class CheckDecompositions(QiskitTestCase):
             with self.assertDebugOnly():
                 decomp = decomposer(target_unitary, fidelity=fidelity)
             self.assertRoundTrip(decomp)
+            self.assertRoundTripPickle(decomp)
             self.assertEqual(
                 np.max(np.abs(decomp.unitary_matrix - target_unitary)),
                 0,
@@ -233,6 +257,7 @@ class CheckDecompositions(QiskitTestCase):
         with self.assertDebugOnly():
             decomp2 = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
         self.assertRoundTrip(decomp2)
+        self.assertRoundTripPickle(decomp2)
         if expected_specialization is not TwoQubitWeylGeneral:
             with self.assertRaises(QiskitError) as exc:
                 _ = expected_specialization(target_unitary, fidelity=1.0)
@@ -576,6 +601,12 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
         target = random_unitary(4, seed=seed)
         weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
         self.assertRoundTrip(weyl1)
+
+    def test_TwoQubitWeylDecomposition_pickle(self, seed=42):
+        """Check that loads(dumps()) is exact round trip"""
+        target = random_unitary(4, seed=seed)
+        weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
+        self.assertRoundTripPickle(weyl1)
 
     def test_two_qubit_weyl_decomposition_cnot(self):
         """Verify Weyl KAK decomposition for U~CNOT"""

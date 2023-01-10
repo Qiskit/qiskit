@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2022.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,11 +13,11 @@
 """ Test Measurement Error Mitigation """
 
 import unittest
-
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 from qiskit import QuantumCircuit, execute
 from qiskit.quantum_info import Pauli
 from qiskit.exceptions import QiskitError
@@ -31,11 +31,11 @@ from qiskit.utils.measurement_error_mitigation import build_measurement_error_mi
 from qiskit.utils import optionals
 
 if optionals.HAS_AER:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=no-name-in-module
     from qiskit import Aer
     from qiskit.providers.aer import noise
 if optionals.HAS_IGNIS:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=no-name-in-module
     from qiskit.ignis.mitigation.measurement import (
         CompleteMeasFitter as CompleteMeasFitter_IG,
         TensoredMeasFitter as TensoredMeasFitter_IG,
@@ -152,8 +152,14 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         optimizer = SPSA(maxiter=200)
         ansatz = EfficientSU2(2, reps=1)
 
-        vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
-        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
+            result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
@@ -201,12 +207,18 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )
-        qaoa = QAOA(
-            optimizer=COBYLA(maxiter=3),
-            quantum_instance=quantum_instance,
-            initial_point=initial_point,
-        )
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qaoa = QAOA(
+                optimizer=COBYLA(maxiter=3),
+                quantum_instance=quantum_instance,
+                initial_point=initial_point,
+            )
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        self.assertTrue(len(caught_warnings) > 0)
         ref_eigenvalue = result.eigenvalue.real
 
         # compute with noise
@@ -221,14 +233,21 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_transpiler=algorithm_globals.random_seed,
             noise_model=noise_model,
             measurement_error_mitigation_cls=CompleteMeasFitter,
+            shots=10000,
         )
 
-        qaoa = QAOA(
-            optimizer=COBYLA(maxiter=3),
-            quantum_instance=quantum_instance,
-            initial_point=initial_point,
-        )
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            qaoa = QAOA(
+                optimizer=COBYLA(maxiter=3),
+                quantum_instance=quantum_instance,
+                initial_point=initial_point,
+            )
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        self.assertTrue(len(caught_warnings) > 0)
         self.assertAlmostEqual(result.eigenvalue.real, ref_eigenvalue, delta=0.05)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")

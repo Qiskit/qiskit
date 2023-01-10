@@ -1,11 +1,19 @@
 ---
 features:
   - |
-    Added :class:`~qiskit.primitives.BaseSampler` as ``init`` parameter
-    for the following phase estimation algorithms:
-    :class:`~qiskit.algorithms.IterativePhaseEstimation`,
-    :class:`~qiskit.algorithms.PhaseEstimation`,
-    :class:`~qiskit.algorithms.HamiltonianPhaseEstimation`.
+    Added a new keyword argument ``sampler`` to the constructors of the
+    phase estimation classes:
+
+     * :class:`~qiskit.algorithms.IterativePhaseEstimation`
+     * :class:`~qiskit.algorithms.PhaseEstimation`
+     * :class:`~qiskit.algorithms.HamiltonianPhaseEstimation`
+
+    This argument is used to provide an implementation of the
+    :class:`~qiskit.primitives.BaseSampler` interface such as :class:`~.Sampler`,
+    :class:`~.BackendSampler`, or any provider implementations such as those
+    as those present in ``qiskit-ibm-runtime`` and ``qiskit-aer``.
+
+    For example:
 
     .. code-block:: python
 
@@ -29,11 +37,3 @@ features:
           evolution=MatrixExponential(),
           bound=1.05,
       )
-deprecations:
-  - |
-    Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend` as
-    ``init`` parameters will now issue a ``PendingDeprecationWarning``
-    for the following phase estimation algorithms:
-    :class:`~qiskit.algorithms.IterativePhaseEstimation`,
-    :class:`~qiskit.algorithms.PhaseEstimation`,
-    :class:`~qiskit.algorithms.HamiltonianPhaseEstimation`

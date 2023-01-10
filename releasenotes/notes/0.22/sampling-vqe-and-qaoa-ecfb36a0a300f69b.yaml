@@ -14,6 +14,8 @@ features:
         from qiskit.algorithms.optimizers import SLSQP
         from qiskit.circuit.library import TwoLocal
         from qiskit.primitives import Sampler
+        from qiskit.opflow import PauliSumOp
+        from qiskit.quantum_info import SparsePauliOp
 
         operator = PauliSumOp(SparsePauliOp(["ZZ", "IZ", "II"], coeffs=[1, -0.5, 0.12]))
 

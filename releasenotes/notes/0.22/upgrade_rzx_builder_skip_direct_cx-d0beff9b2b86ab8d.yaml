@@ -5,18 +5,13 @@ upgrade:
     have been upgraded to skip stretching CX gates implemented by
     non-echoed cross resonance (ECR) sequence to avoid termination of the pass
     with unexpected errors.
-    These passes take new argument ``verbose`` that controls warning.
-    If ``verbose=True`` is set, pass raises user warning when it enconters
-    non-ECR sequence.
+    These passes take new argument ``verbose`` that controls whether the passes
+    warn when this occurs. If ``verbose=True`` is set, pass raises user warning
+    when it enconters non-ECR sequence.
 deprecations:
   - |
     The unused argument ``qubit_channel_mapping`` in the
     :class:`.RZXCalibrationBuilder` and :class:`.RZXCalibrationBuilderNoEcho`
-    transpiler passes have been deprecated and will be removed.
-    This argument is no longer used.
-other:
-  - |
-    The transpiler pass module :mod:`~qiskit.transpiler.passes.calibration` has been reorganized.
-    :class:`.PulseGates` has been moved to :mod:`~qiskit.transpiler.passes.calibration.pulse_gates`,
-    and :class:`.RZXCalibrationBuilder` and :class:`.RZXCalibrationBuilderNoEcho`
-    have been moved to :mod:`~qiskit.transpiler.passes.calibration.rzx_builders`.
+    transpiler passes have been deprecated and will be removed in a future
+    release. This argument is no longer used and has no effect on the
+    operation of the passes.
