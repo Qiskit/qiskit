@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -89,7 +89,7 @@ class QNSPSA(SPSA):
             result = qnspsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
 
         This is a legacy version solving the same problem but using Qiskit Opflow instead
-        of the Qiskit Primitives. Note however, that this usage is pending deprecation.
+        of the Qiskit Primitives. Note however, that this usage is deprecated.
 
         .. code-block:: python
 
@@ -263,7 +263,7 @@ class QNSPSA(SPSA):
 
         .. note::
 
-            Using this function with a backend and expectation converter is pending deprecation,
+            Using this function with a backend and expectation converter is deprecated,
             instead pass a Qiskit Primitive sampler, such as :class:`~.Sampler`.
             The sampler can be passed as keyword argument or, positionally, as second argument.
 
@@ -280,9 +280,9 @@ class QNSPSA(SPSA):
 
         Args:
             circuit: The circuit preparing the parameterized ansatz.
-            backend: *Pending deprecation.* A backend of quantum instance to evaluate the circuits.
+            backend: *Deprecated.* A backend of quantum instance to evaluate the circuits.
                 If None, plain matrix multiplication will be used.
-            expectation: *Pending deprecation.* An expectation converter to specify how the expected
+            expectation: *Deprecated.* An expectation converter to specify how the expected
                 value is computed. If a shot-based readout is used this should be set to
                 ``PauliExpectation``.
             sampler: A sampler primitive to sample from a quantum state.
@@ -301,18 +301,29 @@ class QNSPSA(SPSA):
 
         if expectation is not None or backend is not None:
             warnings.warn(
-                "Passing a backend and expectation converter to QNSPSA.get_fidelity is pending "
-                "deprecation and will be deprecated in a future release. Instead, pass a "
+                "Passing a backend and expectation converter to QNSPSA.get_fidelity "
+                "is deprecated as of Qiskit Terra 0.23.0 and "
+                "will be removed no sooner than 3 months after the release date. Instead, pass a "
                 "sampler primitive.",
                 stacklevel=2,
-                category=PendingDeprecationWarning,
+                category=DeprecationWarning,
             )
             return QNSPSA._legacy_get_fidelity(circuit, backend, expectation)
 
         fid = ComputeUncompute(sampler)
 
+        num_parameters = circuit.num_parameters
+
         def fidelity(values_x, values_y):
-            result = fid.run(circuit, circuit, values_x, values_y).result()
+            values_x = np.reshape(values_x, (-1, num_parameters)).tolist()
+            batch_size_x = len(values_x)
+
+            values_y = np.reshape(values_y, (-1, num_parameters)).tolist()
+            batch_size_y = len(values_y)
+
+            result = fid.run(
+                batch_size_x * [circuit], batch_size_y * [circuit], values_x, values_y
+            ).result()
             return np.asarray(result.fidelities)
 
         return fidelity
@@ -323,11 +334,11 @@ class QNSPSA(SPSA):
         backend: Backend | QuantumInstance | None = None,
         expectation: ExpectationBase | None = None,
     ) -> Callable[[np.ndarray, np.ndarray], float]:
-        r"""PENDING DEPRECATION. Get a function to compute the fidelity of ``circuit`` with itself.
+        r"""Deprecated. Get a function to compute the fidelity of ``circuit`` with itself.
 
         .. note::
 
-            This method is pending deprecation. Instead use the :class:`~.ComputeUncompute`
+            This method is deprecated. Instead use the :class:`~.ComputeUncompute`
             class which implements the fidelity calculation in the same fashion as this method.
 
         Let ``circuit`` be a parameterized quantum circuit performing the operation

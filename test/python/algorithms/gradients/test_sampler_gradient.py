@@ -14,11 +14,10 @@
 """Test Sampler Gradients"""
 
 import unittest
-from test import combine
 from typing import List
 
 import numpy as np
-from ddt import ddt
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.gradients import (
@@ -34,12 +33,45 @@ from qiskit.primitives import Sampler
 from qiskit.result import QuasiDistribution
 from qiskit.test import QiskitTestCase
 
+from .logging_primitives import LoggingSampler
+
+gradient_factories = [
+    lambda sampler: FiniteDiffSamplerGradient(sampler, epsilon=1e-6, method="central"),
+    lambda sampler: FiniteDiffSamplerGradient(sampler, epsilon=1e-6, method="forward"),
+    lambda sampler: FiniteDiffSamplerGradient(sampler, epsilon=1e-6, method="backward"),
+    ParamShiftSamplerGradient,
+    LinCombSamplerGradient,
+]
+
 
 @ddt
 class TestSamplerGradient(QiskitTestCase):
     """Test Sampler Gradient"""
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(*gradient_factories)
+    def test_single_circuit(self, grad):
+        """Test the sampler gradient for a single circuit"""
+        sampler = Sampler()
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.p(a, 0)
+        qc.h(0)
+        qc.measure_all()
+        gradient = grad(sampler)
+        param_list = [[np.pi / 4], [0], [np.pi / 2]]
+        correct_results = [
+            [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
+            [{0: 0, 1: 0}],
+            [{0: -0.499999, 1: 0.499999}],
+        ]
+        for i, param in enumerate(param_list):
+            gradients = gradient.run(qc, [param]).result().gradients[0]
+            for j, quasi_dist in enumerate(gradients):
+                for k in quasi_dist:
+                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+
+    @data(*gradient_factories)
     def test_gradient_p(self, grad):
         """Test the sampler gradient for p"""
         sampler = Sampler()
@@ -49,10 +81,7 @@ class TestSamplerGradient(QiskitTestCase):
         qc.p(a, 0)
         qc.h(0)
         qc.measure_all()
-        if grad is FiniteDiffSamplerGradient:
-            gradient = grad(sampler, epsilon=1e-6)
-        else:
-            gradient = grad(sampler)
+        gradient = grad(sampler)
         param_list = [[np.pi / 4], [0], [np.pi / 2]]
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
@@ -65,7 +94,7 @@ class TestSamplerGradient(QiskitTestCase):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(*gradient_factories)
     def test_gradient_u(self, grad):
         """Test the sampler gradient for u"""
         sampler = Sampler()
@@ -77,10 +106,7 @@ class TestSamplerGradient(QiskitTestCase):
         qc.u(a, b, c, 0)
         qc.h(0)
         qc.measure_all()
-        if grad is FiniteDiffSamplerGradient:
-            gradient = grad(sampler, epsilon=1e-6)
-        else:
-            gradient = grad(sampler)
+        gradient = grad(sampler)
         param_list = [[np.pi / 4, 0, 0], [np.pi / 4, np.pi / 4, np.pi / 4]]
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}, {0: 0, 1: 0}, {0: 0, 1: 0}],
@@ -92,16 +118,13 @@ class TestSamplerGradient(QiskitTestCase):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(*gradient_factories)
     def test_gradient_efficient_su2(self, grad):
         """Test the sampler gradient for EfficientSU2"""
         sampler = Sampler()
         qc = EfficientSU2(2, reps=1)
         qc.measure_all()
-        if grad is FiniteDiffSamplerGradient:
-            gradient = grad(sampler, epsilon=1e-6)
-        else:
-            gradient = grad(sampler)
+        gradient = grad(sampler)
         param_list = [
             [np.pi / 4 for param in qc.parameters],
             [np.pi / 2 for param in qc.parameters],
@@ -189,7 +212,7 @@ class TestSamplerGradient(QiskitTestCase):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(*gradient_factories)
     def test_gradient_2qubit_gate(self, grad):
         """Test the sampler gradient for 2 qubit gates"""
         sampler = Sampler()
@@ -211,16 +234,13 @@ class TestSamplerGradient(QiskitTestCase):
             qc = QuantumCircuit(2)
             qc.append(gate(a), [qc.qubits[0], qc.qubits[1]], [])
             qc.measure_all()
-            if grad is FiniteDiffSamplerGradient:
-                gradient = grad(sampler, epsilon=1e-6)
-            else:
-                gradient = grad(sampler)
+            gradient = grad(sampler)
             gradients = gradient.run([qc], [param]).result().gradients[0]
             for j, quasi_dist in enumerate(gradients):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(*gradient_factories)
     def test_gradient_parameter_coefficient(self, grad):
         """Test the sampler gradient for parameter variables with coefficients"""
         sampler = Sampler()
@@ -231,10 +251,7 @@ class TestSamplerGradient(QiskitTestCase):
         qc.p(2 * qc.parameters[0] + 1, 0)
         qc.rxx(qc.parameters[0] + 2, 0, 1)
         qc.measure_all()
-        if grad is FiniteDiffSamplerGradient:
-            gradient = grad(sampler, epsilon=1e-6)
-        else:
-            gradient = grad(sampler)
+        gradient = grad(sampler)
         param_list = [[np.pi / 4 for _ in qc.parameters], [np.pi / 2 for _ in qc.parameters]]
         correct_results = [
             [
@@ -297,7 +314,7 @@ class TestSamplerGradient(QiskitTestCase):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 2)
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(*gradient_factories)
     def test_gradient_parameters(self, grad):
         """Test the sampler gradient for parameters"""
         sampler = Sampler()
@@ -307,10 +324,7 @@ class TestSamplerGradient(QiskitTestCase):
         qc.rx(a, 0)
         qc.rz(b, 0)
         qc.measure_all()
-        if grad is FiniteDiffSamplerGradient:
-            gradient = grad(sampler, epsilon=1e-6)
-        else:
-            gradient = grad(sampler)
+        gradient = grad(sampler)
         param_list = [[np.pi / 4, np.pi / 2]]
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
@@ -321,7 +335,7 @@ class TestSamplerGradient(QiskitTestCase):
                 for k in quasi_dist:
                     self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(*gradient_factories)
     def test_gradient_multi_arguments(self, grad):
         """Test the sampler gradient for multiple arguments"""
         sampler = Sampler()
@@ -333,10 +347,7 @@ class TestSamplerGradient(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.rx(b, 0)
         qc2.measure_all()
-        if grad is FiniteDiffSamplerGradient:
-            gradient = grad(sampler, epsilon=1e-6)
-        else:
-            gradient = grad(sampler)
+        gradient = grad(sampler)
         param_list = [[np.pi / 4], [np.pi / 2]]
         correct_results = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
@@ -369,7 +380,7 @@ class TestSamplerGradient(QiskitTestCase):
                 for k in q_dists:
                     self.assertAlmostEqual(q_dists[k], correct_results[i][j][k], 3)
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient)
     def test_gradient_validation(self, grad):
         """Test sampler gradient's validation"""
         sampler = Sampler()
@@ -466,7 +477,7 @@ class TestSamplerGradient(QiskitTestCase):
                 for k in q_dists:
                     self.assertAlmostEqual(q_dists[k], correct_results3[i][j][k], 3)
 
-    @combine(grad=[ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(ParamShiftSamplerGradient, LinCombSamplerGradient)
     def test_gradient_random_parameters(self, grad):
         """Test param shift and lin comb w/ random parameters"""
         rng = np.random.default_rng(123)
@@ -507,13 +518,11 @@ class TestSamplerGradient(QiskitTestCase):
             array2 = _quasi2array(res2, num_qubits)
             np.testing.assert_allclose(array1, array2, rtol=1e-4)
 
-    @combine(
-        grad=[
-            FiniteDiffSamplerGradient,
-            ParamShiftSamplerGradient,
-            LinCombSamplerGradient,
-            SPSASamplerGradient,
-        ],
+    @data(
+        FiniteDiffSamplerGradient,
+        ParamShiftSamplerGradient,
+        LinCombSamplerGradient,
+        SPSASamplerGradient,
     )
     def test_options(self, grad):
         """Test sampler gradient's run options"""
@@ -563,6 +572,46 @@ class TestSamplerGradient(QiskitTestCase):
             self.assertEqual(result.options.get("shots"), 300)
             # Only default + sampler options. Not run.
             self.assertEqual(options.get("shots"), 200)
+
+    @data(
+        FiniteDiffSamplerGradient,
+        ParamShiftSamplerGradient,
+        LinCombSamplerGradient,
+        SPSASamplerGradient,
+    )
+    def test_operations_preserved(self, gradient_cls):
+        """Test non-parameterized instructions are preserved and not unrolled."""
+        x = Parameter("x")
+        circuit = QuantumCircuit(2)
+        circuit.initialize(np.array([1, 1, 0, 0]) / np.sqrt(2))  # this should remain as initialize
+        circuit.crx(x, 0, 1)  # this should get unrolled
+        circuit.measure_all()
+
+        values = [np.pi / 2]
+        expect = [{0: 0, 1: -0.25, 2: 0, 3: 0.25}]
+
+        ops = []
+
+        def operations_callback(op):
+            ops.append(op)
+
+        sampler = LoggingSampler(operations_callback=operations_callback)
+
+        if gradient_cls in [SPSASamplerGradient, FiniteDiffSamplerGradient]:
+            gradient = gradient_cls(sampler, epsilon=0.01)
+        else:
+            gradient = gradient_cls(sampler)
+
+        job = gradient.run([circuit], [values])
+        result = job.result()
+
+        with self.subTest(msg="assert initialize is preserved"):
+            self.assertTrue(all("initialize" in ops_i[0].keys() for ops_i in ops))
+
+        with self.subTest(msg="assert result is correct"):
+            array1 = _quasi2array(result.gradients[0], num_qubits=2)
+            array2 = _quasi2array(expect, num_qubits=2)
+            np.testing.assert_allclose(array1, array2, atol=1e-5)
 
 
 def _quasi2array(quasis: List[QuasiDistribution], num_qubits: int) -> np.ndarray:

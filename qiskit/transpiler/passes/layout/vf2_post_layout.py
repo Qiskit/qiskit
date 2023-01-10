@@ -10,13 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=too-many-function-args
+
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
+import os
 from enum import Enum
 import logging
 import inspect
 import time
 
-from retworkx import PyDiGraph, vf2_mapping, PyGraph
+from rustworkx import PyDiGraph, vf2_mapping, PyGraph
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -63,8 +66,8 @@ class VF2PostLayout(AnalysisPass):
 
     If a solution is found that means there is a lower error layout available for the
     circuit. If a solution is found the layout will be set in the property set as
-    will be set in the property set as ``property_set['post_layout']``. However, if no
-    solution is found, no ``property_set['post_layout']`` is set. The stopping reason is
+    ``property_set['post_layout']``. However, if no solution is found, no
+    ``property_set['post_layout']`` is set. The stopping reason is
     set in ``property_set['VF2PostLayout_stop_reason']`` in all the cases and will be
     one of the values enumerated in ``VF2PostLayoutStopReason`` which has the
     following values:
@@ -73,6 +76,26 @@ class VF2PostLayout(AnalysisPass):
         * ``"nonexistent solution"``: If no solution was found.
         * ``">2q gates in basis"``: If VF2PostLayout can't work with basis
 
+    By default this pass will construct a heuristic scoring map based on the
+    the error rates in the provided ``target`` (or ``properties`` if ``target``
+    is not provided). However, analysis passes can be run prior to this pass
+    and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
+    instance. If a value is ``NaN`` that is treated as an ideal edge
+    For example if an error map is created as::
+
+        from qiskit.transpiler.passes.layout.vf2_utils import ErrorMap
+
+        error_map = ErrorMap(3)
+        error_map.add_error((0, 0), 0.0024)
+        error_map.add_error((0, 1), 0.01)
+        error_map.add_error((1, 1), 0.0032)
+
+    that represents the error map for a 2 qubit target, where the avg 1q error
+    rate is ``0.0024`` on qubit 0 and ``0.0032`` on qubit 1. Then the avg 2q
+    error rate for gates that operate on (0, 1) is 0.01 and (1, 0) is not
+    supported by the target. This will be used for scoring if it's set as the
+    ``vf2_avg_error_map`` key in the property set when :class:`~.VF2PostLayout`
+    is run.
     """
 
     def __init__(
@@ -129,10 +152,12 @@ class VF2PostLayout(AnalysisPass):
             raise TranspilerError(
                 "A target must be specified or a coupling map and properties must be provided"
             )
-        if not self.strict_direction and self.avg_error_map is None:
-            self.avg_error_map = vf2_utils.build_average_error_map(
-                self.target, self.properties, self.coupling_map
-            )
+        if not self.strict_direction:
+            self.avg_error_map = self.property_set["vf2_avg_error_map"]
+            if self.avg_error_map is None:
+                self.avg_error_map = vf2_utils.build_average_error_map(
+                    self.target, self.properties, self.coupling_map
+                )
 
         result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
         if result is None:
@@ -214,13 +239,22 @@ class VF2PostLayout(AnalysisPass):
                 call_limit=self.call_limit,
             )
         chosen_layout = None
-        initial_layout = Layout(dict(enumerate(dag.qubits)))
+        run_in_parallel = (
+            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
+            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
+        )
         try:
             if self.strict_direction:
+                initial_layout = Layout({bit: index for index, bit in enumerate(dag.qubits)})
                 chosen_layout_score = self._score_layout(
                     initial_layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
                 )
             else:
+                initial_layout = {
+                    im_graph_node_map[bit]: index
+                    for index, bit in enumerate(dag.qubits)
+                    if bit in im_graph_node_map
+                }
                 chosen_layout_score = vf2_utils.score_layout(
                     self.avg_error_map,
                     initial_layout,
@@ -228,6 +262,7 @@ class VF2PostLayout(AnalysisPass):
                     reverse_im_graph_node_map,
                     im_graph,
                     self.strict_direction,
+                    run_in_parallel,
                 )
         # Circuit not in basis so we have nothing to compare against return here
         except KeyError:
@@ -244,24 +279,29 @@ class VF2PostLayout(AnalysisPass):
             trials += 1
             logger.debug("Running trial: %s", trials)
             stop_reason = VF2PostLayoutStopReason.SOLUTION_FOUND
-            layout = Layout(
-                {reverse_im_graph_node_map[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
-            )
+            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
             if self.strict_direction:
+                layout = Layout(
+                    {reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()}
+                )
                 layout_score = self._score_layout(
                     layout, im_graph_node_map, reverse_im_graph_node_map, im_graph
                 )
             else:
                 layout_score = vf2_utils.score_layout(
                     self.avg_error_map,
-                    layout,
+                    layout_mapping,
                     im_graph_node_map,
                     reverse_im_graph_node_map,
                     im_graph,
                     self.strict_direction,
+                    run_in_parallel,
                 )
             logger.debug("Trial %s has score %s", trials, layout_score)
             if layout_score < chosen_layout_score:
+                layout = Layout(
+                    {reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()}
+                )
                 logger.debug(
                     "Found layout %s has a lower score (%s) than previous best %s (%s)",
                     layout,

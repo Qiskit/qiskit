@@ -129,10 +129,11 @@ class SchedStyle:
         """
         warnings.warn(
             "The legacy pulse drawer is deprecated along with this stylesheet. "
-            "Please use new drawer `qiskit.visualization.pulse_drawer_v2` "
+            "Please use new drawer `qiskit.visualization.pulse_drawer` "
             "with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. "
             "You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.",
             DeprecationWarning,
+            stacklevel=2,
         )
 
         self.figsize = figsize
@@ -209,10 +210,11 @@ class PulseStyle:
         """
         warnings.warn(
             "The legacy pulse drawer is deprecated along with this stylesheet. "
-            "Please use new drawer `qiskit.visualization.pulse_drawer_v2` "
+            "Please use new drawer `qiskit.visualization.pulse_drawer` "
             "with new stylesheet classes provided by `qiskit.visualization.pulse_v2`. "
             "You can choose one of `IQXStandard`, `IQXSimple`, `IQXDebugging`.",
             DeprecationWarning,
+            stacklevel=2,
         )
 
         self.figsize = figsize

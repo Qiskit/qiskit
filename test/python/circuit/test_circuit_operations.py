@@ -1114,32 +1114,6 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(qc.num_clbits, 10)
         self.assertEqual(qc.num_ancillas, 10)
 
-    def test_deprecated_measure_function(self):
-        """Test that the deprecated version of the loose 'measure' function works correctly."""
-        from qiskit.circuit.measure import measure
-
-        test = QuantumCircuit(1, 1)
-        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
-            measure(test, 0, 0)
-
-        expected = QuantumCircuit(1, 1)
-        expected.measure(0, 0)
-
-        self.assertEqual(test, expected)
-
-    def test_deprecated_reset_function(self):
-        """Test that the deprecated version of the loose 'reset' function works correctly."""
-        from qiskit.circuit.reset import reset
-
-        test = QuantumCircuit(1, 1)
-        with self.assertWarnsRegex(DeprecationWarning, r".*Qiskit Terra 0\.19.*"):
-            reset(test, 0)
-
-        expected = QuantumCircuit(1, 1)
-        expected.reset(0)
-
-        self.assertEqual(test, expected)
-
     def test_from_instructions(self):
         """Test from_instructions method."""
 
@@ -1186,6 +1160,37 @@ class TestCircuitOperations(QiskitTestCase):
         self.assertEqual(circuit, expected)
         self.assertEqual(circuit_tuples, expected)
         self.assertEqual(circuit_tuples_partial, expected)
+
+    def test_from_instructions_bit_order(self):
+        """Test from_instructions method bit order."""
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(2)
+        a, b = qreg
+        c, d = creg
+
+        def instructions():
+            yield CircuitInstruction(HGate(), [b], [])
+            yield CircuitInstruction(CXGate(), [a, b], [])
+            yield CircuitInstruction(Measure(), [b], [d])
+            yield CircuitInstruction(Measure(), [a], [c])
+
+        circuit = QuantumCircuit.from_instructions(instructions())
+        self.assertEqual(circuit.qubits, [b, a])
+        self.assertEqual(circuit.clbits, [d, c])
+
+        circuit = QuantumCircuit.from_instructions(instructions(), qubits=qreg)
+        self.assertEqual(circuit.qubits, [a, b])
+        self.assertEqual(circuit.clbits, [d, c])
+
+        circuit = QuantumCircuit.from_instructions(instructions(), clbits=creg)
+        self.assertEqual(circuit.qubits, [b, a])
+        self.assertEqual(circuit.clbits, [c, d])
+
+        circuit = QuantumCircuit.from_instructions(
+            instructions(), qubits=iter([a, b]), clbits=[c, d]
+        )
+        self.assertEqual(circuit.qubits, [a, b])
+        self.assertEqual(circuit.clbits, [c, d])
 
     def test_from_instructions_metadata(self):
         """Test from_instructions method passes metadata."""

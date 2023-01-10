@@ -16,7 +16,7 @@ Optimized list of Pauli operators
 from collections import defaultdict
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
@@ -51,7 +51,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
     For example,
 
-    .. jupyter-execute::
+    .. code-block::
 
         import numpy as np
 
@@ -77,18 +77,31 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         pauli_list = PauliList.from_symplectic(z, x, phase)
         print("4. ", pauli_list)
 
+    .. parsed-literal::
+
+        1.  ['II', 'ZI', '-iYY']
+        2.  ['iXI']
+        3.  ['iXI', 'iZZ']
+        4.  ['YZ', '-iIX']
+
     **Data Access**
 
     The individual Paulis can be accessed and updated using the ``[]``
     operator which accepts integer, lists, or slices for selecting subsets
     of PauliList. If integer is given, it returns Pauli not PauliList.
 
-    .. jupyter-execute::
+    .. code-block::
 
         pauli_list = PauliList(["XX", "ZZ", "IZ"])
         print("Integer: ", repr(pauli_list[1]))
         print("List: ", repr(pauli_list[[0, 2]]))
         print("Slice: ", repr(pauli_list[0:2]))
+
+    .. parsed-literal::
+
+        Integer:  Pauli('ZZ')
+        List:  PauliList(['XX', 'IZ'])
+        Slice:  PauliList(['XX', 'ZZ'])
 
     **Iteration**
 
@@ -521,7 +534,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         Consider sorting all a random ordering of all 2-qubit Paulis
 
-        .. jupyter-execute::
+        .. code-block::
 
             from numpy.random import shuffle
             from qiskit.quantum_info.operators import PauliList
@@ -545,6 +558,18 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             print('Weight sorted')
             print(srt)
 
+        .. parsed-literal::
+
+            Initial Ordering
+            ['YX', 'ZZ', 'XZ', 'YI', 'YZ', 'II', 'XX', 'XI', 'XY', 'YY', 'IX', 'IZ',
+             'ZY', 'ZI', 'ZX', 'IY']
+            Lexicographically sorted
+            ['II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ', 'YI', 'YX', 'YY', 'YZ',
+             'ZI', 'ZX', 'ZY', 'ZZ']
+            Weight sorted
+            ['II', 'IX', 'IY', 'IZ', 'XI', 'YI', 'ZI', 'XX', 'XY', 'XZ', 'YX', 'YY',
+             'YZ', 'ZX', 'ZY', 'ZZ']
+
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
             phase (bool): Optionally sort by phase before weight or order
@@ -560,13 +585,17 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import PauliList
 
             pt = PauliList(['X', 'Y', '-X', 'I', 'I', 'Z', 'X', 'iZ'])
             unique = pt.unique()
             print(unique)
+
+        .. parsed-literal::
+
+            ['X', 'Y', '-X', 'I', 'Z', 'iZ']
 
         Args:
             return_index (bool): If True, also return the indices that
@@ -1109,7 +1138,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
                 or on a per-qubit basis.
 
         Returns:
-            retworkx.PyGraph: A class of undirected graphs
+            rustworkx.PyGraph: A class of undirected graphs
         """
 
         edges = self._noncommutation_graph(qubit_wise)

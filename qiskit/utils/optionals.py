@@ -93,10 +93,11 @@ External Python Libraries
         be installed in order to use them.
 
     * - .. py:data:: HAS_NETWORKX
-      - Internally, Qiskit uses the high-performance `retworkx
-        <https://github.com/Qiskit/retworkx>`__ library as a core dependency, but sometimes it can
-        be convenient to convert things into the Python-only `NetworkX <https://networkx.org/>`__
-        format.  There are converter methods on :class:`.DAGCircuit` if NetworkX is present.
+      - No longer used by Terra.  Internally, Qiskit now uses the high-performance `rustworkx
+        <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
+        change-over period, it was sometimes convenient to convert things into the Python-only
+        `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
+        `Qiskit Nature <https://qiskit.org/documentation/nature/>`__ still use NetworkX.
 
     * - .. py:data:: HAS_NLOPT
       - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,

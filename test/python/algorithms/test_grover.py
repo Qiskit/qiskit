@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,19 +12,19 @@
 
 """Test Grover's algorithm."""
 
+import itertools
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-import itertools
-import numpy as np
-from ddt import ddt, data, idata, unpack
 
+import numpy as np
+from ddt import data, ddt, idata, unpack
 
 from qiskit import BasicAer, QuantumCircuit
-from qiskit.utils import QuantumInstance
-from qiskit.algorithms import Grover, AmplificationProblem
+from qiskit.algorithms import AmplificationProblem, Grover
 from qiskit.circuit.library import GroverOperator, PhaseOracle
 from qiskit.primitives import Sampler
 from qiskit.quantum_info import Operator, Statevector
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
 
@@ -100,6 +100,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         )
         self._sampler = Sampler()
         self._sampler_with_shots = Sampler(options={"shots": 1024, "seed": 123})
+        algorithm_globals.random_seed = 123
 
     @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
     @data("ideal", "shots", False)
@@ -306,7 +307,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
                 sampler=self._sampler_with_shots, iterations=iterations, growth_rate=growth_rate
             )
         else:
-            with self.assertWarns(PendingDeprecationWarning):
+            with self.assertWarns(DeprecationWarning):
                 grover = Grover(
                     quantum_instance=self.qasm, iterations=iterations, growth_rate=growth_rate
                 )
