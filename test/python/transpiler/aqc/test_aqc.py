@@ -125,5 +125,6 @@ class TestAqc(QiskitTestCase):
         error = 0.5 * (np.linalg.norm(approx_matrix - target_matrix, "fro") ** 2)
         self.assertTrue(error < 1e-3)
 
+
 if __name__ == "__main__":
     unittest.main()
