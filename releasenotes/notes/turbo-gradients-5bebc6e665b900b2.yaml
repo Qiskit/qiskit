@@ -3,7 +3,7 @@ features:
   - |
     Added the :class:`.ReverseEstimatorGradient` class for a classical, fast evaluation of
     expectation value gradients based on backpropagation or reverse-mode gradients.
-    This class is based on statevectors and thus provides exact gradients but scales 
+    This class uses statevectors and thus provides exact gradients but scales 
     exponentially in system size. It is designed for fast reference calculation of smaller system
     sizes. It can for example be used as::
 

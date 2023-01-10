@@ -30,7 +30,7 @@ from .split_circuits import split
 
 from ..base_estimator_gradient import BaseEstimatorGradient
 from ..estimator_gradient_result import EstimatorGradientResult
-from ..lin_comb_estimator_gradient import DerivativeType
+from ..utils import DerivativeType
 
 logger = logging.getLogger(__name__)
 
@@ -41,12 +41,12 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
     .. note::
 
         This gradient implementation is based on statevector manipulations and scales
-        exponentially in numbers of qubits. However, for small system sizes it can be very fast
+        exponentially with the number of qubits. However, for small system sizes it can be very fast
         compared to circuit-based gradients.
 
     This class implements the calculation of the expectation gradient as described in
     [1]. By keeping track of two statevectors and iteratively sweeping through each parameterized
-    gate, this method scales only linearly in the number of parameters.
+    gate, this method scales only linearly with the number of parameters.
 
     **References:**
 
@@ -61,11 +61,11 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
     def __init__(self, derivative_type: DerivativeType = DerivativeType.REAL):
         """
         Args:
-            derivative_type: Selects whether the real, imaginary or real plus imaginary part
+            derivative_type: Defines whether the real, imaginary or real plus imaginary part
                 of the gradient is returned.
         """
-        alibi_estimator = Estimator()  # this is never used
-        super().__init__(alibi_estimator)
+        dummy_estimator = Estimator()  # this is required by the base class, but not used
+        super().__init__(dummy_estimator)
         self._derivative_type = derivative_type
 
     @property

@@ -71,7 +71,7 @@ def gradient_lookup(gate: Gate) -> list[tuple[complex, QuantumCircuit]]:
         proj2.z(1)
 
         return [(-0.25j, proj1), (0.25j, proj2)]
-    raise NotImplementedError("Cannot implement for", gate)
+    raise NotImplementedError("Cannot implement gradient for", gate)
 
 
 def derive_circuit(
@@ -114,7 +114,7 @@ def derive_circuit(
         # this is added as useful user-warning, since sometimes ``ParameterExpression``s are
         # passed around instead of ``Parameter``s
         if not isinstance(parameter, Parameter):
-            raise ValueError("``parameter`` must be  None or of type ``Parameter``.")
+            raise ValueError("parameter  must be  None or of type Parameter.")
 
         if parameter not in circuit.parameters:
             raise ValueError("Parameter not in this circuit.")
@@ -136,9 +136,9 @@ def derive_circuit(
     for product_rule_term in itertools.product(*summands):
         summand_circuit = QuantumCircuit(*circuit.qregs)
         c = 1
-        for i, a in enumerate(product_rule_term):
-            c *= a[0]
-            summand_circuit.data.append([a[1], *op_context[i]])
+        for i, term in enumerate(product_rule_term):
+            c *= term[0]
+            summand_circuit.data.append([term[1], *op_context[i]])
         gradient += [(c, summand_circuit.copy())]
 
     return gradient
