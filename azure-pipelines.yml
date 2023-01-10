@@ -33,9 +33,7 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    # TODO remove the explicit 3.11.0 pin and set it to 3.11. The pin is currently added
-    # since 3.11.1 breaks CI, see Qiskit/qiskit-terra#9291.
-    default: ["3.7", "3.8", "3.9", "3.10", "3.11.0"]
+    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
@@ -45,7 +43,7 @@ parameters:
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.11.0"
+    default: "3.11"
 
   - name: "minimumRustVersion"
     displayName: "Minimum supported version of Rust"
@@ -111,9 +109,7 @@ stages:
 
           - template: ".azure/test-macos.yml"
             parameters:
-              # TODO Manually setting this to exclude 3.11 completely, since 3.11.1 breaks
-              # (see Qiskit/qiskit-terra#9291) and 3.11.0 is not available on azure for MacOS.
-              pythonVersion: ["3.7", "3.8", "3.9", "3.10"]
+              pythonVersion: ${{ version }}
 
           - template: ".azure/test-windows.yml"
             parameters:
@@ -185,8 +181,7 @@ stages:
 
         - template: ".azure/test-macos.yml"
           parameters:
-            # TODO remove pin to 3.10 and reset to ${{ parameters.maximumPythonVersion }}
-            pythonVersion: "3.10"
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
 
         - template: ".azure/test-windows.yml"
           parameters:
