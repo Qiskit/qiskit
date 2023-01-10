@@ -100,10 +100,8 @@ def _is_amplitude_valid(envelope_lam: Callable, time: Tuple[float, ...], *fargs:
 
     time = np.asarray(time, dtype=float)
     samples_norm = np.abs(envelope_lam(time, *fargs))
-    if np.any(samples_norm > 1.0):
-        return False
-    else:
-        return True
+    epsilon = 1e-7  # The value of epsilon mimics that of Waveform._clip()
+    return np.all(samples_norm < 1.0 + epsilon)
 
 
 def _get_expression_args(expr: sym.Expr, params: Dict[str, float]) -> List[float]:
