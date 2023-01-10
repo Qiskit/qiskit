@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix :meth:`qiskit.quantum_info.analysis.Z2Symmetries.find_z2_symmetries` which was resulting in
-    errors in some symmetry cases.
