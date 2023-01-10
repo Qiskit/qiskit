@@ -28,7 +28,7 @@ class StabilizerState(QuantumState):
     Stabilizer simulator using the convention from reference [1].
     Based on the internal class :class:`~qiskit.quantum_info.Clifford`.
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import StabilizerState, Pauli
@@ -47,6 +47,12 @@ class StabilizerState(QuantumState):
 
         # Calculate expectation value of the StabilizerState
         print (stab.expectation_value(Pauli('ZZ')))
+
+    .. parsed-literal::
+
+        StabilizerState(StabilizerTable: ['+XX', '+ZZ'])
+        {'00': 0.5, '11': 0.5}
+        1
 
     References:
         1. S. Aaronson, D. Gottesman, *Improved Simulation of Stabilizer Circuits*,

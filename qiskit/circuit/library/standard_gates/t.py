@@ -13,10 +13,13 @@
 """T and Tdg gate."""
 import math
 from typing import Optional
+
 import numpy
-from qiskit.qasm import pi
+
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.qasm import pi
 
 
 class TGate(Gate):
@@ -60,6 +63,7 @@ class TGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -77,6 +81,10 @@ class TGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the T gate."""
         return numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(0.25 * numpy.pi * exponent)
 
 
 class TdgGate(Gate):
@@ -119,6 +127,7 @@ class TdgGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -136,3 +145,7 @@ class TdgGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
         return numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(-0.25 * numpy.pi * exponent)
