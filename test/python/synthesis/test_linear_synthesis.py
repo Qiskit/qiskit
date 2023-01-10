@@ -25,7 +25,13 @@ from qiskit.synthesis.linear import (
     check_invertible_binary_matrix,
     calc_inverse_matrix,
 )
-from qiskit.synthesis.linear.linear_circuits_utils import transpose_cx_circ, _optimize_cx_4_options
+from qiskit.synthesis.linear.linear_circuits_utils import (
+    transpose_cx_circ,
+    _optimize_cx_4_options,
+    _linear_circuit_depth,
+    _compare_linear_circuits,
+    _linear_circuit_check_map,
+)
 from qiskit.test import QiskitTestCase
 
 
@@ -135,6 +141,77 @@ class TestLinearSynth(QiskitTestCase):
                 q1 = qc.find_bit(inst.qubits[1]).index
                 dist = abs(q0 - q1)
                 self.assertEqual(dist, 1)
+
+    def test_linear_circuit_depth(self):
+        """Test the ``_linear_circuit_depth`` utility method, in particular that it
+        returns the same depth when SWAPs are replaced by three CXs."""
+
+        qc1 = QuantumCircuit(4)
+        qc1.cx(0, 1)
+        qc1.cx(0, 2)
+        qc1.swap(1, 3)
+        qc1.cx(0, 3)
+
+        qc2 = QuantumCircuit(4)
+        qc2.cx(0, 1)
+        qc2.cx(0, 2)
+        qc2.cx(1, 3)
+        qc2.cx(3, 1)
+        qc2.cx(1, 3)
+        qc2.cx(0, 3)
+
+        depth1 = _linear_circuit_depth(qc1)
+        depth2 = _linear_circuit_depth(qc2)
+
+        self.assertEqual(depth1, depth2)
+
+    def test_compare_linear_circuits_count(self):
+        """Test the ``_compare_linear_circuits`` utility method."""
+
+        # Create two quantum circuits, one with better count, another with better depth
+        # (ignoring the fact that they do not implement the same linear function).
+        qc1 = QuantumCircuit(4)
+        qc1.cx(0, 1)
+        qc1.cx(2, 3)
+        qc1.cx(0, 2)
+        qc1.cx(1, 3)
+        self.assertEqual(qc1.size(), 4)
+        self.assertEqual(qc1.depth(), 2)
+
+        qc2 = QuantumCircuit(4)
+        qc2.cx(0, 1)
+        qc2.cx(0, 2)
+        qc2.cx(0, 3)
+        self.assertEqual(qc2.size(), 3)
+        self.assertEqual(qc2.depth(), 3)
+
+        qc2_count_is_better = _compare_linear_circuits(qc1, qc2, optimize_count=True)
+        qc2_depth_is_better = _compare_linear_circuits(qc1, qc2, optimize_count=False)
+
+        self.assertTrue(qc2_count_is_better)
+        self.assertFalse(qc2_depth_is_better)
+
+    def test_linear_circuit_check_map(self):
+        """Test the ``_linear_circuit_check_map`` utility method."""
+        coupling_list = [(0, 1), (1, 2), (2, 3)]
+
+        qc1 = QuantumCircuit(4)
+        qc1.cx(1, 2)
+        qc1.cx(2, 3)
+        qc1.cx(1, 2)
+        self.assertTrue(_linear_circuit_check_map(qc1, coupling_list))
+
+        qc2 = QuantumCircuit(4)
+        qc2.cx(1, 2)
+        qc2.cx(1, 3)
+        qc2.cx(1, 2)
+        self.assertFalse(_linear_circuit_check_map(qc2, coupling_list))
+
+        qc3 = QuantumCircuit(4)
+        qc3.cx(1, 2)
+        qc3.cx(3, 2)
+        qc3.cx(1, 2)
+        self.assertFalse(_linear_circuit_check_map(qc3, coupling_list))
 
 
 if __name__ == "__main__":

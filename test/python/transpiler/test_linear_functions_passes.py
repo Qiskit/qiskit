@@ -28,6 +28,7 @@ from qiskit.transpiler.passes.synthesis import (
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import (
     PMHSynthesisLinearFunction,
     KMSSynthesisLinearFunction,
+    _hamiltonian_paths,
 )
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.library.generalized_gates import LinearFunction
@@ -758,6 +759,14 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         pm = PassManager(HighLevelSynthesis(hls_config=config, coupling_map=coupling_map))
         qct = pm.run(qc)
         self.assertNotIn("linear_function", qct.count_ops().keys())
+
+    def test_hamiltonian_paths(self):
+        """Test the utility ``_hamiltonian_paths`` method."""
+        coupling_list = [(0, 1), (1, 2), (2, 3), (1, 3), (2, 0)]
+        computed_paths = _hamiltonian_paths(CouplingMap(coupling_list))
+        computed_paths_set = {tuple(path) for path in computed_paths}
+        expected_paths_set = {tuple([0, 1, 2, 3]), tuple([2, 0, 1, 3])}
+        self.assertEqual(computed_paths_set, expected_paths_set)
 
 
 if __name__ == "__main__":
