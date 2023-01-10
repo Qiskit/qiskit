@@ -105,6 +105,11 @@ class RYGate(Gate):
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RYGate(exponent * theta)
+
 
 class CRYGate(ControlledGate):
     r"""Controlled-RY gate.
