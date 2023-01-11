@@ -38,9 +38,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             0 & 0 & b & a
         \end{pmatrix}.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             import warnings
             import numpy as np

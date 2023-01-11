@@ -166,6 +166,18 @@ class TestStatevector(QiskitTestCase):
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
+        target = Statevector([1, 0, 1, 0]) / np.sqrt(2)
+        circuit = QuantumCircuit(2)
+        circuit.initialize("+", [1])
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        target = Statevector([1, 0, 0, 0])
+        circuit = QuantumCircuit(2)
+        circuit.initialize(0, [0, 1])  # initialize from int
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
         # Test reset instruction
         target = Statevector([1, 0])
         circuit = QuantumCircuit(1)
@@ -709,6 +721,67 @@ class TestStatevector(QiskitTestCase):
             with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_probabilities_dict_unequal_dims(self):
+        """Test probabilities_dict for a state with unequal subsystem dimensions."""
+
+        vec = np.zeros(60, dtype=float)
+        vec[15:20] = np.ones(5)
+        vec[40:46] = np.ones(6)
+        state = Statevector(vec / np.sqrt(11.0), dims=[3, 4, 5])
+
+        p = 1.0 / 11.0
+
+        self.assertDictEqual(
+            state.probabilities_dict(),
+            {
+                s: p
+                for s in [
+                    "110",
+                    "111",
+                    "112",
+                    "120",
+                    "121",
+                    "311",
+                    "312",
+                    "320",
+                    "321",
+                    "322",
+                    "330",
+                ]
+            },
+        )
+
+        # differences due to rounding
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0]), {"0": 4 * p, "1": 4 * p, "2": 3 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1]), {"1": 5 * p, "2": 5 * p, "3": p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[2]), {"1": 5 * p, "3": 6 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 1]),
+            {"10": p, "11": 2 * p, "12": 2 * p, "20": 2 * p, "21": 2 * p, "22": p, "30": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1, 0]),
+            {"01": p, "11": 2 * p, "21": 2 * p, "02": 2 * p, "12": 2 * p, "22": p, "03": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 2]),
+            {"10": 2 * p, "11": 2 * p, "12": p, "31": 2 * p, "32": 2 * p, "30": 2 * p},
+            delta=1e-10,
+        )
 
     def test_sample_counts_qutrit(self):
         """Test sample_counts method for qutrit state"""

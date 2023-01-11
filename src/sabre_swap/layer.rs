@@ -12,7 +12,7 @@
 
 use hashbrown::HashMap;
 use ndarray::prelude::*;
-use retworkx_core::petgraph::prelude::*;
+use rustworkx_core::petgraph::prelude::*;
 
 use crate::nlayout::NLayout;
 

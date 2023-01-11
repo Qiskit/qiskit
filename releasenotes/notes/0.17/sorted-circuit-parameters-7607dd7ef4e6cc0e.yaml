@@ -11,7 +11,7 @@ features:
     name-sorted order. Previously these methods would only take a dictionary of
     parameters and values. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.circuit import QuantumCircuit, Parameter
 

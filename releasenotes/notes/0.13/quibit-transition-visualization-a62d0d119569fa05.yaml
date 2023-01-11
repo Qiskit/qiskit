@@ -30,7 +30,7 @@ features:
 
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.visualization import visualize_transition
       from qiskit import *

@@ -196,7 +196,7 @@ which can be used to influence the compilation of the :class:`~.QuantumCircuit`.
 
 For example, to construct a simple :class:`~.Target` object:
 
-.. jupyter-execute::
+.. code-block::
 
     from qiskit.circuit import Parameter, Measure
     from qiskit.transpiler import Target, InstructionProperties
@@ -249,6 +249,61 @@ For example, to construct a simple :class:`~.Target` object:
     )
     print(target)
 
+.. parsed-literal::
+
+    Target
+    Number of qubits: 3
+    Instructions:
+        cx
+            (0, 1):
+                Duration: 5e-07 sec.
+                Error Rate: 0.0001
+        u
+            (0,):
+                Duration: 5e-08 sec.
+                Error Rate: 1e-05
+            (1,):
+                Duration: 6e-08 sec.
+                Error Rate: 2e-05
+        rz
+            (1,):
+                Duration: 5e-08 sec.
+                Error Rate: 1e-05
+            (2,):
+                Duration: 6e-08 sec.
+                Error Rate: 2e-05
+        ry
+            (1,):
+                Duration: 5e-08 sec.
+                Error Rate: 1e-05
+            (2,):
+                Duration: 6e-08 sec.
+                Error Rate: 2e-05
+        rx
+            (1,):
+                Duration: 5e-08 sec.
+                Error Rate: 1e-05
+            (2,):
+                Duration: 6e-08 sec.
+                Error Rate: 2e-05
+        cz
+            (1, 2):
+                Duration: 5e-07 sec.
+                Error Rate: 0.0001
+            (2, 0):
+                Duration: 5e-07 sec.
+                Error Rate: 0.0001
+        measure
+            (0,):
+                Duration: 5e-05 sec.
+                Error Rate: 0.001
+            (1,):
+                Duration: 6e-05 sec.
+                Error Rate: 0.002
+            (2,):
+                Duration: 5e-07 sec.
+                Error Rate: 0.2
+
 This :class:`~.Target` represents a 3 qubit QPU that supports :class:`~.CXGate` between qubits
 0 and 1, :class:`~.UGate` on qubits 0 and 1, :class:`~.RZGate`, :class:`~.RXGate`,
 and :class:`~.RYGate` on qubits 1 and 2, :class:`~.CZGate` between qubits 1 and 2, and qubits
@@ -268,22 +323,175 @@ can be useful if analysis of the connectivity constraints of a backend is desire
 For example, if we wanted to visualize the :class:`~.CouplingMap` for the
 example 3 qubit :class:`~.Target` above:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
-    target.build_coupling_map().draw()
+   from qiskit.circuit import Parameter, Measure
+   from qiskit.transpiler import Target, InstructionProperties
+   from qiskit.circuit.library import UGate, RZGate, RXGate, RYGate, CXGate, CZGate
+
+   target = Target(num_qubits=3)
+   target.add_instruction(CXGate(), {(0, 1): InstructionProperties(error=.0001, duration=5e-7)})
+   target.add_instruction(
+       UGate(Parameter('theta'), Parameter('phi'), Parameter('lam')),
+       {
+           (0,): InstructionProperties(error=.00001, duration=5e-8),
+           (1,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RZGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RYGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RXGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       CZGate(),
+       {
+           (1, 2): InstructionProperties(error=.0001, duration=5e-7),
+           (2, 0): InstructionProperties(error=.0001, duration=5e-7)
+       }
+   )
+   target.add_instruction(
+       Measure(),
+       {
+           (0,): InstructionProperties(error=.001, duration=5e-5),
+           (1,): InstructionProperties(error=.002, duration=6e-5),
+           (2,): InstructionProperties(error=.2, duration=5e-7)
+       }
+   )
+
+   target.build_coupling_map().draw()
 
 This shows the global connectivity of the :class:`~.Target` which is the
 combination of the supported qubits for :class:`~.CXGate` and :class:`~.CZGate`. To
 see the individual connectivity uou can pass the operation name to
 :meth:`.CouplingMap.build_coupling_map`:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
-    target.build_coupling_map('cx').draw()
+   from qiskit.circuit import Parameter, Measure
+   from qiskit.transpiler import Target, InstructionProperties
+   from qiskit.circuit.library import UGate, RZGate, RXGate, RYGate, CXGate, CZGate
 
-.. jupyter-execute::
+   target = Target(num_qubits=3)
+   target.add_instruction(CXGate(), {(0, 1): InstructionProperties(error=.0001, duration=5e-7)})
+   target.add_instruction(
+       UGate(Parameter('theta'), Parameter('phi'), Parameter('lam')),
+       {
+           (0,): InstructionProperties(error=.00001, duration=5e-8),
+           (1,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RZGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RYGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RXGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       CZGate(),
+       {
+           (1, 2): InstructionProperties(error=.0001, duration=5e-7),
+           (2, 0): InstructionProperties(error=.0001, duration=5e-7)
+       }
+   )
+   target.add_instruction(
+       Measure(),
+       {
+           (0,): InstructionProperties(error=.001, duration=5e-5),
+           (1,): InstructionProperties(error=.002, duration=6e-5),
+           (2,): InstructionProperties(error=.2, duration=5e-7)
+       }
+   )
 
-    target.build_coupling_map('cz').draw()
+   target.build_coupling_map('cx').draw()
+
+.. plot::
+   :include-source:
+
+   from qiskit.circuit import Parameter, Measure
+   from qiskit.transpiler import Target, InstructionProperties
+   from qiskit.circuit.library import UGate, RZGate, RXGate, RYGate, CXGate, CZGate
+
+   target = Target(num_qubits=3)
+   target.add_instruction(CXGate(), {(0, 1): InstructionProperties(error=.0001, duration=5e-7)})
+   target.add_instruction(
+       UGate(Parameter('theta'), Parameter('phi'), Parameter('lam')),
+       {
+           (0,): InstructionProperties(error=.00001, duration=5e-8),
+           (1,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RZGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RYGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       RXGate(Parameter('theta')),
+       {
+           (1,): InstructionProperties(error=.00001, duration=5e-8),
+           (2,): InstructionProperties(error=.00002, duration=6e-8)
+       }
+   )
+   target.add_instruction(
+       CZGate(),
+       {
+           (1, 2): InstructionProperties(error=.0001, duration=5e-7),
+           (2, 0): InstructionProperties(error=.0001, duration=5e-7)
+       }
+   )
+   target.add_instruction(
+       Measure(),
+       {
+           (0,): InstructionProperties(error=.001, duration=5e-5),
+           (1,): InstructionProperties(error=.002, duration=6e-5),
+           (2,): InstructionProperties(error=.2, duration=5e-7)
+       }
+   )
+
+   target.build_coupling_map('cz').draw()
 
 .. _transpiler_stage_descriptions:
 
@@ -304,24 +512,25 @@ a quantum computing device can only natively support a handful of quantum gates 
 operations. The allowed instructions for a given backend can be found by querying the
 :class:`~.Target` for the devices:
 
-.. jupyter-execute::
-   :hide-code:
-   :hide-output:
+.. code-block:
 
    from qiskit.providers.fake_provider import FakeVigoV2
    backend = FakeVigoV2()
-
-.. jupyter-execute::
 
    print(backend.target)
 
 Every quantum circuit run on the target device must be expressed using only these instructions.
 For example, suppose one wants to run a simple phase estimation circuit:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    import numpy as np
    from qiskit import QuantumCircuit
+   from qiskit.providers.fake_provider import FakeVigoV2
+
+   backend = FakeVigoV2()
+
    qc = QuantumCircuit(2, 1)
 
    qc.h(0)
@@ -338,20 +547,36 @@ decompose the circuit to show what it would look like in the native gate set of
 the IBM Quantum devices (the :class:`~.FakeVigoV2` backend is a fake backend that
 models the historical IBM Vigo 5 qubit device for test purposes):
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    from qiskit import transpile
+   from qiskit import QuantumCircuit
+   from qiskit.providers.fake_provider import FakeVigoV2
+
+   backend = FakeVigoV2()
+
+   qc = QuantumCircuit(2, 1)
+
+   qc.h(0)
+   qc.x(1)
+   qc.cp(np.pi/4, 0, 1)
+   qc.h(0)
+   qc.measure([0], [0])
 
    qc_basis = transpile(qc, backend)
    qc_basis.draw(output='mpl')
 
-
 A few things to highlight. First, the circuit has gotten longer with respect to the
 initial one.  This can be verified by checking the depth of the circuits:
 
-.. jupyter-execute::
+.. code-block::
 
    print('Original depth:', qc.depth(), 'Decomposed Depth:', qc_basis.depth())
+
+.. parsed-literal::
+
+    Original depth: 4 Decomposed Depth: 10
 
 Second, although we had a single controlled gate, the fact that it was not in the basis
 set means that, when expanded, it requires more than a single :class:`~.CXGate` to implement.
@@ -361,8 +586,21 @@ quantum circuit and the number of gates.
 It is important to highlight two special cases:
 
 1. If A swap gate is not a native gate and must be decomposed this requires three CNOT gates:
+   .. code-block::
 
-   .. jupyter-execute::
+      from qiskit.providers.fake_provider import FakeVigoV2
+      backend = FakeVigoV2()
+
+      print(backend.operation_names)
+
+   .. parsed-literal::
+
+      ['id', 'rz', 'sx', 'x', 'cx', 'measure', 'delay']
+
+   .. plot:
+      :include-source:
+
+      from qiskit.circuit import QuantumCircuit
 
       swap_circ = QuantumCircuit(2)
       swap_circ.swap(0, 1)
@@ -379,7 +617,8 @@ It is important to highlight two special cases:
    that our basis gate set includes only single- and two-qubit gates, it is obvious that
    this gate must be decomposed.  This decomposition is quite costly:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       ccx_circ = QuantumCircuit(3)
       ccx_circ.ccx(0, 1, 2)
@@ -444,7 +683,8 @@ circuits returned by :func:`qiskit.compiler.transpile` have this initial layout 
 in them, and we can view this layout selection graphically using
 :func:`qiskit.visualization.plot_circuit_layout`:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    from qiskit import QuantumCircuit, transpile
    from qiskit.visualization import plot_circuit_layout
@@ -461,15 +701,38 @@ in them, and we can view this layout selection graphically using
 
 - **Layout Using Optimization Level 0**
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
+
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.visualization import plot_circuit_layout
+      from qiskit.providers.fake_provider import FakeVigo
+      backend = FakeVigo()
+
+      ghz = QuantumCircuit(3, 3)
+      ghz.h(0)
+      ghz.cx(0,range(1,3))
+      ghz.barrier()
+      ghz.measure(range(3), range(3))
 
       new_circ_lv0 = transpile(ghz, backend=backend, optimization_level=0)
       plot_circuit_layout(new_circ_lv0, backend)
 
-
 - **Layout Using Optimization Level 3**
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
+
+      from qiskit import QuantumCircuit, transpile
+      from qiskit.visualization import plot_circuit_layout
+      from qiskit.providers.fake_provider import FakeVigo
+      backend = FakeVigo()
+
+      ghz = QuantumCircuit(3, 3)
+      ghz.h(0)
+      ghz.cx(0,range(1,3))
+      ghz.barrier()
+      ghz.measure(range(3), range(3))
 
       new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
       plot_circuit_layout(new_circ_lv3, backend)
@@ -480,7 +743,19 @@ pass a list of integers to :func:`qiskit.compiler.transpile` via the `initial_la
 keyword argument, where the index labels the virtual qubit in the circuit and the
 corresponding value is the label for the physical qubit to map onto:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
+
+   from qiskit import QuantumCircuit, transpile
+   from qiskit.visualization import plot_circuit_layout
+   from qiskit.providers.fake_provider import FakeVigo
+   backend = FakeVigo()
+
+   ghz = QuantumCircuit(3, 3)
+   ghz.h(0)
+   ghz.cx(0,range(1,3))
+   ghz.barrier()
+   ghz.measure(range(3), range(3))
 
    # Virtual -> physical
    #    0    ->    3
@@ -515,7 +790,18 @@ at the output.
 In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disconnected)
 `initial_layout`:
 
-.. jupyter-execute::
+.. plot:
+
+   from qiskit import QuantumCircuit, transpile
+
+   ghz = QuantumCircuit(15)
+   ghz.h(0)
+   ghz.cx(0, range(1, 15))
+   ghz.draw(output='mpl')
+
+
+.. plot:
+   :include-source:
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
@@ -527,18 +813,15 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    ghz.cx(0, range(1, 15))
    ghz.draw(output='mpl')
 
-
-.. jupyter-execute::
-
-    depths = []
-    for _ in range(100):
-        depths.append(
-            transpile(
-                ghz,
-                backend,
-                layout_method='trivial'  # Fixed layout mapped in circuit order
-            ).depth()
-        )
+   depths = []
+   for _ in range(100):
+       depths.append(
+           transpile(
+               ghz,
+               backend,
+               layout_method='trivial'  # Fixed layout mapped in circuit order
+           ).depth()
+       )
 
    plt.figure(figsize=(8, 6))
    plt.hist(depths, align='left', color='#AC557C')
@@ -580,7 +863,7 @@ setting the optimization level higher:
    So the numbers below will likely change each time you run the code.
 
 
-.. jupyter-execute::
+.. plot::
 
    import matplotlib.pyplot as plt
    from qiskit import QuantumCircuit, transpile
@@ -592,15 +875,41 @@ setting the optimization level higher:
    ghz.cx(0, range(1, 15))
    ghz.draw(output='mpl')
 
+.. plot::
+   :include-source:
 
-.. jupyter-execute::
+   import matplotlib.pyplot as plt
+   from qiskit import QuantumCircuit, transpile
+   from qiskit.providers.fake_provider import FakeAuckland
+   backend = FakeAuckland()
 
+   ghz = QuantumCircuit(15)
+   ghz.h(0)
+   ghz.cx(0, range(1, 15))
+   ghz.draw(output='mpl')
+
+   depths = []
+   gate_counts = []
+   non_local_gate_counts = []
+   levels = [str(x) for x in range(4)]
    for level in range(4):
       circ = transpile(ghz, backend, optimization_level=level)
-      print('Optimization Level {}'.format(level))
-      print('Depth:', circ.depth())
-      print('Gate counts:', circ.count_ops())
-      print()
+      depths.append(circ.depth())
+      gate_counts.append(sum(circ.count_ops().values()))
+      non_local_gate_counts.append(circ.num_nonlocal_gates())
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    ax1.bar(levels, depths, label='Depth')
+    ax1.xlabel("Optimization Level")
+    ax1.ylabel("Depth")
+    ax1.title("Output Circuit Depth")
+    ax2.bar(levels, gate_counts, label='Number of Circuit Operations')
+    ax2.bar(levels, non_local_gate_counts, label='Number of non-local gates')
+    ax2.xlabel("Optimization Level")
+    ax2.ylabel("Number of gates")
+    ax2.legend()
+    ax2.title("Number of output circuit gates")
+    fig.tight_layout()
+    plt.show()
 
 .. _scheduling_stage:
 
@@ -613,11 +922,8 @@ At a high level the scheduling can be thought of as inserting delays into the ci
 for idle time on the qubits between the execution of instructions. For example, if we start with a
 circuit such as:
 
-.. jupyter-execute::
-
-   from qiskit import QuantumCircuit, transpile
-   from qiskit.providers.fake_provider import FakeBoeblingen
-   backend = FakeBoeblingen()
+.. plot::
+   from qiskit import QuantumCircuit
 
    ghz = QuantumCircuit(5)
    ghz.h(0)
@@ -626,7 +932,16 @@ circuit such as:
 
 we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
+
+   from qiskit import QuantumCircuit, transpile
+   from qiskit.providers.fake_provider import FakeBoeblingen
+   backend = FakeBoeblingen()
+
+   ghz = QuantumCircuit(5)
+   ghz.h(0)
+   ghz.cx(0,range(1,5))
 
    circ = transpile(ghz, backend, scheduling_method="asap")
    circ.draw(output='mpl')
@@ -635,9 +950,19 @@ You can see here that the transpiler inserted :class:`~qiskit.circuit.Delay` ins
 account for idle time on each qubit. To get a better idea of the timing of the circuit we can
 also look at it with the :func:`.timeline.draw` function:
 
-.. jupyter-execute::
+.. plot::
 
    from qiskit.visualization.timeline import draw as timeline_draw
+
+   from qiskit import QuantumCircuit, transpile
+   from qiskit.providers.fake_provider import FakeBoeblingen
+   backend = FakeBoeblingen()
+
+   ghz = QuantumCircuit(5)
+   ghz.h(0)
+   ghz.cx(0,range(1,5))
+
+   circ = transpile(ghz, backend, scheduling_method="asap")
 
    timeline_draw(circ)
 
