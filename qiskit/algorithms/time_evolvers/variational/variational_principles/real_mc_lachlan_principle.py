@@ -21,7 +21,7 @@ from numpy import real
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.primitives import Estimator
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQFI
 from .real_variational_principle import (
