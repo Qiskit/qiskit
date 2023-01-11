@@ -43,8 +43,8 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
     def test_time_dependent_hamiltonian(self):
         """Simple test case with a time dependent Hamiltonian."""
-        t = Parameter("t")
-        hamiltonian = t * PauliSumOp.from_list([("Z", 1)])
+        t_param = Parameter("t")
+        hamiltonian = t_param * PauliSumOp.from_list([("Z", 1)])
 
         x = ParameterVector("x", 3)
         circuit = QuantumCircuit(1)

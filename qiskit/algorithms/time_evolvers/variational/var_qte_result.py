@@ -16,6 +16,8 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.quantum_info import Statevector
+from qiskit.algorithms.list_or_dict import ListOrDict
 from ..time_evolution_result import TimeEvolutionResult
 
 
