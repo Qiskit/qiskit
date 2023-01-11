@@ -471,7 +471,6 @@ class TestCircuitCompose(QiskitTestCase):
         self.assertEqual(len(z.condition[0]), len(right.cregs[0]))
         self.assertIs(z.condition[0][0], test.clbits[0])
         self.assertEqual(z.condition[1], 1)
-        #
         self.assertIsNot(x.condition, None)
         self.assertIsInstance(x.condition[0], ClassicalRegister)
         self.assertEqual(len(x.condition[0]), len(right.cregs[1]))
