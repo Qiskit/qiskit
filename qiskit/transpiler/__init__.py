@@ -620,6 +620,8 @@ It is important to highlight two special cases:
    .. plot::
       :include-source:
 
+      from qiskit.circuit import QuantumCircuit
+
       ccx_circ = QuantumCircuit(3)
       ccx_circ.ccx(0, 1, 2)
       ccx_circ.decompose().draw(output='mpl')
@@ -790,7 +792,7 @@ at the output.
 In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disconnected)
 `initial_layout`:
 
-.. plot:
+.. plot::
 
    from qiskit import QuantumCircuit, transpile
 
@@ -799,8 +801,7 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    ghz.cx(0, range(1, 15))
    ghz.draw(output='mpl')
 
-
-.. plot:
+.. plot::
    :include-source:
 
    import matplotlib.pyplot as plt
@@ -811,7 +812,6 @@ In order to highlight this, we run a GHZ circuit 100 times, using a "bad" (disco
    ghz = QuantumCircuit(15)
    ghz.h(0)
    ghz.cx(0, range(1, 15))
-   ghz.draw(output='mpl')
 
    depths = []
    for _ in range(100):
@@ -886,30 +886,29 @@ setting the optimization level higher:
    ghz = QuantumCircuit(15)
    ghz.h(0)
    ghz.cx(0, range(1, 15))
-   ghz.draw(output='mpl')
 
    depths = []
    gate_counts = []
    non_local_gate_counts = []
    levels = [str(x) for x in range(4)]
    for level in range(4):
-      circ = transpile(ghz, backend, optimization_level=level)
-      depths.append(circ.depth())
-      gate_counts.append(sum(circ.count_ops().values()))
-      non_local_gate_counts.append(circ.num_nonlocal_gates())
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    ax1.bar(levels, depths, label='Depth')
-    ax1.xlabel("Optimization Level")
-    ax1.ylabel("Depth")
-    ax1.title("Output Circuit Depth")
-    ax2.bar(levels, gate_counts, label='Number of Circuit Operations')
-    ax2.bar(levels, non_local_gate_counts, label='Number of non-local gates')
-    ax2.xlabel("Optimization Level")
-    ax2.ylabel("Number of gates")
-    ax2.legend()
-    ax2.title("Number of output circuit gates")
-    fig.tight_layout()
-    plt.show()
+        circ = transpile(ghz, backend, optimization_level=level)
+        depths.append(circ.depth())
+        gate_counts.append(sum(circ.count_ops().values()))
+        non_local_gate_counts.append(circ.num_nonlocal_gates())
+   fig, (ax1, ax2) = plt.subplots(2, 1)
+   ax1.bar(levels, depths, label='Depth')
+   ax1.set_xlabel("Optimization Level")
+   ax1.set_ylabel("Depth")
+   ax1.set_title("Output Circuit Depth")
+   ax2.bar(levels, gate_counts, label='Number of Circuit Operations')
+   ax2.bar(levels, non_local_gate_counts, label='Number of non-local gates')
+   ax2.set_xlabel("Optimization Level")
+   ax2.set_ylabel("Number of gates")
+   ax2.legend()
+   ax2.set_title("Number of output circuit gates")
+   fig.tight_layout()
+   plt.show()
 
 .. _scheduling_stage:
 
@@ -923,6 +922,7 @@ for idle time on the qubits between the execution of instructions. For example, 
 circuit such as:
 
 .. plot::
+
    from qiskit import QuantumCircuit
 
    ghz = QuantumCircuit(5)
@@ -937,6 +937,7 @@ we can then call :func:`~.transpile` on it with ``scheduling_method`` set:
 
    from qiskit import QuantumCircuit, transpile
    from qiskit.providers.fake_provider import FakeBoeblingen
+
    backend = FakeBoeblingen()
 
    ghz = QuantumCircuit(5)
@@ -956,6 +957,7 @@ also look at it with the :func:`.timeline.draw` function:
 
    from qiskit import QuantumCircuit, transpile
    from qiskit.providers.fake_provider import FakeBoeblingen
+
    backend = FakeBoeblingen()
 
    ghz = QuantumCircuit(5)
