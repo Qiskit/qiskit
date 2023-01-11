@@ -15,8 +15,6 @@
 Circuit Synthesis (:mod:`qiskit.synthesis`)
 ===========================================
 
-.. automodule:: qiskit.synthesis.discrete_basis
-
 .. currentmodule:: qiskit.synthesis
 
 Evolution Synthesis
@@ -60,7 +58,7 @@ Clifford Synthesis
    synth_clifford_layers
 
 CNOTDihedral Synthesis
-=======================
+======================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -68,6 +66,14 @@ CNOTDihedral Synthesis
    synth_cnotdihedral_full
    synth_cnotdihedral_two_qubits
    synth_cnotdihedral_general
+
+Discrete Basis Synthesis
+========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   SolovayKitaevDecomposition
 
 """
 
@@ -94,3 +100,4 @@ from .cnotdihedral import (
     synth_cnotdihedral_two_qubits,
     synth_cnotdihedral_general,
 )
+from .discrete_basis import SolovayKitaevDecomposition
