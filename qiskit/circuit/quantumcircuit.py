@@ -2704,28 +2704,7 @@ class QuantumCircuit:
         # parameter might be in global phase only
         if parameter in self._parameter_table:
             for instr, param_index in self._parameter_table[parameter]:
-                assignee = instr.params[param_index]
-                # Normal ParameterExpression.
-                if isinstance(assignee, ParameterExpression):
-                    new_param = assignee.assign(parameter, value)
-                    # if fully bound, validate
-                    if len(new_param.parameters) == 0:
-                        instr.params[param_index] = instr.validate_parameter(new_param)
-                    else:
-                        instr.params[param_index] = new_param
-
-                    self._rebind_definition(instr, parameter, value)
-                # Scoped block of a larger instruction.
-                elif isinstance(assignee, QuantumCircuit):
-                    # It's possible that someone may re-use a loop body, so we need to mutate the
-                    # parameter vector with a new circuit, rather than mutating the body.
-                    instr.params[param_index] = assignee.assign_parameters({parameter: value})
-                else:
-                    raise RuntimeError(  # pragma: no cover
-                        "The ParameterTable or data of this QuantumCircuit have become out-of-sync."
-                        f"\nParameterTable: {self._parameter_table}"
-                        f"\nData: {self.data}"
-                    )
+                instr.assign_parameter(parameter, value, param_index)
 
             if isinstance(value, ParameterExpression):
                 entry = self._parameter_table.pop(parameter)
@@ -2773,19 +2752,6 @@ class QuantumCircuit:
                             new_cal_params.append(p)
                     schedule.assign_parameters({parameter: value})
                     cals[(qubit, tuple(new_cal_params))] = schedule
-
-    def _rebind_definition(
-        self, instruction: Instruction, parameter: Parameter, value: ParameterValueType
-    ) -> None:
-        if instruction._definition:
-            for inner in instruction._definition:
-                for idx, param in enumerate(inner.operation.params):
-                    if isinstance(param, ParameterExpression) and parameter in param.parameters:
-                        if isinstance(value, ParameterExpression):
-                            inner.operation.params[idx] = param.subs({parameter: value})
-                        else:
-                            inner.operation.params[idx] = param.bind({parameter: value})
-                        self._rebind_definition(inner.operation, parameter, value)
 
     def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.Barrier`. If qargs is empty, applies to all qubits in the
