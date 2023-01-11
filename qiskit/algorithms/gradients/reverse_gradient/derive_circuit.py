@@ -20,7 +20,18 @@ from qiskit.circuit.library import RXGate, RYGate, RZGate, CRXGate, CRYGate, CRZ
 
 
 def gradient_lookup(gate: Gate) -> list[tuple[complex, QuantumCircuit]]:
-    """Returns a circuit implementing the gradient of the input gate."""
+    """Returns a circuit implementing the gradient of the input gate.
+
+    Args:
+        gate: The gate whose derivative is returned.
+
+    Returns:
+        The derivative of the input gate as list of ``(coeff, circuit)`` pairs,
+        where the sum of all ``coeff * circuit`` elements describes the full derivative.
+        The circuit is the unitary part of the derivative with a potential separate ``coeff``.
+        The output is a list as derivatives of e.g. controlled gates can only be described
+        as a sum of ``coeff * circuit`` pairs.
+    """
 
     param = gate.params[0]
     if isinstance(gate, RXGate):
@@ -112,13 +123,13 @@ def derive_circuit(
     # this is added as useful user-warning, since sometimes ``ParameterExpression``s are
     # passed around instead of ``Parameter``s
     if not isinstance(parameter, Parameter):
-        raise ValueError("parameter  must be  None or of type Parameter.")
+        raise ValueError(f"parameter must be None or of type Parameter, not {type(parameter)}.")
 
     if parameter not in circuit.parameters:
-        raise ValueError("Parameter not in this circuit.")
+        raise ValueError("The parameter is not in this circuit.")
 
     if len(circuit._parameter_table[parameter]) > 1:
-        raise NotImplementedError("No product rule support yet, params must be unique.")
+        raise NotImplementedError("No product rule support yet, circuit parameters must be unique.")
 
     summands, op_context = [], []
     for i, op in enumerate(circuit.data):

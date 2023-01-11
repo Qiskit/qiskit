@@ -27,6 +27,16 @@ def bind(
 
     This method also allows passing parameter binds to parameters that are not in the circuit,
     and thereby differs to :meth:`.QuantumCircuit.bind_parameters`.
+
+    Args:
+        circuits: Input circuit(s).
+        parameter_binds: A dictionary with ``{Parameter: float}`` pairs determining the values to
+            which the free parameters in the circuit(s) are bound.
+        inplace: If ``True``, bind the values in place, otherwise return circuit copies.
+
+    Returns:
+        The bound circuits, if ``inplace=False``, otherwise None.
+
     """
     if not isinstance(circuits, Iterable):
         circuits = [circuits]
