@@ -863,6 +863,7 @@ class QuantumCircuit:
             if clbits is None:
                 clbits = self.clbits[: other.num_clbits]
             if front:
+                # Need to keep a reference to the data for use after we've emptied it.
                 old_data = list(dest.data)
                 dest.clear()
                 dest.append(other, qubits, clbits)
