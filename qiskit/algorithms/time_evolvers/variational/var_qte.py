@@ -21,8 +21,8 @@ from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
@@ -144,7 +144,7 @@ class VarQTE(ABC):
     def _evolve(
         self,
         init_state_param_dict: dict[Parameter, float],
-        hamiltonian: BaseOperator | PauliSumOp,
+        hamiltonian: BaseOperator | SparsePauliOp,
         time: float,
         t_param: Parameter | None = None,
     ) -> QuantumCircuit:

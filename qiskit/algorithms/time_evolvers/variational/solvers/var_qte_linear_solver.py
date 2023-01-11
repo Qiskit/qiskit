@@ -24,7 +24,6 @@ from qiskit.algorithms.time_evolvers.variational.variational_principles.variatio
     VariationalPrinciple,
 )
 from qiskit.circuit import Parameter
-from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -35,7 +34,7 @@ class VarQTELinearSolver:
     def __init__(
         self,
         var_principle: VariationalPrinciple,
-        hamiltonian: BaseOperator | PauliSumOp,
+        hamiltonian: BaseOperator | SparsePauliOp,
         ansatz: QuantumCircuit,
         gradient_params: list[Parameter] | None = None,
         t_param: Parameter | None = None,

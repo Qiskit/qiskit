@@ -15,7 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
-from ddt import data, ddt
+from ddt import ddt
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -178,30 +178,19 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 [result[0] for result in aux_ops], expected_aux_ops
             )
 
-    @data(
-        SparsePauliOp.from_list(
-            [
-                ("II", 0.2252),
-                ("ZZ", 0.5716),
-                ("IZ", 0.3435),
-                ("ZI", -0.4347),
-                ("YY", 0.091),
-                ("XX", 0.091),
-            ]
-        ),
-        SparsePauliOp.from_list(
-            [
-                ("II", 0.2252),
-                ("ZZ", 0.5716),
-                ("IZ", 0.3435),
-                ("ZI", -0.4347),
-                ("YY", 0.091),
-                ("XX", 0.091),
-            ]
-        ),
-    )
-    def test_run_d_2(self, observable):
+    def test_run_d_2(self):
         """Test VarQRTE for d = 2 and t = 1 with RK45 ODE solver."""
+
+        observable = SparsePauliOp.from_list(
+            [
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
+            ]
+        )
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 

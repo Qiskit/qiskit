@@ -20,7 +20,6 @@ from numpy import real
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -69,7 +68,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     def evolution_gradient(
         self,
-        hamiltonian: BaseOperator | PauliSumOp,
+        hamiltonian: BaseOperator | SparsePauliOp,
         ansatz: QuantumCircuit,
         param_values: list[float],
         gradient_params: list[Parameter] | None = None,
@@ -124,7 +123,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     @staticmethod
     def _construct_modified_hamiltonian(
-        hamiltonian: BaseOperator | PauliSumOp, energy: float
+        hamiltonian: BaseOperator | SparsePauliOp, energy: float
     ) -> BaseOperator:
         """
         Modifies a Hamiltonian according to the rules of this variational principle.
@@ -136,10 +135,6 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         Returns:
             A modified Hamiltonian.
         """
-        if isinstance(hamiltonian, PauliSumOp):
-            energy_term = PauliSumOp(SparsePauliOp(Pauli("I" * hamiltonian.num_qubits)), -energy)
-            return hamiltonian + energy_term
-
         energy_term = SparsePauliOp.from_list(
             hamiltonian.to_list() + [("I" * hamiltonian.num_qubits, -energy)]
         )

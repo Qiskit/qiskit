@@ -14,12 +14,11 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
+from ddt import ddt
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.opflow import PauliSumOp
 from qiskit.algorithms.gradients import LinCombQFI, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp, Pauli
@@ -187,8 +186,10 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
         self._test_helper(observable, thetas_expected, time, var_qite, 2)
 
-    @data(
-        SparsePauliOp.from_list(
+    def test_run_d_2(self):
+        """Test VarQITE for d = 2 and t = 1 with RK45 ODE solver."""
+
+        observable = SparsePauliOp.from_list(
             [
                 ("II", 0.2252),
                 ("ZZ", 0.5716),
@@ -197,22 +198,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
                 ("YY", 0.091),
                 ("XX", 0.091),
             ]
-        ),
-        PauliSumOp(
-            SparsePauliOp.from_list(
-                [
-                    ("II", 0.2252),
-                    ("ZZ", 0.5716),
-                    ("IZ", 0.3435),
-                    ("ZI", -0.4347),
-                    ("YY", 0.091),
-                    ("XX", 0.091),
-                ]
-            )
-        ),
-    )
-    def test_run_d_2(self, observable):
-        """Test VarQITE for d = 2 and t = 1 with RK45 ODE solver."""
+        )
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
 
