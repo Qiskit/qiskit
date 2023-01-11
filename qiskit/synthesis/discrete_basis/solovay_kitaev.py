@@ -28,7 +28,7 @@ class SolovayKitaevDecomposition:
     """The Solovay Kitaev discrete decomposition algorithm.
 
     This class is called recursively by the transpiler pass, which is why it is separeted.
-    See :mod:`qiskit.synthesis.discrete_basis` for more information.
+    See :class:`qiskit.transpiler.passes.SolovayKitaev` for more information.
     """
 
     def __init__(
