@@ -39,7 +39,7 @@ class LinearFunctionsSynthesis(HighLevelSynthesis):
 
         # This config synthesizes only linear functions using the "default" method.
         default_linear_config = HLSConfig(
-            linear_function=[[("default", {})]],
+            linear_function=[("default", {})],
             use_default_on_unspecified=False,
         )
         super().__init__(hls_config=default_linear_config)
