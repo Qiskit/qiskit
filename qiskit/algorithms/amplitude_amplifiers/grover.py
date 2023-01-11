@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,8 +14,8 @@
 
 import itertools
 import operator
-from typing import Iterator, List, Optional, Union
 import warnings
+from typing import Iterator, List, Optional, Union
 
 import numpy as np
 
@@ -24,8 +24,9 @@ from qiskit.algorithms.exceptions import AlgorithmError
 from qiskit.primitives import BaseSampler
 from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
-from qiskit.utils import QuantumInstance
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.deprecation import deprecate_function
+
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
@@ -136,7 +137,7 @@ class Grover(AmplitudeAmplifier):
             sample_from_iterations: If True, instead of taking the values in ``iterations`` as
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
-            quantum_instance: Pending deprecation: A Quantum Instance or Backend to run the circuits.
+            quantum_instance: Deprecated: A Quantum Instance or Backend to run the circuits.
             sampler: A Sampler to use for sampling the results of the circuits.
 
         Raises:
@@ -174,14 +175,14 @@ class Grover(AmplitudeAmplifier):
         self._quantum_instance = None
         if quantum_instance is not None:
             warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
+                "The quantum_instance argument is deprecated as of Qiskit Terra 0.23.0 and "
+                "will be removed no sooner than 3 months after the release date. Instead, use "
+                "the sampler argument as a replacement.",
+                category=DeprecationWarning,
                 stacklevel=2,
             )
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=PendingDeprecationWarning)
+                warnings.simplefilter("ignore")
                 self.quantum_instance = quantum_instance
 
         self._sampler = sampler
@@ -191,13 +192,12 @@ class Grover(AmplitudeAmplifier):
 
     @property
     @deprecate_function(
-        "The Grover.quantum_instance getter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+        "The Grover.quantum_instance getter is deprecated as of Qiskit Terra 0.23.0 and "
+        "will be removed no sooner than 3 months after the release date.",
+        category=DeprecationWarning,
     )
     def quantum_instance(self) -> Optional[QuantumInstance]:
-        r"""Pending deprecation\; Get the quantum instance.
+        r"""Deprecated\; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -206,13 +206,12 @@ class Grover(AmplitudeAmplifier):
 
     @quantum_instance.setter
     @deprecate_function(
-        "The Grover.quantum_instance setter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+        "The Grover.quantum_instance setter is deprecated as of Qiskit Terra 0.23.0 and "
+        "will be removed no sooner than 3 months after the release date.",
+        category=DeprecationWarning,
     )
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
-        r"""Pending deprecation\; Set quantum instance.
+        r"""Deprecated\; Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -292,7 +291,7 @@ class Grover(AmplitudeAmplifier):
 
             # sample from [0, power) if specified
             if self._sample_from_iterations:
-                power = np.random.randint(power)
+                power = algorithm_globals.random.randint(power)
             # Run a grover experiment for a given power of the Grover operator.
             if self._sampler is not None:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)

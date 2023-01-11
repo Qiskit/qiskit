@@ -26,6 +26,8 @@ from qiskit.circuit.parametervector import ParameterVector
 from qiskit.primitives import Estimator
 from qiskit.test import QiskitTestCase
 
+from .logging_primitives import LoggingEstimator
+
 
 class TestQFI(QiskitTestCase):
     """Test QFI"""
@@ -250,6 +252,34 @@ class TestQFI(QiskitTestCase):
             options = qfi.options
             self.assertEqual(result.options.get("shots"), 300)
             self.assertEqual(options.get("shots"), 200)
+
+    def test_operations_preserved(self):
+        """Test non-parameterized instructions are preserved and not unrolled."""
+        x, y = Parameter("x"), Parameter("y")
+        circuit = QuantumCircuit(2)
+        circuit.initialize([0.5, 0.5, 0.5, 0.5])  # this should remain as initialize
+        circuit.crx(x, 0, 1)  # this should get unrolled
+        circuit.ry(y, 0)
+
+        values = [np.pi / 2, np.pi]
+        expect = np.diag([0.25, 0.5])
+
+        ops = []
+
+        def operations_callback(op):
+            ops.append(op)
+
+        estimator = LoggingEstimator(operations_callback=operations_callback)
+        qfi = LinCombQFI(estimator)
+
+        job = qfi.run([circuit], [values])
+        result = job.result()
+
+        with self.subTest(msg="assert initialize is preserved"):
+            self.assertTrue(all("initialize" in ops_i[0].keys() for ops_i in ops))
+
+        with self.subTest(msg="assert result is correct"):
+            np.testing.assert_allclose(result.qfis[0], expect, atol=1e-5)
 
 
 if __name__ == "__main__":

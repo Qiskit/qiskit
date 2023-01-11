@@ -106,6 +106,11 @@ class RXGate(Gate):
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RXGate(exponent * theta)
+
 
 class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
