@@ -34,7 +34,7 @@ class VarQTELinearSolver:
     def __init__(
         self,
         var_principle: VariationalPrinciple,
-        hamiltonian: BaseOperator | SparsePauliOp,
+        hamiltonian: BaseOperator,
         ansatz: QuantumCircuit,
         gradient_params: list[Parameter] | None = None,
         t_param: Parameter | None = None,

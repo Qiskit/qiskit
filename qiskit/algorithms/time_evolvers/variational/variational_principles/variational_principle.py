@@ -20,7 +20,6 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 if TYPE_CHECKING:
@@ -77,7 +76,7 @@ class VariationalPrinciple(ABC):
     @abstractmethod
     def evolution_gradient(
         self,
-        hamiltonian: BaseOperator | SparsePauliOp,
+        hamiltonian: BaseOperator,
         ansatz: QuantumCircuit,
         param_values: list[float],
         gradient_params: list[Parameter] | None = None,

@@ -68,7 +68,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     def evolution_gradient(
         self,
-        hamiltonian: BaseOperator | SparsePauliOp,
+        hamiltonian: BaseOperator,
         ansatz: QuantumCircuit,
         param_values: list[float],
         gradient_params: list[Parameter] | None = None,
@@ -122,9 +122,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         return evolution_grad
 
     @staticmethod
-    def _construct_modified_hamiltonian(
-        hamiltonian: BaseOperator | SparsePauliOp, energy: float
-    ) -> BaseOperator:
+    def _construct_modified_hamiltonian(hamiltonian: BaseOperator, energy: float) -> BaseOperator:
         """
         Modifies a Hamiltonian according to the rules of this variational principle.
 
