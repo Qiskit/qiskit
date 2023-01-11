@@ -308,7 +308,7 @@ class Grover(AmplitudeAmplifier):
                 }
                 top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
 
-            else:       # use of else brach instead of elif as this seperates out the deprecated logic
+            else:  # use of else brach instead of elif as this seperates out the deprecated logic
                 if self._quantum_instance.is_statevector:
                     qc = self.construct_circuit(amplification_problem, power, measurement=False)
                     circuit_results = self._quantum_instance.execute(qc).get_statevector()

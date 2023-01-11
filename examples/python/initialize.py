@@ -64,6 +64,6 @@ result = job.result()
 
 counts = result.get_counts(circuit)
 
-qubit_strings = [format(i, "04b") for i in range(2 ** 4)]
+qubit_strings = [format(i, "04b") for i in range(2**4)]
 print("Probabilities from simulator: ")
 print([format(counts.get(s, 0) / shots, ".3f") for s in qubit_strings])
