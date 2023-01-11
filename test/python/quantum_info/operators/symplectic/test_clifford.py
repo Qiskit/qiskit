@@ -31,6 +31,8 @@ from qiskit.circuit.library import (
     XGate,
     YGate,
     ZGate,
+    LinearFunction,
+    PauliGate,
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
@@ -457,6 +459,32 @@ class TestCliffordGates(QiskitTestCase):
         expected_cliff2 = Clifford.compose(expected_cliff2, cliff1, qargs=[0, 1], front=False)
         expected_cliff2 = Clifford.compose(expected_cliff2, cliff2, qargs=[1, 2], front=False)
         self.assertEqual(expected_cliff1, expected_cliff2)
+
+    def test_from_circuit_with_all_types(self):
+        """Test initialization from circuit containing various Clifford-like objects."""
+
+        # Construct objects that can go onto a Clifford circuit.
+        # These include regular clifford gates, linear functions, Pauli gates, other Clifford,
+        # and even circuits with other clifford objects.
+        linear_function = LinearFunction([[0, 1], [1, 1]])
+        pauli_gate = PauliGate("YZ")
+        cliff = random_clifford(2, seed=777)
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.append(random_clifford(1, seed=999), [1])
+
+        # Construct a quantum circuit with these objects and convert it to clifford
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.append(linear_function, [0, 2])
+        circuit.cz(0, 1)
+        circuit.append(pauli_gate, [2, 1])
+        circuit.append(cliff, [0, 1])
+        circuit.swap(0, 2)
+        circuit.append(qc, [0, 1])
+
+        # Check that Clifford can be constructed from such circuit.
+        Clifford(circuit)
 
 
 @ddt
