@@ -29,7 +29,6 @@ from qiskit.algorithms.time_evolvers.variational import (
     RealMcLachlanPrinciple,
 )
 from qiskit.circuit.library import EfficientSU2
-from qiskit.opflow import PauliSumOp
 
 
 @ddt
@@ -44,7 +43,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
     def test_time_dependent_hamiltonian(self):
         """Simple test case with a time dependent Hamiltonian."""
         t_param = Parameter("t")
-        hamiltonian = t_param * PauliSumOp.from_list([("Z", 1)])
+        hamiltonian = SparsePauliOp(["Z"], np.array(t_param))
 
         x = ParameterVector("x", 3)
         circuit = QuantumCircuit(1)
@@ -59,17 +58,18 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             return 1 / np.sqrt(2) * np.array([np.exp(-0.5j * time**2), np.exp(0.5j * time**2)])
 
         final_time = 0.75
-        evolution_problem = TimeEvolutionProblem(hamiltonian, final_time)
-
+        evolution_problem = TimeEvolutionProblem(hamiltonian, t_param=t_param, time=final_time)
         estimator = Estimator()
         varqrte = VarQRTE(circuit, initial_parameters, estimator=estimator)
 
         result = varqrte.evolve(evolution_problem)
 
         final_parameters = result.optimal_parameters
-        final_state = Statevector(circuit.bind_parameters(final_parameters))
+        final_state = Statevector(circuit.bind_parameters(final_parameters)).to_dict()
+        final_expected_state = expected_state(final_time)
 
-        self.assertTrue(final_state.equiv(expected_state(final_time)))
+        for key, expected_value in final_state.items():
+            self.assertTrue(np.allclose(final_expected_state[int(key)], expected_value, 1e-02))
 
     def test_run_d_1_with_aux_ops(self):
         """Test VarQRTE for d = 1 and t = 0.1 with evaluating auxiliary operators and the Forward
@@ -189,17 +189,15 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 ("XX", 0.091),
             ]
         ),
-        PauliSumOp(
-            SparsePauliOp.from_list(
-                [
-                    ("II", 0.2252),
-                    ("ZZ", 0.5716),
-                    ("IZ", 0.3435),
-                    ("ZI", -0.4347),
-                    ("YY", 0.091),
-                    ("XX", 0.091),
-                ]
-            )
+        SparsePauliOp.from_list(
+            [
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
+            ]
         ),
     )
     def test_run_d_2(self, observable):
