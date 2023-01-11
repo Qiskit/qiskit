@@ -1086,6 +1086,30 @@ class TestOpConstruction(QiskitOpflowTestCase):
         with self.subTest("eval empty TensoredOp "):
             self.assertEqual(TensoredOp([]).eval(), 0.0)
 
+    def test_composed_op_to_matrix_with_coeff(self):
+        """Test coefficients are properly handled.
+
+        Regression test of Qiskit/qiskit-terra#9283.
+        """
+        x = MatrixOp(X.to_matrix())
+        composed = 0.5 * (x @ X)
+
+        expected = 0.5 * np.eye(2)
+
+        np.testing.assert_almost_equal(composed.to_matrix(), expected)
+
+    def test_composed_op_to_matrix_with_vector(self):
+        """Test a matrix-vector composed op can be cast to matrix.
+
+        Regression test of Qiskit/qiskit-terra#9283.
+        """
+        x = MatrixOp(X.to_matrix())
+        composed = x @ Zero
+
+        expected = np.array([0, 1])
+
+        np.testing.assert_almost_equal(composed.to_matrix(), expected)
+
 
 class TestOpMethods(QiskitOpflowTestCase):
     """Basic method tests."""
