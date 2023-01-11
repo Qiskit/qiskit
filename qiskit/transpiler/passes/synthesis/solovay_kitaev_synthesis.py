@@ -102,11 +102,11 @@ class SolovayKitaev(TransformationPass):
     References:
 
         [1]: Kitaev, A Yu (1997). Quantum computations: algorithms and error correction.
-            Russian Mathematical Surveys. 52 (6): 1191–1249.
-            `Online <https://iopscience.iop.org/article/10.1070/RM1997v052n06ABEH002155>`_.
+             Russian Mathematical Surveys. 52 (6): 1191–1249.
+             `Online <https://iopscience.iop.org/article/10.1070/RM1997v052n06ABEH002155>`_.
 
         [2]: Dawson, Christopher M.; Nielsen, Michael A. (2005) The Solovay-Kitaev Algorithm.
-            `arXiv:quant-ph/0505030 <https://arxiv.org/abs/quant-ph/0505030>`_.
+             `arXiv:quant-ph/0505030 <https://arxiv.org/abs/quant-ph/0505030>`_.
 
     """
 
