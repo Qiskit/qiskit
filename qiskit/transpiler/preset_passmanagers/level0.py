@@ -28,10 +28,7 @@ from qiskit.transpiler.passes import SabreLayout
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
-    list_stage_plugins,
 )
-from qiskit.transpiler import TranspilerError
-from qiskit.utils.optionals import HAS_TOQM
 
 
 def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassManager:
@@ -87,42 +84,20 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     elif layout_method == "noise_adaptive":
         _choose_layout = NoiseAdaptiveLayout(backend_properties)
     elif layout_method == "sabre":
+        skip_routing = pass_manager_config.routing_method is not None and routing_method != "sabre"
         _choose_layout = SabreLayout(
-            coupling_map, max_iterations=1, seed=seed_transpiler, swap_trials=5
-        )
-
-    toqm_pass = False
-    # Choose routing pass
-    # TODO: Remove when qiskit-toqm has it's own plugin and we can rely on just the plugin interface
-    if routing_method == "toqm" and "toqm" not in list_stage_plugins("routing"):
-        HAS_TOQM.require_now("TOQM-based routing")
-        from qiskit_toqm import ToqmSwap, ToqmStrategyO0, latencies_from_target
-
-        if initial_layout:
-            raise TranspilerError("Initial layouts are not supported with TOQM-based routing.")
-
-        toqm_pass = True
-        # Note: BarrierBeforeFinalMeasurements is skipped intentionally since ToqmSwap
-        #       does not yet support barriers.
-        routing_pass = ToqmSwap(
             coupling_map,
-            strategy=ToqmStrategyO0(
-                latencies_from_target(
-                    coupling_map, instruction_durations, basis_gates, backend_properties, target
-                )
-            ),
+            max_iterations=1,
+            seed=seed_transpiler,
+            swap_trials=5,
+            layout_trials=5,
+            skip_routing=skip_routing,
         )
-        routing_pm = common.generate_routing_passmanager(
-            routing_pass,
-            target,
-            coupling_map=coupling_map,
-            seed_transpiler=seed_transpiler,
-            use_barrier_before_measurement=not toqm_pass,
-        )
-    else:
-        routing_pm = plugin_manager.get_passmanager_stage(
-            "routing", routing_method, pass_manager_config, optimization_level=0
-        )
+
+    # Choose routing pass
+    routing_pm = plugin_manager.get_passmanager_stage(
+        "routing", routing_method, pass_manager_config, optimization_level=0
+    )
 
     unroll_3q = None
     # Build pass manager
@@ -140,10 +115,17 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
                 "layout", layout_method, pass_manager_config, optimization_level=0
             )
         else:
+
+            def _swap_mapped(property_set):
+                return property_set["final_layout"] is None
+
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout, condition=_choose_layout_condition)
-            layout += common.generate_embed_passmanager(coupling_map)
+            embed = common.generate_embed_passmanager(coupling_map)
+            layout.append(
+                [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
+            )
         routing = routing_pm
     else:
         layout = None
@@ -164,9 +146,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             unitary_synthesis_plugin_config,
             hls_config,
         )
-    pre_routing = None
-    if toqm_pass:
-        pre_routing = translation
 
     if (coupling_map and not coupling_map.is_symmetric) or (
         target is not None and target.get_non_global_operation_names(strict_direction=True)
@@ -205,7 +184,6 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     return StagedPassManager(
         init=init,
         layout=layout,
-        pre_routing=pre_routing,
         routing=routing,
         translation=translation,
         pre_optimization=pre_opt,
