@@ -177,7 +177,7 @@ instance.
 If you're building a custom pass manager the :ref:`stage_generators` functions may be useful
 for the construction of these pass managers. They are functions that provide common functionality
 which are used in most pass managers. For example :func:`~.generate_embed_passmanager` is used
-to "embed" a selected initial layout from a layout pass to the specified target device. Any
+to "embed" a selected initial layout from a layout pass to the specified target device. For any
 layout pass that is working with a :class:`~.Layout` this will be needed to apply the layout.
 
 Representing Quantum Computers
