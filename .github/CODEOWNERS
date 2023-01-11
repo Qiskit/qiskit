@@ -23,13 +23,14 @@
 * @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
-algorithms/           @Qiskit/terra-core @manoelmarques @woodsp-ibm
+algorithms/           @Qiskit/terra-core @manoelmarques @woodsp-ibm @ElePT
 opflow/               @Qiskit/terra-core @manoelmarques @woodsp-ibm @ikkoham
 qiskit/utils/         @Qiskit/terra-core @manoelmarques @woodsp-ibm
 providers/            @Qiskit/terra-core @jyu00
 quantum_info/         @Qiskit/terra-core @ikkoham
 qpy/                  @Qiskit/terra-core
-pulse/                @Qiskit/terra-core @eggerdj  @wshanks
+pulse/                @Qiskit/terra-core @eggerdj @wshanks
+synthesis/            @Qiskit/terra-core @alexanderivrii @ShellyGarion
 scheduler/            @Qiskit/terra-core @eggerdj @wshanks
 visualization/        @Qiskit/terra-core @nonhermitian
 primitives/           @Qiskit/terra-core @ikkoham @t-imamichi

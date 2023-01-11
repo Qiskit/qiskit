@@ -24,11 +24,12 @@ from typing import Any
 
 import numpy as np
 
+from qiskit.algorithms.state_fidelities import BaseStateFidelity
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
-from qiskit.algorithms.state_fidelities import BaseStateFidelity
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info import SparsePauliOp
 
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, Minimizer, OptimizerResult
@@ -37,6 +38,9 @@ from .eigensolver import Eigensolver, EigensolverResult
 from ..utils import validate_bounds, validate_initial_point
 from ..exceptions import AlgorithmError
 from ..observables_evaluator import estimate_observables
+
+# private function as we expect this to be updated in the next release
+from ..utils.set_batching import _set_default_batchsize
 
 logger = logging.getLogger(__name__)
 
@@ -173,12 +177,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 # try to set the number of qubits on the ansatz, if possible
                 try:
                     self.ansatz.num_qubits = operator.num_qubits
-                except AttributeError as ex:
+                except AttributeError as exc:
                     raise AlgorithmError(
                         "The number of qubits of the ansatz does not match the "
                         "operator, and the ansatz does not allow setting the "
                         "number of qubits using `num_qubits`."
-                    ) from ex
+                    ) from exc
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -202,7 +206,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
-            zero_op = PauliSumOp.from_list([("I" * self.ansatz.num_qubits, 0)])
+            zero_op = SparsePauliOp.from_list([("I" * self.ansatz.num_qubits, 0)])
 
             # Convert the None and zero values when aux_operators is a list.
             # Drop None and convert zero values when aux_operators is a dict.
@@ -222,17 +226,21 @@ class VQD(VariationalAlgorithm, Eigensolver):
             aux_operators = None
 
         if self.betas is None:
+
             if isinstance(operator, PauliSumOp):
-                upper_bound = abs(operator.coeff) * sum(
-                    abs(operation.coeff) for operation in operator
-                )
-                betas = [upper_bound * 10] * (self.k)
-                logger.info("beta autoevaluated to %s", betas[0])
-            else:
+                operator = operator.coeff * operator.primitive
+
+            try:
+                upper_bound = sum(np.abs(operator.coeffs))
+
+            except Exception as exc:
                 raise NotImplementedError(
-                    r"Beta autoevaluation is only supported for operators"
-                    f"of type PauliSumOp, found {type(operator)}."
-                )
+                    r"Beta autoevaluation is not supported for operators"
+                    f"of type {type(operator)}."
+                ) from exc
+
+            betas = [upper_bound * 10] * (self.k)
+            logger.info("beta autoevaluated to %s", betas[0])
         else:
             betas = self.betas
 
@@ -264,9 +272,17 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
             else:
+                # we always want to submit as many estimations per job as possible for minimal
+                # overhead on the hardware
+                was_updated = _set_default_batchsize(self.optimizer)
+
                 opt_result = self.optimizer.minimize(
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
+
+                # reset to original value
+                if was_updated:
+                    self.optimizer.set_max_evals_grouped(None)
 
             eval_time = time() - start_time
 
@@ -323,6 +339,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         Args:
             step: level of energy being calculated. 0 for ground, 1 for first excited state...
             operator: The operator whose energy to evaluate.
+            betas: Beta parameters in the VQD paper.
             prev_states: List of optimal circuits from previous rounds of optimization.
 
         Returns:
@@ -349,27 +366,31 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
 
-            try:
-                estimator_job = self.estimator.run(
-                    circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
-                )
-                estimator_result = estimator_job.result()
-                values = estimator_result.values
+            estimator_job = self.estimator.run(
+                circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
+            )
 
-            except Exception as exc:
-                raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
-
+            total_cost = 0
             if step > 1:
-                # Compute overlap cost
+                # compute overlap cost
                 fidelity_job = self.fidelity.run(
                     [self.ansatz] * (step - 1),
                     prev_states,
                     [parameters] * (step - 1),
                 )
+
                 costs = fidelity_job.result().fidelities
 
-                for (state, cost) in zip(range(step - 1), costs):
-                    values += np.real(betas[state] * cost)
+                for state, cost in enumerate(costs):
+                    total_cost += np.real(betas[state] * cost)
+
+            try:
+                estimator_result = estimator_job.result()
+
+            except Exception as exc:
+                raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
+
+            values = estimator_result.values + total_cost
 
             if self.callback is not None:
                 metadata = estimator_result.metadata

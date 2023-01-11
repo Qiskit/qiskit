@@ -169,7 +169,7 @@ class PulseExpression(ast.NodeTransformer):
         Returns:
             Evaluated value.
         """
-        tmp_node = copy.deepcopy(node)
+        tmp_node = copy.copy(node)
         tmp_node.body = self.visit(tmp_node.body)
 
         return tmp_node
@@ -240,6 +240,7 @@ class PulseExpression(ast.NodeTransformer):
         Returns:
             Evaluated value.
         """
+        node = copy.copy(node)
         node.operand = self.visit(node.operand)
         if isinstance(node.operand, (ast.Constant, ast.Num)):
             val = ast.Constant(n=self._match_ops(node.op, self._unary_ops, node.operand.n))
@@ -255,6 +256,7 @@ class PulseExpression(ast.NodeTransformer):
         Returns:
             Evaluated value.
         """
+        node = copy.copy(node)
         node.left = self.visit(node.left)
         node.right = self.visit(node.right)
         if isinstance(node.left, (ast.Constant, ast.Num)) and isinstance(
@@ -280,6 +282,7 @@ class PulseExpression(ast.NodeTransformer):
         """
         if not isinstance(node.func, ast.Name):
             raise PulseError("Unsafe expression is detected.")
+        node = copy.copy(node)
         node.args = [self.visit(arg) for arg in node.args]
         if all(isinstance(arg, (ast.Constant, ast.Num)) for arg in node.args):
             if node.func.id not in self._math_ops.keys():

@@ -18,19 +18,21 @@ import math
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, idata, unpack
 
-from qiskit import Aer, ClassicalRegister
-from qiskit.utils import QuantumInstance
+from qiskit import ClassicalRegister
+from qiskit.utils import QuantumInstance, optionals
 from qiskit.algorithms import Shor
 from qiskit.test import slow_test
 
 
-@unittest.skipUnless(Aer, "qiskit-aer is required for these tests")
 @ddt
 class TestShor(QiskitAlgorithmsTestCase):
     """test Shor's algorithm"""
 
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
     def setUp(self):
         super().setUp()
+        from qiskit_aer import Aer
+
         backend = Aer.get_backend("aer_simulator")
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.filterwarnings(
@@ -40,6 +42,7 @@ class TestShor(QiskitAlgorithmsTestCase):
             self.instance = Shor(quantum_instance=QuantumInstance(backend, shots=1000))
             self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
 
+    @slow_test
     @idata(
         [
             [15, "aer_simulator", [3, 5]],
@@ -63,6 +66,8 @@ class TestShor(QiskitAlgorithmsTestCase):
 
     def _test_shor_factoring(self, backend, factors, n_v):
         """shor factoring test"""
+        from qiskit_aer import Aer
+
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.simplefilter("always")
             shor = Shor(quantum_instance=QuantumInstance(Aer.get_backend(backend), shots=1000))
@@ -71,6 +76,7 @@ class TestShor(QiskitAlgorithmsTestCase):
         self.assertListEqual(result.factors[0], factors)
         self.assertTrue(result.total_counts >= result.successful_counts)
 
+    @slow_test
     @data(5, 7)
     def test_shor_no_factors(self, n_v):
         """shor no factors test"""
@@ -104,6 +110,7 @@ class TestShor(QiskitAlgorithmsTestCase):
         with self.assertRaises(ValueError):
             _ = shor.factor(N=n_v, a=a_v)
 
+    @slow_test
     @idata(
         [
             [15, 4, 2],
@@ -140,6 +147,7 @@ class TestShor(QiskitAlgorithmsTestCase):
         for measurement in measurements:
             self.assertTrue(measurement in values)
 
+    @slow_test
     @idata(
         [
             [15, 4, [1, 4]],
@@ -154,8 +162,8 @@ class TestShor(QiskitAlgorithmsTestCase):
     @slow_test
     @idata(
         [
-            [21, 5, [1, 4, 5, 16, 17, 20]],
-            [25, 4, [1, 4, 6, 9, 11, 14, 16, 19, 21, 24]],
+            [5, 21, [1, 4, 5, 16, 17, 20]],
+            [4, 25, [1, 4, 6, 9, 11, 14, 16, 19, 21, 24]],
         ]
     )
     @unpack

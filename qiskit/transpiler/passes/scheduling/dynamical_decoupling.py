@@ -45,7 +45,8 @@ class DynamicalDecoupling(TransformationPass):
     This pass ensures that the inserted sequence preserves the circuit exactly
     (including global phase).
 
-    .. jupyter-execute::
+    .. plot::
+       :include-source:
 
         import numpy as np
         from qiskit.circuit import QuantumCircuit
@@ -64,17 +65,12 @@ class DynamicalDecoupling(TransformationPass):
              ("cx", [1, 2], 200), ("cx", [2, 3], 300),
              ("x", None, 50), ("measure", None, 1000)]
         )
-
-    .. jupyter-execute::
-
         # balanced X-X sequence on all qubits
         dd_sequence = [XGate(), XGate()]
         pm = PassManager([ALAPSchedule(durations),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
         timeline_drawer(circ_dd)
-
-    .. jupyter-execute::
 
         # Uhrig sequence on qubit 0
         n = 8
