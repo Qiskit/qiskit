@@ -19,8 +19,9 @@ parts=( ${version//./ } )
 if [[ ${parts[1]} -lt 18 ]] ; then
     exit 0
 fi
-echo "Building venv for qiskit-terra $version"
+
 if [[ ! -d qpy_$version ]] ; then
+    echo "Building venv for qiskit-terra $version"
     python -m venv $version
     ./$version/bin/pip install "qiskit-terra==$version"
     mkdir qpy_$version
