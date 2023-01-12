@@ -1063,6 +1063,153 @@ def GaussianSquareDrag(
     return instance
 
 
+def GaussianSquareEcho(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    sigma: Union[float, ParameterExpression],
+    width: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    active_amp: Optional[Union[complex, ParameterExpression]] = 0,
+    risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> SymbolicPulse:
+    """An echoed Gaussian square pulse with an active tone overlaid on it. 
+    Exactly one of the ``risefall_sigma_ratio`` and ``width`` parameters has to be specified.
+    If ``risefall_sigma_ratio`` is not ``None`` and ``width`` is ``None``:
+    .. math::
+        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+    If ``width`` is not None and ``risefall_sigma_ratio`` is None:
+    .. math:: \\text{risefall} = \\frac{\\text{duration} - \\text{width}}{2}
+    Gaussian :math:`g(x, c, σ)` and lifted gaussian :math:`g'(x, c, σ)` curves
+    can be written as:
+    .. math::
+        g(x, c, σ) &= \\exp\\Bigl(-\\frac12 \\frac{(x - c)^2}{σ^2}\\Bigr)\\\\
+        g'(x, c, σ) &= \\frac{g(x, c, σ)-g(-1, c, σ)}{1-g(-1, c, σ)}
+    
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The amplitude of the DRAG rise and fall and of the square pulse.
+        sigma: A measure of how wide or narrow the DRAG risefall is; see the class
+               docstring for more details.
+        width: The duration of the embedded square pulse.
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        active_amp: The amplitude of the active cancellation tone.
+        risefall_sigma_ratio: The ratio of each risefall duration to sigma.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+    Returns:
+        ScalableSymbolicPulse instance.
+    Raises:
+        PulseError: When width and risefall_sigma_ratio are both empty or both non-empty.
+    """
+    # Convert risefall_sigma_ratio into width which is defined in OpenPulse spec
+    if width is None and risefall_sigma_ratio is None:
+        raise PulseError(
+            "Either the pulse width or the risefall_sigma_ratio parameter must be specified."
+        )
+    if width is not None and risefall_sigma_ratio is not None:
+        raise PulseError(
+            "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
+            " but not both."
+        )
+
+    if width is not None and risefall_sigma_ratio is None:
+        total_risefall = duration - width
+        echo_risefall = 2*total_risefall
+        width_echo = (duration - echo_risefall)/2
+
+    if width is None and risefall_sigma_ratio is not None:
+        width = duration - 2.0 * risefall_sigma_ratio * sigma
+        width_echo = (duration - 4.0 * risefall_sigma_ratio * sigma)/2
+
+
+
+    parameters = {"sigma": sigma, "width": width, "width_echo": width_echo, "active_amp": active_amp}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _sigma, _active_amp, _width, _width_echo, _angle = sym.symbols(
+        "t, duration, amp, sigma, active_amp, width, width_echo, angle"
+    )
+
+    # gaussian square echo for rotary tone
+    _center = _duration / 4
+
+    _sq_t0 = _center - _width_echo / 2
+    _sq_t1 = _center + _width_echo / 2
+
+    _gaussian_ledge = _lifted_gaussian(_t, _sq_t0, -1, _sigma)
+    _gaussian_redge = _lifted_gaussian(_t, _sq_t1, _duration/2 + 1, _sigma)
+
+    envelope_expr_p = (
+        _amp
+        * sym.exp(sym.I * _angle)
+        * sym.Piecewise(
+            (_gaussian_ledge, _t <= _sq_t0),
+            (_gaussian_redge, _t >= _sq_t1),
+            (1, True),
+        )
+    )
+
+    _center_echo = _duration/2 + _duration / 4
+
+    _sq_t0_echo = _center_echo - _width_echo / 2
+    _sq_t1_echo = _center_echo + _width_echo / 2
+
+    _gaussian_ledge_echo = _lifted_gaussian(_t, _sq_t0_echo, _duration/2-1, _sigma)
+    _gaussian_redge_echo = _lifted_gaussian(_t, _sq_t1_echo, _duration + 1, _sigma)
+
+    envelope_expr_echo = (
+        -1*_amp
+        * sym.exp(sym.I * _angle)
+        * sym.Piecewise(
+            (_gaussian_ledge_echo, _t <= _sq_t0_echo),
+            (_gaussian_redge_echo, _t >= _sq_t1_echo),
+            (1, True),
+        )
+    )
+
+    envelope_expr = sym.Piecewise( (envelope_expr_p, _t <= _duration/2), (envelope_expr_echo, _t >= _duration/2), (0, True) )
+
+    # gaussian square for active cancellation tone
+    _center_xy = _duration/2
+
+    _sq_t0_xy = _center_xy - _width / 2
+    _sq_t1_xy = _center_xy + _width / 2
+
+    _gaussian_ledge_xy = _lifted_gaussian(_t, _sq_t0_xy, -1, _sigma)
+    _gaussian_redge_xy = _lifted_gaussian(_t, _sq_t1_xy, _duration + 1, _sigma)
+
+    envelope_expr_xy = _active_amp * sym.Piecewise(
+        (_gaussian_ledge_xy, _t <= _sq_t0_xy), (_gaussian_redge_xy, _t >= _sq_t1_xy), (1, True)
+    )
+
+    envelop_expr_total = envelope_expr + envelope_expr_xy
+
+
+    consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width, _duration/2 >= _width_echo)
+    valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0)
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="GaussianSquareEcho",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelop_expr_total,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
 class Drag(metaclass=_PulseType):
     """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
     with an additional Gaussian derivative component and lifting applied.

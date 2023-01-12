@@ -142,6 +142,7 @@ from qiskit.pulse.library import (
     Gaussian,
     GaussianSquare,
     GaussianSquareDrag,
+    GaussianSquareEcho,
     ParametricPulse,
     SymbolicPulse,
     ScalableSymbolicPulse,
