@@ -25,4 +25,4 @@ class FakeSherbrooke(fake_backend.FakeBackendV2):
     conf_filename = "conf_sherbrooke.json"
     props_filename = "props_sherbrooke.json"
     defs_filename = "defs_sherbrooke.json"
-    backend_name = "fake_sherbrooke_v2"
+    backend_name = "fake_sherbrooke"
