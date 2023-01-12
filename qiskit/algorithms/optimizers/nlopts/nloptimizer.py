@@ -40,8 +40,6 @@ class NLoptOptimizer(Optimizer):
     NLopt global optimizer base class
     """
 
-    # pylint: disable=import-error
-
     _OPTIONS = ["max_evals"]
 
     def __init__(self, max_evals: int = 1000) -> None:  # pylint: disable=unused-argument
@@ -83,22 +81,6 @@ class NLoptOptimizer(Optimizer):
     @property
     def settings(self):
         return {"max_evals": self._options.get("max_evals", 1000)}
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(
-            objective_function, initial_point, gradient_function, variable_bounds
-        )
-        return result.x, result.fun, result.nfev
 
     def minimize(
         self,

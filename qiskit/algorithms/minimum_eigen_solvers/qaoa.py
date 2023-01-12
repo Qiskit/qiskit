@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,23 +13,29 @@
 """ The Quantum Approximate Optimization Algorithm. """
 
 from typing import List, Callable, Optional, Union
+import warnings
 import numpy as np
 
-from qiskit.algorithms.optimizers import Optimizer
+from qiskit.algorithms.optimizers import Minimizer, Optimizer
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import OperatorBase, ExpectationBase
 from qiskit.opflow.gradients import GradientBase
 from qiskit.providers import Backend
-from qiskit.providers import BaseBackend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE, MINIMIZER
+from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
 
 class QAOA(VQE):
     """
-    The Quantum Approximate Optimization Algorithm.
+    Deprecated: Quantum Approximate Optimization Algorithm.
+
+    The QAOA class has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.QAOA` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     `QAOA <https://arxiv.org/abs/1411.4028>`__ is a well-known algorithm for finding approximate
     solutions to combinatorial-optimization problems.
@@ -53,9 +59,15 @@ class QAOA(VQE):
     the evolution to a feasible subspace of the full Hilbert space.
     """
 
+    @deprecate_function(
+        "The QAOA class is deprecated as of Qiskit Terra 0.23.0 and "
+        "will be removed no sooner than 3 months after the release date. Instead, use "
+        "the qiskit.algorithms.minimum_eigensolvers.QAOA class.",
+        category=DeprecationWarning,
+    )
     def __init__(
         self,
-        optimizer: Optional[Union[Optimizer, MINIMIZER]] = None,
+        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
         reps: int = 1,
         initial_state: Optional[QuantumCircuit] = None,
         mixer: Union[QuantumCircuit, OperatorBase] = None,
@@ -65,7 +77,7 @@ class QAOA(VQE):
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
         Args:
@@ -115,17 +127,19 @@ class QAOA(VQE):
         self._initial_state = initial_state
         self._cost_operator = None
 
-        super().__init__(
-            ansatz=None,
-            optimizer=optimizer,
-            initial_point=initial_point,
-            gradient=gradient,
-            expectation=expectation,
-            include_custom=include_custom,
-            max_evals_grouped=max_evals_grouped,
-            callback=callback,
-            quantum_instance=quantum_instance,
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__(
+                ansatz=None,
+                optimizer=optimizer,
+                initial_point=initial_point,
+                gradient=gradient,
+                expectation=expectation,
+                include_custom=include_custom,
+                max_evals_grouped=max_evals_grouped,
+                callback=callback,
+                quantum_instance=quantum_instance,
+            )
 
     def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
         # Recreates a circuit based on operator parameter.

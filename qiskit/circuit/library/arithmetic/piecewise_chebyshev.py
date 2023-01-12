@@ -29,11 +29,13 @@ class PiecewiseChebyshev(BlueprintCircuit):
     polynomial Chebyshev approximation on :math:`n` qubits to :math:`f(x)` on the given intervals.
     All the polynomials in the approximation are of degree :math:`d`.
 
-    The values of the parameters are calculated according to [1].
+    The values of the parameters are calculated according to [1] and see [2] for a more
+    detailed explanation of the circuit construction and how it acts on the qubits.
 
     Examples:
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -51,6 +53,9 @@ class PiecewiseChebyshev(BlueprintCircuit):
         [1]: Haener, T., Roetteler, M., & Svore, K. M. (2018).
              Optimizing Quantum Circuits for Arithmetic.
              `arXiv:1805.12445 <http://arxiv.org/abs/1805.12445>`_
+        [2]: Carrera Vazquez, A., Hiptmair, H., & Woerner, S. (2022).
+             Enhancing the Quantum Linear Systems Algorithm Using Richardson Extrapolation.
+             `ACM Transactions on Quantum Computing 3, 1, Article 2 <https://doi.org/10.1145/3490631>`_
     """
 
     def __init__(

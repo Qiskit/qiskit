@@ -38,6 +38,7 @@ from qiskit.opflow import (
     Y,
     Z,
     Zero,
+    MatrixOp,
 )
 from qiskit.utils import QuantumInstance
 
@@ -48,7 +49,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
     def setUp(self) -> None:
         super().setUp()
         try:
-            from qiskit import Aer
+            from qiskit_aer import Aer
 
             self.seed = 97
             self.backend = Aer.get_backend("aer_simulator")
@@ -120,6 +121,29 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
 
         np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1, -1], decimal=1)
 
+    def test_pauli_expect_non_hermitian_matrixop(self):
+        """pauli expect state vector with non hermitian operator test"""
+        states_op = ListOp([One, Zero, Plus, Minus])
+
+        op_mat = np.array([[0, 1], [2, 3]])
+        op = MatrixOp(op_mat)
+
+        converted_meas = self.expect.convert(StateFn(op, is_measurement=True) @ states_op)
+        sampled = self.sampler.convert(converted_meas)
+
+        np.testing.assert_array_almost_equal(sampled.eval(), [3, 0, 3, 0], decimal=1)
+
+    def test_pauli_expect_non_hermitian_pauliop(self):
+        """pauli expect state vector with non hermitian operator test"""
+        states_op = ListOp([One, Zero, Plus, Minus])
+
+        op = 1j * X
+
+        converted_meas = self.expect.convert(StateFn(op, is_measurement=True) @ states_op)
+        sampled = self.sampler.convert(converted_meas)
+
+        np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1j, -1j], decimal=1)
+
     def test_pauli_expect_op_vector_state_vector(self):
         """pauli expect op vector state vector test"""
         paulis_op = ListOp([X, Y, Z, I])
@@ -146,7 +170,6 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             sampled_plus.eval(), [1, 0.5**0.5, (1 + 0.5**0.5), 1], decimal=1
         )
 
-    @unittest.skip("Skip until https://github.com/Qiskit/qiskit-aer/issues/1249 is closed.")
     def test_parameterized_qobj(self):
         """grouped pauli expectation test"""
         two_qubit_h2 = (
@@ -255,12 +278,12 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         with self.subTest("integer coefficients"):
             exp = 3 * ~StateFn(X) @ (2 * Minus)
             target = self.sampler.convert(self.expect.convert(exp)).eval()
-            self.assertEqual(target, -12)
+            self.assertAlmostEqual(target, -12)
 
         with self.subTest("complex coefficients"):
             exp = 3j * ~StateFn(X) @ (2j * Minus)
             target = self.sampler.convert(self.expect.convert(exp)).eval()
-            self.assertEqual(target, -12j)
+            self.assertAlmostEqual(target, -12j)
 
 
 if __name__ == "__main__":

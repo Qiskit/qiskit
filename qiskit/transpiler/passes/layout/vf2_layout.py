@@ -10,18 +10,20 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=too-many-function-args
+
 """VF2Layout pass to find a layout using subgraph isomorphism"""
+import os
 from enum import Enum
 import logging
-import random
 import time
 
-from retworkx import PyGraph, PyDiGraph, vf2_mapping
+from rustworkx import vf2_mapping
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.transpiler.passes.layout import vf2_utils
 
 
 logger = logging.getLogger(__name__)
@@ -51,6 +53,25 @@ class VF2Layout(AnalysisPass):
         * ``"nonexistent solution"``: If no perfect layout was found.
         * ``">2q gates in basis"``: If VF2Layout can't work with basis
 
+    By default this pass will construct a heuristic scoring map based on the
+    the error rates in the provided ``target`` (or ``properties`` if ``target``
+    is not provided). However, analysis passes can be run prior to this pass
+    and set ``vf2_avg_error_map`` in the property set with a :class:`~.ErrorMap`
+    instance. If a value is ``NaN`` that is treated as an ideal edge
+    For example if an error map is created as::
+
+        from qiskit.transpiler.passes.layout.vf2_utils import ErrorMap
+
+        error_map = ErrorMap(3)
+        error_map.add_error((0, 0), 0.0024)
+        error_map.add_error((0, 1), 0.01)
+        error_map.add_error((1, 1), 0.0032)
+
+    that represents the error map for a 2 qubit target, where the avg 1q error
+    rate is ``0.0024`` on qubit 0 and ``0.0032`` on qubit 1. Then the avg 2q
+    error rate for gates that operate on (0, 1) is 0.01 and (1, 0) is not
+    supported by the target. This will be used for scoring if it's set as the
+    ``vf2_avg_error_map`` key in the property set when :class:`~.VF2Layout` is run.
     """
 
     def __init__(
@@ -80,8 +101,8 @@ class VF2Layout(AnalysisPass):
             max_trials (int): The maximum number of trials to run VF2 to find
                 a layout. If this is not specified the number of trials will be limited
                 based on the number of edges in the interaction graph or the coupling graph
-                (whichever is larger). If set to a value <= 0 no limit on the number of trials
-                will be set.
+                (whichever is larger) if no other limits are set. If set to a value <= 0 no
+                limit on the number of trials will be set.
             target (Target): A target representing the backend device to run ``VF2Layout`` on.
                 If specified it will supersede a set value for ``properties`` and
                 ``coupling_map``.
@@ -101,50 +122,33 @@ class VF2Layout(AnalysisPass):
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.max_trials = max_trials
+        self.avg_error_map = None
 
     def run(self, dag):
         """run the layout method"""
         if self.coupling_map is None:
             raise TranspilerError("coupling_map or target must be specified.")
+        self.avg_error_map = self.property_set["vf2_avg_error_map"]
+        if self.avg_error_map is None:
+            self.avg_error_map = vf2_utils.build_average_error_map(
+                self.target, self.properties, self.coupling_map
+            )
 
-        qubits = dag.qubits
-        qubit_indices = {qubit: index for index, qubit in enumerate(qubits)}
-
-        interactions = []
-        for node in dag.op_nodes(include_directives=False):
-            len_args = len(node.qargs)
-            if len_args == 2:
-                interactions.append((qubit_indices[node.qargs[0]], qubit_indices[node.qargs[1]]))
-            if len_args >= 3:
-                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
-                return
-
-        if self.strict_direction:
-            cm_graph = self.coupling_map.graph
-            im_graph = PyDiGraph(multigraph=False)
-        else:
-            cm_graph = self.coupling_map.graph.to_undirected()
-            im_graph = PyGraph(multigraph=False)
-
-        cm_nodes = list(cm_graph.node_indexes())
-        if self.seed != -1:
-            random.Random(self.seed).shuffle(cm_nodes)
-            shuffled_cm_graph = type(cm_graph)()
-            shuffled_cm_graph.add_nodes_from(cm_nodes)
-            new_edges = [(cm_nodes[edge[0]], cm_nodes[edge[1]]) for edge in cm_graph.edge_list()]
-            shuffled_cm_graph.add_edges_from_no_data(new_edges)
-            cm_nodes = [k for k, v in sorted(enumerate(cm_nodes), key=lambda item: item[1])]
-            cm_graph = shuffled_cm_graph
-
-        im_graph.add_nodes_from(range(len(qubits)))
-        im_graph.add_edges_from_no_data(interactions)
+        result = vf2_utils.build_interaction_graph(dag, self.strict_direction)
+        if result is None:
+            self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
+            return
+        im_graph, im_graph_node_map, reverse_im_graph_node_map = result
+        cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
+            self.coupling_map, self.seed, self.strict_direction
+        )
         # To avoid trying to over optimize the result by default limit the number
         # of trials based on the size of the graphs. For circuits with simple layouts
         # like an all 1q circuit we don't want to sit forever trying every possible
-        # mapping in the search space
-        if self.max_trials is None:
+        # mapping in the search space if no other limits are set
+        if self.max_trials is None and self.call_limit is None and self.time_limit is None:
             im_graph_edge_count = len(im_graph.edge_list())
-            cm_graph_edge_count = len(cm_graph.edge_list())
+            cm_graph_edge_count = len(self.coupling_map.graph.edge_list())
             self.max_trials = max(im_graph_edge_count, cm_graph_edge_count) + 15
 
         logger.debug("Running VF2 to find mappings")
@@ -160,23 +164,52 @@ class VF2Layout(AnalysisPass):
         chosen_layout_score = None
         start_time = time.time()
         trials = 0
+        run_in_parallel = (
+            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
+            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
+        )
+
+        def mapping_to_layout(layout_mapping):
+            return Layout({reverse_im_graph_node_map[k]: v for k, v in layout_mapping.items()})
+
         for mapping in mappings:
             trials += 1
             logger.debug("Running trial: %s", trials)
             stop_reason = VF2LayoutStopReason.SOLUTION_FOUND
-            layout = Layout({qubits[im_i]: cm_nodes[cm_i] for cm_i, im_i in mapping.items()})
+            layout_mapping = {im_i: cm_nodes[cm_i] for cm_i, im_i in mapping.items()}
+
             # If the graphs have the same number of nodes we don't need to score or do multiple
             # trials as the score heuristic currently doesn't weigh nodes based on gates on a
             # qubit so the scores will always all be the same
             if len(cm_graph) == len(im_graph):
-                chosen_layout = layout
+                chosen_layout = mapping_to_layout(layout_mapping)
                 break
-            layout_score = self._score_layout(layout)
+            # If there is no error map avilable we can just skip the scoring stage as there
+            # is nothing to score with, so any match is the best we can find.
+            if self.avg_error_map is None:
+                chosen_layout = mapping_to_layout(layout_mapping)
+                break
+            layout_score = vf2_utils.score_layout(
+                self.avg_error_map,
+                layout_mapping,
+                im_graph_node_map,
+                reverse_im_graph_node_map,
+                im_graph,
+                self.strict_direction,
+                run_in_parallel,
+            )
+            # If the layout score is 0 we can't do any better and we'll just
+            # waste time finding additional mappings that will at best match
+            # the performance, so exit early in this case
+            if layout_score == 0.0:
+                chosen_layout = mapping_to_layout(layout_mapping)
+                break
             logger.debug("Trial %s has score %s", trials, layout_score)
             if chosen_layout is None:
-                chosen_layout = layout
+                chosen_layout = mapping_to_layout(layout_mapping)
                 chosen_layout_score = layout_score
             elif layout_score < chosen_layout_score:
+                layout = mapping_to_layout(layout_mapping)
                 logger.debug(
                     "Found layout %s has a lower score (%s) than previous best %s (%s)",
                     layout,
@@ -186,7 +219,7 @@ class VF2Layout(AnalysisPass):
                 )
                 chosen_layout = layout
                 chosen_layout_score = layout_score
-            if self.max_trials > 0 and trials >= self.max_trials:
+            if self.max_trials is not None and self.max_trials > 0 and trials >= self.max_trials:
                 logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
                 break
             elapsed_time = time.time() - start_time
@@ -205,39 +238,3 @@ class VF2Layout(AnalysisPass):
                 self.property_set["layout"].add_register(reg)
 
         self.property_set["VF2Layout_stop_reason"] = stop_reason
-
-    def _score_layout(self, layout):
-        """Score heurstic to determine the quality of the layout by looking at the readout fidelity
-        on the chosen qubits. If BackendProperties are not available it uses the coupling map degree
-        to weight against higher connectivity qubits."""
-        bits = layout.get_physical_bits()
-        score = 0
-        if self.target is not None and "measure" in self.target:
-            for bit in bits:
-                props = self.target["measure"].get((bit,))
-                if props is None or props.error is None:
-                    score += (
-                        self.coupling_map.graph.out_degree(bit)
-                        + self.coupling_map.graph.in_degree(bit)
-                    ) / len(self.coupling_map.graph)
-                else:
-                    score += props.error
-        else:
-            if self.properties is None:
-                # Sum qubit degree for each qubit in chosen layout as really rough estimate of error
-                for bit in bits:
-                    score += self.coupling_map.graph.out_degree(
-                        bit
-                    ) + self.coupling_map.graph.in_degree(bit)
-                return score
-            for bit in bits:
-                try:
-                    score += self.properties.readout_error(bit)
-                # If readout error can't be found in properties fallback to degree
-                # divided by number of qubits as a terrible approximation
-                except BackendPropertyError:
-                    score += (
-                        self.coupling_map.graph.out_degree(bit)
-                        + self.coupling_map.graph.in_degree(bit)
-                    ) / len(self.coupling_map.graph)
-        return score

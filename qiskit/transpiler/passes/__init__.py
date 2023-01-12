@@ -46,6 +46,7 @@ Routing
    StochasticSwap
    SabreSwap
    BIPMapping
+   Commuting2qGateRouter
 
 Basis Change
 ============
@@ -58,6 +59,7 @@ Basis Change
    Decompose
    UnrollCustomDefinitions
    BasisTranslator
+   TranslateParameterizedGates
 
 Optimizations
 =============
@@ -71,11 +73,13 @@ Optimizations
    Collect2qBlocks
    CollectMultiQBlocks
    CollectLinearFunctions
+   CollectCliffords
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
    CommutationAnalysis
    CommutativeCancellation
+   CommutativeInverseCancellation
    Optimize1qGatesSimpleCommutation
    RemoveDiagonalGatesBeforeMeasure
    RemoveResetInZeroState
@@ -83,6 +87,8 @@ Optimizations
    HoareOptimizer
    TemplateOptimization
    EchoRZXWeylDecomposition
+   ResetAfterMeasureSimplification
+   OptimizeCliffords
 
 Calibration
 =============
@@ -129,7 +135,7 @@ Circuit Analysis
    DAGLongestPath
 
 Synthesis
-=============
+=========
 
 .. autosummary::
    :toctree: ../stubs/
@@ -137,6 +143,17 @@ Synthesis
    UnitarySynthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
+   HighLevelSynthesis
+   SolovayKitaev
+   SolovayKitaevSynthesis
+
+Post Layout (Post transpile qubit selection)
+============================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   VF2PostLayout
 
 Additional Passes
 =================
@@ -157,6 +174,7 @@ Additional Passes
    FixedPoint
    ContainsInstruction
    GatesInBasis
+   ConvertConditionsToIfOps
 """
 
 # layout selection (placement)
@@ -167,6 +185,7 @@ from .layout import NoiseAdaptiveLayout
 from .layout import SabreLayout
 from .layout import CSPLayout
 from .layout import VF2Layout
+from .layout import VF2PostLayout
 from .layout import ApplyLayout
 from .layout import Layout2qDistance
 from .layout import EnlargeWithAncilla
@@ -179,6 +198,7 @@ from .routing import LookaheadSwap
 from .routing import StochasticSwap
 from .routing import SabreSwap
 from .routing import BIPMapping
+from .routing import Commuting2qGateRouter
 
 # basis change
 from .basis import Decompose
@@ -186,6 +206,7 @@ from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
+from .basis import TranslateParameterizedGates
 
 # optimization
 from .optimization import Optimize1qGates
@@ -196,6 +217,7 @@ from .optimization import CollectMultiQBlocks
 from .optimization import ConsolidateBlocks
 from .optimization import CommutationAnalysis
 from .optimization import CommutativeCancellation
+from .optimization import CommutativeInverseCancellation
 from .optimization import CXCancellation
 from .optimization import Optimize1qGatesSimpleCommutation
 from .optimization import OptimizeSwapBeforeMeasure
@@ -207,6 +229,9 @@ from .optimization import TemplateOptimization
 from .optimization import InverseCancellation
 from .optimization import EchoRZXWeylDecomposition
 from .optimization import CollectLinearFunctions
+from .optimization import CollectCliffords
+from .optimization import ResetAfterMeasureSimplification
+from .optimization import OptimizeCliffords
 
 # circuit analysis
 from .analysis import ResourceEstimation
@@ -223,6 +248,9 @@ from .synthesis import UnitarySynthesis
 from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
+from .synthesis import HighLevelSynthesis
+from .synthesis import SolovayKitaev
+from .synthesis import SolovayKitaevSynthesis
 
 # calibration
 from .calibration import PulseGates
@@ -259,3 +287,4 @@ from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction
 from .utils import GatesInBasis
+from .utils import ConvertConditionsToIfOps

@@ -1,813 +1,263 @@
-# Python package
-# Create and test a Python package on multiple Python versions.
-# Add steps that analyze code, save the dist with the build record, publish to a PyPI-compatible index, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
-
+# Trigger types.  This needs to include all the triggers for the different
+# pipelines we might want to run.
+#
+# Each of these individually triggers the pipeline compilation step, but it's
+# the templating expressions in the `stages` list that actually set what runs.
 trigger:
   branches:
     include:
-      - main
-      - stable/*
+      - 'main'
+      - 'stable/*'
   tags:
     include:
       - '*'
+
 pr:
   autoCancel: true
   branches:
     include:
-    - '*'  # must quote since "*" is a YAML reserved character; we want a string
+      - '*'
+
+schedules:
+  - cron: "20 6 * * *"
+    displayName: "Complete matrix test"
+    branches:
+      include: [ "main", "stable/*" ]
+    always: false  # Only run if the code changed since the last cron sync.
 
 
+# Configuration.  In theory a manual trigger on the Azure website or embedding
+# this pipeline as a template can override these, but we're not interested in
+# that.  We just want to give names to things to make it easier to read.
+parameters:
+  - name: "supportedPythonVersions"
+    displayName: "All supported versions of Python"
+    type: object
+    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+
+  - name: "minimumPythonVersion"
+    displayName: "Minimum supported version of Python"
+    type: string
+    default: "3.7"
+
+  - name: "maximumPythonVersion"
+    displayName: "Maximum supported version of Python"
+    type: string
+    default: "3.11"
+
+  - name: "minimumRustVersion"
+    displayName: "Minimum supported version of Rust"
+    type: string
+    default: "1.56.1"
+
+  # These two versions of Python can be chosen somewhat arbitrarily, but we get
+  # slightly better coverage per PR if they're neither the maximum nor minimum
+  # supported versions.
+
+  - name: "branchPushPythonVersion"
+    displayName: "Version of Python to run simple tests on pushes to protected branches"
+    type: string
+    default: "3.9"
+
+  - name: "tutorialsPythonVersion"
+    displayName: "Version of Python to use to run the tutorials job"
+    type: string
+    default: "3.8"
+
+  - name: "documentationPythonVersion"
+    displayName: "Version of Python to use to build Sphinx documentation"
+    type: string
+    default: "3.9"
+
+# Conditional compilation logic.  This is all the logic for "what to run"; each
+# stage in turn delegates to various templates in ".azure" that provide the
+# information on "how to run" them.
+#
+# The conditional conditions use the template-expression syntax `${{ }}` so only
+# the relevant stages even appear in the job list.  The documentation on the
+# expression syntax is here:
+#
+#   https://docs.microsoft.com/en-us/azure/devops/pipelines/process/expressions?view=azure-devops
+#
+# Not all variables are available at template-expansion time - this happens
+# before any machine is provisioned, so mostly you can access things from
+# GitHub, but nothing about the actual machine.  This is the list of variables
+# (look in the "available in templates" column):
+#
+#   https://docs.microsoft.com/en-us/azure/devops/pipelines/build/variables?view=azure-devops&tabs=yaml
+#
+# The main differentiator is `variables['Build.Reason']`, which contains the
+# trigger type:
+#   - cron (`Schedule`)
+#   - push to a git reference like a branch or tag (`IndividualCI`)
+#   - push to a pull request (`PullRequest`)
+# For `IndividualCI` (push/merge to a branch/tag on Qiskit/qiskit-terra), you
+# need to examine `variables['Build.SourceBranch']` to determine whether it's a
+# branch or a tag.
 stages:
-  - stage: 'Wheel_Builds'
-    condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-    jobs:
-    - job: 'linux'
+  # Nightly cron job.
+  - ${{ if eq(variables['Build.Reason'], 'Schedule') }}:
+    - stage: "Nightly"
+      displayName: "Nightly complete matrix tests"
+      jobs:
+        - ${{ each version in parameters.supportedPythonVersions }}:
+          - template: ".azure/test-linux.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+              testQPY: false
+              testImages: false
+
+          - template: ".azure/test-macos.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+
+          - template: ".azure/test-windows.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+
+    - stage: "Nightly_Failure"
+      displayName: "Comment on nightly failure"
+      dependsOn: "Nightly"
+      condition: failed()
       pool: {vmImage: 'ubuntu-latest'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      variables:
-        python.version: '3.7'
-        TWINE_USERNAME: qiskit
-      steps:
-        - task: UsePythonVersion@0
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip
-            pip install cibuildwheel==2.3.1
-            pip install -U twine
-            cibuildwheel --output-dir wheelhouse .
-        - task: PublishBuildArtifacts@1
-          inputs: {pathtoPublish: 'wheelhouse'}
-          condition: succeededOrFailed()
-        - bash: |
-            twine upload wheelhouse/*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
-    - job: 'sdist'
-      pool: {vmImage: 'ubuntu-latest'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      variables:
-        TWINE_USERNAME: qiskit
-        python.version: '3.7'
-      steps:
-        - task: UsePythonVersion@0
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip
-            pip install -U twine
-            python setup.py sdist
-        - task: PublishBuildArtifacts@1
-          inputs: {pathtoPublish: 'dist'}
-          condition: succeededOrFailed()
-        - bash: |
-            twine upload dist/*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
-    - job: 'macos'
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-10.15'}
-      variables:
-        python.version: '3.7'
-        TWINE_USERNAME: qiskit
-      steps:
-      - task: UsePythonVersion@0
-      - bash: |
-          set -e
-          python -m pip install --upgrade pip
-          pip install cibuildwheel==2.3.1
-          pip install -U twine
-          cibuildwheel --output-dir wheelhouse .
-      - task: PublishBuildArtifacts@1
-        inputs: {pathtoPublish: 'wheelhouse'}
-        condition: succeededOrFailed()
-      - bash: |
-          twine upload wheelhouse/*
-        env:
-          TWINE_PASSWORD: $(TWINE_PASSWORD)
-    - job: 'macos_arm'
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      pool: {vmImage: 'macOS-10.15'}
-      variables:
-        python.version: '3.7'
-        CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
-        CIBW_ARCHS_MACOS: arm64 universal2
-        CIBW_ENVIRONMENT: CARGO_BUILD_TARGET="aarch64-apple-darwin" PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
-        TWINE_USERNAME: qiskit
-      steps:
-      - task: UsePythonVersion@0
-      - bash: |
-          set -e
-          python -m pip install --upgrade pip
-          pip install cibuildwheel==2.3.1
-          pip install -U twine
-          cibuildwheel --output-dir wheelhouse .
-      - task: PublishBuildArtifacts@1
-        inputs: {pathtoPublish: 'wheelhouse'}
-        condition: succeededOrFailed()
-      - bash: |
-          twine upload wheelhouse/*
-        env:
-          TWINE_PASSWORD: $(TWINE_PASSWORD)
-    - job: 'Windows'
-      pool: {vmImage: 'windows-latest'}
-      condition: startsWith(variables['Build.SourceBranch'], 'refs/tags')
-      variables:
-        TWINE_USERNAME: qiskit
-      steps:
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.8', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.9', architecture: x64}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.10', architecture: x86}}
-        - {task: UsePythonVersion@0, inputs: {versionSpec: '3.10', architecture: x64}}
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip
-            pip install cibuildwheel==2.3.1
-            pip install -U twine
-            cibuildwheel --output-dir wheelhouse
-        - task: PublishBuildArtifacts@1
-          inputs: {pathtoPublish: 'wheelhouse'}
-          condition: succeededOrFailed()
-        - script: |
-            twine upload wheelhouse\*
-          env:
-            TWINE_PASSWORD: $(TWINE_PASSWORD)
-  - stage: 'Lint_Docs_and_Tests'
-    dependsOn: []
-    jobs:
-    - job: 'Linux_Tests'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python37:
-            python.version: '3.7'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-        QISKIT_TEST_CAPTURE_STREAMS: 1
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" |"$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - task: Cache@2
-          inputs:
-            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              stestr | "$(Agent.OS)" | "$(python.version)"
-              stestr | "$(Agent.OS)"
-              stestr
-            path: .stestr
-          displayName: Cache stestr
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel virtualenv
-            virtualenv test-job
-            source test-job/bin/activate
-            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            python setup.py sdist
-            pip install -U -c constraints.txt dist/qiskit-terra*.tar.gz
-            pip install -U "cplex" "qiskit-aer" "z3-solver" -c constraints.txt
-            mkdir -p /tmp/terra-tests
-            cp -r test /tmp/terra-tests/.
-            cp tools/verify_parallel_map.py /tmp/terra-tests/.
-            cp .stestr.conf /tmp/terra-tests/.
-            cp -r .stestr /tmp/terra-tests/. || :
-            sudo apt-get update
-            sudo apt-get install -y graphviz
-            pip check
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            pushd /tmp/terra-tests
-            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
-            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-            stestr run
-            python ./verify_parallel_map.py
-            popd
-          displayName: 'Run tests'
-          env:
-            QISKIT_PARALLEL: FALSE
-        - task: CopyFiles@2
-          condition: failed()
-          displayName: 'Copy images'
-          inputs:
-            contents: '**/*.png'
-            targetFolder: $(Build.ArtifactStagingDirectory)
-        - task: PublishBuildArtifacts@1
-          condition: failed()
-          displayName: 'Publish images'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_linux'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            cp tools/subunit_to_junit.py /tmp/terra-tests/.
-            pip install -U junitxml
-            pushd /tmp/terra-tests
-            mkdir -p junit
-            stestr last --subunit | ./subunit_to_junit.py -o junit/test-results.xml
-            pushd .stestr
-            ls | grep -P "^\d" | xargs -d "\n" rm -f
-            popd
-            popd
-            cp -r /tmp/terra-tests/junit .
-            cp -r /tmp/terra-tests/.stestr .
-          condition: succeededOrFailed()
-          displayName: 'Generate results'
-        - task: PublishTestResults@2
-          condition: succeededOrFailed()
-          inputs:
-            testResultsFiles: '**/test-*.xml'
-            testRunTitle: 'Test results for Linux Python $(python.version)'
-        - bash: |
-            set -e
-            pushd test/qpy_compat
-            ./run_tests.sh
-            popd
-          displayName: 'Run QPY backwards compat tests'
-        - bash: |
-            set -e
-            virtualenv image_tests
-            image_tests/bin/pip install -U -r requirements.txt -c constraints.txt
-            image_tests/bin/pip install -U -c constraints.txt -e ".[visualization]"
-            sudo apt-get update
-            sudo apt-get install -y graphviz pandoc
-            image_tests/bin/pip check
-          displayName: 'Install dependencies'
-        - bash: image_tests/bin/python -m unittest discover -v test/ipynb
-          displayName: 'Run image test'
-    - job: 'Lint'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python37:
-            python.version: '3.7'
-      variables:
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel virtualenv
-            virtualenv test-job
-            source test-job/bin/activate
-            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt -e .
-            pip install -U "qiskit-aer" -c constraints.txt
-            python setup.py build_ext --inplace
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            black --check qiskit test tools examples setup.py
-            pylint -rn qiskit test tools
-            tools/verify_headers.py qiskit test
-            python tools/find_optional_imports.py
-            reno lint
-            cargo fmt --check
-            cargo clippy -- -D warnings
-          displayName: 'Style and lint'
-    - job: 'Docs'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python37:
-            python.version: '3.7'
-      variables:
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-      steps:
-        - checkout: self
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel
-            pip install -U tox
-            sudo apt-get update
-            sudo apt-get install -y graphviz
-          displayName: 'Install dependencies'
-        - bash: |
-            tox -edocs
-          displayName: 'Run Docs build'
-        - task: ArchiveFiles@2
-          inputs:
-            rootFolderOrFile: 'docs/_build/html'
-            archiveType: tar
-            archiveFile: '$(Build.ArtifactStagingDirectory)/html_docs.tar.gz'
-            verbose: true
-        - task: PublishBuildArtifacts@1
-          displayName: 'Publish docs'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'html_docs'
-            Parallel: true
-            ParallelCount: 8
-    - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-10.15'}
-      strategy:
-        matrix:
-          Python37:
-            python.version: '3.7'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-        QISKIT_TEST_CAPTURE_STREAMS: 1
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - task: Cache@2
-          inputs:
-            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              stestr | "$(Agent.OS)" | "$(python.version)"
-              stestr | "$(Agent.OS)"
-              stestr
-            path: .stestr
-          displayName: Cache stestr
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel virtualenv
-            virtualenv test-job
-            source test-job/bin/activate
-            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt -e .
-            pip install -U "qiskit-aer" -c constraints.txt
-            python setup.py build_ext --inplace
-            pip check
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
-            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-            stestr run
-            python ./tools/verify_parallel_map.py
-          displayName: 'Run tests'
-          env:
-            QISKIT_PARALLEL: FALSE
-        - task: CopyFiles@2
-          condition: failed()
-          displayName: 'Copy images'
-          inputs:
-            contents: '**/*.png'
-            targetFolder: $(Build.ArtifactStagingDirectory)
-        - task: PublishBuildArtifacts@1
-          condition: failed()
-          displayName: 'Publish images'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_macos'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            pip install -U junitxml
-            mkdir -p junit
-            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
-            pushd .stestr
-            ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
-            popd
-          condition: succeededOrFailed()
-          displayName: 'Generate results'
-        - task: PublishTestResults@2
-          condition: succeededOrFailed()
-          inputs:
-            testResultsFiles: '**/test-*.xml'
-            testRunTitle: 'Test results for macOS Python $(python.version)'
-    - job: 'Windows_Tests'
-      pool: {vmImage: 'windows-latest'}
-      strategy:
-        matrix:
-          Python37:
-            python.version: '3.7'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        QISKIT_TEST_CAPTURE_STREAMS: 1
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              stestr | "$(Agent.OS)" | "$(python.version)"
-              stestr | "$(Agent.OS)"
-              stestr
-            path: .stestr
-          displayName: Cache stestr
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel virtualenv
-            virtualenv test-job
-            source test-job/Scripts/activate
-            pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "z3-solver" -c constraints.txt
-            python setup.py build_ext --inplace
-            pip check
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            chcp.com 65001
-            source test-job/Scripts/activate
-            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
-            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-            stestr run
-            python ./tools/verify_parallel_map.py
-          displayName: 'Run tests'
-          env:
-            LANG: 'C.UTF-8'
-            PYTHONIOENCODING: 'utf-8:backslashreplace'
-            QISKIT_PARALLEL: FALSE
-        - task: CopyFiles@2
-          condition: failed()
-          displayName: 'Copy images'
-          inputs:
-            contents: '**/*.png'
-            targetFolder: $(Build.ArtifactStagingDirectory)
-        - task: PublishBuildArtifacts@1
-          condition: failed()
-          displayName: 'Publish images'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_windows'
-        - bash: |
-            set -e
-            chcp.com 65001
-            source test-job/Scripts/activate
-            pip install -U junitxml
-            mkdir -p junit
-            stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
-            pushd .stestr
-            ls | grep -P "^\d" | xargs -d "\n" rm -f
-            popd
-          condition: succeededOrFailed()
-          env:
-            LANG: 'C.UTF-8'
-            PYTHONIOENCODING: 'utf-8:backslashreplace'
-          displayName: 'Generate results'
-        - task: PublishTestResults@2
-          condition: succeededOrFailed()
-          inputs:
-            testResultsFiles: '**/test-*.xml'
-            testRunTitle: 'Test results for Windows Python $(python.version)'
-  - stage: 'Python_Tests_and_Tutorials'
-    condition: and(succeeded('Lint_Docs_and_Tests'), not(startsWith(variables['Build.SourceBranch'], 'refs/tags')))
-    jobs:
-    - job: 'Windows_Tests'
-      pool: {vmImage: 'windows-latest'}
-      strategy:
-        matrix:
-          Python38:
-            python.version: '3.8'
-          Python39:
-            python.version: '3.9'
-          Python310:
-            python.version: '3.10'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        QISKIT_TEST_CAPTURE_STREAMS: 1
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              stestr | "$(Agent.OS)" | "$(python.version)"
-              stestr | "$(Agent.OS)"
-              stestr
-            path: .stestr
-          displayName: Cache stestr
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel virtualenv
-            virtualenv test-job
-            source test-job/Scripts/activate
-            pip install -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "z3-solver" -c constraints.txt
-            python setup.py build_ext --inplace
-            pip check
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            chcp.com 65001
-            source test-job/Scripts/activate
-            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 1024))")
-            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-            stestr run
-            python ./tools/verify_parallel_map.py
-          env:
-            LANG: 'C.UTF-8'
-            PYTHONIOENCODING: 'utf-8:backslashreplace'
-          displayName: 'Run tests'
-        - task: CopyFiles@2
-          condition: failed()
-          displayName: 'Copy images'
-          inputs:
-            contents: '**/*.png'
-            targetFolder: $(Build.ArtifactStagingDirectory)
-        - task: PublishBuildArtifacts@1
-          condition: failed()
-          displayName: 'Publish images'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_windows'
-        - bash: |
-            set -e
-            chcp.com 65001
-            source test-job/Scripts/activate
-            pip install -U junitxml
-            mkdir -p junit
-            stestr last --subunit | python tools/subunit_to_junit.py -o junit/test-results.xml
-            pushd .stestr
-            ls | grep -P "^\d" | xargs -d "\n" rm -f
-            popd
-          condition: succeededOrFailed()
-          env:
-            LANG: 'C.UTF-8'
-            PYTHONIOENCODING: 'utf-8:backslashreplace'
-          displayName: 'Generate results'
-        - task: PublishTestResults@2
-          condition: succeededOrFailed()
-          inputs:
-            testResultsFiles: '**/test-*.xml'
-            testRunTitle: 'Test results for Windows Python $(python.version)'
-    - job: 'Linux_Tests'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python38:
-            python.version: '3.8'
-          Python39:
-            python.version: '3.9'
-          Python310:
-            python.version: '3.10'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-        QISKIT_TEST_CAPTURE_STREAMS: 1
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - task: Cache@2
-          inputs:
-            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              stestr | "$(Agent.OS)" | "$(python.version)"
-              stestr | "$(Agent.OS)"
-              stestr
-            path: .stestr
-          displayName: Cache stestr
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel virtualenv
-            virtualenv test-job
-            source test-job/bin/activate
-            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt -e .
-            pip install -U "qiskit-aer" "z3-solver" -c constraints.txt
-            python setup.py build_ext --inplace
-            sudo apt-get update
-            sudo apt-get install -y graphviz
-            pip check
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
-            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-            stestr run
-            python ./tools/verify_parallel_map.py
-          displayName: 'Run tests'
-          env:
-            QISKIT_PARALLEL: FALSE
-        - task: CopyFiles@2
-          condition: failed()
-          displayName: 'Copy images'
-          inputs:
-            contents: '**/*.png'
-            targetFolder: $(Build.ArtifactStagingDirectory)
-        - task: PublishBuildArtifacts@1
-          condition: failed()
-          displayName: 'Publish images'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_linux'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            pip install -U junitxml
-            mkdir -p junit
-            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
-            pushd .stestr
-            ls | grep -P "^\d" | xargs -d "\n" rm -f
-            popd
-          condition: succeededOrFailed()
-          displayName: 'Generate results'
-        - task: PublishTestResults@2
-          condition: succeededOrFailed()
-          inputs:
-            testResultsFiles: '**/test-*.xml'
-            testRunTitle: 'Test results for Linux Python $(python.version)'
-    - job: 'MacOS_Catalina_Tests'
-      pool: {vmImage: 'macOS-10.15'}
-      strategy:
-        matrix:
-          Python38:
-            python.version: '3.8'
-          Python39:
-            python.version: '3.9'
-          Python310:
-            python.version: '3.10'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-        QISKIT_TEST_CAPTURE_STREAMS: 1
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)" | "$(python.version)"
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - task: Cache@2
-          inputs:
-            key: 'stestr | "$(Agent.OS)" | "$(python.version)" | "$(Build.BuildNumber)"'
-            restoreKeys: |
-              stestr | "$(Agent.OS)" | "$(python.version)"
-              stestr | "$(Agent.OS)"
-              stestr
-            path: .stestr
-          displayName: Cache stestr
-        - bash: |
-            set -e
-            python -m pip install --upgrade pip setuptools wheel virtualenv
-            virtualenv test-job
-            source test-job/bin/activate
-            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -U -c constraints.txt -e .
-            python setup.py build_ext --inplace
-            pip check
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
-            echo "PYTHONHASHSEED=$PYTHONHASHSEED"
-            stestr run
-            python ./tools/verify_parallel_map.py
-          displayName: 'Run tests'
-        - task: CopyFiles@2
-          condition: failed()
-          displayName: 'Copy images'
-          inputs:
-            contents: '**/*.png'
-            targetFolder: $(Build.ArtifactStagingDirectory)
-        - task: PublishBuildArtifacts@1
-          condition: failed()
-          displayName: 'Publish images'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'drop_macos'
-        - bash: |
-            set -e
-            source test-job/bin/activate
-            pip install -U junitxml
-            mkdir -p junit
-            stestr last --subunit | tools/subunit_to_junit.py -o junit/test-results.xml
-            pushd .stestr
-            ls | grep -e '^[[:digit:]]' | xargs -n1 rm -f
-            popd
-          condition: succeededOrFailed()
-          displayName: 'Generate results'
-        - task: PublishTestResults@2
-          condition: succeededOrFailed()
-          inputs:
-            testResultsFiles: '**/test-*.xml'
-            testRunTitle: 'Test results for macOS Python $(python.version)'
-    - job: 'Tutorials'
-      pool: {vmImage: 'ubuntu-latest'}
-      strategy:
-        matrix:
-          Python38:
-            python.version: '3.8'
-      variables:
-        QISKIT_SUPPRESS_PACKAGING_WARNINGS: Y
-        PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
-        QISKIT_CELL_TIMEOUT: 300
-      steps:
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '$(python.version)'
-          displayName: 'Use Python $(python.version)'
-        - task: Cache@2
-          inputs:
-            key: 'pip | "$(Agent.OS)" | "$(python.version)"'
-            restoreKeys: |
-              pip | "$(Agent.OS)"
-              pip
-            path: $(PIP_CACHE_DIR)
-          displayName: Cache pip
-        - bash: |
-            set -e
-            git clone https://github.com/Qiskit/qiskit-tutorials --depth=1
-            python -m pip install --upgrade pip
-            pip install -U -r requirements.txt -r requirements-dev.txt -c constraints.txt
-            pip install -c constraints.txt -e .
-            pip install "qiskit-ibmq-provider" "qiskit-aer" "z3-solver" "qiskit-ignis" "matplotlib>=3.3.0" sphinx nbsphinx sphinx_rtd_theme cvxpy -c constraints.txt
-            python setup.py build_ext --inplace
-            sudo apt-get update
-            sudo apt-get install -y graphviz pandoc
-            pip check
-          displayName: 'Install dependencies'
-        - bash: |
-            set -e
-            cd qiskit-tutorials
-            sphinx-build -b html . _build/html
-          env:
-            QISKIT_PARALLEL: False
-        - task: ArchiveFiles@2
-          inputs:
-            rootFolderOrFile: 'qiskit-tutorials/_build/html'
-            archiveType: tar
-            archiveFile: '$(Build.ArtifactStagingDirectory)/html_tutorials.tar.gz'
-            verbose: true
-        - task: PublishBuildArtifacts@1
-          displayName: 'Publish docs'
-          inputs:
-            pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-            artifactName: 'html_tutorials'
-            Parallel: true
-            ParallelCount: 8
+      jobs:
+        - job: "Comment"
+          steps:
+            - task: GitHubComment@0
+              inputs:
+                gitHubConnection: Qiskit
+                repositoryName: ${{ variables['Build.Repository.Name'] }}
+                id: 7864
+                comment: Nightly test job failed at commit $(Build.SourceVersion).  View the logs at $(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId).
+
+  # Full PR suite.
+  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+    # The preliminary stage should be small in both total runtime (including
+    # provisioning) and resources required.  About half of PR commits result in
+    # a CI failure, and over 90% of these are in linting, documention or a test
+    # failure that would affect _any_ OS or Python version.  The goal in the
+    # first stage is to catch the vast majority of failures with minimal cost.
+    - stage: "Lint_Docs_Prelim_Tests"
+      displayName: "Preliminary tests"
+      jobs:
+        - template: ".azure/lint-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/docs-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.documentationPythonVersion }}
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+            testQPY: true
+            testImages: false
+            rustVersion: ${{ parameters.minimumRustVersion }}
+
+    # The rest of the PR pipeline is to test the oldest and newest supported
+    # versions of Python, along with the integration tests (via the tutorials).
+    # It's very rare for a failure to be specific to an intermediate version of
+    # Python, so we just catch those in the cron-job pipeline to reduce the
+    # amount of resources used.
+    - stage: "Tutorials_and_Tests"
+      displayName: "Main tests"
+      dependsOn: "Lint_Docs_Prelim_Tests"
+      jobs:
+        - template: ".azure/tutorials-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.tutorialsPythonVersion }}
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            testQPY: false
+            testImages: true
+            installFromSdist: true
+
+        - template: ".azure/test-macos.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/test-macos.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+
+        - template: ".azure/test-windows.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/test-windows.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+
+  # Push to main or the stable branches.  The triggering branches are set in the
+  # triggers at the top of this file.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/heads/')) }}:
+    - stage: "Push"
+      jobs:
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.branchPushPythonVersion }}
+            testQPY: true
+            testImages: true
+
+  # Push to a tag.  The triggering tags are set in the triggers at the top of
+  # this file.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/tags/')) }}:
+    - stage: "Deploy"
+      jobs:
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "linux"
+            pool: {vmImage: 'ubuntu-latest'}
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "macos"
+            pool: {vmImage: 'macOS-11'}
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "macos_arm"
+            pool: {vmImage: 'macOS-11'}
+            env:
+              CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
+              CIBW_ARCHS_MACOS: arm64 universal2
+              CIBW_ENVIRONMENT: >-
+                CARGO_BUILD_TARGET="aarch64-apple-darwin"
+                PYO3_CROSS_LIB_DIR="/Library/Frameworks/Python.framework/Versions/$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')/lib/python$(python -c 'import sys; print(str(sys.version_info[0])+"."+str(sys.version_info[1]))')"
+
+        - template: ".azure/wheels.yml"
+          parameters:
+            jobName: "windows"
+            pool: {vmImage: 'windows-latest'}
+            setupPython:
+              - ${{ each version in parameters.supportedPythonVersions }}:
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: ${{ version }}
+                    architecture: x86
+                - task: UsePythonVersion@0
+                  inputs:
+                    versionSpec: ${{ version }}
+                    architecture: x64
+
+        - job: 'sdist'
+          pool: {vmImage: 'ubuntu-latest'}
+          steps:
+            - task: UsePythonVersion@0
+            - bash: |
+                set -e
+                python -m pip install --upgrade pip
+                python -m pip install --upgrade setuptools_rust
+                python setup.py sdist
+            - task: PublishBuildArtifacts@1
+              inputs: {pathtoPublish: 'dist'}
+              condition: succeededOrFailed()
+            - bash: |
+                python -m pip install --upgrade twine
+                twine upload dist/*
+              env:
+                TWINE_USERNAME: "qiskit"
+                TWINE_PASSWORD: $(TWINE_PASSWORD)

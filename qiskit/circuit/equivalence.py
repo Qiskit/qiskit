@@ -12,15 +12,14 @@
 
 """Gate equivalence library."""
 
-import io
 from collections import namedtuple
 
-import retworkx as rx
+from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
+import rustworkx as rx
 
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.exceptions import InvalidFileError
 from .exceptions import CircuitError
 from .parameterexpression import ParameterExpression
-
 
 Key = namedtuple("Key", ["name", "num_qubits"])
 
@@ -148,56 +147,20 @@ class EquivalenceLibrary:
                 IPython SVG if in a jupyter notebook, or as a PIL.Image otherwise.
 
         Raises:
-            MissingOptionalLibraryError: when pydot or pillow are not installed.
+            InvalidFileError: if filename is not valid.
         """
-        try:
-            import pydot
-
-            has_pydot = True
-        except ImportError:
-            has_pydot = False
-        try:
-            from PIL import Image
-
-            has_pil = True
-        except ImportError:
-            has_pil = False
-
-        if not has_pydot:
-            raise MissingOptionalLibraryError(
-                libname="pydot",
-                name="EquivalenceLibrary.draw",
-                pip_install="pip install pydot",
-            )
-        if not has_pil and not filename:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="EquivalenceLibrary.draw",
-                pip_install="pip install pillow",
-            )
-
-        try:
-            from IPython.display import SVG
-
-            has_ipython = True
-        except ImportError:
-            has_ipython = False
-
-        dot_str = self._build_basis_graph().to_dot(
-            lambda node: {"label": node["label"]}, lambda edge: edge
-        )
-        dot = pydot.graph_from_dot_data(dot_str)[0]
+        image_type = None
         if filename:
-            extension = filename.split(".")[-1]
-            dot.write(filename, format=extension)
-            return None
-
-        if has_ipython:
-            svg = dot.create_svg(prog="dot")
-            return SVG(svg)
-
-        png = dot.create_png(prog="dot")
-        return Image.open(io.BytesIO(png))
+            if "." not in filename:
+                raise InvalidFileError("Parameter 'filename' must be in format 'name.extension'")
+            image_type = filename.split(".")[-1]
+        return graphviz_draw(
+            self._build_basis_graph(),
+            lambda node: {"label": node["label"]},
+            lambda edge: edge,
+            filename=filename,
+            image_type=image_type,
+        )
 
     def _build_basis_graph(self):
         graph = rx.PyDiGraph()
@@ -212,7 +175,8 @@ class EquivalenceLibrary:
                 decomp_basis = frozenset(
                     f"{name}/{num_qubits}"
                     for name, num_qubits in {
-                        (inst.name, inst.num_qubits) for inst, _, __ in decomp.data
+                        (instruction.operation.name, instruction.operation.num_qubits)
+                        for instruction in decomp.data
                     }
                 )
                 if basis not in node_map:

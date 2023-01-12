@@ -14,6 +14,7 @@
 
 
 from typing import Optional, Tuple, Union, Iterable, Set
+import itertools
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
 from qiskit.circuit.instructionset import InstructionSet
@@ -135,6 +136,22 @@ class IfElseOp(ControlFlowOp):
             return (self.params[0],)
         else:
             return (self.params[0], self.params[1])
+
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "IfElseOp":
+        """Replace blocks and return new instruction.
+
+        Args:
+            blocks: Iterable of circuits for "if" and "else" condition. If there is no "else"
+                circuit it may be set to None or ommited.
+
+        Returns:
+            New IfElseOp with replaced blocks.
+        """
+
+        true_body, false_body = (
+            ablock for ablock, _ in itertools.zip_longest(blocks, range(2), fillvalue=None)
+        )
+        return IfElseOp(self.condition, true_body, false_body=false_body, label=self.label)
 
     def c_if(self, classical, val):
         raise NotImplementedError(
@@ -398,15 +415,13 @@ class ElseContext:
         Terra.
     """
 
-    __slots__ = ("_if_block", "_if_clbits", "_if_registers", "_if_context", "_if_qubits", "_used")
+    __slots__ = ("_if_instruction", "_if_registers", "_if_context", "_used")
 
     def __init__(self, if_context: IfContext):
         # We want to avoid doing any processing until we're actually used, because the `if` block
         # likely isn't finished yet, and we want to have as small a penalty a possible if you don't
         # use an `else` branch.
-        self._if_block = None
-        self._if_qubits = None
-        self._if_clbits = None
+        self._if_instruction = None
         self._if_registers = None
         self._if_context = if_context
         self._used = False
@@ -423,26 +438,22 @@ class ElseContext:
             # I'm not even sure how you'd get this to trigger, but just in case...
             raise CircuitError("Cannot attach an 'else' to a broadcasted 'if' block.")
         appended = appended_instructions[0]
-        operation, _, _ = circuit._peek_previous_instruction_in_scope()
-        if appended is not operation:
+        instruction = circuit._peek_previous_instruction_in_scope()
+        if appended is not instruction:
             raise CircuitError(
                 "The 'if' block is not the most recent instruction in the circuit."
-                f" Expected to find: {appended!r}, but instead found: {operation!r}."
+                f" Expected to find: {appended!r}, but instead found: {instruction!r}."
             )
-        (
-            self._if_block,
-            self._if_qubits,
-            self._if_clbits,
-        ) = circuit._pop_previous_instruction_in_scope()
-        if isinstance(self._if_block, IfElseOp):
-            self._if_registers = set(self._if_block.blocks[0].cregs).union(
-                self._if_block.blocks[0].qregs
+        self._if_instruction = circuit._pop_previous_instruction_in_scope()
+        if isinstance(self._if_instruction.operation, IfElseOp):
+            self._if_registers = set(self._if_instruction.operation.blocks[0].cregs).union(
+                self._if_instruction.operation.blocks[0].qregs
             )
         else:
-            self._if_registers = self._if_block.registers()
+            self._if_registers = self._if_instruction.operation.registers()
         circuit._push_scope(
-            self._if_qubits,
-            self._if_clbits,
+            self._if_instruction.qubits,
+            self._if_instruction.clbits,
             registers=self._if_registers,
             allow_jumps=self._if_context.in_loop,
         )
@@ -455,24 +466,24 @@ class ElseContext:
             # manager, assuming nothing else untoward happened to the circuit, but that's checked by
             # the __enter__ method.
             circuit._pop_scope()
-            circuit.append(self._if_block, self._if_qubits, self._if_clbits)
+            circuit._append(self._if_instruction)
             self._used = False
             return False
 
         false_block = circuit._pop_scope()
         # `if_block` is a placeholder if this context is in a loop, and a concrete instruction if it
         # is not.
-        if isinstance(self._if_block, IfElsePlaceholder):
-            if_block = self._if_block.with_false_block(false_block)
-            resources = if_block.placeholder_resources()
-            circuit.append(if_block, resources.qubits, resources.clbits)
+        if isinstance(self._if_instruction.operation, IfElsePlaceholder):
+            if_operation = self._if_instruction.operation.with_false_block(false_block)
+            resources = if_operation.placeholder_resources()
+            circuit.append(if_operation, resources.qubits, resources.clbits)
         else:
             # In this case, we need to update both true_body and false_body to have exactly the same
             # widths.  Passing extra resources to `ControlFlowBuilderBlock.build` doesn't _compel_
             # the resulting object to use them (because it tries to be minimal), so it's best to
             # pass it nothing extra (allows some fast path constructions), and add all necessary
             # bits onto the circuits at the end.
-            true_body = self._if_block.blocks[0]
+            true_body = self._if_instruction.operation.blocks[0]
             false_body = false_block.build(false_block.qubits, false_block.clbits)
             true_body, false_body = _unify_circuit_resources(true_body, false_body)
             circuit.append(
@@ -480,7 +491,7 @@ class ElseContext:
                     self._if_context.condition,
                     true_body,
                     false_body,
-                    label=self._if_block.label,
+                    label=self._if_instruction.operation.label,
                 ),
                 tuple(true_body.qubits),
                 tuple(true_body.clbits),
@@ -558,11 +569,11 @@ def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's t
     clbits = list(set(true_body.clbits).union(false_body.clbits))
     # We use the inner `_append` method because everything is already resolved.
     true_out = QuantumCircuit(qubits, clbits, *true_body.qregs, *true_body.cregs)
-    for data in true_body.data:
-        true_out._append(*data)
+    for instruction in true_body.data:
+        true_out._append(instruction)
     false_out = QuantumCircuit(qubits, clbits, *false_body.qregs, *false_body.cregs)
-    for data in false_body.data:
-        false_out._append(*data)
+    for instruction in false_body.data:
+        false_out._append(instruction)
     return _unify_circuit_registers(true_out, false_out)
 
 

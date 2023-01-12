@@ -12,7 +12,9 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 
-from typing import Union, List, Callable, Dict, Any
+import io
+import re
+from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
 import dill
 
@@ -167,8 +169,12 @@ class PassManager:
             passes = [passes]
         for pass_ in passes:
             if isinstance(pass_, FlowController):
-                # Normalize passes in nested FlowController
-                PassManager._normalize_passes(pass_.passes)
+                # Normalize passes in nested FlowController.
+                # TODO: Internal renormalisation should be the responsibility of the
+                # `FlowController`, but the separation between `FlowController`,
+                # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
+                # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
+                pass_.passes = PassManager._normalize_passes(pass_.passes)
             elif not isinstance(pass_, BasePass):
                 raise TranspilerError(
                     "%s is not a BasePass or FlowController instance " % pass_.__class__
@@ -319,3 +325,204 @@ class PassManager:
                 item["flow_controllers"] = {}
             ret.append(item)
         return ret
+
+    def to_flow_controller(self) -> FlowController:
+        """Linearize this manager into a single :class:`.FlowController`, so that it can be nested
+        inside another :class:`.PassManager`."""
+        return FlowController.controller_factory(
+            [
+                FlowController.controller_factory(
+                    pass_set["passes"], None, **pass_set["flow_controllers"]
+                )
+                for pass_set in self._pass_sets
+            ],
+            None,
+        )
+
+
+class StagedPassManager(PassManager):
+    """A Pass manager pipeline built up of individual stages
+
+    This class enables building a compilation pipeline out of fixed stages.
+    Each ``StagedPassManager`` defines a list of stages which are executed in
+    a fixed order, and each stage is defined as a standalone :class:`~.PassManager`
+    instance. There are also ``pre_`` and ``post_`` stages for each defined stage.
+    This enables easily composing and replacing different stages and also adding
+    hook points to enable programmtic modifications to a pipeline. When using a staged
+    pass manager you are not able to modify the individual passes and are only able
+    to modify stages.
+
+    By default instances of StagedPassManager define a typical full compilation
+    pipeline from an abstract virtual circuit to one that is optimized and
+    capable of running on the specified backend. The default pre-defined stages are:
+
+    #. ``init`` - any initial passes that are run before we start embedding the circuit to the backend
+    #. ``layout`` - This stage runs layout and maps the virtual qubits in the
+       circuit to the physical qubits on a backend
+    #. ``routing`` - This stage runs after a layout has been run and will insert any
+       necessary gates to move the qubit states around until it can be run on
+       backend's compuling map.
+    #. ``translation`` - Perform the basis gate translation, in other words translate the gates
+       in the circuit to the target backend's basis set
+    #. ``optimization`` - The main optimization loop, this will typically run in a loop trying to
+       optimize the circuit until a condtion (such as fixed depth) is reached.
+    #. ``scheduling`` - Any hardware aware scheduling passes
+
+    .. note::
+
+        For backwards compatibility the relative positioning of these default
+        stages will remain stable moving forward. However, new stages may be
+        added to the default stage list in between current stages. For example,
+        in a future release a new phase, something like ``logical_optimization``, could be added
+        immediately after the existing ``init`` stage in the default stage list.
+        This would preserve compatibility for pre-existing ``StagedPassManager``
+        users as the relative positions of the stage are preserved so the behavior
+        will not change between releases.
+
+    These stages will be executed in order and any stage set to ``None`` will be skipped.
+    If a stage is provided multiple times (i.e. at diferent relative positions), the
+    associated passes, including pre and post, will run once per declaration.
+    If a :class:`~qiskit.transpiler.PassManager` input is being used for more than 1 stage here
+    (for example in the case of a :class:`~.Pass` that covers both Layout and Routing) you will
+    want to set that to the earliest stage in sequence that it covers.
+    """
+
+    invalid_stage_regex = re.compile(
+        r"\s|\+|\-|\*|\/|\\|\%|\<|\>|\@|\!|\~|\^|\&|\:|\[|\]|\{|\}|\(|\)"
+    )
+
+    def __init__(self, stages: Optional[Iterable[str]] = None, **kwargs) -> None:
+        """Initialize a new StagedPassManager object
+
+        Args:
+            stages (Iterable[str]): An optional list of stages to use for this
+                instance. If this is not specified the default stages list
+                ``['init', 'layout', 'routing', 'translation', 'optimization', 'scheduling']`` is
+                used. After instantiation, the final list will be immutable and stored as tuple.
+                If a stage is provided multiple times (i.e. at diferent relative positions), the
+                associated passes, including pre and post, will run once per declaration.
+            kwargs: The initial :class:`~.PassManager` values for any stages
+                defined in ``stages``. If a argument is not defined the
+                stages will default to ``None`` indicating an empty/undefined
+                stage.
+
+        Raises:
+            AttributeError: If a stage in the input keyword arguments is not defined.
+            ValueError: If an invalid stage name is specified.
+        """
+        stages = stages or [
+            "init",
+            "layout",
+            "routing",
+            "translation",
+            "optimization",
+            "scheduling",
+        ]
+        self._validate_stages(stages)
+        # Set through parent class since `__setattr__` requieres `expanded_stages` to be defined
+        super().__setattr__("_stages", tuple(stages))
+        super().__setattr__("_expanded_stages", tuple(self._generate_expanded_stages()))
+        super().__init__()
+        self._validate_init_kwargs(kwargs)
+        for stage in set(self.expanded_stages):
+            pm = kwargs.get(stage, None)
+            setattr(self, stage, pm)
+
+    def _validate_stages(self, stages: Iterable[str]) -> None:
+        invalid_stages = [
+            stage for stage in stages if self.invalid_stage_regex.search(stage) is not None
+        ]
+        if invalid_stages:
+            with io.StringIO() as msg:
+                msg.write(f"The following stage names are not valid: {invalid_stages[0]}")
+                for invalid_stage in invalid_stages[1:]:
+                    msg.write(f", {invalid_stage}")
+                raise ValueError(msg.getvalue())
+
+    def _validate_init_kwargs(self, kwargs: Dict[str, Any]) -> None:
+        expanded_stages = set(self.expanded_stages)
+        for stage in kwargs.keys():
+            if stage not in expanded_stages:
+                raise AttributeError(f"{stage} is not a valid stage.")
+
+    @property
+    def stages(self) -> Tuple[str, ...]:
+        """Pass manager stages"""
+        return self._stages  # pylint: disable=no-member
+
+    @property
+    def expanded_stages(self) -> Tuple[str, ...]:
+        """Expanded Pass manager stages including ``pre_`` and ``post_`` phases."""
+        return self._expanded_stages  # pylint: disable=no-member
+
+    def _generate_expanded_stages(self) -> Iterator[str]:
+        for stage in self.stages:
+            yield "pre_" + stage
+            yield stage
+            yield "post_" + stage
+
+    def _update_passmanager(self) -> None:
+        self._pass_sets = []
+        for stage in self.expanded_stages:
+            pm = getattr(self, stage, None)
+            if pm is not None:
+                self._pass_sets.extend(pm._pass_sets)
+
+    def __setattr__(self, attr, value):
+        if value == self and attr in self.expanded_stages:
+            raise TranspilerError("Recursive definition of StagedPassManager disallowed.")
+        super().__setattr__(attr, value)
+        if attr in self.expanded_stages:
+            self._update_passmanager()
+
+    def append(
+        self,
+        passes: Union[BasePass, List[BasePass]],
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
+    ) -> None:
+        raise NotImplementedError
+
+    def replace(
+        self,
+        index: int,
+        passes: Union[BasePass, List[BasePass]],
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
+    ) -> None:
+        raise NotImplementedError
+
+    # Raise NotImplemntedError on individual pass manipulation
+    def remove(self, index: int) -> None:
+        raise NotImplementedError
+
+    def __getitem__(self, index):
+        self._update_passmanager()
+        return super().__getitem__(index)
+
+    def __len__(self):
+        self._update_passmanager()
+        return super().__len__()
+
+    def __setitem__(self, index, item):
+        raise NotImplementedError
+
+    def __add__(self, other):
+        raise NotImplementedError
+
+    def _create_running_passmanager(self) -> RunningPassManager:
+        self._update_passmanager()
+        return super()._create_running_passmanager()
+
+    def passes(self) -> List[Dict[str, BasePass]]:
+        self._update_passmanager()
+        return super().passes()
+
+    def run(
+        self,
+        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+        output_name: str = None,
+        callback: Callable = None,
+    ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        self._update_passmanager()
+        return super().run(circuits, output_name, callback)

@@ -131,9 +131,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # Get phase shift
         phase = self._phase + other._phase
         if front:
-            phase += 2 * np.sum(np.logical_and(x1, z2), axis=1)
+            phase += 2 * _count_y(x1, z2, dtype=phase.dtype)
         else:
-            phase += 2 * np.sum(np.logical_and(z1, x2), axis=1)
+            phase += 2 * _count_y(x2, z1, dtype=phase.dtype)
 
         # Update Pauli
         x = np.logical_xor(x1, x2)
@@ -185,7 +185,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     def transpose(self):
         """Return the transpose of each Pauli in the list."""
         # Transpose sets Y -> -Y. This has effect on changing the phase
-        parity_y = self._count_y() % 2
+        parity_y = self._count_y(dtype=self._phase.dtype) % 2
         if np.all(parity_y == 0):
             return self
         return BasePauli(self._z, self._x, np.mod(self._phase + 2 * parity_y, 4))
@@ -219,8 +219,8 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             x1, z1 = self._x[:, inds], self._z[:, inds]
         else:
             x1, z1 = self._x, self._z
-        a_dot_b = np.mod(np.sum(np.logical_and(x1, other._z), axis=1), 2)
-        b_dot_a = np.mod(np.sum(np.logical_and(z1, other._x), axis=1), 2)
+        a_dot_b = np.mod(_count_y(x1, other._z), 2)
+        b_dot_a = np.mod(_count_y(other._x, z1), 2)
         return a_dot_b == b_dot_a
 
     def evolve(self, other, qargs=None, frame="h"):
@@ -279,43 +279,41 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
+
         """Heisenberg picture evolution of a Pauli by a Clifford."""
-        if qargs is None:
-            idx = slice(None)
-            num_act = self.num_qubits
-        else:
-            idx = list(qargs)
-            num_act = len(idx)
 
-        # Set return to I on qargs
-        ret = self.copy()
-        ret._x[:, idx] = False
-        ret._z[:, idx] = False
-
-        # pylint: disable=cyclic-import
-        from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-
-        # Get action of Pauli's from Clifford
         if frame == "s":
-            adj = other.copy()
+            adj = other
         else:
             adj = other.adjoint()
-        pauli_list = []
-        for z in self._z[:, idx]:
-            pauli = Pauli("I" * num_act)
-            for row in adj.stabilizer[z]:
-                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
-            pauli_list.append(pauli)
-        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
 
-        pauli_list = []
-        for x in self._x[:, idx]:
-            pauli = Pauli("I" * num_act)
-            for row in adj.destabilizer[x]:
-                pauli.compose(Pauli((row.Z[0], row.X[0], 2 * row.phase[0])), inplace=True)
-            pauli_list.append(pauli)
-        ret.dot(PauliList(pauli_list), qargs=qargs, inplace=True)
+        if qargs is None:
+            qargs_ = slice(None)
+        else:
+            qargs_ = list(qargs)
+
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
+
+        num_paulis = self._x.shape[0]
+
+        ret = self.copy()
+        ret._x[:, qargs_] = False
+        ret._z[:, qargs_] = False
+
+        idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
+        for idx_, row in zip(
+            idx.T,
+            PauliList.from_symplectic(z=adj.z, x=adj.x, phase=2 * adj.phase),
+        ):
+            # most of the logic below is to properly index if self is a PauliList (2D),
+            # while not trying to index if the object is just a Pauli (1D).
+            if idx_.any():
+                if np.sum(idx_) == num_paulis:
+                    ret.compose(row, qargs=qargs, inplace=True)
+                else:
+                    ret[idx_] = ret[idx_].compose(row, qargs=qargs)
+
         return ret
 
     def _eq(self, other):
@@ -339,9 +337,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         ret._phase = np.mod(self._phase + 2, 4)
         return ret
 
-    def _count_y(self):
+    def _count_y(self, dtype=None):
         """Count the number of I Pauli's"""
-        return np.sum(np.logical_and(self._x, self._z), axis=1)
+        return _count_y(self._x, self._z, dtype=dtype)
 
     @staticmethod
     def _stack(array, size, vertical=True):
@@ -390,7 +388,8 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             raise QiskitError("z and x vectors are different size.")
 
         # Convert group phase convention to internal ZX-phase conversion.
-        base_phase = np.mod(np.sum(np.logical_and(base_x, base_z), axis=1, dtype=int) + phase, 4)
+        dtype = getattr(phase, "dtype", None)
+        base_phase = np.mod(_count_y(base_x, base_z, dtype=dtype) + phase, 4)
         return base_z, base_x, base_phase
 
     @staticmethod
@@ -474,6 +473,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
                             for the label from the full Pauli group.
         """
         num_qubits = z.size
+        phase = int(phase)
         coeff_labels = {0: "", 1: "-i", 2: "-", 3: "i"}
         label = ""
         for i in range(num_qubits):
@@ -576,14 +576,14 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             for index, bit in enumerate(bits)
         }
 
-        for instr, qregs, cregs in flat_instr:
-            if cregs:
+        for instruction in flat_instr:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply Instruction with classical registers: {instr.name}"
+                    f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
-            new_qubits = [qargs[bit_indices[tup]] for tup in qregs]
-            self._append_circuit(instr, new_qubits)
+            new_qubits = [qargs[bit_indices[tup]] for tup in instruction.qubits]
+            self._append_circuit(instruction.operation, new_qubits)
 
         # Since the individual gate evolution functions don't take mod
         # of phase we update it at the end
@@ -602,7 +602,7 @@ def _evolve_h(base_pauli, qubit):
     z = base_pauli._z[:, qubit].copy()
     base_pauli._x[:, qubit] = z
     base_pauli._z[:, qubit] = x
-    base_pauli._phase += 2 * np.logical_and(x, z).T
+    base_pauli._phase += 2 * np.logical_and(x, z).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -610,7 +610,7 @@ def _evolve_s(base_pauli, qubit):
     """Update P -> S.P.Sdg"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
-    base_pauli._phase += x.T
+    base_pauli._phase += x.T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -618,7 +618,7 @@ def _evolve_sdg(base_pauli, qubit):
     """Update P -> Sdg.P.S"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
-    base_pauli._phase -= x.T
+    base_pauli._phase -= x.T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -630,19 +630,21 @@ def _evolve_i(base_pauli, qubit):
 
 def _evolve_x(base_pauli, qubit):
     """Update P -> X.P.X"""
-    base_pauli._phase += 2 * base_pauli._z[:, qubit].T
+    base_pauli._phase += 2 * base_pauli._z[:, qubit].T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
 def _evolve_y(base_pauli, qubit):
     """Update P -> Y.P.Y"""
-    base_pauli._phase += 2 * base_pauli._x[:, qubit].T + 2 * base_pauli._z[:, qubit].T
+    xp = base_pauli._x[:, qubit].T.astype(base_pauli._phase.dtype)
+    zp = base_pauli._z[:, qubit].T.astype(base_pauli._phase.dtype)
+    base_pauli._phase += 2 * (xp + zp)
     return base_pauli
 
 
 def _evolve_z(base_pauli, qubit):
     """Update P -> Z.P.Z"""
-    base_pauli._phase += 2 * base_pauli._x[:, qubit].T
+    base_pauli._phase += 2 * base_pauli._x[:, qubit].T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -659,7 +661,7 @@ def _evolve_cz(base_pauli, q1, q2):
     x2 = base_pauli._x[:, q2].copy()
     base_pauli._z[:, q1] ^= x2
     base_pauli._z[:, q2] ^= x1
-    base_pauli._phase += 2 * np.logical_and(x1, x2).T
+    base_pauli._phase += 2 * np.logical_and(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -671,7 +673,7 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
     base_pauli._x[:, qtrgt] ^= x1
     base_pauli._z[:, qtrgt] ^= x1
     base_pauli._z[:, qctrl] ^= np.logical_xor(x2, z2)
-    base_pauli._phase += x1 + 2 * np.logical_and(x1, x2).T
+    base_pauli._phase += x1 + 2 * np.logical_and(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -684,3 +686,8 @@ def _evolve_swap(base_pauli, q1, q2):
     base_pauli._x[:, q2] = x1
     base_pauli._z[:, q2] = z1
     return base_pauli
+
+
+def _count_y(x, z, dtype=None):
+    """Count the number of I Pauli's"""
+    return (x & z).sum(axis=1, dtype=dtype)

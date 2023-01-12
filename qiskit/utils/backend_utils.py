@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 _UNSUPPORTED_BACKENDS = ["unitary_simulator", "clifford_simulator"]
 
-# pylint: disable=no-name-in-module, import-error, unused-import
+# pylint: disable=no-name-in-module,unused-import
 
 
 class ProviderCheck:
@@ -37,10 +37,6 @@ _PROVIDER_CHECK = ProviderCheck()
 def _get_backend_interface_version(backend):
     """Get the backend version int."""
     backend_interface_version = getattr(backend, "version", None)
-    # Handle deprecated BaseBackend based backends which have a version()
-    # method
-    if not isinstance(backend_interface_version, int):
-        backend_interface_version = 0
     return backend_interface_version
 
 
@@ -90,7 +86,7 @@ def is_aer_provider(backend):
     """Detect whether or not backend is from Aer provider.
 
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
     Returns:
         bool: True is AerProvider
     """
@@ -110,7 +106,7 @@ def is_basicaer_provider(backend):
     """Detect whether or not backend is from BasicAer provider.
 
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
     Returns:
         bool: True is BasicAer
     """
@@ -123,7 +119,7 @@ def is_ibmq_provider(backend):
     """Detect whether or not backend is from IBMQ provider.
 
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
     Returns:
         bool: True is IBMQ
     """
@@ -140,7 +136,7 @@ def is_aer_statevector_backend(backend):
     Return True if backend object is statevector and from Aer provider.
 
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
     Returns:
         bool: True is statevector
     """
@@ -152,7 +148,7 @@ def is_statevector_backend(backend):
     Return True if backend object is statevector.
 
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
     Returns:
         bool: True is statevector
     """
@@ -161,7 +157,7 @@ def is_statevector_backend(backend):
 
         if isinstance(backend, StatevectorSimulator):
             return True
-        if isinstance(backend, AerSimulator) and backend.name() == "aer_simulator_statevector":
+        if isinstance(backend, AerSimulator) and "aer_simulator_statevector" in backend.name():
             return True
     if backend is None:
         return False
@@ -177,7 +173,7 @@ def is_simulator_backend(backend):
     Return True if backend is a simulator.
 
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
     Returns:
         bool: True is a simulator
     """
@@ -192,7 +188,7 @@ def is_local_backend(backend):
     Return True if backend is a local backend.
 
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
     Returns:
         bool: True is a local backend
     """
@@ -206,7 +202,7 @@ def is_aer_qasm(backend):
     """
     Return True if backend is Aer Qasm simulator
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
 
     Returns:
         bool: True is Aer Qasm simulator
@@ -222,7 +218,7 @@ def support_backend_options(backend):
     """
     Return True if backend supports backend_options
     Args:
-        backend (BaseBackend): backend instance
+        backend (Backend): backend instance
 
     Returns:
         bool: True is support backend_options

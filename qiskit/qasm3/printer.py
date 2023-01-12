@@ -208,8 +208,19 @@ class BasicPrinter:
         self.visit(node.identifier)
         self._end_statement()
 
+    def _visit_QuantumDelay(self, node: ast.QuantumDelay) -> None:
+        self._start_line()
+        self.stream.write("delay[")
+        self.visit(node.duration)
+        self.stream.write("] ")
+        self._visit_sequence(node.qubits, separator=", ")
+        self._end_statement()
+
     def _visit_Integer(self, node: ast.Integer) -> None:
         self.stream.write(str(node.something))
+
+    def _visit_DurationLiteral(self, node: ast.DurationLiteral) -> None:
+        self.stream.write(f"{node.value}{node.unit.value}")
 
     def _visit_Designator(self, node: ast.Designator) -> None:
         self.stream.write("[")

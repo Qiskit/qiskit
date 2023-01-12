@@ -69,7 +69,7 @@ class UnitarySimulatorPy(BackendV1):
         "conditional": False,
         "open_pulse": False,
         "memory": False,
-        "max_shots": 65536,
+        "max_shots": 0,
         "coupling_map": None,
         "description": "A python simulator for unitary matrix corresponding to a circuit",
         "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
@@ -163,7 +163,7 @@ class UnitarySimulatorPy(BackendV1):
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if "initial_unitary" in backend_options:
+        if "initial_unitary" in backend_options and backend_options["initial_unitary"] is not None:
             self._initial_unitary = np.array(backend_options["initial_unitary"], dtype=complex)
         elif hasattr(qobj_config, "initial_unitary"):
             self._initial_unitary = np.array(qobj_config.initial_unitary, dtype=complex)
@@ -392,8 +392,6 @@ class UnitarySimulatorPy(BackendV1):
             for operation in experiment.instructions:
                 if operation.name in ["measure", "reset"]:
                     raise BasicAerError(
-                        'Unsupported "%s" instruction "%s" ' + 'in circuit "%s" ',
-                        self.name(),
-                        operation.name,
-                        name,
+                        f'Unsupported "{self.name()}" instruction "{operation.name}"'
+                        f' in circuit "{name}".'
                     )

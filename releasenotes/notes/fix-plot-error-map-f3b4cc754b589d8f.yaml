@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with the :class:`~.plot_error_map` visualization function
-    which prevented it from working when run with a backend that had readout
-    error defined in the provided backend's :class:`~.BackendProperties` or
-    when running with a :class:`~.BackendV2` backend.
-    Fixed `#7879 <https://github.com/Qiskit/qiskit-terra/issues/7879>`__

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,7 +19,9 @@ import numpy as np
 
 from qiskit.algorithms.optimizers import SPSA, QNSPSA
 from qiskit.circuit.library import PauliTwoDesign
-from qiskit.opflow import I, Z, StateFn
+from qiskit.primitives import Estimator, Sampler
+from qiskit.providers.basicaer import StatevectorSimulatorPy
+from qiskit.opflow import I, Z, StateFn, MatrixExpectation
 from qiskit.utils import algorithm_globals
 
 
@@ -69,7 +71,8 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         else:
             spsa = SPSA(**settings)
 
-        result = spsa.optimize(circuit.num_parameters, objective, initial_point=initial_point)
+        with self.assertWarns(DeprecationWarning):
+            result = spsa.optimize(circuit.num_parameters, objective, initial_point=initial_point)
 
         with self.subTest("check final accuracy"):
             self.assertLess(result[1], -0.95)  # final loss
@@ -84,7 +87,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             return -(x**2)
 
         spsa = SPSA(maxiter=1)
-        _ = spsa.optimize(1, objective, initial_point=np.array([0.5]))
+        _ = spsa.minimize(objective, x0=np.array([0.5]))
 
         self.assertIsNone(spsa.learning_rate)
         self.assertIsNone(spsa.perturbation)
@@ -114,9 +117,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             return (np.linalg.norm(x) - 2) ** 2
 
         spsa = SPSA(learning_rate=get_learning_rate(), perturbation=get_perturbation())
-        result, _, _ = spsa.optimize(1, objective, initial_point=np.array([0.5, 0.5]))
+        result = spsa.minimize(objective, np.array([0.5, 0.5]))
 
-        self.assertAlmostEqual(np.linalg.norm(result), 2, places=2)
+        self.assertAlmostEqual(np.linalg.norm(result.x), 2, places=2)
 
     def test_learning_rate_perturbation_as_arrays(self):
         """Test the learning rate and perturbation can be arrays."""
@@ -128,9 +131,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             return (np.linalg.norm(x) - 2) ** 2
 
         spsa = SPSA(learning_rate=learning_rate, perturbation=perturbation)
-        result, _, _ = spsa.optimize(1, objective, initial_point=np.array([0.5, 0.5]))
+        result = spsa.minimize(objective, x0=np.array([0.5, 0.5]))
 
-        self.assertAlmostEqual(np.linalg.norm(result), 2, places=2)
+        self.assertAlmostEqual(np.linalg.norm(result.x), 2, places=2)
 
     def test_termination_checker(self):
         """Test the termination_callback"""
@@ -153,9 +156,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
         maxiter = 400
         spsa = SPSA(maxiter=maxiter, termination_checker=TerminationChecker())
-        _, _, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
+        result = spsa.minimize(objective, x0=[0.5, 0.5])
 
-        self.assertLess(niter, maxiter)
+        self.assertLess(result.nit, maxiter)
 
     def test_callback(self):
         """Test using the callback."""
@@ -174,9 +177,81 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
         maxiter = 10
         spsa = SPSA(maxiter=maxiter, learning_rate=0.01, perturbation=0.01, callback=callback)
-        _ = spsa.optimize(1, objective, initial_point=np.array([0.5, 0.5]))
+        _ = spsa.minimize(objective, x0=np.array([0.5, 0.5]))
 
         expected_types = [int, np.ndarray, float, float, bool]
         for i, (key, values) in enumerate(history.items()):
             self.assertTrue(all(isinstance(value, expected_types[i]) for value in values))
             self.assertEqual(len(history[key]), maxiter)
+
+    @data(1, 2, 3, 4)
+    def test_estimate_stddev(self, max_evals_grouped):
+        """Test the estimate_stddev
+        See https://github.com/Qiskit/qiskit-nature/issues/797"""
+
+        def objective(x):
+            if len(x.shape) == 2:
+                return np.array([sum(x_i) for x_i in x])
+            return sum(x)
+
+        point = np.ones(5)
+        result = SPSA.estimate_stddev(objective, point, avg=10, max_evals_grouped=max_evals_grouped)
+        self.assertAlmostEqual(result, 0)
+
+    def test_qnspsa_fidelity_deprecation(self):
+        """Test using a backend and expectation converter in get_fidelity warns."""
+        ansatz = PauliTwoDesign(2, reps=1, seed=2)
+
+        with self.assertWarns(DeprecationWarning):
+            _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
+
+    def test_qnspsa_fidelity_primitives(self):
+        """Test the primitives can be used in get_fidelity."""
+        ansatz = PauliTwoDesign(2, reps=1, seed=2)
+        initial_point = np.random.random(ansatz.num_parameters)
+
+        with self.subTest(msg="pass as kwarg"):
+            fidelity = QNSPSA.get_fidelity(ansatz, sampler=Sampler())
+            result = fidelity(initial_point, initial_point)
+
+            self.assertAlmostEqual(result[0], 1)
+
+        # this test can be removed once backend and expectation are removed
+        with self.subTest(msg="pass positionally"):
+            fidelity = QNSPSA.get_fidelity(ansatz, Sampler())
+            result = fidelity(initial_point, initial_point)
+
+            self.assertAlmostEqual(result[0], 1)
+
+    def test_qnspsa_max_evals_grouped(self):
+        """Test using max_evals_grouped with QNSPSA."""
+        circuit = PauliTwoDesign(3, reps=1, seed=1)
+        num_parameters = circuit.num_parameters
+        obs = Z ^ Z ^ I
+
+        estimator = Estimator(options={"seed": 12})
+
+        initial_point = np.array(
+            [0.82311034, 0.02611798, 0.21077064, 0.61842177, 0.09828447, 0.62013131]
+        )
+
+        def objective(x):
+            x = np.reshape(x, (-1, num_parameters)).tolist()
+            n = len(x)
+            return estimator.run(n * [circuit], n * [obs.primitive], x).result().values.real
+
+        fidelity = QNSPSA.get_fidelity(circuit)
+        optimizer = QNSPSA(fidelity)
+        optimizer.maxiter = 1
+        optimizer.learning_rate = 0.05
+        optimizer.perturbation = 0.05
+        optimizer.set_max_evals_grouped(50)  # greater than 1
+
+        result = optimizer.minimize(objective, initial_point)
+
+        with self.subTest("check final accuracy"):
+            self.assertAlmostEqual(result.fun[0], 0.473, places=3)
+
+        with self.subTest("check number of function calls"):
+            expected_nfev = 8  # 7 * maxiter + 1
+            self.assertEqual(result.nfev, expected_nfev)

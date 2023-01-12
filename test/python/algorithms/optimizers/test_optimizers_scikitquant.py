@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,17 +13,21 @@
 """ Test of scikit-quant optimizers. """
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit import BasicAer
+
+from ddt import ddt, data, unpack
+
+import numpy
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils import algorithm_globals
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import PauliSumOp
-from qiskit.algorithms import VQE
+from qiskit.algorithms.minimum_eigensolvers import VQE
+from qiskit.primitives import Estimator
 from qiskit.algorithms.optimizers import BOBYQA, SNOBFIT, IMFIL
 
 
+@ddt
 class TestOptimizers(QiskitAlgorithmsTestCase):
     """Test scikit-quant optimizers."""
 
@@ -43,12 +47,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
 
     def _optimize(self, optimizer):
         """launch vqe"""
-        qe = QuantumInstance(
-            BasicAer.get_backend("statevector_simulator"),
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-        )
-        vqe = VQE(ansatz=RealAmplitudes(), optimizer=optimizer, quantum_instance=qe)
+        vqe = VQE(Estimator(), ansatz=RealAmplitudes(), optimizer=optimizer)
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=1)
 
@@ -60,11 +59,34 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
+    @unittest.skipIf(
+        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
+    )
     def test_snobfit(self):
         """SNOBFIT optimizer test."""
         try:
             optimizer = SNOBFIT(maxiter=100, maxfail=100, maxmp=20)
             self._optimize(optimizer)
+        except MissingOptionalLibraryError as ex:
+            self.skipTest(str(ex))
+
+    @unittest.skipIf(
+        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
+    )
+    @data((None,), ([(-1, 1), (None, None)],))
+    @unpack
+    def test_snobfit_missing_bounds(self, bounds):
+        """SNOBFIT optimizer test with missing bounds."""
+        try:
+            optimizer = SNOBFIT()
+            with self.assertRaises(ValueError):
+                optimizer.minimize(
+                    fun=lambda _: 1,  # using dummy function (never called)
+                    x0=[0.1, 0.1],  # dummy initial point
+                    bounds=bounds,
+                )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 

@@ -23,8 +23,8 @@ from numpy import pi
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.test.mock import FakeTenerife
-from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
+from qiskit.providers.fake_provider import FakeTenerife
+from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (
     XGate,
     MCXGate,
@@ -547,9 +547,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="global_phase.png")
 
-    def test_iqx_colors(self):
-        """Tests with iqx color scheme"""
-        for style in ["iqx", "iqx-dark"]:
+    def test_alternative_colors(self):
+        """Tests alternative color schemes"""
+        for style in ["iqx", "iqx-dark", "textbook"]:
             with self.subTest(style=style):
                 circuit = QuantumCircuit(7)
                 circuit.h(0)
@@ -895,6 +895,41 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 29)
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
         self.circuit_drawer(circuit, cregbundle=False, filename="fold_with_conditions.png")
+
+    def test_idle_wires_barrier(self):
+        """Test that idle_wires False works with barrier"""
+        circuit = QuantumCircuit(4, 4)
+        circuit.x(2)
+        circuit.barrier()
+        self.circuit_drawer(circuit, cregbundle=False, filename="idle_wires_barrier.png")
+
+    def test_wire_order(self):
+        """Test the wire_order option"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "cx")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        circuit.x(3).c_if(cr, 10)
+        self.circuit_drawer(
+            circuit,
+            cregbundle=False,
+            wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
+            filename="wire_order.png",
+        )
+
+    def test_barrier_label(self):
+        """Test the barrier label"""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(0)
+        circuit.x(1)
+        circuit.barrier(label="End Y/X")
+        self.circuit_drawer(circuit, filename="barrier_label.png")
 
 
 if __name__ == "__main__":

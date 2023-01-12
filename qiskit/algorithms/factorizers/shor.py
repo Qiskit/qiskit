@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,12 +25,12 @@ from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import Gate, Instruction, ParameterVector
 from qiskit.circuit.library import QFT
 from qiskit.providers import Backend
-from qiskit.providers import BaseBackend
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import summarize_circuits
 from qiskit.utils.arithmetic import is_power
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
+from qiskit.utils.deprecation import deprecate_function
 from ..algorithm_result import AlgorithmResult
 from ..exceptions import AlgorithmError
 
@@ -41,7 +41,12 @@ logger = logging.getLogger(__name__)
 
 
 class Shor:
-    """Shor's factoring algorithm.
+    """The deprecated Shor's factoring algorithm.
+
+    The Shor class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+    It is replaced by the tutorial at
+    `Shor <https://qiskit.org/textbook/ch-algorithms/shor.html>`_
 
     Shor's Factoring algorithm is one of the most well-known quantum algorithms and finds the
     prime factors for input integer :math:`N` in polynomial time.
@@ -51,9 +56,13 @@ class Shor:
     See also https://arxiv.org/abs/quant-ph/0205095
     """
 
-    def __init__(
-        self, quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None
-    ) -> None:
+    @deprecate_function(
+        """The Shor class is deprecated as of Qiskit Terra 0.22.0 and will be removed
+        no sooner than 3 months after the release date.
+        It is replaced by the tutorial at https://qiskit.org/textbook/ch-algorithms/shor.html
+        """
+    )
+    def __init__(self, quantum_instance: Optional[Union[QuantumInstance, Backend]] = None) -> None:
         """
         Args:
             quantum_instance: Quantum Instance or Backend
@@ -69,11 +78,9 @@ class Shor:
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Sets quantum instance."""
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
@@ -485,7 +492,7 @@ class Shor:
 
 
 class ShorResult(AlgorithmResult):
-    """Shor Result."""
+    """The deprecated Shor Result."""
 
     def __init__(self) -> None:
         super().__init__()

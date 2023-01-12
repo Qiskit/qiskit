@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,7 +16,6 @@ from typing import Tuple, Union, List
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.eigen_solvers.eigen_solver import ListOrDict
 from qiskit.opflow import (
     CircuitSampler,
     ListOp,
@@ -24,13 +23,22 @@ from qiskit.opflow import (
     OperatorBase,
     ExpectationBase,
 )
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
+
+from .list_or_dict import ListOrDict
 
 
+@deprecate_function(
+    "The eval_observables function is deprecated as of Qiskit Terra 0.23.0 and "
+    "will be removed no sooner than 3 months after the release date. Instead, use "
+    "qiskit.algorithms.observables_evaluator.estimate_observables function as a replacement.",
+    category=DeprecationWarning,
+)
 def eval_observables(
-    quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+    quantum_instance: Union[QuantumInstance, Backend],
     quantum_state: Union[
         Statevector,
         QuantumCircuit,
@@ -41,9 +49,15 @@ def eval_observables(
     threshold: float = 1e-12,
 ) -> ListOrDict[Tuple[complex, complex]]:
     """
-    Accepts a list or a dictionary of operators and calculates their expectation values - means
+    Deprecated: Accepts a list or a dictionary of operators and calculates
+    their expectation values - means
     and standard deviations. They are calculated with respect to a quantum state provided. A user
     can optionally provide a threshold value which filters mean values falling below the threshold.
+
+    This function has been superseded by the
+    :func:`qiskit.algorithms.observables_evaluator.eval_observables` function.
+    It will be deprecated in a future release and subsequently
+    removed after that.
 
     Args:
         quantum_instance: A quantum instance used for calculations.
@@ -160,7 +174,7 @@ def _compute_std_devs(
     observables_expect_sampled: OperatorBase,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
-    quantum_instance: Union[QuantumInstance, BaseBackend, Backend],
+    quantum_instance: Union[QuantumInstance, Backend],
 ) -> List[complex]:
     """
     Calculates a list of standard deviations from expectation values of observables provided.

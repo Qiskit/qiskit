@@ -38,7 +38,8 @@ defined as:
    |\\psi\\rangle = \\left(|000\\rangle+|111\\rangle\\right)/\\sqrt{2}
 
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    from qiskit import QuantumCircuit
    # Create a circuit with a register of three qubits
@@ -50,11 +51,79 @@ defined as:
    # CX (CNOT) gate on control qubit 0 and target qubit 2 resulting in a GHZ state.
    circ.cx(0, 2)
    # Draw the circuit
-   circ.draw()
+   circ.draw('mpl')
 
 
 Supplementary Information
 =========================
+
+.. dropdown:: Quantum Circuit with conditionals
+   :animate: fade-in-slide-down
+
+   When building a quantum circuit, there can be interest in applying a certain gate only
+   if a classical register has a specific value. This can be done with the
+   :meth:`InstructionSet.c_if` method.
+
+   In the following example, we start with a single-qubit circuit formed by only a Hadamard gate
+   (:class:`~.HGate`), in which we expect to get :math:`|0\\rangle` and :math:`|1\\rangle`
+   with equal probability.
+
+   .. plot::
+      :include-source:
+
+      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+
+      qr = QuantumRegister(1)
+      cr = ClassicalRegister(1)
+      qc = QuantumCircuit(qr, cr)
+      qc.h(0)
+      qc.measure(0, 0)
+      qc.draw('mpl')
+
+   .. code-block::
+
+      backend = BasicAer.get_backend('qasm_simulator')
+      tqc = transpile(qc, backend)
+      counts = backend.run(tqc).result().get_counts()
+
+      print(counts)
+
+   .. parsed-literal::
+
+      {'0': 524, '1': 500}
+
+   Now, we add an :class:`~.XGate` only if the value of the :class:`~.ClassicalRegister` is 0.
+   That way, if the state is :math:`|0\\rangle`, it will be changed to :math:`|1\\rangle` and
+   if the state is :math:`|1\\rangle`, it will not be changed at all, so the final state will
+   always be :math:`|1\\rangle`.
+
+   .. plot::
+      :include-source:
+
+      from qiskit import BasicAer, transpile, QuantumRegister, ClassicalRegister, QuantumCircuit
+
+      qr = QuantumRegister(1)
+      cr = ClassicalRegister(1)
+      qc = QuantumCircuit(qr, cr)
+      qc.h(0)
+      qc.measure(0, 0)
+
+      qc.x(0).c_if(cr, 0)
+      qc.measure(0, 0)
+
+      qc.draw('mpl')
+
+   .. code-block::
+
+      backend = BasicAer.get_backend('qasm_simulator')
+      tqc = transpile(qc, backend)
+      counts = backend.run(tqc).result().get_counts()
+
+      print(counts)
+
+   .. parsed-literal::
+
+      {'1': 1024}
 
 .. dropdown:: Quantum Circuit Properties
    :animate: fade-in-slide-down
@@ -68,7 +137,8 @@ Supplementary Information
 
    Consider the following circuit:
 
-   .. jupyter-execute::
+   .. plot::
+      :include-source:
 
       from qiskit import QuantumCircuit
       qc = QuantumCircuit(12)
@@ -85,24 +155,30 @@ Supplementary Information
       qc.swap(6, 9)
       qc.swap(6, 10)
       qc.x(6)
-      qc.draw()
+      qc.draw('mpl')
 
    From the plot, it is easy to see that this circuit has 12 qubits, and a collection of
    Hadamard, CNOT, X, and SWAP gates.  But how to quantify this programmatically? Because we
    can do single-qubit gates on all the qubits simultaneously, the number of qubits in this
    circuit is equal to the **width** of the circuit:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.width()
 
+   .. parsed-literal::
+
+      12
 
    We can also just get the number of qubits directly:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.num_qubits
 
+   .. parsed-literal::
+
+      12
 
    .. important::
 
@@ -116,18 +192,24 @@ Supplementary Information
    It is also straightforward to get the number and type of the gates in a circuit using
    :meth:`QuantumCircuit.count_ops`:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.count_ops()
 
+   .. parsed-literal::
+
+      OrderedDict([('cx', 8), ('h', 5), ('x', 3), ('swap', 3)])
 
    We can also get just the raw count of operations by computing the circuits
    :meth:`QuantumCircuit.size`:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.size()
 
+   .. parsed-literal::
+
+      19
 
    A particularly important circuit property is known as the circuit **depth**.  The depth
    of a quantum circuit is a measure of how many "layers" of quantum gates, executed in
@@ -152,10 +234,13 @@ Supplementary Information
 
    We can verify our graphical result using :meth:`QuantumCircuit.depth`:
 
-   .. jupyter-execute::
+   .. code-block::
 
       qc.depth()
 
+   .. parsed-literal::
+
+      9
 
    .. raw:: html
 
@@ -177,6 +262,7 @@ Quantum Circuit Construction
    Clbit
    AncillaRegister
    AncillaQubit
+   CircuitInstruction
 
 Gates and Instructions
 ----------------------
@@ -187,11 +273,9 @@ Gates and Instructions
    Gate
    ControlledGate
    Delay
-   Barrier
-   Measure
-   Reset
    Instruction
    InstructionSet
+   Operation
    EquivalenceLibrary
 
 Control Flow Operations
@@ -234,6 +318,7 @@ from .gate import Gate
 from .controlledgate import ControlledGate
 from .instruction import Instruction
 from .instructionset import InstructionSet
+from .operation import Operation
 from .barrier import Barrier
 from .delay import Delay
 from .measure import Measure
@@ -241,9 +326,10 @@ from .reset import Reset
 from .parameter import Parameter
 from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
+from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
-from .classicalfunction.types import Int1, Int2
-from .classicalfunction import classical_function, BooleanExpression
+from . import library
+from .commutation_checker import CommutationChecker
 
 from .controlflow import (
     ControlFlowOp,
@@ -253,3 +339,28 @@ from .controlflow import (
     BreakLoopOp,
     ContinueLoopOp,
 )
+
+
+_DEPRECATED_NAMES = {
+    "Int1": "qiskit.circuit.classicalfunction.types",
+    "Int2": "qiskit.circuit.classicalfunction.types",
+    "classical_function": "qiskit.circuit.classicalfunction",
+    "BooleanExpression": "qiskit.circuit.classicalfunction",
+}
+
+
+def __getattr__(name):
+    if name in _DEPRECATED_NAMES:
+        import importlib
+        import warnings
+
+        module_name = _DEPRECATED_NAMES[name]
+        warnings.warn(
+            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.22 "
+            f"and will be removed in 0.23.  Import from '{module_name}' instead. "
+            "This will require installing 'tweedledum' as an optional dependency from Terra 0.23.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return getattr(importlib.import_module(module_name), name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

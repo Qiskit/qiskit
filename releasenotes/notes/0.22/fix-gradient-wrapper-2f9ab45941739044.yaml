@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed issues with the :func:`.DerivativeBase.gradient_wrapper` method
+    when reusing a circuit sampler between the calls and binding nested
+    parameters.

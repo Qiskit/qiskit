@@ -12,17 +12,34 @@
 
 """Test the VF2Layout pass"""
 
+import io
+import pickle
 import unittest
-import numpy
-import retworkx
+from math import pi
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.transpiler import CouplingMap, Layout, Target, TranspilerError
+import ddt
+import numpy
+import rustworkx
+
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import ControlFlowOp
+from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
+from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon, FakeManhattan, FakeYorktown
-from qiskit.circuit.library import GraphState, CXGate
+from qiskit.providers.fake_provider import (
+    FakeTenerife,
+    FakeVigoV2,
+    FakeRueschlikon,
+    FakeManhattan,
+    FakeYorktown,
+    FakeGuadalupeV2,
+)
+from qiskit.circuit.library import GraphState, CXGate, XGate
+from qiskit.transpiler import PassManager, AnalysisPass
+from qiskit.transpiler.target import InstructionProperties
+from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
 
 
 class LayoutTestCase(QiskitTestCase):
@@ -37,19 +54,33 @@ class LayoutTestCase(QiskitTestCase):
 
         layout = property_set["layout"]
         edges = coupling_map.graph.edge_list()
-        for gate in dag.two_qubit_ops():
-            if dag.has_calibration_for(gate):
-                continue
-            physical_q0 = layout[gate.qargs[0]]
-            physical_q1 = layout[gate.qargs[1]]
 
-            if strict_direction:
-                result = (physical_q0, physical_q1) in edges
-            else:
-                result = (physical_q0, physical_q1) in edges or (physical_q1, physical_q0) in edges
-            self.assertTrue(result)
+        def run(dag, wire_map):
+            for gate in dag.two_qubit_ops():
+                if dag.has_calibration_for(gate) or isinstance(gate.op, ControlFlowOp):
+                    continue
+                physical_q0 = wire_map[gate.qargs[0]]
+                physical_q1 = wire_map[gate.qargs[1]]
+
+                if strict_direction:
+                    result = (physical_q0, physical_q1) in edges
+                else:
+                    result = (physical_q0, physical_q1) in edges or (
+                        physical_q1,
+                        physical_q0,
+                    ) in edges
+                self.assertTrue(result)
+            for node in dag.op_nodes(ControlFlowOp):
+                for block in node.op.blocks:
+                    inner_wire_map = {
+                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
+                    }
+                    run(circuit_to_dag(block), inner_wire_map)
+
+        run(dag, {bit: layout[bit] for bit in dag.qubits})
 
 
+@ddt.ddt
 class TestVF2LayoutSimple(LayoutTestCase):
     """Tests the VF2Layout pass"""
 
@@ -85,6 +116,33 @@ class TestVF2LayoutSimple(LayoutTestCase):
         pass_.run(dag)
         self.assertLayout(dag, cmap, pass_.property_set, strict_direction=True)
 
+    @ddt.data(True, False)
+    def test_2q_circuit_simple_control_flow(self, strict_direction):
+        """Test that simple control-flow can be routed on a 2q coupling map."""
+        cmap = CouplingMap([(0, 1)])
+        circuit = QuantumCircuit(2)
+        with circuit.for_loop((1,)):
+            circuit.cx(1, 0)
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(cmap, strict_direction=strict_direction, seed=self.seed, max_trials=1)
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set, strict_direction=strict_direction)
+
+    @ddt.data(True, False)
+    def test_2q_circuit_nested_control_flow(self, strict_direction):
+        """Test that simple control-flow can be routed on a 2q coupling map."""
+        cmap = CouplingMap([(0, 1)])
+        circuit = QuantumCircuit(2, 1)
+        with circuit.while_loop((circuit.clbits[0], True)):
+            with circuit.if_test((circuit.clbits[0], True)) as else_:
+                circuit.cx(1, 0)
+            with else_:
+                circuit.cx(1, 0)
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(cmap, strict_direction=strict_direction, seed=self.seed, max_trials=1)
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set, strict_direction=strict_direction)
+
     def test_3q_circuit_3q_coupling_non_induced(self):
         """A simple example, check for non-induced subgraph
             1         qr0 -> qr1 -> qr2
@@ -97,6 +155,28 @@ class TestVF2LayoutSimple(LayoutTestCase):
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])  # qr0-> qr1
         circuit.cx(qr[1], qr[2])  # qr1-> qr2
+
+        dag = circuit_to_dag(circuit)
+        pass_ = VF2Layout(cmap, seed=-1, max_trials=1)
+        pass_.run(dag)
+        self.assertLayout(dag, cmap, pass_.property_set)
+
+    def test_3q_circuit_3q_coupling_non_induced_control_flow(self):
+        r"""A simple example, check for non-induced subgraph
+            1         qr0 -> qr1 -> qr2
+           / \
+          0 - 2
+        """
+        cmap = CouplingMap([[0, 1], [1, 2], [2, 0]])
+
+        circuit = QuantumCircuit(3, 1)
+        with circuit.for_loop((1,)):
+            circuit.cx(0, 1)  # qr0-> qr1
+        with circuit.if_test((circuit.clbits[0], True)) as else_:
+            pass
+        with else_:
+            with circuit.while_loop((circuit.clbits[0], True)):
+                circuit.cx(1, 2)  # qr1-> qr2
 
         dag = circuit_to_dag(circuit)
         pass_ = VF2Layout(cmap, seed=-1, max_trials=1)
@@ -142,6 +222,34 @@ class TestVF2LayoutSimple(LayoutTestCase):
         with self.assertRaises(TranspilerError):
             vf2_pass.run(dag)
 
+    def test_target_no_error(self):
+        """Test that running vf2layout on a pass against a target with no error rates works."""
+        n_qubits = 15
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        vf2_pass = VF2Layout(target=target)
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
+
+    def test_target_some_error(self):
+        """Test that running vf2layout on a pass against a target with some error rates works."""
+        n_qubits = 15
+        target = Target()
+        target.add_instruction(
+            XGate(), {(i,): InstructionProperties(error=0.00123) for i in range(n_qubits)}
+        )
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        vf2_pass = VF2Layout(target=target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
+
 
 class TestVF2LayoutLattice(LayoutTestCase):
     """Fit in 25x25 hexagonal lattice coupling map"""
@@ -150,12 +258,12 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
     def graph_state_from_pygraph(self, graph):
         """Creates a GraphState circuit from a PyGraph"""
-        adjacency_matrix = retworkx.adjacency_matrix(graph)
+        adjacency_matrix = rustworkx.adjacency_matrix(graph)
         return GraphState(adjacency_matrix).decompose()
 
     def test_hexagonal_lattice_graph_20_in_25(self):
         """A 20x20 interaction map in 25x25 coupling map"""
-        graph_20_20 = retworkx.generators.hexagonal_lattice_graph(20, 20)
+        graph_20_20 = rustworkx.generators.hexagonal_lattice_graph(20, 20)
         circuit = self.graph_state_from_pygraph(graph_20_20)
 
         dag = circuit_to_dag(circuit)
@@ -165,7 +273,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
     def test_hexagonal_lattice_graph_9_in_25(self):
         """A 9x9 interaction map in 25x25 coupling map"""
-        graph_9_9 = retworkx.generators.hexagonal_lattice_graph(9, 9)
+        graph_9_9 = rustworkx.generators.hexagonal_lattice_graph(9, 9)
         circuit = self.graph_state_from_pygraph(graph_9_9)
 
         dag = circuit_to_dag(circuit)
@@ -311,6 +419,52 @@ class TestVF2LayoutBackend(LayoutTestCase):
         pass_.run(dag)
         self.assertLayout(dag, cmap5, pass_.property_set)
 
+    def test_3q_circuit_vigo_with_custom_scores(self):
+        """Test custom ErrorMap from analysis pass are used for scoring."""
+        backend = FakeVigoV2()
+        target = backend.target
+
+        class FakeScore(AnalysisPass):
+            """Fake analysis pass with custom scoring."""
+
+            def run(self, dag):
+                error_map = ErrorMap(9)
+                error_map.add_error((0, 0), 0.1)
+                error_map.add_error((0, 1), 0.5)
+                error_map.add_error((1, 1), 0.2)
+                error_map.add_error((1, 2), 0.8)
+                error_map.add_error((1, 3), 0.75)
+                error_map.add_error((2, 2), 0.123)
+                error_map.add_error((3, 3), 0.333)
+                error_map.add_error((3, 4), 0.12345423)
+                error_map.add_error((4, 4), 0.2222)
+                self.property_set["vf2_avg_error_map"] = error_map
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        circuit.cx(qr[0], qr[2])  # qr0 -> qr2
+
+        vf2_pass = VF2Layout(target=target, seed=1234568942)
+        property_set = {}
+        vf2_pass(circuit, property_set)
+        pm = PassManager([FakeScore(), VF2Layout(target=target, seed=1234568942)])
+        pm.run(circuit)
+        # Assert layout is different from backend properties
+        self.assertNotEqual(property_set["layout"], pm.property_set["layout"])
+        self.assertLayout(circuit_to_dag(circuit), backend.coupling_map, pm.property_set)
+
+    def test_error_map_pickle(self):
+        """Test that the `ErrorMap` Rust structure correctly pickles and depickles."""
+        errors = {(0, 1): 0.2, (1, 0): 0.2, (0, 0): 0.05, (1, 1): 0.02}
+        error_map = ErrorMap.from_dict(errors)
+        with io.BytesIO() as fptr:
+            pickle.dump(error_map, fptr)
+            fptr.seek(0)
+            loaded = pickle.load(fptr)
+        self.assertEqual(len(loaded), len(errors))
+        self.assertEqual({k: loaded[k] for k in errors}, errors)
+
     def test_perfect_fit_Manhattan(self):
         """A circuit that fits perfectly in Manhattan (65 qubits)
         See https://github.com/Qiskit/qiskit-terra/issues/5694"""
@@ -383,57 +537,6 @@ class TestVF2LayoutOther(LayoutTestCase):
         )
 
 
-class TestScoreHeuristic(QiskitTestCase):
-    """Test the internal score heuristic of the pass."""
-
-    def test_no_properties(self):
-        """Test scores with no properties."""
-        vf2_pass = VF2Layout(
-            CouplingMap(
-                [
-                    (0, 1),
-                    (0, 2),
-                    (0, 3),
-                    (1, 0),
-                    (1, 2),
-                    (1, 3),
-                    (2, 0),
-                    (2, 1),
-                    (2, 2),
-                    (2, 3),
-                    (3, 0),
-                    (3, 1),
-                    (3, 2),
-                    (4, 0),
-                    (0, 4),
-                    (5, 1),
-                    (1, 5),
-                ]
-            )
-        )
-        qr = QuantumRegister(2)
-        layout = Layout({qr[0]: 0, qr[1]: 1})
-        score = vf2_pass._score_layout(layout)
-        self.assertEqual(score, 16)
-        better_layout = Layout({qr[0]: 4, qr[1]: 5})
-        better_score = vf2_pass._score_layout(better_layout)
-        self.assertEqual(4, better_score)
-
-    def test_with_properties(self):
-        """Test scores with properties."""
-        backend = FakeYorktown()
-        cmap = CouplingMap(backend.configuration().coupling_map)
-        properties = backend.properties()
-        vf2_pass = VF2Layout(cmap, properties=properties)
-        qr = QuantumRegister(2)
-        layout = Layout({qr[0]: 4, qr[1]: 2})
-        bad_score = vf2_pass._score_layout(layout)
-        self.assertAlmostEqual(0.4075, bad_score)
-        better_layout = Layout({qr[0]: 1, qr[1]: 3})
-        better_score = vf2_pass._score_layout(better_layout)
-        self.assertAlmostEqual(0.0588, better_score)
-
-
 class TestMultipleTrials(QiskitTestCase):
     """Test the passes behavior with >1 trial."""
 
@@ -468,7 +571,7 @@ class TestMultipleTrials(QiskitTestCase):
         qc.measure_all()
         property_set = {}
         vf2_pass(qc, property_set)
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {5, 4})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {4, 5})
 
     def test_with_properties(self):
         """Test it finds the least noise perfect layout with no properties."""
@@ -530,6 +633,7 @@ class TestMultipleTrials(QiskitTestCase):
         """Test that the default trials is set to a reasonable number."""
         backend = FakeManhattan()
         qc = QuantumCircuit(5)
+        qc.h(2)
         qc.cx(0, 1)
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -542,7 +646,7 @@ class TestMultipleTrials(QiskitTestCase):
             "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 159 is >= configured max trials 159",
             cm.output,
         )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {48, 49, 40, 47, 58})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 58, 0, 1})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""
@@ -550,21 +654,61 @@ class TestMultipleTrials(QiskitTestCase):
         qc = QuantumCircuit(3)
         qc.h(0)
         cmap = CouplingMap(backend.configuration().coupling_map)
-        implicit_max = len(cmap.graph.edge_list()) + 15
         properties = backend.properties()
         # Run without any limits set
-        vf2_pass = VF2Layout(cmap, properties=properties, seed=42, max_trials=0)
+        vf2_pass = VF2Layout(
+            cmap,
+            properties=properties,
+            seed=42,
+            max_trials=0,
+        )
         property_set = {}
         with self.assertLogs("qiskit.transpiler.passes.layout.vf2_layout", level="DEBUG") as cm:
             vf2_pass(qc, property_set)
         for output in cm.output:
             self.assertNotIn("is >= configured max trials", output)
-        last_line = cm.output[-1]
-        # The last line should be
-        # DEBUG:qiskit.transpiler.passes.layout.vf2_layout: Trial n has score 0.122
-        trials = int(last_line.split(" ")[1])
-        self.assertGreater(trials, implicit_max)
         self.assertEqual(set(property_set["layout"].get_physical_bits()), {3, 1, 0})
+
+    def test_qregs_valid_layout_output(self):
+        """Test that vf2 layout doesn't add extra qubits.
+
+        Reproduce from https://github.com/Qiskit/qiskit-terra/issues/8667
+        """
+        backend = FakeGuadalupeV2()
+        qr = QuantumRegister(16, name="qr")
+        cr = ClassicalRegister(5)
+        qc = QuantumCircuit(qr, cr)
+        qc.rz(pi / 2, qr[0])
+        qc.sx(qr[0])
+        qc.sx(qr[1])
+        qc.rz(-pi / 4, qr[1])
+        qc.sx(qr[1])
+        qc.rz(pi / 2, qr[1])
+        qc.rz(2.8272143, qr[0])
+        qc.rz(0.43324854, qr[1])
+        qc.sx(qr[1])
+        qc.rz(-0.95531662, qr[7])
+        qc.sx(qr[7])
+        qc.rz(3 * pi / 4, qr[7])
+        qc.barrier([qr[1], qr[10], qr[4], qr[0], qr[7]])
+        vf2_pass = VF2Layout(
+            seed=12345,
+            target=backend.target,
+        )
+        vf2_pass(qc)
+        self.assertEqual(len(vf2_pass.property_set["layout"].get_physical_bits()), 16)
+        self.assertEqual(len(vf2_pass.property_set["layout"].get_virtual_bits()), 16)
+        pm = PassManager(
+            [
+                VF2Layout(
+                    seed=12345,
+                    target=backend.target,
+                )
+            ]
+        )
+        pm += generate_embed_passmanager(backend.coupling_map)
+        res = pm.run(qc)
+        self.assertEqual(res.num_qubits, 16)
 
 
 if __name__ == "__main__":

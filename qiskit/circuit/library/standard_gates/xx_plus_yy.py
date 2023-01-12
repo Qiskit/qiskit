@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-qubit XX+YY gate."""
-
+import math
+from cmath import exp
 from typing import Optional
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
@@ -42,11 +43,11 @@ class XXPlusYYGate(Gate):
         \newcommand{\th}{\frac{\theta}{2}}
 
         R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
-          RZ_1(\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_1(-\beta) =
+          RZ_0(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_0(\beta) =
             \begin{pmatrix}
                 1 & 0                     & 0                    & 0  \\
-                0 & \cos\left(\th\right)             & i\sin\left(\th\right)e^{i\beta} & 0  \\
-                0 & i\sin\left(\th\right)e^{-i\beta} & \cos\left(\th\right)            & 0  \\
+                0 & \cos\left(\th\right)             & -i\sin\left(\th\right)e^{-i\beta} & 0  \\
+                0 & -i\sin\left(\th\right)e^{i\beta} & \cos\left(\th\right)            & 0  \\
                 0 & 0                     & 0                    & 1
             \end{pmatrix}
 
@@ -55,8 +56,8 @@ class XXPlusYYGate(Gate):
         In Qiskit's convention, higher qubit indices are more significant
         (little endian convention). In the above example we apply the gate
         on (q_0, q_1) which results in adding the (optional) phase defined
-        by :math:`beta` on q_1. Instead, if we apply it on (q_1, q_0), the
-        phase is added on q_0. If :math:`beta` is set to its default value
+        by :math:`beta` on q_0. Instead, if we apply it on (q_1, q_0), the
+        phase is added on q_1. If :math:`beta` is set to its default value
         of :math:`0`, the gate is equivalent in big and little endian.
 
         .. parsed-literal::
@@ -67,18 +68,18 @@ class XXPlusYYGate(Gate):
             q_1: ┤0              ├
                  └───────────────┘
 
-        .. math::
+    .. math::
 
-            \newcommand{\th}{\frac{\theta}{2}}
+        \newcommand{\th}{\frac{\theta}{2}}
 
-            R_{XX+YY}(\theta, \beta)\ q_1, q_0 =
-            RZ_0(\beta) \cdot exp(-i \frac{\theta}{2} \frac{XX+YY}{2}) \cdot RZ_0(-\beta) =
-                \begin{pmatrix}
-                    1 & 0                     & 0                     & 0  \\
-                    0 & \cos(\th)             & i\sin(\th)e^{-i\beta} & 0  \\
-                    0 & i\sin(\th)e^{i\beta}  & \cos(\th)             & 0  \\
-                    0 & 0                     & 0                     & 1
-                \end{pmatrix}
+        R_{XX+YY}(\theta, \beta)\ q_0, q_1 =
+          RZ_1(-\beta) \cdot \exp\left(-i \frac{\theta}{2} \frac{XX+YY}{2}\right) \cdot RZ_1(\beta) =
+            \begin{pmatrix}
+                1 & 0                     & 0                    & 0  \\
+                0 & \cos\left(\th\right)             & -i\sin\left(\th\right)e^{i\beta} & 0  \\
+                0 & -i\sin\left(\th\right)e^{-i\beta} & \cos\left(\th\right)            & 0  \\
+                0 & 0                     & 0                    & 1
+            \end{pmatrix}
     """
 
     def __init__(
@@ -128,20 +129,20 @@ class XXPlusYYGate(Gate):
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
-            (RZGate(beta), [q[1]], []),
-            (RZGate(-pi / 2), [q[0]], []),
-            (SXGate(), [q[0]], []),
-            (RZGate(pi / 2), [q[0]], []),
-            (SGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (RYGate(theta / 2), [q[0]], []),
-            (RYGate(theta / 2), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (SdgGate(), [q[1]], []),
-            (RZGate(-pi / 2), [q[0]], []),
-            (SXdgGate(), [q[0]], []),
-            (RZGate(pi / 2), [q[0]], []),
-            (RZGate(-beta), [q[1]], []),
+            (RZGate(beta), [q[0]], []),
+            (RZGate(-pi / 2), [q[1]], []),
+            (SXGate(), [q[1]], []),
+            (RZGate(pi / 2), [q[1]], []),
+            (SGate(), [q[0]], []),
+            (CXGate(), [q[1], q[0]], []),
+            (RYGate(-theta / 2), [q[1]], []),
+            (RYGate(-theta / 2), [q[0]], []),
+            (CXGate(), [q[1], q[0]], []),
+            (SdgGate(), [q[0]], []),
+            (RZGate(-pi / 2), [q[1]], []),
+            (SXdgGate(), [q[1]], []),
+            (RZGate(pi / 2), [q[1]], []),
+            (RZGate(-beta), [q[0]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -152,20 +153,25 @@ class XXPlusYYGate(Gate):
         """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle)."""
         return XXPlusYYGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the XX+YY gate."""
         import numpy
 
         half_theta = float(self.params[0]) / 2
         beta = float(self.params[1])
-        cos = numpy.cos(half_theta)
-        sin = numpy.sin(half_theta)
+        cos = math.cos(half_theta)
+        sin = math.sin(half_theta)
         return numpy.array(
             [
                 [1, 0, 0, 0],
-                [0, cos, 1j * sin * numpy.exp(1j * beta), 0],
-                [0, 1j * sin * numpy.exp(-1j * beta), cos, 0],
+                [0, cos, -1j * sin * exp(-1j * beta), 0],
+                [0, -1j * sin * exp(1j * beta), cos, 0],
                 [0, 0, 0, 1],
             ],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        theta, beta = self.params
+        return XXPlusYYGate(exponent * theta, beta)

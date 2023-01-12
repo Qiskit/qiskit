@@ -20,7 +20,7 @@ from numpy import pi
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Gate, Parameter, EquivalenceLibrary
+from qiskit.circuit import Gate, Parameter, EquivalenceLibrary, Qubit, Clbit
 from qiskit.circuit.library import (
     U1Gate,
     U2Gate,
@@ -49,15 +49,15 @@ from qiskit.circuit.library.standard_gates.equivalence_library import (
 class OneQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
 
-    def __init__(self):
-        super().__init__("1q0p", 1, [])
+    def __init__(self, name="1q0p"):
+        super().__init__(name, 1, [])
 
 
 class OneQubitOneParamGate(Gate):
     """Mock one qubit one param gate."""
 
-    def __init__(self, theta):
-        super().__init__("1q1p", 1, [theta])
+    def __init__(self, theta, name="1q1p"):
+        super().__init__(name, 1, [theta])
 
 
 class OneQubitOneParamPrimeGate(Gate):
@@ -70,22 +70,22 @@ class OneQubitOneParamPrimeGate(Gate):
 class OneQubitTwoParamGate(Gate):
     """Mock one qubit two param gate."""
 
-    def __init__(self, phi, lam):
-        super().__init__("1q2p", 1, [phi, lam])
+    def __init__(self, phi, lam, name="1q2p"):
+        super().__init__(name, 1, [phi, lam])
 
 
 class TwoQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
 
-    def __init__(self):
-        super().__init__("2q0p", 2, [])
+    def __init__(self, name="2q0p"):
+        super().__init__(name, 2, [])
 
 
 class VariadicZeroParamGate(Gate):
     """Mock variadic zero param gate."""
 
-    def __init__(self, num_qubits):
-        super().__init__("vq0p", num_qubits, [])
+    def __init__(self, num_qubits, name="vq0p"):
+        super().__init__(name, num_qubits, [])
 
 
 class TestBasisTranslator(QiskitTestCase):
@@ -381,6 +381,100 @@ class TestBasisTranslator(QiskitTestCase):
         actual = pass_.run(dag)
 
         self.assertEqual(actual, expected_dag)
+
+    def test_if_else(self):
+        """Test a simple if-else with parameters."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        alpha = Parameter("alpha")
+        beta = Parameter("beta")
+        gate = OneQubitOneParamGate(alpha)
+        equiv = QuantumCircuit([qubits[0]])
+        equiv.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+        equiv.append(OneQubitOneParamGate(alpha, name="1q1p_2"), [qubits[0]])
+
+        eq_lib = EquivalenceLibrary()
+        eq_lib.add_equivalence(gate, equiv)
+
+        circ = QuantumCircuit(qubits, clbits)
+        circ.append(OneQubitOneParamGate(beta), [qubits[0]])
+        circ.measure(qubits[0], clbits[1])
+        with circ.if_test((clbits[1], 0)) as else_:
+            circ.append(OneQubitOneParamGate(alpha), [qubits[0]])
+            circ.append(TwoQubitZeroParamGate(), qubits)
+        with else_:
+            circ.append(TwoQubitZeroParamGate(), [qubits[1], qubits[0]])
+        dag = circuit_to_dag(circ)
+        dag_translated = BasisTranslator(eq_lib, ["if_else", "1q0p_2", "1q1p_2", "2q0p"]).run(dag)
+
+        expected = QuantumCircuit(qubits, clbits)
+        expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+        expected.append(OneQubitOneParamGate(beta, name="1q1p_2"), [qubits[0]])
+        expected.measure(qubits[0], clbits[1])
+        with expected.if_test((clbits[1], 0)) as else_:
+            expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+            expected.append(OneQubitOneParamGate(alpha, name="1q1p_2"), [qubits[0]])
+            expected.append(TwoQubitZeroParamGate(), qubits)
+        with else_:
+            expected.append(TwoQubitZeroParamGate(), [qubits[1], qubits[0]])
+        dag_expected = circuit_to_dag(expected)
+        self.assertEqual(dag_translated, dag_expected)
+
+    def test_nested_loop(self):
+        """Test a simple if-else with parameters."""
+        qubits = [Qubit(), Qubit()]
+        clbits = [Clbit(), Clbit()]
+        cr = ClassicalRegister(bits=clbits)
+        index1 = Parameter("index1")
+        alpha = Parameter("alpha")
+
+        gate = OneQubitOneParamGate(alpha)
+        equiv = QuantumCircuit([qubits[0]])
+        equiv.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+        equiv.append(OneQubitOneParamGate(alpha, name="1q1p_2"), [qubits[0]])
+
+        eq_lib = EquivalenceLibrary()
+        eq_lib.add_equivalence(gate, equiv)
+
+        circ = QuantumCircuit(qubits, cr)
+        with circ.for_loop(range(3), loop_parameter=index1) as ind:
+            with circ.while_loop((cr, 0)):
+                circ.append(OneQubitOneParamGate(alpha * ind), [qubits[0]])
+        dag = circuit_to_dag(circ)
+        dag_translated = BasisTranslator(
+            eq_lib, ["if_else", "for_loop", "while_loop", "1q0p_2", "1q1p_2"]
+        ).run(dag)
+
+        expected = QuantumCircuit(qubits, cr)
+        with expected.for_loop(range(3), loop_parameter=index1) as ind:
+            with expected.while_loop((cr, 0)):
+                expected.append(OneQubitZeroParamGate(name="1q0p_2"), [qubits[0]])
+                expected.append(OneQubitOneParamGate(alpha * ind, name="1q1p_2"), [qubits[0]])
+        dag_expected = circuit_to_dag(expected)
+        self.assertEqual(dag_translated, dag_expected)
+
+    def test_different_bits(self):
+        """Test that the basis translator correctly works when the inner blocks of control-flow
+        operations are not over the same bits as the outer blocks."""
+        base = QuantumCircuit([Qubit() for _ in [None] * 4], [Clbit()])
+        for_body = QuantumCircuit([Qubit(), Qubit()])
+        for_body.h(0)
+        for_body.cz(0, 1)
+        base.for_loop((1,), None, for_body, [1, 2], [])
+
+        while_body = QuantumCircuit([Qubit(), Qubit(), Clbit()])
+        while_body.cz(0, 1)
+
+        true_body = QuantumCircuit([Qubit(), Qubit(), Clbit()])
+        true_body.measure(0, 0)
+        true_body.while_loop((0, True), while_body, [0, 1], [0])
+        false_body = QuantumCircuit([Qubit(), Qubit(), Clbit()])
+        false_body.cz(0, 1)
+        base.if_else((0, True), true_body, false_body, [0, 3], [0])
+
+        basis = {"rz", "sx", "cx", "for_loop", "if_else", "while_loop", "measure"}
+        out = BasisTranslator(std_eqlib, basis).run(circuit_to_dag(base))
+        self.assertEqual(set(out.count_ops(recurse=True)), basis)
 
 
 class TestUnrollerCompatability(QiskitTestCase):
@@ -872,11 +966,11 @@ class TestBasisExamples(QiskitTestCase):
         circ.rz(gate_angle, 0)
         circ.global_phase = circ_angle
         in_dag = circuit_to_dag(circ)
-        out_dag = BasisTranslator(std_eqlib, ["u1"]).run(in_dag)
+        out_dag = BasisTranslator(std_eqlib, ["p"]).run(in_dag)
 
         qr = QuantumRegister(1, "q")
         expected = QuantumCircuit(qr)
-        expected.u1(gate_angle, qr)
+        expected.p(gate_angle, qr)
         expected.global_phase = circ_angle - gate_angle / 2
         expected_dag = circuit_to_dag(expected)
         self.assertEqual(out_dag, expected_dag)
@@ -902,24 +996,22 @@ class TestBasisExamples(QiskitTestCase):
         circ.cx(0, 1)
         circ.measure(1, 1)
         circ.h(0).c_if(cr, 1)
-        circ_transpiled = transpile(
-            circ, optimization_level=3, basis_gates=["cx", "id", "u1", "u2", "u3"]
-        )
+        circ_transpiled = transpile(circ, optimization_level=3, basis_gates=["cx", "id", "u"])
 
-        #      ┌─────────┐        ┌─────────┐
-        # q_0: ┤ U2(0,π) ├──■─────┤ U2(0,π) ├
-        #      └─────────┘┌─┴─┐┌─┐└────╥────┘
-        # q_1: ───────────┤ X ├┤M├─────╫─────
-        #                 └───┘└╥┘  ┌──╨──┐
-        # c: 2/═════════════════╩═══╡ 0x1 ╞══
-        #                       1   └─────┘
+        #      ┌────────────┐        ┌────────────┐
+        # q_0: ┤ U(π/2,0,π) ├──■─────┤ U(π/2,0,π) ├
+        #      └────────────┘┌─┴─┐┌─┐└─────╥──────┘
+        # q_1: ──────────────┤ X ├┤M├──────╫───────
+        #                    └───┘└╥┘   ┌──╨──┐
+        # c: 2/════════════════════╩════╡ 0x1 ╞════
+        #                          1    └─────┘
         qr = QuantumRegister(2, "q")
         cr = ClassicalRegister(2, "c")
         expected = QuantumCircuit(qr, cr)
-        expected.u2(0, pi, 0)
+        expected.u(pi / 2, 0, pi, 0)
         expected.cx(0, 1)
         expected.measure(1, 1)
-        expected.u2(0, pi, 0).c_if(cr, 1)
+        expected.u(pi / 2, 0, pi, 0).c_if(cr, 1)
 
         self.assertEqual(circ_transpiled, expected)
 

@@ -29,7 +29,6 @@ from qiskit.utils.backend_utils import (
     is_statevector_backend,
     is_simulator_backend,
     is_local_backend,
-    is_aer_qasm,
     is_basicaer_provider,
     support_backend_options,
     _get_backend_provider,
@@ -181,7 +180,7 @@ class QuantumInstance:
         execute the circuits it needs to run using the instance.
 
         Args:
-            backend (Union['Backend', 'BaseBackend']): Instance of selected backend
+            backend (Backend): Instance of selected backend
             shots: Number of repetitions of each circuit, for sampling. If None, the shots are
                 extracted from the backend. If the backend has none set, the default is 1024.
             seed_simulator: Random seed for simulators
@@ -247,10 +246,9 @@ class QuantumInstance:
 
         # if the shots are none, try to get them from the backend
         if shots is None:
-            from qiskit.providers.basebackend import BaseBackend  # pylint: disable=cyclic-import
             from qiskit.providers.backend import Backend  # pylint: disable=cyclic-import
 
-            if isinstance(backend, (BaseBackend, Backend)):
+            if isinstance(backend, Backend):
                 if hasattr(backend, "options"):  # should always be true for V1
                     backend_shots = backend.options.get("shots", 1024)
                     if shots != backend_shots:
@@ -489,12 +487,10 @@ class QuantumInstance:
         TODO: Maybe we can combine the circuits for the main ones and calibration circuits before
               assembling to the qobj.
         """
-        from qiskit.utils.run_circuits import run_qobj, run_circuits
+        from qiskit.utils.run_circuits import run_circuits
         from qiskit.utils.measurement_error_mitigation import (
-            get_measured_qubits_from_qobj,
             get_measured_qubits,
             build_measurement_error_mitigation_circuits,
-            build_measurement_error_mitigation_qobj,
         )
 
         if had_transpiled:
@@ -511,16 +507,13 @@ class QuantumInstance:
             # transpile here, the method always returns a copied list
             circuits = self.transpile(circuits)
 
-        from qiskit.providers import Backend
-
-        circuit_job = isinstance(self._backend, Backend)
-        if self.is_statevector and self.backend_name == "aer_simulator_statevector":
+        if self.is_statevector and "aer_simulator_statevector" in self.backend_name:
             try:
                 from qiskit.providers.aer.library import SaveStatevector
 
                 def _find_save_state(data):
-                    for instr, _, _ in reversed(data):
-                        if isinstance(instr, SaveStatevector):
+                    for instruction in reversed(data):
+                        if isinstance(instruction.operation, SaveStatevector):
                             return True
                     return False
 
@@ -534,16 +527,8 @@ class QuantumInstance:
             except ImportError:
                 pass
 
-        # assemble
-        if not circuit_job:
-            qobj = self.assemble(circuits)
-
         if self._meas_error_mitigation_cls is not None:
-            qubit_index, qubit_mappings = (
-                get_measured_qubits(circuits)
-                if circuit_job
-                else get_measured_qubits_from_qobj(qobj)
-            )
+            qubit_index, qubit_mappings = get_measured_qubits(circuits)
             mit_pattern = self._mit_pattern
             if mit_pattern is None:
                 mit_pattern = [[i] for i in range(len(qubit_index))]
@@ -588,128 +573,69 @@ class QuantumInstance:
             cal_circuits = None
             prepended_calibration_circuits: int = 0
             if build_cals_matrix:
-                if circuit_job:
-                    logger.info("Updating to also run measurement error mitigation.")
-                    use_different_shots = not (
-                        self._meas_error_mitigation_shots is None
-                        or self._meas_error_mitigation_shots == self._run_config.shots
-                    )
-                    temp_run_config = copy.deepcopy(self._run_config)
-                    if use_different_shots:
-                        temp_run_config.shots = self._meas_error_mitigation_shots
-                    (
+                logger.info("Updating to also run measurement error mitigation.")
+                use_different_shots = not (
+                    self._meas_error_mitigation_shots is None
+                    or self._meas_error_mitigation_shots == self._run_config.shots
+                )
+                temp_run_config = copy.deepcopy(self._run_config)
+                if use_different_shots:
+                    temp_run_config.shots = self._meas_error_mitigation_shots
+                (
+                    cal_circuits,
+                    state_labels,
+                    circuit_labels,
+                ) = build_measurement_error_mitigation_circuits(
+                    qubit_index,
+                    self._meas_error_mitigation_cls,
+                    self._backend,
+                    self._backend_config,
+                    self._compile_config,
+                    mit_pattern=mit_pattern,
+                )
+                if use_different_shots:
+                    cals_result = run_circuits(
                         cal_circuits,
-                        state_labels,
-                        circuit_labels,
-                    ) = build_measurement_error_mitigation_circuits(
-                        qubit_index,
-                        self._meas_error_mitigation_cls,
                         self._backend,
-                        self._backend_config,
-                        self._compile_config,
-                        mit_pattern=mit_pattern,
+                        qjob_config=self._qjob_config,
+                        backend_options=self._backend_options,
+                        noise_config=self._noise_config,
+                        run_config=self._run_config.to_dict(),
+                        job_callback=self._job_callback,
+                        max_job_retries=self._max_job_retries,
                     )
-                    if use_different_shots:
-                        cals_result = run_circuits(
-                            cal_circuits,
-                            self._backend,
-                            qjob_config=self._qjob_config,
-                            backend_options=self._backend_options,
-                            noise_config=self._noise_config,
-                            run_config=self._run_config.to_dict(),
-                            job_callback=self._job_callback,
-                            max_job_retries=self._max_job_retries,
-                        )
-                        self._time_taken += cals_result.time_taken
-                        result = run_circuits(
-                            circuits,
-                            self._backend,
-                            qjob_config=self.qjob_config,
-                            backend_options=self.backend_options,
-                            noise_config=self._noise_config,
-                            run_config=self.run_config.to_dict(),
-                            job_callback=self._job_callback,
-                            max_job_retries=self._max_job_retries,
-                        )
-                        self._time_taken += result.time_taken
-                    else:
-                        circuits[0:0] = cal_circuits
-                        prepended_calibration_circuits = len(cal_circuits)
-                        result = run_circuits(
-                            circuits,
-                            self._backend,
-                            qjob_config=self.qjob_config,
-                            backend_options=self.backend_options,
-                            noise_config=self._noise_config,
-                            run_config=self.run_config.to_dict(),
-                            job_callback=self._job_callback,
-                            max_job_retries=self._max_job_retries,
-                        )
-                        self._time_taken += result.time_taken
-                        cals_result = result
-
+                    self._time_taken += cals_result.time_taken
+                    result = run_circuits(
+                        circuits,
+                        self._backend,
+                        qjob_config=self.qjob_config,
+                        backend_options=self.backend_options,
+                        noise_config=self._noise_config,
+                        run_config=self.run_config.to_dict(),
+                        job_callback=self._job_callback,
+                        max_job_retries=self._max_job_retries,
+                    )
+                    self._time_taken += result.time_taken
                 else:
-                    logger.info("Updating qobj with the circuits for measurement error mitigation.")
-                    use_different_shots = not (
-                        self._meas_error_mitigation_shots is None
-                        or self._meas_error_mitigation_shots == self._run_config.shots
-                    )
-                    temp_run_config = copy.deepcopy(self._run_config)
-                    if use_different_shots:
-                        temp_run_config.shots = self._meas_error_mitigation_shots
-
-                    (
-                        cals_qobj,
-                        state_labels,
-                        circuit_labels,
-                    ) = build_measurement_error_mitigation_qobj(
-                        qubit_index,
-                        self._meas_error_mitigation_cls,
-                        self._backend,
-                        self._backend_config,
-                        self._compile_config,
-                        temp_run_config,
-                        mit_pattern=mit_pattern,
-                    )
-                    if use_different_shots or is_aer_qasm(self._backend):
-                        cals_result = run_qobj(
-                            cals_qobj,
-                            self._backend,
-                            self._qjob_config,
-                            self._backend_options,
-                            self._noise_config,
-                            self._skip_qobj_validation,
-                            self._job_callback,
-                            self._max_job_retries,
-                        )
-                        self._time_taken += cals_result.time_taken
-                        result = run_qobj(
-                            qobj,
-                            self._backend,
-                            self._qjob_config,
-                            self._backend_options,
-                            self._noise_config,
-                            self._skip_qobj_validation,
-                            self._job_callback,
-                            self._max_job_retries,
-                        )
-                        self._time_taken += result.time_taken
+                    circuits[0:0] = cal_circuits
+                    prepended_calibration_circuits = len(cal_circuits)
+                    if hasattr(self.run_config, "parameterizations"):
+                        cal_run_config = copy.deepcopy(self.run_config)
+                        cal_run_config.parameterizations[0:0] = [[]] * len(cal_circuits)
                     else:
-                        # insert the calibration circuit into main qobj if the shots are the same
-                        qobj.experiments[0:0] = cals_qobj.experiments
-                        result = run_qobj(
-                            qobj,
-                            self._backend,
-                            self._qjob_config,
-                            self._backend_options,
-                            self._noise_config,
-                            self._skip_qobj_validation,
-                            self._job_callback,
-                            self._max_job_retries,
-                        )
-                        self._time_taken += result.time_taken
-                        cals_result = result
-
+                        cal_run_config = self.run_config
+                    result = run_circuits(
+                        circuits,
+                        self._backend,
+                        qjob_config=self.qjob_config,
+                        backend_options=self.backend_options,
+                        noise_config=self._noise_config,
+                        run_config=cal_run_config.to_dict(),
+                        job_callback=self._job_callback,
+                        max_job_retries=self._max_job_retries,
+                    )
+                    self._time_taken += result.time_taken
+                    cals_result = result
                 logger.info("Building calibration matrix for measurement error mitigation.")
                 meas_type = _MeasFitterType.type_from_class(self._meas_error_mitigation_cls)
                 if meas_type == _MeasFitterType.COMPLETE_MEAS_FITTER:
@@ -725,28 +651,15 @@ class QuantumInstance:
                     time.time(),
                 )
             else:
-                result = (
-                    run_circuits(
-                        circuits,
-                        self._backend,
-                        qjob_config=self.qjob_config,
-                        backend_options=self.backend_options,
-                        noise_config=self._noise_config,
-                        run_config=self._run_config.to_dict(),
-                        job_callback=self._job_callback,
-                        max_job_retries=self._max_job_retries,
-                    )
-                    if circuit_job
-                    else run_qobj(
-                        qobj,
-                        self._backend,
-                        self._qjob_config,
-                        self._backend_options,
-                        self._noise_config,
-                        self._skip_qobj_validation,
-                        self._job_callback,
-                        self._max_job_retries,
-                    )
+                result = run_circuits(
+                    circuits,
+                    self._backend,
+                    qjob_config=self.qjob_config,
+                    backend_options=self.backend_options,
+                    noise_config=self._noise_config,
+                    run_config=self._run_config.to_dict(),
+                    job_callback=self._job_callback,
+                    max_job_retries=self._max_job_retries,
                 )
                 self._time_taken += result.time_taken
 
@@ -774,6 +687,10 @@ class QuantumInstance:
                     tmp_result.results = [result.results[i] for i in c_idx]
                     if curr_qubit_index == qubit_index:
                         tmp_fitter = meas_error_mitigation_fitter
+                    elif isinstance(meas_error_mitigation_fitter, TensoredMeasFitter):
+                        # Different from the complete meas. fitter as only the Terra fitter
+                        # implements the ``subset_fitter`` method.
+                        tmp_fitter = meas_error_mitigation_fitter.subset_fitter(curr_qubit_index)
                     elif _MeasFitterType.COMPLETE_MEAS_FITTER == _MeasFitterType.type_from_instance(
                         meas_error_mitigation_fitter
                     ):
@@ -797,28 +714,15 @@ class QuantumInstance:
                         result.results[n] = tmp_result.results[i]
 
         else:
-            result = (
-                run_circuits(
-                    circuits,
-                    self._backend,
-                    qjob_config=self.qjob_config,
-                    backend_options=self.backend_options,
-                    noise_config=self._noise_config,
-                    run_config=self._run_config.to_dict(),
-                    job_callback=self._job_callback,
-                    max_job_retries=self._max_job_retries,
-                )
-                if circuit_job
-                else run_qobj(
-                    qobj,
-                    self._backend,
-                    self._qjob_config,
-                    self._backend_options,
-                    self._noise_config,
-                    self._skip_qobj_validation,
-                    self._job_callback,
-                    self._max_job_retries,
-                )
+            result = run_circuits(
+                circuits,
+                self._backend,
+                qjob_config=self.qjob_config,
+                backend_options=self.backend_options,
+                noise_config=self._noise_config,
+                run_config=self._run_config.to_dict(),
+                job_callback=self._job_callback,
+                max_job_retries=self._max_job_retries,
             )
             self._time_taken += result.time_taken
 
@@ -967,7 +871,7 @@ class QuantumInstance:
 
     @property
     def backend(self):
-        """Return BaseBackend backend object."""
+        """Return Backend backend object."""
         return self._backend
 
     @property

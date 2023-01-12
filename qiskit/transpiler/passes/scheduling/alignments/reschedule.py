@@ -25,7 +25,7 @@ class ConstrainedReschedule(AnalysisPass):
     """Rescheduler pass that updates node start times to conform to the hardware alignments.
 
     This pass shifts DAG node start times previously scheduled with one of
-    the scheduling passes, e.g. :class:`ASAPSchedule` or :class:`ALAPSchedule`,
+    the scheduling passes, e.g. :class:`ASAPScheduleAnalysis` or :class:`ALAPScheduleAnalysis`,
     so that every instruction start time satisfies alignment constraints.
 
     Examples:

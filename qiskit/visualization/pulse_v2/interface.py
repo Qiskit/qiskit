@@ -23,8 +23,8 @@ the configured canvas is passed to the one of plotter APIs to generate visualiza
 
 from typing import Union, Optional, Dict, Any, Tuple, List
 
-from qiskit.providers import BaseBackend
-from qiskit.pulse import Waveform, ParametricPulse, Schedule, ScheduleBlock
+from qiskit.providers import Backend
+from qiskit.pulse import Waveform, ParametricPulse, SymbolicPulse, Schedule, ScheduleBlock
 from qiskit.pulse.channels import Channel
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, device_info, stylesheet, types
@@ -32,9 +32,9 @@ from qiskit.exceptions import MissingOptionalLibraryError
 
 
 def draw(
-    program: Union[Waveform, ParametricPulse, Schedule, ScheduleBlock],
+    program: Union[Waveform, ParametricPulse, SymbolicPulse, Schedule, ScheduleBlock],
     style: Optional[Dict[str, Any]] = None,
-    backend: Optional[BaseBackend] = None,
+    backend: Optional[Backend] = None,
     time_range: Optional[Tuple[int, int]] = None,
     time_unit: str = types.TimeUnits.CYCLES.value,
     disable_channels: Optional[List[Channel]] = None,
@@ -50,7 +50,8 @@ def draw(
     Args:
         program: Program to visualize. This program can be arbitrary Qiskit Pulse program,
             such as :py:class:`~qiskit.pulse.Waveform`, :py:class:`~qiskit.pulse.ParametricPulse`,
-            and :py:class:`~qiskit.pulse.Schedule`.
+            :py:class:`~qiskit.pulse.SymbolicPulse`, :py:class:`~qiskit.pulse.Schedule`
+            and :py:class:`~qiskit.pulse.ScheduleBlock`.
         style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
             :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
             :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
@@ -227,6 +228,9 @@ def draw(
         formatter.axis_break.max_length: Length of new waveform or idle time duration
             after axis break is applied. Longer intervals are truncated to this length
             (default `1000`).
+        formatter.control.fill_waveform: Set `True` to fill waveforms with face color
+            (default `True`). When you disable this option, you should set finite line width
+            to `formatter.line_width.fill_waveform`, otherwise nothing will appear in the graph.
         formatter.control.apply_phase_modulation: Set `True` to apply phase modulation
             to the waveforms (default `True`).
         formatter.control.show_snapshot_channel: Set `True` to show snapshot instructions
@@ -304,54 +308,57 @@ def draw(
 
         Drawing with the default stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw
-            from qiskit.test.mock import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
-            sched = schedule(qc, FakeAlmaden())
+            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
+            sched = schedule(qc, FakeBoeblingen())
 
-            draw(sched, backend=FakeAlmaden())
+            draw(sched, backend=FakeBoeblingen())
 
         Drawing with the stylesheet suited for publication.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXSimple
-            from qiskit.test.mock import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
-            sched = schedule(qc, FakeAlmaden())
+            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
+            sched = schedule(qc, FakeBoeblingen())
 
-            draw(sched, style=IQXSimple(), backend=FakeAlmaden())
+            draw(sched, style=IQXSimple(), backend=FakeBoeblingen())
 
         Drawing with the stylesheet suited for program debugging.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXDebugging
-            from qiskit.test.mock import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
-            sched = schedule(qc, FakeAlmaden())
+            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
+            sched = schedule(qc, FakeBoeblingen())
 
-            draw(sched, style=IQXDebugging(), backend=FakeAlmaden())
+            draw(sched, style=IQXDebugging(), backend=FakeBoeblingen())
 
         You can partially customize a preset stylesheet when initializing it.
 
@@ -364,7 +371,7 @@ def draw(
             }
             style = IQXStandard(**my_style)
             # draw
-            draw(sched, style=style, backend=FakeAlmaden())
+            draw(sched, style=style, backend=FakeBoeblingen())
 
         In the same way as above, you can create custom generator or layout functions
         and update the existing stylesheet with custom functions.

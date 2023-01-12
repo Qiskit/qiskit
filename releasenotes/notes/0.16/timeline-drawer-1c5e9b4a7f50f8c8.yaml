@@ -6,7 +6,7 @@ features:
 
     For example:
 
-    .. jupyter-execute::
+    .. code-block:: python
 
       from qiskit.visualization import timeline_drawer
       from qiskit import QuantumCircuit, transpile

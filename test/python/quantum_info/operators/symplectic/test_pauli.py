@@ -258,6 +258,8 @@ class TestPauli(QiskitTestCase):
         op2 = operator_from_label(label2)
         target = op1.dot(op2)
         self.assertEqual(value, target)
+        target = op1 @ op2
+        self.assertEqual(value, target)
 
     @data(*pauli_group_labels(1))
     def test_dot_qargs(self, label2):
@@ -334,6 +336,9 @@ class TestPauli(QiskitTestCase):
         op = val * Pauli(([True, True], [False, False], 0))
         phase = (-1j) ** op.phase
         self.assertEqual(phase, val)
+        op = Pauli(([True, True], [False, False], 0)) * val
+        phase = (-1j) ** op.phase
+        self.assertEqual(phase, val)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
@@ -398,6 +403,34 @@ class TestPauli(QiskitTestCase):
         self.assertEqual(value, target)
         self.assertEqual(value, value_h)
         self.assertEqual(value_inv, value_s)
+
+    @data(
+        *it.product(
+            (
+                IGate(),
+                XGate(),
+                YGate(),
+                ZGate(),
+                HGate(),
+                SGate(),
+                SdgGate(),
+                CXGate(),
+                CYGate(),
+                CZGate(),
+                SwapGate(),
+            ),
+            [int, np.int8, np.uint8, np.int16, np.uint16, np.int32, np.uint32, np.int64, np.uint64],
+        )
+    )
+    @unpack
+    def test_phase_dtype_evolve_clifford(self, gate, dtype):
+        """Test phase dtype for evolve method for Clifford gates."""
+        z = np.ones(gate.num_qubits, dtype=bool)
+        x = np.ones(gate.num_qubits, dtype=bool)
+        phase = (np.sum(z & x) % 4).astype(dtype)
+        paulis = Pauli((z, x, phase))
+        evo = paulis.evolve(gate)
+        self.assertEqual(evo.phase.dtype, dtype)
 
     def test_evolve_clifford_qargs(self):
         """Test evolve method for random Clifford"""
