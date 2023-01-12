@@ -1,4 +1,4 @@
 ---
 features:
   - |
-    Adds the `FakePrague` Egret R1 backend to the FakeProvider.
+    Adds the :class:`~.FakePrague` Egret R1 backend to the FakeProvider.
