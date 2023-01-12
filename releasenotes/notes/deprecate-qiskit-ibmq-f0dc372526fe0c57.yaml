@@ -8,4 +8,6 @@ deprecations:
     maintaining this alias is no longer relevant with the new package. If you
     were relying on the ``qiskit.IBMQ`` alias you should update your usage
     to use ``qiskit.providers.ibmq.IBMQ`` directly instead (and also consider
-    migrating to ``qiskit-ibm-provider``).
+    migrating to ``qiskit-ibm-provider``, see the
+    `migration guide <https://qiskit.org/documentation/partners/qiskit_ibm_provider/tutorials/Migration_Guide_from_qiskit-ibmq-provider.html>`__
+    for more details).
