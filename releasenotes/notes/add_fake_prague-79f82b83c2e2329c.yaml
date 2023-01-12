@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Adds the `FakePrague` Egret R1 backend to the FakeProvider.
