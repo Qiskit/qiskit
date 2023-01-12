@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import DerivativeType, _make_lin_comb_gradient_circuit
+from .utils import DerivativeType, _make_lin_comb_gradient_circuit, _make_lin_comb_observables
 
 
 class LinCombEstimatorGradient(BaseEstimatorGradient):
@@ -185,32 +185,3 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
         opt = self._get_local_options(options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)
-
-
-def _make_lin_comb_observables(
-    observable: BaseOperator | PauliSumOp,
-    derivative_type: DerivativeType,
-) -> tuple[BaseOperator | PauliSumOp, BaseOperator | PauliSumOp | None]:
-    """Make the observable with an ancillary operator for the linear combination gradient.
-
-    Args:
-        observable: The observable.
-        derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
-            ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``.
-
-    Returns:
-        The observable with an ancillary operator for the linear combination gradient.
-
-    Raises:
-        ValueError: If the derivative type is not supported.
-    """
-    if derivative_type == DerivativeType.REAL:
-        return observable.expand(SparsePauliOp.from_list([("Z", 1)])), None
-    elif derivative_type == DerivativeType.IMAG:
-        return observable.expand(SparsePauliOp.from_list([("Y", -1)])), None
-    elif derivative_type == DerivativeType.COMPLEX:
-        return observable.expand(SparsePauliOp.from_list([("Z", 1)])), observable.expand(
-            SparsePauliOp.from_list([("Y", -1)])
-        )
-    else:
-        raise ValueError(f"Derivative type {derivative_type} is not supported.")

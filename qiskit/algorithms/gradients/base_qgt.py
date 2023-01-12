@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Abstract base class of gradient for ``Estimator``.
+Abstract base class of the Quantum Fisher Information (QFI).
 """
 
 from __future__ import annotations
@@ -24,72 +24,113 @@ import numpy as np
 
 from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
-from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.transpiler.passes import TranslateParameterizedGates
 
-from .estimator_gradient_result import EstimatorGradientResult
-from .utils import (
-    DerivativeType,
-    GradientCircuit,
-    _assign_unique_parameters,
-    _make_gradient_parameter_set,
-    _make_gradient_parameter_values,
-)
+from .qgt_result import QGTResult
+from .utils import (DerivativeType, GradientCircuit, _assign_unique_parameters,
+                    _make_gradient_parameter_set,
+                    _make_gradient_parameter_values)
 
 
-class BaseEstimatorGradient(ABC):
-    """Base class for an ``EstimatorGradient`` to compute the gradients of the expectation value."""
+class BaseQGT(ABC):
+    r"""Base class to computes the Quantum Geometric Tensor(QGT) given a pure,
+    parameterized quantum state. QGT is defined as:
+
+    .. math::
+
+        \mathrm{QGT}_{kl}= \langle \partial_k \psi | \partial_l \psi \rangle
+            - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle.
+    """
 
     def __init__(
         self,
         estimator: BaseEstimator,
+        phase_fix: bool = True,
+        derivative_type: DerivativeType = DerivativeType.COMPLEX,
         options: Options | None = None,
     ):
-        """
+        r"""
         Args:
-            estimator: The estimator used to compute the gradients.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
+            estimator: The estimator used to compute the QFI.
+            phase_fix: Whether to calculate the second term (phase fix) of the QFI, which is
+                :math:`\langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle`.
+                Default to ``True``.
+            derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+                ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
+                ``DerivativeType.REAL``.
+
+                - ``DerivativeType.REAL`` computes
+
+                .. math::
+
+                    \mathrm{QFI}_{kl}= 4 \mathrm{Re}[\langle \partial_k \psi | \partial_l \psi \rangle
+                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+
+                - ``DerivativeType.IMAG`` computes
+
+                .. math::
+
+                    \mathrm{QFI}_{kl}= 4 \mathrm{Im}[\langle \partial_k \psi | \partial_l \psi \rangle
+                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+
+                - ``DerivativeType.COMPLEX`` computes
+
+                .. math::
+
+                    \mathrm{QFI}_{kl}= 4 [\langle \partial_k \psi | \partial_l \psi \rangle
+                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+
+            options: Backend runtime options used for circuit execution. The order of priority is:
+                options in ``run`` method > QFI's default options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
         """
         self._estimator: BaseEstimator = estimator
+        self._phase_fix: bool = phase_fix
+        self._derivative_type: DerivativeType = derivative_type
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
+        self._qgt_circuit_cache = {}
         self._gradient_circuit_cache: dict[QuantumCircuit, GradientCircuit] = {}
+
+    @property
+    def derivative_type(self) -> DerivativeType:
+        """The derivative type."""
+        return self._derivative_type
+
+    @derivative_type.setter
+    def derivative_type(self, derivative_type: DerivativeType) -> None:
+        """Set the derivative type."""
+        self._derivative_type = derivative_type
 
     def run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **options,
     ) -> AlgorithmJob:
-        """Run the job of the estimator gradient on the given circuits.
+        """Run the job of the QFIs on the given circuits.
 
         Args:
-            circuits: The list of quantum circuits to compute the gradients.
-            observables: The list of observables.
+            circuits: The list of quantum circuits to compute the QFIs.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of
+            parameters: The sequence of parameters to calculate only the QFIs of
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the gradients of all parameters in
+                ``circuits``. Defaults to None, which means that the QFIs of all parameters in
                 each circuit are calculated.
             options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
+                The order of priority is: options in ``run`` method > QFI's
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting
 
         Returns:
-            The job object of the gradients of the expectation values. The i-th result corresponds to
+            The job object of the QFIs of the expectation values. The i-th result corresponds to
             ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``. The j-th
-            element of the i-th result corresponds to the gradient of the i-th circuit with respect
+            element of the i-th result corresponds to the QFI of the i-th circuit with respect
             to the j-th parameter.
 
         Raises:
@@ -98,9 +139,6 @@ class BaseEstimatorGradient(ABC):
         if isinstance(circuits, QuantumCircuit):
             # Allow a single circuit to be passed in.
             circuits = (circuits,)
-        if isinstance(observables, (BaseOperator, PauliSumOp)):
-            # Allow a single observable to be passed in.
-            observables = (observables,)
 
         if parameters is None:
             # If parameters is None, we calculate the gradients of all parameters in each circuit.
@@ -114,15 +152,12 @@ class BaseEstimatorGradient(ABC):
                 for i, parameters_ in enumerate(parameters)
             ]
         # Validate the arguments.
-        self._validate_arguments(circuits, observables, parameter_values, parameter_sets)
+        self._validate_arguments(circuits, parameter_values, parameter_sets)
         # The priority of run option is as follows:
-        # options in ``run`` method > gradient's default options > primitive's default setting.
+        # options in ``run`` method > QFI's default options > primitive's default setting.
         opts = copy(self._default_options)
         opts.update_options(**options)
-        # Run the job.
-        job = AlgorithmJob(
-            self._run, circuits, observables, parameter_values, parameter_sets, **opts.__dict__
-        )
+        job = AlgorithmJob(self._run, circuits, parameter_values, parameter_sets, **opts.__dict__)
         job.submit()
         return job
 
@@ -130,12 +165,11 @@ class BaseEstimatorGradient(ABC):
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameter_sets: Sequence[Sequence[Parameter] | None],
         **options,
-    ) -> EstimatorGradientResult:
-        """Compute the estimator gradients on the given circuits."""
+    ) -> QGTResult:
+        """Compute the QFIs on the given circuits."""
         raise NotImplementedError()
 
     def _preprocess(
@@ -179,11 +213,11 @@ class BaseEstimatorGradient(ABC):
 
     def _postprocess(
         self,
-        results: EstimatorGradientResult,
+        results: QGTResult,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameter_sets: Sequence[set[Parameter] | None],
-    ) -> EstimatorGradientResult:
+    ) -> QGTResult:
         """Postprocess the gradient. This computes the gradient of the original circuit from the
         gradient of the gradient circuit by using the chain rule.
 
@@ -197,17 +231,13 @@ class BaseEstimatorGradient(ABC):
         Returns:
             The results of the gradient of the original circuits.
         """
-        gradients, metadata = [], []
+        qgts, metadata = [], []
         for idx, (circuit, parameter_values_, parameter_set) in enumerate(
             zip(circuits, parameter_values, parameter_sets)
         ):
-            unique_gradient = np.zeros(len(parameter_set))
-            if (
-                "derivative_type" in results.metadata[idx]
-                and results.metadata[idx]["derivative_type"] == DerivativeType.COMPLEX
-            ):
-                # If the derivative type is complex, cast the gradient to complex.
-                unique_gradient = unique_gradient.astype("complex")
+            dtype = complex if self.derivative_type == DerivativeType.COMPLEX else float
+            qgt = np.zeros((len(parameter_set), len(parameter_set)), dtype=dtype)
+
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
             g_parameter_set = _make_gradient_parameter_set(gradient_circuit, parameter_set)
             # Make a map from the gradient parameter to the respective index in the gradient.
@@ -218,47 +248,53 @@ class BaseEstimatorGradient(ABC):
                 if param in g_parameter_set
             ]
             g_parameter_indices = {param: i for i, param in enumerate(g_parameter_indices)}
-            # Compute the original gradient from the gradient of the gradient circuit
-            # by using the chain rule.
-            for i, parameter in enumerate(parameter_indices):
-                for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
-                    # Compute the coefficient
-                    if isinstance(coeff, ParameterExpression):
-                        local_map = {
-                            p: parameter_values_[circuit.parameters.data.index(p)]
-                            for p in coeff.parameters
-                        }
-                        bound_coeff = coeff.bind(local_map)
-                    else:
-                        bound_coeff = coeff
-                    # The original gradient is a sum of the gradients of the parameters in the
-                    # gradient circuit multiplied by the coefficients.
-                    gradient[i] += (
-                        float(bound_coeff)
-                        * results.gradients[idx][g_parameter_indices[g_parameter]]
-                    )
-            gradients.append(gradient)
+
+            rows, cols = np.triu_indices(len(parameter_indices))
+            for row, col in zip(rows, cols):
+                for g_parameter1, coeff1 in gradient_circuit.parameter_map[parameter_indices[row]]:
+                    for g_parameter2, coeff2 in gradient_circuit.parameter_map[parameter_indices[col]]:
+                        if isinstance(coeff1, ParameterExpression):
+                            local_map = {
+                                p: parameter_values_[circuit.parameters.data.index(p)]
+                                for p in coeff1.parameters
+                            }
+                            bound_coeff1 = coeff1.bind(local_map)
+                        else:
+                            bound_coeff1 = coeff1
+                        if isinstance(coeff2, ParameterExpression):
+                            local_map = {
+                                p: parameter_values_[circuit.parameters.data.index(p)]
+                                for p in coeff2.parameters
+                            }
+                            bound_coeff2 = coeff2.bind(local_map)
+                        else:
+                            bound_coeff2 = coeff2
+                        qgt[row, col] += (
+                            float(bound_coeff1)
+                            * float(bound_coeff2)
+                            * results.qgts[idx][g_parameter_indices[g_parameter1], g_parameter_indices[g_parameter2]]
+                        )
+            qgt += np.triu(qgt, k=1).conjugate().T
+            qgts.append(qgt)
             metadata.append([{"parameters": parameter_indices}])
-        return EstimatorGradientResult(
-            gradients=gradients, metadata=metadata, options=results.options
+        return QGTResult(
+            qgts=qgts, metadata=metadata, options=results.options
         )
 
-    @staticmethod
     def _validate_arguments(
+        self,
         circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
         parameter_sets: Sequence[set[Parameter]],
     ) -> None:
         """Validate the arguments of the ``run`` method.
 
         Args:
-            circuits: The list of quantum circuits to compute the gradients.
-            observables: The list of observables.
+            circuits: The list of quantum circuits to compute the QFIs.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
+            parameters: The Sequence of Sequence of Parameters to calculate only the QFIs of
                 the specified parameters. Each Sequence of Parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the gradients of all parameters in
+                ``circuits``. Defaults to None, which means that the QFIs of all parameters in
                 each circuit are calculated.
 
         Raises:
@@ -268,12 +304,6 @@ class BaseEstimatorGradient(ABC):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
-            )
-
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
             )
 
         if len(circuits) != len(parameter_sets):
@@ -291,53 +321,22 @@ class BaseEstimatorGradient(ABC):
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
-        for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
-                raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
-                    f"({observable.num_qubits})."
-                )
-
-        for i, (circuit, parameter_set) in enumerate(zip(circuits, parameter_sets)):
-            if not set(parameter_set).issubset(circuit.parameters):
-                raise ValueError(
-                    f"The {i}-th parameter set contains parameters not present in the "
-                    f"{i}-th circuit."
-                )
-
     @property
+    @abstractmethod
     def options(self) -> Options:
-        """Return the union of estimator options setting and gradient default options,
-        where, if the same field is set in both, the gradient's default options override
+        """Return the union of estimator options setting and QFI default options,
+        where, if the same field is set in both, the QFI's default options override
         the primitive's default setting.
 
         Returns:
-            The gradient default + estimator options.
+            The QFI default + estimator options.
         """
-        return self._get_local_options(self._default_options.__dict__)
+        pass
 
     def update_default_options(self, **options):
-        """Update the gradient's default options setting.
+        """Update the QFI's default options setting.
 
         Args:
             **options: The fields to update the default options.
         """
-
         self._default_options.update_options(**options)
-
-    def _get_local_options(self, options: Options) -> Options:
-        """Return the union of the primitive's default setting,
-        the gradient default options, and the options in the ``run`` method.
-        The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-
-        Args:
-            options: The fields to update the options
-
-        Returns:
-            The gradient default + estimator + run options.
-        """
-        opts = copy(self._estimator.options)
-        opts.update_options(**options)
-        return opts
