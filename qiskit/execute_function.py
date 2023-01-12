@@ -529,14 +529,14 @@ def execute(
 
     if qobj_id is not None:
         warnings.warn(
-            "The qobj_id argument is deprecated as of the Qiskit Terra 0.23.0, "
+            "The qobj_id argument is deprecated as of the Qiskit Terra 0.21.0, "
             "and will be remvoed in a future release. This argument has no effect and "
             "is not used by any backends."
         )
 
     if qobj_header is not None:
         warnings.warn(
-            "The qobj_header argument is deprecated as of the Qiskit Terra 0.23.0, "
+            "The qobj_header argument is deprecated as of the Qiskit Terra 0.21.0, "
             "and will be remvoed in a future release. This argument has no effect and "
             "is not used by any backends."
         )
