@@ -25,15 +25,16 @@ Each element can be plugged into a circuit using the :meth:`.QuantumCircuit.appe
 method and so the circuit library allows users to program at higher levels of abstraction.
 For example, to append a multi-controlled CNOT:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
-    from qiskit.circuit.library import MCXGate
-    gate = MCXGate(4)
+   from qiskit.circuit.library import MCXGate
+   gate = MCXGate(4)
 
-    from qiskit import QuantumCircuit
-    circuit = QuantumCircuit(5)
-    circuit.append(gate, [0, 1, 4, 2, 3])
-    circuit.draw('mpl')
+   from qiskit import QuantumCircuit
+   circuit = QuantumCircuit(5)
+   circuit.append(gate, [0, 1, 4, 2, 3])
+   circuit.draw('mpl')
 
 The library is organized in several sections.
 
@@ -47,7 +48,7 @@ and :meth:`~qiskit.circuit.Gate.control`, which we can generally only apply to u
 
 For example:
 
-.. jupyter-execute::
+.. code-block::
 
     from qiskit.circuit.library import XGate
     gate = XGate()
@@ -55,6 +56,16 @@ For example:
     print(gate.power(1/2).to_matrix())  # √X gate
     print(gate.control(1).to_matrix())  # CX (controlled X) gate
 
+.. parsed-literal::
+
+    [[0.+0.j 1.+0.j]
+     [1.+0.j 0.+0.j]]
+    [[0.5+0.5j 0.5-0.5j]
+     [0.5-0.5j 0.5+0.5j]]
+    [[1.+0.j 0.+0.j 0.+0.j 0.+0.j]
+     [0.+0.j 0.+0.j 0.+0.j 1.+0.j]
+     [0.+0.j 0.+0.j 1.+0.j 0.+0.j]
+     [0.+0.j 1.+0.j 0.+0.j 0.+0.j]]
 
 .. autosummary::
    :toctree: ../stubs/
@@ -145,7 +156,7 @@ These "gates" (many are :class:`~qiskit.circuit.QuantumCircuit` subclasses) allo
 set the amount of qubits involved at instantiation time.
 
 
-.. jupyter-execute::
+.. code-block::
 
     from qiskit.circuit.library import Diagonal
 
@@ -154,6 +165,11 @@ set the amount of qubits involved at instantiation time.
 
     diagonal = Diagonal([1, 1, 1, 1])
     print(diagonal.num_qubits)
+
+.. parsed-literal::
+
+    1
+    2
 
 
 .. autosummary::
@@ -349,7 +365,7 @@ to replace the match with the inverse of the remainder from the template.
 
 In this example, the identity constant in a template is checked:
 
-.. jupyter-execute::
+.. code-block::
 
     from qiskit.circuit.library.templates import template_nct_4b_1
     from qiskit.quantum_info import Operator

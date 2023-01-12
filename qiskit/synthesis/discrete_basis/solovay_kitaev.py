@@ -16,8 +16,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Gate
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.circuit.gate import Gate
 
 from .gate_sequence import GateSequence
 from .commutator_decompose import commutator_decompose
@@ -28,7 +27,7 @@ class SolovayKitaevDecomposition:
     """The Solovay Kitaev discrete decomposition algorithm.
 
     This class is called recursively by the transpiler pass, which is why it is separeted.
-    See :mod:`qiskit.synthesis.discrete_basis` for more information.
+    See :class:`qiskit.transpiler.passes.SolovayKitaev` for more information.
     """
 
     def __init__(
@@ -88,7 +87,7 @@ class SolovayKitaevDecomposition:
 
     def run(
         self, gate_matrix: np.ndarray, recursion_degree: int, return_dag: bool = False
-    ) -> QuantumCircuit | DAGCircuit:
+    ) -> "QuantumCircuit" | "DAGCircuit":
         r"""Run the algorithm.
 
         Args:
