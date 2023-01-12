@@ -11,3 +11,14 @@ fixes:
         qc = QuantumCircuit(1)
         qc.i(0)
         controlled = qc.control()
+upgrade:
+  - |
+    Qiskit Terra will now generally treat the identity gate :class:`.IGate` (with corresponding
+    circuit method :meth:`.QuantumCircuit.i`) as a quantum no-op, and more aggressively remove it
+    during calls to :func:`.transpile`.  This is a change to previous behaviour that supported
+    legacy IBM Quantum systems where the ``id`` instruction was a short-hand for the shortest
+    possible delay cycle.
+
+    This changes removes a lot of surprises when working with :class:`.IGate` at a high-level;
+    various circuit and synthesis operations would previously be unable to handle the gate because
+    it appeared as a "magic" opaque instruction.

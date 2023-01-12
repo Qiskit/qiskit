@@ -20,12 +20,12 @@ from qiskit.circuit.gate import Gate
 class IGate(Gate):
     r"""Identity gate.
 
-    Identity gate corresponds to a single-qubit gate wait cycle,
-    and should not be optimized or unrolled (it is an opaque gate).
+    Logically this gate is a quantum no-op and the transpiler will largely treat it as such, but
+    some older hardware may choose to interpret it as a short-hand for the shortest-possible delay
+    cycle.
 
-    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.i` and
-    :meth:`~qiskit.circuit.QuantumCircuit.id` methods.
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit` with the
+    :meth:`~qiskit.circuit.QuantumCircuit.i` and :meth:`~qiskit.circuit.QuantumCircuit.id` methods.
 
     **Matrix Representation:**
 
