@@ -2,15 +2,28 @@
 deprecations:
   - |
     The following arguments of the :func:`~.execute` function are deprecated
-    and will be removed in a future release:
+    and will be removed in a future release. The alternatives for each
+    argument depend on their role and purpose. For flags that control the
+    compilation you should use the :func:`~.transpile` and
+    :func:`~.schedule` functions first and then pass the output to
+    :meth:`~.BackendV2.run` method directly for the backend you wish to execute
+    on.
+
+    Arguments that go through :func:`~.transpile` instead:
 
     * ``basis_gates``
     * ``coupling_map``
     * ``backend_properties``
-    * ``pass_manager``
-    * ``shots``
-    * ``memory``
-    * ``seed_simulator``
+
+    Arguments that go through :func:`~.schedule` instead
+
+    * ``inst_map``
+    * ``meas_map``
+    * ``init_qubits``
+    * ``scheduling_method``
+
+    Arguments that go through :meth:`~.BackendV2.run` instead:
+
     * ``default_qubit_los``
     * ``default_meas_los``
     * ``qubit_lo_range``
@@ -21,20 +34,40 @@ deprecations:
     * ``memory_slot_size``
     * ``rep_time``
     * ``rep_delay``
-    * ``schedule_circuit``
-    * ``inst_map``
-    * ``meas_map``
-    * ``scheduling_method``
-    * ``init_qubits``
+    * ``seed_simulator``
+    * ``shots``
+    * ``memory``
 
-    The alternatives for each argument depend on their role and purpose. For flags
-    that control the compilation you should use the :func:`~.transpile` and
-    :func:`~.schedule` functions first and then pass the output to
-    :meth:`~.BackendV2.run` method directly for the backend you wish to execute
-    on. For arguments that control the runtime behavior of the backend, these
+    For arguments that control the runtime behavior of the backend, these
     will still work after removal, but they depend on the
     :attr:`~.BackendV2.options` attribute of the backend and whether they are
     supported or not by the backend. In the future these runtime option
     arguments will still be accepted even though the explict argument is
     no longer listed, but if the backend doesn't support them they will be
-    ignored.
+    ignored. In other words the explict keyword argument on :func:`~.execute`
+    are deprecated but setting those options via :func:`~.execute` is not
+    deprecated when executing on a backend that supports them.
+  - |
+    The ``schedule_circuit`` argument of the :func:`~.execute` function has
+    been deprecated and will be removed in a future release. Instead you should
+    manually run :func:`~.transpile()` followed by :func:`~.schedule` to
+    compile a circuit into a pulse :class:`~.Schedule` before submitting it
+    to the backend for execution. For example if you were previously running
+    something like::
+
+        from qiskit import execute
+
+        execute(qc, backend, schedule_circuit=True, optimization_level=3)
+
+    you should instead run::
+
+        from qiskit import transpile, schedule
+
+        backend.run(schedule(transpile(qc, backend, optimization_level=3), backend))
+
+  - |
+    The ``pass_manager`` argument of the :func:`~.execute` function has been
+    deprecated and will be removed in a future release. Instead you should
+    manually use the :meth:`~.PassManager.run` method of the :class:`~.PassManager`
+    to compile the circuit and use the :meth:`~.BackendV2.run` method to
+    execute the circuit.
