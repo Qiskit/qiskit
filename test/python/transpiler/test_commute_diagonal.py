@@ -71,9 +71,7 @@ class TestCommuteDiagonal(QiskitTestCase):
         dag.apply_operation_back(YGate(), qargs=[qr[1]])
         stop_node = dag.apply_operation_back(UnitaryGate(mat), qargs=qr[::-1])
         inter_nodes = _collect_circuit_between_nodes(
-            dag, [qr[0], qr[1]],
-            (start_node, start_node),
-            (stop_node, stop_node)
+            dag, [qr[0], qr[1]], (start_node, start_node), (stop_node, stop_node)
         )
         inter_dag = DAGCircuit()
         inter_dag.add_qubits(qr)
@@ -114,9 +112,7 @@ class TestCommuteDiagonal(QiskitTestCase):
         stop_node1 = dag.apply_operation_back(YGate(), qargs=[qr[1]])
         stop_node0 = dag.apply_operation_back(UnitaryGate(mat), qargs=qr[::-1])
         inter_nodes = _collect_circuit_between_nodes(
-            dag, [qr[0], qr[1]],
-            (start_node0, start_node1),
-            (stop_node0, stop_node1)
+            dag, [qr[0], qr[1]], (start_node0, start_node1), (stop_node0, stop_node1)
         )
         inter_dag = DAGCircuit()
         inter_dag.add_qubits(qr)
@@ -155,9 +151,7 @@ class TestCommuteDiagonal(QiskitTestCase):
         dag.apply_operation_back(YGate(), qargs=[qr[1]])
         stop_node = dag.apply_operation_back(UnitaryGate(mat), qargs=qr[1::-1])
         inter_nodes = _collect_circuit_between_nodes(
-            dag, [qr[0], qr[1]],
-            (start_node, start_node),
-            (stop_node, stop_node)
+            dag, [qr[0], qr[1]], (start_node, start_node), (stop_node, stop_node)
         )
         inter_dag = DAGCircuit()
         inter_dag.add_qubits(qr)
@@ -199,9 +193,7 @@ class TestCommuteDiagonal(QiskitTestCase):
         dag.apply_operation_back(YGate(), qargs=[qr[1]])
         stop_node = dag.apply_operation_back(UnitaryGate(mat), qargs=qr[1::-1])
         inter_nodes = _collect_circuit_between_nodes(
-            dag, [qr[0], qr[1]],
-            (start_node, start_node),
-            (stop_node, stop_node)
+            dag, [qr[0], qr[1]], (start_node, start_node), (stop_node, stop_node)
         )
         inter_dag = DAGCircuit()
         inter_dag.add_qubits(qr)
@@ -369,7 +361,8 @@ class TestCommuteDiagonal(QiskitTestCase):
             for node0, node1 in zip(block0, block1):
                 self.assertTrue(
                     DAGNode.semantic_eq(
-                        node0, node1,
+                        node0,
+                        node1,
                         bit_indices1=bit_map,
                         bit_indices2=bit_map,
                     )

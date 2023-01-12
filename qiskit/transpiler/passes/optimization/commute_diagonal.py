@@ -173,15 +173,15 @@ class CommuteDiagonal(TransformationPass):
         qubit_to_int = {bit: idx for idx, bit in enumerate(dag.qubits)}
         for pair, block_list in candidate_blocks.items():
             bitinds = [qubit_to_int[qubit] for qubit in pair]
-            print(f'bits: {bitinds}')
-            prestr1 = ' '*3
+            print(f"bits: {bitinds}")
+            prestr1 = " " * 3
             for i, block in enumerate(block_list):
-                print(f'{prestr1}block {i}')
-                prestr2 = prestr1 +  ' '*3
-                print(prestr2, end='')
+                print(f"{prestr1}block {i}")
+                prestr2 = prestr1 + " " * 3
+                print(prestr2, end="")
                 for node in block:
-                    print(f' {node.op.name}', end='')
-                print('')
+                    print(f" {node.op.name}", end="")
+                print("")
 
     def _replace_block_with_unitary(self, dag, block, unitary, block_qubits):
         """
