@@ -306,7 +306,7 @@ def execute(
     """
     if basis_gates is not None:
         warnings.warn(
-            "The basis_gates argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The basis_gates argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require compiling to a "
             "custom set of basis gates you should use the transpile() function instead.",
             DeprecationWarning,
@@ -314,7 +314,7 @@ def execute(
         )
     if coupling_map is not None:
         warnings.warn(
-            "The coupling_map argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The coupling_map argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require compiling to a "
             "custom coupling graph you should use the transpile() function instead.",
             DeprecationWarning,
@@ -322,7 +322,7 @@ def execute(
         )
     if backend_properties is not None:
         warnings.warn(
-            "The backend_properties argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The backend_properties argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require compiling to a "
             "custom BackendProperties object you should use the transpile() function instead.",
             DeprecationWarning,
@@ -330,7 +330,7 @@ def execute(
         )
     if pass_manager is not None:
         warnings.warn(
-            "The pass_manager argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The pass_manager argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require compiling with a "
             "custom PassManager object you should use the run() method on that custom "
             "Passmanager directly instead of using execute.",
@@ -340,7 +340,7 @@ def execute(
     if shots is not None:
         if not hasattr(backend.options, "shots"):
             warnings.warn(
-                "The shots argument is deprecated as of Qiskit Terra 0.21.0, "
+                "The shots argument is deprecated as of Qiskit Terra 0.23.0, "
                 "and will be removed in a future release. The backend you are running on does "
                 "not support setting the number of shots so this option will have no effect.",
                 DeprecationWarning,
@@ -349,7 +349,7 @@ def execute(
     if memory is not None:
         if not hasattr(backend.options, "memory"):
             warnings.warn(
-                "The memory argument is deprecated as of Qiskit Terra 0.21.0, "
+                "The memory argument is deprecated as of Qiskit Terra 0.23.0, "
                 "and will be removed in a future release. The backend you are running on does "
                 "not support setting this as an option so the argument will have no effect.",
                 DeprecationWarning,
@@ -358,7 +358,7 @@ def execute(
     if seed_simulator is not None:
         if not hasattr(backend.options, "seed_simulator"):
             warnings.warn(
-                "The seed_simulator argument is deprecated as of Qiskit Terra 0.21.0, "
+                "The seed_simulator argument is deprecated as of Qiskit Terra 0.23.0, "
                 "and will be removed in a future release. The backend you are running on does "
                 "not support setting this as an option so this argument will have no effect.",
                 DeprecationWarning,
@@ -366,77 +366,77 @@ def execute(
             )
     if default_qubit_los is not None:
         warnings.warn(
-            "The default_qubit_los argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The default_qubit_los argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if default_meas_los is not None:
         warnings.warn(
-            "The default_meas_los argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The default_meas_los argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if qubit_lo_range is not None:
         warnings.warn(
-            "The qubit_lo_range argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The qubit_lo_range argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if meas_lo_range is not None:
         warnings.warn(
-            "The meas_lo_range argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The meas_lo_range argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if schedule_los is not None:
         warnings.warn(
-            "The schedule_los argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The schedule_los argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if meas_return is not None:
         warnings.warn(
-            "The meas_return argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The meas_return argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if memory_slots is not None:
         warnings.warn(
-            "The memory_slots argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The memory_slots argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if memory_slot_size is not None:
         warnings.warn(
-            "The memory_slot_size argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The memory_slot_size argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if rep_time is not None:
         warnings.warn(
-            "The rep_time argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The rep_time argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if rep_delay is not None:
         warnings.warn(
-            "The rep_delay argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The rep_delay argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release.",
             DeprecationWarning,
             stacklevel=2,
         )
     if not schedule_circuit:
         warnings.warn(
-            "The schedule_circuit argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The schedule_circuit argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require scheduling your circuit "
             "prior to execution you should use the :func:`~.schedule` function explicitly with "
             "prior to running the circuit.",
@@ -445,7 +445,7 @@ def execute(
         )
     if inst_map is not None:
         warnings.warn(
-            "The inst_map argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The inst_map argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require compiling to a "
             "custom :class:`~.InstructionScheduleMap` you should use the transpile() function "
             "instead.",
@@ -454,7 +454,7 @@ def execute(
         )
     if meas_map is not None:
         warnings.warn(
-            "The meas_map argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The meas_map argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require scheduling your circuit "
             "prior to execution you should use the :func:`~.schedule` function explicitly with "
             "prior to running the circuit.",
@@ -463,7 +463,7 @@ def execute(
         )
     if scheduling_method is not None:
         warnings.warn(
-            "The scheduling_method argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The scheduling_method argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require scheduling your circuit "
             "prior to execution you should use the :func:`~.schedule` function explicitly with "
             "prior to running the circuit.",
@@ -472,7 +472,7 @@ def execute(
         )
     if init_qubits is not None:
         warnings.warn(
-            "The init_qubits argument is deprecated as of Qiskit Terra 0.21.0, "
+            "The init_qubits argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require scheduling your circuit "
             "prior to execution you should use the :func:`~.schedule` function explicitly with "
             "prior to running the circuit.",
@@ -529,14 +529,14 @@ def execute(
 
     if qobj_id is not None:
         warnings.warn(
-            "The qobj_id argument is deprecated as of the Qiskit Terra 0.21.0, "
+            "The qobj_id argument is deprecated as of the Qiskit Terra 0.23.0, "
             "and will be remvoed in a future release. This argument has no effect and "
             "is not used by any backends."
         )
 
     if qobj_header is not None:
         warnings.warn(
-            "The qobj_header argument is deprecated as of the Qiskit Terra 0.21.0, "
+            "The qobj_header argument is deprecated as of the Qiskit Terra 0.23.0, "
             "and will be remvoed in a future release. This argument has no effect and "
             "is not used by any backends."
         )
