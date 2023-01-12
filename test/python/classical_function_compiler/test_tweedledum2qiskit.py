@@ -20,6 +20,7 @@ from qiskit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import XGate
 
 if HAS_TWEEDLEDUM:
+    # pylint: disable=import-error
     from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 
     from tweedledum.ir import Circuit

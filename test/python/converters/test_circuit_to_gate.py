@@ -12,8 +12,13 @@
 
 """Tests for the converters."""
 
+import math
+
+import numpy as np
+
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Gate, Qubit
+from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
@@ -106,3 +111,14 @@ class TestCircuitToGate(QiskitTestCase):
         gate = circ.to_gate(label="a label")
 
         self.assertEqual(gate.label, "a label")
+
+    def test_zero_operands(self):
+        """Test that a gate can be created, even if it has zero operands."""
+        base = QuantumCircuit(global_phase=math.pi)
+        gate = base.to_gate()
+        self.assertEqual(gate.num_qubits, 0)
+        self.assertEqual(gate.num_clbits, 0)
+        self.assertEqual(gate.definition, base)
+        compound = QuantumCircuit(1)
+        compound.append(gate, [], [])
+        np.testing.assert_allclose(-np.eye(2), Operator(compound), atol=1e-16)

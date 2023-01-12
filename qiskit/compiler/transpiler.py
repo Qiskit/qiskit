@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=import-error,invalid-sequence-index
+# pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
 import io
@@ -160,8 +160,7 @@ def transpile(
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"layout"`` for the ``stage_name`` argument.
         routing_method: Name of routing pass
-            ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none'). Note
-            that to use method 'toqm', package 'qiskit-toqm' must be installed.
+            ('basic', 'lookahead', 'stochastic', 'sabre', 'none'). Note
             This can also be the external plugin name to use for the ``routing`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"routing"`` for the ``stage_name`` argument.
@@ -635,7 +634,7 @@ def _parse_transpile_args(
         if coupling_map is None:
             coupling_map = target.build_coupling_map()
         if basis_gates is None:
-            basis_gates = target.operation_names
+            basis_gates = list(target.operation_names)
         if instruction_durations is None:
             instruction_durations = target.durations()
         if inst_map is None:

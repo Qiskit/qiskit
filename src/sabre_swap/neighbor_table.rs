@@ -22,7 +22,7 @@ use rayon::prelude::*;
 /// This object is typically created once from the adjacency matrix of
 /// a coupling map, for example::
 ///
-///     neigh_table = NeighborTable(retworkx.adjacency_matrix(coupling_map.graph))
+///     neigh_table = NeighborTable(rustworkx.adjacency_matrix(coupling_map.graph))
 ///
 /// and used solely to represent neighbors of each node in qiskit-terra's rust
 /// module.

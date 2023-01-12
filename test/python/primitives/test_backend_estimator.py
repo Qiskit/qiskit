@@ -254,6 +254,74 @@ class TestBackendEstimator(QiskitTestCase):
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1.307397243478641], rtol=0.1)
 
+    def test_job_size_limit_v2(self):
+        """Test BackendEstimator respects job size limit"""
+
+        class FakeNairobiLimitedCircuits(FakeNairobiV2):
+            """FakeNairobiV2 with job size limit."""
+
+            @property
+            def max_circuits(self):
+                return 1
+
+        backend = FakeNairobiLimitedCircuits()
+        backend.set_options(seed_simulator=123)
+        qc = QuantumCircuit(1)
+        qc2 = QuantumCircuit(1)
+        qc2.x(0)
+        backend.set_options(seed_simulator=123)
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        estimator = BackendEstimator(backend=backend)
+        with unittest.mock.patch.object(backend, "run") as run_mock:
+            estimator.run([qc] * k, [op] * k, params_list).result()
+        self.assertEqual(run_mock.call_count, 10)
+
+    def test_job_size_limit_v1(self):
+        """Test BackendEstimator respects job size limit"""
+        backend = FakeNairobi()
+        config = backend.configuration()
+        config.max_experiments = 1
+        backend._configuration = config
+        backend.set_options(seed_simulator=123)
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        estimator = BackendEstimator(backend=backend)
+        with unittest.mock.patch.object(backend, "run") as run_mock:
+            estimator.run([qc] * k, [op] * k, params_list).result()
+        self.assertEqual(run_mock.call_count, 10)
+
+    def test_no_max_circuits(self):
+        """Test BackendEstimator works with BackendV1 and no max_experiments set."""
+        backend = FakeNairobi()
+        config = backend.configuration()
+        del config.max_experiments
+        backend._configuration = config
+        backend.set_options(seed_simulator=123)
+        qc = RealAmplitudes(num_qubits=2, reps=2)
+        op = SparsePauliOp.from_list([("IZ", 1), ("XI", 2), ("ZY", -1)])
+        k = 5
+        params_array = np.random.rand(k, qc.num_parameters)
+        params_list = params_array.tolist()
+        params_list_array = list(params_array)
+        estimator = BackendEstimator(backend=backend)
+        target = estimator.run([qc] * k, [op] * k, params_list).result()
+        with self.subTest("ndarrary"):
+            result = estimator.run([qc] * k, [op] * k, params_array).result()
+            self.assertEqual(len(result.metadata), k)
+            np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
+
+        with self.subTest("list of ndarray"):
+            result = estimator.run([qc] * k, [op] * k, params_list_array).result()
+            self.assertEqual(len(result.metadata), k)
+            np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
+
 
 if __name__ == "__main__":
     unittest.main()

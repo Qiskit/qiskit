@@ -15,8 +15,7 @@
 import logging
 from copy import copy, deepcopy
 
-import numpy as np
-import retworkx
+import rustworkx
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -25,14 +24,13 @@ from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.tools.parallel import CPU_COUNT
 
-# pylint: disable=import-error
 from qiskit._accelerate.sabre_swap import (
     build_swap_map,
     Heuristic,
     NeighborTable,
     SabreDAG,
 )
-from qiskit._accelerate.stochastic_swap import NLayout  # pylint: disable=import-error
+from qiskit._accelerate.nlayout import NLayout
 
 logger = logging.getLogger(__name__)
 
@@ -144,19 +142,19 @@ class SabreSwap(TransformationPass):
         if coupling_map is None or coupling_map.is_symmetric:
             self.coupling_map = coupling_map
         else:
+            # A deepcopy is needed here to avoid modifications updating
+            # shared references in passes which require directional
+            # constraints
             self.coupling_map = deepcopy(coupling_map)
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
         if coupling_map is not None:
-            self._neighbor_table = NeighborTable(retworkx.adjacency_matrix(self.coupling_map.graph))
+            self._neighbor_table = NeighborTable(
+                rustworkx.adjacency_matrix(self.coupling_map.graph)
+            )
 
         self.heuristic = heuristic
-
-        if seed is None:
-            ii32 = np.iinfo(np.int32)
-            self.seed = np.random.default_rng(None).integers(0, ii32.max, dtype=int)
-        else:
-            self.seed = seed
+        self.seed = seed
         if trials is None:
             self.trials = CPU_COUNT
         else:
@@ -224,8 +222,7 @@ class SabreSwap(TransformationPass):
                     cargs,
                 )
             )
-        front_layer = np.asarray([x._node_id for x in dag.front_layer()], dtype=np.uintp)
-        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list, front_layer)
+        sabre_dag = SabreDAG(len(dag.qubits), len(dag.clbits), dag_list)
         swap_map, gate_order = build_swap_map(
             len(dag.qubits),
             sabre_dag,
@@ -243,33 +240,63 @@ class SabreSwap(TransformationPass):
         if not self.fake_run:
             for node_id in gate_order:
                 node = dag._multi_graph[node_id]
-                self._process_swaps(swap_map, node, mapped_dag, original_layout, canonical_register)
-                self._apply_gate(mapped_dag, node, original_layout, canonical_register)
+                process_swaps(
+                    swap_map,
+                    node,
+                    mapped_dag,
+                    original_layout,
+                    canonical_register,
+                    self.fake_run,
+                    self._qubit_indices,
+                )
+                apply_gate(
+                    mapped_dag,
+                    node,
+                    original_layout,
+                    canonical_register,
+                    self.fake_run,
+                    self._qubit_indices,
+                )
             return mapped_dag
         return dag
 
-    def _process_swaps(self, swap_map, node, mapped_dag, current_layout, canonical_register):
-        if node._node_id in swap_map:
-            for swap in swap_map[node._node_id]:
-                swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
-                self._apply_gate(
-                    mapped_dag,
-                    DAGOpNode(op=SwapGate(), qargs=swap_qargs),
-                    current_layout,
-                    canonical_register,
-                )
-                current_layout.swap_logical(*swap)
 
-    def _apply_gate(self, mapped_dag, node, current_layout, canonical_register):
-        new_node = self._transform_gate_for_layout(node, current_layout, canonical_register)
-        if self.fake_run:
-            return new_node
-        return mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
+def process_swaps(
+    swap_map,
+    node,
+    mapped_dag,
+    current_layout,
+    canonical_register,
+    fake_run,
+    qubit_indices,
+):
+    """Process swaps from SwapMap."""
+    if node._node_id in swap_map:
+        for swap in swap_map[node._node_id]:
+            swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
+            apply_gate(
+                mapped_dag,
+                DAGOpNode(op=SwapGate(), qargs=swap_qargs),
+                current_layout,
+                canonical_register,
+                fake_run,
+                qubit_indices,
+            )
+            current_layout.swap_logical(*swap)
 
-    def _transform_gate_for_layout(self, op_node, layout, device_qreg):
-        """Return node implementing a virtual op on given layout."""
-        mapped_op_node = copy(op_node)
-        mapped_op_node.qargs = tuple(
-            device_qreg[layout.logical_to_physical(self._qubit_indices[x])] for x in op_node.qargs
-        )
-        return mapped_op_node
+
+def apply_gate(mapped_dag, node, current_layout, canonical_register, fake_run, qubit_indices):
+    """Apply gate given the current layout."""
+    new_node = transform_gate_for_layout(node, current_layout, canonical_register, qubit_indices)
+    if fake_run:
+        return new_node
+    return mapped_dag.apply_operation_back(new_node.op, new_node.qargs, new_node.cargs)
+
+
+def transform_gate_for_layout(op_node, layout, device_qreg, qubit_indices):
+    """Return node implementing a virtual op on given layout."""
+    mapped_op_node = copy(op_node)
+    mapped_op_node.qargs = tuple(
+        device_qreg[layout.logical_to_physical(qubit_indices[x])] for x in op_node.qargs
+    )
+    return mapped_op_node

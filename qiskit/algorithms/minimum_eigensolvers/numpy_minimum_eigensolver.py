@@ -19,6 +19,7 @@ import logging
 import numpy as np
 
 from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ..eigensolvers.numpy_eigensolver import NumPyEigensolver
@@ -42,7 +43,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     ) -> None:
         """
         Args:
-            filter_criterion: callable that allows to filter eigenvalues/eigenstates. The minimum
+            filter_criterion: Callable that allows to filter eigenvalues/eigenstates. The minimum
                 eigensolver is only searching over feasible states and returns an eigenstate that
                 has the smallest eigenvalue among feasible states. The callable has the signature
                 ``filter(eigenstate, eigenvalue, aux_values)`` and must return a boolean to indicate
@@ -96,10 +97,10 @@ class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
         self._eigenstate = None
 
     @property
-    def eigenstate(self) -> np.ndarray | None:
+    def eigenstate(self) -> Statevector | None:
         """Returns the eigenstate corresponding to the computed minimum eigenvalue."""
         return self._eigenstate
 
     @eigenstate.setter
-    def eigenstate(self, value: np.ndarray) -> None:
+    def eigenstate(self, value: Statevector) -> None:
         self._eigenstate = value

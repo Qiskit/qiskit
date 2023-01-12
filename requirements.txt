@@ -1,4 +1,4 @@
-retworkx>=0.11.0
+rustworkx>=0.12.0
 numpy>=1.17
 ply>=3.10
 psutil>=5
@@ -11,10 +11,6 @@ symengine>=0.9 ; platform_machine == 'x86_64' or platform_machine == 'aarch64' o
 shared-memory38;python_version<'3.8'
 typing-extensions; python_version < '3.8'
 singledispatchmethod; python_version < '3.8'
-
-# To be removed as a requirement in Terra 0.23.  Tweedledum's wheels are
-# hopelessly broken on M1 mac, so we skip the waiting period for that.
-tweedledum>=1.1,<2.0; platform_machine != 'arm64' or sys_platform != 'darwin'
 
 # Hack around stevedore being broken by importlib_metadata 5.0; we need to pin
 # the requirements rather than the constraints if we need to cut a release

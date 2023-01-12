@@ -393,7 +393,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         """Test adding and getting schedule with non obvious parameter ordering."""
         theta = Parameter("theta")
         phi = Parameter("phi")
-        lamb = Parameter("lambda")
+        lamb = Parameter("lam")
 
         target_sched = Schedule()
         target_sched.insert(0, ShiftPhase(theta, DriveChannel(0)), inplace=True)
@@ -401,7 +401,7 @@ class TestInstructionScheduleMap(QiskitTestCase):
         target_sched.insert(20, ShiftPhase(lamb, DriveChannel(0)), inplace=True)
 
         inst_map = InstructionScheduleMap()
-        inst_map.add("target_sched", (0,), target_sched, arguments=["theta", "phi", "lambda"])
+        inst_map.add("target_sched", (0,), target_sched, arguments=["theta", "phi", "lam"])
 
         ref_sched = Schedule()
         ref_sched.insert(0, ShiftPhase(0, DriveChannel(0)), inplace=True)
