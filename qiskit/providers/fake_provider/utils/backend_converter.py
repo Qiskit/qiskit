@@ -119,12 +119,12 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
                     qargs = (qarg,)
                 # Do NOT call .get method. This parses Qpbj immediately.
                 # This operation is computationally expensive and should be bypassed.
-                calibration_entry = inst_map._map[inst][qargs]
+                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
                 if inst in target:
                     if inst == "measure":
                         for qubit in qargs:
                             target[inst][(qubit,)].calibration = calibration_entry
-                    else:
+                    elif qargs in target[inst]:
                         target[inst][qargs].calibration = calibration_entry
     target.add_instruction(
         Delay(Parameter("t")), {(bit,): None for bit in range(target.num_qubits)}
