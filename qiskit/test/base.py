@@ -223,13 +223,13 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"The QuantumCircuit.cu.",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
-            # TODO: remove the following ignore after seaborn 0.12.0 releases
-            r"distutils Version classes are deprecated. Use packaging\.version",
-            # Internal deprecation warning emitted by jupyter client when
-            # calling nbconvert in python 3.10
-            r"There is no current event loop",
             # Caused by internal scikit-learn scipy usage
             r"The 'sym_pos' keyword is deprecated and should be replaced by using",
+            # jupyter_client 7.4.8 uses deprecated shims in pyzmq that raise warnings with pyzmq 25.
+            # These are due to be fixed by jupyter_client 8, see:
+            #   - https://github.com/jupyter/jupyter_client/issues/913
+            #   - https://github.com/jupyter/jupyter_client/pull/842
+            r"zmq\.eventloop\.ioloop is deprecated in pyzmq .*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
