@@ -27,7 +27,7 @@ from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import two_qubit_decompose
 from qiskit.extensions import UnitaryGate
 from qiskit.circuit.library.standard_gates import CXGate
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 
 
 class Diagonality(enum.Enum):
@@ -319,8 +319,16 @@ class CommuteDiagonal(TransformationPass):
         if len(nonlocal_nodes) != 1:
             raise TranspilerError("expected exactly one CNOT gate in circuit")
         nonlocal_node = nonlocal_nodes[0]
-        pred_nodes = list(target_dag.quantum_predecessors(nonlocal_node))
-        succ_nodes = list(target_dag.quantum_successors(nonlocal_node))
+        pred_nodes = [
+            node
+            for node in target_dag.quantum_predecessors(nonlocal_node)
+            if isinstance(node, DAGOpNode)
+        ]
+        succ_nodes = [
+            node
+            for node in target_dag.quantum_successors(nonlocal_node)
+            if isinstance(node, DAGOpNode)
+        ]
         return pred_nodes, nonlocal_node, succ_nodes, target_dag.global_phase
 
     def copy_ops_like(self, dag):
