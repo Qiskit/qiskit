@@ -23,6 +23,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info import Statevector
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
+from qiskit.providers import Options
 
 from ..base_qfi import BaseQFI
 from ..qfi_result import QFIResult
@@ -60,8 +61,9 @@ class ReverseQGT(BaseQFI):
 
     SUPPORTED_GATES = ["rx", "ry", "rz", "cp", "crx", "cry", "crz"]
 
+    # TODO: should the default for QGT be complex?
     def __init__(
-        self, phase_fix: bool = True, derivative_type: DerivativeType = DerivativeType.COMPLEX
+        self, phase_fix: bool = True, derivative_type: DerivativeType = DerivativeType.REAL
     ):
         """
         Args:
@@ -72,6 +74,15 @@ class ReverseQGT(BaseQFI):
         super().__init__()
         self.phase_fix = phase_fix
         self._derivative_type = derivative_type
+
+    @property
+    def options(self) -> Options:
+        """There are no options for the reverse QGT, returns an empty options dict.
+
+        Returns:
+            Empty options.
+        """
+        return Options()
 
     # TODO this should be in the base class of QGT
     @property
@@ -106,10 +117,12 @@ class ReverseQGT(BaseQFI):
 
             # TODO parameters is None captured by QGT
             if parameters[k] is None:
-                parameters[k] = circuit.parameters
+                parameters_ = list(circuit.parameters)
+            else:
+                parameters_ = list(parameters[k])
 
-            num_parameters = len(parameters[k])
-            original_parameter_order = [p for p in circuit.parameters if p in parameters]
+            num_parameters = len(parameters_)
+            original_parameter_order = [p for p in circuit.parameters if p in parameters_]
 
             metadata.append(
                 {
@@ -118,7 +131,7 @@ class ReverseQGT(BaseQFI):
                 }
             )
 
-            unitaries, paramlist = split(circuit, parameters=parameters)
+            unitaries, paramlist = split(circuit, parameters=parameters_)
 
             # initialize the phase fix vector and the hessian part ``lis``
             num_parameters = len(unitaries)
@@ -209,11 +222,6 @@ class ReverseQGT(BaseQFI):
 
                     qgt[iloc, jloc] -= np.conj(phase_fixes[i]) * phase_fixes[j]
 
-            if self.derivative_type == DerivativeType.REAL:
-                qgt = np.real(qgt)
-            elif self.derivative_type == DerivativeType.IMAG:
-                qgt = np.imag(qgt)
-
             qgts.append(self._to_derivtype(qgt))
 
         result = QFIResult(qgts, metadata, options=None)
@@ -226,7 +234,7 @@ class ReverseQGT(BaseQFI):
         if self.derivative_type == DerivativeType.IMAG:
             return 4 * np.imag(qgt)
 
-        return 4 * gradient
+        return 4 * qgt
 
 
 def _l_term(coeffs_i, states_i, coeffs_j, states_j):

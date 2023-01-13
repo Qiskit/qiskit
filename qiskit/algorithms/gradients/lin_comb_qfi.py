@@ -95,6 +95,16 @@ class LinCombQFI(BaseQFI):
         )
         self._qfi_circuit_cache = {}
 
+    @property
+    def derivative_type(self) -> DerivativeType:
+        """The derivative type."""
+        return self._derivative_type
+
+    @derivative_type.setter
+    def derivative_type(self, derivative_type: DerivativeType) -> None:
+        """Set the derivative type."""
+        self._derivative_type = derivative_type
+
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
@@ -123,7 +133,7 @@ class LinCombQFI(BaseQFI):
                         result_map[i] = -1
 
             meta = {"parameters": [p for p in circuit.parameters if p in param_set]}
-            meta["derivative_type"] = self._derivative_type
+            meta["derivative_type"] = self.derivative_type
             metadata_.append(meta)
 
             observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
@@ -241,19 +251,24 @@ class LinCombQFI(BaseQFI):
                     qfi_[idx] += complex(0, coeff * grad_)
             else:
                 for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
-                    qfi_[idx] += coeff * grad_
-                qfi_ = qfi_.real
+                    if metadata_[i]["derivative_type"] == DerivativeType.REAL:
+                        qfi_[idx] += coeff * grad_
+                    else:
+                        qfi_[idx] += complex(0, coeff * grad_)
 
-            if metadata_[i]["derivative_type"] == DerivativeType.REAL:
-                phase_fixes[i] = phase_fixes[i].real
-            elif metadata_[i]["derivative_type"] == DerivativeType.IMAG:
-                phase_fixes[i] = phase_fixes[i].imag
-            qfi = qfi_ - phase_fixes[i]
-            qfi += np.triu(qfi_, k=1).T
-            qfis.append(qfi)
+            qfi = qfi_ + np.conj(np.triu(qfi_, k=1).T) - phase_fixes[i]
+            qfis.append(self._to_derivtype(qfi))
 
         run_opt = self._get_local_options(options)
         return QFIResult(qfis=qfis, metadata=metadata_, options=run_opt)
+
+    def _to_derivtype(self, qfi):
+        if self.derivative_type == DerivativeType.REAL:
+            return np.real(qfi)
+        if self.derivative_type == DerivativeType.IMAG:
+            return np.imag(qfi)
+
+        return qfi
 
     @property
     def options(self) -> Options:

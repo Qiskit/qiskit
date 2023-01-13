@@ -42,7 +42,7 @@ class TestQFI(QiskitTestCase):
 
         QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
         """
-        args = (self.estimator,) if qgt_type != ReverseQGT else (,)
+        args = (self.estimator,) if qgt_type != ReverseQGT else ()
         qfi = qgt_type(*args)
 
         # create the circuit
@@ -59,11 +59,15 @@ class TestQFI(QiskitTestCase):
             qfis = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfis[0], correct_values[i], atol=1e-3)
 
-    def test_qfi_phase_fix(self):
+    @data(LinCombQFI, ReverseQGT)
+    def test_qfi_phase_fix(self, qgt_type):
         """Test the phase-fix argument in a QFI calculation
 
         QFI = [[1, 0], [0, 1]].
         """
+        args = (self.estimator,) if qgt_type != ReverseQGT else ()
+        qfi = qgt_type(*args, phase_fix=False)
+
         # create the circuit
         a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
@@ -74,11 +78,11 @@ class TestQFI(QiskitTestCase):
         param = [np.pi / 4, 0.1]
         # test for different values
         correct_values = [[1, 0], [0, 1]]
-        qfi = LinCombQFI(self.estimator, phase_fix=False)
         qfi_result = qfi.run([qc], [param]).result().qfis
         np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
 
-    def test_qfi_maxcut(self):
+    @data(LinCombQFI, ReverseQGT)
+    def test_qfi_maxcut(self, qgt_type):
         """Test the QFI for a simple MaxCut problem.
 
         This is interesting because it contains the same parameters in different gates.
@@ -110,11 +114,14 @@ class TestQFI(QiskitTestCase):
         reference = np.array([[16.0, -5.551], [-5.551, 18.497]])
         param = [0.4, 0.69]
 
-        qfi = LinCombQFI(self.estimator)
+        args = (self.estimator,) if qgt_type != ReverseQGT else ()
+        qfi = qgt_type(*args)
+
         qfi_result = qfi.run([ansatz], [param]).result().qfis
         np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
 
-    def test_qfi_derivative_type(self):
+    @data(LinCombQFI, ReverseQGT)
+    def test_qfi_derivative_type(self, qgt_type):
         """Test QFI derivative_type"""
         a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
@@ -122,19 +129,22 @@ class TestQFI(QiskitTestCase):
         qc.rz(a, 0)
         qc.rx(b, 0)
 
+        args = (self.estimator,) if qgt_type != ReverseQGT else ()
+        qfi = qgt_type(*args)
+
+        param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
         # test imaginary derivative
         with self.subTest("Test with DerivativeType.IMAG"):
-            qfi = LinCombQFI(self.estimator, derivative_type=DerivativeType.IMAG)
-            param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
-            correct_values = [[[0, 0.707106781], [0.707106781, 0]], [[0, 1], [1, 0]]]
+            qfi.derivative_type = DerivativeType.IMAG
+            correct_values = [[[0, 0.707106781], [-0.707106781, 0]], [[0, 1], [-1, 0]]]
             for i, param in enumerate(param_list):
                 qfi_result = qfi.run([qc], [param]).result().qfis
                 np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
         # test real + imaginary derivative
-        with self.subTest("Test with DerivativeType.IMAG"):
-            qfi = LinCombQFI(self.estimator, derivative_type=DerivativeType.COMPLEX)
-            correct_values = [[[1, 0.707106781j], [0.707106781j, 0.5]], [[1, 1j], [1j, 1]]]
+        with self.subTest("Test with DerivativeType.COMPLEX"):
+            qfi.derivative_type = DerivativeType.COMPLEX
+            correct_values = [[[1, 0.707106781j], [-0.707106781j, 0.5]], [[1, 1j], [-1j, 1]]]
             for i, param in enumerate(param_list):
                 qfi_result = qfi.run([qc], [param]).result().qfis
                 np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
