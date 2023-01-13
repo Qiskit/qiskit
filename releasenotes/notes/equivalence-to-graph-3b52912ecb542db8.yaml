@@ -1,10 +1,47 @@
 ---
 features:
   - |
-    The :class:`qiskit.circuit.equivalence.EquivalenceLibrary` is now
+    The :class:`~.EquivalenceLibrary` is now
     represented internally as a ``PyDiGraph``. As part of this change,
     there is a new public-facing attribute - ``graph``: the graph
     representation of the EquivalenceLibrary. This attribute is
     intended for use internally in qiskit and therefore should always
     be copied before being modified by the user to prevent possible
     corruption of the internal equivalence graph.
+upgrade:
+  - |
+    :class:`~.EquivalenceLibrary` objects that are initialized with the ``base``
+    attribute will no long have a shared reference with the
+    :class:`~.EquivalenceLibrary` passed in. In earlier releases if you mutated
+    ``base`` after it was used to create a new :class:`~.EquivalenceLibrary`
+    instance both instances would reflect that change. This no longer is the case
+    and updates to ``base`` will no longer be reflected in the new
+    :class:`~.EquivalenceLibrary`. For example, if you created an equivalence library
+    with::
+
+        import math
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import XGate
+        from qiskit.circuit.equivalence import EquivalenceLibrary
+
+        original_lib = EquivalenceLibrary()
+        qc = QuantumCircuit(1)
+        qc.rx(math.pi, 0)
+        original_lib.add_equivalence(XGate(), qc)
+        new_lib = EquivalenceLibrary(base=original_lib)
+
+    if you modified ``original_lib`` with:
+
+        import from qiskit.circuit.library import SXGate
+
+        qc = QuantumCircuit(1)
+        qc.rx(math.pi / 2, 0)
+        original_lib.add_equivalence(SXGate(), qc)
+
+    in previous releases ``new_lib`` would also include the definition of ``SXGate``
+    after it was added to ``original_lib``, but in this release this no longer will
+    be the case. This change was made because     of the change in internal data
+    structure to be a graph, which improved performance of the
+    :class:`~.EquivalenceLibrary` class, especially when there are multiple runs of
+    the :class:`~.BasisTranslator` transpiler pass.
