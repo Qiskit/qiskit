@@ -241,19 +241,24 @@ class LinCombQFI(BaseQFI):
                     qfi_[idx] += complex(0, coeff * grad_)
             else:
                 for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
-                    qfi_[idx] += coeff * grad_
-                qfi_ = qfi_.real
+                    if metadata_[i]["derivative_type"] == DerivativeType.REAL:
+                        qfi_[idx] += coeff * grad_
+                    else:
+                        qfi_[idx] += complex(0, coeff * grad_)
 
-            if metadata_[i]["derivative_type"] == DerivativeType.REAL:
-                phase_fixes[i] = phase_fixes[i].real
-            elif metadata_[i]["derivative_type"] == DerivativeType.IMAG:
-                phase_fixes[i] = phase_fixes[i].imag
-            qfi = qfi_ - phase_fixes[i]
-            qfi += np.triu(qfi_, k=1).T
-            qfis.append(qfi)
+            qfi = qfi_ + np.conj(np.triu(qfi_, k=1).T) - phase_fixes[i]
+            qfis.append(self._to_derivtype(qfi))
 
         run_opt = self._get_local_options(options)
         return QFIResult(qfis=qfis, metadata=metadata_, options=run_opt)
+
+    def _to_derivtype(self, qfi):
+        if self._derivative_type == DerivativeType.REAL:
+            return np.real(qfi)
+        if self._derivative_type == DerivativeType.IMAG:
+            return np.imag(qfi)
+
+        return qfi
 
     @property
     def options(self) -> Options:

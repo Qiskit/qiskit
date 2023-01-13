@@ -123,7 +123,7 @@ class TestQFI(QiskitTestCase):
         with self.subTest("Test with DerivativeType.IMAG"):
             qfi = LinCombQFI(self.estimator, derivative_type=DerivativeType.IMAG)
             param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
-            correct_values = [[[0, 0.707106781], [0.707106781, 0]], [[0, 1], [1, 0]]]
+            correct_values = [[[0, 0.707106781], [-0.707106781, 0]], [[0, 1], [-1, 0]]]
             for i, param in enumerate(param_list):
                 qfi_result = qfi.run([qc], [param]).result().qfis
                 np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
@@ -131,7 +131,7 @@ class TestQFI(QiskitTestCase):
         # test real + imaginary derivative
         with self.subTest("Test with DerivativeType.IMAG"):
             qfi = LinCombQFI(self.estimator, derivative_type=DerivativeType.COMPLEX)
-            correct_values = [[[1, 0.707106781j], [0.707106781j, 0.5]], [[1, 1j], [1j, 1]]]
+            correct_values = [[[1, 0.707106781j], [-0.707106781j, 0.5]], [[1, 1j], [-1j, 1]]]
             for i, param in enumerate(param_list):
                 qfi_result = qfi.run([qc], [param]).result().qfis
                 np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
