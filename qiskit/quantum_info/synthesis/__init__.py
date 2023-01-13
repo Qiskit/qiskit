@@ -17,3 +17,4 @@ from .one_qubit_decompose import OneQubitEulerDecomposer
 from .quaternion import Quaternion
 from .clifford_decompose import decompose_clifford
 from .xx_decompose.decomposer import XXDecomposer
+from .siswap_decompose import SiSwapDecomposer

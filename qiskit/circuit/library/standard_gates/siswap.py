@@ -46,11 +46,11 @@ class SiSwapGate(Gate):
 
     def __init__(self):
         """Create new SiSwap gate."""
-        super().__init__("sqisw", 2, [])
+        super().__init__("siswap", 2, [])
 
     def _define(self):
         """
-        gate SQiSW a, b { rxx(-pi/4) a, b; ryy(-pi/4) a, b; }
+        gate SiSwap a, b { rxx(-pi/4) a, b; ryy(-pi/4) a, b; }
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -59,7 +59,7 @@ class SiSwapGate(Gate):
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(RXXGate(-pi/4), [q[0], q[1]], []), (RYYGate(-pi/4), [q[1], q[0]], [])]
+        rules = [(RXXGate(-np.pi/4), [q[0], q[1]], []), (RYYGate(-np.pi/4), [q[1], q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
