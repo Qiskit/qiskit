@@ -19,14 +19,14 @@ import cmath
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
-from qiskit.circuit.library import (SiSwapGate, RXXGate, RYYGate, RZZGate, RZGate, RYGate,
+from qiskit.circuit.library import (SQiSWGate, RXXGate, RYYGate, RZZGate, RZGate, RYGate,
                                     XGate, YGate, ZGate, SGate, SdgGate)
 
 
 _EPS = 1e-10
 
 
-class SiSwapDecomposer:
+class SQiSWDecomposer:
     """
     A class for decomposing 2-qubit unitaries into at most 3 uses of the sqrt(iSWAP) gate.
 
@@ -67,8 +67,8 @@ class SiSwapDecomposer:
         B1 = Operator(u_decomp.K2r)
         B2 = Operator(u_decomp.K2l)
 
-        # in the case that 2 x SiSwap gates are needed
-        if abs(z) <= x - y + _EPS:
+        # in the case that 2 x SQiSW gates are needed
+        if abs(z) <= x - y + _EPS:   # red region
             V = _interleaving_single_qubit_gates(x, y, z)
 
             v_decomp = TwoQubitWeylDecomposition(Operator(V))
@@ -78,37 +78,37 @@ class SiSwapDecomposer:
             E1 = Operator(v_decomp.K2r)
             E2 = Operator(v_decomp.K2l)
 
-            ret_c = QuantumCircuit(2)
-            ret_c.append(B1, [0])
-            ret_c.append(B2, [1])
+            circuit = QuantumCircuit(2)
+            circuit.append(B1, [0])
+            circuit.append(B2, [1])
 
-            ret_c.append(E1.adjoint(), [0])
-            ret_c.append(E2.adjoint(), [1])
-            ret_c.compose(V, inplace=True)
-            ret_c.append(D1.adjoint(), [0])
-            ret_c.append(D2.adjoint(), [1])
+            circuit.append(E1.adjoint(), [0])
+            circuit.append(E2.adjoint(), [1])
+            circuit.compose(V, inplace=True)
+            circuit.append(D1.adjoint(), [0])
+            circuit.append(D2.adjoint(), [1])
 
-            ret_c.append(A1, [0])
-            ret_c.append(A2, [1])
+            circuit.append(A1, [0])
+            circuit.append(A2, [1])
 
-        # in the case that 3 SiSwap gates are needed
+        # in the case that 3 SQiSW gates are needed
         else:
-            # CAN(x, y, z) ~ CAN(x, y, -z)†
-            # so we decompose the adjoint, replace SiSwap with a template in
-            # terms of SiSwap†, then invert the whole thing
-            if z < 0:
+            if z < 0:  # blue region
+                # CAN(x, y, z) ~ CAN(x, y, -z)†
+                # so we decompose the adjoint, replace SQiSW with a template in
+                # terms of SQiSW†, then invert the whole thing
                 inverse_decomposition = self.__call__(Operator(unitary).adjoint())
                 inverse_decomposition_with_siswap_dg = QuantumCircuit(2)
                 for instruction in inverse_decomposition:
-                    if isinstance(instruction.operation, SiSwapGate):
+                    if isinstance(instruction.operation, SQiSWGate):
                         inverse_decomposition_with_siswap_dg.z(0)
-                        inverse_decomposition_with_siswap_dg.append(SiSwapGate().inverse(), [0, 1])
+                        inverse_decomposition_with_siswap_dg.append(SQiSWGate().inverse(), [0, 1])
                         inverse_decomposition_with_siswap_dg.z(0)
                     else:
                         inverse_decomposition_with_siswap_dg.append(instruction)
 
-                ret_c = inverse_decomposition_with_siswap_dg.inverse()
-            # follow unitary u with a circuit consisting of 1 x SiSwap
+                circuit = inverse_decomposition_with_siswap_dg.inverse()
+            # follow unitary u with a circuit consisting of 1 x SQiSW
             # that takes the coordinate into the red region
             else:
                 # first remove the post-rotation to u to be able to
@@ -119,59 +119,55 @@ class SiSwapDecomposer:
                 nonred.append(A2.adjoint(), [1])
 
                 # make a circuit that changes the angles of RXX.RYY.RZZ as desired
-                # here we actually make the inverse of the circuit because we want
-                # the final result to have SQiSW not SQiSW\dg
                 follow = QuantumCircuit(2)
-                # canonical gate: (x, y, z) --> (x-pi/8, y-pi/8, z)
-                follow = follow.compose(SiSwapGate(), [0, 1])
 
+                # starting with a single sqrt(iSWAP) gate: RXX(pi/4).RYY(pi/4).RZZ(0)
+                follow = follow.compose(SQiSWGate(), [0, 1])
+
+                # figure out the appropriate conjugations that change RXX/RYY/RZZ angles
                 eigenphase_crossing = False
-
-                if x > np.pi/8:
-                    # (x, y, z) --> (x, y-pi/8, z-pi/8)
+                if x > np.pi/8:   # green region
+                    # RXX(0).RYY(pi/4).RZZ(pi/4)
                     follow = follow.compose(YGate().power(1/2), [0], front=True)
                     follow = follow.compose(YGate().power(1/2), [1], front=True)
                     follow = follow.compose(YGate().power(-1/2), [0])
                     follow = follow.compose(YGate().power(-1/2), [1])
-                    # eigenphase crossing: a_2 - pi/4 < a_3 + pi/4
-                    # (x, y, z) --> (x, z-pi/8, y-pi/8)
-                    if y + z < np.pi/4:
+                    # RXX(0).RYY(pi/4).RZZ(pi/4)
+                    if y + z < np.pi/4:  # eigenphase crossing condition: a_2 - pi/4 < a_3 + pi/4
                         eigenphase_crossing = True
-                else:
-                    # (x, y, z) --> (x+pi/8, y, z-pi/8)
+                else:   # purple region
+                    # RXX(-pi/4).RYY(0).RZZ(pi/4)
                     follow = follow.compose(XGate().power(1/2), [0], front=True)
                     follow = follow.compose(XGate().power(1/2), [1], front=True)
                     follow = follow.compose(XGate().power(-1/2), [0])
                     follow = follow.compose(XGate().power(-1/2), [1])
                     follow = follow.compose(ZGate(), [0], front=True)
                     follow = follow.compose(ZGate(), [0])
-                    # eigenphase crossing: a_2 - pi/4 < a_3
-                    # (x, y, z) --> (x+pi/8, z-pi/8, y)
-                    if y + z < np.pi/8:
+                    # RXX(-pi/4).RYY(pi/4).RZZ(0)
+                    if y + z < np.pi/8:  # eigenphase crossing condition: a_2 - pi/4 < a_3
                         eigenphase_crossing = True
 
-                # eigenphase crossing:
                 if eigenphase_crossing:
                     follow = follow.compose(XGate().power(1/2), [0], front=True)
                     follow = follow.compose(XGate().power(1/2), [1], front=True)
                     follow = follow.compose(XGate().power(-1/2), [0])
                     follow = follow.compose(XGate().power(-1/2), [1])
 
-                # now the operator in the red region can be decomposed using 2 x SQiSW
+                # now we can land in the red region which can be decomposed using 2 x SQiSW
                 red = nonred.compose(follow.inverse(), [0, 1], inplace=False)
-                c_2_sqisw = self.__call__(Operator(red))
+                red_decomp = self.__call__(Operator(red))
 
                 # now write u in terms of 3 x SQiSW
-                ret_c = QuantumCircuit(2)
-                ret_c = ret_c.compose(c_2_sqisw, [0, 1])
-                ret_c = ret_c.compose(follow, [0, 1])
-                ret_c.append(A1, [0])
-                ret_c.append(A2, [1])
+                circuit = QuantumCircuit(2)
+                circuit = circuit.compose(red_decomp, [0, 1])
+                circuit = circuit.compose(follow, [0, 1])
+                circuit.append(A1, [0])
+                circuit.append(A2, [1])
 
-        phase_diff = cmath.phase(Operator(unitary).data[0][0] / Operator(ret_c).data[0][0])
-        ret_c.global_phase += phase_diff
+        phase_diff = cmath.phase(Operator(unitary).data[0][0] / Operator(circuit).data[0][0])
+        circuit.global_phase += phase_diff
 
-        return self._decomposer1q(ret_c)
+        return self._decomposer1q(circuit)
 
 
 def _interleaving_single_qubit_gates(x, y, z):
@@ -194,60 +190,12 @@ def _interleaving_single_qubit_gates(x, y, z):
 
     # create V operator
     V = QuantumCircuit(2)
-    V.append(SiSwapGate(), [0, 1])
+    V.append(SQiSWGate(), [0, 1])
     V.rz(γ, 0)
     V.rx(α, 0)
     V.rz(γ, 0)
     V.rx(β, 1)
-    V.append(SiSwapGate(), [0, 1])
+    V.append(SQiSWGate(), [0, 1])
 
     # the returned circuit is the SQiSW sandwich
     return V
-
-
-def _canonicalize(a, b, c):
-    """
-    Decompose an arbitrary gate into one SQiSW and one L(x′, y′, z′)
-    where (x′, y′, z′) ∈ W′ and output the coefficients (x′, y′, z′)
-    and the interleaving single qubit rotations.
-    """
-    A1 = Operator(IGate())
-    A2 = Operator(IGate())
-    B1 = Operator(RYGate(-np.pi/2))
-    B2 = Operator(RYGate(np.pi/2))
-    C1 = Operator(RYGate(np.pi/2))
-    C2 = Operator(RYGate(-np.pi/2))
-
-    s = 1 if c >= 0 else -1
-
-    # a_ corresponds to a' in the paper, and so on
-    a_ = a
-    b_ = b
-    c_ = abs(c)
-
-    if a > np.pi/8:
-        b_ -= np.pi/8
-        c_ -= np.pi/8
-        B1 = Operator(RZGate(np.pi/2)) @ B1
-        B2 = Operator(RZGate(-np.pi/2)) @ B2
-        C1 = C1 @ Operator(RZGate(-np.pi/2))
-        C2 = C2 @ Operator(RZGate(np.pi/2))
-    else:
-        a_ += np.pi/8
-        c_ -= np.pi/8
-
-    if abs(b_) < abs(c_):
-        b_, c_ = -c_, -b_
-        A1 = Operator(RXGate(np.pi/2))
-        A2 = Operator(RXGate(-np.pi/2))
-        B1 = Operator(RXGate(-np.pi/2)) @ B1
-        B2 = Operator(RXGate(np.pi/2)) @ B2
-    if s < 0:
-        c_ = -c_
-        A1 = Operator(ZGate()) @ A1 @ Operator(ZGate())
-        B1 = Operator(ZGate()) @ B1 @ Operator(ZGate())
-        C1 = Operator(ZGate()) @ C1 @ Operator(ZGate())
-
-    return a_,b_,c_, A1, A2, B1, B2, C1, C2
-
-
