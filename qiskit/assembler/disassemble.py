@@ -99,7 +99,7 @@ def _disassemble_circuit(qobj) -> CircuitModule:
     return CircuitModule((_experiments_to_circuits(qobj), run_config, user_qobj_header))
 
 
-def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
+def _qobj_to_circuit_cals(qobj, pulse_lib):
     """Return circuit calibrations dictionary from qobj/exp config calibrations."""
     qobj_cals = qobj.config.calibrations.to_dict()["gates"]
     converter = QobjToInstructionConverter(pulse_lib)
@@ -113,11 +113,8 @@ def _qobj_to_circuit_cals(qobj, pulse_lib, param_pulses):
             )
         }
         for instruction in gate["instructions"]:
-            schedule = (
-                converter.convert_parametric(PulseQobjInstruction.from_dict(instruction))
-                if "pulse_shape" in instruction and instruction["pulse_shape"] in param_pulses
-                else converter(PulseQobjInstruction.from_dict(instruction))
-            )
+            qobj_instruction = PulseQobjInstruction.from_dict(instruction)
+            schedule = converter(qobj_instruction)
             cal[config] = cal[config].insert(schedule.ch_start_time(), schedule)
         if gate["name"] in qc_cals:
             qc_cals[gate["name"]].update(cal)
@@ -238,17 +235,14 @@ def _experiments_to_circuits(qobj):
                 _inst.c_if(conditional["register"], conditional["value"])
                 conditional = {}
         pulse_lib = qobj.config.pulse_library if hasattr(qobj.config, "pulse_library") else []
-        parametric_pulses = (
-            qobj.config.parametric_pulses if hasattr(qobj.config, "parametric_pulses") else []
-        )
         # The dict update method did not work here; could investigate in the future
         if hasattr(qobj.config, "calibrations"):
             circuit.calibrations = dict(
-                **circuit.calibrations, **_qobj_to_circuit_cals(qobj, pulse_lib, parametric_pulses)
+                **circuit.calibrations, **_qobj_to_circuit_cals(qobj, pulse_lib)
             )
         if hasattr(exp.config, "calibrations"):
             circuit.calibrations = dict(
-                **circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib, parametric_pulses)
+                **circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib)
             )
         circuits.append(circuit)
     return circuits
