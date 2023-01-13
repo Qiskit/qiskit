@@ -14,13 +14,13 @@
 
 import unittest
 
-from test.python.opflow import QiskitOpflowTestCase
+from qiskit.test import QiskitTestCase
 
 from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
 from qiskit.quantum_info.analysis.z2_symmetries import Z2Symmetries
 
 
-class TestSparseZ2Symmetries(QiskitOpflowTestCase):
+class TestSparseZ2Symmetries(QiskitTestCase):
     """Z2Symmetries tests."""
 
     def test_find_z2_symmetries(self):
