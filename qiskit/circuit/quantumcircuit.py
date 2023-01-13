@@ -155,47 +155,49 @@ class QuantumCircuit:
 
         Construct a simple Bell state circuit.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
-            from qiskit import QuantumCircuit
+           from qiskit import QuantumCircuit
 
-            qc = QuantumCircuit(2, 2)
-            qc.h(0)
-            qc.cx(0, 1)
-            qc.measure([0, 1], [0, 1])
-            qc.draw()
+           qc = QuantumCircuit(2, 2)
+           qc.h(0)
+           qc.cx(0, 1)
+           qc.measure([0, 1], [0, 1])
+           qc.draw('mpl')
 
         Construct a 5-qubit GHZ circuit.
 
-        .. jupyter-execute::
+        .. code-block::
 
-            from qiskit import QuantumCircuit
+           from qiskit import QuantumCircuit
 
-            qc = QuantumCircuit(5)
-            qc.h(0)
-            qc.cx(0, range(1, 5))
-            qc.measure_all()
+           qc = QuantumCircuit(5)
+           qc.h(0)
+           qc.cx(0, range(1, 5))
+           qc.measure_all()
 
         Construct a 4-qubit Bernstein-Vazirani circuit using registers.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
-            from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+           from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 
-            qr = QuantumRegister(3, 'q')
-            anc = QuantumRegister(1, 'ancilla')
-            cr = ClassicalRegister(3, 'c')
-            qc = QuantumCircuit(qr, anc, cr)
+           qr = QuantumRegister(3, 'q')
+           anc = QuantumRegister(1, 'ancilla')
+           cr = ClassicalRegister(3, 'c')
+           qc = QuantumCircuit(qr, anc, cr)
 
-            qc.x(anc[0])
-            qc.h(anc[0])
-            qc.h(qr[0:3])
-            qc.cx(qr[0:3], anc[0])
-            qc.h(qr[0:3])
-            qc.barrier(qr)
-            qc.measure(qr, cr)
+           qc.x(anc[0])
+           qc.h(anc[0])
+           qc.h(qr[0:3])
+           qc.cx(qr[0:3], anc[0])
+           qc.h(qr[0:3])
+           qc.barrier(qr)
+           qc.measure(qr, cr)
 
-            qc.draw()
+           qc.draw('mpl')
     """
 
     instances = 0
@@ -769,8 +771,8 @@ class QuantumCircuit:
     def compose(
         self,
         other: Union["QuantumCircuit", Instruction],
-        qubits: Optional[Sequence[Union[Qubit, int]]] = None,
-        clbits: Optional[Sequence[Union[Clbit, int]]] = None,
+        qubits: Optional[Union[QubitSpecifier, Sequence[QubitSpecifier]]] = None,
+        clbits: Optional[Union[ClbitSpecifier, Sequence[ClbitSpecifier]]] = None,
         front: bool = False,
         inplace: bool = False,
         wrap: bool = False,
@@ -840,42 +842,40 @@ class QuantumCircuit:
                 "Cannot emit a new composed circuit while a control-flow context is active."
             )
 
-        if inplace:
-            dest = self
-        else:
-            dest = self.copy()
+        dest = self if inplace else self.copy()
 
-        # If self does not have any cregs but other does then we allow
-        # that and add the registers to the output dest
+        # As a special case, allow composing some clbits onto no clbits - normally the destination
+        # has to be strictly larger. This allows composing final measurements onto unitary circuits.
         if isinstance(other, QuantumCircuit):
             if not self.clbits and other.clbits:
                 dest.add_bits(other.clbits)
                 for reg in other.cregs:
                     dest.add_register(reg)
 
-        if wrap:
-            try:
-                other = other.to_gate()
-            except QiskitError:
-                other = other.to_instruction()
+        if wrap and isinstance(other, QuantumCircuit):
+            other = (
+                other.to_gate()
+                if all(isinstance(ins.operation, Gate) for ins in other.data)
+                else other.to_instruction()
+            )
 
         if not isinstance(other, QuantumCircuit):
             if qubits is None:
-                qubits = list(range(other.num_qubits))
-
+                qubits = self.qubits[: other.num_qubits]
             if clbits is None:
-                clbits = list(range(other.num_clbits))
-
+                clbits = self.clbits[: other.num_clbits]
             if front:
-                dest.data.insert(0, CircuitInstruction(other, qubits, clbits))
+                # Need to keep a reference to the data for use after we've emptied it.
+                old_data = list(dest.data)
+                dest.clear()
+                dest.append(other, qubits, clbits)
+                for instruction in old_data:
+                    dest._append(instruction)
             else:
                 dest.append(other, qargs=qubits, cargs=clbits)
-
             if inplace:
                 return None
             return dest
-
-        instrs = other.data
 
         if other.num_qubits > dest.num_qubits or other.num_clbits > dest.num_clbits:
             raise CircuitError(
@@ -883,55 +883,60 @@ class QuantumCircuit:
             )
 
         # number of qubits and clbits must match number in circuit or None
-        identity_qubit_map = dict(zip(other.qubits, dest.qubits))
-        identity_clbit_map = dict(zip(other.clbits, dest.clbits))
+        edge_map = {}
         if qubits is None:
-            qubit_map = identity_qubit_map
-        elif len(qubits) != len(other.qubits):
-            raise CircuitError(
-                f"Number of items in qubits parameter ({len(qubits)}) does not"
-                f" match number of qubits in the circuit ({len(other.qubits)})."
-            )
+            edge_map.update(zip(other.qubits, dest.qubits))
         else:
-            qubit_map = {
-                other.qubits[i]: (self.qubits[q] if isinstance(q, int) else q)
-                for i, q in enumerate(qubits)
-            }
-        if clbits is None:
-            clbit_map = identity_clbit_map
-        elif len(clbits) != len(other.clbits):
-            raise CircuitError(
-                f"Number of items in clbits parameter ({len(clbits)}) does not"
-                f" match number of clbits in the circuit ({len(other.clbits)})."
-            )
-        else:
-            clbit_map = {
-                other.clbits[i]: (self.clbits[c] if isinstance(c, int) else c)
-                for i, c in enumerate(clbits)
-            }
+            mapped_qubits = dest.qbit_argument_conversion(qubits)
+            if len(mapped_qubits) != len(other.qubits):
+                raise CircuitError(
+                    f"Number of items in qubits parameter ({len(mapped_qubits)}) does not"
+                    f" match number of qubits in the circuit ({len(other.qubits)})."
+                )
+            edge_map.update(zip(other.qubits, mapped_qubits))
 
-        edge_map = {**qubit_map, **clbit_map} or {**identity_qubit_map, **identity_clbit_map}
+        if clbits is None:
+            edge_map.update(zip(other.clbits, dest.clbits))
+        else:
+            mapped_clbits = dest.cbit_argument_conversion(clbits)
+            if len(mapped_clbits) != len(other.clbits):
+                raise CircuitError(
+                    f"Number of items in clbits parameter ({len(mapped_clbits)}) does not"
+                    f" match number of clbits in the circuit ({len(other.clbits)})."
+                )
+            edge_map.update(zip(other.clbits, dest.cbit_argument_conversion(clbits)))
 
         mapped_instrs = []
-        for instr in instrs:
+        condition_register_map = {}
+        for instr in other.data:
             n_qargs = [edge_map[qarg] for qarg in instr.qubits]
             n_cargs = [edge_map[carg] for carg in instr.clbits]
-            n_instr = instr.operation.copy()
+            n_op = instr.operation.copy()
 
-            if getattr(instr.operation, "condition", None) is not None:
-                from qiskit.dagcircuit import DAGCircuit  # pylint: disable=cyclic-import
+            # Map their registers over to ours, adding an extra one if there's no exact match.
+            if getattr(n_op, "condition", None) is not None:
+                target, value = n_op.condition
+                if isinstance(target, Clbit):
+                    n_op.condition = (edge_map[target], value)
+                else:
+                    if target.name not in condition_register_map:
+                        mapped_bits = [edge_map[bit] for bit in target]
+                        for our_creg in dest.cregs:
+                            if mapped_bits == list(our_creg):
+                                new_target = our_creg
+                                break
+                        else:
+                            new_target = ClassicalRegister(bits=[edge_map[bit] for bit in target])
+                            dest.add_register(new_target)
+                        condition_register_map[target.name] = new_target
+                    n_op.condition = (condition_register_map[target.name], value)
 
-                n_instr.condition = DAGCircuit._map_condition(
-                    edge_map, instr.operation.condition, self.cregs
-                )
-
-            mapped_instrs.append(CircuitInstruction(n_instr, n_qargs, n_cargs))
+            mapped_instrs.append(CircuitInstruction(n_op, n_qargs, n_cargs))
 
         if front:
             # adjust new instrs before original ones and update all parameters
             mapped_instrs += dest.data
-            dest.data.clear()
-            dest._parameter_table.clear()
+            dest.clear()
         append = dest._control_flow_scopes[-1].append if dest._control_flow_scopes else dest._append
         for instr in mapped_instrs:
             append(instr)
@@ -968,15 +973,16 @@ class QuantumCircuit:
 
         Examples:
 
-            .. jupyter-execute::
+            .. plot::
+               :include-source:
 
-                from qiskit import QuantumCircuit
-                top = QuantumCircuit(1)
-                top.x(0);
-                bottom = QuantumCircuit(2)
-                bottom.cry(0.2, 0, 1);
-                tensored = bottom.tensor(top)
-                print(tensored.draw())
+               from qiskit import QuantumCircuit
+               top = QuantumCircuit(1)
+               top.x(0);
+               bottom = QuantumCircuit(2)
+               bottom.cry(0.2, 0, 1);
+               tensored = bottom.tensor(top)
+               tensored.draw('mpl')
 
         Returns:
             QuantumCircuit: The tensored circuit (returns None if inplace==True).
@@ -1860,16 +1866,16 @@ class QuantumCircuit:
             ImportError: when the output methods requires non-installed libraries.
 
         Example:
-            .. jupyter-execute::
+            .. plot::
+               :include-source:
 
-                from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-                from qiskit.tools.visualization import circuit_drawer
-                q = QuantumRegister(1)
-                c = ClassicalRegister(1)
-                qc = QuantumCircuit(q, c)
-                qc.h(q)
-                qc.measure(q, c)
-                qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
+               from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
+               q = QuantumRegister(1)
+               c = ClassicalRegister(1)
+               qc = QuantumCircuit(q, c)
+               qc.h(q)
+               qc.measure(q, c)
+               qc.draw(output='mpl', style={'backgroundcolor': '#EEEEEE'})
         """
 
         # pylint: disable=cyclic-import
@@ -1922,8 +1928,10 @@ class QuantumCircuit:
         """Return circuit depth (i.e., length of critical path).
 
         Args:
-            filter_function (callable): a function to filter out some instructions.
+            filter_function (callable): A function to filter instructions.
                 Should take as input a tuple of (Instruction, list(Qubit), list(Clbit)).
+                Instructions for which the function returns False are ignored in the
+                computation of the circuit depth.
                 By default filters out "directives", such as barrier or snapshot.
 
         Returns:
@@ -2557,40 +2565,35 @@ class QuantumCircuit:
 
             Create a parameterized circuit and assign the parameters in-place.
 
-            .. jupyter-execute::
+            .. plot::
+               :include-source:
 
-                from qiskit.circuit import QuantumCircuit, Parameter
+               from qiskit.circuit import QuantumCircuit, Parameter
 
-                circuit = QuantumCircuit(2)
-                params = [Parameter('A'), Parameter('B'), Parameter('C')]
-                circuit.ry(params[0], 0)
-                circuit.crx(params[1], 0, 1)
-
-                print('Original circuit:')
-                print(circuit.draw())
-
-                circuit.assign_parameters({params[0]: params[2]}, inplace=True)
-
-                print('Assigned in-place:')
-                print(circuit.draw())
+               circuit = QuantumCircuit(2)
+               params = [Parameter('A'), Parameter('B'), Parameter('C')]
+               circuit.ry(params[0], 0)
+               circuit.crx(params[1], 0, 1)
+               circuit.draw('mpl')
+               circuit.assign_parameters({params[0]: params[2]}, inplace=True)
+               circuit.draw('mpl')
 
             Bind the values out-of-place by list and get a copy of the original circuit.
 
-            .. jupyter-execute::
+            .. plot::
+               :include-source:
 
-                from qiskit.circuit import QuantumCircuit, ParameterVector
+               from qiskit.circuit import QuantumCircuit, ParameterVector
 
-                circuit = QuantumCircuit(2)
-                params = ParameterVector('P', 2)
-                circuit.ry(params[0], 0)
-                circuit.crx(params[1], 0, 1)
+               circuit = QuantumCircuit(2)
+               params = ParameterVector('P', 2)
+               circuit.ry(params[0], 0)
+               circuit.crx(params[1], 0, 1)
 
-                bound_circuit = circuit.assign_parameters([1, 2])
-                print('Bound circuit:')
-                print(bound_circuit.draw())
+               bound_circuit = circuit.assign_parameters([1, 2])
+               bound_circuit.draw('mpl')
 
-                print('The original circuit is unchanged:')
-                print(circuit.draw())
+               circuit.draw('mpl')
 
         """
         # replace in self or in a copy depending on the value of in_place

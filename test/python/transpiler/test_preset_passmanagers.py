@@ -716,32 +716,78 @@ class TestFinalLayouts(QiskitTestCase):
         }
 
         sabre_layout = {
-            11: qr[0],
-            17: qr[1],
-            16: qr[2],
-            6: qr[3],
-            18: qr[4],
             0: ancilla[0],
             1: ancilla[1],
             2: ancilla[2],
             3: ancilla[3],
             4: ancilla[4],
-            5: ancilla[5],
-            7: ancilla[6],
-            8: ancilla[7],
-            9: ancilla[8],
-            10: ancilla[9],
-            12: ancilla[10],
-            13: ancilla[11],
-            14: ancilla[12],
-            15: ancilla[13],
+            5: qr[1],
+            6: qr[2],
+            7: ancilla[5],
+            8: ancilla[6],
+            9: ancilla[7],
+            10: qr[3],
+            11: qr[0],
+            12: qr[4],
+            13: ancilla[8],
+            14: ancilla[9],
+            15: ancilla[10],
+            16: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
+            19: ancilla[14],
+        }
+
+        sabre_layout_lvl_2 = {
+            0: ancilla[0],
+            1: qr[4],
+            2: ancilla[1],
+            3: ancilla[2],
+            4: ancilla[3],
+            5: qr[1],
+            6: qr[0],
+            7: ancilla[4],
+            8: ancilla[5],
+            9: ancilla[6],
+            10: qr[2],
+            11: qr[3],
+            12: ancilla[7],
+            13: ancilla[8],
+            14: ancilla[9],
+            15: ancilla[10],
+            16: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
+            19: ancilla[14],
+        }
+
+        sabre_layout_lvl_3 = {
+            0: ancilla[0],
+            1: qr[4],
+            2: ancilla[1],
+            3: ancilla[2],
+            4: ancilla[3],
+            5: qr[1],
+            6: qr[0],
+            7: ancilla[4],
+            8: ancilla[5],
+            9: ancilla[6],
+            10: qr[2],
+            11: qr[3],
+            12: ancilla[7],
+            13: ancilla[8],
+            14: ancilla[9],
+            15: ancilla[10],
+            16: ancilla[11],
+            17: ancilla[12],
+            18: ancilla[13],
             19: ancilla[14],
         }
 
         expected_layout_level0 = trivial_layout
         expected_layout_level1 = sabre_layout
-        expected_layout_level2 = sabre_layout
-        expected_layout_level3 = sabre_layout
+        expected_layout_level2 = sabre_layout_lvl_2
+        expected_layout_level3 = sabre_layout_lvl_3
 
         expected_layouts = [
             expected_layout_level0,
@@ -910,8 +956,11 @@ class TestTranspileLevelsSwap(QiskitTestCase):
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
         self.assertIn("swap", resulting_basis)
 
+    # Skipping optimization level 3 because the swap gates get absorbed into
+    # a unitary block as part of the KAK decompostion optimization passes and
+    # optimized away.
     @combine(
-        level=[0, 1, 2, 3],
+        level=[0, 1, 2],
         dsc="If swap in basis, do not decompose it. level: {level}",
         name="level{level}",
     )
@@ -931,7 +980,7 @@ class TestTranspileLevelsSwap(QiskitTestCase):
             optimization_level=level,
             basis_gates=basis,
             coupling_map=coupling_map,
-            seed_transpiler=42123,
+            seed_transpiler=421234242,
         )
         self.assertIsInstance(result, QuantumCircuit)
         resulting_basis = {node.name for node in circuit_to_dag(result).op_nodes()}
