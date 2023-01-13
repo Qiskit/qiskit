@@ -279,7 +279,7 @@ class PVQD(RealTimeEvolver):
 
             # in principle, we could add different loss functions here, but we're currently
             # not aware of a use-case for a different one than in the paper
-            return 1 - np.abs(fidelities) ** 2
+            return 1 - fidelities
 
         if _is_gradient_supported(ansatz) and self.use_parameter_shift:
 
