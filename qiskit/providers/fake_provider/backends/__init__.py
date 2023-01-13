@@ -54,6 +54,7 @@ from .quito import FakeQuitoV2
 from .rochester import FakeRochesterV2
 from .rome import FakeRomeV2
 from .santiago import FakeSantiagoV2
+from .sherbrooke import FakeSherbrooke
 from .singapore import FakeSingaporeV2
 from .sydney import FakeSydneyV2
 from .toronto import FakeTorontoV2
