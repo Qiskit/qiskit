@@ -48,6 +48,7 @@ from .oslo import FakeOslo
 from .ourense import FakeOurenseV2
 from .paris import FakeParisV2
 from .perth import FakePerth
+from .prague import FakePrague
 from .poughkeepsie import FakePoughkeepsieV2
 from .quito import FakeQuitoV2
 from .rochester import FakeRochesterV2
