@@ -8,7 +8,7 @@ features:
 
     This pass can e.g. be used after compiling to U and CX gates:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit import transpile
       from qiskit.circuit.library import QFT
@@ -27,20 +27,21 @@ features:
     The decomposition can also be used with the unitary synthesis plugin, as
     the "sk" method on the :class:`~.UnitarySynthesis` transpiler pass:
 
-    .. jupyter-execute::
+    .. plot::
+       :include-source:
 
-        from qiskit import QuantumCircuit
-        from qiskit.quantum_info import Operator
-        from qiskit.transpiler.passes import UnitarySynthesis
+       from qiskit import QuantumCircuit
+       from qiskit.quantum_info import Operator
+       from qiskit.transpiler.passes import UnitarySynthesis
 
-        circuit = QuantumCircuit(1)
-        circuit.rx(0.8, 0)
-        unitary = Operator(circuit).data
+       circuit = QuantumCircuit(1)
+       circuit.rx(0.8, 0)
+       unitary = Operator(circuit).data
 
-        unitary_circ = QuantumCircuit(1)
-        unitary_circ.unitary(unitary, [0])
+       unitary_circ = QuantumCircuit(1)
+       unitary_circ.unitary(unitary, [0])
 
-        synth = UnitarySynthesis(basis_gates=["h", "s"], method="sk")
-        out = synth(unitary_circ)
+       synth = UnitarySynthesis(basis_gates=["h", "s"], method="sk")
+       out = synth(unitary_circ)
 
-        out.draw('mpl')
+       out.draw('mpl')

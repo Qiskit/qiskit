@@ -8,7 +8,7 @@ features:
     :meth:`qiskit.circuit.QuantumCircuit.reverse_bits` method for N-qubit
     states. For example:
 
-      .. jupyter-execute::
+      .. code-block::
 
         from qiskit.circuit.library import QFT
         from qiskit.quantum_info import Statevector
@@ -26,7 +26,7 @@ features:
     :meth:`qiskit.circuit.QuantumCircuit.reverse_bits` method for N-qubit
     operators. For example:
 
-      .. jupyter-execute::
+      .. code-block::
 
         from qiskit.circuit.library import QFT
         from qiskit.quantum_info import Operator

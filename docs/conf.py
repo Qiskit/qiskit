@@ -34,10 +34,10 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
-    "jupyter_sphinx",
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
     "sphinx_design",
+    "matplotlib.sphinxext.plot_directive",
 ]
 templates_path = ["_templates"]
 
