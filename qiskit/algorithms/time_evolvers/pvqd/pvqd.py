@@ -270,7 +270,7 @@ class PVQD(RealTimeEvolver):
             # the first state does not have free parameters so values_1 will be None by default
             try:
                 job = self.fidelity_primitive.run(states1, states2, values_2=param_dicts2)
-                fidelities = job.result().fidelities
+                fidelities = np.array(job.result().fidelities)
             except Exception as exc:
                 raise AlgorithmError("The primitive job failed!") from exc
 
