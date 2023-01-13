@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2022.
+# (C) Copyright IBM 2019, 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,20 +18,22 @@ from typing import Callable
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, ParameterVector, Parameter
+from qiskit.circuit import Parameter, ParameterVector, QuantumCircuit
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
+from qiskit.utils import algorithm_globals
+
 from ...exceptions import AlgorithmError, QiskitError
-from .pvqd_result import PVQDResult
-from .utils import _get_observable_evaluator, _is_gradient_supported
+from ...optimizers import Minimizer, Optimizer
+from ...state_fidelities.base_state_fidelity import BaseStateFidelity
+from ..real_time_evolver import RealTimeEvolver
 from ..time_evolution_problem import TimeEvolutionProblem
 from ..time_evolution_result import TimeEvolutionResult
-from ..real_time_evolver import RealTimeEvolver
-from ...state_fidelities.base_state_fidelity import BaseStateFidelity
-from ...optimizers import Optimizer, Minimizer
+from .pvqd_result import PVQDResult
+from .utils import _get_observable_evaluator, _is_gradient_supported
 
 logger = logging.getLogger(__name__)
 
@@ -196,7 +198,7 @@ class PVQD(RealTimeEvolver):
         loss, gradient = self.get_loss(hamiltonian, ansatz, dt, theta)
 
         if initial_guess is None:
-            initial_guess = np.random.random(self.initial_parameters.size) * 0.01
+            initial_guess = algorithm_globals.random.random(self.initial_parameters.size) * 0.01
 
         if isinstance(self.optimizer, Optimizer):
             optimizer_result = self.optimizer.minimize(loss, initial_guess, gradient)
@@ -268,7 +270,7 @@ class PVQD(RealTimeEvolver):
             # the first state does not have free parameters so values_1 will be None by default
             try:
                 job = self.fidelity_primitive.run(states1, states2, values_2=param_dicts2)
-                fidelities = job.result().fidelities
+                fidelities = np.array(job.result().fidelities)
             except Exception as exc:
                 raise AlgorithmError("The primitive job failed!") from exc
 
@@ -277,7 +279,7 @@ class PVQD(RealTimeEvolver):
 
             # in principle, we could add different loss functions here, but we're currently
             # not aware of a use-case for a different one than in the paper
-            return 1 - np.abs(fidelities) ** 2
+            return 1 - fidelities
 
         if _is_gradient_supported(ansatz) and self.use_parameter_shift:
 
