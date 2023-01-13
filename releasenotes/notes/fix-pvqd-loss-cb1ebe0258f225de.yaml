@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixed loss function in PVQD. Removed extra abs**2 that is already covered by the fidelity primitive
