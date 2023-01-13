@@ -434,7 +434,7 @@ def _read_custom_operations(file_obj, version, vectors):
     return custom_operations
 
 
-def _read_calibrations(file_obj, version, vectors, metadata_deserializer, qiskit_version=None):
+def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
     calibrations = {}
 
     header = formats.CALIBRATION._make(
@@ -452,9 +452,7 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer, qiskit
         params = tuple(
             value.read_value(file_obj, version, vectors) for _ in range(defheader.num_params)
         )
-        schedule = schedules.read_schedule_block(
-            file_obj, version, metadata_deserializer, qiskit_version=qiskit_version
-        )
+        schedule = schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
         if name not in calibrations:
             calibrations[name] = {(qubits, params): schedule}
@@ -813,7 +811,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
     _write_calibrations(file_obj, circuit.calibrations, metadata_serializer)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=None):
+def read_circuit(file_obj, version, metadata_deserializer=None):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -826,7 +824,6 @@ def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=N
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-        qiskit_version (tuple): tuple with major, minor and patch versions of qiskit.
 
     Returns:
         QuantumCircuit: The circuit object from the file.
@@ -877,9 +874,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=N
 
     # Read calibrations
     if version >= 5:
-        circ.calibrations = _read_calibrations(
-            file_obj, version, vectors, metadata_deserializer, qiskit_version=qiskit_version
-        )
+        circ.calibrations = _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):
