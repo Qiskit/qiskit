@@ -31,7 +31,7 @@ upgrade:
         original_lib.add_equivalence(XGate(), qc)
         new_lib = EquivalenceLibrary(base=original_lib)
 
-    if you modified ``original_lib`` with:
+    if you modified ``original_lib`` with::
 
         import from qiskit.circuit.library import SXGate
 
