@@ -19,24 +19,21 @@ import logging
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info import Statevector
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
 from qiskit.providers import Options
+from qiskit.transpiler.passes import TranslateParameterizedGates
 
 from ..base_qfi import BaseQFI
 from ..qfi_result import QFIResult
 from ..utils import DerivativeType
 
-logger = logging.getLogger(__name__)
-
-
-from surfer.tools.gradient_lookup import extract_single_parameter
-
 from .split_circuits import split
 from .bind import bind
 from .derive_circuit import derive_circuit
+from .reverse_gradient import _evolve_by_operator
+
+logger = logging.getLogger(__name__)
 
 
 class ReverseQGT(BaseQFI):
@@ -108,12 +105,12 @@ class ReverseQGT(BaseQFI):
         metadata = []
 
         for k in range(num_qgts):
-
-            # TODO unrolling done by QGT
-            # circuit = self.unroller(circuit)
-
             values = np.asarray(parameter_values[k])
             circuit = circuits[k]
+
+            # TODO unrolling done by QGT
+            translator = TranslateParameterizedGates(self.SUPPORTED_GATES)
+            circuit = translator(circuit)
 
             # TODO parameters is None captured by QGT
             if parameters[k] is None:
@@ -133,10 +130,10 @@ class ReverseQGT(BaseQFI):
 
             unitaries, paramlist = split(circuit, parameters=parameters_)
 
-            # initialize the phase fix vector and the hessian part ``lis``
+            # initialize the phase fix vector and the hessian part ``metric``
             num_parameters = len(unitaries)
             phase_fixes = np.zeros(num_parameters, dtype=complex)
-            lis = np.zeros((num_parameters, num_parameters), dtype=complex)
+            metric = np.zeros((num_parameters, num_parameters), dtype=complex)
 
             # initialize the state variables -- naming convention is the same as the paper
             parameter_binds = dict(zip(circuit.parameters, values))
@@ -146,7 +143,10 @@ class ReverseQGT(BaseQFI):
             psi = chi.copy()
             phi = Statevector.from_int(0, (2,) * circuit.num_qubits)
 
-            # get the analytic gradient of the first unitary
+            # Get the analytic gradient of the first unitary
+            # Note: We currently only support gates with a single parameter -- which is reflected
+            # in self.SUPPORTED_GATES -- but generally we could also support gates with multiple
+            # parameters per gate. This is the reason for the second 0-index.
             deriv = derive_circuit(unitaries[0], paramlist[0][0])
             for _, gate in deriv:
                 bind(gate, parameter_binds, inplace=True)
@@ -158,7 +158,7 @@ class ReverseQGT(BaseQFI):
             if self.phase_fix:
                 phase_fixes[0] = _phasefix_term(chi, grad_coeffs, grad_states)
 
-            lis[0, 0] = _l_term(grad_coeffs, grad_states, grad_coeffs, grad_states)
+            metric[0, 0] = _l_term(grad_coeffs, grad_states, grad_coeffs, grad_states)
 
             for j in range(1, num_parameters):
                 lam = psi.copy()
@@ -175,7 +175,7 @@ class ReverseQGT(BaseQFI):
                 grad_states = [phi.evolve(gate.decompose()) for _, gate in deriv]
 
                 # compute the digaonal element L_{j, j}
-                lis[j, j] += _l_term(grad_coeffs, grad_states, grad_coeffs, grad_states)
+                metric[j, j] += _l_term(grad_coeffs, grad_states, grad_coeffs, grad_states)
 
                 # compute the off diagonal elements L_{i, j}
                 for i in reversed(range(j)):
@@ -193,20 +193,26 @@ class ReverseQGT(BaseQFI):
                     grad_coeffs_mu = [coeff for coeff, _ in deriv]
                     grad_states_mu = [lam.evolve(gate) for _, gate in deriv]
 
-                    lis[i, j] += _l_term(grad_coeffs_mu, grad_states_mu, grad_coeffs, grad_states)
+                    metric[i, j] += _l_term(
+                        grad_coeffs_mu, grad_states_mu, grad_coeffs, grad_states
+                    )
 
                 if self.phase_fix:
                     phase_fixes[j] += _phasefix_term(chi, grad_coeffs, grad_states)
 
                 psi = psi.evolve(bound_unitaries[j])
 
-            # stack quantum geometric tensor together and take into account the original
-            # order of parameters
+            # The following code stacks the QGT together and maps the values into the
+            # correct original order of parameters
+
+            # map circuit parameter to global index in the circuit
             param_to_circuit = {
                 param: index for index, param in enumerate(original_parameter_order)
             }
+            # map global index to the local index used in the calculation, the new index can
+            # now be accessed by remap[index]
             remap = {
-                index: param_to_circuit[extract_single_parameter(plist[0])]
+                index: param_to_circuit[_extract_parameter(plist[0])]
                 for index, plist in enumerate(paramlist)
             }
 
@@ -216,12 +222,13 @@ class ReverseQGT(BaseQFI):
                 for j in range(num_parameters):
                     jloc = remap[j]
                     if i <= j:
-                        qgt[iloc, jloc] += lis[i, j]
+                        qgt[iloc, jloc] += metric[i, j]
                     else:
-                        qgt[iloc, jloc] += np.conj(lis[j, i])
+                        qgt[iloc, jloc] += np.conj(metric[j, i])
 
                     qgt[iloc, jloc] -= np.conj(phase_fixes[i]) * phase_fixes[j]
 
+            # append and cast to real/imag if required
             qgts.append(self._to_derivtype(qgt))
 
         result = QFIResult(qgts, metadata, options=None)
@@ -240,30 +247,24 @@ class ReverseQGT(BaseQFI):
 def _l_term(coeffs_i, states_i, coeffs_j, states_j):
     return sum(
         sum(
-            np.conj(c_i) * c_j * np.conj(state_i.data).dot(state_j.data)
-            for c_i, state_i in zip(coeffs_i, states_i)
+            np.conj(coeff_i) * coeff_j * np.conj(state_i.data).dot(state_j.data)
+            for coeff_i, state_i in zip(coeffs_i, states_i)
         )
-        for c_j, state_j in zip(coeffs_j, states_j)
+        for coeff_j, state_j in zip(coeffs_j, states_j)
     )
 
 
 def _phasefix_term(chi, coeffs, states):
-    return sum(c_i * np.conj(chi.data).dot(state_i.data) for c_i, state_i in zip(coeffs, states))
+    return sum(
+        coeff_i * np.conj(chi.data).dot(state_i.data) for coeff_i, state_i in zip(coeffs, states)
+    )
 
 
-def _evolve_by_operator(operator, state):
-    """Evolve the Statevector state by operator."""
+def _extract_parameter(expression):
+    if isinstance(expression, Parameter):
+        return expression
 
-    # try casting to sparse matrix and use sparse matrix-vector multiplication, which is
-    # a lot faster than using Statevector.evolve
-    if isinstance(operator, PauliSumOp):
-        operator = operator.primitive * operator.coeff
+    if len(expression.parameters) > 1:
+        raise ValueError("Expression has more than one parameter.")
 
-    try:
-        spmatrix = operator.to_matrix(sparse=True)
-        evolved = spmatrix @ state.data
-        return Statevector(evolved)
-    except AttributeError:
-        logger.info("Operator is not castable to a sparse matrix, using Statevector.evolve.")
-
-    return state.evolve(operator)
+    return list(expression.parameters)[0]

@@ -151,13 +151,16 @@ class TestQFI(QiskitTestCase):
                 qfi_result = qfi.run([qc], [param]).result().qfis
                 np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
-    def test_qfi_coefficients(self):
+    @data(LinCombQFI, ReverseQGT)
+    def test_qfi_coefficients(self, qgt_type):
         """Test the derivative option of QFI"""
         qc = RealAmplitudes(num_qubits=2, reps=1)
         qc.rz(qc.parameters[0].exp() + 2 * qc.parameters[1], 0)
         qc.rx(3.0 * qc.parameters[2] + qc.parameters[3].sin(), 1)
 
-        qfi = LinCombQFI(self.estimator)
+        args = (self.estimator,) if qgt_type != ReverseQGT else ()
+        qfi = qgt_type(*args)
+
         # test imaginary derivative
         param_list = [
             [np.pi / 4 for param in qc.parameters],
@@ -181,19 +184,24 @@ class TestQFI(QiskitTestCase):
             qfi_result = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
 
-    def test_qfi_specify_parameters(self):
+    @data(LinCombQFI, ReverseQGT)
+    def test_qfi_specify_parameters(self, qgt_type):
         """Test the QFI with specified parameters"""
         a = Parameter("a")
         b = Parameter("b")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.ry(b, 0)
-        qfi = LinCombQFI(self.estimator)
+
+        args = (self.estimator,) if qgt_type != ReverseQGT else ()
+        qfi = qgt_type(*args)
+
         param_list = [np.pi / 4, np.pi / 4]
         qfi_result = qfi.run([qc], [param_list], [[a]]).result().qfis
         np.testing.assert_allclose(qfi_result[0], [[1]], atol=1e-3)
 
-    def test_qfi_multi_arguments(self):
+    @data(LinCombQFI, ReverseQGT)
+    def test_qfi_multi_arguments(self, qgt_type):
         """Test the QFI for multiple arguments"""
         a = Parameter("a")
         b = Parameter("b")
@@ -203,7 +211,9 @@ class TestQFI(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.rx(a, 0)
         qc2.ry(b, 0)
-        qfi = LinCombQFI(self.estimator)
+
+        args = (self.estimator,) if qgt_type != ReverseQGT else ()
+        qfi = qgt_type(*args)
 
         param_list = [[np.pi / 4], [np.pi / 2]]
         correct_values = [
