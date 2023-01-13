@@ -2940,23 +2940,6 @@ class QuantumCircuit:
         """
         return self.i(qubit)
 
-    def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.generalized_gates.gms.MSGate`.
-
-        For the full matrix form of this gate, see the underlying gate documentation.
-
-        Args:
-            theta: The angle of the rotation.
-            qubits: The qubits to apply the gate to.
-
-        Returns:
-            A handle to the instructions created.
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.gms import MSGate
-
-        return self.append(MSGate(len(qubits), theta), qubits)
-
     def p(self, theta: ParameterValueType, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.PhaseGate`.
 

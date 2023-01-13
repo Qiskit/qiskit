@@ -210,10 +210,6 @@ class TestStandardGates(QiskitTestCase):
             num_ctrl_qubits = 2
             param_vector = param_vector[:-1]
             gate = gate_class(num_ctrl_qubits, *param_vector)
-        elif class_name == "MSGate":
-            num_qubits = 2
-            param_vector = param_vector[:-1]
-            gate = gate_class(num_qubits, *param_vector)
         else:
             gate = gate_class(*param_vector)
 
@@ -293,8 +289,6 @@ class TestGateEquivalenceEqual(QiskitTestCase):
         params = [0.1 * i for i in range(1, n_params + 1)]
         if gate_class.__name__ == "RXXGate":
             params = [np.pi / 2]
-        if gate_class.__name__ in ["MSGate"]:
-            params[0] = 2
         if gate_class.__name__ in ["PauliGate"]:
             params = ["IXYZ"]
         if gate_class.__name__ in ["BooleanExpression"]:

@@ -307,7 +307,6 @@ class TestBasisTranslator(QiskitTestCase):
         """Verify circuit with multiple instances of variadic gate."""
         eq_lib = EquivalenceLibrary()
 
-        # e.g. MSGate
         oneq_gate = VariadicZeroParamGate(1)
         equiv = QuantumCircuit(1)
         equiv.append(OneQubitZeroParamGate(), [0])

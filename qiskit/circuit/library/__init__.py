@@ -91,7 +91,6 @@ For example:
    CZGate
    HGate
    IGate
-   MSGate
    PhaseGate
    RCCXGate
    RC3XGate
@@ -498,7 +497,6 @@ from .generalized_gates import (
     MCMTVChain,
     Permutation,
     GMS,
-    MSGate,
     GR,
     GRX,
     GRY,

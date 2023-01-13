@@ -59,7 +59,6 @@ from qiskit.circuit.library import (
     CUGate,
     SXGate,
     CSXGate,
-    MSGate,
     Barrier,
     RCCXGate,
     RC3XGate,
@@ -1372,7 +1371,7 @@ class TestControlledStandardGates(QiskitTestCase):
 
         numargs = len(_get_free_params(gate_class))
         args = [theta] * numargs
-        if gate_class in [MSGate, Barrier]:
+        if gate_class == Barrier:
             args[0] = 2
         elif gate_class in [MCU1Gate, MCPhaseGate]:
             args[1] = 2
@@ -1469,7 +1468,6 @@ class TestControlledGateLabel(QiskitTestCase):
         (CRZGate, [0.1]),
         (CUGate, [0.1, 0.2, 0.3, 0.4]),
         (CU3Gate, [0.1, 0.2, 0.3]),
-        (MSGate, [5, 0.1]),
         (RCCXGate, []),
         (RC3XGate, []),
         (MCU1Gate, [0.1, 1]),
