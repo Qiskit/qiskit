@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added a new gate to the standard_gates library :class:`.SQiSWGate`
+    to represent the square-root of an iSWAP. This gate has the desirable
+    properties of being faster/higher-fidelity than a full iSWAP, but also
+    synthesizing the volume of two-qubit unitaries with fewer applications.
+
+    An associated decomposition method that synthesizes arbitrary two-qubit
+    unitaries into two or three applications of SQiSW has been added in
+    :class:`.SQiSWDecomposer`.
+

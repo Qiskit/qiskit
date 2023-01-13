@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,6 @@
 
 import numpy as np
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class SQiSWGate(Gate):
@@ -53,7 +52,7 @@ class SQiSWGate(Gate):
         gate SQiSW a, b { rxx(-pi/4) a, b; ryy(-pi/4) a, b; }
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.quantumcircuit import QuantumCircuit
+        from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit
         from .rxx import RXXGate
         from .ryy import RYYGate
 
