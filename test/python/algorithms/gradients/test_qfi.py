@@ -14,12 +14,13 @@
 """ Test QFI"""
 
 import unittest
+from ddt import ddt, data
 
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
-from qiskit.algorithms.gradients.lin_comb_qfi import LinCombQFI
+from qiskit.algorithms.gradients import LinCombQFI, ReverseQGT
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.circuit.parametervector import ParameterVector
@@ -27,6 +28,7 @@ from qiskit.primitives import Estimator
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestQFI(QiskitTestCase):
     """Test QFI"""
 
@@ -34,11 +36,15 @@ class TestQFI(QiskitTestCase):
         super().setUp()
         self.estimator = Estimator()
 
-    def test_qfi_simple(self):
+    @data(LinCombQFI, ReverseQGT)
+    def test_qfi_simple(self, qgt_type):
         """Test if the quantum fisher information calculation is correct for a simple test case.
 
         QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
         """
+        args = (self.estimator,) if qgt_type != ReverseQGT else (,)
+        qfi = qgt_type(*args)
+
         # create the circuit
         a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
@@ -49,7 +55,6 @@ class TestQFI(QiskitTestCase):
         param_list = [[np.pi / 4, 0.1], [np.pi, 0.1], [np.pi / 2, 0.1]]
         correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
 
-        qfi = LinCombQFI(self.estimator)
         for i, param in enumerate(param_list):
             qfis = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfis[0], correct_values[i], atol=1e-3)

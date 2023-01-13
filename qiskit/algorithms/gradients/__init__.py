@@ -51,6 +51,7 @@ QFI
 
    BaseQFI
    LinCombQFI
+   ReverseQGT
 
 Results
 =======
@@ -79,6 +80,7 @@ from .sampler_gradient_result import SamplerGradientResult
 from .spsa_estimator_gradient import SPSAEstimatorGradient
 from .spsa_sampler_gradient import SPSASamplerGradient
 from .reverse_gradient.reverse_gradient import ReverseEstimatorGradient
+from .reverse_gradient.reverse_qgt import ReverseQGT
 
 __all__ = [
     "BaseEstimatorGradient",
@@ -98,4 +100,5 @@ __all__ = [
     "SPSAEstimatorGradient",
     "SPSASamplerGradient",
     "ReverseEstimatorGradient",
+    "ReverseQGT",
 ]
