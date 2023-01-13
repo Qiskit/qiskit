@@ -33,8 +33,9 @@ unsafe-load-any-extension=no
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code
-extension-pkg-allow-list=retworkx, numpy, tweedledum, qiskit._accelerate
-
+extension-pkg-allow-list=retworkx, numpy, tweedledum, qiskit._accelerate, rustworkx
+generated-modules=retworkx.visualization,retwork.visit
+ignore-modules=retworkx,retworkx.visualization,retworkx.visit
 
 [MESSAGES CONTROL]
 
@@ -72,7 +73,8 @@ disable=spelling,       # way too noisy
     no-else-return,     # relax "elif" after a clause with a return
     docstring-first-line-empty, # relax docstring style
     import-outside-toplevel,
-    bad-continuation, bad-whitespace # differences of opinion with black
+    bad-continuation, bad-whitespace, # differences of opinion with black
+    import-error        # overzealous with our optionals/dynamic packages
 
 
 

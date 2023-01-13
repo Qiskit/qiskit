@@ -84,6 +84,65 @@ class TestQuasi(QiskitTestCase):
         quasi = QuasiDistribution(qprobs)
         self.assertEqual(qprobs, quasi.binary_probabilities())
 
+    def test_bin_no_prefix_w_heading_zero_quasi_bin_out(self):
+        """Test binary input without a 0b prefix with heading 0 and binary output."""
+        qprobs = {
+            "00000": 3 / 5,
+            "00001": 1 / 2,
+            "00010": 7 / 20,
+            "00011": 1 / 10,
+            "00100": -11 / 20,
+        }
+        quasi = QuasiDistribution(qprobs)
+        self.assertEqual(qprobs, quasi.binary_probabilities())
+
+    def test_bin_no_prefix_w_diff_heading_zero_quasi_bin_out(self):
+        """Test binary input without a 0b prefix with heading 0 of different sizes and binary output."""
+        qprobs = {
+            "0": 3 / 5,
+            "01": 1 / 2,
+            "10": 7 / 20,
+            "011": 1 / 10,
+            "00100": -11 / 20,
+        }
+        quasi = QuasiDistribution(qprobs)
+        expected = {
+            "00000": 3 / 5,
+            "00001": 1 / 2,
+            "00010": 7 / 20,
+            "00011": 1 / 10,
+            "00100": -11 / 20,
+        }
+        self.assertEqual(expected, quasi.binary_probabilities())
+
+    def test_bin_no_prefix_w_diff_heading_zero_quasi_bin_out_padded(self):
+        """Test binary input without a 0b prefix with heading 0 of different sizes and binary output,
+        padded with zeros."""
+        qprobs = {
+            "0": 3 / 5,
+            "01": 1 / 2,
+            "10": 7 / 20,
+            "011": 1 / 10,
+            "00100": -11 / 20,
+        }
+        quasi = QuasiDistribution(qprobs)
+        expected = {
+            "0000000": 3 / 5,
+            "0000001": 1 / 2,
+            "0000010": 7 / 20,
+            "0000011": 1 / 10,
+            "0000100": -11 / 20,
+        }
+        self.assertEqual(expected, quasi.binary_probabilities(7))
+
+    def test_bin_no_prefix_out_padded(self):
+        """Test binary input without a 0b prefix, padded with zeros."""
+        n = 5
+        qprobs = {"0": 1}
+        quasi = QuasiDistribution(qprobs)
+        expected = {"0" * n: 1}
+        self.assertEqual(expected, quasi.binary_probabilities(num_bits=n))
+
     def test_hex_quasi_bin_out_padded(self):
         """Test hexadecimal input and binary output, padded with zeros."""
         qprobs = {"0x0": 3 / 5, "0x1": 1 / 2, "0x2": 7 / 20, "0x3": 1 / 10, "0x4": -11 / 20}
@@ -105,6 +164,11 @@ class TestQuasi(QiskitTestCase):
         """Test empty input with binary output."""
         quasi = QuasiDistribution({})
         self.assertEqual(quasi.binary_probabilities(), {})
+
+    def test_empty_bin_out_padding(self):
+        """Test empty input with binary output and padding."""
+        quasi = QuasiDistribution({})
+        self.assertEqual(quasi.binary_probabilities(5), {})
 
     def test_invalid_keys(self):
         """Test invalid key type raises."""

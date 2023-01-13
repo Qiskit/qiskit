@@ -32,4 +32,6 @@ from .inverse_cancellation import InverseCancellation
 from .collect_1q_runs import Collect1qRuns
 from .echo_rzx_weyl_decomposition import EchoRZXWeylDecomposition
 from .collect_linear_functions import CollectLinearFunctions
+from .reset_after_measure_simplification import ResetAfterMeasureSimplification
 from .optimize_cliffords import OptimizeCliffords
+from .collect_cliffords import CollectCliffords

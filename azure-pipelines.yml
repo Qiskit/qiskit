@@ -33,7 +33,7 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.7", "3.8", "3.9", "3.10"]
+    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
@@ -43,13 +43,12 @@ parameters:
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.10"
+    default: "3.11"
 
   - name: "minimumRustVersion"
     displayName: "Minimum supported version of Rust"
     type: string
     default: "1.56.1"
-
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -65,6 +64,10 @@ parameters:
     type: string
     default: "3.8"
 
+  - name: "documentationPythonVersion"
+    displayName: "Version of Python to use to build Sphinx documentation"
+    type: string
+    default: "3.9"
 
 # Conditional compilation logic.  This is all the logic for "what to run"; each
 # stage in turn delegates to various templates in ".azure" that provide the
@@ -92,6 +95,113 @@ parameters:
 # need to examine `variables['Build.SourceBranch']` to determine whether it's a
 # branch or a tag.
 stages:
+  # Nightly cron job.
+  - ${{ if eq(variables['Build.Reason'], 'Schedule') }}:
+    - stage: "Nightly"
+      displayName: "Nightly complete matrix tests"
+      jobs:
+        - ${{ each version in parameters.supportedPythonVersions }}:
+          - template: ".azure/test-linux.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+              testQPY: false
+              testImages: false
+
+          - template: ".azure/test-macos.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+
+          - template: ".azure/test-windows.yml"
+            parameters:
+              pythonVersion: ${{ version }}
+
+    - stage: "Nightly_Failure"
+      displayName: "Comment on nightly failure"
+      dependsOn: "Nightly"
+      condition: failed()
+      pool: {vmImage: 'ubuntu-latest'}
+      jobs:
+        - job: "Comment"
+          steps:
+            - task: GitHubComment@0
+              inputs:
+                gitHubConnection: Qiskit
+                repositoryName: ${{ variables['Build.Repository.Name'] }}
+                id: 7864
+                comment: Nightly test job failed at commit $(Build.SourceVersion).  View the logs at $(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId).
+
+  # Full PR suite.
+  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+    # The preliminary stage should be small in both total runtime (including
+    # provisioning) and resources required.  About half of PR commits result in
+    # a CI failure, and over 90% of these are in linting, documention or a test
+    # failure that would affect _any_ OS or Python version.  The goal in the
+    # first stage is to catch the vast majority of failures with minimal cost.
+    - stage: "Lint_Docs_Prelim_Tests"
+      displayName: "Preliminary tests"
+      jobs:
+        - template: ".azure/lint-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/docs-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.documentationPythonVersion }}
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+            testQPY: true
+            testImages: false
+            rustVersion: ${{ parameters.minimumRustVersion }}
+
+    # The rest of the PR pipeline is to test the oldest and newest supported
+    # versions of Python, along with the integration tests (via the tutorials).
+    # It's very rare for a failure to be specific to an intermediate version of
+    # Python, so we just catch those in the cron-job pipeline to reduce the
+    # amount of resources used.
+    - stage: "Tutorials_and_Tests"
+      displayName: "Main tests"
+      dependsOn: "Lint_Docs_Prelim_Tests"
+      jobs:
+        - template: ".azure/tutorials-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.tutorialsPythonVersion }}
+
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+            testQPY: false
+            testImages: true
+            installFromSdist: true
+
+        - template: ".azure/test-macos.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/test-macos.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+
+        - template: ".azure/test-windows.yml"
+          parameters:
+            pythonVersion: ${{ parameters.minimumPythonVersion }}
+
+        - template: ".azure/test-windows.yml"
+          parameters:
+            pythonVersion: ${{ parameters.maximumPythonVersion }}
+
+  # Push to main or the stable branches.  The triggering branches are set in the
+  # triggers at the top of this file.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/heads/')) }}:
+    - stage: "Push"
+      jobs:
+        - template: ".azure/test-linux.yml"
+          parameters:
+            pythonVersion: ${{ parameters.branchPushPythonVersion }}
+            testQPY: true
+            testImages: true
+
   # Push to a tag.  The triggering tags are set in the triggers at the top of
   # this file.
   - stage: "Deploy"

@@ -225,14 +225,14 @@ def _cartan_network(num_qubits: int) -> np.ndarray:
     """
     n = num_qubits
     if n > 3:
-        cnots = np.array([[0, 0, 0], [1, 1, 1]])
-        mult = np.array([[n - 2, n - 3, n - 2, n - 3], [n - 1, n - 1, n - 1, n - 1]])
+        cnots = np.asarray([[0, 0, 0], [1, 1, 1]])
+        mult = np.asarray([[n - 2, n - 3, n - 2, n - 3], [n - 1, n - 1, n - 1, n - 1]])
         for _ in range(n - 2):
             cnots = np.hstack((np.tile(np.hstack((cnots, mult)), 3), cnots))
             mult[0, -1] -= 1
             mult = np.tile(mult, 2)
     elif n == 3:
-        cnots = np.array(
+        cnots = np.asarray(
             [
                 [0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0],
                 [1, 1, 1, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 1, 1, 1],

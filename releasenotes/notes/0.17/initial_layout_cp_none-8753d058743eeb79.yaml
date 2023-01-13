@@ -9,7 +9,7 @@ fixes:
     :func:`qiskit.compiler.transpile` function honors the ``initial_layout``
     argument by embedding the circuit:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit, QuantumRegister
         from qiskit.compiler import transpile
@@ -25,7 +25,7 @@ fixes:
     If the ``initial_layout`` refers to more qubits than in the circuit, the
     transpiling process will extended the circuit with ancillas.
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit, QuantumRegister
         from qiskit.compiler import transpile

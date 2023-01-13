@@ -88,17 +88,7 @@ class TestBackendV2(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.h(1)
         qc.cz(1, 0)
-        with self.assertLogs("qiskit.providers.backend", level="WARN") as log:
-            tqc = transpile(qc, self.backend, optimization_level=opt_level)
-        self.assertEqual(
-            log.output,
-            [
-                "WARNING:qiskit.providers.backend:This backend's operations: "
-                "cx,ecr only apply to a subset of qubits. Using this property to "
-                "get 'basis_gates' for the transpiler may potentially create "
-                "invalid output"
-            ],
-        )
+        tqc = transpile(qc, self.backend, optimization_level=opt_level)
         self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
