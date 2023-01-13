@@ -46,7 +46,7 @@ class SQiSWGate(Gate):
 
     def __init__(self):
         """Create new SQiSW gate."""
-        super().__init__("siswap", 2, [])
+        super().__init__("sqisw", 2, [])
 
     def _define(self):
         """
@@ -59,7 +59,7 @@ class SQiSWGate(Gate):
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(RXXGate(-np.pi/4), [q[0], q[1]], []), (RYYGate(-np.pi/4), [q[1], q[0]], [])]
+        rules = [(RXXGate(-np.pi / 4), [q[0], q[1]], []), (RYYGate(-np.pi / 4), [q[1], q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -67,7 +67,12 @@ class SQiSWGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the DCX gate."""
-        return np.array([[1, 0, 0, 0],
-                         [0, 1/np.sqrt(2), 1j/np.sqrt(2), 0],
-                         [0, 1j/np.sqrt(2), 1/np.sqrt(2), 0],
-                         [0, 0, 0, 1]], dtype=dtype)
+        return np.array(
+            [
+                [1, 0, 0, 0],
+                [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
+                [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
+                [0, 0, 0, 1],
+            ],
+            dtype=dtype,
+        )

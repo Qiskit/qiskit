@@ -78,6 +78,13 @@ Discrete Basis Synthesis
 
    SolovayKitaevDecomposition
 
+Two Qubit Synthesis
+========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   SQiSWDecomposer
 """
 
 from .evolution import (
@@ -108,3 +115,4 @@ from .cnotdihedral import (
     synth_cnotdihedral_general,
 )
 from .discrete_basis import SolovayKitaevDecomposition
+from .two_qubit import SQiSWDecomposer
