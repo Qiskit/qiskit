@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """ Test NumPy Eigen solver """
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
@@ -41,14 +40,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
     def test_ce(self):
         """Test basics"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            algo = NumPyEigensolver()
-            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
-        self.assertTrue(len(caught_warnings) > 0)
+        algo = NumPyEigensolver()
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -56,14 +49,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
     def test_ce_k4(self):
         """Test for k=4 eigenvalues"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            algo = NumPyEigensolver(k=4)
-            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
-        self.assertTrue(len(caught_warnings) > 0)
+        algo = NumPyEigensolver(k=4)
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 4)
         self.assertEqual(len(result.eigenstates), 4)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -79,14 +66,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         def criterion(x, v, a_v):
             return v >= -1
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            algo = NumPyEigensolver(k=4, filter_criterion=criterion)
-            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
-        self.assertTrue(len(caught_warnings) > 0)
+        algo = NumPyEigensolver(k=4, filter_criterion=criterion)
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -100,41 +81,23 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         def criterion(x, v, a_v):
             return False
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            algo = NumPyEigensolver(k=4, filter_criterion=criterion)
-            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
-        self.assertTrue(len(caught_warnings) > 0)
+        algo = NumPyEigensolver(k=4, filter_criterion=criterion)
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 0)
         self.assertEqual(len(result.eigenstates), 0)
 
     @data(X, Y, Z)
     def test_ce_k1_1q(self, op):
         """Test for 1 qubit operator"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            algo = NumPyEigensolver(k=1)
-            result = algo.compute_eigenvalues(operator=op)
-        self.assertTrue(len(caught_warnings) > 0)
+        algo = NumPyEigensolver(k=1)
+        result = algo.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(result.eigenvalues, [-1])
 
     @data(X, Y, Z)
     def test_ce_k2_1q(self, op):
         """Test for 1 qubit operator"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            algo = NumPyEigensolver(k=2)
-            result = algo.compute_eigenvalues(operator=op)
-        self.assertTrue(len(caught_warnings) > 0)
+        algo = NumPyEigensolver(k=2)
+        result = algo.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(result.eigenvalues, [-1, 1])
 
     def test_aux_operators_list(self):
@@ -142,14 +105,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            algo = NumPyEigensolver()
-            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+        algo = NumPyEigensolver()
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -165,13 +122,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -193,14 +144,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            algo = NumPyEigensolver()
-            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+        algo = NumPyEigensolver()
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -216,13 +161,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
