@@ -13,9 +13,13 @@
 """iSWAP gate."""
 
 from typing import Optional
+
 import numpy as np
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+
+from .xx_plus_yy import XXPlusYYGate
 
 
 class iSwapGate(Gate):
@@ -25,6 +29,9 @@ class iSwapGate(Gate):
     This is a Clifford and symmetric gate. Its action is to swap two qubit
     states and phase the :math:`|01\rangle` and :math:`|10\rangle`
     amplitudes by i.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.iswap` method.
 
     **Circuit Symbol:**
 
@@ -93,6 +100,7 @@ class iSwapGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .h import HGate
         from .s import SGate
         from .x import CXGate
@@ -115,3 +123,7 @@ class iSwapGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the iSWAP gate."""
         return np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return XXPlusYYGate(-np.pi * exponent)

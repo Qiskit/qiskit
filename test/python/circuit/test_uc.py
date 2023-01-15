@@ -30,6 +30,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.random import random_unitary
 from qiskit.compiler import transpile
 from qiskit.quantum_info.operators.predicates import matrix_equal
+from qiskit.quantum_info import Operator
 
 _id = np.eye(2, 2)
 _not = np.matrix([[0, 1], [1, 0]])
@@ -46,9 +47,9 @@ class TestUCGate(QiskitTestCase):
             [_id, _id],
             [_id, 1j * _id],
             [_id, _not, _id, _not],
-            [random_unitary(2, seed=541234).data for i in range(2**2)],
-            [random_unitary(2, seed=975163).data for i in range(2**3)],
-            [random_unitary(2, seed=629462).data for i in range(2**4)],
+            [random_unitary(2, seed=541234).data for _ in range(2**2)],
+            [random_unitary(2, seed=975163).data for _ in range(2**3)],
+            [random_unitary(2, seed=629462).data for _ in range(2**4)],
         ],
         up_to_diagonal=[True, False],
     )
@@ -69,6 +70,36 @@ class TestUCGate(QiskitTestCase):
             unitary = np.dot(np.diagflat(ucg._get_diagonal()), unitary)
         unitary_desired = _get_ucg_matrix(squs)
         self.assertTrue(matrix_equal(unitary_desired, unitary, ignore_phase=True))
+
+    def test_global_phase_ucg(self):
+        """Test global phase of uniformly controlled gates"""
+        gates = [random_unitary(2).data for _ in range(2**2)]
+        num_con = int(np.log2(len(gates)))
+        q = QuantumRegister(num_con + 1)
+        qc = QuantumCircuit(q)
+
+        qc.uc(gates, q[1:], q[0], up_to_diagonal=False)
+        simulator = BasicAer.get_backend("unitary_simulator")
+        result = execute(qc, simulator).result()
+        unitary = result.get_unitary(qc)
+        unitary_desired = _get_ucg_matrix(gates)
+
+        self.assertTrue(np.allclose(unitary_desired, unitary))
+
+    def test_inverse_ucg(self):
+        """Test inverse function of uniformly controlled gates"""
+        gates = [random_unitary(2, seed=42 + s).data for s in range(2**2)]
+        num_con = int(np.log2(len(gates)))
+        q = QuantumRegister(num_con + 1)
+        qc = QuantumCircuit(q)
+
+        qc.uc(gates, q[1:], q[0], up_to_diagonal=False)
+        qc.append(qc.inverse(), qc.qubits)
+
+        unitary = Operator(qc).data
+        unitary_desired = np.identity(2**qc.num_qubits)
+
+        self.assertTrue(np.allclose(unitary_desired, unitary))
 
 
 def _get_ucg_matrix(squs):

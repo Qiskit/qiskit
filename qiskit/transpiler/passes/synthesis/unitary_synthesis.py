@@ -25,7 +25,7 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.quantum_info.synthesis import one_qubit_decompose
 from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
-from qiskit.quantum_info.synthesis.qsd import qs_decomposition
+from qiskit.circuit import ControlFlowOp
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
@@ -36,6 +36,7 @@ from qiskit.circuit.library.standard_gates import (
     ECRGate,
 )
 from qiskit.transpiler.passes.synthesis import plugin
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.providers.models import BackendProperties
 
 
@@ -156,7 +157,7 @@ class UnitarySynthesis(TransformationPass):
 
         This pass can approximate 2-qubit unitaries given some
         approximation closeness measure (expressed as
-        approximation_degree). Other unitaries are synthesized
+        ``approximation_degree``). Other unitaries are synthesized
         exactly.
 
         Args:
@@ -169,37 +170,37 @@ class UnitarySynthesis(TransformationPass):
             coupling_map (CouplingMap): the coupling map of the backend
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
-                account if pulse_optimize is True/None and natural_direction
-                is True/None.
+                account if ``pulse_optimize`` is ``True``/``None`` and ``natural_direction``
+                is ``True``/``None``.
             backend_props (BackendProperties): Properties of a backend to
                 synthesize for (e.g. gate fidelities).
             pulse_optimize (bool): Whether to optimize pulses during
-                synthesis. A value of None will attempt it but fall
-                back if it doesn't succeed. A value of True will raise
+                synthesis. A value of ``None`` will attempt it but fall
+                back if it does not succeed. A value of ``True`` will raise
                 an error if pulse-optimized synthesis does not succeed.
             natural_direction (bool): Whether to apply synthesis considering
                 directionality of 2-qubit gates. Only applies when
-                `pulse_optimize` is True or None. The natural direction is
+                ``pulse_optimize`` is ``True`` or ``None``. The natural direction is
                 determined by first checking to see whether the
                 coupling map is unidirectional.  If there is no
                 coupling map or the coupling map is bidirectional,
                 the gate direction with the shorter
                 duration from the backend properties will be used. If
                 set to True, and a natural direction can not be
-                determined, raises TranspileError. If set to None, no
+                determined, raises :class:`~TranspileError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
             synth_gates (list[str]): List of gates to synthesize. If None and
-                `pulse_optimize` is False or None, default to
-                ['unitary']. If None and `pulse_optimzie` == True,
-                default to ['unitary', 'swap']
+                ``pulse_optimize`` is False or None, default to
+                ``['unitary']``. If ``None`` and ``pulse_optimize == True``,
+                default to ``['unitary', 'swap']``
             method (str): The unitary synthesis method plugin to use.
             min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
                 and the unitary is less than the specified number of qubits it will not be
                 synthesized.
-            plugin_config: Optional extra configuration arguments (as a dict)
+            plugin_config: Optional extra configuration arguments (as a ``dict``)
                 which are passed directly to the specified unitary synthesis
-                plugin. By default this will have no effect as the default
+                plugin. By default, this will have no effect as the default
                 plugin has no extra arguments. Refer to the documentation of
                 your unitary synthesis plugin on how to use this.
             target: The optional :class:`~.Target` for the target device the pass
@@ -233,7 +234,7 @@ class UnitarySynthesis(TransformationPass):
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the UnitarySynthesis pass on `dag`.
+        """Run the UnitarySynthesis pass on ``dag``.
 
         Args:
             dag: input dag.
@@ -242,7 +243,7 @@ class UnitarySynthesis(TransformationPass):
             Output dag with UnitaryGates synthesized to target basis.
 
         Raises:
-            TranspilerError: if a 'method' was specified for the class and is not
+            TranspilerError: if ``method`` was specified for the class and is not
                 found in the installed plugins list. The list of installed
                 plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
@@ -259,7 +260,6 @@ class UnitarySynthesis(TransformationPass):
             plugin_method = DefaultUnitarySynthesis()
         plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
-        dag_bit_indices = {}
 
         if self.method == "default":
             # If the method is the default, we only need to evaluate one set of keyword arguments.
@@ -279,8 +279,6 @@ class UnitarySynthesis(TransformationPass):
         for method, kwargs in method_list:
             if method.supports_basis_gates:
                 kwargs["basis_gates"] = self._basis_gates
-            if method.supports_coupling_map:
-                dag_bit_indices = dag_bit_indices or {bit: i for i, bit in enumerate(dag.qubits)}
             if method.supports_natural_direction:
                 kwargs["natural_direction"] = self._natural_direction
             if method.supports_pulse_optimize:
@@ -307,6 +305,29 @@ class UnitarySynthesis(TransformationPass):
         if self.method == "default":
             # pylint: disable=attribute-defined-outside-init
             plugin_method._approximation_degree = self._approximation_degree
+        return self._run_main_loop(
+            dag, plugin_method, plugin_kwargs, default_method, default_kwargs
+        )
+
+    def _run_main_loop(self, dag, plugin_method, plugin_kwargs, default_method, default_kwargs):
+        """Inner loop for the optimizer, after all DAG-independent set-up has been completed."""
+
+        def _recurse(dag):
+            # This isn't quite a trivially recursive call because we need to close over the
+            # arguments to the function.  The loop is sufficiently long that it's cleaner to do it
+            # in a separate method rather than define a helper closure within `self.run`.
+            return self._run_main_loop(
+                dag, plugin_method, plugin_kwargs, default_method, default_kwargs
+            )
+
+        for node in dag.op_nodes(ControlFlowOp):
+            node.op = control_flow.map_blocks(_recurse, node.op)
+
+        dag_bit_indices = (
+            {bit: i for i, bit in enumerate(dag.qubits)}
+            if plugin_method.supports_coupling_map or default_method.supports_coupling_map
+            else {}
+        )
 
         for node in dag.named_nodes(*self._synth_gates):
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
@@ -508,27 +529,30 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         qubits = options["coupling_map"][1]
         target = options["target"]
 
-        euler_basis = _choose_euler_basis(basis_gates)
-        if euler_basis is not None:
-            decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
-        else:
-            decomposer1q = None
-
-        preferred_direction = None
-        if target is not None:
-            decomposer2q, preferred_direction = self._find_decomposer_2q_from_target(
-                target, qubits, pulse_optimize
-            )
-        else:
-            decomposer2q = _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=pulse_optimize)
-
         synth_dag = None
         wires = None
         if unitary.shape == (2, 2):
+            if target is not None:
+                euler_basis = _choose_euler_basis(target.operation_names_for_qargs(tuple(qubits)))
+            else:
+                euler_basis = _choose_euler_basis(basis_gates)
+            if euler_basis is not None:
+                decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
+            else:
+                decomposer1q = None
             if decomposer1q is None:
                 return None
             synth_dag = circuit_to_dag(decomposer1q._decompose(unitary))
         elif unitary.shape == (4, 4):
+            preferred_direction = None
+            if target is not None:
+                decomposer2q, preferred_direction = self._find_decomposer_2q_from_target(
+                    target, qubits, pulse_optimize
+                )
+            else:
+                decomposer2q = _basis_gates_to_decomposer_2q(
+                    basis_gates, pulse_optimize=pulse_optimize
+                )
             if not decomposer2q:
                 return None
             synth_dag, wires = self._synth_natural_direction(
@@ -545,6 +569,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                 preferred_direction,
             )
         else:
+            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+                qs_decomposition,
+            )
+
             synth_dag = circuit_to_dag(qs_decomposition(unitary))
 
         return synth_dag, wires
@@ -569,15 +597,21 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         if natural_direction in {None, True} and (
             coupling_map or (target is not None and decomposer2q and not preferred_direction)
         ):
-            cmap = coupling_map
-            neighbors0 = cmap.neighbors(qubits[0])
-            zero_one = qubits[1] in neighbors0
-            neighbors1 = cmap.neighbors(qubits[1])
-            one_zero = qubits[0] in neighbors1
-            if zero_one and not one_zero:
-                preferred_direction = [0, 1]
-            if one_zero and not zero_one:
-                preferred_direction = [1, 0]
+            if coupling_map is not None:
+                cmap = coupling_map
+            else:
+                cmap = target.build_coupling_map()
+            # If we don't have a defined coupling map (either from the input)
+            # or from the target we can't check for a natural direction
+            if cmap is not None:
+                neighbors0 = cmap.neighbors(qubits[0])
+                zero_one = qubits[1] in neighbors0
+                neighbors1 = cmap.neighbors(qubits[1])
+                one_zero = qubits[0] in neighbors1
+                if zero_one and not one_zero:
+                    preferred_direction = [0, 1]
+                if one_zero and not zero_one:
+                    preferred_direction = [1, 0]
         if (
             natural_direction in {None, True}
             and preferred_direction is None

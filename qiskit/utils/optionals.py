@@ -40,6 +40,10 @@ Qiskit Components
       - :mod:`Qiskit Ignis <qiskit.ignis>` provides tools for quantum hardware verification, noise
         characterization, and error correction.
 
+    * - .. py:data:: HAS_TOQM
+      - `Qiskit TOQM <https://github.com/qiskit-toqm/qiskit-toqm>`__ provides transpiler passes
+        for the `Time-optimal Qubit mapping algorithm <https://doi.org/10.1145/3445814.3446706>`__.
+
 
 External Python Libraries
 -------------------------
@@ -89,15 +93,15 @@ External Python Libraries
         be installed in order to use them.
 
     * - .. py:data:: HAS_NETWORKX
-      - Internally, Qiskit uses the high-performance `retworkx
-        <https://github.com/Qiskit/retworkx>`__ library as a core dependency, but sometimes it can
-        be convenient to convert things into the Python-only `NetworkX <https://networkx.org/>`__
-        format.  There are converter methods on :class:`.DAGCircuit` if NetworkX is present.
+      - No longer used by Terra.  Internally, Qiskit now uses the high-performance `rustworkx
+        <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
+        change-over period, it was sometimes convenient to convert things into the Python-only
+        `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
+        `Qiskit Nature <https://qiskit.org/documentation/nature/>`__ still use NetworkX.
 
     * - .. py:data:: HAS_NLOPT
-      - `NLOpt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimisation library,
-        used by the global optimizers in :mod:`.algorithms.optimizers`.  See installation details in
-        :ref:`installing-nlopt`.
+      - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,
+        used by the global optimizers in the :mod:`.algorithms.optimizers` module.
 
     * - .. py:data:: HAS_PIL
       - PIL is a Python image-manipulation library.  Qiskit actually uses the `pillow
@@ -141,6 +145,12 @@ External Python Libraries
       - Qiskit Terra's test suite has more advanced functionality available if the optional
         `testtools <https://pypi.org/project/testtools/>`__ library is installed.  This is generally
         only needed for Qiskit developers.
+
+    * - .. py:data:: HAS_TWEEDLEDUM
+      - `Tweedledum <https://github.com/boschmitt/tweedledum>`__ is an extension library for
+        synthesis and optimization of circuits that may involve classical oracles.  Qiskit Terra's
+        :class:`.PhaseOracle` uses this, which is used in turn by amplification algorithms via
+        the :class:`.AmplificationProblem`.
 
     * - .. py:data:: HAS_Z3
       - `Z3 <https://github.com/Z3Prover/z3>`__ is a theorem prover, used in the
@@ -209,6 +219,7 @@ HAS_IGNIS = _LazyImportTester(
     name="Qiskit Ignis",
     install="pip install qiskit-ignis",
 )
+HAS_TOQM = _LazyImportTester("qiskit_toqm", name="Qiskit TOQM", install="pip install qiskit-toqm")
 
 HAS_CONSTRAINT = _LazyImportTester(
     "constraint",
@@ -242,26 +253,7 @@ HAS_MATPLOTLIB = _LazyImportTester(
 )
 HAS_NETWORKX = _LazyImportTester("networkx", install="pip install networkx")
 
-
-def _nlopt_callback(available):
-    if not available:
-        return
-    import nlopt  # pylint: disable=import-error
-
-    _logger.info(
-        "NLopt version: %s.%s.%s",
-        nlopt.version_major(),
-        nlopt.version_minor(),
-        nlopt.version_bugfix(),
-    )
-
-
-HAS_NLOPT = _LazyImportTester(
-    "nlopt",
-    name="NLopt Optimizer",
-    callback=_nlopt_callback,
-    msg="See the documentation of 'qiskit.algorithms.optimizer.nlopts' for installation help",
-)
+HAS_NLOPT = _LazyImportTester("nlopt", name="NLopt Optimizer", install="pip install nlopt")
 HAS_PIL = _LazyImportTester("PIL.Image", name="pillow", install="pip install pillow")
 HAS_PYDOT = _LazyImportTester("pydot", install="pip install pydot")
 HAS_PYLATEX = _LazyImportTester(
@@ -286,6 +278,7 @@ HAS_SKQUANT = _LazyImportTester(
 HAS_SQSNOBFIT = _LazyImportTester("SQSnobFit", install="pip install SQSnobFit")
 HAS_SYMENGINE = _LazyImportTester("symengine", install="pip install symengine")
 HAS_TESTTOOLS = _LazyImportTester("testtools", install="pip install testtools")
+HAS_TWEEDLEDUM = _LazyImportTester("tweedledum", install="pip install tweedledum")
 HAS_Z3 = _LazyImportTester("z3", install="pip install z3-solver")
 
 HAS_GRAPHVIZ = _LazySubprocessTester(

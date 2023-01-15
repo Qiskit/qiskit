@@ -19,7 +19,7 @@ from qiskit.circuit import Barrier
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock.backends import FakeLima
+from qiskit.providers.fake_provider import FakeLima
 from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
@@ -292,7 +292,7 @@ class TestBIPMapping(QiskitTestCase):
                 self.assertTrue(bit_indices[q] in qubit_subset)
         # ancilla qubits are set in the resulting qubit
         idle = QuantumRegister(1, name="ancilla")
-        self.assertEqual(idle[0], actual._layout[2])
+        self.assertEqual(idle[0], actual._layout.initial_layout[2])
 
     def test_unconnected_qubit_subset(self):
         """Fails if qubits in `qubit_subset` are not connected."""

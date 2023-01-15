@@ -16,7 +16,7 @@ from typing import Optional
 import warnings
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, CircuitInstruction
 
 from ..blueprintcircuit import BlueprintCircuit
 
@@ -38,24 +38,22 @@ class QFT(BlueprintCircuit):
 
     For 4 qubits, the circuit that implements this transformation is:
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import QFT
-        import qiskit.tools.jupyter
-        circuit = QFT(4)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import QFT
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       circuit = QFT(4)
+       _generate_circuit_library_visualization(circuit)
 
     The inverse QFT can be obtained by calling the ``inverse`` method on this class.
     The respective circuit diagram is:
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import QFT
-        import qiskit.tools.jupyter
-        circuit = QFT(4).inverse()
-        %circuit_library_info circuit
+       from qiskit.circuit.library import QFT
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       circuit = QFT(4).inverse()
+       _generate_circuit_library_visualization(circuit)
 
     One method to reduce circuit depth is to implement the QFT approximately by ignoring
     controlled-phase rotations where the angle is beneath a threshold. This is discussed
@@ -66,13 +64,12 @@ class QFT(BlueprintCircuit):
     ``approximation_degree`` rotation angles are dropped from the QFT. For instance, a QFT
     on 5 qubits with approximation degree 2 yields (the barriers are dropped in this example):
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import QFT
-        import qiskit.tools.jupyter
-        circuit = QFT(5, approximation_degree=2)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import QFT
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       circuit = QFT(5, approximation_degree=2)
+       _generate_circuit_library_visualization(circuit)
 
     """
 
@@ -221,11 +218,11 @@ class QFT(BlueprintCircuit):
         inverted = self.copy(name=name)
 
         # data consists of the QFT gate only
-        iqft = self.data[0][0].inverse()
+        iqft = self.data[0].operation.inverse()
         iqft.name = name
 
         inverted.data.clear()
-        inverted._append(iqft, inverted.qubits, [])
+        inverted._append(CircuitInstruction(iqft, inverted.qubits, []))
 
         inverted._inverse = not self._inverse
         return inverted

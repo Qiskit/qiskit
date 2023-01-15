@@ -121,19 +121,20 @@ def control(
             for index, bit in enumerate(bits)
         }
 
-        for gate, qargs, _ in definition.data:
+        for instruction in definition.data:
+            gate, qargs = instruction.operation, instruction.qubits
             if gate.name == "x":
                 controlled_circ.mct(q_control, q_target[bit_indices[qargs[0]]], q_ancillae)
             elif gate.name == "rx":
                 controlled_circ.mcrx(
-                    gate.definition.data[0][0].params[0],
+                    gate.definition.data[0].operation.params[0],
                     q_control,
                     q_target[bit_indices[qargs[0]]],
                     use_basis_gates=True,
                 )
             elif gate.name == "ry":
                 controlled_circ.mcry(
-                    gate.definition.data[0][0].params[0],
+                    gate.definition.data[0].operation.params[0],
                     q_control,
                     q_target[bit_indices[qargs[0]]],
                     q_ancillae,
@@ -142,7 +143,7 @@ def control(
                 )
             elif gate.name == "rz":
                 controlled_circ.mcrz(
-                    gate.definition.data[0][0].params[0],
+                    gate.definition.data[0].operation.params[0],
                     q_control,
                     q_target[bit_indices[qargs[0]]],
                     use_basis_gates=True,

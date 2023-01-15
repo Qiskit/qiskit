@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed the :class:`~.eigensolvers.VQD` if more than ``k=2`` eigenvalues are computed.
+    Previously the code failed due to an internal type mismatch, but now runs as expected.

@@ -67,7 +67,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         new_dag = pass_.run(dag)
 
         new_node = new_dag.op_nodes()[0]
-        self.assertEqual(new_node.qargs, [qr[0], qr[1]])
+        self.assertEqual(new_node.qargs, (qr[0], qr[1]))
         unitary = Operator(qc)
         fidelity = process_fidelity(Operator(new_node.op), unitary)
         self.assertAlmostEqual(fidelity, 1.0, places=7)
@@ -98,8 +98,8 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         new_topo_ops = list(new_dag.topological_op_nodes())
         self.assertEqual(len(new_topo_ops), 2)
-        self.assertEqual(new_topo_ops[0].qargs, [qr[1], qr[2]])
-        self.assertEqual(new_topo_ops[1].qargs, [qr[0], qr[1]])
+        self.assertEqual(new_topo_ops[0].qargs, (qr[1], qr[2]))
+        self.assertEqual(new_topo_ops[1].qargs, (qr[0], qr[1]))
 
     def test_3q_blocks(self):
         """blocks of more than 2 qubits work."""
@@ -321,8 +321,8 @@ class TestConsolidateBlocks(QiskitTestCase):
         # Assert output circuit is a single unitary gate equivalent to
         # unitary of original circuit
         self.assertEqual(len(result), 1)
-        self.assertIsInstance(result.data[0][0], UnitaryGate)
-        self.assertTrue(np.allclose(result.data[0][0].to_matrix(), expected))
+        self.assertIsInstance(result.data[0].operation, UnitaryGate)
+        self.assertTrue(np.allclose(result.data[0].operation.to_matrix(), expected))
 
     def test_classical_conditions_maintained(self):
         """Test that consolidate blocks doesn't drop the classical conditions
@@ -406,6 +406,27 @@ class TestConsolidateBlocks(QiskitTestCase):
         expected = QuantumCircuit(2)
         expected.swap(0, 1)
         self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_identity_unitary_is_removed(self):
+        """Test that a 2q identity unitary is removed without a basis."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5), pm.run(qc))
+
+    def test_identity_1q_unitary_is_removed(self):
+        """Test that a 1q identity unitary is removed without a basis."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+        pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5), pm.run(qc))
 
 
 if __name__ == "__main__":

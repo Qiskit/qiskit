@@ -21,7 +21,7 @@ import numpy as np
 
 from qiskit.visualization import circuit_drawer
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.test.mock import FakeTenerife
+from qiskit.providers.fake_provider import FakeTenerife
 from qiskit.circuit.library import XGate, MCXGate, RZZGate, SwapGate, DCXGate, CPhaseGate
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
@@ -241,7 +241,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         # this import appears to be unused, but is actually needed to get snapshot instruction
         import qiskit.extensions.simulator  # pylint: disable=unused-import
 
-        circuit.snapshot("1")
+        circuit.snapshot("sn 1")
 
         # check the barriers plot properly when plot_barriers= True
         circuit_drawer(circuit, filename=filename1, output="latex_source", plot_barriers=True)
@@ -260,6 +260,22 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit = QuantumCircuit(q1, c1)
         circuit.h(q1[0])
         circuit.h(q1[1])
+
+        circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_barrier_label(self):
+        """Test the barrier label"""
+        filename = self._get_resource_path("test_latex_barrier_label.tex")
+        qr = QuantumRegister(2, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(0)
+        circuit.x(1)
+        circuit.barrier(label="End Y/X")
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
@@ -653,6 +669,35 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit = QuantumCircuit(qr, cr)
         circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
         circuit_drawer(circuit, cregbundle=False, filename=filename, output="latex_source")
+        self.assertEqualToReference(filename)
+
+    def test_idle_wires_barrier(self):
+        """Test that idle_wires False works with barrier"""
+        filename = self._get_resource_path("test_latex_idle_wires_barrier.tex")
+        circuit = QuantumCircuit(4, 4)
+        circuit.x(2)
+        circuit.barrier()
+        circuit_drawer(circuit, idle_wires=False, filename=filename, output="latex_source")
+        self.assertEqualToReference(filename)
+
+    def test_wire_order(self):
+        """Test the wire_order option to latex drawer"""
+        filename = self._get_resource_path("test_latex_wire_order.tex")
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "ca")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        circuit.x(3).c_if(cr, 12)
+        circuit_drawer(
+            circuit,
+            cregbundle=False,
+            wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
+            filename=filename,
+            output="latex_source",
+        )
         self.assertEqualToReference(filename)
 
 

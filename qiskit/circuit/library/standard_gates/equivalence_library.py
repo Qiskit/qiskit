@@ -36,6 +36,8 @@ from . import (
     RZXGate,
     SGate,
     SdgGate,
+    CSGate,
+    CSdgGate,
     SwapGate,
     CSwapGate,
     iSwapGate,
@@ -61,6 +63,9 @@ from . import (
     ECRGate,
     ZGate,
     CZGate,
+    CCZGate,
+    XXPlusYYGate,
+    XXMinusYYGate,
 )
 
 
@@ -252,6 +257,20 @@ for inst, qargs, cargs in [
     def_rxx.append(inst, qargs, cargs)
 _sel.add_equivalence(RXXGate(theta), def_rxx)
 
+# RXX to RZZ
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+rxx_to_rzz = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (HGate(), [q[0]], []),
+    (HGate(), [q[1]], []),
+    (RZZGate(theta), [q[0], q[1]], []),
+    (HGate(), [q[0]], []),
+    (HGate(), [q[1]], []),
+]:
+    rxx_to_rzz.append(inst, qargs, cargs)
+_sel.add_equivalence(RXXGate(theta), rxx_to_rzz)
+
 # RZXGate
 #
 #      ┌─────────┐
@@ -324,6 +343,20 @@ for inst, qargs, cargs in [
     def_ryy.append(inst, qargs, cargs)
 _sel.add_equivalence(RYYGate(theta), def_ryy)
 
+# RYY to RZZ
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+ryy_to_rzz = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (RXGate(pi / 2), [q[0]], []),
+    (RXGate(pi / 2), [q[1]], []),
+    (RZZGate(theta), [q[0], q[1]], []),
+    (RXGate(-pi / 2), [q[0]], []),
+    (RXGate(-pi / 2), [q[1]], []),
+]:
+    ryy_to_rzz.append(inst, qargs, cargs)
+_sel.add_equivalence(RYYGate(theta), ryy_to_rzz)
+
 # RZGate
 #                  global phase: -ϴ/2
 #    ┌───────┐        ┌───────┐
@@ -382,6 +415,35 @@ for inst, qargs, cargs in [
     def_rzz.append(inst, qargs, cargs)
 _sel.add_equivalence(RZZGate(theta), def_rzz)
 
+# RZZ to RXX
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+rzz_to_rxx = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (HGate(), [q[0]], []),
+    (HGate(), [q[1]], []),
+    (RXXGate(theta), [q[0], q[1]], []),
+    (HGate(), [q[0]], []),
+    (HGate(), [q[1]], []),
+]:
+    rzz_to_rxx.append(inst, qargs, cargs)
+_sel.add_equivalence(RZZGate(theta), rzz_to_rxx)
+
+# RZZ to RYY
+q = QuantumRegister(2, "q")
+theta = Parameter("theta")
+rzz_to_ryy = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (RXGate(-pi / 2), [q[0]], []),
+    (RXGate(-pi / 2), [q[1]], []),
+    (RYYGate(theta), [q[0], q[1]], []),
+    (RXGate(pi / 2), [q[0]], []),
+    (RXGate(pi / 2), [q[1]], []),
+]:
+    rzz_to_ryy.append(inst, qargs, cargs)
+_sel.add_equivalence(RZZGate(theta), rzz_to_ryy)
+
+
 # RZXGate
 #
 #      ┌─────────┐
@@ -438,6 +500,33 @@ q = QuantumRegister(1, "q")
 def_sdg = QuantumCircuit(q)
 def_sdg.append(U1Gate(-pi / 2), [q[0]], [])
 _sel.add_equivalence(SdgGate(), def_sdg)
+
+# CSGate
+#
+# q_0: ──■──   q_0: ───────■────────
+#      ┌─┴─┐        ┌───┐┌─┴──┐┌───┐
+# q_1: ┤ S ├ = q_1: ┤ H ├┤ Sx ├┤ H ├
+#      └───┘        └───┘└────┘└───┘
+q = QuantumRegister(2, "q")
+def_cs = QuantumCircuit(q)
+def_cs.append(HGate(), [q[1]], [])
+def_cs.append(CSXGate(), [q[0], q[1]], [])
+def_cs.append(HGate(), [q[1]], [])
+_sel.add_equivalence(CSGate(), def_cs)
+
+# CSdgGate
+#
+# q_0: ───■───   q_0: ───────■────■────────
+#      ┌──┴──┐        ┌───┐┌─┴─┐┌─┴──┐┌───┐
+# q_1: ┤ Sdg ├ = q_1: ┤ H ├┤ X ├┤ Sx ├┤ H ├
+#      └─────┘        └───┘└───┘└────┘└───┘
+q = QuantumRegister(2, "q")
+def_csdg = QuantumCircuit(q)
+def_csdg.append(HGate(), [q[1]], [])
+def_csdg.append(CXGate(), [q[0], q[1]], [])
+def_csdg.append(CSXGate(), [q[0], q[1]], [])
+def_csdg.append(HGate(), [q[1]], [])
+_sel.add_equivalence(CSdgGate(), def_csdg)
 
 # SdgGate
 #
@@ -1165,6 +1254,24 @@ for inst, qargs, cargs in [
     def_cz.append(inst, qargs, cargs)
 _sel.add_equivalence(CZGate(), def_cz)
 
+# CCZGate
+#
+# q_0: ─■─   q_0: ───────■───────
+#       │                │
+# q_1: ─■─ = q_1: ───────■───────
+#       │         ┌───┐┌─┴─┐┌───┐
+# q_2: ─■─   q_2: ┤ H ├┤ X ├┤ H ├
+#                 └───┘└───┘└───┘
+q = QuantumRegister(3, "q")
+def_ccz = QuantumCircuit(q)
+for inst, qargs, cargs in [
+    (HGate(), [q[2]], []),
+    (CCXGate(), [q[0], q[1], q[2]], []),
+    (HGate(), [q[2]], []),
+]:
+    def_ccz.append(inst, qargs, cargs)
+_sel.add_equivalence(CCZGate(), def_ccz)
+
 # XGate
 #              global phase: π/2
 #    ┌───┐        ┌───────┐
@@ -1210,3 +1317,73 @@ h_to_rr.append(RGate(theta=pi / 2, phi=pi / 2), [q[0]])
 h_to_rr.append(RGate(theta=pi, phi=0), [q[0]])
 h_to_rr.global_phase = pi / 2
 _sel.add_equivalence(HGate(), h_to_rr)
+
+# XXPlusYYGate
+# ┌───────────────┐
+# ┤0              ├
+# │  {XX+YY}(θ,β) │
+# ┤1              ├
+# └───────────────┘
+#    ┌───────┐  ┌───┐            ┌───┐┌────────────┐┌───┐  ┌─────┐   ┌────────────┐
+#   ─┤ Rz(β) ├──┤ S ├────────────┤ X ├┤ Ry(-0.5*θ) ├┤ X ├──┤ Sdg ├───┤ Rz(-1.0*β) ├───────────
+# ≡ ┌┴───────┴─┐├───┴┐┌─────────┐└─┬─┘├────────────┤└─┬─┘┌─┴─────┴──┐└──┬──────┬──┘┌─────────┐
+#   ┤ Rz(-π/2) ├┤ √X ├┤ Rz(π/2) ├──■──┤ Ry(-0.5*θ) ├──■──┤ Rz(-π/2) ├───┤ √Xdg ├───┤ Rz(π/2) ├
+#   └──────────┘└────┘└─────────┘     └────────────┘     └──────────┘   └──────┘   └─────────┘
+q = QuantumRegister(2, "q")
+xxplusyy = QuantumCircuit(q)
+beta = Parameter("beta")
+theta = Parameter("theta")
+rules = [
+    (RZGate(beta), [q[0]], []),
+    (RZGate(-pi / 2), [q[1]], []),
+    (SXGate(), [q[1]], []),
+    (RZGate(pi / 2), [q[1]], []),
+    (SGate(), [q[0]], []),
+    (CXGate(), [q[1], q[0]], []),
+    (RYGate(-theta / 2), [q[1]], []),
+    (RYGate(-theta / 2), [q[0]], []),
+    (CXGate(), [q[1], q[0]], []),
+    (SdgGate(), [q[0]], []),
+    (RZGate(-pi / 2), [q[1]], []),
+    (SXdgGate(), [q[1]], []),
+    (RZGate(pi / 2), [q[1]], []),
+    (RZGate(-beta), [q[0]], []),
+]
+for instr, qargs, cargs in rules:
+    xxplusyy._append(instr, qargs, cargs)
+_sel.add_equivalence(XXPlusYYGate(theta, beta), xxplusyy)
+
+# XXMinusYYGate
+# ┌───────────────┐
+# ┤0              ├
+# │  {XX-YY}(θ,β) │
+# ┤1              ├
+# └───────────────┘
+#    ┌──────────┐ ┌────┐┌─────────┐      ┌─────────┐       ┌──────────┐ ┌──────┐┌─────────┐
+#   ─┤ Rz(-π/2) ├─┤ √X ├┤ Rz(π/2) ├──■───┤ Ry(θ/2) ├────■──┤ Rz(-π/2) ├─┤ √Xdg ├┤ Rz(π/2) ├
+# ≡ ┌┴──────────┴┐├───┬┘└─────────┘┌─┴─┐┌┴─────────┴─┐┌─┴─┐└─┬─────┬──┘┌┴──────┤└─────────┘
+#   ┤ Rz(-1.0*β) ├┤ S ├────────────┤ X ├┤ Ry(-0.5*θ) ├┤ X ├──┤ Sdg ├───┤ Rz(β) ├───────────
+#   └────────────┘└───┘            └───┘└────────────┘└───┘  └─────┘   └───────┘
+q = QuantumRegister(2, "q")
+xxminusyy = QuantumCircuit(q)
+beta = Parameter("beta")
+theta = Parameter("theta")
+rules = [
+    (RZGate(-beta), [q[1]], []),
+    (RZGate(-pi / 2), [q[0]], []),
+    (SXGate(), [q[0]], []),
+    (RZGate(pi / 2), [q[0]], []),
+    (SGate(), [q[1]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (RYGate(theta / 2), [q[0]], []),
+    (RYGate(-theta / 2), [q[1]], []),
+    (CXGate(), [q[0], q[1]], []),
+    (SdgGate(), [q[1]], []),
+    (RZGate(-pi / 2), [q[0]], []),
+    (SXdgGate(), [q[0]], []),
+    (RZGate(pi / 2), [q[0]], []),
+    (RZGate(beta), [q[1]], []),
+]
+for instr, qargs, cargs in rules:
+    xxminusyy._append(instr, qargs, cargs)
+_sel.add_equivalence(XXMinusYYGate(theta, beta), xxminusyy)

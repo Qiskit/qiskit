@@ -1,0 +1,15 @@
+features:
+  - |
+    Added a new method :meth:`.SparsePauliOp.argsort`, which
+    returns the composition of permutations in the order of sorting 
+    by coefficient and sorting by Pauli. By using the `weight` kwarg 
+    the output can additionally be sorted 
+    by the number of non-identity terms in the Pauli, where the set of
+    all Pauli's of a given weight are still ordered lexicographically.
+  - |
+    Added a new method :meth:`.SparsePauliOp.sort`.
+    After sorting the coefficients using numpy's argsort, sort by Pauli.
+    Pauli sort takes precedence. If Pauli is the same, it will be sorted 
+    by coefficient. By using the `weight` kwarg the output can additionally 
+    be sorted by the number of non-identity terms in the Pauli, where the 
+    set ofall Pauli's of a given weight are still ordered lexicographically.

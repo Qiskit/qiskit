@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import,import-error
+# pylint: disable=no-name-in-module,broad-except,cyclic-import
 
 """Contains the terra version."""
 
@@ -104,6 +104,8 @@ class QiskitVersion(Mapping):
         import pkg_resources
 
         try:
+            # TODO: Update to use qiskit_aer instead when we remove the
+            # namespace redirect
             from qiskit.providers import aer
 
             self._version_dict["qiskit-aer"] = aer.__version__

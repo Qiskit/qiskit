@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,12 +18,13 @@ from scipy.sparse import diags
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import UGate, MCMTVChain
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_system_matrix import LinearSystemMatrix
 
 
 class TridiagonalToeplitz(LinearSystemMatrix):
-    r"""Class of tridiagonal Toeplitz symmetric matrices.
+    r"""The deprecated class of tridiagonal Toeplitz symmetric matrices.
 
     Given the main entry, :math:`a`, and the off diagonal entry, :math:`b`, the :math:`4\times 4`
     dimensional tridiagonal Toeplitz symmetric matrix is
@@ -37,15 +38,16 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             0 & 0 & b & a
         \end{pmatrix}.
 
-    Examples:
+    Examples::
 
-        .. jupyter-execute::
-
+            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.matrices import TridiagonalToeplitz
 
-            matrix = TridiagonalToeplitz(2, 1, -1 / 3)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                matrix = TridiagonalToeplitz(2, 1, -1 / 3)
             power = 3
 
             # Controlled power (as within QPE)
@@ -56,6 +58,10 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             qc.append(matrix.power(power).control(), list(range(circ_qubits)))
     """
 
+    @deprecate_function(
+        "The TridiagonalToeplitz class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         num_state_qubits: int,

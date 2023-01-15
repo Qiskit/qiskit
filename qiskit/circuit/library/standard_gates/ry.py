@@ -25,6 +25,9 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 class RYGate(Gate):
     r"""Single-qubit rotation about the Y axis.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ry` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -102,9 +105,17 @@ class RYGate(Gate):
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -sin], [sin, cos]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RYGate(exponent * theta)
+
 
 class CRYGate(ControlledGate):
     r"""Controlled-RY gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cry` method.
 
     **Circuit symbol:**
 
@@ -210,8 +221,8 @@ class CRYGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRY gate."""
         half_theta = float(self.params[0]) / 2
-        cos = numpy.cos(half_theta)
-        sin = numpy.sin(half_theta)
+        cos = math.cos(half_theta)
+        sin = math.sin(half_theta)
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, cos, 0, -sin], [0, 0, 1, 0], [0, sin, 0, cos]], dtype=dtype

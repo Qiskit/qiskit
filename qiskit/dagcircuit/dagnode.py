@@ -15,6 +15,18 @@
 """Objects to represent the information at a node in the DAGCircuit."""
 
 import warnings
+from typing import Iterable
+
+from qiskit.circuit import Qubit, Clbit
+
+
+def _condition_as_indices(operation, bit_indices):
+    cond = getattr(operation, "condition", None)
+    if cond is None:
+        return None
+    bits, value = cond
+    indices = [bit_indices[bits]] if isinstance(bits, Clbit) else [bit_indices[x] for x in bits]
+    return indices, value
 
 
 class DAGNode:
@@ -74,19 +86,22 @@ class DAGNode:
             node2_cargs = [bit_indices2[carg] for carg in node2.cargs]
 
             # For barriers, qarg order is not significant so compare as sets
-            if "barrier" == node1.op.name == node2.op.name:
+            if node1.op.name == node2.op.name and node1.name in {"barrier", "swap"}:
                 return set(node1_qargs) == set(node2_qargs)
 
-            if node1_qargs == node2_qargs:
-                if node1_cargs == node2_cargs:
-                    if node1.op.condition == node2.op.condition:
-                        if node1.op == node2.op:
-                            return True
-        elif (isinstance(node1, DAGInNode) and isinstance(node2, DAGInNode)) or (
+            return (
+                node1_qargs == node2_qargs
+                and node1_cargs == node2_cargs
+                and (
+                    _condition_as_indices(node1.op, bit_indices1)
+                    == _condition_as_indices(node2.op, bit_indices2)
+                )
+                and node1.op == node2.op
+            )
+        if (isinstance(node1, DAGInNode) and isinstance(node2, DAGInNode)) or (
             isinstance(node1, DAGOutNode) and isinstance(node2, DAGOutNode)
         ):
-            if bit_indices1.get(node1.wire, None) == bit_indices2.get(node2.wire, None):
-                return True
+            return bit_indices1.get(node1.wire, None) == bit_indices2.get(node2.wire, None)
 
         return False
 
@@ -96,12 +111,12 @@ class DAGOpNode(DAGNode):
 
     __slots__ = ["op", "qargs", "cargs", "sort_key"]
 
-    def __init__(self, op, qargs=None, cargs=None):
+    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = ()):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
-        self.qargs = qargs
-        self.cargs = cargs
+        self.qargs = tuple(qargs)
+        self.cargs = tuple(cargs)
         self.sort_key = str(self.qargs)
 
     @property

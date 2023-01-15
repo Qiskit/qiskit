@@ -20,8 +20,7 @@ import numpy as np
 from qiskit import BasicAer, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import IGate
-from qiskit.extensions import Initialize
+from qiskit.circuit.library import IGate, StatePreparation
 from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.composed_op import ComposedOp
 from qiskit.opflow.list_ops.list_op import ListOp
@@ -123,7 +122,7 @@ class CircuitStateFn(StateFn):
         """
         normalization_coeff = np.linalg.norm(statevector)
         normalized_sv = statevector / normalization_coeff
-        return CircuitStateFn(Initialize(normalized_sv), coeff=normalization_coeff)
+        return CircuitStateFn(StatePreparation(normalized_sv), coeff=normalization_coeff)
 
     def primitive_strings(self) -> Set[str]:
         return {"QuantumCircuit"}
@@ -369,7 +368,7 @@ class CircuitStateFn(StateFn):
         if self.primitive.data is not None:
             # Need to do this from the end because we're deleting items!
             for i in reversed(range(len(self.primitive.data))):
-                [gate, _, _] = self.primitive.data[i]
+                gate = self.primitive.data[i].operation
                 # Check if Identity or empty instruction (need to check that type is exactly
                 # Instruction because some gates have lazy gate.definition population)
                 # pylint: disable=unidiomatic-typecheck

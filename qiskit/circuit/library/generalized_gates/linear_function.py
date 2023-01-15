@@ -16,6 +16,7 @@ from typing import Union, List, Optional
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.synthesis.linear import check_invertible_binary_matrix
 
 
 class LinearFunction(Gate):
@@ -110,8 +111,7 @@ class LinearFunction(Gate):
 
             # Optionally, check that the matrix is invertible
             if validate_input:
-                det = np.linalg.det(linear) % 2
-                if not np.allclose(det, 1):
+                if not check_invertible_binary_matrix(linear):
                     raise CircuitError(
                         "A linear function must be represented by an invertible matrix."
                     )
@@ -134,9 +134,9 @@ class LinearFunction(Gate):
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
         """
-        from qiskit.transpiler.synthesis import cnot_synth
+        from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
-        return cnot_synth(self.linear)
+        return synth_cnot_count_full_pmh(self.linear)
 
     @property
     def linear(self):
@@ -177,14 +177,14 @@ def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
     nq = qc.num_qubits
     mat = np.eye(nq, nq, dtype=bool)
 
-    for inst, qargs, _ in qc.data:
-        if inst.name == "cx":
-            cb = qc.find_bit(qargs[0]).index
-            tb = qc.find_bit(qargs[1]).index
+    for instruction in qc.data:
+        if instruction.operation.name == "cx":
+            cb = qc.find_bit(instruction.qubits[0]).index
+            tb = qc.find_bit(instruction.qubits[1]).index
             mat[tb, :] = (mat[tb, :]) ^ (mat[cb, :])
-        elif inst.name == "swap":
-            cb = qc.find_bit(qargs[0]).index
-            tb = qc.find_bit(qargs[1]).index
+        elif instruction.operation.name == "swap":
+            cb = qc.find_bit(instruction.qubits[0]).index
+            tb = qc.find_bit(instruction.qubits[1]).index
             mat[[cb, tb]] = mat[[tb, cb]]
         else:
             raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")
