@@ -3,7 +3,7 @@ fixes:
   - |
     Fixed handling of classical bits in :class:`.StochasticSwap` with control flow.
     Previously, control-flow operations would be expanded to contain all the
-    classical bits in the outer circuit and not contracted again, leading to a
+    classical bits in the outer circuit and not be contracted again, leading to a
     mismatch between the numbers of clbits the instruction reported needing and
     the actual number supplied to it.
     Fixed `#8903 <https://github.com/Qiskit/qiskit-terra/issues/8903>`__

@@ -2,6 +2,6 @@
 fixes:
   - |
     Fixed the :meth:`.SparsePauliOp.dot` method when run on two operators with
-    real coefficients. To fix this, the dtype that :class:`SparsePauliOp` can
+    real coefficients. To fix this, the ``dtype`` that :class:`SparsePauliOp` can
     take is restricted to ``np.complex128`` and ``object``.
     Fixed `#8992 <https://github.com/Qiskit/qiskit-terra/issues/8992>`__

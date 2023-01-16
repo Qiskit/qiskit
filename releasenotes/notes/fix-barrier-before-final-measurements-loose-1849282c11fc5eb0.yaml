@@ -3,6 +3,6 @@ fixes:
   - |
     Fixed the :class:`.BarrierBeforeFinalMeasurements` transpiler pass when there
     are conditions on loose :class:`.Clbit`\ s immediately before the final measurement
-    layer.  Previously, this would fail claiming that the bit was not present
+    layer. Previously, this would fail claiming that the bit was not present
     in an internal temporary circuit.
     Fixed `#8923 <https://github.com/Qiskit/qiskit-terra/issues/8923>`__
