@@ -15,9 +15,9 @@ A class for the Quantum Fisher Information.
 
 from __future__ import annotations
 
+import sys
 from abc import ABC
 from collections.abc import Sequence
-from typing import Literal
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseEstimator
@@ -27,7 +27,11 @@ from .lin_comb_estimator_gradient import DerivativeType
 from .lin_comb_qgt import LinCombQGT
 from .qgt_result import QGTResult
 
-METHOD = Literal["lin_comb"]
+if sys.version_info >= (3, 8):
+    # pylint: disable=no-name-in-module, ungrouped-imports
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 
 class QFI(ABC):
@@ -44,7 +48,7 @@ class QFI(ABC):
         self,
         estimator: BaseEstimator,
         phase_fix: bool = True,
-        method: METHOD = "lin_comb",
+        method: Literal["lin=comb"] = "lin_comb",
         options: Options | None = None,
     ):
         r"""
