@@ -2,16 +2,6 @@
 # 4.0+. The pin can be removed after nbformat is updated.
 jsonschema==3.2.0
 
-# jupyter-core 5.0.0 started emitting deprecation warnings with ipywidgets via
-# a seaborn import. This pin can be removed when compatibility with those
-# packages is fixed
-jupyter-core==4.11.2
-
-# ipywidgets 8.0.3 started emitting deprecation warnings via a seaborn import.
-# This pin can be removed when compatibility with those packages is fixed.
-ipywidgets<8.0.3
-
-# coverage 7.0.0 breaks with Python 3.8.15 upon the import
-#   from coverage.files import FnmatchMatcher
-# since this is in Python 3.8 itself and not Qiskit, pinning this for now.
-coverage<7.0
+# The 1.21.0 release of sphinx-autodoc-typehints seems to affect the spacing
+# in our docstrings in a way that Sphinx doesn't like.
+sphinx-autodoc-typehints==1.20.2
