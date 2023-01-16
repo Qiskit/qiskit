@@ -48,7 +48,7 @@ class QFI(ABC):
         self,
         estimator: BaseEstimator,
         phase_fix: bool = True,
-        method: Literal["lin=comb"] = "lin_comb",
+        method: Literal["lin_comb"] = "lin_comb",
         options: Options | None = None,
     ):
         r"""
