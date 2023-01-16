@@ -121,7 +121,7 @@ class LinCombQGT(BaseQGT):
         parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> QGTResult:
-        """Compute the estimator gradients on the given circuits."""
+        """Compute the QGT on the given circuits."""
         g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
             circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
         )

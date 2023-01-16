@@ -280,7 +280,10 @@ class BaseQGT(ABC):
                                 g_parameter_indices[g_parameter1], g_parameter_indices[g_parameter2]
                             ]
                         )
-            qgt += np.triu(qgt, k=1).conjugate().T
+            if self.derivative_type == DerivativeType.IMAG:
+                qgt += -1 * np.triu(qgt, k=1).T
+            else:
+                qgt += np.triu(qgt, k=1).conjugate().T
             qgts.append(qgt)
             metadata.append([{"parameters": parameter_indices}])
         return QGTResult(
@@ -337,9 +340,16 @@ class BaseQGT(ABC):
         Returns:
             The QGT default + estimator options.
         """
-        opts = copy(self._estimator.options)
-        opts.update_options(**self._default_options.__dict__)
-        return opts
+        return self._get_local_options(self._default_options.__dict__)
+
+    def update_default_options(self, **options):
+        """Update the gradient's default options setting.
+
+        Args:
+            **options: The fields to update the default options.
+        """
+
+        self._default_options.update_options(**options)
 
     def _get_local_options(self, options: Options) -> Options:
         """Return the union of the primitive's default setting,
