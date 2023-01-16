@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixed a bug of :class:`~.BackendSampler` that raised an error
-    if :meth:`~.BackendSampler.run` method was called two times sequentially.
+    Fixed a bug in :class:`~.BackendSampler` that raised an error
+    if its :meth:`~.BackendSampler.run` method was called two times sequentially.
