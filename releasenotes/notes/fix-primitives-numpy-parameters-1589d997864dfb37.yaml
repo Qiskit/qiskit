@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fixed the problem in which primitives did not work when passing a circuit with ``numpy.ndarray``
-    as a parameter.
+    Fixed the problem in which primitives, :class:`.Sampler` and :class:`.Estimator`, did not
+    work when passed a circuit with ``numpy.ndarray`` as a parameter.
