@@ -1,4 +1,4 @@
 ---
 upgrade:
   - |
-    The :class:`~.Decompose`'s argument `gate` was deprecated in 0.19 and now is removed.
+    The ``gate`` argument to the transpiler pass :class:`~.Decompose` was deprecated in Terra 0.19 and is now removed.
