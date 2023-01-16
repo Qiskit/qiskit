@@ -3,6 +3,6 @@ fixes:
   - |
     The equality checkers for :class:`.QuantumCircuit` and :class:`.DAGCircuit`
     (with objects of the same type) will now correctly handle conditions on single
-    bits. Previously, these would produce false negatives for equality, as the
+    bits.  Previously, these would produce false negatives for equality, as the
     bits would use "exact" equality checks instead of the "semantic" checks the rest
     of the properties of circuit instructions get.

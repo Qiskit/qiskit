@@ -4,8 +4,10 @@ fixes:
     Fixed an issue with the :func:`.plot_state_hinton` visualization function
     which would result in a misplaced axis that was offset from the actual
     plot.
-    Fixed `#8446 <https://github.com/Qiskit/qiskit-terra/issues/8446>`__
+    Fixed `#8446 <https://github.com/Qiskit/qiskit-terra/issues/8446>`
+
   - |
     Fixed the output of the :func:`.plot_state_hinton` function so that the state labels
-    are ordered correctly, and the image matches up with the natural matrix ordering.
+    are ordered ordered correctly, and the image matches up with the natural matrix
+    ordering.
     Fixed `#8324 <https://github.com/Qiskit/qiskit-terra/issues/8324>`__

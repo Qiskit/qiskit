@@ -1,12 +1,12 @@
 ---
 fixes:
   - |
-    Fixed :meth:`.Statevector.evolve` and :meth:`.DensityMatrix.evolve` which
+    Fixes issue where :meth:`.Statevector.evolve` and :meth:`.DensityMatrix.evolve`
     would raise an exeception for nested subsystem evolution for non-qubit
     subsystems.
-    Fixed `#8897 <https://github.com/Qiskit/qiskit-terra/issues/8897>`_
+    Fixes `issue #8897 <https://github.com/Qiskit/qiskit-terra/issues/8897>`_
   - |
-    Fixed a bug in :meth:`.Statevector.evolve` where subsystem evolution
-    would return the incorrect value in certain cases where there are 2 or more
+    Fixes bug in :meth:`.Statevector.evolve` where subsystem evolution
+    will return the incorrect value in certain cases where there are 2 or more
     than non-evolved subsystems with different subsystem dimensions.
-    Fixed `#8899 <https://github.com/Qiskit/qiskit-terra/issues/8899>`_
+    Fixes `issue #8899 <https://github.com/Qiskit/qiskit-terra/issues/8899>`_
