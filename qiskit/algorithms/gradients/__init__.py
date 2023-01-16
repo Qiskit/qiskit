@@ -75,7 +75,7 @@ from .lin_comb_qgt import LinCombQGT
 from .lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift_sampler_gradient import ParamShiftSamplerGradient
-from .qfi_result import QFIResult
+from .qgt_result import QGTResult
 from .sampler_gradient_result import SamplerGradientResult
 from .spsa_estimator_gradient import SPSAEstimatorGradient
 from .spsa_sampler_gradient import SPSASamplerGradient
@@ -94,7 +94,7 @@ __all__ = [
     "LinCombSamplerGradient",
     "ParamShiftEstimatorGradient",
     "ParamShiftSamplerGradient",
-    "QFIResult",
+    "QGTResult",
     "SamplerGradientResult",
     "SPSAEstimatorGradient",
     "SPSASamplerGradient",
