@@ -18,12 +18,8 @@ seaborn>=0.9.0
 reno>=3.4.0
 Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
-<<<<<<< HEAD
-sphinx-autodoc-typehints~=1.18,!=1.19.3
-jupyter-sphinx
-=======
 sphinx-autodoc-typehints>=1.18
->>>>>>> 3d8a6e039 (Pin sphinx-autodoc-typehints (#9377))
+jupyter-sphinx
 sphinx-design>=0.2.0
 pygments>=2.4
 networkx>=2.2
