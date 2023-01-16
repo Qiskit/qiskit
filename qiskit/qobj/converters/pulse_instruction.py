@@ -617,16 +617,40 @@ class QobjToInstructionConverter:
         Returns:
             Scheduled Qiskit Pulse instruction in Schedule format.
         """
+        schedule = Schedule()
+        for inst in self._get_sequences(instruction):
+            schedule.insert(instruction.t0, inst, inplace=True)
+        return schedule
+
+    def _get_sequences(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """A method to iterate over pulse instructions without creating Schedule.
+
+        .. note::
+
+            This is internal fast-path function, and callers other than this converter class
+            might directly use this method to generate schedule from multiple
+            Qobj instructions. Because __call__ always returns a schedule with the time offset
+            parsed instruction, composing multiple Qobj instructions to create
+            a gate schedule is somewhat inefficient due to composing overhead of schedules.
+            Directly combining instructions with this method is much performant.
+
+        Args:
+            instruction: Instruction data in Qobj format.
+
+        Yields:
+            Qiskit Pulse instructions.
+
+        :meta public:
+        """
         try:
             method = getattr(self, f"_convert_{instruction.name}")
         except AttributeError:
             method = self._convert_generic
 
-        t0 = instruction.t0
-        schedule = Schedule()
-        for inst in method(instruction):
-            schedule.insert(t0, inst, inplace=True)
-        return schedule
+        yield from method(instruction)
 
     def get_supported_instructions(self) -> List[str]:
         """Retrun a list of supported instructions."""
