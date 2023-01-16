@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Abstract base class of the Quantum Fisher Information (QFI).
+Abstract base class of the Quantum Geometric Tensor(QGT).
 """
 
 from __future__ import annotations
@@ -22,27 +22,31 @@ from copy import copy
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
 from qiskit.transpiler.passes import TranslateParameterizedGates
 
+from .. import AlgorithmJob
 from .qgt_result import QGTResult
-from .utils import (DerivativeType, GradientCircuit, _assign_unique_parameters,
-                    _make_gradient_parameter_set,
-                    _make_gradient_parameter_values)
+from .utils import (
+    DerivativeType,
+    GradientCircuit,
+    _assign_unique_parameters,
+    _make_gradient_parameter_set,
+    _make_gradient_parameter_values,
+)
 
 
 class BaseQGT(ABC):
-    r"""Base class to computes the Quantum Geometric Tensor(QGT) given a pure,
+    r"""Base class to computes the Quantum Geometric Tensor (QGT) given a pure,
     parameterized quantum state. QGT is defined as:
 
     .. math::
 
-        \mathrm{QGT}_{kl}= \langle \partial_k \psi | \partial_l \psi \rangle
-            - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle.
+        \mathrm{QGT}_{ij}= \langle \partial_i \psi | \partial_j \psi \rangle
+            - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle.
     """
 
     def __init__(
@@ -54,9 +58,9 @@ class BaseQGT(ABC):
     ):
         r"""
         Args:
-            estimator: The estimator used to compute the QFI.
-            phase_fix: Whether to calculate the second term (phase fix) of the QFI, which is
-                :math:`\langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle`.
+            estimator: The estimator used to compute the QGT.
+            phase_fix: Whether to calculate the second term (phase fix) of the QGT, which is
+                :math:`\langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle`.
                 Default to ``True``.
             derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
@@ -66,25 +70,25 @@ class BaseQGT(ABC):
 
                 .. math::
 
-                    \mathrm{QFI}_{kl}= 4 \mathrm{Re}[\langle \partial_k \psi | \partial_l \psi \rangle
-                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+                    \mathrm{Re(QGT)}_{ij}= \mathrm{Re}[\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
 
                 - ``DerivativeType.IMAG`` computes
 
                 .. math::
 
-                    \mathrm{QFI}_{kl}= 4 \mathrm{Im}[\langle \partial_k \psi | \partial_l \psi \rangle
-                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+                    \mathrm{Im(QGT)}_{ij}= \mathrm{Im}[\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
 
                 - ``DerivativeType.COMPLEX`` computes
 
                 .. math::
 
-                    \mathrm{QFI}_{kl}= 4 [\langle \partial_k \psi | \partial_l \psi \rangle
-                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+                    \mathrm{QGT}_{ij}= [\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
 
             options: Backend runtime options used for circuit execution. The order of priority is:
-                options in ``run`` method > QFI's default options > primitive's default
+                options in ``run`` method > QGT's default options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         self._estimator: BaseEstimator = estimator
@@ -113,25 +117,23 @@ class BaseQGT(ABC):
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **options,
     ) -> AlgorithmJob:
-        """Run the job of the QFIs on the given circuits.
+        """Run the job of the QGTs on the given circuits.
 
         Args:
-            circuits: The list of quantum circuits to compute the QFIs.
+            circuits: The list of quantum circuits to compute the QGTs.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the QFIs of
+            parameters: The sequence of parameters to calculate only the QGTs of
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the QFIs of all parameters in
+                ``circuits``. Defaults to None, which means that the QGTs of all parameters in
                 each circuit are calculated.
             options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > QFI's
+                The order of priority is: options in ``run`` method > QGT's
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting
 
         Returns:
-            The job object of the QFIs of the expectation values. The i-th result corresponds to
-            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``. The j-th
-            element of the i-th result corresponds to the QFI of the i-th circuit with respect
-            to the j-th parameter.
+            The job object of the QGTs of the expectation values. The i-th result corresponds to
+            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
 
         Raises:
             ValueError: Invalid arguments are given.
@@ -154,7 +156,7 @@ class BaseQGT(ABC):
         # Validate the arguments.
         self._validate_arguments(circuits, parameter_values, parameter_sets)
         # The priority of run option is as follows:
-        # options in ``run`` method > QFI's default options > primitive's default setting.
+        # options in ``run`` method > QGT's default options > primitive's default setting.
         opts = copy(self._default_options)
         opts.update_options(**options)
         job = AlgorithmJob(self._run, circuits, parameter_values, parameter_sets, **opts.__dict__)
@@ -166,10 +168,10 @@ class BaseQGT(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[Sequence[Parameter]],
         **options,
     ) -> QGTResult:
-        """Compute the QFIs on the given circuits."""
+        """Compute the QGTs on the given circuits."""
         raise NotImplementedError()
 
     def _preprocess(
@@ -216,20 +218,20 @@ class BaseQGT(ABC):
         results: QGTResult,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
     ) -> QGTResult:
-        """Postprocess the gradient. This computes the gradient of the original circuit from the
-        gradient of the gradient circuit by using the chain rule.
+        """Postprocess the QGTs. This method computes the QGTs of the original circuits
+        by applying the chain rule to the QGTs of the circuits with unique parameters.
 
         Args:
-            results: The results of the gradient of the gradient circuits.
-            circuits: The list of quantum circuits to compute the gradients.
-            parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of the specified
-                parameters.
+            results: The computed QGT for the circuits with unique parameters.
+            circuits: The list of original circuits submitted for gradient computation.
+            parameter_values: The list of parameter values to be bound to the circuits.
+            parameters: An optional subset of parameters with respect to which the QGTs should
+                be calculated.
 
         Returns:
-            The results of the gradient of the original circuits.
+            The QGTs of the original circuits.
         """
         qgts, metadata = [], []
         for idx, (circuit, parameter_values_, parameter_set) in enumerate(
@@ -252,7 +254,9 @@ class BaseQGT(ABC):
             rows, cols = np.triu_indices(len(parameter_indices))
             for row, col in zip(rows, cols):
                 for g_parameter1, coeff1 in gradient_circuit.parameter_map[parameter_indices[row]]:
-                    for g_parameter2, coeff2 in gradient_circuit.parameter_map[parameter_indices[col]]:
+                    for g_parameter2, coeff2 in gradient_circuit.parameter_map[
+                        parameter_indices[col]
+                    ]:
                         if isinstance(coeff1, ParameterExpression):
                             local_map = {
                                 p: parameter_values_[circuit.parameters.data.index(p)]
@@ -272,13 +276,18 @@ class BaseQGT(ABC):
                         qgt[row, col] += (
                             float(bound_coeff1)
                             * float(bound_coeff2)
-                            * results.qgts[idx][g_parameter_indices[g_parameter1], g_parameter_indices[g_parameter2]]
+                            * results.qgts[idx][
+                                g_parameter_indices[g_parameter1], g_parameter_indices[g_parameter2]
+                            ]
                         )
             qgt += np.triu(qgt, k=1).conjugate().T
             qgts.append(qgt)
             metadata.append([{"parameters": parameter_indices}])
         return QGTResult(
-            qgts=qgts, metadata=metadata, options=results.options
+            qgts=qgts,
+            derivative_type=self.derivative_type,
+            metadata=metadata,
+            options=results.options,
         )
 
     def _validate_arguments(
@@ -290,12 +299,10 @@ class BaseQGT(ABC):
         """Validate the arguments of the ``run`` method.
 
         Args:
-            circuits: The list of quantum circuits to compute the QFIs.
-            parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the QFIs of
-                the specified parameters. Each Sequence of Parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the QFIs of all parameters in
-                each circuit are calculated.
+            circuits: The list of quantum circuits to compute the QGTs.
+            parameter_values: The list of parameter values to be bound to the circuits.
+            parameter_sets: The sequence of parameter sets with respect to which the QGTs should be
+                computed. Each set of parameters corresponds to a circuit in ``circuits``.
 
         Raises:
             ValueError: Invalid arguments are given.
@@ -322,21 +329,30 @@ class BaseQGT(ABC):
                 )
 
     @property
-    @abstractmethod
     def options(self) -> Options:
-        """Return the union of estimator options setting and QFI default options,
-        where, if the same field is set in both, the QFI's default options override
+        """Return the union of estimator options setting and QGT default options,
+        where, if the same field is set in both, the QGT's default options override
         the primitive's default setting.
 
         Returns:
-            The QFI default + estimator options.
+            The QGT default + estimator options.
         """
-        pass
+        opts = copy(self._estimator.options)
+        opts.update_options(**self._default_options.__dict__)
+        return opts
 
-    def update_default_options(self, **options):
-        """Update the QFI's default options setting.
+    def _get_local_options(self, options: Options) -> Options:
+        """Return the union of the primitive's default setting,
+        the QGT default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > QGT's default options > primitive's
+        default setting.
 
         Args:
-            **options: The fields to update the default options.
+            options: The fields to update the options
+
+        Returns:
+            The QGT default + estimator + run options.
         """
-        self._default_options.update_options(**options)
+        opts = copy(self._estimator.options)
+        opts.update_options(**options)
+        return opts

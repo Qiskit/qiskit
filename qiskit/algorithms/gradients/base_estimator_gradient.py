@@ -182,32 +182,32 @@ class BaseEstimatorGradient(ABC):
         results: EstimatorGradientResult,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
     ) -> EstimatorGradientResult:
-        """Postprocess the gradient. This computes the gradient of the original circuit from the
-        gradient of the gradient circuit by using the chain rule.
+        """Postprocess the gradients. This method computes the gradient of the original circuits
+        by applying the chain rule to the gradient of the circuits with unique parameters.
 
         Args:
-            results: The results of the gradient of the gradient circuits.
-            circuits: The list of quantum circuits to compute the gradients.
-            parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of the specified
-                parameters.
+            results: The computed gradients for the circuits with unique parameters.
+            circuits: The list of original circuits submitted for gradient computation.
+            parameter_values: The list of parameter values to be bound to the circuits.
+            parameters: An optional subset of parameters with respect to which the gradients should
+                be calculated.
 
         Returns:
-            The results of the gradient of the original circuits.
+            The gradients of the original circuits.
         """
         gradients, metadata = [], []
         for idx, (circuit, parameter_values_, parameter_set) in enumerate(
             zip(circuits, parameter_values, parameter_sets)
         ):
-            unique_gradient = np.zeros(len(parameter_set))
+            gradient = np.zeros(len(parameter_set))
             if (
                 "derivative_type" in results.metadata[idx]
                 and results.metadata[idx]["derivative_type"] == DerivativeType.COMPLEX
             ):
                 # If the derivative type is complex, cast the gradient to complex.
-                unique_gradient = unique_gradient.astype("complex")
+                gradient = gradient.astype("complex")
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
             g_parameter_set = _make_gradient_parameter_set(gradient_circuit, parameter_set)
             # Make a map from the gradient parameter to the respective index in the gradient.
@@ -256,10 +256,9 @@ class BaseEstimatorGradient(ABC):
             circuits: The list of quantum circuits to compute the gradients.
             observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
-                the specified parameters. Each Sequence of Parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the gradients of all parameters in
-                each circuit are calculated.
+            parameters: The Sequence of parameter sets to calculate only the gradients of
+                the specified parameters. Each set of parameters corresponds to a circuit in
+                ``circuits``.
 
         Raises:
             ValueError: Invalid arguments are given.

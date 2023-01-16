@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,13 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-A class for the Quantum Fisher Information.
+A class for the Linear Combination Quantum Gradient Tensor.
 """
 
 from __future__ import annotations
 
-from copy import copy
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -30,11 +29,11 @@ from qiskit.quantum_info import SparsePauliOp
 from .base_qgt import BaseQGT
 from .lin_comb_estimator_gradient import LinCombEstimatorGradient
 from .qgt_result import QGTResult
-from .utils import  DerivativeType, _make_lin_comb_qgt_circuit, _make_lin_comb_observables
+from .utils import DerivativeType, _make_lin_comb_qgt_circuit, _make_lin_comb_observables
 
 
 class LinCombQGT(BaseQGT):
-    """Computes the Quantum Fisher Information (QFI) given a pure,
+    """Computes the Quantum Fisher Information (QGT) given a pure,
     parameterized quantum state. This method employs a linear
     combination of unitaries [1].
 
@@ -76,9 +75,9 @@ class LinCombQGT(BaseQGT):
     ):
         r"""
         Args:
-            estimator: The estimator used to compute the QFI.
-            phase_fix: Whether to calculate the second term (phase fix) of the QFI, which is
-                :math:`\langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle`.
+            estimator: The estimator used to compute the QGT.
+            phase_fix: Whether to calculate the second term (phase fix) of the QGT, which is
+                :math:`\langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle`.
                 Default to ``True``.
             derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
@@ -88,35 +87,32 @@ class LinCombQGT(BaseQGT):
 
                 .. math::
 
-                    \mathrm{QFI}_{kl}= 4 \mathrm{Re}[\langle \partial_k \psi | \partial_l \psi \rangle
-                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+                    \mathrm{Re(QGT)}_{ij}= \mathrm{Re}[\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
 
                 - ``DerivativeType.IMAG`` computes
 
                 .. math::
 
-                    \mathrm{QFI}_{kl}= 4 \mathrm{Im}[\langle \partial_k \psi | \partial_l \psi \rangle
-                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+                    \mathrm{Re(QGT)}_{ij}= \mathrm{Im}[\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
 
                 - ``DerivativeType.COMPLEX`` computes
 
                 .. math::
 
-                    \mathrm{QFI}_{kl}= 4 [\langle \partial_k \psi | \partial_l \psi \rangle
-                        - \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
+                    \mathrm{QGT}_{ij}= [\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
 
             options: Backend runtime options used for circuit execution. The order of priority is:
-                options in ``run`` method > QFI's default options > primitive's default
+                options in ``run`` method > QGT's default options > primitive's default
                 setting. Higher priority setting overrides lower priority setting.
         """
         super().__init__(estimator, phase_fix, derivative_type, options=options)
-        # self._estimator: BaseEstimator = estimator
-        # self._phase_fix = phase_fix
-        # self._derivative_type = derivative_type
         self._gradient = LinCombEstimatorGradient(
             estimator, derivative_type=DerivativeType.COMPLEX, options=options
         )
-        self._lin_comb_qfi_circuit_cache = {}
+        self._lin_comb_qgt_circuit_cache = {}
 
     def _run(
         self,
@@ -139,7 +135,7 @@ class LinCombQGT(BaseQGT):
         parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> QGTResult:
-        """Compute the QFIs on the given circuits."""
+        """Compute the QGTs on the given circuits."""
         job_circuits, job_observables, job_param_values, metadata = [], [], [], []
         all_n, all_m, phase_fixes = [], [], []
 
@@ -148,41 +144,39 @@ class LinCombQGT(BaseQGT):
         ):
             # Prepare circuits for the gradient of the specified parameters.
             meta = {"parameters": [p for p in circuit.parameters if p in parameter_set]}
-
-            meta["derivative_type"] = self._derivative_type
             metadata.append(meta)
 
             # Compute the first term in the QGT
             circuit_key = _circuit_key(circuit)
-            if circuit_key not in self._lin_comb_qfi_circuit_cache:
+            if circuit_key not in self._lin_comb_qgt_circuit_cache:
                 # generate the all of the circuits for the first term in the QGT and cache them.
                 # Only the circuit related to specified parameters will be executed.
                 # In the future, we can generate the specified circuits on demand.
-                self._lin_comb_qfi_circuit_cache[circuit_key] = _make_lin_comb_qgt_circuit(circuit)
-            lin_comb_qfi_circuits = self._lin_comb_qfi_circuit_cache[circuit_key]
+                self._lin_comb_qgt_circuit_cache[circuit_key] = _make_lin_comb_qgt_circuit(circuit)
+            lin_comb_qgt_circuits = self._lin_comb_qgt_circuit_cache[circuit_key]
 
-            qfi_circuits = []
+            qgt_circuits = []
             parameters = [p for p in circuit.parameters if p in parameter_set]
             rows, cols = np.triu_indices(len(parameters))
             for row, col in zip(rows, cols):
                 param_i = parameters[row]
                 param_j = parameters[col]
-                qfi_circuits.append(lin_comb_qfi_circuits[(param_i, param_j)])
+                qgt_circuits.append(lin_comb_qgt_circuits[(param_i, param_j)])
 
             observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
             observable_1, observable_2 = _make_lin_comb_observables(
                 observable, self._derivative_type
             )
 
-            n = len(qfi_circuits)
+            n = len(qgt_circuits)
             if self._derivative_type == DerivativeType.COMPLEX:
-                job_circuits.extend(qfi_circuits * 2)
+                job_circuits.extend(qgt_circuits * 2)
                 job_observables.extend([observable_1] * n + [observable_2] * n)
                 job_param_values.extend([parameter_values_] * 2 * n)
                 all_m.append(len(parameter_set))
                 all_n.append(2 * n)
             else:
-                job_circuits.extend(qfi_circuits)
+                job_circuits.extend(qgt_circuits)
                 job_observables.extend([observable_1] * n)
                 job_param_values.extend([parameter_values_] * n)
                 all_m.append(len(parameter_set))
@@ -227,11 +221,8 @@ class LinCombQGT(BaseQGT):
                     phase_fix = np.imag(phase_fix)
                 phase_fixes.append(phase_fix)
         else:
-            phase_fixes = [
-                np.zeros((len(metadata[i]["parameters"]), len(metadata[i]["parameters"])))
-                for i in range(len(circuits))
-            ]
-
+            phase_fixes = [0 for i in range(len(circuits))]
+        # Compute the QGT
         qgts = []
         partial_sum_n = 0
         for i, (n, m) in enumerate(zip(all_n, all_m)):
@@ -257,36 +248,9 @@ class LinCombQGT(BaseQGT):
             # Subtract the phase fix from the QGT
             qgt = qgt - phase_fixes[i]
             partial_sum_n += n
-            qgts.append(qgt)
+            qgts.append(qgt / 4)
 
         opt = self._get_local_options(options)
-        return QGTResult(qgts=qgts, metadata=metadata, options=opt)
-
-    @property
-    def options(self) -> Options:
-        """Return the union of estimator options setting and QFI default options,
-        where, if the same field is set in both, the QFI's default options override
-        the primitive's default setting.
-
-        Returns:
-            The QFI default + estimator options.
-        """
-        opts = copy(self._estimator.options)
-        opts.update_options(**self._default_options.__dict__)
-        return opts
-
-    def _get_local_options(self, options: Options) -> Options:
-        """Return the union of the primitive's default setting,
-        the QFI default options, and the options in the ``run`` method.
-        The order of priority is: options in ``run`` method > QFI's default options > primitive's
-        default setting.
-
-        Args:
-            options: The fields to update the options
-
-        Returns:
-            The QFI default + estimator + run options.
-        """
-        opts = copy(self._estimator.options)
-        opts.update_options(**options)
-        return opts
+        return QGTResult(
+            qgts=qgts, derivative_type=self.derivative_type, metadata=metadata, options=opt
+        )

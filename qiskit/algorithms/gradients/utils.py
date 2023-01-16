@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,16 +24,29 @@ from enum import Enum
 
 import numpy as np
 
-from qiskit.circuit import (ClassicalRegister, Gate, Instruction, Parameter,
-                            ParameterExpression, QuantumCircuit,
-                            QuantumRegister)
-from qiskit.circuit.library.standard_gates import (CXGate, CYGate, CZGate,
-                                                   RXGate, RXXGate, RYGate,
-                                                   RYYGate, RZGate, RZXGate,
-                                                   RZZGate, XGate)
-from qiskit.opflow import PauliSumOp
+from qiskit.circuit import (
+    ClassicalRegister,
+    Gate,
+    Instruction,
+    Parameter,
+    ParameterExpression,
+    QuantumCircuit,
+    QuantumRegister,
+)
+from qiskit.circuit.library.standard_gates import (
+    CXGate,
+    CYGate,
+    CZGate,
+    RXGate,
+    RXXGate,
+    RYGate,
+    RYYGate,
+    RZGate,
+    RZXGate,
+    RZZGate,
+    XGate,
+)
 from qiskit.quantum_info import SparsePauliOp
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 ################################################################################
@@ -226,22 +239,15 @@ def _make_lin_comb_qgt_circuit(
                     lin_comb_qgt_circuit.h(qr_aux)
                     if add_measurement:
                         lin_comb_qgt_circuit.measure(qr_aux, cr_aux)
-                    # lin_comb_qgt_circuits[
-                    #     circuit_temp.parameters.data.index(p_i), circuit_temp.parameters.data.index(p_j)
-                    # ].append(
-                    #     LinearCombGradientCircuit(
-                    #         circuit3, param_i.gradient(p_i) * param_j.gradient(p_j)
-                    #     )
-                    # )
                     lin_comb_qgt_circuits[(p_i, p_j)] = lin_comb_qgt_circuit
 
     return lin_comb_qgt_circuits
 
 
 def _make_lin_comb_observables(
-    observable: BaseOperator | PauliSumOp,
+    observable: SparsePauliOp,
     derivative_type: DerivativeType,
-) -> tuple[BaseOperator | PauliSumOp, BaseOperator | PauliSumOp | None]:
+) -> tuple[SparsePauliOp, SparsePauliOp | None]:
     """Make the observable with an ancillary operator for the linear combination gradient.
 
     Args:
