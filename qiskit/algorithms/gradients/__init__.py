@@ -59,12 +59,12 @@ Results
    :toctree: ../stubs/
 
    EstimatorGradientResult
-   QFIResult
+   QGTResult
    SamplerGradientResult
 """
 
 from .base_estimator_gradient import BaseEstimatorGradient
-from .base_qfi_bak import BaseQFI
+from .base_qgt import BaseQGT
 from .base_sampler_gradient import BaseSamplerGradient
 from .estimator_gradient_result import EstimatorGradientResult
 from .finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
@@ -82,7 +82,7 @@ from .spsa_sampler_gradient import SPSASamplerGradient
 
 __all__ = [
     "BaseEstimatorGradient",
-    "BaseQFI",
+    "BaseQGT",
     "BaseSamplerGradient",
     "DerivativeType",
     "EstimatorGradientResult",
