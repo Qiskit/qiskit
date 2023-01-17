@@ -65,15 +65,9 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
                 of the gradient is returned.
         """
         dummy_estimator = Estimator()  # this is required by the base class, but not used
-        super().__init__(dummy_estimator)
-        self._derivative_type = derivative_type
+        super().__init__(dummy_estimator, derivative_type=derivative_type)
 
-    @property
-    def derivative_type(self) -> DerivativeType:
-        """The derivative type."""
-        return self._derivative_type
-
-    @derivative_type.setter
+    @BaseEstimatorGradient.derivative_type.setter
     def derivative_type(self, derivative_type: DerivativeType) -> None:
         """Set the derivative type."""
         self._derivative_type = derivative_type
@@ -177,6 +171,9 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
         return result
 
     def _to_derivtype(self, gradient):
+        # this disable is needed as Pylint does not understand derivative_type is a property if
+        # it is only defined in the base class and the getter is in the child
+        # pylint: disable=comparison-with-callable
         if self.derivative_type == DerivativeType.REAL:
             return 2 * np.real(gradient)
         if self.derivative_type == DerivativeType.IMAG:
