@@ -60,15 +60,7 @@ Variational Principles
 With variational principles we can project time evolution of a quantum state
 onto the parameters of a model, in our case a variational quantum circuit.
 
-They can be divided into two categories:
-
-    1) Variational Quantum Imaginary Time Evolution
-        Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
-        variational principle according to the normalized Wick-rotated Schroedinger equation.
-
-    2) Variational Quantum Real Time Evolution
-        Given a Hamiltonian, a time and a variational ansatz, the variational principle describes a
-        variational principle according to the Schroedinger equation.
+They can be divided into two categories: Variational Quantum _Real_ Time Evolution, which evolves the variational ansatz under the standard Schroediger equation and Variational Quantum _Imaginary_ Time Evolution, which evolves under the normalized Wick-rotated Schroedinger equation.
 
 .. autosummary::
    :toctree: ../stubs/
