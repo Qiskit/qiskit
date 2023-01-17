@@ -14,8 +14,8 @@
 
 import itertools
 import operator
-from typing import Iterator, List, Optional, Union
 import warnings
+from typing import Iterator, List, Optional, Union
 
 import numpy as np
 
@@ -24,8 +24,9 @@ from qiskit.algorithms.exceptions import AlgorithmError
 from qiskit.primitives import BaseSampler
 from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
-from qiskit.utils import QuantumInstance
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.deprecation import deprecate_function
+
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
@@ -292,7 +293,7 @@ class Grover(AmplitudeAmplifier):
 
             # sample from [0, power) if specified
             if self._sample_from_iterations:
-                power = np.random.randint(power)
+                power = algorithm_globals.random.randint(power)
             # Run a grover experiment for a given power of the Grover operator.
             if self._sampler is not None:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
@@ -309,7 +310,7 @@ class Grover(AmplitudeAmplifier):
                 }
                 top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
 
-            else:
+            else:  # use of else brach instead of elif as this seperates out the deprecated logic
                 if self._quantum_instance.is_statevector:
                     qc = self.construct_circuit(amplification_problem, power, measurement=False)
                     circuit_results = self._quantum_instance.execute(qc).get_statevector()

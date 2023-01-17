@@ -21,15 +21,29 @@ import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 
+# Over-specific import to avoid cyclic imports.
+from qiskit.utils.deprecation import deprecate_function
+
 
 class Register:
     """Implement a generic register."""
 
     __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
 
-    # Register name should conform to OpenQASM 2.0 specification
-    # See appendix A of https://arxiv.org/pdf/1707.03429v2.pdf
-    name_format = re.compile("[a-z][a-zA-Z0-9_]*")
+    _name_format = re.compile("[a-z][a-zA-Z0-9_]*")
+
+    # In historical version of Terra, registers' name had to conform to the OpenQASM 2 specification
+    # (see appendix A of https://arxiv.org/pdf/1707.03429v2.pdf), and this regex enforced it.  That
+    # restriction has been relaxed, so this is no longer necessary.
+    @property
+    @deprecate_function(
+        "Register.name_format is deprecated as of Qiskit Terra 0.23, and will be removed in a"
+        " future release. There is no longer a restriction on the names of registers, so the"
+        " attribute has no meaning any more."
+    )
+    def name_format(self):
+        # pylint: disable=missing-function-docstring
+        return self._name_format
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -100,11 +114,6 @@ class Register:
                     "The circuit name should be castable to a string "
                     "(or None for autogenerate a name)."
                 ) from ex
-            if self.name_format.match(name) is None:
-                raise CircuitError(
-                    "%s is an invalid OPENQASM register name. See appendix"
-                    " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name
-                )
 
         self._name = name
         self._size = size
