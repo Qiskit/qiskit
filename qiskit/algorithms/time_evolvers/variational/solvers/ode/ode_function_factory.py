@@ -30,7 +30,7 @@ from ..var_qte_linear_solver import VarQTELinearSolver
 class OdeFunctionType(Enum):
     """Types of ODE functions for VatQTE algorithms."""
 
-    # more will be supported in the near future
+    # Other types may be supported in the future
     STANDARD_ODE = "STANDARD_ODE"
 
 
