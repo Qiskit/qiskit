@@ -129,7 +129,7 @@ def derive_circuit(
         raise ValueError(f"parameter must be None or of type Parameter, not {type(parameter)}.")
 
     if parameter not in circuit.parameters:
-        raise ValueError("The parameter is not in this circuit.")
+        raise ValueError(f"The parameter {parameter} is not in this circuit.")
 
     if len(circuit._parameter_table[parameter]) > 1:
         raise NotImplementedError("No product rule support yet, circuit parameters must be unique.")
