@@ -43,7 +43,7 @@ Sampler Gradients
    ParamShiftSamplerGradient
    SPSASamplerGradient
 
-QFI
+Quantum Geometry Tensor
 ===
 .. autosummary::
    :toctree: ../stubs/

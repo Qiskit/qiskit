@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """
-Abstract base class of the Quantum Geometric Tensor(QGT).
+Abstract base class of the Quantum Geometric Tensor (QGT).
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ class BaseQGT(ABC):
             estimator: The estimator used to compute the QGT.
             phase_fix: Whether to calculate the second term (phase fix) of the QGT, which is
                 :math:`\langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle`.
-                Default to ``True``.
+                Defaults to ``True``.
             derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
                 ``DerivativeType.REAL``.
@@ -188,7 +188,7 @@ class BaseQGT(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of the specified
+            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
             supported_gates: The supported gates used to transpile the circuit.
 
@@ -227,7 +227,7 @@ class BaseQGT(ABC):
             results: The computed QGT for the circuits with unique parameters.
             circuits: The list of original circuits submitted for gradient computation.
             parameter_values: The list of parameter values to be bound to the circuits.
-            parameters: An optional subset of parameters with respect to which the QGTs should
+            parameter_sets: An optional subset of parameters with respect to which the QGTs should
                 be calculated.
 
         Returns:

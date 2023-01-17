@@ -25,7 +25,7 @@ features:
       qgt = LinCombQGT(estimator)
       qgt_result = qgt.run([qc], parameter_value).result()
 
-      qfi = LinCombQFI(estimator)
+      qfi = QFI(qgt)
       qfi_result = qfi.run([qc], parameter_value).result()
 
   - |

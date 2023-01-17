@@ -152,7 +152,7 @@ class BaseEstimatorGradient(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of the specified
+            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
             supported_gates: The supported gates used to transpile the circuit.
 
@@ -191,7 +191,7 @@ class BaseEstimatorGradient(ABC):
             results: The computed gradients for the circuits with unique parameters.
             circuits: The list of original circuits submitted for gradient computation.
             parameter_values: The list of parameter values to be bound to the circuits.
-            parameters: An optional subset of parameters with respect to which the gradients should
+            parameter_sets: An optional subset of parameters with respect to which the gradients should
                 be calculated.
 
         Returns:
@@ -256,7 +256,7 @@ class BaseEstimatorGradient(ABC):
             circuits: The list of quantum circuits to compute the gradients.
             observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of parameter sets to calculate only the gradients of
+            parameter_sets: The Sequence of parameter sets to calculate only the gradients of
                 the specified parameters. Each set of parameters corresponds to a circuit in
                 ``circuits``.
 
