@@ -605,6 +605,8 @@ class TextDrawing:
         with_layout=False,
         circuit=None,
     ):
+        if circuit is None:
+            raise VisualizationError("A circuit is needed.")
         self._circuit = circuit
         self.qubits = qubits
         self.clbits = clbits
