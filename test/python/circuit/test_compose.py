@@ -16,6 +16,8 @@
 
 import unittest
 
+import numpy as np
+
 from qiskit import transpile
 from qiskit.pulse import Schedule
 from qiskit.circuit import (
@@ -105,6 +107,30 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_expected.z(self.left_qubit4)
 
         circuit_composed = self.circuit_left.compose(circuit_right, inplace=False)
+        self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_inorder_unusual_types(self):
+        """Test that composition works in order, using Numpy integer types as well as regular
+        integer types.  In general, it should be permissible to use any of the same `QubitSpecifier`
+        types (or similar for `Clbit`) that `QuantumCircuit.append` uses."""
+        qreg = QuantumRegister(5, "rqr")
+        creg = ClassicalRegister(2, "rcr")
+        circuit_right = QuantumCircuit(qreg, creg)
+        circuit_right.cx(qreg[0], qreg[3])
+        circuit_right.x(qreg[1])
+        circuit_right.y(qreg[2])
+        circuit_right.z(qreg[4])
+        circuit_right.measure([0, 1], [0, 1])
+
+        circuit_expected = self.circuit_left.copy()
+        circuit_expected.cx(self.left_qubit0, self.left_qubit3)
+        circuit_expected.x(self.left_qubit1)
+        circuit_expected.y(self.left_qubit2)
+        circuit_expected.z(self.left_qubit4)
+        circuit_expected.measure(self.left_qubit0, self.left_clbit0)
+        circuit_expected.measure(self.left_qubit1, self.left_clbit1)
+
+        circuit_composed = self.circuit_left.compose(circuit_right, np.arange(5), slice(0, 2))
         self.assertEqual(circuit_composed, circuit_expected)
 
     def test_compose_inorder_inplace(self):
@@ -397,9 +423,9 @@ class TestCircuitCompose(QiskitTestCase):
         lqr_2_1: ──┤ X ├────┤ X ├────┼───┤M├─╫─
                    └───┘    └─┬─┘    │   └╥┘ ║
                            ┌──┴──┐┌──┴──┐ ║  ║
-        lcr_0: ════════════╡     ╞╡     ╞═╩══╬═
-                           │ = 3 ││ = 3 │    ║
-        lcr_1: ════════════╡     ╞╡     ╞════╩═
+        lcr_0: ════════════╡     ╞╡     ╞═╬══╩═
+                           │ = 3 ││ = 3 │ ║
+        lcr_1: ════════════╡     ╞╡     ╞═╩════
                            └─────┘└─────┘
         """
         qreg = QuantumRegister(2, "rqr")
@@ -411,15 +437,45 @@ class TestCircuitCompose(QiskitTestCase):
         circuit_right.measure(qreg, creg)
 
         # permuted subset of qubits and clbits
-        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[1, 0])
+        circuit_composed = self.circuit_left.compose(circuit_right, qubits=[1, 4], clbits=[0, 1])
 
         circuit_expected = self.circuit_left.copy()
         circuit_expected.x(self.left_qubit4).c_if(*self.condition)
         circuit_expected.h(self.left_qubit1).c_if(*self.condition)
-        circuit_expected.measure(self.left_qubit4, self.left_clbit0)
-        circuit_expected.measure(self.left_qubit1, self.left_clbit1)
+        circuit_expected.measure(self.left_qubit1, self.left_clbit0)
+        circuit_expected.measure(self.left_qubit4, self.left_clbit1)
 
         self.assertEqual(circuit_composed, circuit_expected)
+
+    def test_compose_conditional_no_match(self):
+        """Test that compose correctly maps registers in conditions to the new circuit, even when
+        there are no matching registers in the destination circuit.
+
+        Regression test of gh-6583 and gh-6584."""
+        right = QuantumCircuit(QuantumRegister(3), ClassicalRegister(1), ClassicalRegister(1))
+        right.h(1)
+        right.cx(1, 2)
+        right.cx(0, 1)
+        right.h(0)
+        right.measure([0, 1], [0, 1])
+        right.z(2).c_if(right.cregs[0], 1)
+        right.x(2).c_if(right.cregs[1], 1)
+        test = QuantumCircuit(3, 3).compose(right, range(3), range(2))
+        z = next(ins.operation for ins in test.data[::-1] if ins.operation.name == "z")
+        x = next(ins.operation for ins in test.data[::-1] if ins.operation.name == "x")
+        # The registers should have been mapped, including the bits inside them.  Unlike the
+        # previous test, there are no matching registers in the destination circuit, so the
+        # composition needs to add new registers (bit groupings) over the existing mapped bits.
+        self.assertIsNot(z.condition, None)
+        self.assertIsInstance(z.condition[0], ClassicalRegister)
+        self.assertEqual(len(z.condition[0]), len(right.cregs[0]))
+        self.assertIs(z.condition[0][0], test.clbits[0])
+        self.assertEqual(z.condition[1], 1)
+        self.assertIsNot(x.condition, None)
+        self.assertIsInstance(x.condition[0], ClassicalRegister)
+        self.assertEqual(len(x.condition[0]), len(right.cregs[1]))
+        self.assertEqual(z.condition[1], 1)
+        self.assertIs(x.condition[0][0], test.clbits[1])
 
     def test_compose_gate(self):
         """Composing with a gate.
