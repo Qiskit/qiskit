@@ -35,11 +35,12 @@ from qiskit.circuit.library import (
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
-from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_circuit
-from qiskit.quantum_info.synthesis.clifford_decompose import (
-    decompose_clifford_ag,
-    decompose_clifford_bm,
-    decompose_clifford_greedy,
+from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_operation
+from qiskit.synthesis.clifford import (
+    synth_clifford_full,
+    synth_clifford_ag,
+    synth_clifford_bm,
+    synth_clifford_greedy,
 )
 from qiskit.test import QiskitTestCase
 
@@ -187,7 +188,7 @@ class TestCliffordGates(QiskitTestCase):
         for gate_name in ("i", "id", "iden", "x", "y", "z", "h", "s", "sdg", "v", "w"):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
-                cliff = _append_circuit(cliff, gate_name, [0])
+                cliff = _append_operation(cliff, gate_name, [0])
                 value_table = cliff.table._array
                 value_phase = cliff.table._phase
                 value_stabilizer = cliff.stabilizer.to_labels()
@@ -221,8 +222,8 @@ class TestCliffordGates(QiskitTestCase):
             with self.subTest(msg="identity for gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
-                cliff = _append_circuit(cliff, gate_name, [0])
-                cliff = _append_circuit(cliff, gate_name, [0])
+                cliff = _append_operation(cliff, gate_name, [0])
+                cliff = _append_operation(cliff, gate_name, [0])
                 self.assertEqual(cliff, cliff1)
 
         gates = ["s", "s", "v"]
@@ -232,8 +233,8 @@ class TestCliffordGates(QiskitTestCase):
             with self.subTest(msg="identity for gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
-                cliff = _append_circuit(cliff, gate_name, [0])
-                cliff = _append_circuit(cliff, inv_gate, [0])
+                cliff = _append_operation(cliff, gate_name, [0])
+                cliff = _append_operation(cliff, inv_gate, [0])
                 self.assertEqual(cliff, cliff1)
 
     def test_1_qubit_mult_relations(self):
@@ -255,9 +256,9 @@ class TestCliffordGates(QiskitTestCase):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
-                cliff = _append_circuit(cliff, split_rel[0], [0])
-                cliff = _append_circuit(cliff, split_rel[2], [0])
-                cliff1 = _append_circuit(cliff1, split_rel[4], [0])
+                cliff = _append_operation(cliff, split_rel[0], [0])
+                cliff = _append_operation(cliff, split_rel[2], [0])
+                cliff1 = _append_operation(cliff1, split_rel[4], [0])
                 self.assertEqual(cliff, cliff1)
 
     def test_1_qubit_conj_relations(self):
@@ -277,10 +278,10 @@ class TestCliffordGates(QiskitTestCase):
                 split_rel = rel.split()
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff1 = cliff.copy()
-                cliff = _append_circuit(cliff, split_rel[0], [0])
-                cliff = _append_circuit(cliff, split_rel[2], [0])
-                cliff = _append_circuit(cliff, split_rel[4], [0])
-                cliff1 = _append_circuit(cliff1, split_rel[6], [0])
+                cliff = _append_operation(cliff, split_rel[0], [0])
+                cliff = _append_operation(cliff, split_rel[2], [0])
+                cliff = _append_operation(cliff, split_rel[4], [0])
+                cliff1 = _append_operation(cliff1, split_rel[6], [0])
                 self.assertEqual(cliff, cliff1)
 
     @combine(gate_name=("cx", "cz", "swap"), qubits=([0, 1], [1, 0]))
@@ -339,7 +340,7 @@ class TestCliffordGates(QiskitTestCase):
         }
 
         gate_qubits = gate_name + " " + str(qubits)
-        cliff = _append_circuit(Clifford(np.eye(4)), gate_name, qubits)
+        cliff = _append_operation(Clifford(np.eye(4)), gate_name, qubits)
         target = targets_cliffords[gate_qubits]
         self.assertEqual(target, cliff)
 
@@ -351,8 +352,8 @@ class TestCliffordGates(QiskitTestCase):
                 with self.subTest(msg=f"append gate {gate_name} {qubits}"):
                     cliff = Clifford(np.eye(4))
                     cliff1 = cliff.copy()
-                    cliff = _append_circuit(cliff, gate_name, qubits)
-                    cliff = _append_circuit(cliff, gate_name, qubits)
+                    cliff = _append_operation(cliff, gate_name, qubits)
+                    cliff = _append_operation(cliff, gate_name, qubits)
                     self.assertEqual(cliff, cliff1)
 
     def test_2_qubit_relations(self):
@@ -361,50 +362,50 @@ class TestCliffordGates(QiskitTestCase):
         with self.subTest(msg="relation between cx, h and cz"):
             cliff = Clifford(np.eye(4))
             cliff1 = cliff.copy()
-            cliff = _append_circuit(cliff, "h", [1])
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "h", [1])
-            cliff = _append_circuit(cliff, "cz", [0, 1])
+            cliff = _append_operation(cliff, "h", [1])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "h", [1])
+            cliff = _append_operation(cliff, "cz", [0, 1])
             self.assertEqual(cliff, cliff1)
 
         with self.subTest(msg="relation between cx and swap"):
             cliff = Clifford(np.eye(4))
             cliff1 = cliff.copy()
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "cx", [1, 0])
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "swap", [0, 1])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "cx", [1, 0])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "swap", [0, 1])
             self.assertEqual(cliff, cliff1)
 
         with self.subTest(msg="relation between cx and x"):
             cliff = Clifford(np.eye(4))
             cliff1 = cliff.copy()
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "x", [0])
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "x", [0])
-            cliff = _append_circuit(cliff, "x", [1])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "x", [0])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "x", [0])
+            cliff = _append_operation(cliff, "x", [1])
             self.assertEqual(cliff, cliff1)
 
         with self.subTest(msg="relation between cx and z"):
             cliff = Clifford(np.eye(4))
             cliff1 = cliff.copy()
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "z", [1])
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "z", [0])
-            cliff = _append_circuit(cliff, "z", [1])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "z", [1])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "z", [0])
+            cliff = _append_operation(cliff, "z", [1])
             self.assertEqual(cliff, cliff1)
 
         with self.subTest(msg="relation between cx and s"):
             cliff = Clifford(np.eye(4))
             cliff1 = cliff.copy()
-            cliff = _append_circuit(cliff, "cx", [1, 0])
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "s", [1])
-            cliff = _append_circuit(cliff, "cx", [0, 1])
-            cliff = _append_circuit(cliff, "cx", [1, 0])
-            cliff = _append_circuit(cliff, "sdg", [0])
+            cliff = _append_operation(cliff, "cx", [1, 0])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "s", [1])
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "cx", [1, 0])
+            cliff = _append_operation(cliff, "sdg", [0])
             self.assertEqual(cliff, cliff1)
 
     def test_barrier_delay_sim(self):
@@ -421,6 +422,15 @@ class TestCliffordGates(QiskitTestCase):
         circ.cx(0, 1)
         value = Clifford(circ)
         self.assertEqual(value, target)
+
+    def test_from_circuit_with_conditional_gate(self):
+        """Test initialization from circuit with conditional gate."""
+        qc = QuantumCircuit(2, 1)
+        qc.h(0).c_if(0, 0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(QiskitError):
+            Clifford(qc)
 
 
 @ddt
@@ -464,36 +474,47 @@ class TestCliffordSynthesis(QiskitTestCase):
                 self.assertEqual(target, value)
 
     @combine(num_qubits=[2, 3])
-    def test_decompose_2q_bm(self, num_qubits):
+    def test_synth_bm(self, num_qubits):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(decompose_clifford_bm(target))
+            value = Clifford(synth_clifford_bm(target))
             self.assertEqual(value, target)
 
     @combine(num_qubits=[2, 3, 4, 5])
-    def test_decompose_2q_ag(self, num_qubits):
+    def test_synth_ag(self, num_qubits):
         """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(decompose_clifford_ag(target))
+            value = Clifford(synth_clifford_ag(target))
             self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
-    def test_decompose_2q_greedy(self, num_qubits):
+    def test_synth_greedy(self, num_qubits):
         """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(decompose_clifford_greedy(target))
+            value = Clifford(synth_clifford_greedy(target))
+            self.assertEqual(value, target)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_synth_full(self, num_qubits):
+        """Test synthesis for set of {num_qubits}-qubit Cliffords"""
+        rng = np.random.default_rng(1234)
+        samples = 50
+        for _ in range(samples):
+            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = Clifford(circ)
+            value = Clifford(synth_clifford_full(target))
             self.assertEqual(value, target)
 
 
@@ -851,6 +872,13 @@ class TestCliffordOperators(QiskitTestCase):
         after converting to instruction"""
         clifford = random_clifford(num_qubits, seed=777)
         self.assertEqual(clifford.to_instruction().name, str(clifford))
+
+    def visualize_does_not_throw_error(self):
+        """Test to verify that drawing Clifford does not throw an error"""
+        # An error may be thrown if visualization code calls op.condition instead
+        # of getattr(op, "condition", None)
+        clifford = random_clifford(3, seed=0)
+        print(clifford)
 
 
 if __name__ == "__main__":

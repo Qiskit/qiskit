@@ -28,8 +28,6 @@ class HoareOptimizer(TransformationPass):
     https://arxiv.org/abs/1810.00375
     """
 
-    # pylint: disable=import-error
-
     def __init__(self, size=10):
         """
         Args:

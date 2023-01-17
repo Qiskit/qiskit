@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
@@ -40,18 +40,13 @@ from qiskit.transpiler.passes import (
     ConsolidateBlocks,
     Optimize1qGates,
     SabreLayout,
-    Depth,
-    FixedPoint,
-    FullAncillaAllocation,
-    EnlargeWithAncilla,
-    ApplyLayout,
     Unroll3qOrMore,
     CheckMap,
     BarrierBeforeFinalMeasurements,
     SabreSwap,
     TrivialLayout,
 )
-from qiskit.circuit.library import CXGate, ECRGate, UGate
+from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate
 from qiskit.circuit import Parameter
 
 
@@ -481,19 +476,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         qv64 = QuantumVolume(5, seed=15)
 
         def construct_passmanager(basis_gates, coupling_map, synthesis_fidelity, pulse_optimize):
-            def _repeat_condition(property_set):
-                return not property_set["depth_fixed_point"]
-
             seed = 2
             _map = [SabreLayout(coupling_map, max_iterations=2, seed=seed)]
-            _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
             _unroll3q = Unroll3qOrMore()
             _swap_check = CheckMap(coupling_map)
             _swap = [
                 BarrierBeforeFinalMeasurements(),
                 SabreSwap(coupling_map, heuristic="lookahead", seed=seed),
             ]
-            _check_depth = [Depth(), FixedPoint("depth")]
             _optimize = [
                 Collect2qBlocks(),
                 ConsolidateBlocks(basis_gates=basis_gates),
@@ -509,13 +499,10 @@ class TestUnitarySynthesis(QiskitTestCase):
 
             pm = PassManager()
             pm.append(_map)  # map to hardware by inserting swaps
-            pm.append(_embed)
             pm.append(_unroll3q)
             pm.append(_swap_check)
             pm.append(_swap)
-            pm.append(
-                _check_depth + _optimize, do_while=_repeat_condition
-            )  # translate to & optimize over hardware native gates
+            pm.append(_optimize)
             return pm
 
         coupling_map = CouplingMap([[0, 1], [1, 2], [3, 2], [3, 4], [5, 4]])
@@ -765,6 +752,26 @@ class TestUnitarySynthesis(QiskitTestCase):
         cbody = cqc.data[0].operation.params[2].data[0].operation.params[0]
         self.assertEqual(cbody.count_ops().keys(), {"u", "cx"})
         self.assertEqual(qc_uni1_mat, Operator(cbody))
+
+    def test_single_qubit_with_target(self):
+        """Test input circuit with only 1q works with target."""
+        qc = QuantumCircuit(1)
+        qc.append(ZGate(), [qc.qubits[0]])
+        dag = circuit_to_dag(qc)
+        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(qc, result_qc)
+
+    def test_single_qubit_identity_with_target(self):
+        """Test input single qubit identity works with target."""
+        qc = QuantumCircuit(1)
+        qc.unitary([[1.0, 0.0], [0.0, 1.0]], 0)
+        dag = circuit_to_dag(qc)
+        unitary_synth_pass = UnitarySynthesis(target=FakeBelemV2().target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(result_qc, QuantumCircuit(1))
 
 
 if __name__ == "__main__":

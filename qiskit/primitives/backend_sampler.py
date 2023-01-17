@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Sampler implementation for an artibtrary Backend object."""
+
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -22,19 +23,27 @@ from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
 
-from .base_sampler import BaseSampler
+from .backend_estimator import _prepare_counts, _run_circuits
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
-from .sampler_result import SamplerResult
 from .utils import _circuit_key
 
 
 class BackendSampler(BaseSampler):
-    """A :class:`~.BaseSampler` implementation that provides an interface for leveraging
-    the sampler interface from any backend.
+    """A :class:`~.BaseSampler` implementation that provides an interface for
+    leveraging the sampler interface from any backend.
 
     This class provides a sampler interface from any backend and doesn't do
     any measurement mitigation, it just computes the probability distribution
-    from the counts.
+    from the counts. It facilitates using backends that do not provide a
+    native :class:`~.BaseSampler` implementation in places that work with
+    :class:`~.BaseSampler`, such as algorithms in :mod:`qiskit.algorithms`
+    including :class:`~.qiskit.algorithms.minimum_eigensolvers.SamplingVQE`.
+    However, if you're using a provider that has a native implementation of
+    :class:`~.BaseSampler`, it is a better choice to leverage that native
+    implementation as it will likely include additional optimizations and be
+    a more efficient implementation. The generic nature of this class
+    precludes doing any provider- or backend-specific optimizations.
     """
 
     def __init__(
@@ -63,7 +72,7 @@ class BackendSampler(BaseSampler):
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
         self._preprocessed_circuits: list[QuantumCircuit] | None = None
-        self._transpiled_circuits: list[QuantumCircuit] | None = None
+        self._transpiled_circuits: list[QuantumCircuit] = []
         self._skip_transpilation = skip_transpilation
 
     def __new__(  # pylint: disable=signature-differs
@@ -73,6 +82,9 @@ class BackendSampler(BaseSampler):
     ):
         self = super().__new__(cls)
         return self
+
+    def __getnewargs__(self):
+        return (self._backend,)
 
     @property
     def preprocessed_circuits(self) -> list[QuantumCircuit]:
@@ -96,8 +108,8 @@ class BackendSampler(BaseSampler):
         """
         if self._skip_transpilation:
             self._transpiled_circuits = list(self._circuits)
-        elif self._transpiled_circuits is None:
-            # Only transpile if have not done so yet
+        elif len(self._transpiled_circuits) < len(self._circuits):
+            # transpile only circuits that are not transpiled yet
             self._transpile()
         return self._transpiled_circuits
 
@@ -143,16 +155,11 @@ class BackendSampler(BaseSampler):
         bound_circuits = self._bound_pass_manager_run(bound_circuits)
 
         # Run
-        result = self._backend.run(bound_circuits, **run_options).result()
-
+        result, _metadata = _run_circuits(bound_circuits, self._backend, **run_options)
         return self._postprocessing(result, bound_circuits)
 
     def _postprocessing(self, result: Result, circuits: list[QuantumCircuit]) -> SamplerResult:
-
-        counts = result.get_counts()
-        if not isinstance(counts, list):
-            counts = [counts]
-
+        counts = _prepare_counts(result)
         shots = sum(counts[0].values())
 
         probabilies = []
@@ -167,10 +174,10 @@ class BackendSampler(BaseSampler):
     def _transpile(self):
         from qiskit.compiler import transpile
 
-        self._transpiled_circuits = cast(
-            "list[QuantumCircuit]",
+        start = len(self._transpiled_circuits)
+        self._transpiled_circuits.extend(
             transpile(
-                self.preprocessed_circuits,
+                self.preprocessed_circuits[start:],
                 self.backend,
                 **self.transpile_options.__dict__,
             ),
@@ -184,8 +191,8 @@ class BackendSampler(BaseSampler):
 
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: tuple[QuantumCircuit, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []

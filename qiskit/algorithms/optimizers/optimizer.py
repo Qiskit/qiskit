@@ -180,7 +180,7 @@ class Optimizer(ABC):
         self._bounds_support_level = self.get_support_level()["bounds"]
         self._initial_point_support_level = self.get_support_level()["initial_point"]
         self._options = {}
-        self._max_evals_grouped = 1
+        self._max_evals_grouped = None
 
     @abstractmethod
     def get_support_level(self):
@@ -205,7 +205,7 @@ class Optimizer(ABC):
 
     # pylint: disable=invalid-name
     @staticmethod
-    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
+    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=None):
         """
         We compute the gradient with the numeric differentiation in the parallel way,
         around the point x_center.
@@ -214,11 +214,14 @@ class Optimizer(ABC):
             x_center (ndarray): point around which we compute the gradient
             f (func): the function of which the gradient is to be computed.
             epsilon (float): the epsilon used in the numeric differentiation.
-            max_evals_grouped (int): max evals grouped
+            max_evals_grouped (int): max evals grouped, defaults to 1 (i.e. no batching).
         Returns:
             grad: the gradient computed
 
         """
+        if max_evals_grouped is None:  # no batching by default
+            max_evals_grouped = 1
+
         forig = f(*((x_center,)))
         grad = []
         ei = np.zeros((len(x_center),), float)

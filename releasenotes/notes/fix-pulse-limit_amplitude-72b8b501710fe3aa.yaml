@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    A bug that ``limit_amplitude`` set to an individual symbolic pulse or waveform instance
-    is not properly reflected to the parameter validation has been fixed.
-    In addition, QPY schedule ``dump`` has been fixed to save ``limit_amplitude`` value
-    tied to the instance, rather than saving the global class variable.

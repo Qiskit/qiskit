@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=import-error,invalid-sequence-index
+# pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
 import io
@@ -88,22 +88,22 @@ def transpile(
 ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
-    All arguments may be given as either a singleton or list. In case of a list,
-    the length must be equal to the number of circuits being transpiled.
+    .. deprecated:: 0.23.0
+
+        Previously, all arguments accepted lists of the same length as ``circuits``,
+        which was used to specialize arguments for circuits at the corresponding
+        indices. Support for using such argument lists is now deprecated and will
+        be removed in the 0.25.0 release. If you need to use multiple values for an
+        argument, you can use multiple :func:`~.transpile` calls (and potentially
+        :func:`~.parallel_map` to leverage multiprocessing if needed).
 
     Transpilation is done in parallel using multiprocessing.
 
     Args:
         circuits: Circuit(s) to transpile
-        backend: If set, transpiler options are automatically grabbed from
-            ``backend.configuration()`` and ``backend.properties()``.
-            If any other option is explicitly set (e.g., ``coupling_map``), it
+        backend: If set, the transpiler will compile the input circuit to this target
+            device. If any other option is explicitly set (e.g., ``coupling_map``), it
             will override the backend's.
-
-            .. note::
-
-                The backend arg is purely for convenience. The resulting
-                circuit may be run on any backend as long as it is compatible.
         basis_gates: List of basis gate names to unroll to
             (e.g: ``['u1', 'u2', 'u3', 'cx']``). If ``None``, do not unroll.
         inst_map: Mapping of unrolled gates to pulse schedules. If this is not provided,
@@ -160,8 +160,7 @@ def transpile(
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"layout"`` for the ``stage_name`` argument.
         routing_method: Name of routing pass
-            ('basic', 'lookahead', 'stochastic', 'sabre', 'toqm', 'none'). Note
-            that to use method 'toqm', package 'qiskit-toqm' must be installed.
+            ('basic', 'lookahead', 'stochastic', 'sabre', 'none'). Note
             This can also be the external plugin name to use for the ``routing`` stage.
             You can see a list of installed plugins by using :func:`~.list_stage_plugins` with
             ``"routing"`` for the ``stage_name`` argument.
@@ -544,7 +543,7 @@ def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubi
 
     for real_qubit in range(num_qubits):
         if faulty_qubits_map[real_qubit] is not None:
-            new_layout[real_qubit] = circuit._layout[faulty_qubits_map[real_qubit]]
+            new_layout[real_qubit] = circuit._layout.initial_layout[faulty_qubits_map[real_qubit]]
         else:
             if real_qubit in faulty_qubits:
                 new_layout[real_qubit] = faulty_qreg[faulty_qubit]
@@ -626,14 +625,16 @@ def _parse_transpile_args(
     # Each arg could be single or a list. If list, it must be the same size as
     # number of circuits. If single, duplicate to create a list of that size.
     num_circuits = len(circuits)
-
+    user_input_durations = instruction_durations
+    user_input_timing_constraints = timing_constraints
+    user_input_initial_layout = initial_layout
     # If a target is specified have it override any implicit selections from a backend
     # but if an argument is explicitly passed use that instead of the target version
     if target is not None:
         if coupling_map is None:
             coupling_map = target.build_coupling_map()
         if basis_gates is None:
-            basis_gates = target.operation_names
+            basis_gates = list(target.operation_names)
         if instruction_durations is None:
             instruction_durations = target.durations()
         if inst_map is None:
@@ -702,6 +703,41 @@ def _parse_transpile_args(
         "hls_config": hls_config,
     }.items():
         if isinstance(value, list):
+            # This giant if-statement detects deprecated use of argument
+            # broadcasting. For arguments that previously supported broadcast
+            # but were not themselves of type list (the majority), we simply warn
+            # when the user provides a list. For the others, special handling is
+            # required to disambiguate an expected value of type list from
+            # an attempt to provide multiple values for broadcast. This path is
+            # super buggy in general (outside of the warning) and since we're
+            # deprecating this it's better to just remove it than try to clean it up.
+            # pylint: disable=too-many-boolean-expressions
+            if (
+                key not in {"instruction_durations", "timing_constraints", "initial_layout"}
+                or (
+                    key == "initial_layout"
+                    and user_input_initial_layout
+                    and isinstance(user_input_initial_layout, list)
+                    and isinstance(user_input_initial_layout[0], (Layout, dict, list))
+                )
+                or (
+                    key == "instruction_durations"
+                    and user_input_durations
+                    and isinstance(user_input_durations, list)
+                    and isinstance(user_input_durations[0], (list, InstructionDurations))
+                )
+                or (
+                    key == "timing_constraints"
+                    and user_input_timing_constraints
+                    and isinstance(user_input_timing_constraints, list)
+                )
+            ):
+                warnings.warn(
+                    f"Passing in a list of arguments for {key} is deprecated and will no longer work "
+                    "starting in the 0.25.0 release.",
+                    DeprecationWarning,
+                    stacklevel=3,
+                )
             unique_dict[key] = value
         else:
             shared_dict[key] = value

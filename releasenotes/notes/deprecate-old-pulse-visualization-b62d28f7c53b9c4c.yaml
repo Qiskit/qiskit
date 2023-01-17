@@ -1,0 +1,11 @@
+deprecations:
+  - |
+    The entire old version of the pulse-drawer stack is deprecated,
+    including :meth:`.pulse.Instruction.draw` and everything in the
+    :mod:`qiskit.visualization.pulse` package, including the
+    ``WaveformDrawer`` and ``ScheduleDrawer`` classes.  These will all be
+    removed in Terra 0.25 at the earliest.
+
+    The user API for visualization of pulse-level objects is
+    :func:`.pulse_drawer`, which has been available for several
+    Terra versions already.

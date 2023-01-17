@@ -74,7 +74,8 @@ def plot_state_hinton(
         VisualizationError: if input is not a valid N-qubit state.
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -113,8 +114,9 @@ def plot_state_hinton(
             fig = ax_imag.get_figure()
         ax1 = ax_real
         ax2 = ax_imag
+    # Reversal is to account for Qiskit's endianness.
     column_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
-    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)]
+    row_names = [bin(i)[2:].zfill(num) for i in range(2**num)][::-1]
     ly, lx = datareal.shape
     # Real
     if ax1:
@@ -124,10 +126,12 @@ def plot_state_hinton(
         ax1.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(datareal):
+            # Convert from matrix co-ordinates to plot co-ordinates.
+            plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
             rect = plt.Rectangle(
-                [0.5 + x - size / 2, 0.5 + y - size / 2],
+                [0.5 + plot_x - size / 2, 0.5 + plot_y - size / 2],
                 size,
                 size,
                 facecolor=color,
@@ -138,10 +142,9 @@ def plot_state_hinton(
         ax1.set_xticks(0.5 + np.arange(lx))
         ax1.set_yticks(0.5 + np.arange(ly))
         ax1.set_xlim([0, lx])
-        ax1.set_ylim([ly, 0])
+        ax1.set_ylim([0, ly])
         ax1.set_yticklabels(row_names, fontsize=14)
         ax1.set_xticklabels(column_names, fontsize=14, rotation=90)
-        ax1.invert_yaxis()
         ax1.set_title("Re[$\\rho$]", fontsize=14)
     # Imaginary
     if ax2:
@@ -151,10 +154,12 @@ def plot_state_hinton(
         ax2.yaxis.set_major_locator(plt.NullLocator())
 
         for (x, y), w in np.ndenumerate(dataimag):
+            # Convert from matrix co-ordinates to plot co-ordinates.
+            plot_x, plot_y = y, lx - x - 1
             color = "white" if w > 0 else "black"
             size = np.sqrt(np.abs(w) / max_weight)
             rect = plt.Rectangle(
-                [0.5 + x - size / 2, 0.5 + y - size / 2],
+                [0.5 + plot_x - size / 2, 0.5 + plot_y - size / 2],
                 size,
                 size,
                 facecolor=color,
@@ -164,12 +169,12 @@ def plot_state_hinton(
 
         ax2.set_xticks(0.5 + np.arange(lx))
         ax2.set_yticks(0.5 + np.arange(ly))
-        ax1.set_xlim([0, lx])
-        ax1.set_ylim([ly, 0])
+        ax2.set_xlim([0, lx])
+        ax2.set_ylim([0, ly])
         ax2.set_yticklabels(row_names, fontsize=14)
         ax2.set_xticklabels(column_names, fontsize=14, rotation=90)
-        ax2.invert_yaxis()
         ax2.set_title("Im[$\\rho$]", fontsize=14)
+    fig.tight_layout()
     if title:
         fig.suptitle(title, fontsize=16)
     if ax_real is None and ax_imag is None:
@@ -206,17 +211,20 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
         MissingOptionalLibraryError: Requires matplotlib.
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            from qiskit.visualization import plot_bloch_vector
 
            plot_bloch_vector([0,1,0], title="New Bloch Sphere")
 
-        .. jupyter-execute::
-
-           # You can use spherical coordinates instead of cartesian.
+        .. plot::
+           :include-source:
 
            import numpy as np
+           from qiskit.visualization import plot_bloch_vector
+
+           # You can use spherical coordinates instead of cartesian.
 
            plot_bloch_vector([1, np.pi/2, np.pi/3], coord_type='spherical')
 
@@ -269,7 +277,8 @@ def plot_bloch_multivector(
         VisualizationError: if input is not a valid N-qubit state.
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit
             from qiskit.quantum_info import Statevector
@@ -282,7 +291,16 @@ def plot_bloch_multivector(
             state = Statevector(qc)
             plot_bloch_multivector(state)
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
+
+           from qiskit import QuantumCircuit
+           from qiskit.quantum_info import Statevector
+           from qiskit.visualization import plot_bloch_multivector
+
+           qc = QuantumCircuit(2)
+           qc.h(0)
+           qc.x(1)
 
            # You can reverse the order of the qubits.
 
@@ -369,7 +387,8 @@ def plot_state_city(
         VisualizationError: if input is not a valid N-qubit state.
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            # You can choose different colors for the real and imaginary parts of the density matrix.
 
@@ -384,13 +403,21 @@ def plot_state_city(
            state = DensityMatrix(qc)
            plot_state_city(state, color=['midnightblue', 'crimson'], title="New State City")
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            # You can make the bars more transparent to better see the ones that are behind
            # if they overlap.
 
            import numpy as np
            from qiskit.quantum_info import Statevector
+           from qiskit.visualization import plot_state_city
+           from qiskit import QuantumCircuit
+
+           qc = QuantumCircuit(2)
+           qc.h(0)
+           qc.cx(0, 1)
+
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])
@@ -596,7 +623,8 @@ def plot_state_paulivec(
         VisualizationError: if input is not a valid N-qubit state.
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            # You can set a color for all the bars.
 
@@ -611,13 +639,20 @@ def plot_state_paulivec(
            state = Statevector(qc)
            plot_state_paulivec(state, color='midnightblue', title="New PauliVec plot")
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            # If you introduce a list with less colors than bars, the color of the bars will
            # alternate following the sequence from the list.
 
            import numpy as np
            from qiskit.quantum_info import DensityMatrix
+           from qiskit import QuantumCircuit
+           from qiskit.visualization import plot_state_paulivec
+
+           qc = QuantumCircuit(2)
+           qc.h(0)
+           qc.cx(0, 1)
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])
@@ -768,7 +803,8 @@ def plot_state_qsphere(
         QiskitError: Input statevector does not have valid dimensions.
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            from qiskit import QuantumCircuit
            from qiskit.quantum_info import Statevector
@@ -781,13 +817,16 @@ def plot_state_qsphere(
            state = Statevector(qc)
            plot_state_qsphere(state)
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
            # You can show the phase of each state and use
            # degrees instead of radians
 
            from qiskit.quantum_info import DensityMatrix
            import numpy as np
+           from qiskit import QuantumCircuit
+           from qiskit.visualization import plot_state_qsphere
 
            qc = QuantumCircuit(2)
            qc.h([0, 1])

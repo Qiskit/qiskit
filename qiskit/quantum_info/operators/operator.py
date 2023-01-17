@@ -200,9 +200,9 @@ class Operator(LinearOp):
 
     @classmethod
     def from_circuit(cls, circuit, ignore_set_layout=False, layout=None):
-        """Create a new Operator object from a :class`.QuantumCircuit`
+        """Create a new Operator object from a :class:`.QuantumCircuit`
 
-        While a :class:`.QuantumCircuit` object can passed directly as ``data``
+        While a :class:`~.QuantumCircuit` object can passed directly as ``data``
         to the class constructor this provides no options on how the circuit
         is used to create an :class:`.Operator`. This constructor method lets
         you control how the :class:`.Operator` is created so it can be adjusted
@@ -221,7 +221,9 @@ class Operator(LinearOp):
             layout (Layout): If specified this kwarg can be used to specify a
                 particular layout to use to permute the qubits in the created
                 :class:`.Operator`. If this is specified it will be used instead
-                of a layout contained in the ``circuit`` input.
+                of a layout contained in the ``circuit`` input. If specified
+                the virtual bits in the :class:`~.Layout` must be present in the
+                ``circuit`` input.
         Returns:
             Operator: An operator representing the input circuit
         """
@@ -230,15 +232,23 @@ class Operator(LinearOp):
         if layout is None:
             if not ignore_set_layout:
                 layout = getattr(circuit, "_layout", None)
+        else:
+            from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+
+            layout = TranspileLayout(
+                initial_layout=layout,
+                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+            )
         qargs = None
         # If there was a layout specified (either from the circuit
         # or via user input) use that to set qargs to permute qubits
         # based on that layout
         if layout is not None:
-            qargs = {
-                phys: circuit.find_bit(bit).index
-                for phys, bit in layout.get_physical_bits().items()
-            }
+            physical_to_virtual = layout.initial_layout.get_physical_bits()
+            qargs = [
+                layout.input_qubit_mapping[physical_to_virtual[physical_bit]]
+                for physical_bit in range(len(physical_to_virtual))
+            ]
         # Convert circuit to an instruction
         instruction = circuit.to_instruction()
         op._append_instruction(instruction, qargs=qargs)
@@ -459,6 +469,10 @@ class Operator(LinearOp):
         )
         ret._op_shape = self._op_shape.reverse()
         return ret
+
+    def to_matrix(self):
+        """Convert operator to NumPy matrix."""
+        return self.data
 
     @classmethod
     def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
