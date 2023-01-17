@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -69,20 +69,14 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
         qasm_simulator = QuantumInstance(
             self._qasm, shots=1024, seed_simulator=self.seed, seed_transpiler=self.seed
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            vqe = VQE(
-                ansatz=wavefunction,
-                optimizer=optimizer,
-                max_evals_grouped=1,
-                quantum_instance=qasm_simulator,
-            )
+        vqe = VQE(
+            ansatz=wavefunction,
+            optimizer=optimizer,
+            max_evals_grouped=1,
+            quantum_instance=qasm_simulator,
+        )
 
-            result = vqe.compute_minimum_eigenvalue(operator=h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
+        result = vqe.compute_minimum_eigenvalue(operator=h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
     def test_run_circuit_oracle(self):
@@ -93,7 +87,7 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
         qi = QuantumInstance(
             self._provider.get_backend("fake_yorktown"), seed_simulator=12, seed_transpiler=32
         )
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
@@ -108,7 +102,7 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
         qi = QuantumInstance(
             self._provider.get_backend("fake_yorktown"), seed_simulator=12, seed_transpiler=32
         )
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
