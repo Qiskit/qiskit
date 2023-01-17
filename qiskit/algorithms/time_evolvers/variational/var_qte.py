@@ -266,5 +266,5 @@ class VarQTE(ABC):
     def _validate_aux_ops(self, evolution_problem: TimeEvolutionProblem) -> None:
         if evolution_problem.aux_operators is not None and self.estimator is None:
             raise ValueError(
-                "aux_operators where provided for evaluations but no ``estimator`` " "was provided."
+                "aux_operators were provided for evaluations but no ``estimator`` was provided."
             )
