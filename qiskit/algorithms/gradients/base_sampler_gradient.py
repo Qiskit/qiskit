@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -133,7 +133,7 @@ class BaseSamplerGradient(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of the specified
+            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
             supported_gates: The supported gates used to transpile the circuit.
 
@@ -172,7 +172,7 @@ class BaseSamplerGradient(ABC):
             results: The results of the gradient of the gradient circuits.
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of the specified
+            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
 
         Returns:
@@ -230,7 +230,7 @@ class BaseSamplerGradient(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
+            parameter_sets: The Sequence of Sequence of Parameters to calculate only the gradients of
                 the specified parameters. Each Sequence of Parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the gradients of all parameters in
                 each circuit are calculated.
