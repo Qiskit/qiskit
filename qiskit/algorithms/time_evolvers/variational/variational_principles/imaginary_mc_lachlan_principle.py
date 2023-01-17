@@ -21,7 +21,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.primitives import Estimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, QFI, DerivativeType
+from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
 
 from .imaginary_variational_principle import (
     ImaginaryVariationalPrinciple,
@@ -60,7 +60,7 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
             qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator)
 
-        super().__init__(QFI(qgt), gradient)
+        super().__init__(qgt, gradient)
 
     def evolution_gradient(
         self,

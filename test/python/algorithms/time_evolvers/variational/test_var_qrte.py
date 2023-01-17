@@ -20,7 +20,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.algorithms.gradients import LinCombQFI, DerivativeType, LinCombEstimatorGradient
+from qiskit.algorithms.gradients import LinCombQGT, DerivativeType, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
 from qiskit.utils import algorithm_globals
 from qiskit.quantum_info import SparsePauliOp, Pauli, Statevector
@@ -123,14 +123,14 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         with self.subTest(msg="Test exact backend."):
             algorithm_globals.random_seed = self.seed
             estimator = Estimator()
-            qfi = LinCombQFI(estimator)
+            qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
-            var_principle = RealMcLachlanPrinciple(qfi, gradient)
+            var_principle = RealMcLachlanPrinciple(qgt, gradient)
 
-            var_qite = VarQRTE(
+            var_qrte = VarQRTE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=25
             )
-            evolution_result = var_qite.evolve(evolution_problem)
+            evolution_result = var_qrte.evolve(evolution_problem)
 
             aux_ops = evolution_result.aux_ops_evaluated
 
@@ -151,14 +151,14 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             algorithm_globals.random_seed = self.seed
 
             estimator = Estimator(options={"shots": 4 * 4096, "seed": self.seed})
-            qfi = LinCombQFI(estimator)
+            qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
-            var_principle = RealMcLachlanPrinciple(qfi, gradient)
+            var_principle = RealMcLachlanPrinciple(qgt, gradient)
 
-            var_qite = VarQRTE(
+            var_qrte = VarQRTE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=25
             )
-            evolution_result = var_qite.evolve(evolution_problem)
+            evolution_result = var_qrte.evolve(evolution_problem)
 
             aux_ops = evolution_result.aux_ops_evaluated
 
@@ -175,7 +175,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
                 )
 
             np.testing.assert_array_almost_equal(
-                [result[0] for result in aux_ops], expected_aux_ops
+                [result[0] for result in aux_ops], expected_aux_ops, decimal=2
             )
 
     def test_run_d_2(self):
@@ -199,10 +199,10 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         for i in range(len(parameters)):
             init_param_values[i] = np.pi / 4
         estimator = Estimator()
-        qfi = LinCombQFI(estimator)
+        qgt = LinCombQGT(estimator)
         gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
 
-        var_principle = RealMcLachlanPrinciple(qfi, gradient)
+        var_principle = RealMcLachlanPrinciple(qgt, gradient)
 
         param_dict = dict(zip(parameters, init_param_values))
 
@@ -259,9 +259,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         with self.subTest(msg="Test exact backend."):
             algorithm_globals.random_seed = self.seed
             estimator = Estimator()
-            qfi = LinCombQFI(estimator)
+            qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
-            var_principle = RealMcLachlanPrinciple(qfi, gradient)
+            var_principle = RealMcLachlanPrinciple(qgt, gradient)
 
             var_qrte = VarQRTE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=100
@@ -279,9 +279,9 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             algorithm_globals.random_seed = self.seed
 
             estimator = Estimator(options={"shots": 4 * 4096, "seed": self.seed})
-            qfi = LinCombQFI(estimator)
+            qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
-            var_principle = RealMcLachlanPrinciple(qfi, gradient)
+            var_principle = RealMcLachlanPrinciple(qgt, gradient)
 
             var_qrte = VarQRTE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=100

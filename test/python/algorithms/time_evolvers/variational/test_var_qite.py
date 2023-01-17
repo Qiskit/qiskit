@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.algorithms.gradients import LinCombQFI, LinCombEstimatorGradient
+from qiskit.algorithms.gradients import LinCombQGT, LinCombEstimatorGradient
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp, Pauli
 from qiskit.utils import algorithm_globals
@@ -81,20 +81,20 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
         thetas_expected_shots = [
             0.962539564367932,
             1.87923124299411,
-            2.73858644614403,
-            2.70302069584063,
-            2.19579712028353,
+            2.721576354971394,
+            2.6710294109655432,
+            2.1574398860715926,
             1.65846084870719,
-            1.980000290603,
-            1.97877634492621,
+            1.872970698074877,
+            1.9438954933172055,
         ]
 
         with self.subTest(msg="Test exact backend."):
             algorithm_globals.random_seed = self.seed
             estimator = Estimator()
-            qfi = LinCombQFI(estimator)
+            qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator)
-            var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
+            var_principle = ImaginaryMcLachlanPrinciple(qgt, gradient)
 
             var_qite = VarQITE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=25
@@ -120,9 +120,9 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
             algorithm_globals.random_seed = self.seed
 
             estimator = Estimator(options={"shots": 4096, "seed": self.seed})
-            qfi = LinCombQFI(estimator)
+            qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator)
-            var_principle = ImaginaryMcLachlanPrinciple(qfi, gradient)
+            var_principle = ImaginaryMcLachlanPrinciple(qgt, gradient)
 
             var_qite = VarQITE(
                 ansatz, init_param_values, var_principle, estimator, num_timesteps=25
@@ -133,7 +133,7 @@ class TestVarQITE(QiskitAlgorithmsTestCase):
 
             parameter_values = evolution_result.parameter_values[-1]
 
-            expected_aux_ops = (-0.200069, 0.269665)
+            expected_aux_ops = (-0.220271, 0.266539)
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(

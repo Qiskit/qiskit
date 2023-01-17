@@ -23,7 +23,7 @@ from qiskit.circuit import Parameter
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, QFI, DerivativeType
+from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
 
 from .real_variational_principle import (
     RealVariationalPrinciple,
@@ -61,7 +61,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
             qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
 
-        super().__init__(QFI(qgt), gradient)
+        super().__init__(qgt, gradient)
 
     def evolution_gradient(
         self,

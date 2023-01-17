@@ -24,10 +24,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 if TYPE_CHECKING:
     # pylint: disable=cyclic-import
-    from qiskit.algorithms.gradients import (
-        BaseEstimatorGradient,
-        BaseQFI,
-    )
+    from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT
 
 
 class VariationalPrinciple(ABC):
@@ -36,7 +33,7 @@ class VariationalPrinciple(ABC):
 
     def __init__(
         self,
-        qfi: "BaseQFI" | None = None,
+        qgt: "BaseQGT" | None = None,
         gradient: "BaseEstimatorGradient" | None = None,
     ) -> None:
         """
@@ -44,7 +41,7 @@ class VariationalPrinciple(ABC):
             qfi: Instance of a class used to compute the QFI.
             gradient: Instance of a class used to compute the state gradient.
         """
-        self.qfi = qfi
+        self.qgt = qgt
         self.gradient = gradient
 
     def metric_tensor(self, ansatz: QuantumCircuit, param_values: list[float]) -> np.ndarray:
@@ -63,9 +60,11 @@ class VariationalPrinciple(ABC):
         """
         # pylint: disable=cyclic-import
         from qiskit.algorithms import AlgorithmError
+        from qiskit.algorithms.gradients import DerivativeType
 
+        self.qgt.derivative_type = DerivativeType.REAL
         try:
-            metric_tensor = 0.25 * self.qfi.run([ansatz], [param_values], [None]).result().qfis[0]
+            metric_tensor = self.qgt.run([ansatz], [param_values], [None]).result().qgts[0]
         except Exception as exc:
 
             raise AlgorithmError("The QFI primitive job failed!") from exc
