@@ -1,13 +1,17 @@
 ---
 deprecations:
   - |
-    Deprecated two functions
-    (```~qiskit.visualization.state_visualization.num_to_latex_ket``` and
-    ```~qiskit.visualization.state_visualization.num_to_latex_terms```).
+    Two mostly internal functions in ``qiskit.visualization.state_visualization``,
+    ``num_to_latex_ket`` and ``num_to_latex_terms``, have been deprecated and will
+    be removed no sooner than Qiskit Terra 0.25.  These were old internal worker
+    functions that are no longer used.  For similar functionality, look at Sympy's
+    ``nsimplify`` and ``latex`` functions.
 upgrade:
   - |
-    The latex array drawer (e.g. ```array_to_latex```,
-    ```Statevector.draw('latex')```) now uses the same sympy function as the
+    The LaTeX array drawers (e.g. ``array_to_latex``,
+    ``Statevector.draw('latex')``) now use the same sympy function as the
     ket-convention drawer. This means it may render some numbers differently
-    (e.g. may identify new factors, or rationalize denominators where it did
-    not previously). The default ```precision``` has been changed from 5 to 10.
+    to previous releases, but will provide a more consistent experience.
+    For example, it may identify new factors, or rationalize denominators where
+    it did not previously. The default ``precision`` has been changed from 5 to
+    10.
