@@ -129,7 +129,7 @@ class BaseQGT(ABC):
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > QGT's
                 default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
+                Higher priority setting overrides lower priority setting.
 
         Returns:
             The job object of the QGTs of the expectation values. The i-th result corresponds to

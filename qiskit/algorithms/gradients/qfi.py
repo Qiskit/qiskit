@@ -26,7 +26,7 @@ from qiskit.providers import Options
 from .. import AlgorithmJob
 from .base_qgt import BaseQGT
 from .lin_comb_estimator_gradient import DerivativeType
-from .qgt_result import QGTResult
+from .qfi_result import QFIResult
 
 
 class QFI(ABC):
@@ -62,8 +62,26 @@ class QFI(ABC):
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **options,
-    ) -> QGTResult:
-        """Compute the QFI on the given circuits."""
+    ) -> AlgorithmJob:
+        """Run the job of the QFIs on the given circuits.
+
+        Args:
+            circuits: The list of quantum circuits to compute the QFIs.
+            parameter_values: The list of parameter values to be bound to the circuit.
+            parameters: The sequence of parameters to calculate only the QFIs of
+                the specified parameters. Each sequence of parameters corresponds to a circuit in
+                ``circuits``. Defaults to None, which means that the QFIs of all parameters in
+                each circuit are calculated.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > QFI's
+                default options > QGT's default setting.
+                Higher priority setting overrides lower priority setting.
+
+        Returns:
+            The job object of the QFIs of the expectation values. The i-th result corresponds to
+            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
+        """
+
         if isinstance(circuits, QuantumCircuit):
             # Allow a single circuit to be passed in.
             circuits = (circuits,)
@@ -93,7 +111,7 @@ class QFI(ABC):
         parameter_values: Sequence[Sequence[float]],
         parameter_sets: Sequence[Sequence[Parameter] | None] | None = None,
         **options,
-    ) -> QGTResult:
+    ) -> QFIResult:
         """Compute the QFI on the given circuits."""
         # Set the derivative type to real
         temp_derivative_type, self._qgt.derivative_type = (
@@ -108,21 +126,20 @@ class QFI(ABC):
         except AlgorithmError as exc:
             raise AlgorithmError("Estimator job or gradient job failed.") from exc
 
-        return QGTResult(
-            qgts=[4 * qgt.real for qgt in result.qgts],
-            derivative_type=DerivativeType.REAL,
+        return QFIResult(
+            qfis=[4 * qgt.real for qgt in result.qgts],
             metadata=result.metadata,
             options=result.options,
         )
 
     @property
     def options(self) -> Options:
-        """Return the union of estimator options setting and QGT default options,
-        where, if the same field is set in both, the QGT's default options override
-        the primitive's default setting.
+        """Return the union of QGT's options setting and QFI's default options,
+        where, if the same field is set in both, the QFI's default options override
+        the QGT's default setting.
 
         Returns:
-            The QGT default + estimator options.
+            The QFI default + QGT options.
         """
         return self._get_local_options(self._default_options.__dict__)
 
@@ -136,7 +153,7 @@ class QFI(ABC):
         self._default_options.update_options(**options)
 
     def _get_local_options(self, options: Options) -> Options:
-        """Return the union of the primitive's default setting,
+        """Return the union of the QFI default setting,
         the QGT default options, and the options in the ``run`` method.
         The order of priority is: options in ``run`` method > QFI's default options > QGT's
         default setting.
@@ -145,7 +162,7 @@ class QFI(ABC):
             options: The fields to update the options
 
         Returns:
-            The QFI default + QGT + run options.
+            The QFI default + QGT default + run options.
         """
         opts = copy(self._qgt.options)
         opts.update_options(**options)
