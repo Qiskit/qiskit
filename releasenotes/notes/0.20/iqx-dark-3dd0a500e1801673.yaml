@@ -7,7 +7,7 @@ features:
     backend, the output visualization will use a color scheme similar to the
     the dark mode color scheme used by the IBM Quantum composer. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit.circuit import QuantumCircuit
         from matplotlib.pyplot import show

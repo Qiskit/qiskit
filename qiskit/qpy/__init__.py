@@ -17,14 +17,29 @@ QPY serialization (:mod:`qiskit.qpy`)
 
 .. currentmodule:: qiskit.qpy
 
+QPY is a binary serialization format for :class:`~.QuantumCircuit` and
+:class:`~.ScheduleBlock` objects that is designed to be cross-platform,
+Python version agnostic, and backwards compatible moving forward. QPY should
+be used if you need a mechanism to save or copy between systems a
+:class:`~.QuantumCircuit` or :class:`~.ScheduleBlock` that preserves the full
+Qiskit object structure (except for custom attributes defined outside of
+Qiskit code). This differs from other serialization formats like
+`OpenQASM <https://github.com/openqasm/openqasm>`__ (2.0 or 3.0) which has a
+different abstraction model and can result in a loss of information contained
+in the original circuit (or is unable to represent some aspects of the
+Qiskit objects) or Python's `pickle <https://docs.python.org/3/library/pickle.html>`__
+which will preserve the Qiskit object exactly but will only work for a single Qiskit
+version (it is also
+`potentially insecure <https://docs.python.org/3/library/pickle.html#module-pickle>`__).
+
 *********
 Using QPY
 *********
 
 Using QPY is defined to be straightforward and mirror the user API of the
 serializers in Python's standard library, ``pickle`` and ``json``. There are
-2 user facing functions: :func:`qiskit.circuit.qpy_serialization.dump` and
-:func:`qiskit.circuit.qpy_serialization.load` which are used to dump QPY data
+2 user facing functions: :func:`qiskit.qpy.dump` and
+:func:`qiskit.qpy.load` which are used to dump QPY data
 to a file object and load circuits from QPY data in a file object respectively.
 For example::
 
@@ -41,6 +56,17 @@ For example::
 
     with open('bell.qpy', 'rb') as fd:
         new_qc = qpy.load(fd)[0]
+
+The :func:`qiskit.qpy.dump` function also lets you
+include multiple circuits in a single QPY file::
+
+    with open('twenty_bells.qpy', 'wb') as fd:
+        qpy.dump([qc] * 20, fd)
+
+and then loading that file will return a list with all the circuits
+
+    with open('twenty_bells.qpy', 'rb') as fd:
+        twenty_new_bells = qpy.load(fd)
 
 API documentation
 =================
@@ -99,6 +125,33 @@ Each individual circuit is composed of the following parts:
 There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
+
+.. _qpy_version_6:
+
+Version 6
+=========
+
+Version 6 adds support for :class:`.~ScalableSymbolicPulse`. These objects are saved and read
+like `SymbolicPulse` objects, and the class name is added to the data to correctly handle
+the class selection.
+
+`SymbolicPulse` block now starts with SYMBOLIC_PULSE_V2 header:
+
+.. code-block:: c
+
+    struct {
+        uint16_t class_name_size;
+        uint16_t type_size;
+        uint16_t envelope_size;
+        uint16_t constraints_size;
+        uint16_t valid_amp_conditions_size;
+        _bool amp_limited;
+    }
+
+The only change compared to :ref:`qpy_version_5` is the addition of `class_name_size`. The header
+is then immediately followed by ``class_name_size`` utf8 bytes with the name of the class. Currently,
+either `SymbolicPulse` or `ScalableSymbolicPulse` are supported. The rest of the data is then
+identical to :ref:`qpy_version_5`.
 
 .. _qpy_version_5:
 
