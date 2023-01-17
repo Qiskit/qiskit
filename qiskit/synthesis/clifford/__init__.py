@@ -16,3 +16,4 @@ from .clifford_decompose_full import synth_clifford_full
 from .clifford_decompose_ag import synth_clifford_ag
 from .clifford_decompose_bm import synth_clifford_bm, _decompose_clifford_1q
 from .clifford_decompose_greedy import synth_clifford_greedy
+from .clifford_decompose_layers import synth_clifford_layers

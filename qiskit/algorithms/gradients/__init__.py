@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -43,13 +43,14 @@ Sampler Gradients
    ParamShiftSamplerGradient
    SPSASamplerGradient
 
-QFI
-===
+Quantum Geometric Tensor
+========================
 .. autosummary::
    :toctree: ../stubs/
 
-   BaseQFI
-   LinCombQFI
+   BaseQGT
+   LinCombQGT
+   QFI
 
 Results
 =======
@@ -59,39 +60,44 @@ Results
 
    EstimatorGradientResult
    QFIResult
+   QGTResult
    SamplerGradientResult
 """
 
 from .base_estimator_gradient import BaseEstimatorGradient
-from .base_qfi import BaseQFI
+from .base_qgt import BaseQGT
 from .base_sampler_gradient import BaseSamplerGradient
 from .estimator_gradient_result import EstimatorGradientResult
 from .finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
 from .finite_diff_sampler_gradient import FiniteDiffSamplerGradient
 from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
-from .lin_comb_qfi import LinCombQFI
+from .lin_comb_qgt import LinCombQGT
 from .lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift_sampler_gradient import ParamShiftSamplerGradient
+from .qfi import QFI
 from .qfi_result import QFIResult
+from .qgt_result import QGTResult
 from .sampler_gradient_result import SamplerGradientResult
 from .spsa_estimator_gradient import SPSAEstimatorGradient
 from .spsa_sampler_gradient import SPSASamplerGradient
 
 __all__ = [
     "BaseEstimatorGradient",
-    "BaseQFI",
+    "BaseQGT",
     "BaseSamplerGradient",
     "DerivativeType",
     "EstimatorGradientResult",
     "FiniteDiffEstimatorGradient",
     "FiniteDiffSamplerGradient",
     "LinCombEstimatorGradient",
-    "LinCombQFI",
+    "LinCombQGT",
     "LinCombSamplerGradient",
     "ParamShiftEstimatorGradient",
     "ParamShiftSamplerGradient",
+    "QFI",
     "QFIResult",
+    "QGTResult",
     "SamplerGradientResult",
     "SPSAEstimatorGradient",
     "SPSASamplerGradient",

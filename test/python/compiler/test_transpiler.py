@@ -53,7 +53,7 @@ from qiskit.providers.fake_provider import (
     FakeMumbaiV2,
 )
 from qiskit.transpiler import Layout, CouplingMap
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, TransformationPass
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
@@ -1862,3 +1862,40 @@ class TestTranspileParallel(QiskitTestCase):
         for count in counts:
             self.assertTrue(math.isclose(count["0000000000000000"], 500, rel_tol=0.1))
             self.assertTrue(math.isclose(count["0111111111111111"], 500, rel_tol=0.1))
+
+    def test_parallel_dispatch_lazy_cal_loading(self):
+        """Test adding calibration by lazy loading in parallel environment."""
+
+        class TestAddCalibration(TransformationPass):
+            """A fake pass to test lazy pulse qobj loading in parallel environment."""
+
+            def __init__(self, target):
+                """Instantiate with target."""
+                super().__init__()
+                self.target = target
+
+            def run(self, dag):
+                """Run test pass that adds calibration of SX gate of qubit 0."""
+                dag.add_calibration(
+                    "sx",
+                    qubits=(0,),
+                    schedule=self.target["sx"][(0,)].calibration,  # PulseQobj is parsed here
+                )
+                return dag
+
+        backend = FakeMumbaiV2()
+
+        # This target has PulseQobj entries that provides a serialized schedule data
+        pass_ = TestAddCalibration(backend.target)
+        pm = PassManager(passes=[pass_])
+        self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
+
+        qc = QuantumCircuit(1)
+        qc.sx(0)
+        qc_copied = [qc for _ in range(10)]
+
+        qcs_cal_added = pm.run(qc_copied)
+        ref_cal = backend.target["sx"][(0,)].calibration
+        for qc_test in qcs_cal_added:
+            added_cal = qc_test.calibrations["sx"][((0,), tuple())]
+            self.assertEqual(added_cal, ref_cal)

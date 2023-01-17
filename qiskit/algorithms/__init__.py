@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -77,7 +77,7 @@ Eigen Solvers
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain. These algorithms are deprecated.
+knowledge to do this in that application domain. These algorithms are pending deprecation.
 One should instead make use of the Eigensolver classes in the section below, which leverage
 Runtime primitives.
 
@@ -111,7 +111,7 @@ knowledge to do this in that application domain.
 Evolvers
 --------
 
-Deprecated: This package has been superseded by the package below. It will be
+Pending deprecation: This package has been superseded by the package below. It will be
 deprecated in a future release and subsequently removed after that:
 
 `Time Evolvers`_
@@ -216,7 +216,7 @@ Minimum Eigen Solvers
 ---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
-These algorithms are deprecated. One should instead make use of the
+These algorithms are pending deprecation. One should instead make use of the
 Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
 
 .. autosummary::
