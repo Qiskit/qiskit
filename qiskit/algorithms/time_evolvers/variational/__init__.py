@@ -23,34 +23,34 @@ principle chosen by a user.
 
 Examples:
 
-.. code-block::python
+    .. code-block::python
 
-    from qiskit.algorithms import TimeEvolutionProblem, VarQITE
-    from qiskit.algorithms.time_evolvers.variational import ImaginaryMcLachlanPrinciple
-    from qiskit.circuit.library import EfficientSU2
-    from qiskit.quantum_info import SparsePauliOp
-    import numpy as np
+        from qiskit.algorithms import TimeEvolutionProblem, VarQITE
+        from qiskit.algorithms.time_evolvers.variational import ImaginaryMcLachlanPrinciple
+        from qiskit.circuit.library import EfficientSU2
+        from qiskit.quantum_info import SparsePauliOp
+        import numpy as np
 
-    observable = SparsePauliOp.from_list(
-        [
-            ("II", 0.2252),
-            ("ZZ", 0.5716),
-            ("IZ", 0.3435),
-            ("ZI", -0.4347),
-            ("YY", 0.091),
-            ("XX", 0.091),
-        ]
-    )
+        observable = SparsePauliOp.from_list(
+            [
+                ("II", 0.2252),
+                ("ZZ", 0.5716),
+                ("IZ", 0.3435),
+                ("ZI", -0.4347),
+                ("YY", 0.091),
+                ("XX", 0.091),
+            ]
+        )
 
-    ansatz = EfficientSU2(observable.num_qubits, reps=1)
-    init_param_values = np.zeros(len(ansatz.parameters))
-    for i in range(len(ansatz.parameters)):
-        init_param_values[i] = np.pi / 2
-    var_principle = ImaginaryMcLachlanPrinciple()
-    time = 1
-    evolution_problem = TimeEvolutionProblem(observable, time)
-    var_qite = VarQITE(ansatz, var_principle, init_param_values)
-    evolution_result = var_qite.evolve(evolution_problem)
+        ansatz = EfficientSU2(observable.num_qubits, reps=1)
+        init_param_values = np.zeros(len(ansatz.parameters))
+        for i in range(len(ansatz.parameters)):
+            init_param_values[i] = np.pi / 2
+        var_principle = ImaginaryMcLachlanPrinciple()
+        time = 1
+        evolution_problem = TimeEvolutionProblem(observable, time)
+        var_qite = VarQITE(ansatz, var_principle, init_param_values)
+        evolution_result = var_qite.evolve(evolution_problem)
 
 .. currentmodule:: qiskit.algorithms.time_evolvers.variational
 
