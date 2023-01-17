@@ -99,9 +99,7 @@ class VarQTE(ABC):
         self.num_instability_tol = num_instability_tol
 
     def evolve(self, evolution_problem: TimeEvolutionProblem) -> VarQTEResult:
-        """
-        Apply Variational Quantum Time Evolution (VarQTE) w.r.t. the given
-        operator.
+        """Apply Variational Quantum Time Evolution w.r.t. the given operator.
 
         Args:
             evolution_problem: Instance defining an evolution problem.
