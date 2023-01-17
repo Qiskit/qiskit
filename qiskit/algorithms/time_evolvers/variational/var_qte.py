@@ -20,7 +20,6 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms import estimate_observables
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -35,6 +34,8 @@ from .variational_principles.variational_principle import VariationalPrinciple
 from .var_qte_result import VarQTEResult
 
 from ..time_evolution_problem import TimeEvolutionProblem
+
+from ...observables_evaluator import estimate_observables
 
 
 class VarQTE(ABC):

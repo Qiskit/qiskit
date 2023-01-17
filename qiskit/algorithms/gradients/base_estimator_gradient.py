@@ -22,7 +22,6 @@ from copy import copy
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -39,6 +38,8 @@ from .utils import (
     _make_gradient_parameter_set,
     _make_gradient_parameter_values,
 )
+
+from ..algorithm_job import AlgorithmJob
 
 
 class BaseEstimatorGradient(ABC):

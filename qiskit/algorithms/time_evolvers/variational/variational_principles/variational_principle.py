@@ -18,12 +18,11 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit import QuantumCircuit
-
-from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
 from qiskit.circuit import Parameter
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from qiskit.algorithms.exceptions import AlgorithmError
+from ....exceptions import AlgorithmError
+from ....gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
 
 
 class VariationalPrinciple(ABC):

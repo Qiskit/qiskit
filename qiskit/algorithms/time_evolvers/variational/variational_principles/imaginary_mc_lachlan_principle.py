@@ -21,16 +21,17 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.primitives import Estimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.algorithms.gradients import (
+
+from .imaginary_variational_principle import ImaginaryVariationalPrinciple
+
+from ....exceptions import AlgorithmError
+from ....gradients import (
     BaseEstimatorGradient,
     BaseQGT,
     DerivativeType,
     LinCombQGT,
     LinCombEstimatorGradient,
 )
-
-from .imaginary_variational_principle import ImaginaryVariationalPrinciple
-from ....exceptions import AlgorithmError
 
 
 class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):

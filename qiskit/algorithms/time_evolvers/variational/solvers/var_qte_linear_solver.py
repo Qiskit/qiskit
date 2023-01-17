@@ -19,13 +19,13 @@ from typing import Callable
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.time_evolvers.variational.solvers.ode.assign_params import assign_parameters
-from qiskit.algorithms.time_evolvers.variational.variational_principles.variational_principle import (
-    VariationalPrinciple,
-)
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+from .ode.assign_params import assign_parameters
+
+from ..variational_principles import VariationalPrinciple
 
 
 class VarQTELinearSolver:
