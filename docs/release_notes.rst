@@ -22,6 +22,93 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.39.5
+*************
+
+.. _Release Notes_Terra_0.22.4:
+
+Terra 0.22.4
+============
+
+.. _Release Notes_Terra_0.22.4_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.22.4-cddd573e87bffb9c.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+Qiskit Terra 0.22.4 is a minor bugfix release, fixing some bugs identified in the 0.22 series.
+
+.. _Release Notes_Terra_0.22.4_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/fix-backend-sampler-890cbcf913667b08.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+- Fixed a bug in :class:`~.BackendSampler` that raised an error
+  if its :meth:`~.BackendSampler.run` method was called two times sequentially.
+
+.. releasenotes/notes/fix-composedop-08e14db184c637c8.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+- Fixed two bugs in the :class:`.ComposedOp` where the :meth:`.ComposedOp.to_matrix`
+  method did not provide the correct results for compositions with :class:`.StateFn`
+  and for compositions with a global coefficient.
+  Fixed `#9283 <https://github.com/Qiskit/qiskit-terra/issues/9283>`__.
+
+.. releasenotes/notes/fix-primitives-numpy-parameters-1589d997864dfb37.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+- Fixed the problem in which primitives, :class:`.Sampler` and :class:`.Estimator`, did not
+  work when passed a circuit with ``numpy.ndarray`` as a parameter.
+
+.. releasenotes/notes/fix-sampling-vqe-aggregation-107e3983147c57bc.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+- Fixed a bug in :class:`.SamplingVQE` where the ``aggregation`` argument did not have an effect.
+  Now the aggregation function and, with it, the CVaR expectation value can correctly be specified.
+
+.. releasenotes/notes/fix-sampling-vqe-performance-b5bfe92c2d3e10ab.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+- Fixed a performance bug where :class:`.SamplingVQE` evaluated the energies of eigenstates
+  in a slow manner.
+
+.. releasenotes/notes/fix-vqd-betas-async-df99ab6e26e9da1e.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+- Fixed the autoevaluation of the beta parameters in
+  :class:`~qiskit.algorithms.eigensolvers.VQD`, added support for
+  :class:`~qiskit.quantum_info.SparsePauliOp` inputs, and fixed
+  the energy evaluation function to leverage the asynchronous execution
+  of primitives, by only retrieving the job results after both
+  jobs have been submitted.
+
+.. releasenotes/notes/probabilities_dict_bug_fix-aac3b3d3853828dc.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+- Fixed an issue with the :meth:`.Statevector.probabilities_dict` and :meth:`.DensityMatrix.probabilities_dict`
+  methods where they would return incorrect results for non-qubit systems when the ``qargs`` argument was
+  specified.
+  Fixed `#9210 <https://github.com/Qiskit/qiskit-terra/issues/9210>`__
+
+.. releasenotes/notes/wrap-method-311-147d254d4b40e805.yaml @ b'23ec9022185161a48ab7726c3549d452ac9074cf'
+
+- Fixed handling of some ``classmethod``\ s by
+  :func:`~qiskit.utils.wrap_method` in Python 3.11. Previously, in Python
+  3.11, ``wrap_method`` would wrap the unbound function associated with the
+  ``classmethod`` and then fail when invoked because the class object usually
+  bound to the ``classmethod`` was not passed to the function. Starting in
+  Python 3.11.1, this issue affected :class:`~qiskit.test.QiskitTestCase`,
+  preventing it from being imported by other test code. Fixed `#9291
+  <https://github.com/Qiskit/qiskit-terra/issues/9291>`__.
+
+Aer 0.11.2
+==========
+
+No change
+
+IBM Q Provider 0.19.2
+=====================
+
+No change
+
+*************
 Qiskit 0.39.4
 *************
 
