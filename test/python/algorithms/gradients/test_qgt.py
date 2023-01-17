@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import DerivativeType, LinCombQFI, LinCombQGT
+from qiskit.algorithms.gradients import DerivativeType, LinCombQGT, QFI
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.circuit.parametervector import ParameterVector
@@ -267,6 +267,7 @@ class TestQFI(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.estimator = Estimator()
+        self.qgt = LinCombQGT(self.estimator)
 
     def test_qfi(self):
         """Test if the quantum fisher information calculation is correct for a simple test case.
@@ -282,7 +283,7 @@ class TestQFI(QiskitTestCase):
         param_list = [[np.pi / 4, 0.1], [np.pi, 0.1], [np.pi / 2, 0.1]]
         correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
 
-        qfi = LinCombQFI(self.estimator)
+        qfi = QFI(self.qgt)
         for i, param in enumerate(param_list):
             qgts = qfi.run([qc], [param]).result().qgts
             np.testing.assert_allclose(qgts[0], correct_values[i], atol=1e-3)
@@ -299,7 +300,8 @@ class TestQFI(QiskitTestCase):
         param = [np.pi / 4, 0.1]
         # test for different values
         correct_values = [[1, 0], [0, 1]]
-        qfi = LinCombQFI(self.estimator, phase_fix=False)
+        qgt = LinCombQGT(self.estimator, phase_fix=False)
+        qfi = QFI(qgt)
         qgt_result = qfi.run([qc], [param]).result().qgts
         np.testing.assert_allclose(qgt_result[0], correct_values, atol=1e-3)
 
@@ -335,9 +337,45 @@ class TestQFI(QiskitTestCase):
         reference = np.array([[16.0, -5.551], [-5.551, 18.497]])
         param = [0.4, 0.69]
 
-        qfi = LinCombQFI(self.estimator)
+        qfi = QFI(self.qgt)
         qgt_result = qfi.run([ansatz], [param]).result().qgts
         np.testing.assert_array_almost_equal(qgt_result[0], reference, decimal=3)
+
+    def test_options(self):
+        """Test QFI's options"""
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.rx(a, 0)
+        qgt = LinCombQGT(estimator=self.estimator, options={"shots": 100})
+
+        with self.subTest("QGT"):
+            qfi = QFI(qgt=qgt)
+            options = qfi.options
+            result = qfi.run([qc], [[1]]).result()
+            self.assertEqual(result.options.get("shots"), 100)
+            self.assertEqual(options.get("shots"), 100)
+
+        with self.subTest("QFI init"):
+            qfi = QFI(qgt=qgt, options={"shots": 200})
+            result = qfi.run([qc], [[1]]).result()
+            options = qfi.options
+            self.assertEqual(result.options.get("shots"), 200)
+            self.assertEqual(options.get("shots"), 200)
+
+        with self.subTest("QFI update"):
+            qfi = QFI(qgt, options={"shots": 200})
+            qfi.update_default_options(shots=100)
+            options = qfi.options
+            result = qfi.run([qc], [[1]]).result()
+            self.assertEqual(result.options.get("shots"), 100)
+            self.assertEqual(options.get("shots"), 100)
+
+        with self.subTest("QFI run"):
+            qfi = QFI(qgt=qgt, options={"shots": 200})
+            result = qfi.run([qc], [[0]], shots=300).result()
+            options = qfi.options
+            self.assertEqual(result.options.get("shots"), 300)
+            self.assertEqual(options.get("shots"), 200)
 
 
 if __name__ == "__main__":

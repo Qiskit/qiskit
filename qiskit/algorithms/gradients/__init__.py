@@ -50,7 +50,7 @@ QFI
 
    BaseQGT
    LinCombQGT
-   LinCombQFI
+   QFI
 
 Results
 =======
@@ -70,11 +70,11 @@ from .estimator_gradient_result import EstimatorGradientResult
 from .finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
 from .finite_diff_sampler_gradient import FiniteDiffSamplerGradient
 from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
-from .lin_comb_qfi import LinCombQFI
 from .lin_comb_qgt import LinCombQGT
 from .lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift_sampler_gradient import ParamShiftSamplerGradient
+from .qfi import QFI
 from .qgt_result import QGTResult
 from .sampler_gradient_result import SamplerGradientResult
 from .spsa_estimator_gradient import SPSAEstimatorGradient
@@ -89,11 +89,11 @@ __all__ = [
     "FiniteDiffEstimatorGradient",
     "FiniteDiffSamplerGradient",
     "LinCombEstimatorGradient",
-    "LinCombQFI",
     "LinCombQGT",
     "LinCombSamplerGradient",
     "ParamShiftEstimatorGradient",
     "ParamShiftSamplerGradient",
+    "QFI",
     "QGTResult",
     "SamplerGradientResult",
     "SPSAEstimatorGradient",
