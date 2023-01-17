@@ -126,7 +126,7 @@ def derive_circuit(
     # this is added as useful user-warning, since sometimes ``ParameterExpression``s are
     # passed around instead of ``Parameter``s
     if not isinstance(parameter, Parameter):
-        raise ValueError(f"parameter must be None or of type Parameter, not {type(parameter)}.")
+        raise ValueError(f"parameter must be of type Parameter, not {type(parameter)}.")
 
     if parameter not in circuit.parameters:
         raise ValueError(f"The parameter {parameter} is not in this circuit.")
