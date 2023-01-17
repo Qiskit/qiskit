@@ -130,52 +130,6 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
    EvolutionResult
    EvolutionProblem
 
-
-Variational Quantum Time Evolution
-----------------------------------
-
-Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   time_evolvers.variational
-
-
-Time Evolvers
--------------
-
-Primitives-enabled algorithms to evolve quantum states in time. Both real and imaginary time
-evolution is possible with algorithms that support them. For machine learning, Quantum Imaginary
-Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks for example.
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   RealTimeEvolver
-   ImaginaryTimeEvolver
-   TimeEvolutionResult
-   TimeEvolutionProblem
-   PVQD
-   PVQDResult
-   SciPyImaginaryEvolver
-   SciPyRealEvolver
-   VarQITE
-   VarQRTE
-
-
-Trotterization-based Quantum Real Time Evolution
-------------------------------------------------
-
-Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   time_evolvers.trotterization
-
-
 Factorizers
 -----------
 
@@ -283,6 +237,49 @@ Algorithms that compute the fidelity of pairs of quantum states.
 
    state_fidelities
 
+Variational Quantum Time Evolution
+----------------------------------
+
+Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.variational
+
+
+Time Evolvers
+-------------
+
+Primitives-enabled algorithms to evolve quantum states in time. Both real and imaginary time
+evolution is possible with algorithms that support them. For machine learning, Quantum Imaginary
+Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks for example.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   RealTimeEvolver
+   ImaginaryTimeEvolver
+   TimeEvolutionResult
+   TimeEvolutionProblem
+   PVQD
+   PVQDResult
+   SciPyImaginaryEvolver
+   SciPyRealEvolver
+   VarQITE
+   VarQRTE
+
+
+Trotterization-based Quantum Real Time Evolution
+------------------------------------------------
+
+Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.trotterization
 
 Exceptions
 ----------

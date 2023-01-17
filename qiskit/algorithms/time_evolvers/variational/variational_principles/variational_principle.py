@@ -18,12 +18,12 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 from qiskit import QuantumCircuit
+
 from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
 from qiskit.circuit import Parameter
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from ....exceptions import AlgorithmError
-
 
 class VariationalPrinciple(ABC):
     """A Variational Principle class. It determines the time propagation of parameters in a

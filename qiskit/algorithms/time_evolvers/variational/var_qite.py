@@ -21,10 +21,12 @@ from scipy.integrate import OdeSolver
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.primitives import BaseEstimator
+
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .var_qte import VarQTE
-from ..imaginary_time_evolver import ImaginaryTimeEvolver
 from .variational_principles import ImaginaryVariationalPrinciple, ImaginaryMcLachlanPrinciple
+
+from ..imaginary_time_evolver import ImaginaryTimeEvolver
 
 
 class VarQITE(VarQTE, ImaginaryTimeEvolver):

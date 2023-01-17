@@ -20,26 +20,21 @@ import numpy as np
 from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms import estimate_observables
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
 from .solvers.ode.ode_function_factory import OdeFunctionFactory
-from .solvers.var_qte_linear_solver import (
-    VarQTELinearSolver,
-)
-from .variational_principles.variational_principle import (
-    VariationalPrinciple,
-)
-from .solvers.ode.var_qte_ode_solver import (
-    VarQTEOdeSolver,
-)
-from ..time_evolution_problem import TimeEvolutionProblem
+from .solvers.ode.var_qte_ode_solver import VarQTEOdeSolver
+from .solvers.var_qte_linear_solver import VarQTELinearSolver
+
+from .variational_principles.variational_principle import VariationalPrinciple
 from .var_qte_result import VarQTEResult
 
-from ... import estimate_observables
-
+from ..time_evolution_problem import TimeEvolutionProblem
 
 class VarQTE(ABC):
     """Variational Quantum Time Evolution.
