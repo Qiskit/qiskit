@@ -118,7 +118,7 @@ class TestVarQTEOdeSolver(QiskitAlgorithmsTestCase):
             num_timesteps=25,
         )
 
-        result = var_qte_ode_solver.run(time)
+        result, _, _ = var_qte_ode_solver.run(time)
 
         np.testing.assert_array_almost_equal(result, expected_result, decimal=4)
 
