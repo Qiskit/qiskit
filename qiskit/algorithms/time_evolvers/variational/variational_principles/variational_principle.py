@@ -23,7 +23,8 @@ from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, Derivati
 from qiskit.circuit import Parameter
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from ....exceptions import AlgorithmError
+from qiskit.algorithms.exceptions import AlgorithmError
+
 
 class VariationalPrinciple(ABC):
     """A Variational Principle class. It determines the time propagation of parameters in a
