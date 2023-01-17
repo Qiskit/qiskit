@@ -1,6 +1,7 @@
 ---
 fixes:
   - |
-    When the class :class:`~.SPSA` was using `np.split` (from NumPy) for splitting the jobs in even batches,
-    resulting in an exception if a perfectly even split was not possible. Now, it uses `np.array_split`, which is safer
-    for these cases.
+    Fixed an issue with the :class:`~.SPSA` class where internally it was
+    trying to batch jobs into even sized batches which would raise an
+    exception if creating even batches was not possible. This has been fixed
+    so it will always batch jobs successfully even if they're not evenly sized.

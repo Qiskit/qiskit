@@ -13,14 +13,21 @@
 """Test the Stochastic Swap pass"""
 
 import unittest
+
+import numpy.random
+
 from ddt import ddt, data
 from qiskit.transpiler.passes import StochasticSwap
-from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler import CouplingMap, PassManager, Layout
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.utils import CheckMap
+from qiskit.circuit.random import random_circuit
+from qiskit.providers.fake_provider import FakeMumbai
+from qiskit.compiler.transpiler import transpile
+from qiskit.circuit import ControlFlowOp, Clbit
 
 
 @ddt
@@ -569,48 +576,51 @@ class TestStochasticSwap(QiskitTestCase):
         after = circuit_to_dag(after)
         self.assertEqual(expected_dag, after)
 
-    def test_controlflow_pre_if_else_route(self):
+
+@ddt
+class TestStochasticSwapControlFlow(QiskitTestCase):
+    """Tests for control flow in stochastic swap."""
+
+    def test_pre_if_else_route(self):
         """test swap with if else controlflow construct"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
         creg = ClassicalRegister(num_qubits)
-        coupling = CouplingMap([(i, i + 1) for i in range(num_qubits - 1)])
+        coupling = CouplingMap.from_line(num_qubits)
         qc = QuantumCircuit(qreg, creg)
         qc.h(0)
         qc.cx(0, 2)
         qc.measure(2, 2)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[2]])
         true_body.x(3)
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[2]])
         false_body.x(4)
-        qc.if_else((creg[2], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[2], 0), true_body, false_body, qreg, creg[[2]])
         qc.barrier(qreg)
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=82).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
         expected.swap(0, 1)
         expected.cx(1, 2)
         expected.measure(2, 2)
-        eqreg = QuantumRegister(2, name="q")
-        etrue_body = QuantumCircuit(eqreg, creg)
+        etrue_body = QuantumCircuit(qreg[[3, 4]], creg[[2]])
         etrue_body.x(0)
-        efalse_body = QuantumCircuit(eqreg, creg)
+        efalse_body = QuantumCircuit(qreg[[3, 4]], creg[[2]])
         efalse_body.x(1)
         new_order = [1, 0, 2, 3, 4]
-        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg[[3, 4]], creg)
+        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg[[3, 4]], creg[[2]])
         expected.barrier(qreg)
         expected.measure(qreg, creg[new_order])
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-    def test_controlflow_pre_if_else_route_post_x(self):
+    def test_pre_if_else_route_post_x(self):
         """test swap with if else controlflow construct; pre-cx and post x"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
@@ -620,18 +630,20 @@ class TestStochasticSwap(QiskitTestCase):
         qc.h(0)
         qc.cx(0, 2)
         qc.measure(2, 2)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.x(3)
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
         false_body.x(4)
-        qc.if_else((creg[2], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[2], 0), true_body, false_body, qreg, creg[[0]])
         qc.x(1)
         qc.barrier(qreg)
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=431).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
@@ -639,22 +651,17 @@ class TestStochasticSwap(QiskitTestCase):
         expected.cx(0, 1)
         expected.measure(1, 2)
         new_order = [0, 2, 1, 3, 4]
-        eqreg = QuantumRegister(2, "q")
-        etrue_body = QuantumCircuit(eqreg, creg)
+        etrue_body = QuantumCircuit(qreg[[3, 4]], creg[[0]])
         etrue_body.x(0)
-        efalse_body = QuantumCircuit(eqreg, creg)
+        efalse_body = QuantumCircuit(qreg[[3, 4]], creg[[0]])
         efalse_body.x(1)
-        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg[[3, 4]], creg)
+        expected.if_else((creg[2], 0), etrue_body, efalse_body, qreg[[3, 4]], creg[[0]])
         expected.x(2)
         expected.barrier(qreg)
         expected.measure(qreg, creg[new_order])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
-
-    def test_controlflow_post_if_else_route(self):
+    def test_post_if_else_route(self):
         """test swap with if else controlflow construct; post cx"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
@@ -663,12 +670,12 @@ class TestStochasticSwap(QiskitTestCase):
         qc = QuantumCircuit(qreg, creg)
         qc.h(0)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.x(3)
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
         false_body.x(4)
         qc.barrier(qreg)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.barrier(qreg)
         qc.cx(0, 2)
         qc.barrier(qreg)
@@ -676,29 +683,27 @@ class TestStochasticSwap(QiskitTestCase):
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=6508).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
         expected.measure(0, 0)
-        eqreg = QuantumRegister(2, "q")
-        etrue_body = QuantumCircuit(eqreg, creg)
+        etrue_body = QuantumCircuit(qreg[[3, 4]], creg[[0]])
         etrue_body.x(0)
-        efalse_body = QuantumCircuit(eqreg, creg)
+        efalse_body = QuantumCircuit(qreg[[3, 4]], creg[[0]])
         efalse_body.x(1)
         expected.barrier(qreg)
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[3, 4]], creg)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[3, 4]], creg[[0]])
         expected.barrier(qreg)
         expected.swap(0, 1)
         expected.cx(1, 2)
         expected.barrier(qreg)
         expected.measure(qreg, creg[[1, 0, 2, 3, 4]])
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-    def test_controlflow_pre_if_else2(self):
+    def test_pre_if_else2(self):
         """test swap with if else controlflow construct; cx in if statement"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
@@ -709,16 +714,18 @@ class TestStochasticSwap(QiskitTestCase):
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.x(0)
-        false_body = QuantumCircuit(qreg, creg)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.barrier(qreg)
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=38).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
@@ -726,21 +733,16 @@ class TestStochasticSwap(QiskitTestCase):
         expected.swap(0, 1)
         expected.cx(1, 2)
         expected.measure(1, 0)
-        eqreg = QuantumRegister(1, "q")
-        etrue_body = QuantumCircuit(eqreg, creg)
+        etrue_body = QuantumCircuit(qreg[[1]], creg[[0]])
         etrue_body.x(0)
-        efalse_body = QuantumCircuit(eqreg, creg)
+        efalse_body = QuantumCircuit(qreg[[1]], creg[[0]])
         new_order = [1, 0, 2, 3, 4]
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1]], creg)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1]], creg[[0]])
         expected.barrier(qreg)
         expected.measure(qreg, creg[new_order])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
-
-    def test_controlflow_intra_if_else_route(self):
+    def test_intra_if_else_route(self):
         """test swap with if else controlflow construct"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
@@ -750,41 +752,39 @@ class TestStochasticSwap(QiskitTestCase):
         qc.h(0)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.cx(0, 2)
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
         false_body.cx(0, 4)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=8).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
         expected.x(1)
         expected.measure(0, 0)
-        etrue_body = QuantumCircuit(qreg, creg)
+        etrue_body = QuantumCircuit(qreg, creg[[0]])
         etrue_body.swap(0, 1)
         etrue_body.cx(1, 2)
         etrue_body.swap(1, 2)
         etrue_body.swap(3, 4)
-        efalse_body = QuantumCircuit(qreg, creg)
+        efalse_body = QuantumCircuit(qreg, creg[[0]])
         efalse_body.swap(0, 1)
         efalse_body.swap(1, 2)
         efalse_body.swap(3, 4)
         efalse_body.cx(2, 3)
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
         new_order = [1, 2, 0, 4, 3]
         expected.measure(qreg, creg[new_order])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
-
-    def test_controlflow_pre_intra_if_else(self):
+    def test_pre_intra_if_else(self):
         """test swap with if else controlflow construct; cx in if statement"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
@@ -795,21 +795,22 @@ class TestStochasticSwap(QiskitTestCase):
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.cx(0, 2)
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
         false_body.cx(0, 4)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=2, trials=20).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
-        eqreg = QuantumRegister(4, "q")
-        etrue_body = QuantumCircuit(eqreg, creg)
-        efalse_body = QuantumCircuit(eqreg, creg)
+        etrue_body = QuantumCircuit(qreg[[1, 2, 3, 4]], creg[[0]])
+        efalse_body = QuantumCircuit(qreg[[1, 2, 3, 4]], creg[[0]])
         expected.h(0)
         expected.x(1)
         expected.swap(0, 1)
@@ -823,31 +824,27 @@ class TestStochasticSwap(QiskitTestCase):
         efalse_body.swap(0, 1)
         efalse_body.swap(2, 3)
         efalse_body.cx(1, 2)
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 2, 3, 4]], creg[[0]])
         expected.measure(qreg, creg[[1, 2, 0, 4, 3]])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
-
-    def test_controlflow_pre_intra_post_if_else(self):
+    def test_pre_intra_post_if_else(self):
         """test swap with if else controlflow construct; cx before, in, and after if
         statement"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
         creg = ClassicalRegister(num_qubits)
-        coupling = CouplingMap([(i, i + 1) for i in range(num_qubits - 1)])
+        coupling = CouplingMap.from_line(num_qubits)
         qc = QuantumCircuit(qreg, creg)
         qc.h(0)
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.cx(0, 2)
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
         false_body.cx(0, 4)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.h(3)
         qc.cx(3, 0)
         qc.barrier()
@@ -855,7 +852,9 @@ class TestStochasticSwap(QiskitTestCase):
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=1).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
@@ -863,30 +862,26 @@ class TestStochasticSwap(QiskitTestCase):
         expected.swap(1, 2)
         expected.cx(0, 1)
         expected.measure(0, 0)
-        etrue_body = QuantumCircuit(qreg, creg)
-        etrue_body.cx(0, 2)
-        etrue_body.swap(0, 2)
+        etrue_body = QuantumCircuit(qreg, creg[[0]])
+        etrue_body.cx(0, 1)
+        etrue_body.swap(0, 1)
         etrue_body.swap(4, 3)
-        etrue_body.swap(1, 3)
-        efalse_body = QuantumCircuit(qreg, creg)
-        efalse_body.swap(0, 2)
+        etrue_body.swap(2, 3)
+        efalse_body = QuantumCircuit(qreg, creg[[0]])
+        efalse_body.swap(0, 1)
         efalse_body.swap(3, 4)
-        efalse_body.swap(1, 3)
-        efalse_body.cx(2, 1)
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[0, 2, 1, 3, 4]], creg)
+        efalse_body.swap(2, 3)
+        efalse_body.cx(1, 2)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[0, 1, 2, 3, 4]], creg[[0]])
         expected.swap(1, 2)
         expected.h(4)
         expected.swap(3, 4)
         expected.cx(3, 2)
         expected.barrier()
         expected.measure(qreg, creg[[2, 4, 0, 3, 1]])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
-
-    def test_controlflow_no_layout_change(self):
+    def test_no_layout_change(self):
         """test controlflow with no layout change needed"""
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
@@ -897,17 +892,19 @@ class TestStochasticSwap(QiskitTestCase):
         qc.cx(0, 2)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.x(2)
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
         false_body.x(4)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.barrier(qreg)
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=23).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
@@ -915,22 +912,17 @@ class TestStochasticSwap(QiskitTestCase):
         expected.swap(1, 2)
         expected.cx(0, 1)
         expected.measure(0, 0)
-        eqreg = QuantumRegister(2, "q")
-        etrue_body = QuantumCircuit(eqreg, creg)
+        etrue_body = QuantumCircuit(qreg[[1, 4]], creg[[0]])
         etrue_body.x(0)
-        efalse_body = QuantumCircuit(eqreg, creg)
+        efalse_body = QuantumCircuit(qreg[[1, 4]], creg[[0]])
         efalse_body.x(1)
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 4]], creg)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg[[1, 4]], creg[[0]])
         expected.barrier(qreg)
         expected.measure(qreg, creg[[0, 2, 1, 3, 4]])
-
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
     @data(1, 2, 3)
-    def test_controlflow_for_loop(self, nloops):
+    def test_for_loop(self, nloops):
         """test stochastic swap with for_loop"""
         # if the loop has only one iteration it isn't necessary for the pass
         # to swap back to the starting layout. This test would check that
@@ -942,38 +934,36 @@ class TestStochasticSwap(QiskitTestCase):
         qc = QuantumCircuit(qreg, creg)
         qc.h(0)
         qc.x(1)
-        for_body = QuantumCircuit(qreg, creg)
+        for_body = QuantumCircuit(qreg)
         for_body.cx(0, 2)
         loop_parameter = None
-        qc.for_loop(range(nloops), loop_parameter, for_body, qreg, creg)
+        qc.for_loop(range(nloops), loop_parameter, for_body, qreg, [])
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=687).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
         expected.x(1)
-        efor_body = QuantumCircuit(qreg, creg)
+        efor_body = QuantumCircuit(qreg)
         efor_body.swap(0, 1)
         efor_body.cx(1, 2)
         efor_body.swap(0, 1)
         loop_parameter = None
-        expected.for_loop(range(nloops), loop_parameter, efor_body, qreg, creg)
+        expected.for_loop(range(nloops), loop_parameter, efor_body, qreg, [])
         expected.measure(qreg, creg)
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-    def test_controlflow_while_loop(self):
+    def test_while_loop(self):
         """test while loop"""
         num_qubits = 4
         qreg = QuantumRegister(num_qubits, "q")
         creg = ClassicalRegister(len(qreg))
         coupling = CouplingMap.from_line(num_qubits)
-        check_map_pass = CheckMap(coupling)
         qc = QuantumCircuit(qreg, creg)
         while_body = QuantumCircuit(qreg, creg)
         while_body.reset(qreg[2:])
@@ -986,9 +976,12 @@ class TestStochasticSwap(QiskitTestCase):
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=58).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+
         expected = QuantumCircuit(qreg, creg)
-        ewhile_body = QuantumCircuit(qreg, creg)
+        ewhile_body = QuantumCircuit(qreg, creg[:])
         ewhile_body.reset(qreg[2:])
         ewhile_body.h(qreg[2:])
         ewhile_body.swap(0, 1)
@@ -1000,11 +993,9 @@ class TestStochasticSwap(QiskitTestCase):
         expected.while_loop((creg, 0), ewhile_body, expected.qubits, expected.clbits)
         expected.barrier()
         expected.measure(qreg, creg)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertEqual(cqc, expected)
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-    def test_controlflow_nested_inner_cnot(self):
+    def test_nested_inner_cnot(self):
         """test swap in nested if else controlflow construct; swap in inner"""
         seed = 1
         num_qubits = 3
@@ -1016,108 +1007,105 @@ class TestStochasticSwap(QiskitTestCase):
         qc.h(0)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.x(0)
 
-        for_body = QuantumCircuit(qreg, creg)
+        for_body = QuantumCircuit(qreg)
         for_body.delay(10, 0)
         for_body.barrier(qreg)
         for_body.cx(0, 2)
         loop_parameter = None
-        true_body.for_loop(range(3), loop_parameter, for_body, qreg, creg)
+        true_body.for_loop(range(3), loop_parameter, for_body, qreg, [])
 
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
         false_body.y(0)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=seed).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
         expected.x(1)
         expected.measure(0, 0)
-        etrue_body = QuantumCircuit(qreg, creg)
+        etrue_body = QuantumCircuit(qreg, creg[[0]])
         etrue_body.x(0)
 
-        efor_body = QuantumCircuit(qreg, creg)
+        efor_body = QuantumCircuit(qreg)
         efor_body.delay(10, 0)
         efor_body.barrier(qreg)
         efor_body.swap(1, 2)
         efor_body.cx(0, 1)
         efor_body.swap(1, 2)
-        etrue_body.for_loop(range(3), loop_parameter, efor_body, qreg, creg)
+        etrue_body.for_loop(range(3), loop_parameter, efor_body, qreg, [])
 
-        efalse_body = QuantumCircuit(qreg, creg)
+        efalse_body = QuantumCircuit(qreg, creg[[0]])
         efalse_body.y(0)
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
         expected.measure(qreg, creg)
 
-        self.assertEqual(cqc, expected)
-        check_map_pass = CheckMap(coupling)
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-    def test_controlflow_nested_outer_cnot(self):
+    def test_nested_outer_cnot(self):
         """test swap with nested if else controlflow construct; swap in outer"""
         seed = 200
         num_qubits = 5
         qreg = QuantumRegister(num_qubits, "q")
         creg = ClassicalRegister(num_qubits)
         coupling = CouplingMap.from_line(num_qubits)
-        check_map_pass = CheckMap(coupling)
         qc = QuantumCircuit(qreg, creg)
         qc.h(0)
         qc.x(1)
         qc.measure(0, 0)
-        true_body = QuantumCircuit(qreg, creg)
+        true_body = QuantumCircuit(qreg, creg[[0]])
         true_body.cx(0, 2)
         true_body.x(0)
 
-        for_body = QuantumCircuit(qreg, creg)
+        for_body = QuantumCircuit(qreg)
         for_body.delay(10, 0)
         for_body.barrier(qreg)
         for_body.cx(1, 3)
         loop_parameter = None
-        true_body.for_loop(range(3), loop_parameter, for_body, qreg, creg)
+        true_body.for_loop(range(3), loop_parameter, for_body, qreg, [])
 
-        false_body = QuantumCircuit(qreg, creg)
+        false_body = QuantumCircuit(qreg, creg[[0]])
         false_body.y(0)
-        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg)
+        qc.if_else((creg[0], 0), true_body, false_body, qreg, creg[[0]])
         qc.measure(qreg, creg)
 
         dag = circuit_to_dag(qc)
         cdag = StochasticSwap(coupling, seed=seed).run(dag)
-        cqc = dag_to_circuit(cdag)
+        check_map_pass = CheckMap(coupling)
+        check_map_pass.run(cdag)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qreg, creg)
         expected.h(0)
         expected.x(1)
         expected.measure(0, 0)
-        etrue_body = QuantumCircuit(qreg, creg)
+        etrue_body = QuantumCircuit(qreg, creg[[0]])
         etrue_body.swap(1, 2)
         etrue_body.cx(0, 1)
         etrue_body.x(0)
 
-        efor_body = QuantumCircuit(qreg, creg)
+        efor_body = QuantumCircuit(qreg)
         efor_body.delay(10, 0)
         efor_body.barrier(qreg)
-        efor_body.cx(1, 3)
-        etrue_body.for_loop(range(3), loop_parameter, efor_body, qreg[[0, 2, 1, 3, 4]], creg)
+        efor_body.cx(2, 3)
+        etrue_body.for_loop(range(3), loop_parameter, efor_body, qreg[[0, 1, 2, 3, 4]], [])
 
-        efalse_body = QuantumCircuit(qreg, creg)
+        efalse_body = QuantumCircuit(qreg, creg[[0]])
         efalse_body.y(0)
         efalse_body.swap(1, 2)
-        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg)
+        expected.if_else((creg[0], 0), etrue_body, efalse_body, qreg, creg[[0]])
         expected.measure(qreg, creg[[0, 2, 1, 3, 4]])
+        self.assertEqual(dag_to_circuit(cdag), expected)
 
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
-        self.assertEqual(cqc, expected)
-
-    def test_controlflow_disjoint_looping(self):
+    def test_disjoint_looping(self):
         """Test looping controlflow on different qubit register"""
         num_qubits = 4
         cm = CouplingMap.from_line(num_qubits)
@@ -1129,14 +1117,14 @@ class TestStochasticSwap(QiskitTestCase):
         cqc = StochasticSwap(cm, seed=0)(qc)
 
         expected = QuantumCircuit(qr)
-        efor_body = QuantumCircuit(3)
+        efor_body = QuantumCircuit(qr[[0, 1, 2]])
         efor_body.swap(1, 2)
         efor_body.cx(0, 1)
         efor_body.swap(1, 2)
         expected.for_loop((0,), None, efor_body, [0, 1, 2], [])
         self.assertEqual(cqc, expected)
 
-    def test_controlflow_disjoint_multiblock(self):
+    def test_disjoint_multiblock(self):
         """Test looping controlflow on different qubit register"""
         num_qubits = 4
         cm = CouplingMap.from_line(num_qubits)
@@ -1147,20 +1135,20 @@ class TestStochasticSwap(QiskitTestCase):
         true_body.cx(0, 1)
         false_body = QuantumCircuit(3, 1)
         false_body.cx(0, 2)
-        qc.if_else((cr[0], 1), true_body, false_body, [0, 1, 2], [])
+        qc.if_else((cr[0], 1), true_body, false_body, [0, 1, 2], [0])
         cqc = StochasticSwap(cm, seed=353)(qc)
 
         expected = QuantumCircuit(qr, cr)
-        etrue_body = QuantumCircuit(true_body.qregs[0], cr)
+        etrue_body = QuantumCircuit(qr[[0, 1, 2]], cr[[0]])
         etrue_body.cx(0, 1)
         etrue_body.swap(0, 1)
-        efalse_body = QuantumCircuit(false_body.qregs[0], cr)
+        efalse_body = QuantumCircuit(qr[[0, 1, 2]], cr[[0]])
         efalse_body.swap(0, 1)
         efalse_body.cx(1, 2)
-        expected.if_else((cr[0], 1), etrue_body, efalse_body, [0, 1, 2], [])
+        expected.if_else((cr[0], 1), etrue_body, efalse_body, [0, 1, 2], cr[[0]])
         self.assertEqual(cqc, expected)
 
-    def test_controlflow_multiple_ops_per_layer(self):
+    def test_multiple_ops_per_layer(self):
         """Test circuits with multiple operations per layer"""
         num_qubits = 6
         coupling = CouplingMap.from_line(num_qubits)
@@ -1172,19 +1160,164 @@ class TestStochasticSwap(QiskitTestCase):
         with qc.for_loop((0,)):
             qc.cx(3, 5)
         cqc = StochasticSwap(coupling, seed=0)(qc)
+        check_map_pass(cqc)
+        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
 
         expected = QuantumCircuit(qr)
         expected.swap(0, 1)
         expected.cx(1, 2)
-        efor_body = QuantumCircuit(3)
+        efor_body = QuantumCircuit(qr[[3, 4, 5]])
         efor_body.swap(1, 2)
         efor_body.cx(0, 1)
         efor_body.swap(2, 1)
         expected.for_loop((0,), None, efor_body, [3, 4, 5], [])
-
-        check_map_pass.run(circuit_to_dag(expected))
-        self.assertTrue(check_map_pass.property_set["is_swap_mapped"])
         self.assertEqual(cqc, expected)
+
+    def test_if_no_else_restores_layout(self):
+        """Test that an if block with no else branch restores the initial layout.  If there is an
+        else branch, we don't need to guarantee this."""
+        qc = QuantumCircuit(8, 1)
+        with qc.if_test((qc.clbits[0], False)):
+            # Just some arbitrary gates with no perfect layout.
+            qc.cx(3, 5)
+            qc.cx(4, 6)
+            qc.cx(1, 4)
+            qc.cx(7, 4)
+            qc.cx(0, 5)
+            qc.cx(7, 3)
+            qc.cx(1, 3)
+            qc.cx(5, 2)
+            qc.cx(6, 7)
+            qc.cx(3, 2)
+            qc.cx(6, 2)
+            qc.cx(2, 0)
+            qc.cx(7, 6)
+        coupling = CouplingMap.from_line(8)
+        pass_ = StochasticSwap(coupling, seed=2022_10_13)
+        transpiled = pass_(qc)
+
+        # Check the pass claims to have done things right.
+        initial_layout = Layout.generate_trivial_layout(*qc.qubits)
+        self.assertEqual(initial_layout, pass_.property_set["final_layout"])
+
+        # Check that pass really did do it right.
+        inner_block = transpiled.data[0].operation.blocks[0]
+        running_layout = initial_layout.copy()
+        for instruction in inner_block:
+            if instruction.operation.name == "swap":
+                running_layout.swap(*instruction.qubits)
+        self.assertEqual(initial_layout, running_layout)
+
+
+@ddt
+class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
+    """Assert the output of a transpilation with stochastic swap is a physical circuit."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.backend = FakeMumbai()
+        cls.coupling_edge_set = set(tuple(x) for x in cls.backend.configuration().coupling_map)
+        cls.basis_gates = set(cls.backend.configuration().basis_gates)
+        cls.basis_gates.update(["for_loop", "while_loop", "if_else"])
+
+    def assert_valid_circuit(self, transpiled):
+        """Assert circuit complies with constraints of backend."""
+        self.assertIsInstance(transpiled, QuantumCircuit)
+        self.assertIsNotNone(getattr(transpiled, "_layout", None))
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name in {"barrier", "measure"}:
+                    continue
+                self.assertIn(instruction.operation.name, self.basis_gates)
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                if not isinstance(instruction.operation, ControlFlowOp):
+                    if len(qargs) > 2 or len(qargs) < 0:
+                        raise Exception("Invalid number of qargs for instruction")
+                    if len(qargs) == 2:
+                        self.assertIn(qargs, self.coupling_edge_set)
+                    else:
+                        self.assertLessEqual(qargs[0], 26)
+                else:
+                    for block in instruction.operation.blocks:
+                        self.assertEqual(block.num_qubits, len(instruction.qubits))
+                        self.assertEqual(block.num_clbits, len(instruction.clbits))
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        # Assert routing ran.
+        _visit_block(
+            transpiled,
+            qubit_mapping={qubit: index for index, qubit in enumerate(transpiled.qubits)},
+        )
+
+    @data(*range(1, 27))
+    def test_random_circuit_no_control_flow(self, size):
+        """Test that transpiled random circuits without control flow are physical circuits."""
+        circuit = random_circuit(size, 3, measure=True, seed=12342)
+        tqc = transpile(
+            circuit,
+            self.backend,
+            routing_method="stochastic",
+            layout_method="dense",
+            seed_transpiler=12342,
+        )
+        self.assert_valid_circuit(tqc)
+
+    @data(*range(4, 27))
+    def test_random_circuit_for_loop(self, size):
+        """Test that transpiled random circuits with nested for loops are physical circuits."""
+        circuit = random_circuit(size, 3, measure=False, seed=12342)
+        for_block = random_circuit(3, 2, measure=False, seed=12342)
+        inner_for_block = random_circuit(2, 1, measure=False, seed=12342)
+        with circuit.for_loop((1,)):
+            with circuit.for_loop((1,)):
+                circuit.append(inner_for_block, [0, 3])
+            circuit.append(for_block, [1, 0, 2])
+        circuit.measure_all()
+
+        tqc = transpile(
+            circuit,
+            self.backend,
+            basis_gates=list(self.basis_gates),
+            routing_method="stochastic",
+            layout_method="dense",
+            seed_transpiler=12342,
+        )
+        self.assert_valid_circuit(tqc)
+
+    @data(*range(6, 27))
+    def test_random_circuit_if_else(self, size):
+        """Test that transpiled random circuits with if else blocks are physical circuits."""
+        circuit = random_circuit(size, 3, measure=True, seed=12342)
+        if_block = random_circuit(3, 2, measure=True, seed=12342)
+        else_block = random_circuit(2, 1, measure=True, seed=12342)
+
+        rng = numpy.random.default_rng(seed=12342)
+        inner_clbit_count = max((if_block.num_clbits, else_block.num_clbits))
+        if inner_clbit_count > circuit.num_clbits:
+            circuit.add_bits([Clbit() for _ in [None] * (inner_clbit_count - circuit.num_clbits)])
+        clbit_indices = list(range(circuit.num_clbits))
+        rng.shuffle(clbit_indices)
+
+        with circuit.if_test((circuit.clbits[0], True)) as else_:
+            circuit.append(if_block, [0, 2, 1], clbit_indices[: if_block.num_clbits])
+        with else_:
+            circuit.append(else_block, [2, 5], clbit_indices[: else_block.num_clbits])
+
+        tqc = transpile(
+            circuit,
+            self.backend,
+            basis_gates=list(self.basis_gates),
+            routing_method="stochastic",
+            layout_method="dense",
+            seed_transpiler=12342,
+        )
+        self.assert_valid_circuit(tqc)
 
 
 if __name__ == "__main__":

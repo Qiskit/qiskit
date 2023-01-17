@@ -106,7 +106,7 @@ def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
 
 @ddt
 class TestParameters(QiskitTestCase):
-    """QuantumCircuit Operations tests."""
+    """Test Parameters."""
 
     def test_gate(self):
         """Test instantiating gate with variable parameters"""
@@ -185,6 +185,13 @@ class TestParameters(QiskitTestCase):
                 bqc_anonymous = getattr(qc, assign_fun)(params)
                 bqc_list = getattr(qc, assign_fun)(param_dict)
                 self.assertEqual(bqc_anonymous, bqc_list)
+
+    def test_bind_parameters_allow_unknown(self):
+        """Test binding parameters allowing unknown parameters."""
+        a = Parameter("a")
+        b = Parameter("b")
+        c = a.bind({a: 1, b: 1}, allow_unknown_parameters=True)
+        self.assertEqual(c, a.bind({a: 1}))
 
     def test_bind_half_single_precision(self):
         """Test binding with 16bit and 32bit floats."""
@@ -637,7 +644,7 @@ class TestParameters(QiskitTestCase):
         qc2.h(qr)
         qc2.measure(qr, cr)
 
-        qc3 = qc1 + qc2
+        qc3 = qc1.compose(qc2)
         self.assertEqual(qc3.parameters, {theta, phi})
 
     def test_composite_instruction(self):
@@ -855,7 +862,7 @@ class TestParameters(QiskitTestCase):
 
         qc.p(theta, qr[0])
 
-        double_qc = qc + qc
+        double_qc = qc.compose(qc)
         test_qc = dag_to_circuit(circuit_to_dag(double_qc))
 
         for assign_fun in ["bind_parameters", "assign_parameters"]:
@@ -1155,6 +1162,26 @@ class TestParameters(QiskitTestCase):
             self.assertIs(element, vec[1])
             self.assertListEqual([param.name for param in vec], _paramvec_names("x", 3))
 
+    def test_raise_if_sub_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        with self.assertRaisesRegex(CircuitError, "not present"):
+            x.subs({y: z})
+
+    def test_sub_allow_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        subbed = x.subs({y: z}, allow_unknown_parameters=True)
+        self.assertEqual(subbed, x)
+
 
 def _construct_circuit(param, qr):
     qc = QuantumCircuit(qr)
@@ -1245,6 +1272,17 @@ class TestParameterExpressions(QiskitTestCase):
 
         with self.assertRaisesRegex(CircuitError, "not present"):
             expr.subs({y: z})
+
+    def test_sub_allow_unknown_parameters(self):
+        """Verify we raise if asked to sub a parameter not in self."""
+        x = Parameter("x")
+        expr = x + 2
+
+        y = Parameter("y")
+        z = Parameter("z")
+
+        subbed = expr.subs({y: z}, allow_unknown_parameters=True)
+        self.assertEqual(subbed, expr)
 
     def test_raise_if_subbing_in_parameter_name_conflict(self):
         """Verify we raise if substituting in conflicting parameter names."""

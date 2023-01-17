@@ -1,15 +1,19 @@
 ---
 features:
   - |
-    Added :class:`qiskit.algorithms.time_evolvers` package with interfaces that will cover
-    primitive-enabled time evolution algorithms:
-    :class:`qiskit.algorithms.time_evolvers.TimeEvolutionProblem`,
-    :class:`qiskit.algorithms.time_evolvers.TimeEvolutionResult`,
-    :class:`qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver`,
-    :class:`qiskit.algorithms.time_evolvers.RealTimeEvolver`.
-deprecations:
-  - |
-    :class:`qiskit.algorithms.evolvers` package will now issue a ``PendingDeprecationWarning``. It
-    will be deprecated in a future release and subsequently removed after that. This is being
-    replaced by the new :class:`qiskit.algorithms.time_evolvers` package that will host
-    primitive-enabled algorithms.
+    Added a new algorithms interface for creating time evolution algorithms
+    using the primitives :class:`~.BaseSampler` and :class:`~.BaseEstimator`.
+    This new interface consists of:
+
+     * :class:`~qiskit.algorithms.TimeEvolutionProblem`
+     * :class:`~qiskit.algorithms.TimeEvolutionResult`
+     * :class:`~qiskit.algorithms.ImaginaryTimeEvolver`
+     * :class:`~qiskit.algorithms.RealTimeEvolver`
+
+    This new interface is an alternative to the previously existing time
+    evolution algorithms interface available defined with
+    :class:`~.EvolutionProblem`, :class:`~.EvolutionResult`,
+    :class:`~.RealEvolver`, and :class:`~.ImaginaryEvolver` which worked
+    with a :class:`~.QuantumInstance` object instead of primitives. This
+    new interface supersedes the previous interface which will eventually
+    be deprecated and subsequently removed in future releases.

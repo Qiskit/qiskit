@@ -47,7 +47,8 @@ class PadDynamicalDecoupling(BasePadding):
     This pass ensures that the inserted sequence preserves the circuit exactly
     (including global phase).
 
-    .. jupyter-execute::
+    .. plot::
+       :include-source:
 
         import numpy as np
         from qiskit.circuit import QuantumCircuit
@@ -67,16 +68,12 @@ class PadDynamicalDecoupling(BasePadding):
              ("x", None, 50), ("measure", None, 1000)]
         )
 
-    .. jupyter-execute::
-
         # balanced X-X sequence on all qubits
         dd_sequence = [XGate(), XGate()]
         pm = PassManager([ALAPScheduleAnalysis(durations),
                           PadDynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
         timeline_drawer(circ_dd)
-
-    .. jupyter-execute::
 
         # Uhrig sequence on qubit 0
         n = 8
@@ -263,6 +260,12 @@ class PadDynamicalDecoupling(BasePadding):
         #
         # As you can see, constraints on t0 are all satified without explicit scheduling.
         time_interval = t_end - t_start
+        if time_interval % self._alignment != 0:
+            raise TranspilerError(
+                f"Time interval {time_interval} is not divisible by alignment {self._alignment} "
+                f"between DAGNode {prev_node.name} on qargs {prev_node.qargs} and {next_node.name} "
+                f"on qargs {next_node.qargs}."
+            )
 
         if self._qubits and dag.qubits.index(qubit) not in self._qubits:
             # Target physical qubit is not the target of this DD sequence.

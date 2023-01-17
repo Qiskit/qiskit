@@ -1,4 +1,9 @@
 ---
 fixes:
   - |
-    Catch error of missing bounds for SNOBFIT optimizer (raising error with clear error message). Arises e.g. when ansatz `UCC` is used in combination with SNOBFIT. Refer to `#8580 <https://github.com/Qiskit/qiskit-terra/issues/8580>` for more details.
+    Fixed an issue in the :class:`~.SNOBFIT` optimizer class when an
+    internal error would be raised during the execution of the
+    :meth:`~.SNOBFIT.minimize` method if no input bounds where specified.
+    This is now checked at call time to quickly raise a ``ValueError`` if
+    required bounds are missing from the :meth:`~.SNOBFIT.minimize` call.
+    Fixes `#8580 <https://github.com/Qiskit/qiskit-terra/issues/8580>`__

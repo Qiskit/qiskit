@@ -2,20 +2,19 @@
 
 features:
   - |
-    Currently, only subclasses of :class:`qiskit.circuit.Instruction` can be put on
-    :class:`.QuantumCircuit`, but this interface has become unwieldy and includes too many methods
-    and attributes for general-purpose objects.
-
-    A new :class:`.Operation` base class provides a lightweight abstract interface
+    Added a new :class:`.Operation` base class which provides a lightweight abstract interface
     for objects that can be put on :class:`.QuantumCircuit`. This allows to store "higher-level"
     objects directly on a circuit (for instance, :class:`.Clifford` objects), to directly combine such objects
     (for instance, to compose several consecutive :class:`.Clifford` objects over the same qubits), and
     to synthesize such objects at run time (for instance, to synthesize :class:`.Clifford` in
     a way that optimizes depth and/or exploits device connectivity).
+    Previously, only subclasses of :class:`qiskit.circuit.Instruction` could be put on
+    :class:`.QuantumCircuit`, but this interface has become unwieldy and includes too many methods
+    and attributes for general-purpose objects.
 
     The new :class:`.Operation` interface includes ``name``, ``num_qubits`` and ``num_clbits``
     (in the future this may be slightly adjusted), but importantly does not include ``definition``
-    or ``_define`` (and thus does not tie synthesis to the object), does not include ``condition``
+    (and thus does not tie synthesis to the object), does not include ``condition``
     (this should be part of separate classical control flow), and does not include ``duration`` and
     ``unit`` (as these are properties of the output of the transpiler).
 
@@ -37,7 +36,8 @@ features:
         cliff = random_clifford(2)
         qc.append(cliff, [0, 1])
 
-    no longer converts ``cliff`` to :class:`qiskit.circuit.Instruction` when it is appended to ``qc``.
+    no longer converts ``cliff`` to :class:`qiskit.circuit.Instruction`, which includes
+    synthesizing the clifford into a circuit, when it is appended to ``qc``.
 
   - |
     Added a new transpiler pass :class:`.OptimizeCliffords` that collects blocks of consecutive
@@ -67,11 +67,6 @@ features:
     Added a new transpiler pass :class:`.HighLevelSynthesis` that synthesizes higher-level objects
     (for instance, :class:`.Clifford` objects).
 
-    As of now, :class:`.HighLevelSynthesis` is only limited to :class:`.Clifford` objects, but it will be
-    expanded to cover other higher-level objects (as more higher-level objects will become available).
-    In addition, the plan is to make :class:`.HighLevelSynthesis` "pluggable", so that the users
-    can "plug in" their own synthesis methods for higher-level objects at transpilation run time.
-
     For example, the following code::
 
         from qiskit import QuantumCircuit
@@ -90,11 +85,9 @@ features:
     :func:`~qiskit.quantum_info.decompose_clifford` function.
 
     This new transpiler pass :class:`.HighLevelSynthesis` is integrated into the preset pass managers,
-    running right after :class:`.UnitarySynthesis` pass. Thus, ``qiskit.compiler.transpile()`` will
+    running right after :class:`.UnitarySynthesis` pass. Thus, :func:`.transpile` will
     synthesize all higher-level Cliffords present in the circuit.
 
     It is important to note that the work done to store :class:`.Clifford` objects as "higher-level"
     objects and to transpile these objects using :class:`.HighLevelSynthesis` pass should be completely
-    transparent to the users, absolutely no code changes are required. However, as explained before,
-    the users are now able to optimize consecutive Cliffords using the new :class:`.OptimizeCliffords`
-    pass, and in the future would be able to plug in their own synthesis methods for Cliffords.
+    transparent, and no code changes are required.

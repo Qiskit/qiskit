@@ -12,10 +12,11 @@
 
 """Test the VF2Layout pass"""
 
-import retworkx
+import rustworkx
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import ControlFlowOp
+from qiskit.circuit.library import CXGate, XGate
 from qiskit.transpiler import CouplingMap, Layout, TranspilerError
 from qiskit.transpiler.passes.layout import vf2_utils
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayout, VF2PostLayoutStopReason
@@ -24,6 +25,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeLima, FakeYorktown, FakeLimaV2, FakeYorktownV2
 from qiskit.circuit import Qubit
 from qiskit.compiler.transpiler import transpile
+from qiskit.transpiler.target import Target, InstructionProperties
 
 
 class TestVF2PostLayout(QiskitTestCase):
@@ -326,6 +328,35 @@ class TestVF2PostLayout(QiskitTestCase):
             VF2PostLayoutStopReason.NO_SOLUTION_FOUND,
         )
 
+    def test_target_no_error(self):
+        """Test that running vf2layout on a pass against a target with no error rates works."""
+        n_qubits = 15
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        vf2_pass = VF2PostLayout(target=target)
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertNotIn("post_layout", vf2_pass.property_set)
+
+    def test_target_some_error(self):
+        """Test that running vf2layout on a pass against a target with some error rates works."""
+        n_qubits = 15
+        target = Target()
+        target.add_instruction(
+            XGate(), {(i,): InstructionProperties(error=0.00123) for i in range(n_qubits)}
+        )
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        vf2_pass = VF2PostLayout(target=target, seed=1234, strict_direction=False)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        # No layout selected because nothing will beat initial layout
+        self.assertNotIn("post_layout", vf2_pass.property_set)
+
 
 class TestVF2PostLayoutScoring(QiskitTestCase):
     """Test scoring heuristic function for VF2PostLayout."""
@@ -334,7 +365,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         """Test error rate is 0 for empty circuit."""
         bit_map = {}
         reverse_bit_map = {}
-        im_graph = retworkx.PyDiGraph()
+        im_graph = rustworkx.PyDiGraph()
         backend = FakeYorktownV2()
         vf2_pass = VF2PostLayout(target=backend.target)
         layout = Layout()
@@ -345,7 +376,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         """Test error rate for all 1q input."""
         bit_map = {Qubit(): 0, Qubit(): 1}
         reverse_bit_map = {v: k for k, v in bit_map.items()}
-        im_graph = retworkx.PyDiGraph()
+        im_graph = rustworkx.PyDiGraph()
         im_graph.add_node({"sx": 1})
         im_graph.add_node({"sx": 1})
         backend = FakeYorktownV2()
@@ -358,7 +389,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         """Test average scoring for all 1q input."""
         bit_map = {Qubit(): 0, Qubit(): 1}
         reverse_bit_map = {v: k for k, v in bit_map.items()}
-        im_graph = retworkx.PyDiGraph()
+        im_graph = rustworkx.PyDiGraph()
         im_graph.add_node({"sx": 1})
         im_graph.add_node({"sx": 1})
         backend = FakeYorktownV2()
@@ -366,7 +397,7 @@ class TestVF2PostLayoutScoring(QiskitTestCase):
         vf2_pass.avg_error_map = vf2_utils.build_average_error_map(
             vf2_pass.target, vf2_pass.properties, vf2_pass.coupling_map
         )
-        layout = Layout(bit_map)
+        layout = {0: 0, 1: 1}
         score = vf2_utils.score_layout(
             vf2_pass.avg_error_map, layout, bit_map, reverse_bit_map, im_graph
         )

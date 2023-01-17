@@ -11,7 +11,7 @@ upgrade:
     ``tweedledum`` is no longer a requirement on macOS arm64 (M1) with immediate
     effect in Qiskit Terra 0.22.  This is because the provided wheels for this
     platform are broken, and building from the sdist is not reliable for most
-    ppeople.  If you manually install a working version of ``tweedledum``, all
+    people.  If you manually install a working version of ``tweedledum``, all
     the dependent functionality will continue to work.
 deprecations:
   - |

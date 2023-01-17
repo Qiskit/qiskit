@@ -64,7 +64,7 @@ _CONTROL_FLOW_STATES = {
         working={"trivial", "dense"}, not_working={"sabre", "noise_adaptive"}
     ),
     "routing_method": _ControlFlowState(
-        working={"none", "stochastic"}, not_working={"sabre", "lookahead", "basic", "toqm"}
+        working={"none", "stochastic"}, not_working={"sabre", "lookahead", "basic"}
     ),
     # 'synthesis' is not a supported translation method because of the block-collection passes
     # involved; we currently don't have a neat way to pass the information about nested blocks - the
@@ -386,7 +386,7 @@ def generate_translation_passmanager(
                 target=target,
             ),
             HighLevelSynthesis(hls_config=hls_config),
-            UnrollCustomDefinitions(sel, basis_gates),
+            UnrollCustomDefinitions(sel, basis_gates=basis_gates, target=target),
             BasisTranslator(sel, basis_gates, target),
         ]
     elif method == "synthesis":
@@ -510,9 +510,9 @@ def get_vf2_call_limit(
     vf2_call_limit = None
     if layout_method is None and initial_layout is None:
         if optimization_level == 1:
-            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
+            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with rustworkx 0.10.2
         elif optimization_level == 2:
-            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with retworkx 0.10.2
+            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with rustworkx 0.10.2
         elif optimization_level == 3:
-            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with retworkx 0.10.2
+            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with rustworkx 0.10.2
     return vf2_call_limit

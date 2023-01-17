@@ -11,8 +11,10 @@ features:
     backends to run additional custom transpiler passes when targetting that
     backend by leveraging the transpiler stage
     :mod:`~qiskit.transpiler.preset_passmanagers.plugin` interface.
-    For more details on how to use this see :ref:`custom_transpiler_backend`.
+    For more details on how to use this see: :ref:`custom_transpiler_backend`.
   - |
     Added a new keyword argument, ``ignore_backend_supplied_default_methods``, to the
-    :func:`~.transpile` function can be used to disable a backend's custom
-    default method if the target backend has one set.
+    :func:`~.transpile` function which can be used to disable a backend's
+    custom selection of a default method if the target backend has
+    ``get_scheduling_stage_plugin()`` or ``get_translation_stage_plugin()``
+    defined.

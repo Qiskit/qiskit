@@ -1,18 +1,19 @@
 ---
 features:
   - |
-    Added a ``label`` parameter to the :class:`.Barrier` which now allows
-    a user to enter a label for the ``barrier`` directive and the label
-    will be printed at the top of the ``barrier`` in the `mpl`, `latex`,
-    and `text` circuit drawers. Printing of existing ``snapshot`` labels
-    to the 3 circuit drawers was also added.
+    Added a ``label`` parameter to the :class:`.Barrier` class's constructor
+    and the :meth:`~.QuantumCircuit.barrier` method which allows a user to
+    assign a label to an instance of the :class:`~.Barrier` directive. For
+    visualizations generated with :func:`~.circuit_drawer` or
+    :meth:`.QuantumCircuit.draw` this label will be printed at the top of the
+    ``barrier``.
 
-    .. code-block:: python
+    .. code-block::
 
-      from qiskit import QuantumCircuit
+        from qiskit import QuantumCircuit
 
-      circuit = QuantumCircuit(2)
-      circuit.h(0)
-      circuit.h(1)
-      circuit.barrier(label="After H")
-      circuit.draw('mpl')
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.barrier(label="After H")
+        circuit.draw('mpl')

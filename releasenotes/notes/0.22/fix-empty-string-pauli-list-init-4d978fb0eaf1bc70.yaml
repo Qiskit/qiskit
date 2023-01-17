@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixed initialization of empty symplectic matrix in :meth:'PauliList.from_symplectic' in :class:'.PauliList' class
+    Fixed initialization of empty symplectic matrix in :meth:`~.PauliList.from_symplectic` in :class:`~.PauliList` class
     For example::
 
         from qiskit.quantum_info.operators import PauliList

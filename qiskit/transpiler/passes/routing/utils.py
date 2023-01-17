@@ -12,49 +12,24 @@
 
 """Utility functions for routing"""
 
-from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from .algorithms import ApproximateTokenSwapper
 
 
-def combine_permutations(*permutations):
-    """
-    Chain a series of permutations.
-
-    Args:
-        *permutations (list(int)): permutations to combine
-
-    Returns:
-        list: combined permutation
-    """
-    order = permutations[0]
-    for this_order in permutations[1:]:
-        order = [order[i] for i in this_order]
-    return order
-
-
 def get_swap_map_dag(dag, coupling_map, from_layout, to_layout, seed, trials=4):
-    """Get the circuit of swaps to go from from_layout to to_layout, and the qubit ordering of the
-    qubits in that circuit."""
-
+    """Get the circuit of swaps to go from from_layout to to_layout, and the physical qubits
+    (integers) that the swap circuit should be applied on."""
     if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
         raise TranspilerError("layout transformation runs on physical circuits only")
-
     if len(dag.qubits) > len(coupling_map.physical_qubits):
         raise TranspilerError("The layout does not match the amount of qubits in the DAG")
-
-    if coupling_map:
-        graph = coupling_map.graph.to_undirected()
-    else:
-        coupling_map = CouplingMap.from_full(len(to_layout))
-        graph = coupling_map.graph.to_undirected()
-
-    token_swapper = ApproximateTokenSwapper(graph, seed)
+    token_swapper = ApproximateTokenSwapper(coupling_map.graph.to_undirected(), seed)
     # Find the permutation between the initial physical qubits and final physical qubits.
     permutation = {
-        pqubit: to_layout.get_virtual_bits()[vqubit]
-        for vqubit, pqubit in from_layout.get_virtual_bits().items()
+        pqubit: to_layout[vqubit] for vqubit, pqubit in from_layout.get_virtual_bits().items()
     }
-    permutation_circ = token_swapper.permutation_circuit(permutation, trials)
-    permutation_qubits = [dag.qubits[i] for i in sorted(permutation_circ.inputmap.keys())]
-    return permutation_circ.circuit, permutation_qubits
+    # The mapping produced here maps physical qubit indices of the outer dag to the bits used to
+    # represent them in the inner map.  For later composing, we actually want the opposite map.
+    swap_circuit, phys_to_circuit_qubits = token_swapper.permutation_circuit(permutation, trials)
+    circuit_to_phys = {inner: outer for outer, inner in phys_to_circuit_qubits.items()}
+    return swap_circuit, [circuit_to_phys[bit] for bit in swap_circuit.qubits]

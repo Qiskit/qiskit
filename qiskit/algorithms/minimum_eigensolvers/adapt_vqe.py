@@ -29,6 +29,7 @@ from qiskit.opflow import OperatorBase, PauliSumOp
 from qiskit.circuit.library import EvolvedOperatorAnsatz
 from qiskit.utils.validation import validate_min
 
+from .minimum_eigensolver import MinimumEigensolver
 from .vqe import VQE, VQEResult
 from ..observables_evaluator import estimate_observables
 from ..variational_algorithm import VariationalAlgorithm
@@ -45,7 +46,7 @@ class TerminationCriterion(Enum):
     MAXIMUM = "Maximum number of iterations reached"
 
 
-class AdaptVQE(VariationalAlgorithm):
+class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
     """The Adaptive Variational Quantum Eigensolver algorithm.
 
     `AdaptVQE <https://arxiv.org/abs/1812.11173>`__ is a quantum algorithm which creates a compact
@@ -126,6 +127,10 @@ class AdaptVQE(VariationalAlgorithm):
         """Sets the initial point of the internal :class:`~.VQE` solver."""
         self.solver.initial_point = value
 
+    @classmethod
+    def supports_aux_operators(cls) -> bool:
+        return True
+
     def _compute_gradients(
         self,
         theta: list[float],
@@ -167,7 +172,6 @@ class AdaptVQE(VariationalAlgorithm):
         # -> this results in any sequence of at least two numbers being detected
         match = cycle_regex.search(" ".join(map(str, indices)))
         logger.debug("Cycle detected: %s", match)
-        logger.info("Alternating sequence found. Finishing.")
         # Additionally we also need to check whether the last two numbers are identical, because the
         # reg-ex above will only find cycles of at least two consecutive numbers.
         # It is sufficient to assert that the last two numbers are different due to the iterative
@@ -207,18 +211,23 @@ class AdaptVQE(VariationalAlgorithm):
         theta: list[float] = []
         max_grad: tuple[float, Optional[PauliSumOp]] = (0.0, None)
         self._excitation_list = []
+        history: list[float] = []
         iteration = 0
         while self.max_iterations is None or iteration < self.max_iterations:
             iteration += 1
             logger.info("--- Iteration #%s ---", str(iteration))
             # compute gradients
+            logger.debug("Computing gradients")
             cur_grads = self._compute_gradients(theta, operator)
             # pick maximum gradient
             max_grad_index, max_grad = max(
                 enumerate(cur_grads), key=lambda item: np.abs(item[1][0])
             )
-            # store maximum gradient's index for cycle detection
-            prev_op_indices.append(max_grad_index)
+            logger.info(
+                "Found maximum gradient %s at index %s",
+                str(np.abs(max_grad[0])),
+                str(max_grad_index),
+            )
             # log gradients
             if np.abs(max_grad[0]) < self.threshold:
                 if iteration == 1:
@@ -233,12 +242,18 @@ class AdaptVQE(VariationalAlgorithm):
                 )
                 termination_criterion = TerminationCriterion.CONVERGED
                 break
+            # store maximum gradient's index for cycle detection
+            prev_op_indices.append(max_grad_index)
             # check indices of picked gradients for cycles
             if self._check_cyclicity(prev_op_indices):
+                logger.info("Alternating sequence found. Finishing.")
                 logger.info("Final maximum gradient: %s", str(np.abs(max_grad[0])))
                 termination_criterion = TerminationCriterion.CYCLICITY
                 break
             # add new excitation to self._ansatz
+            logger.info(
+                "Adding new operator to the ansatz: %s", str(self._excitation_pool[max_grad_index])
+            )
             self._excitation_list.append(self._excitation_pool[max_grad_index])
             theta.append(0.0)
             # run VQE on current Ansatz
@@ -247,6 +262,8 @@ class AdaptVQE(VariationalAlgorithm):
             self.solver.initial_point = theta
             raw_vqe_result = self.solver.compute_minimum_eigenvalue(operator)
             theta = raw_vqe_result.optimal_point.tolist()
+            history.append(raw_vqe_result.eigenvalue)
+            logger.info("Current eigenvalue: %s", str(raw_vqe_result.eigenvalue))
         else:
             # reached maximum number of iterations
             termination_criterion = TerminationCriterion.MAXIMUM
@@ -258,6 +275,7 @@ class AdaptVQE(VariationalAlgorithm):
         result.num_iterations = iteration
         result.final_max_gradient = max_grad[0]
         result.termination_criterion = termination_criterion
+        result.eigenvalue_history = history
 
         # once finished evaluate auxiliary operators if any
         if aux_operators is not None:
@@ -279,33 +297,47 @@ class AdaptVQEResult(VQEResult):
         self._num_iterations: int = None
         self._final_max_gradient: float = None
         self._termination_criterion: str = ""
+        self._eigenvalue_history: list[float] = None
 
     @property
     def num_iterations(self) -> int:
-        """Returns number of iterations"""
+        """Returns the number of iterations."""
         return self._num_iterations
 
     @num_iterations.setter
     def num_iterations(self, value: int) -> None:
-        """Sets number of iterations"""
+        """Sets the number of iterations."""
         self._num_iterations = value
 
     @property
     def final_max_gradient(self) -> float:
-        """Returns final maximum gradient"""
+        """Returns the final maximum gradient."""
         return self._final_max_gradient
 
     @final_max_gradient.setter
     def final_max_gradient(self, value: float) -> None:
-        """Sets final maximum gradient"""
+        """Sets the final maximum gradient."""
         self._final_max_gradient = value
 
     @property
     def termination_criterion(self) -> str:
-        """Returns termination criterion"""
+        """Returns the termination criterion."""
         return self._termination_criterion
 
     @termination_criterion.setter
     def termination_criterion(self, value: str) -> None:
-        """Sets termination criterion"""
+        """Sets the termination criterion."""
         self._termination_criterion = value
+
+    @property
+    def eigenvalue_history(self) -> list[float]:
+        """Returns the history of computed eigenvalues.
+
+        The history's length matches the number of iterations and includes the final computed value.
+        """
+        return self._eigenvalue_history
+
+    @eigenvalue_history.setter
+    def eigenvalue_history(self, eigenvalue_history: list[float]) -> None:
+        """Sets the history of computed eigenvalues."""
+        self._eigenvalue_history = eigenvalue_history

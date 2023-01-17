@@ -14,13 +14,13 @@
 
 
 import numpy as np
-import retworkx
+import rustworkx
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
-from qiskit._accelerate.dense_layout import best_subset  # pylint: disable=import-error
+from qiskit._accelerate.dense_layout import best_subset
 
 
 class DenseLayout(AnalysisPass):
@@ -53,12 +53,12 @@ class DenseLayout(AnalysisPass):
             num_qubits = target.num_qubits
             self.coupling_map = target.build_coupling_map()
             if self.coupling_map is not None:
-                self.adjacency_matrix = retworkx.adjacency_matrix(self.coupling_map.graph)
+                self.adjacency_matrix = rustworkx.adjacency_matrix(self.coupling_map.graph)
             self.error_mat, self._use_error = _build_error_matrix(num_qubits, target=target)
         else:
             if self.coupling_map:
                 num_qubits = self.coupling_map.size()
-                self.adjacency_matrix = retworkx.adjacency_matrix(self.coupling_map.graph)
+                self.adjacency_matrix = rustworkx.adjacency_matrix(self.coupling_map.graph)
             self.error_mat, self._use_error = _build_error_matrix(
                 num_qubits, backend_prop=self.backend_prop, coupling_map=self.coupling_map
             )
@@ -147,7 +147,7 @@ def _build_error_matrix(num_qubits, target=None, coupling_map=None, backend_prop
             error = 0.0
             ops = target.operation_names_for_qargs(qargs)
             for op in ops:
-                props = target[op][qargs]
+                props = target[op].get(qargs, None)
                 if props is not None and props.error is not None:
                     # Use max error rate to represent operation error
                     # on a qubit(s). If there is more than 1 operation available

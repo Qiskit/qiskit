@@ -40,11 +40,6 @@ from qiskit.transpiler.passes import (
     ConsolidateBlocks,
     Optimize1qGates,
     SabreLayout,
-    Depth,
-    FixedPoint,
-    FullAncillaAllocation,
-    EnlargeWithAncilla,
-    ApplyLayout,
     Unroll3qOrMore,
     CheckMap,
     BarrierBeforeFinalMeasurements,
@@ -481,19 +476,14 @@ class TestUnitarySynthesis(QiskitTestCase):
         qv64 = QuantumVolume(5, seed=15)
 
         def construct_passmanager(basis_gates, coupling_map, synthesis_fidelity, pulse_optimize):
-            def _repeat_condition(property_set):
-                return not property_set["depth_fixed_point"]
-
             seed = 2
             _map = [SabreLayout(coupling_map, max_iterations=2, seed=seed)]
-            _embed = [FullAncillaAllocation(coupling_map), EnlargeWithAncilla(), ApplyLayout()]
             _unroll3q = Unroll3qOrMore()
             _swap_check = CheckMap(coupling_map)
             _swap = [
                 BarrierBeforeFinalMeasurements(),
                 SabreSwap(coupling_map, heuristic="lookahead", seed=seed),
             ]
-            _check_depth = [Depth(), FixedPoint("depth")]
             _optimize = [
                 Collect2qBlocks(),
                 ConsolidateBlocks(basis_gates=basis_gates),
@@ -509,13 +499,10 @@ class TestUnitarySynthesis(QiskitTestCase):
 
             pm = PassManager()
             pm.append(_map)  # map to hardware by inserting swaps
-            pm.append(_embed)
             pm.append(_unroll3q)
             pm.append(_swap_check)
             pm.append(_swap)
-            pm.append(
-                _check_depth + _optimize, do_while=_repeat_condition
-            )  # translate to & optimize over hardware native gates
+            pm.append(_optimize)
             return pm
 
         coupling_map = CouplingMap([[0, 1], [1, 2], [3, 2], [3, 4], [5, 4]])

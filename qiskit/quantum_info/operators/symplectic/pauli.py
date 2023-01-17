@@ -286,12 +286,12 @@ class Pauli(BasePauli):
     def phase(self):
         """Return the group phase exponent for the Pauli."""
         # Convert internal ZX-phase convention of BasePauli to group phase
-        return np.mod(self._phase - self._count_y(), 4)[0]
+        return np.mod(self._phase - self._count_y(dtype=self._phase.dtype), 4)[0]
 
     @phase.setter
     def phase(self, value):
         # Convert group phase convention to internal ZX-phase convention
-        self._phase[:] = np.mod(value + self._count_y(), 4)
+        self._phase[:] = np.mod(value + self._count_y(dtype=self._phase.dtype), 4)
 
     @property
     def x(self):
@@ -639,7 +639,9 @@ class Pauli(BasePauli):
             raise QiskitError(f"{op} is not an N-qubit identity")
         base_z = np.zeros((1, op.num_qubits), dtype=bool)
         base_x = np.zeros((1, op.num_qubits), dtype=bool)
-        base_phase = np.mod(cls._phase_from_complex(op.coeff) + _count_y(base_x, base_z), 4)
+        base_phase = np.mod(
+            cls._phase_from_complex(op.coeff) + _count_y(base_x, base_z), 4, dtype=int
+        )
         return base_z, base_x, base_phase
 
     @classmethod

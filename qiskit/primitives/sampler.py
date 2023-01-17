@@ -25,9 +25,8 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
-from .base_sampler import BaseSampler
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
-from .sampler_result import SamplerResult
 from .utils import (
     _circuit_key,
     bound_circuit_to_instruction,
@@ -102,7 +101,7 @@ class Sampler(BaseSampler):
             rng = np.random.default_rng(seed)
 
         # Initialize metadata
-        metadata: list[dict[str, Any]] = [{}] * len(circuits)
+        metadata: list[dict[str, Any]] = [{} for _ in range(len(circuits))]
 
         bound_circuits = []
         qargs_list = []
@@ -137,8 +136,8 @@ class Sampler(BaseSampler):
 
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: tuple[QuantumCircuit, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []

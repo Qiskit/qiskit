@@ -112,7 +112,7 @@ class TestDenseLayout(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         instruction_props = {edge: None for edge in CouplingMap.from_heavy_hex(3).get_edges()}
         noiseless_target = Target()
-        noiseless_target.add_instruction(CXGate, instruction_props)
+        noiseless_target.add_instruction(CXGate(), instruction_props)
         pass_ = DenseLayout(target=noiseless_target)
         pass_.run(dag)
         layout = pass_.property_set["layout"]

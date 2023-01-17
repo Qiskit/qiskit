@@ -13,6 +13,7 @@ features:
         from qiskit.algorithms.optimizers import SLSQP
         from qiskit.circuit.library import TwoLocal
         from qiskit.primitives import Estimator
+        from qiskit.quantum_info import SparsePauliOp
 
         h2_op = SparsePauliOp(
             ["II", "IZ", "ZI", "ZZ", "XX"],

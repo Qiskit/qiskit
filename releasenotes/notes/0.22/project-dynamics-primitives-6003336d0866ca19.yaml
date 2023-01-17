@@ -1,7 +1,7 @@
 features:
   - |
-    Added the primitives-enabled :class:`PVQD` class to the time evolution framework. This class
-    implements the projected Variational Quantum Dynamics (p-VQD) algorithm as :class:`.PVQD` of
+    Added the :class:`~.PVQD` class to the time evolution framework in :mod:`qiskit.algorithms`.
+    This class implements the projected Variational Quantum Dynamics (p-VQD) algorithm
     `Barison et al. <https://quantum-journal.org/papers/q-2021-07-28-512/>`_.
 
     In each timestep this algorithm computes the next state with a Trotter formula and projects it
@@ -13,8 +13,9 @@ features:
         import numpy as np
 
         from qiskit.algorithms.state_fidelities import ComputeUncompute
+        from qiskit.algorithms.evolvers import EvolutionProblem
         from qiskit.algorithms.time_evolvers.pvqd import PVQD
-        from qiskit.primitives import Estimator
+        from qiskit.primitives import Estimator, Sampler
         from qiskit import BasicAer
         from qiskit.circuit.library import EfficientSU2
         from qiskit.quantum_info import Pauli, SparsePauliOp
@@ -35,8 +36,8 @@ features:
         pvqd = PVQD(
             fidelity,
             ansatz,
-            estimator,
             initial_parameters,
+            estimator,
             num_timesteps=100,
             optimizer=optimizer,
         )
