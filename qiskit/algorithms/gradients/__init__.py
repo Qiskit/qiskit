@@ -59,6 +59,7 @@ Results
    :toctree: ../stubs/
 
    EstimatorGradientResult
+   QFIResult
    QGTResult
    SamplerGradientResult
 """
@@ -75,6 +76,7 @@ from .lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift_sampler_gradient import ParamShiftSamplerGradient
 from .qfi import QFI
+from .qfi_result import QFIResult
 from .qgt_result import QGTResult
 from .sampler_gradient_result import SamplerGradientResult
 from .spsa_estimator_gradient import SPSAEstimatorGradient
@@ -94,6 +96,7 @@ __all__ = [
     "ParamShiftEstimatorGradient",
     "ParamShiftSamplerGradient",
     "QFI",
+    "QFIResult",
     "QGTResult",
     "SamplerGradientResult",
     "SPSAEstimatorGradient",
