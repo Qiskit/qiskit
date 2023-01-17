@@ -41,10 +41,8 @@ class VariationalPrinciple(ABC):
     ) -> None:
         """
         Args:
-            qfi: Instance of a class used to compute the QFI. If ``None`` provided, ``LinCombQFI``
-                is used.
-            gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
-                ``LinCombEstimatorGradient`` is used.
+            qfi: Instance of a class used to compute the QFI.
+            gradient: Instance of a class used to compute the state gradient.
         """
         self.qfi = qfi
         self.gradient = gradient

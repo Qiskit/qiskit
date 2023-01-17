@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,7 +23,8 @@ from qiskit.circuit import Parameter
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQFI
+from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, QFI, DerivativeType
+
 from .real_variational_principle import (
     RealVariationalPrinciple,
 )
@@ -38,33 +39,29 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     def __init__(
         self,
-        qfi: BaseQFI | None = None,
+        qgt: BaseQGT | None = None,
         gradient: BaseEstimatorGradient | None = None,
     ) -> None:
         """
         Args:
-            qfi: Instance of a class used to compute the QFI. If ``None`` provided, ``LinCombQFI``
+            qfi: Instance of a the GQT class used to compute the QFI. If ``None`` provided, ``LinCombQGT``
                 is used.
             gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
                 ``LinCombEstimatorGradient`` is used.
         """
         self._validate_grad_settings(gradient)
         # pylint: disable=cyclic-import
-        from qiskit.algorithms.gradients import LinCombQFI
-        from qiskit.algorithms.gradients.lin_comb_estimator_gradient import (
-            DerivativeType,
-            LinCombEstimatorGradient,
-        )
+        from qiskit.algorithms.gradients import LinCombQGT, LinCombEstimatorGradient
 
-        if gradient is not None and gradient._estimator is not None and qfi is None:
+        if gradient is not None and gradient._estimator is not None and qgt is None:
             estimator = gradient._estimator
-            qfi = LinCombQFI(estimator)
-        elif qfi is None and gradient is None:
+            qgt = LinCombQGT(estimator)
+        elif qgt is None and gradient is None:
             estimator = Estimator()
-            qfi = LinCombQFI(estimator)
+            qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
 
-        super().__init__(qfi, gradient)
+        super().__init__(QFI(qgt), gradient)
 
     def evolution_gradient(
         self,
