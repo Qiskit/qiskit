@@ -33,7 +33,7 @@ from .utils import DerivativeType, _make_lin_comb_qgt_circuit, _make_lin_comb_ob
 
 
 class LinCombQGT(BaseQGT):
-    """Computes the Quantum Fisher Information (QGT) given a pure,
+    """Computes the Quantum Geometric Tensor (QGT) given a pure,
     parameterized quantum state. This method employs a linear
     combination of unitaries [1].
 

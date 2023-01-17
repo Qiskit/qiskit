@@ -49,8 +49,8 @@ class TestQFI(QiskitTestCase):
 
         qfi = QFI(self.qgt)
         for i, param in enumerate(param_list):
-            qgts = qfi.run([qc], [param]).result().qgts
-            np.testing.assert_allclose(qgts[0], correct_values[i], atol=1e-3)
+            qfis = qfi.run([qc], [param]).result().qfis
+            np.testing.assert_allclose(qfis[0], correct_values[i], atol=1e-3)
 
     def test_qfi_phase_fix(self):
         """Test the phase-fix argument in the QFI calculation"""
@@ -66,8 +66,8 @@ class TestQFI(QiskitTestCase):
         correct_values = [[1, 0], [0, 1]]
         qgt = LinCombQGT(self.estimator, phase_fix=False)
         qfi = QFI(qgt)
-        qgt_result = qfi.run([qc], [param]).result().qgts
-        np.testing.assert_allclose(qgt_result[0], correct_values, atol=1e-3)
+        qfis = qfi.run([qc], [param]).result().qfis
+        np.testing.assert_allclose(qfis[0], correct_values, atol=1e-3)
 
     def test_qfi_maxcut(self):
         """Test the QFI for a simple MaxCut problem.
@@ -102,8 +102,8 @@ class TestQFI(QiskitTestCase):
         param = [0.4, 0.69]
 
         qfi = QFI(self.qgt)
-        qgt_result = qfi.run([ansatz], [param]).result().qgts
-        np.testing.assert_array_almost_equal(qgt_result[0], reference, decimal=3)
+        qfi_result = qfi.run([ansatz], [param]).result().qfis
+        np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
 
     def test_options(self):
         """Test QFI's options"""
