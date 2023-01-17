@@ -197,7 +197,7 @@ def _evolve_by_operator(operator, state):
         spmatrix = operator.to_matrix(sparse=True)
         evolved = spmatrix @ state.data
         return Statevector(evolved)
-    except AttributeError:
+    except (TypeError, AttributeError):
         logger.info("Operator is not castable to a sparse matrix, using Statevector.evolve.")
 
     return state.evolve(operator)

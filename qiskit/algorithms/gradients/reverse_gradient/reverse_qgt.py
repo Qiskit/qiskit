@@ -19,24 +19,22 @@ import logging
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, Parameter
-from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
 from qiskit.providers import Options
-from qiskit.transpiler.passes import TranslateParameterizedGates
+from qiskit.primitives import Estimator
 
-from ..base_qfi import BaseQFI
-from ..qfi_result import QFIResult
+from ..base_qgt import BaseQGT
+from ..qgt_result import QGTResult
 from ..utils import DerivativeType
 
 from .split_circuits import split
 from .bind import bind
 from .derive_circuit import derive_circuit
-from .reverse_gradient import _evolve_by_operator
 
 logger = logging.getLogger(__name__)
 
 
-class ReverseQGT(BaseQFI):
+class ReverseQGT(BaseQGT):
     """QGT calculation with the classically efficient reverse mode.
 
     .. note::
@@ -58,9 +56,8 @@ class ReverseQGT(BaseQFI):
 
     SUPPORTED_GATES = ["rx", "ry", "rz", "cp", "crx", "cry", "crz"]
 
-    # TODO: should the default for QGT be complex?
     def __init__(
-        self, phase_fix: bool = True, derivative_type: DerivativeType = DerivativeType.REAL
+        self, phase_fix: bool = True, derivative_type: DerivativeType = DerivativeType.COMPLEX
     ):
         """
         Args:
@@ -68,9 +65,8 @@ class ReverseQGT(BaseQFI):
             derivative_type: Determines whether the complex QGT or only the real or imaginary
                 parts are calculated.
         """
-        super().__init__()
-        self.phase_fix = phase_fix
-        self._derivative_type = derivative_type
+        dummy_estimator = Estimator()  # this method does not need an estimator
+        super().__init__(dummy_estimator, phase_fix, derivative_type)
 
     @property
     def options(self) -> Options:
@@ -81,25 +77,27 @@ class ReverseQGT(BaseQFI):
         """
         return Options()
 
-    # TODO this should be in the base class of QGT
-    @property
-    def derivative_type(self) -> DerivativeType:
-        """The derivative type."""
-        return self._derivative_type
-
-    @derivative_type.setter
-    def derivative_type(self, derivative_type: DerivativeType) -> None:
-        """Set the derivative type."""
-        self._derivative_type = derivative_type
-
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
-    ) -> QFIResult:
-        # cast to array, if values are a list
+    ) -> QGTResult:
+        """Compute the QGT on the given circuits."""
+        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
+            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
+        )
+        results = self._run_unique(g_circuits, g_parameter_values, g_parameter_sets, **options)
+        return self._postprocess(results, circuits, parameter_values, parameter_sets)
+
+    def _run_unique(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        parameter_values: Sequence[Sequence[float]],
+        parameter_sets: Sequence[set[Parameter]],
+        **options,  # pylint: disable=unused-argument
+    ) -> QGTResult:
         num_qgts = len(circuits)
         qgts = []
         metadata = []
@@ -107,28 +105,13 @@ class ReverseQGT(BaseQFI):
         for k in range(num_qgts):
             values = np.asarray(parameter_values[k])
             circuit = circuits[k]
+            parameters = list(parameter_sets[k])
 
-            # TODO unrolling done by QGT
-            translator = TranslateParameterizedGates(self.SUPPORTED_GATES)
-            circuit = translator(circuit)
+            num_parameters = len(parameters)
+            original_parameter_order = [p for p in circuit.parameters if p in parameters]
+            metadata.append({"parameters": original_parameter_order})
 
-            # TODO parameters is None captured by QGT
-            if parameters[k] is None:
-                parameters_ = list(circuit.parameters)
-            else:
-                parameters_ = list(parameters[k])
-
-            num_parameters = len(parameters_)
-            original_parameter_order = [p for p in circuit.parameters if p in parameters_]
-
-            metadata.append(
-                {
-                    "parameters": original_parameter_order,
-                    "derivative_type": self.derivative_type,
-                }
-            )
-
-            unitaries, paramlist = split(circuit, parameters=parameters_)
+            unitaries, paramlist = split(circuit, parameters=parameters)
 
             # initialize the phase fix vector and the hessian part ``metric``
             num_parameters = len(unitaries)
@@ -155,7 +138,7 @@ class ReverseQGT(BaseQFI):
             grad_states = [phi.evolve(gate) for _, gate in deriv]
 
             # compute phase fix (optional) and the hessian part
-            if self.phase_fix:
+            if self._phase_fix:
                 phase_fixes[0] = _phasefix_term(chi, grad_coeffs, grad_states)
 
             metric[0, 0] = _l_term(grad_coeffs, grad_states, grad_coeffs, grad_states)
@@ -172,7 +155,7 @@ class ReverseQGT(BaseQFI):
 
                 # compute |phi> (in general it's a sum of states and coeffs)
                 grad_coeffs = [coeff for coeff, _ in deriv]
-                grad_states = [phi.evolve(gate.decompose()) for _, gate in deriv]
+                grad_states = [phi.evolve(gate) for _, gate in deriv]
 
                 # compute the digaonal element L_{j, j}
                 metric[j, j] += _l_term(grad_coeffs, grad_states, grad_coeffs, grad_states)
@@ -197,7 +180,7 @@ class ReverseQGT(BaseQFI):
                         grad_coeffs_mu, grad_states_mu, grad_coeffs, grad_states
                     )
 
-                if self.phase_fix:
+                if self._phase_fix:
                     phase_fixes[j] += _phasefix_term(chi, grad_coeffs, grad_states)
 
                 psi = psi.evolve(bound_unitaries[j])
@@ -231,17 +214,16 @@ class ReverseQGT(BaseQFI):
             # append and cast to real/imag if required
             qgts.append(self._to_derivtype(qgt))
 
-        result = QFIResult(qgts, metadata, options=None)
+        result = QGTResult(qgts, self.derivative_type, metadata, options=None)
         return result
 
     def _to_derivtype(self, qgt):
-        # TODO remove factor 4 once the QGT interface is there
         if self.derivative_type == DerivativeType.REAL:
-            return 4 * np.real(qgt)
+            return np.real(qgt)
         if self.derivative_type == DerivativeType.IMAG:
-            return 4 * np.imag(qgt)
+            return np.imag(qgt)
 
-        return 4 * qgt
+        return qgt
 
 
 def _l_term(coeffs_i, states_i, coeffs_j, states_j):

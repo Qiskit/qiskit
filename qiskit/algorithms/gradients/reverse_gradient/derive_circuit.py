@@ -31,6 +31,9 @@ def gradient_lookup(gate: Gate) -> list[tuple[complex, QuantumCircuit]]:
         The circuit is the unitary part of the derivative with a potential separate ``coeff``.
         The output is a list as derivatives of e.g. controlled gates can only be described
         as a sum of ``coeff * circuit`` pairs.
+
+    Raises:
+        NotImplementedError: If the derivative of ``gate`` is not implemented.
     """
 
     param = gate.params[0]
