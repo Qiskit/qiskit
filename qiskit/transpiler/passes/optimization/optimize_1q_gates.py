@@ -66,10 +66,16 @@ class Optimize1qGates(TransformationPass):
         use_u = "u" in self.basis
         use_p = "p" in self.basis
         runs = dag.collect_runs(["u1", "u2", "u3", "u", "p"])
+        qubit_mapping = {}
+        if self.target is not None:
+            qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
         runs = _split_runs_on_parameters(runs)
         for run in runs:
+            run_qubits = None
             if self.target is not None:
-                if self.target.instruction_supported("p", run[0].qargs):
+                run_qubits = tuple(qubit_mapping[x] for x in run[0].qargs)
+
+                if self.target.instruction_supported("p", run_qubits):
                     right_name = "p"
                 else:
                     right_name = "u1"
@@ -267,15 +273,15 @@ class Optimize1qGates(TransformationPass):
                     right_name = "nop"
 
             if self.target is not None:
-                if right_name == "u2" and not self.target.instruction_supported("u2", run[0].qargs):
-                    if self.target.instruction_supported("u", run[0].qargs):
+                if right_name == "u2" and not self.target.instruction_supported("u2", run_qubits):
+                    if self.target.instruction_supported("u", run_qubits):
                         right_name = "u"
                     else:
                         right_name = "u3"
                 if right_name in ("u1", "p") and not self.target.instruction_supported(
-                    right_name, run[0].qargs
+                    right_name, run_qubits
                 ):
-                    if self.target.instruction_supported("u", run[0].qargs):
+                    if self.target.instruction_supported("u", run_qubits):
                         right_name = "u"
                     else:
                         right_name = "u3"

@@ -53,19 +53,25 @@ class Unroller(TransformationPass):
         Returns:
             DAGCircuit: output unrolled dag
         """
-        if self.basis is None:
+        if self.basis is None and self.target is None:
             return dag
+        qubit_mapping = {}
+        if self.target is not None:
+            qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
         # Walk through the DAG and expand each non-basis node
         basic_insts = ["measure", "reset", "barrier", "snapshot", "delay"]
         for node in dag.op_nodes():
             if getattr(node.op, "_directive", False):
                 continue
 
+            run_qubits = None
             if self.target is not None:
+                run_qubits = tuple(qubit_mapping[x] for x in node.qargs)
                 if (
-                    self.target.instruction_supported(node.op.name, qargs=tuple(node.qargs))
+                    self.target.instruction_supported(node.op.name, qargs=run_qubits)
                     or node.op.name == "barrier"
                 ):
+                    print("blue")
                     if isinstance(node.op, ControlledGate) and node.op._open_ctrl:
                         pass
                     else:
@@ -102,7 +108,7 @@ class Unroller(TransformationPass):
             # different that the width of the node.
             while rule and len(rule) == 1 and len(node.qargs) == len(rule[0].qubits) == 1:
                 if self.target is not None:
-                    if self.target.instruction_supported(rule[0].operation.name, qargs=node.qargs):
+                    if self.target.instruction_supported(rule[0].operation.name, run_qubits):
                         dag.global_phase += phase
                         dag.substitute_node(node, rule[0].operation, inplace=True)
                         break
