@@ -38,6 +38,8 @@ from .solvers.ode.var_qte_ode_solver import (
 from ..time_evolution_problem import TimeEvolutionProblem
 from .var_qte_result import VarQTEResult
 
+from ... import estimate_observables
+
 
 class VarQTE(ABC):
     """Variational Quantum Time Evolution.
@@ -114,8 +116,6 @@ class VarQTE(ABC):
             ValueError: If ``initial_state`` is included in the ``evolution_problem``.
         """
         self._validate_aux_ops(evolution_problem)
-        # pylint: disable=cyclic-import
-        from ... import estimate_observables
 
         if evolution_problem.initial_state is not None:
             raise ValueError("initial_state provided but not applicable to VarQTE.")

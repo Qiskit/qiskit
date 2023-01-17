@@ -21,11 +21,16 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.primitives import Estimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
-
-from .imaginary_variational_principle import (
-    ImaginaryVariationalPrinciple,
+from qiskit.algorithms.gradients import (
+    BaseEstimatorGradient,
+    BaseQGT,
+    DerivativeType,
+    LinCombQGT,
+    LinCombEstimatorGradient,
 )
+
+from .imaginary_variational_principle import ImaginaryVariationalPrinciple
+from ....exceptions import AlgorithmError
 
 
 class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
@@ -42,15 +47,13 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     ) -> None:
         """
         Args:
-            qfi: Instance of a the GQT class used to compute the QFI. If ``None`` provided, ``LinCombQGT``
-                is used.
-            gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
-                ``LinCombEstimatorGradient`` is used.
+            qfi: Instance of a the GQT class used to compute the QFI.
+                If ``None`` provided, ``LinCombQGT`` is used.
+            gradient: Instance of a class used to compute the state gradient.
+                If ``None`` provided, ``LinCombEstimatorGradient`` is used.
         """
 
         self._validate_grad_settings(gradient)
-        # pylint: disable=cyclic-import
-        from qiskit.algorithms.gradients import LinCombQGT, LinCombEstimatorGradient
 
         if gradient is not None and gradient._estimator is not None and qgt is None:
             estimator = gradient._estimator
@@ -85,8 +88,6 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
         Raises:
             AlgorithmError: If a gradient job fails.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.algorithms import AlgorithmError
 
         try:
             evolution_grad_lse_rhs = (

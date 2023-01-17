@@ -23,11 +23,16 @@ from qiskit.circuit import Parameter
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
-
-from .real_variational_principle import (
-    RealVariationalPrinciple,
+from qiskit.algorithms.gradients import (
+    BaseEstimatorGradient,
+    BaseQGT,
+    DerivativeType,
+    LinCombQGT,
+    LinCombEstimatorGradient,
 )
+
+from .real_variational_principle import RealVariationalPrinciple
+from ....exceptions import AlgorithmError
 
 
 class RealMcLachlanPrinciple(RealVariationalPrinciple):
@@ -44,14 +49,12 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
     ) -> None:
         """
         Args:
-            qfi: Instance of a the GQT class used to compute the QFI. If ``None`` provided, ``LinCombQGT``
-                is used.
-            gradient: Instance of a class used to compute the state gradient. If ``None`` provided,
-                ``LinCombEstimatorGradient`` is used.
+            qfi: Instance of a the GQT class used to compute the QFI.
+                If ``None`` provided, ``LinCombQGT`` is used.
+            gradient: Instance of a class used to compute the state gradient.
+                If ``None`` provided, ``LinCombEstimatorGradient`` is used.
         """
         self._validate_grad_settings(gradient)
-        # pylint: disable=cyclic-import
-        from qiskit.algorithms.gradients import LinCombQGT, LinCombEstimatorGradient
 
         if gradient is not None and gradient._estimator is not None and qgt is None:
             estimator = gradient._estimator
@@ -86,8 +89,6 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         Raises:
             AlgorithmError: If a gradient job fails.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.algorithms import AlgorithmError
 
         try:
             estimator_job = self.gradient._estimator.run([ansatz], [hamiltonian], [param_values])
@@ -137,8 +138,6 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
 
     @staticmethod
     def _validate_grad_settings(gradient):
-        # pylint: disable=cyclic-import
-        from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
 
         if gradient is not None:
             if not hasattr(gradient, "_derivative_type"):

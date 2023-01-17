@@ -13,18 +13,16 @@
 """Class for a Variational Principle."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
 from abc import ABC, abstractmethod
 
 import numpy as np
 
 from qiskit import QuantumCircuit
+from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
 from qiskit.circuit import Parameter
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-if TYPE_CHECKING:
-    # pylint: disable=cyclic-import
-    from qiskit.algorithms.gradients import BaseEstimatorGradient, BaseQGT
+from ....exceptions import AlgorithmError
 
 
 class VariationalPrinciple(ABC):
@@ -33,12 +31,12 @@ class VariationalPrinciple(ABC):
 
     def __init__(
         self,
-        qgt: "BaseQGT" | None = None,
-        gradient: "BaseEstimatorGradient" | None = None,
+        qgt: BaseQGT | None = None,
+        gradient: BaseEstimatorGradient | None = None,
     ) -> None:
         """
         Args:
-            qfi: Instance of a class used to compute the QFI.
+            qgt: Instance of a class used to compute the GQT.
             gradient: Instance of a class used to compute the state gradient.
         """
         self.qgt = qgt
@@ -58,9 +56,6 @@ class VariationalPrinciple(ABC):
         Raises:
             AlgorithmError: If a QFI job fails.
         """
-        # pylint: disable=cyclic-import
-        from qiskit.algorithms import AlgorithmError
-        from qiskit.algorithms.gradients import DerivativeType
 
         self.qgt.derivative_type = DerivativeType.REAL
         try:
