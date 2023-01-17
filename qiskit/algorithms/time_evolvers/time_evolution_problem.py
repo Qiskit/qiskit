@@ -78,10 +78,7 @@ class TimeEvolutionProblem:
 
         self.t_param = t_param
         self.param_value_map = param_value_map
-        if isinstance(hamiltonian, PauliSumOp):
-            self.hamiltonian = hamiltonian.primitive * hamiltonian.coeff
-        else:
-            self.hamiltonian = hamiltonian
+        self.hamiltonian = hamiltonian
         self.time = time
         if isinstance(initial_state, Statevector):
             circuit = QuantumCircuit(initial_state.num_qubits)

@@ -21,6 +21,7 @@ from scipy.integrate import OdeSolver
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
+from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .solvers.ode.forward_euler_solver import ForwardEulerSolver
@@ -123,9 +124,17 @@ class VarQTE(ABC):
             self.initial_parameters, self.ansatz.parameters
         )
 
+        # unwrap PauliSumOp (in the future this will be deprecated)
+        if isinstance(evolution_problem.hamiltonian, PauliSumOp):
+            hamiltonian = (
+                evolution_problem.hamiltonian.primitive * evolution_problem.hamiltonian.coeff
+            )
+        else:
+            hamiltonian = evolution_problem.hamiltonian
+
         evolved_state, param_values, time_points = self._evolve(
             init_state_param_dict,
-            evolution_problem.hamiltonian,
+            hamiltonian,
             evolution_problem.time,
             evolution_problem.t_param,
         )
