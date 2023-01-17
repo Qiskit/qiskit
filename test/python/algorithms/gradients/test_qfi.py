@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,42 +11,32 @@
 # that they have been altered from the originals.
 # =============================================================================
 
-""" Test QFI"""
+"""Test QFI."""
 
 import unittest
-from ddt import ddt, data
 
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients.lin_comb_estimator_gradient import DerivativeType
-from qiskit.algorithms.gradients import LinCombQFI, ReverseQGT
+from qiskit.algorithms.gradients import LinCombQGT, QFI
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import RealAmplitudes
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.primitives import Estimator
 from qiskit.test import QiskitTestCase
 
-from .logging_primitives import LoggingEstimator
 
-
-@ddt
 class TestQFI(QiskitTestCase):
     """Test QFI"""
 
     def setUp(self):
         super().setUp()
         self.estimator = Estimator()
+        self.qgt = LinCombQGT(self.estimator)
 
-    @data(LinCombQFI, ReverseQGT)
-    def test_qfi_simple(self, qgt_type):
+    def test_qfi(self):
         """Test if the quantum fisher information calculation is correct for a simple test case.
-
         QFI = [[1, 0], [0, 1]] - [[0, 0], [0, cos^2(a)]]
         """
-        args = (self.estimator,) if qgt_type != ReverseQGT else ()
-        qfi = qgt_type(*args)
-
         # create the circuit
         a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
@@ -57,19 +47,13 @@ class TestQFI(QiskitTestCase):
         param_list = [[np.pi / 4, 0.1], [np.pi, 0.1], [np.pi / 2, 0.1]]
         correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
 
+        qfi = QFI(self.qgt)
         for i, param in enumerate(param_list):
             qfis = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfis[0], correct_values[i], atol=1e-3)
 
-    @data(LinCombQFI, ReverseQGT)
-    def test_qfi_phase_fix(self, qgt_type):
-        """Test the phase-fix argument in a QFI calculation
-
-        QFI = [[1, 0], [0, 1]].
-        """
-        args = (self.estimator,) if qgt_type != ReverseQGT else ()
-        qfi = qgt_type(*args, phase_fix=False)
-
+    def test_qfi_phase_fix(self):
+        """Test the phase-fix argument in the QFI calculation"""
         # create the circuit
         a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
@@ -80,11 +64,12 @@ class TestQFI(QiskitTestCase):
         param = [np.pi / 4, 0.1]
         # test for different values
         correct_values = [[1, 0], [0, 1]]
-        qfi_result = qfi.run([qc], [param]).result().qfis
-        np.testing.assert_allclose(qfi_result[0], correct_values, atol=1e-3)
+        qgt = LinCombQGT(self.estimator, phase_fix=False)
+        qfi = QFI(qgt)
+        qfis = qfi.run([qc], [param]).result().qfis
+        np.testing.assert_allclose(qfis[0], correct_values, atol=1e-3)
 
-    @data(LinCombQFI, ReverseQGT)
-    def test_qfi_maxcut(self, qgt_type):
+    def test_qfi_maxcut(self):
         """Test the QFI for a simple MaxCut problem.
 
         This is interesting because it contains the same parameters in different gates.
@@ -116,155 +101,33 @@ class TestQFI(QiskitTestCase):
         reference = np.array([[16.0, -5.551], [-5.551, 18.497]])
         param = [0.4, 0.69]
 
-        args = (self.estimator,) if qgt_type != ReverseQGT else ()
-        qfi = qgt_type(*args)
-
+        qfi = QFI(self.qgt)
         qfi_result = qfi.run([ansatz], [param]).result().qfis
         np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
-
-    @data(LinCombQFI, ReverseQGT)
-    def test_qfi_derivative_type(self, qgt_type):
-        """Test QFI derivative_type"""
-        a, b = Parameter("a"), Parameter("b")
-        qc = QuantumCircuit(1)
-        qc.h(0)
-        qc.rz(a, 0)
-        qc.rx(b, 0)
-
-        args = (self.estimator,) if qgt_type != ReverseQGT else ()
-        qfi = qgt_type(*args)
-
-        param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
-        # test imaginary derivative
-        with self.subTest("Test with DerivativeType.IMAG"):
-            qfi.derivative_type = DerivativeType.IMAG
-            correct_values = [[[0, 0.707106781], [-0.707106781, 0]], [[0, 1], [-1, 0]]]
-            for i, param in enumerate(param_list):
-                qfi_result = qfi.run([qc], [param]).result().qfis
-                np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
-
-        # test real + imaginary derivative
-        with self.subTest("Test with DerivativeType.COMPLEX"):
-            qfi.derivative_type = DerivativeType.COMPLEX
-            correct_values = [[[1, 0.707106781j], [-0.707106781j, 0.5]], [[1, 1j], [-1j, 1]]]
-            for i, param in enumerate(param_list):
-                qfi_result = qfi.run([qc], [param]).result().qfis
-                np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
-
-    @data(LinCombQFI, ReverseQGT)
-    def test_qfi_coefficients(self, qgt_type):
-        """Test the derivative option of QFI"""
-        qc = RealAmplitudes(num_qubits=2, reps=1)
-        qc.rz(qc.parameters[0].exp() + 2 * qc.parameters[1], 0)
-        qc.rx(3.0 * qc.parameters[2] + qc.parameters[3].sin(), 1)
-
-        args = (self.estimator,) if qgt_type != ReverseQGT else ()
-        qfi = qgt_type(*args)
-
-        # test imaginary derivative
-        param_list = [
-            [np.pi / 4 for param in qc.parameters],
-            [np.pi / 2 for param in qc.parameters],
-        ]
-        correct_values = [
-            [
-                [5.707309, 4.2924833, 1.5295868, 0.1938604],
-                [4.2924833, 4.9142136, 0.75, 0.8838835],
-                [1.5295868, 0.75, 3.4430195, 0.0758252],
-                [0.1938604, 0.8838835, 0.0758252, 1.1357233],
-            ],
-            [
-                [1.0, 0.0, 1.0, 0.0],
-                [0.0, 1.0, 0.0, 0.0],
-                [1.0, 0.0, 10.0, -0.0],
-                [0.0, 0.0, -0.0, 1.0],
-            ],
-        ]
-        for i, param in enumerate(param_list):
-            qfi_result = qfi.run([qc], [param]).result().qfis
-            np.testing.assert_allclose(qfi_result[0], correct_values[i], atol=1e-3)
-
-    @data(LinCombQFI, ReverseQGT)
-    def test_qfi_specify_parameters(self, qgt_type):
-        """Test the QFI with specified parameters"""
-        a = Parameter("a")
-        b = Parameter("b")
-        qc = QuantumCircuit(1)
-        qc.rx(a, 0)
-        qc.ry(b, 0)
-
-        args = (self.estimator,) if qgt_type != ReverseQGT else ()
-        qfi = qgt_type(*args)
-
-        param_list = [np.pi / 4, np.pi / 4]
-        qfi_result = qfi.run([qc], [param_list], [[a]]).result().qfis
-        np.testing.assert_allclose(qfi_result[0], [[1]], atol=1e-3)
-
-    @data(LinCombQFI, ReverseQGT)
-    def test_qfi_multi_arguments(self, qgt_type):
-        """Test the QFI for multiple arguments"""
-        a = Parameter("a")
-        b = Parameter("b")
-        qc = QuantumCircuit(1)
-        qc.rx(a, 0)
-        qc.ry(b, 0)
-        qc2 = QuantumCircuit(1)
-        qc2.rx(a, 0)
-        qc2.ry(b, 0)
-
-        args = (self.estimator,) if qgt_type != ReverseQGT else ()
-        qfi = qgt_type(*args)
-
-        param_list = [[np.pi / 4], [np.pi / 2]]
-        correct_values = [
-            [[1]],
-            [[1, 0], [0, 0]],
-        ]
-        param_list = [[np.pi / 4, np.pi / 4], [np.pi / 2, np.pi / 2]]
-        qfi_results = qfi.run([qc, qc2], param_list, [[a], None]).result().qfis
-        for i, _ in enumerate(param_list):
-            np.testing.assert_allclose(qfi_results[i], correct_values[i], atol=1e-3)
-
-    def test_qfi_validation(self):
-        """Test estimator QFI's validation"""
-        a = Parameter("a")
-        qc = QuantumCircuit(1)
-        qc.rx(a, 0)
-        qfi = LinCombQFI(self.estimator)
-        parameter_values = [[np.pi / 4]]
-        with self.subTest("assert number of circuits does not match"):
-            with self.assertRaises(ValueError):
-                qfi.run([qc, qc], parameter_values)
-        with self.subTest("assert number of parameter values does not match"):
-            with self.assertRaises(ValueError):
-                qfi.run([qc], [[np.pi / 4], [np.pi / 2]])
-        with self.subTest("assert number of parameters does not match"):
-            with self.assertRaises(ValueError):
-                qfi.run([qc], parameter_values, parameters=[[a], [a]])
 
     def test_options(self):
         """Test QFI's options"""
         a = Parameter("a")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
-        estimator = Estimator(options={"shots": 100})
+        qgt = LinCombQGT(estimator=self.estimator, options={"shots": 100})
 
-        with self.subTest("estimator"):
-            qfi = LinCombQFI(estimator)
+        with self.subTest("QGT"):
+            qfi = QFI(qgt=qgt)
             options = qfi.options
             result = qfi.run([qc], [[1]]).result()
             self.assertEqual(result.options.get("shots"), 100)
             self.assertEqual(options.get("shots"), 100)
 
         with self.subTest("QFI init"):
-            qfi = LinCombQFI(estimator, options={"shots": 200})
+            qfi = QFI(qgt=qgt, options={"shots": 200})
             result = qfi.run([qc], [[1]]).result()
             options = qfi.options
             self.assertEqual(result.options.get("shots"), 200)
             self.assertEqual(options.get("shots"), 200)
 
         with self.subTest("QFI update"):
-            qfi = LinCombQFI(estimator, options={"shots": 200})
+            qfi = QFI(qgt, options={"shots": 200})
             qfi.update_default_options(shots=100)
             options = qfi.options
             result = qfi.run([qc], [[1]]).result()
@@ -272,39 +135,11 @@ class TestQFI(QiskitTestCase):
             self.assertEqual(options.get("shots"), 100)
 
         with self.subTest("QFI run"):
-            qfi = LinCombQFI(estimator, options={"shots": 200})
+            qfi = QFI(qgt=qgt, options={"shots": 200})
             result = qfi.run([qc], [[0]], shots=300).result()
             options = qfi.options
             self.assertEqual(result.options.get("shots"), 300)
             self.assertEqual(options.get("shots"), 200)
-
-    def test_operations_preserved(self):
-        """Test non-parameterized instructions are preserved and not unrolled."""
-        x, y = Parameter("x"), Parameter("y")
-        circuit = QuantumCircuit(2)
-        circuit.initialize([0.5, 0.5, 0.5, 0.5])  # this should remain as initialize
-        circuit.crx(x, 0, 1)  # this should get unrolled
-        circuit.ry(y, 0)
-
-        values = [np.pi / 2, np.pi]
-        expect = np.diag([0.25, 0.5])
-
-        ops = []
-
-        def operations_callback(op):
-            ops.append(op)
-
-        estimator = LoggingEstimator(operations_callback=operations_callback)
-        qfi = LinCombQFI(estimator)
-
-        job = qfi.run([circuit], [values])
-        result = job.result()
-
-        with self.subTest(msg="assert initialize is preserved"):
-            self.assertTrue(all("initialize" in ops_i[0].keys() for ops_i in ops))
-
-        with self.subTest(msg="assert result is correct"):
-            np.testing.assert_allclose(result.qfis[0], expect, atol=1e-5)
 
 
 if __name__ == "__main__":
