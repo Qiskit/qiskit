@@ -49,7 +49,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
     def setUp(self) -> None:
         super().setUp()
         try:
-            from qiskit import Aer
+            from qiskit_aer import Aer
 
             self.seed = 97
             self.backend = Aer.get_backend("aer_simulator")

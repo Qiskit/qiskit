@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,12 +21,12 @@ from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
 
-from qiskit import transpile
 from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseSampler
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
+from qiskit.transpiler.passes import TranslateParameterizedGates
 
 from .sampler_gradient_result import SamplerGradientResult
 from .utils import (
@@ -133,7 +133,7 @@ class BaseSamplerGradient(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of the specified
+            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
             supported_gates: The supported gates used to transpile the circuit.
 
@@ -141,18 +141,15 @@ class BaseSamplerGradient(ABC):
             The list of gradient circuits, the list of parameter values, and the list of parameters.
             parameter_values and parameters are updated to match the gradient circuit.
         """
+        translator = TranslateParameterizedGates(supported_gates)
         g_circuits, g_parameter_values, g_parameter_sets = [], [], []
         for circuit, parameter_value_, parameter_set in zip(
             circuits, parameter_values, parameter_sets
         ):
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._gradient_circuit_cache:
-                transpiled_circuit = transpile(
-                    circuit, basis_gates=supported_gates, optimization_level=0
-                )
-                self._gradient_circuit_cache[circuit_key] = _assign_unique_parameters(
-                    transpiled_circuit
-                )
+                unrolled = translator(circuit)
+                self._gradient_circuit_cache[circuit_key] = _assign_unique_parameters(unrolled)
             gradient_circuit = self._gradient_circuit_cache[circuit_key]
             g_circuits.append(gradient_circuit.gradient_circuit)
             g_parameter_values.append(
@@ -175,7 +172,7 @@ class BaseSamplerGradient(ABC):
             results: The results of the gradient of the gradient circuits.
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of the specified
+            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
 
         Returns:
@@ -233,7 +230,7 @@ class BaseSamplerGradient(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
+            parameter_sets: The Sequence of Sequence of Parameters to calculate only the gradients of
                 the specified parameters. Each Sequence of Parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the gradients of all parameters in
                 each circuit are calculated.

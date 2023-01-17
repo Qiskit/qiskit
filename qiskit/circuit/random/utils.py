@@ -28,12 +28,13 @@ def random_circuit(
     This function will generate a random circuit by randomly selecting gates
     from the set of standard gates in :mod:`qiskit.extensions`. For example:
 
-    .. jupyter-execute::
+    .. plot::
+       :include-source:
 
-        from qiskit.circuit.random import random_circuit
+       from qiskit.circuit.random import random_circuit
 
-        circ = random_circuit(2, 2, measure=True)
-        circ.draw(output='mpl')
+       circ = random_circuit(2, 2, measure=True)
+       circ.draw(output='mpl')
 
     Args:
         num_qubits (int): number of quantum wires

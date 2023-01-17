@@ -168,7 +168,8 @@ def circuit_drawer(
         MissingOptionalLibraryError: when the output methods requires non-installed libraries.
 
     Example:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.tools.visualization import circuit_drawer

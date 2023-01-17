@@ -132,3 +132,8 @@ class RZZGate(Gate):
             ],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RZZGate(exponent * theta)
