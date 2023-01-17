@@ -123,22 +123,35 @@ class VarQTE(ABC):
             self.initial_parameters, self.ansatz.parameters
         )
 
-        evolved_state, optimal_params = self._evolve(
+        evolved_state, param_values, time_points = self._evolve(
             init_state_param_dict,
             evolution_problem.hamiltonian,
             evolution_problem.time,
             evolution_problem.t_param,
         )
 
-        evaluated_aux_ops = None
+        observables = []
         if evolution_problem.aux_operators is not None:
-            evaluated_aux_ops = estimate_observables(
-                self.estimator,
-                evolved_state,
-                evolution_problem.aux_operators,
-            )
+            for values in param_values:
+                # cannot batch evaluation because estimate_observables
+                # only accepts single circuits
+                evol_state = self.ansatz.assign_parameters(
+                    dict(zip(init_state_param_dict.keys(), values))
+                )
+                observable = estimate_observables(
+                    self.estimator,
+                    evol_state,
+                    evolution_problem.aux_operators,
+                )
+                observables.append(observable)
 
-        return VarQTEResult(evolved_state, evaluated_aux_ops, optimal_params)
+        # TODO: deprecate returning evaluated_aux_ops.
+        #  As these are the observables for the last time step.
+        evaluated_aux_ops = observables[-1] if len(observables) > 0 else None
+
+        return VarQTEResult(
+            evolved_state, evaluated_aux_ops, observables, time_points, param_values
+        )
 
     def _evolve(
         self,
@@ -153,7 +166,7 @@ class VarQTE(ABC):
         Args:
             init_state_param_dict: Parameter dictionary with initial values for a given
                 parametrized state/ansatz.
-            hamiltonian: Operator used for Variational Quantum Imaginary Time Evolution (VarQTE).
+            hamiltonian: Operator used for Variational Quantum Time Evolution (VarQTE).
             time: Total time of evolution.
             t_param: Time parameter in case of a time-dependent Hamiltonian.
 
@@ -183,10 +196,10 @@ class VarQTE(ABC):
         ode_solver = VarQTEOdeSolver(
             init_state_parameters_values, ode_function, self.ode_solver, self.num_timesteps
         )
-        parameter_values = ode_solver.run(time)
-        param_dict_from_ode = dict(zip(init_state_parameters, parameter_values))
+        final_param_values, param_values, time_points = ode_solver.run(time)
+        param_dict_from_ode = dict(zip(init_state_parameters, final_param_values))
 
-        return self.ansatz.assign_parameters(param_dict_from_ode), parameter_values
+        return self.ansatz.assign_parameters(param_dict_from_ode), param_values, time_points
 
     @staticmethod
     def _create_init_state_param_dict(

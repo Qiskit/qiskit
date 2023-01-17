@@ -25,23 +25,25 @@ class VarQTEResult(TimeEvolutionResult):
     """The result object for the variational quantum time evolution algorithms.
 
     Attributes:
-        evolved_state (QuantumCircuit|Statevector): An evolved quantum state.
+        evolved_state (QuantumCircuit): An evolved quantum state.
         aux_ops_evaluated (ListOrDict[tuple[complex, complex]] | None): Optional list of
-            observables for which expected values on an evolved state are calculated. These values
+            observables for which expected values on an evolved state are calculated at the last timestep. These values
             are in fact tuples formatted as (mean, standard deviation).
         observables (ListOrDict[tuple[np.ndarray, np.ndarray]] | None): Optional list of
             observables for which expected on an evolved state are calculated at each timestep.
             These values are in fact lists of tuples formatted as (mean, standard deviation).
         times (np.array | None): Optional list of times at which each observable has been evaluated.
-        optimal_parameters (np.array | None): Optimal parameter values after optimization.
+        parameter_values (np.array | None): Optional list of parameter values obtained after each evolution step.
 
     """
 
     def __init__(
         self,
-        evolved_state: QuantumCircuit | Statevector,
+        evolved_state: QuantumCircuit,
         aux_ops_evaluated: ListOrDict[tuple[complex, complex]] | None = None,
-        optimal_parameters: np.ndarray | None = None,
+        observables: ListOrDict[tuple[np.ndarray, np.ndarray]] | None = None,
+        times: np.ndarray | None = None,
+        parameter_values: np.ndarray | None = None,
     ):
         """
         Args:
@@ -49,8 +51,13 @@ class VarQTEResult(TimeEvolutionResult):
             aux_ops_evaluated: Optional list of observables for which expected values on an evolved
                 state are calculated. These values are in fact tuples formatted as (mean, standard
                 deviation).
-            optimal_parameters: Optimal parameter values after optimization.
+            observables: Optional list of observables for which expected on an evolved state are
+                calculated at each timestep.
+                These values are in fact lists of tuples formatted as (mean, standard deviation).
+            times: Optional list of times at which each observable has been evaluated.
+            parameter_values: Optional list of parameter values obtained after each evolution step.
+
         """
 
-        super().__init__(evolved_state, aux_ops_evaluated)
-        self.optimal_parameters = optimal_parameters
+        super().__init__(evolved_state, aux_ops_evaluated, observables, times)
+        self.parameter_values = parameter_values

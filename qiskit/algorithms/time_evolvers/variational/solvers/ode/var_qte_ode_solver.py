@@ -78,6 +78,9 @@ class VarQTEOdeSolver:
             self._init_params,
             method=self._ode_solver,
         )
-        final_params_vals = [lst[-1] for lst in sol.y]
 
-        return final_params_vals
+        param_val_history = sol.y.T
+        time_point_history = sol.t
+        final_param_vals = param_val_history[-1]
+
+        return final_param_vals, param_val_history, time_point_history

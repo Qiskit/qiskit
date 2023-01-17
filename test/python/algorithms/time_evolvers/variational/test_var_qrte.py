@@ -64,7 +64,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
         result = varqrte.evolve(evolution_problem)
 
-        final_parameters = result.optimal_parameters
+        final_parameters = result.parameter_values[-1]
         final_state = Statevector(circuit.bind_parameters(final_parameters)).to_dict()
         final_expected_state = expected_state(final_time)
 
@@ -134,7 +134,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
             aux_ops = evolution_result.aux_ops_evaluated
 
-            parameter_values = evolution_result.optimal_parameters
+            parameter_values = evolution_result.parameter_values[-1]
 
             expected_aux_ops = [0.06836996703935797, 0.7711574493422457]
 
@@ -162,7 +162,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
             aux_ops = evolution_result.aux_ops_evaluated
 
-            parameter_values = evolution_result.optimal_parameters
+            parameter_values = evolution_result.parameter_values[-1]
 
             expected_aux_ops = [
                 0.070436,
@@ -268,7 +268,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
             )
             evolution_result = var_qrte.evolve(evolution_problem)
 
-            parameter_values = evolution_result.optimal_parameters
+            parameter_values = evolution_result.parameter_values[-1]
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(
@@ -289,7 +289,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
 
             evolution_result = var_qrte.evolve(evolution_problem)
 
-            parameter_values = evolution_result.optimal_parameters
+            parameter_values = evolution_result.parameter_values[-1]
 
             for i, parameter_value in enumerate(parameter_values):
                 np.testing.assert_almost_equal(
@@ -300,7 +300,7 @@ class TestVarQRTE(QiskitAlgorithmsTestCase):
         evolution_problem = TimeEvolutionProblem(observable, time)
         evolution_result = var_qrte.evolve(evolution_problem)
 
-        parameter_values = evolution_result.optimal_parameters
+        parameter_values = evolution_result.parameter_values[-1]
 
         for i, parameter_value in enumerate(parameter_values):
             np.testing.assert_almost_equal(float(parameter_value), thetas_expected[i], decimal=4)
