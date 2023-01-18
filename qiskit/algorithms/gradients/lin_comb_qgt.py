@@ -33,14 +33,14 @@ from .utils import DerivativeType, _make_lin_comb_qgt_circuit, _make_lin_comb_ob
 
 
 class LinCombQGT(BaseQGT):
-    """Computes the Quantum Geometric Tensor (QGT) given a pure,
-    parameterized quantum state. This method employs a linear
-    combination of unitaries [1].
+    """Computes the Quantum Geometric Tensor (QGT) given a pure, parameterized quantum state.
+
+    This method employs a linear combination of unitaries [1].
 
     **Reference:**
-    [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
-    `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
 
+        [1]: Schuld et al., "Evaluating analytic gradients on quantum hardware" (2018).
+             `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
     SUPPORTED_GATES = [
