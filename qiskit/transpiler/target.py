@@ -1028,9 +1028,9 @@ class Target(Mapping):
         timing_constraints: Optional[TimingConstraints] = None,
         custom_name_mapping: Optional[Dict[str, Any]] = None,
     ) -> Target:
-        """Create a target option from the individual global configuration
+        """Create a target object from the individual global configuration
 
-        Prior to the creation of the :class:`~.Target` class the constraints
+        Prior to the creation of the :class:`~.Target` class, the constraints
         of a backend were represented by a collection of different objects
         which combined represent a subset of the information contained in
         the :class:`~.Target`. This function provides a simple interface
@@ -1047,7 +1047,7 @@ class Target(Mapping):
                 be supported on all qubits (or pairs of qubits).
             inst_map: The instruction schedule map representing the pulse
                :class:`~.Schedule` definitions for each instruction. If this
-               is specified ``coupling_map`` must be specified. THe
+               is specified ``coupling_map`` must be specified. The
                ``coupling_map`` is used as the source of truth for connectivity
                and if ``inst_map`` is used the schedule is looked up based
                on the instuctions from the pair of ``basis_gates`` and

@@ -2,7 +2,7 @@
 features:
   - |
     Added a new constructor for the :class:`~.Target` class,
-    :meth:`.Target.from_confgiuration`, which lets you construct a
+    :meth:`.Target.from_configuration`, which lets you construct a
     :class:`~.Target` object from the separate object types for describing
     the constraints of a backend (e.g. basis gates, :class:`~.CouplingMap`,
     :class:`~.BackendProperties`, etc). For example::
