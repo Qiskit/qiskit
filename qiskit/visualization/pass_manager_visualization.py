@@ -274,7 +274,6 @@ def make_output(graph, raw, filename):
         graph.write_png(tmppath)  # pylint: disable=no-member
 
         image = Image.open(tmppath)
-        image = utils._trim(image)
         os.remove(tmppath)
         if filename:
             image.save(filename, "PNG")
