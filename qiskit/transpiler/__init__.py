@@ -53,7 +53,7 @@ of six stages:
    backend's connectivity. See :ref:`routing_stage` for more details.
 #. ``translation`` - This stage translates the gates in the circuit to the target backend's basis set.
    For more details on this stage you can refer to :ref:`translation_stage`.
-#. ``optimization`` - This stage runs the main optimization loop repeatedly 
+#. ``optimization`` - This stage runs the main optimization loop repeatedly
    until a condition (such as fixed depth) is reached. See :ref:`optimization_stage` for more details.
 #. ``scheduling`` - This stage is for any hardware-aware scheduling passes. See
    :ref:`scheduling_stage` for more details.
