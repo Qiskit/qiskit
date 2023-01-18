@@ -48,7 +48,7 @@ class ImaginaryMcLachlanPrinciple(ImaginaryVariationalPrinciple):
     ) -> None:
         """
         Args:
-            qfi: Instance of a the GQT class used to compute the QFI.
+            qgt: Instance of a the GQT class used to compute the QFI.
                 If ``None`` provided, ``LinCombQGT`` is used.
             gradient: Instance of a class used to compute the state gradient.
                 If ``None`` provided, ``LinCombEstimatorGradient`` is used.
