@@ -46,7 +46,7 @@ class BaseScheduler(AnalysisPass):
             self.durations = target.durations()
 
         # Ensure op node durations are attached and in consistent unit
-        self.requires.append(TimeUnitConversion(durations))
+        self.requires.append(TimeUnitConversion(inst_durations=durations, target=target))
 
         # Initialize timeslot
         if "node_start_time" in self.property_set:
