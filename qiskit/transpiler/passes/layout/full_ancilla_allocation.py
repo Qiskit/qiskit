@@ -32,7 +32,7 @@ class FullAncillaAllocation(AnalysisPass):
     """
 
     def __init__(self, coupling_map=None, target=None):
-        """FullAncillaAllocation initializer.<F12>
+        """FullAncillaAllocation initializer.
 
         Args:
             coupling_map (Coupling): directed graph representing a coupling map.
