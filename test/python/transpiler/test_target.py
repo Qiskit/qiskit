@@ -1681,6 +1681,10 @@ class TestTargetFromConfiguration(QiskitTestCase):
         target = Target.from_configuration(["u", "cx"], 3)
         self.assertEqual(target.operation_names, {"u", "cx"})
 
+    def test_basis_gates_no_qubits(self):
+        target = Target.from_configuration(["u", "cx"])
+        self.assertEqual(target.operation_names, {"u", "cx"})
+
     def test_basis_gates_coupling_map(self):
         """Test construction with only basis gates."""
         target = Target.from_configuration(

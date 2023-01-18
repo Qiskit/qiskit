@@ -1031,7 +1031,7 @@ class Target(Mapping):
     def from_configuration(
         cls,
         basis_gates: List[str],
-        num_qubits: int,
+        num_qubits: Optional[int] = None,
         coupling_map: Optional[CouplingMap] = None,
         inst_map: Optional[InstructionScheduleMap] = None,
         backend_properties: Optional[BackendProperties] = None,
@@ -1133,6 +1133,8 @@ class Target(Mapping):
             one_qubit_gates = []
             two_qubit_gates = []
             global_ideal_variable_width_gates = []  # pylint: disable=invalid-name
+            if num_qubits is None:
+                num_qubits = len(coupling_map.graph)
             for gate in basis_gates:
                 if gate not in name_mapping:
                     raise KeyError(

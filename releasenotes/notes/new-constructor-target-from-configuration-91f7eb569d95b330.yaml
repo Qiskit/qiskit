@@ -9,7 +9,6 @@ features:
 
         target = Target.from_configuration(
             basis_gates=["u", "cx", "measure"],
-            num_qubits=25,
             coupling_map=CouplingMap.from_line(25),
         )
 
