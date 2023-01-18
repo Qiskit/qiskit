@@ -148,7 +148,8 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
     PVQDResult
     TimeEvolutionResult
     TimeEvolutionProblem
-    TrotterQRTE
+    SciPyImaginaryEvolver
+    SciPyRealEvolver
 
 
 Trotterization-based Quantum Real Time Evolution
@@ -345,14 +346,10 @@ from .phase_estimators import (
 from .exceptions import AlgorithmError
 from .aux_ops_evaluator import eval_observables
 from .observables_evaluator import estimate_observables
-from .time_evolvers import (
-    PVQD,
-    PVQDResult,
-    ImaginaryTimeEvolver,
-    RealTimeEvolver,
-    TimeEvolutionProblem,
-    TimeEvolutionResult,
-)
+from .evolvers.trotterization import TrotterQRTE
+
+from .time_evolvers.pvqd import PVQD, PVQDResult
+from .time_evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
 
 __all__ = [
     "AlgorithmJob",
@@ -407,6 +404,8 @@ __all__ = [
     "PhaseEstimationResult",
     "PVQD",
     "PVQDResult",
+    "SciPyRealEvolver",
+    "SciPyImaginaryEvolver",
     "IterativePhaseEstimation",
     "AlgorithmError",
     "eval_observables",

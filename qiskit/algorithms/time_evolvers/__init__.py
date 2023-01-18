@@ -10,23 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The time evolution module."""
+"""Quantum Time Evolution package."""
 
-from .time_evolution_problem import TimeEvolutionProblem
 from .time_evolution_result import TimeEvolutionResult
-from .imaginary_time_evolver import ImaginaryTimeEvolver
-from .real_time_evolver import RealTimeEvolver
-
-from .pvqd import PVQD, PVQDResult
-
-from .trotterization import TrotterQRTE
+from .time_evolution_problem import TimeEvolutionProblem
 
 __all__ = [
-    "ImaginaryTimeEvolver",
-    "PVQD",
-    "PVQDResult",
-    "RealTimeEvolver",
-    "TimeEvolutionProblem",
     "TimeEvolutionResult",
-    "TrotterQRTE",
+    "TimeEvolutionProblem",
 ]
