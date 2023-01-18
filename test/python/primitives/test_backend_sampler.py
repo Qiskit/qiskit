@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,6 +25,7 @@ from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
@@ -320,6 +321,26 @@ class TestBackendSampler(QiskitTestCase):
 
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_circuit_with_dynamic_circuit(self):
+        """Test BackendSampler with QuantumCircuit with a dynamic circuit"""
+        from qiskit_aer import Aer
+
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0, True)
+
+        backend = Aer.get_backend("aer_simulator")
+        backend.set_options(seed_simulator=15)
+        sampler = BackendSampler(backend, skip_transpilation=True)
+        sampler.set_transpile_options(seed_transpiler=15)
+        result = sampler.run(qc).result()
+        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5029296875, 1: 0.4970703125})
 
     def test_sequential_run(self):
         """Test sequential run."""
