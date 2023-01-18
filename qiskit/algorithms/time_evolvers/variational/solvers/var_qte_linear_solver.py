@@ -56,7 +56,7 @@ class VarQTELinearSolver:
                 imaginary part is expected.
 
         Raises:
-            TypeError: If time_param is provided and Hamiltonian is not of type SparsePauliOp.
+            TypeError: If t_param is provided and Hamiltonian is not of type SparsePauliOp.
         """
         self._var_principle = var_principle
         self._hamiltonian = hamiltonian
