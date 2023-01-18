@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Helper class for assigning values to parameters."""
-from collections.abc import Sequence
-
 import numpy as np
 
 from qiskit.circuit import ParameterExpression
@@ -28,7 +26,7 @@ def _get_parameters(array: np.ndarray) -> ParameterView:
     return ParameterView(ret)
 
 
-def _assign_parameters(array: np.ndarray, parameter_values: Sequence[float]) -> np.ndarray:
+def _assign_parameters(array: np.ndarray, parameter_values: np.ndarray) -> np.ndarray:
     """Binds ``ParameterExpression``s in a numpy array to provided values."""
     parameter_dict = dict(zip(_get_parameters(array), parameter_values))
     for i, a in enumerate(array):
