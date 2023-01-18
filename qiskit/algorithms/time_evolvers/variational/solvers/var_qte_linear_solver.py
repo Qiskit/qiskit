@@ -120,7 +120,7 @@ class VarQTELinearSolver:
                 hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
             else:
                 raise ValueError(
-                    f"Providing a time_value is required for time-dependant hamiltonians,"
+                    f"Providing a time_value is required for time-dependant hamiltonians, "
                     f"but got time_value = {time_value}. "
                     f"Please provide a time_value to the solve_lse method."
                 )
