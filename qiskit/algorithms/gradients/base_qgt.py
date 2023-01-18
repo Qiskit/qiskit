@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,25 +11,27 @@
 # that they have been altered from the originals.
 
 """
-Abstract base class of gradient for ``Sampler``.
+Abstract base class of the Quantum Geometric Tensor (QGT).
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
 
-from qiskit.algorithms import AlgorithmJob
+import numpy as np
+
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
-from qiskit.primitives import BaseSampler
+from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
 from qiskit.transpiler.passes import TranslateParameterizedGates
 
-from .sampler_gradient_result import SamplerGradientResult
+from .. import AlgorithmJob
+from .qgt_result import QGTResult
 from .utils import (
+    DerivativeType,
     GradientCircuit,
     _assign_unique_parameters,
     _make_gradient_parameter_set,
@@ -37,23 +39,76 @@ from .utils import (
 )
 
 
-class BaseSamplerGradient(ABC):
-    """Base class for a ``SamplerGradient`` to compute the gradients of the sampling probability."""
+class BaseQGT(ABC):
+    r"""Base class to computes the Quantum Geometric Tensor (QGT) given a pure,
+    parameterized quantum state. QGT is defined as:
 
-    def __init__(self, sampler: BaseSampler, options: Options | None = None):
-        """
+    .. math::
+
+        \mathrm{QGT}_{ij}= \langle \partial_i \psi | \partial_j \psi \rangle
+            - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle.
+    """
+
+    def __init__(
+        self,
+        estimator: BaseEstimator,
+        phase_fix: bool = True,
+        derivative_type: DerivativeType = DerivativeType.COMPLEX,
+        options: Options | None = None,
+    ):
+        r"""
         Args:
-            sampler: The sampler used to compute the gradients.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
+            estimator: The estimator used to compute the QGT.
+            phase_fix: Whether to calculate the second term (phase fix) of the QGT, which is
+                :math:`\langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle`.
+                Defaults to ``True``.
+            derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+                ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
+                ``DerivativeType.REAL``.
+
+                - ``DerivativeType.REAL`` computes
+
+                .. math::
+
+                    \mathrm{Re(QGT)}_{ij}= \mathrm{Re}[\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
+
+                - ``DerivativeType.IMAG`` computes
+
+                .. math::
+
+                    \mathrm{Im(QGT)}_{ij}= \mathrm{Im}[\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
+
+                - ``DerivativeType.COMPLEX`` computes
+
+                .. math::
+
+                    \mathrm{QGT}_{ij}= [\langle \partial_i \psi | \partial_j \psi \rangle
+                        - \langle\partial_i \psi | \psi \rangle \langle\psi | \partial_j \psi \rangle].
+
+            options: Backend runtime options used for circuit execution. The order of priority is:
+                options in ``run`` method > QGT's default options > primitive's default
+                setting. Higher priority setting overrides lower priority setting.
         """
-        self._sampler: BaseSampler = sampler
+        self._estimator: BaseEstimator = estimator
+        self._phase_fix: bool = phase_fix
+        self._derivative_type: DerivativeType = derivative_type
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
+        self._qgt_circuit_cache = {}
         self._gradient_circuit_cache: dict[QuantumCircuit, GradientCircuit] = {}
+
+    @property
+    def derivative_type(self) -> DerivativeType:
+        """The derivative type."""
+        return self._derivative_type
+
+    @derivative_type.setter
+    def derivative_type(self, derivative_type: DerivativeType) -> None:
+        """Set the derivative type."""
+        self._derivative_type = derivative_type
 
     def run(
         self,
@@ -62,24 +117,23 @@ class BaseSamplerGradient(ABC):
         parameters: Sequence[Sequence[Parameter] | None] | None = None,
         **options,
     ) -> AlgorithmJob:
-        """Run the job of the sampler gradient on the given circuits.
+        """Run the job of the QGTs on the given circuits.
 
         Args:
-            circuits: The list of quantum circuits to compute the gradients.
+            circuits: The list of quantum circuits to compute the QGTs.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The sequence of parameters to calculate only the gradients of
+            parameters: The sequence of parameters to calculate only the QGTs of
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the gradients of all parameters in
+                ``circuits``. Defaults to None, which means that the QGTs of all parameters in
                 each circuit are calculated.
             options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
+                The order of priority is: options in ``run`` method > QGT's
                 default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
+                Higher priority setting overrides lower priority setting.
+
         Returns:
-            The job object of the gradients of the sampling probability. The i-th result
-            corresponds to ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
-            The j-th quasi-probability distribution in the i-th result corresponds to the gradients of
-            the sampling probability for the j-th parameter in ``circuits[i]``.
+            The job object of the QGTs of the expectation values. The i-th result corresponds to
+            ``circuits[i]`` evaluated with parameters bound as ``parameter_values[i]``.
 
         Raises:
             ValueError: Invalid arguments are given.
@@ -87,6 +141,7 @@ class BaseSamplerGradient(ABC):
         if isinstance(circuits, QuantumCircuit):
             # Allow a single circuit to be passed in.
             circuits = (circuits,)
+
         if parameters is None:
             # If parameters is None, we calculate the gradients of all parameters in each circuit.
             parameter_sets = [set(circuit.parameters) for circuit in circuits]
@@ -101,7 +156,7 @@ class BaseSamplerGradient(ABC):
         # Validate the arguments.
         self._validate_arguments(circuits, parameter_values, parameter_sets)
         # The priority of run option is as follows:
-        # options in `run` method > gradient's default options > primitive's default options.
+        # options in ``run`` method > QGT's default options > primitive's default setting.
         opts = copy(self._default_options)
         opts.update_options(**options)
         job = AlgorithmJob(self._run, circuits, parameter_values, parameter_sets, **opts.__dict__)
@@ -113,10 +168,10 @@ class BaseSamplerGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameter_sets: Sequence[Sequence[Parameter]],
         **options,
-    ) -> SamplerGradientResult:
-        """Compute the sampler gradients on the given circuits."""
+    ) -> QGTResult:
+        """Compute the QGTs on the given circuits."""
         raise NotImplementedError()
 
     def _preprocess(
@@ -160,28 +215,31 @@ class BaseSamplerGradient(ABC):
 
     def _postprocess(
         self,
-        results: SamplerGradientResult,
+        results: QGTResult,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter] | None],
-    ) -> SamplerGradientResult:
-        """Postprocess the gradient. This computes the gradient of the original circuit from the
-        gradient of the gradient circuit by using the chain rule.
+        parameter_sets: Sequence[set[Parameter]],
+    ) -> QGTResult:
+        """Postprocess the QGTs. This method computes the QGTs of the original circuits
+        by applying the chain rule to the QGTs of the circuits with unique parameters.
 
         Args:
-            results: The results of the gradient of the gradient circuits.
-            circuits: The list of quantum circuits to compute the gradients.
-            parameter_values: The list of parameter values to be bound to the circuit.
-            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
-                parameters.
+            results: The computed QGT for the circuits with unique parameters.
+            circuits: The list of original circuits submitted for gradient computation.
+            parameter_values: The list of parameter values to be bound to the circuits.
+            parameter_sets: An optional subset of parameters with respect to which the QGTs should
+                be calculated.
 
         Returns:
-            The results of the gradient of the original circuits.
+            The QGTs of the original circuits.
         """
-        gradients, metadata = [], []
+        qgts, metadata = [], []
         for idx, (circuit, parameter_values_, parameter_set) in enumerate(
             zip(circuits, parameter_values, parameter_sets)
         ):
+            dtype = complex if self.derivative_type == DerivativeType.COMPLEX else float
+            qgt = np.zeros((len(parameter_set), len(parameter_set)), dtype=dtype)
+
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
             g_parameter_set = _make_gradient_parameter_set(gradient_circuit, parameter_set)
             # Make a map from the gradient parameter to the respective index in the gradient.
@@ -192,35 +250,51 @@ class BaseSamplerGradient(ABC):
                 if param in g_parameter_set
             ]
             g_parameter_indices = {param: i for i, param in enumerate(g_parameter_indices)}
-            # Compute the original gradient from the gradient of the gradient circuit
-            # by using the chain rule.
-            gradient = []
-            for parameter in parameter_indices:
-                grad_dist = defaultdict(float)
-                for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
-                    # Compute the coefficient
-                    if isinstance(coeff, ParameterExpression):
-                        local_map = {
-                            p: parameter_values_[circuit.parameters.data.index(p)]
-                            for p in coeff.parameters
-                        }
-                        bound_coeff = coeff.bind(local_map)
-                    else:
-                        bound_coeff = coeff
-                    # The original gradient is a sum of the gradients of the parameters in the
-                    # gradient circuit multiplied by the coefficients.
-                    unique_gradient = results.gradients[idx][g_parameter_indices[g_parameter]]
-                    for key, value in unique_gradient.items():
-                        grad_dist[key] += float(bound_coeff) * value
-                gradient.append(dict(grad_dist))
-            gradients.append(gradient)
+
+            rows, cols = np.triu_indices(len(parameter_indices))
+            for row, col in zip(rows, cols):
+                for g_parameter1, coeff1 in gradient_circuit.parameter_map[parameter_indices[row]]:
+                    for g_parameter2, coeff2 in gradient_circuit.parameter_map[
+                        parameter_indices[col]
+                    ]:
+                        if isinstance(coeff1, ParameterExpression):
+                            local_map = {
+                                p: parameter_values_[circuit.parameters.data.index(p)]
+                                for p in coeff1.parameters
+                            }
+                            bound_coeff1 = coeff1.bind(local_map)
+                        else:
+                            bound_coeff1 = coeff1
+                        if isinstance(coeff2, ParameterExpression):
+                            local_map = {
+                                p: parameter_values_[circuit.parameters.data.index(p)]
+                                for p in coeff2.parameters
+                            }
+                            bound_coeff2 = coeff2.bind(local_map)
+                        else:
+                            bound_coeff2 = coeff2
+                        qgt[row, col] += (
+                            float(bound_coeff1)
+                            * float(bound_coeff2)
+                            * results.qgts[idx][
+                                g_parameter_indices[g_parameter1], g_parameter_indices[g_parameter2]
+                            ]
+                        )
+            if self.derivative_type == DerivativeType.IMAG:
+                qgt += -1 * np.triu(qgt, k=1).T
+            else:
+                qgt += np.triu(qgt, k=1).conjugate().T
+            qgts.append(qgt)
             metadata.append([{"parameters": parameter_indices}])
-        return SamplerGradientResult(
-            gradients=gradients, metadata=metadata, options=results.options
+        return QGTResult(
+            qgts=qgts,
+            derivative_type=self.derivative_type,
+            metadata=metadata,
+            options=results.options,
         )
 
-    @staticmethod
     def _validate_arguments(
+        self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameter_sets: Sequence[set[Parameter]],
@@ -228,12 +302,10 @@ class BaseSamplerGradient(ABC):
         """Validate the arguments of the ``run`` method.
 
         Args:
-            circuits: The list of quantum circuits to compute the gradients.
-            parameter_values: The list of parameter values to be bound to the circuit.
-            parameter_sets: The Sequence of Sequence of Parameters to calculate only the gradients of
-                the specified parameters. Each Sequence of Parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the gradients of all parameters in
-                each circuit are calculated.
+            circuits: The list of quantum circuits to compute the QGTs.
+            parameter_values: The list of parameter values to be bound to the circuits.
+            parameter_sets: The sequence of parameter sets with respect to which the QGTs should be
+                computed. Each set of parameters corresponds to a circuit in ``circuits``.
 
         Raises:
             ValueError: Invalid arguments are given.
@@ -253,28 +325,20 @@ class BaseSamplerGradient(ABC):
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
             if not circuit.num_parameters:
                 raise ValueError(f"The {i}-th circuit is not parameterised.")
-
             if len(parameter_value) != circuit.num_parameters:
                 raise ValueError(
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
-        for i, (circuit, parameter_set) in enumerate(zip(circuits, parameter_sets)):
-            if not set(parameter_set).issubset(circuit.parameters):
-                raise ValueError(
-                    f"The {i}-th parameter set contains parameters not present in the "
-                    f"{i}-th circuit."
-                )
-
     @property
     def options(self) -> Options:
-        """Return the union of sampler options setting and gradient default options,
-        where, if the same field is set in both, the gradient's default options override
+        """Return the union of estimator options setting and QGT default options,
+        where, if the same field is set in both, the QGT's default options override
         the primitive's default setting.
 
         Returns:
-            The gradient default + sampler options.
+            The QGT default + estimator options.
         """
         return self._get_local_options(self._default_options.__dict__)
 
@@ -289,16 +353,16 @@ class BaseSamplerGradient(ABC):
 
     def _get_local_options(self, options: Options) -> Options:
         """Return the union of the primitive's default setting,
-        the gradient default options, and the options in the ``run`` method.
-        The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
+        the QGT default options, and the options in the ``run`` method.
+        The order of priority is: options in ``run`` method > QGT's default options > primitive's
+        default setting.
 
         Args:
             options: The fields to update the options
 
         Returns:
-            The gradient default + sampler + run options.
+            The QGT default + estimator + run options.
         """
-        opts = copy(self._sampler.options)
+        opts = copy(self._estimator.options)
         opts.update_options(**options)
         return opts

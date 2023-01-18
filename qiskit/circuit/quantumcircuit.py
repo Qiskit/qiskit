@@ -1752,7 +1752,7 @@ class QuantumCircuit:
         style: Optional[Union[dict, str]] = None,
         interactive: bool = False,
         plot_barriers: bool = True,
-        reverse_bits: bool = False,
+        reverse_bits: bool = None,
         justify: Optional[str] = None,
         vertical_compression: Optional[str] = "medium",
         idle_wires: bool = True,
@@ -1813,7 +1813,9 @@ class QuantumCircuit:
                 `latex_source` output type this has no effect and will be silently
                 ignored. Defaults to False.
             reverse_bits (bool): when set to True, reverse the bit order inside
-                registers for the output visualization. Defaults to False.
+                registers for the output visualization. Defaults to False unless the
+                user config file (usually ``~/.qiskit/settings.conf``) has an
+                alternative value set. For example, ``circuit_reverse_bits = True``.
             plot_barriers (bool): enable/disable drawing barriers in the output
                 circuit. Defaults to True.
             justify (string): options are ``left``, ``right`` or ``none``. If
