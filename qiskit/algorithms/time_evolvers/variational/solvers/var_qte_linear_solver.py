@@ -96,7 +96,7 @@ class VarQTELinearSolver:
 
         Raises:
             TypeError: If a non ``SparsePauliOp`` time-dependent operator is provided.
-            ValueError: If not time value is provided for time dependant hamiltonians.
+            ValueError: If no time value is provided for time dependent hamiltonians.
 
         """
         param_values = list(param_dict.values())
