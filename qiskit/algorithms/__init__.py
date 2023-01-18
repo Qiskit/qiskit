@@ -92,8 +92,8 @@ and in future, the primitive-based Eigensolvers should be used.
    eigensolvers
 
 
-Legacy Eigensolvers
-+++++++++++++++++++
+Legacy Eigensolvers (pending deprecation)
++++++++++++++++++++++++++++++++++++++++++
 
 These algorithms are still based on the :class:`.QuantumInstance` and are pending deprecation.
 One should instead make use of the Eigensolver classes in the section above, which leverage
@@ -105,11 +105,6 @@ the Qiskit Primitives.
 
    Eigensolver
    EigensolverResult
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
    NumPyEigensolver
    VQD
    VQDResult
@@ -224,8 +219,8 @@ and in future, the primitive-based Minimum Eigensolvers should be used.
    minimum_eigensolvers
 
 
-Legacy Minimum Eigensolvers
-+++++++++++++++++++++++++++
+Legacy Minimum Eigensolvers (pending deprecation)
++++++++++++++++++++++++++++++++++++++++++++++++++
 
 These algorithms are still based on the :class:`.QuantumInstance` and are pending deprecation.
 One should instead make use of the Eigensolver classes in the section above, which leverage
@@ -237,11 +232,6 @@ the Qiskit Primitives.
 
    MinimumEigensolver
    MinimumEigensolverResult
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
    NumPyMinimumEigensolver
    QAOA
    VQE
