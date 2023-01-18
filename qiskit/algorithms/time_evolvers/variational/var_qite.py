@@ -78,7 +78,7 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
         r"""
         Args:
             ansatz: Ansatz to be used for variational time evolution.
-            initial_parameters: Initial parameter values for an ansatz.
+            initial_parameters: Initial parameter values for the ansatz.
             variational_principle: Variational Principle to be used. Defaults to
                 ``ImaginaryMcLachlanPrinciple``.
             estimator: An estimator primitive used for calculating expectation values of
