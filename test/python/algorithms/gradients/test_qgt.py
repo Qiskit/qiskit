@@ -11,14 +11,15 @@
 # that they have been altered from the originals.
 # =============================================================================
 
-""" Test QGT"""
+"""Test QGT."""
 
 import unittest
+from ddt import ddt, data
 
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import DerivativeType, LinCombQGT
+from qiskit.algorithms.gradients import DerivativeType, LinCombQGT, ReverseQGT
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import Estimator
@@ -27,6 +28,7 @@ from qiskit.test import QiskitTestCase
 from .logging_primitives import LoggingEstimator
 
 
+@ddt
 class TestQGT(QiskitTestCase):
     """Test QGT"""
 
@@ -34,8 +36,12 @@ class TestQGT(QiskitTestCase):
         super().setUp()
         self.estimator = Estimator()
 
-    def test_qgt_derivative_type(self):
+    @data(LinCombQGT, ReverseQGT)
+    def test_qgt_derivative_type(self, qgt_type):
         """Test QGT derivative_type"""
+        args = () if qgt_type == ReverseQGT else (self.estimator,)
+        qgt = qgt_type(*args, derivative_type=DerivativeType.REAL)
+
         a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
         qc.h(0)
@@ -43,37 +49,38 @@ class TestQGT(QiskitTestCase):
         qc.rx(b, 0)
 
         param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
+        correct_values = [
+            np.array([[1, 0.707106781j], [-0.707106781j, 0.5]]) / 4,
+            np.array([[1, 1j], [-1j, 1]]) / 4,
+        ]
+
         # test real derivative
         with self.subTest("Test with DerivativeType.REAL"):
-            qgt = LinCombQGT(self.estimator, derivative_type=DerivativeType.REAL)
-            correct_values = np.array([[[1, 0], [0, 0.5]], [[1, 0], [0, 1]]]) / 4
+            qgt.derivative_type = DerivativeType.REAL
             for i, param in enumerate(param_list):
                 qgt_result = qgt.run([qc], [param]).result().qgts
-                np.testing.assert_allclose(qgt_result[0], correct_values[i], atol=1e-3)
+                np.testing.assert_allclose(qgt_result[0], correct_values[i].real, atol=1e-3)
 
         # test imaginary derivative
         with self.subTest("Test with DerivativeType.IMAG"):
-            qgt = LinCombQGT(self.estimator, derivative_type=DerivativeType.IMAG)
-
-            correct_values = (
-                np.array([[[0, 0.707106781], [-0.707106781, 0]], [[0, 1], [-1, 0]]]) / 4
-            )
+            qgt.derivative_type = DerivativeType.IMAG
             for i, param in enumerate(param_list):
                 qgt_result = qgt.run([qc], [param]).result().qgts
-                np.testing.assert_allclose(qgt_result[0], correct_values[i], atol=1e-3)
+                np.testing.assert_allclose(qgt_result[0], correct_values[i].imag, atol=1e-3)
 
         # test real + imaginary derivative
         with self.subTest("Test with DerivativeType.COMPLEX"):
-            qgt = LinCombQGT(self.estimator, derivative_type=DerivativeType.COMPLEX)
-            correct_values = (
-                np.array([[[1, 0.707106781j], [-0.707106781j, 0.5]], [[1, 1j], [-1j, 1]]]) / 4
-            )
+            qgt.derivative_type = DerivativeType.COMPLEX
             for i, param in enumerate(param_list):
                 qgt_result = qgt.run([qc], [param]).result().qgts
                 np.testing.assert_allclose(qgt_result[0], correct_values[i], atol=1e-3)
 
-    def test_qgt_phase_fix(self):
+    @data(LinCombQGT, ReverseQGT)
+    def test_qgt_phase_fix(self, qgt_type):
         """Test the phase-fix argument in a QGT calculation"""
+        args = () if qgt_type == ReverseQGT else (self.estimator,)
+        qgt = qgt_type(*args, phase_fix=False)
+
         # create the circuit
         a, b = Parameter("a"), Parameter("b")
         qc = QuantumCircuit(1)
@@ -82,43 +89,42 @@ class TestQGT(QiskitTestCase):
         qc.rx(b, 0)
 
         param_list = [[np.pi / 4, 0], [np.pi / 2, np.pi / 4]]
+        correct_values = [
+            np.array([[1, 0.707106781j], [-0.707106781j, 1]]) / 4,
+            np.array([[1, 1j], [-1j, 1]]) / 4,
+        ]
+
         # test real derivative
         with self.subTest("Test phase fix with DerivativeType.REAL"):
-            qgt = LinCombQGT(self.estimator, phase_fix=False, derivative_type=DerivativeType.REAL)
-            correct_values = np.array([[[1, 0], [0, 1]], [[1, 0], [0, 1]]]) / 4
+            qgt.derivative_type = DerivativeType.REAL
             for i, param in enumerate(param_list):
                 qgt_result = qgt.run([qc], [param]).result().qgts
-                np.testing.assert_allclose(qgt_result[0], correct_values[i], atol=1e-3)
+                np.testing.assert_allclose(qgt_result[0], correct_values[i].real, atol=1e-3)
 
         # test imaginary derivative
         with self.subTest("Test phase fix with DerivativeType.IMAG"):
-            qgt = LinCombQGT(self.estimator, phase_fix=False, derivative_type=DerivativeType.IMAG)
-            correct_values = (
-                np.array([[[0, 0.707106781], [-0.707106781, 0]], [[0, 1], [-1, 0]]]) / 4
-            )
+            qgt.derivative_type = DerivativeType.IMAG
             for i, param in enumerate(param_list):
                 qgt_result = qgt.run([qc], [param]).result().qgts
-                np.testing.assert_allclose(qgt_result[0], correct_values[i], atol=1e-3)
+                np.testing.assert_allclose(qgt_result[0], correct_values[i].imag, atol=1e-3)
 
         # test real + imaginary derivative
         with self.subTest("Test phase fix with DerivativeType.COMPLEX"):
-            qgt = LinCombQGT(
-                self.estimator, phase_fix=False, derivative_type=DerivativeType.COMPLEX
-            )
-            correct_values = (
-                np.array([[[1, 0.707106781j], [-0.707106781j, 1]], [[1, 1j], [-1j, 1]]]) / 4
-            )
+            qgt.derivative_type = DerivativeType.COMPLEX
             for i, param in enumerate(param_list):
                 qgt_result = qgt.run([qc], [param]).result().qgts
                 np.testing.assert_allclose(qgt_result[0], correct_values[i], atol=1e-3)
 
-    def test_qgt_coefficients(self):
+    @data(LinCombQGT, ReverseQGT)
+    def test_qgt_coefficients(self, qgt_type):
         """Test the derivative option of QGT"""
+        args = () if qgt_type == ReverseQGT else (self.estimator,)
+        qgt = qgt_type(*args, derivative_type=DerivativeType.REAL)
+
         qc = RealAmplitudes(num_qubits=2, reps=1)
         qc.rz(qc.parameters[0].exp() + 2 * qc.parameters[1], 0)
         qc.rx(3.0 * qc.parameters[2] + qc.parameters[3].sin(), 1)
 
-        qgt = LinCombQGT(self.estimator, derivative_type=DerivativeType.REAL)
         # test imaginary derivative
         param_list = [
             [np.pi / 4 for param in qc.parameters],
@@ -147,20 +153,27 @@ class TestQGT(QiskitTestCase):
             qgt_result = qgt.run([qc], [param]).result().qgts
             np.testing.assert_allclose(qgt_result[0], correct_values[i], atol=1e-3)
 
-    def test_qgt_specify_parameters(self):
+    @data(LinCombQGT, ReverseQGT)
+    def test_qgt_specify_parameters(self, qgt_type):
         """Test the QGT with specified parameters"""
+        args = () if qgt_type == ReverseQGT else (self.estimator,)
+        qgt = qgt_type(*args, derivative_type=DerivativeType.REAL)
+
         a = Parameter("a")
         b = Parameter("b")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.ry(b, 0)
-        qgt = LinCombQGT(self.estimator, derivative_type=DerivativeType.REAL)
         param_list = [np.pi / 4, np.pi / 4]
         qgt_result = qgt.run([qc], [param_list], [[a]]).result().qgts
         np.testing.assert_allclose(qgt_result[0], [[1 / 4]], atol=1e-3)
 
-    def test_qgt_multi_arguments(self):
+    @data(LinCombQGT, ReverseQGT)
+    def test_qgt_multi_arguments(self, qgt_type):
         """Test the QGT for multiple arguments"""
+        args = () if qgt_type == ReverseQGT else (self.estimator,)
+        qgt = qgt_type(*args, derivative_type=DerivativeType.REAL)
+
         a = Parameter("a")
         b = Parameter("b")
         qc = QuantumCircuit(1)
@@ -169,7 +182,6 @@ class TestQGT(QiskitTestCase):
         qc2 = QuantumCircuit(1)
         qc2.rx(a, 0)
         qc2.ry(b, 0)
-        qgt = LinCombQGT(self.estimator, derivative_type=DerivativeType.REAL)
 
         param_list = [[np.pi / 4], [np.pi / 2]]
         correct_values = [[[1 / 4]], [[1 / 4, 0], [0, 0]]]
@@ -178,12 +190,15 @@ class TestQGT(QiskitTestCase):
         for i, _ in enumerate(param_list):
             np.testing.assert_allclose(qgt_results[i], correct_values[i], atol=1e-3)
 
-    def test_qgt_validation(self):
+    @data(LinCombQGT, ReverseQGT)
+    def test_qgt_validation(self, qgt_type):
         """Test estimator QGT's validation"""
+        args = () if qgt_type == ReverseQGT else (self.estimator,)
+        qgt = qgt_type(*args)
+
         a = Parameter("a")
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
-        qgt = LinCombQGT(self.estimator)
         parameter_values = [[np.pi / 4]]
         with self.subTest("assert number of circuits does not match"):
             with self.assertRaises(ValueError):

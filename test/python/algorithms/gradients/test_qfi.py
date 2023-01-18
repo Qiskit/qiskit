@@ -11,27 +11,30 @@
 # that they have been altered from the originals.
 # =============================================================================
 
-""" Test QFI"""
+"""Test QFI."""
 
 import unittest
+from ddt import ddt, data
 
 import numpy as np
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.gradients import LinCombQGT, QFI
+from qiskit.algorithms.gradients import LinCombQGT, ReverseQGT, QFI, DerivativeType
 from qiskit.circuit import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.primitives import Estimator
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestQFI(QiskitTestCase):
     """Test QFI"""
 
     def setUp(self):
         super().setUp()
         self.estimator = Estimator()
-        self.qgt = LinCombQGT(self.estimator)
+        self.lcu_qgt = LinCombQGT(self.estimator, derivative_type=DerivativeType.REAL)
+        self.reverse_qgt = ReverseQGT(derivative_type=DerivativeType.REAL)
 
     def test_qfi(self):
         """Test if the quantum fisher information calculation is correct for a simple test case.
@@ -47,7 +50,7 @@ class TestQFI(QiskitTestCase):
         param_list = [[np.pi / 4, 0.1], [np.pi, 0.1], [np.pi / 2, 0.1]]
         correct_values = [[[1, 0], [0, 0.5]], [[1, 0], [0, 0]], [[1, 0], [0, 1]]]
 
-        qfi = QFI(self.qgt)
+        qfi = QFI(self.lcu_qgt)
         for i, param in enumerate(param_list):
             qfis = qfi.run([qc], [param]).result().qfis
             np.testing.assert_allclose(qfis[0], correct_values[i], atol=1e-3)
@@ -69,7 +72,8 @@ class TestQFI(QiskitTestCase):
         qfis = qfi.run([qc], [param]).result().qfis
         np.testing.assert_allclose(qfis[0], correct_values, atol=1e-3)
 
-    def test_qfi_maxcut(self):
+    @data("lcu", "reverse")
+    def test_qfi_maxcut(self, qgt_kind):
         """Test the QFI for a simple MaxCut problem.
 
         This is interesting because it contains the same parameters in different gates.
@@ -101,7 +105,8 @@ class TestQFI(QiskitTestCase):
         reference = np.array([[16.0, -5.551], [-5.551, 18.497]])
         param = [0.4, 0.69]
 
-        qfi = QFI(self.qgt)
+        qgt = self.lcu_qgt if qgt_kind == "lcu" else self.reverse_qgt
+        qfi = QFI(qgt)
         qfi_result = qfi.run([ansatz], [param]).result().qfis
         np.testing.assert_array_almost_equal(qfi_result[0], reference, decimal=3)
 
