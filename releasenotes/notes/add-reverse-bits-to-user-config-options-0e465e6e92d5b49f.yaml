@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    The user configuration file has a new option ``circuit_reverse_bits``, which takes a Boolean
+    value. This allows users to set their preferred default behavior of the ``reverse_bits`` option
+    of the circuit drawers :meth:`.QuantumCircuit.draw` and :func:`.circuit_drawer`.  For example,
+    adding a section to ``~/.qiskit/settings.conf`` with:
+
+    .. code-block:: text
+    
+      [default]
+      circuit_reverse_bits = True
+
+    will change the default to display the bits in reverse order.

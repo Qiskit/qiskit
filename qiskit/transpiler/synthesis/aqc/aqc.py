@@ -87,7 +87,7 @@ class AQC:
         # check if it is actually a special unitary matrix
         target_det = np.linalg.det(target_matrix)
         if not np.isclose(target_det, 1):
-            su_matrix = target_matrix / np.power(target_det, (1 / matrix_dim))
+            su_matrix = target_matrix / np.power(target_det, (1 / matrix_dim), dtype=complex)
             global_phase_required = True
         else:
             su_matrix = target_matrix
