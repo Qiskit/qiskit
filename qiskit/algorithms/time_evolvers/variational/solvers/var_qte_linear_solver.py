@@ -54,6 +54,9 @@ class VarQTELinearSolver:
                 solver is used.
             imag_part_tol: Allowed value of an imaginary part that can be neglected if no
                 imaginary part is expected.
+
+        Raises:
+            TypeError: If time_param is provided and Hamiltonian is not of type SparsePauliOp.
         """
         self._var_principle = var_principle
         self._hamiltonian = hamiltonian
