@@ -72,14 +72,32 @@ Amplitude Estimators
    MaximumLikelihoodAmplitudeEstimationResult
 
 
-Eigen Solvers
--------------
+Eigensolvers
+------------
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
-states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain. These algorithms are pending deprecation.
-One should instead make use of the Eigensolver classes in the section below, which leverage
-Runtime primitives.
+states of a molecule, and ``qiskit-nature`` has some algorithms that leverage chemistry specific
+knowledge to do this in that application domain.
+
+Primitive-based Eigensolvers
+++++++++++++++++++++++++++++
+
+These algorithms are based on the Qiskit Primitives, such as :class:`.Estimator`.
+This execution paradigm replaces the use of :class:`.QuantumInstance` in the algorithms
+and in future, the primitive-based Eigensolvers should be used.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   eigensolvers
+
+
+Legacy Eigensolvers
++++++++++++++++++++
+
+These algorithms are still based on the :class:`.QuantumInstance` and are pending deprecation.
+One should instead make use of the Eigensolver classes in the section above, which leverage
+the Qiskit Primitives.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -96,17 +114,6 @@ Runtime primitives.
    VQD
    VQDResult
 
-Eigensolvers
-------------
-
-Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
-states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   eigensolvers
 
 Evolvers
 --------
@@ -199,12 +206,30 @@ Algorithms to solve linear systems of equations.
    linear_solvers
 
 
-Minimum Eigen Solvers
+Minimum Eigensolvers
 ---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
-These algorithms are pending deprecation. One should instead make use of the
-Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
+
+Primitive-based Minimum Eigensolvers
+++++++++++++++++++++++++++++++++++++
+
+These algorithms are based on the Qiskit Primitives, such as :class:`.Estimator`.
+This execution paradigm replaces the use of :class:`.QuantumInstance` in the algorithms
+and in future, the primitive-based Minimum Eigensolvers should be used.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   minimum_eigensolvers
+
+
+Legacy Minimum Eigensolvers
++++++++++++++++++++++++++++
+
+These algorithms are still based on the :class:`.QuantumInstance` and are pending deprecation.
+One should instead make use of the Eigensolver classes in the section above, which leverage
+the Qiskit Primitives.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -220,16 +245,6 @@ Minimum Eigensolver classes in the section below, which leverage Runtime primiti
    NumPyMinimumEigensolver
    QAOA
    VQE
-
-Minimum Eigensolvers
---------------------
-
-Algorithms that can find the minimum eigenvalue of an operator and leverage primitives.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   minimum_eigensolvers
 
 
 Optimizers
