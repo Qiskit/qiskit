@@ -67,7 +67,13 @@ class TestVarQTE(QiskitAlgorithmsTestCase):
         with assert_raises(ValueError):
             _ = VarQTE._create_init_state_param_dict(param_values_dict, self._parameters1)
 
-    @data(5, "s", Parameter("x"))
+    @data("s")
+    def test_create_init_state_param_dict_errors_value(self, param_values):
+        """Tests if an error is raised if wrong input."""
+        with assert_raises(ValueError):
+            _ = VarQTE._create_init_state_param_dict(param_values, self._parameters1)
+
+    @data(Parameter("x"), 5)
     def test_create_init_state_param_dict_errors_type(self, param_values):
         """Tests if an error is raised if wrong input type."""
         with assert_raises(TypeError):

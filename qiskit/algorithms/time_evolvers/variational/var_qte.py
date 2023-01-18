@@ -274,7 +274,7 @@ class VarQTE(ABC):
                 raise ValueError(
                     f"Initial state has {len(init_state_parameters)} parameters and the"
                     f" list of values has {len(param_values)} elements. They should be"
-                    f"equal in length."
+                    f" equal in length."
                 )
             init_state_parameter_values = param_values
         else:
