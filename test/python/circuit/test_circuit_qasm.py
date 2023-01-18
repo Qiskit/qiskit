@@ -18,7 +18,7 @@ import re
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import Parameter, Qubit, Clbit
+from qiskit.circuit import Parameter, Qubit, Clbit, Gate
 from qiskit.qasm.exceptions import QasmError
 
 # Regex pattern to match valid OpenQASM identifiers
@@ -451,6 +451,46 @@ custom_{id(gate2)} q[1],q[0];\n"""
         names = ["invalid??", "invalid[]"]
         for idx, instruction in enumerate(base._data):
             self.assertEqual(instruction.operation.name, names[idx])
+
+    def test_circuit_qasm_escapes_register_names(self):
+        """Test that registers that have invalid OpenQASM 2 names get correctly escaped, even when
+        they would escape to the same value."""
+        qc = QuantumCircuit(QuantumRegister(2, "?invalid"), QuantumRegister(2, "!invalid"))
+        qc.cx(0, 1)
+        qc.cx(2, 3)
+        qasm = qc.qasm()
+        match = re.fullmatch(
+            rf"""OPENQASM 2.0;
+include "qelib1.inc";
+qreg ({VALID_QASM2_IDENTIFIER.pattern})\[2\];
+qreg ({VALID_QASM2_IDENTIFIER.pattern})\[2\];
+cx \1\[0\],\1\[1\];
+cx \2\[0\],\2\[1\];
+""",
+            qasm,
+        )
+        self.assertTrue(match)
+        self.assertNotEqual(match.group(1), match.group(2))
+
+    def test_circuit_qasm_escapes_reserved(self):
+        """Test that the OpenQASM 2 exporter won't export reserved names."""
+        qc = QuantumCircuit(QuantumRegister(1, "qreg"))
+        gate = Gate("gate", 1, [])
+        gate.definition = QuantumCircuit(1)
+        qc.append(gate, [qc.qubits[0]])
+        qasm = qc.qasm()
+        match = re.fullmatch(
+            rf"""OPENQASM 2.0;
+include "qelib1.inc";
+gate ({VALID_QASM2_IDENTIFIER.pattern}) q0 {{  }}
+qreg ({VALID_QASM2_IDENTIFIER.pattern})\[1\];
+\1 \2\[0\];
+""",
+            qasm,
+        )
+        self.assertTrue(match)
+        self.assertNotEqual(match.group(1), "gate")
+        self.assertNotEqual(match.group(1), "qreg")
 
     def test_circuit_qasm_with_double_precision_rotation_angle(self):
         """Test that qasm() emits high precision rotation angles per default."""

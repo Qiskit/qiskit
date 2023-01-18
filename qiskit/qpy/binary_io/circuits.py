@@ -171,19 +171,10 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     params = []
     condition_tuple = None
     if instruction.has_condition:
-        # If an invalid register name is used assume it's a single bit
-        # condition and treat the register name as a string of the clbit index
-        if ClassicalRegister.name_format.match(condition_register) is None:
-            # If invalid register prefixed with null character it's a clbit
-            # index for single bit condition
-            if condition_register[0] == "\x00":
-                conditional_bit = int(condition_register[1:])
-                condition_tuple = (circuit.clbits[conditional_bit], instruction.condition_value)
-            else:
-                raise ValueError(
-                    f"Invalid register name: {condition_register} for condition register of "
-                    f"instruction: {gate_name}"
-                )
+        # If register name prefixed with null character it's a clbit index for single bit condition.
+        if condition_register[0] == "\x00":
+            conditional_bit = int(condition_register[1:])
+            condition_tuple = (circuit.clbits[conditional_bit], instruction.condition_value)
         else:
             condition_tuple = (registers["c"][condition_register], instruction.condition_value)
     if circuit is not None:
@@ -436,7 +427,7 @@ def _read_custom_operations(file_obj, version, vectors):
     return custom_operations
 
 
-def _read_calibrations(file_obj, version, vectors, metadata_deserializer, qiskit_version=None):
+def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
     calibrations = {}
 
     header = formats.CALIBRATION._make(
@@ -454,9 +445,7 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer, qiskit
         params = tuple(
             value.read_value(file_obj, version, vectors) for _ in range(defheader.num_params)
         )
-        schedule = schedules.read_schedule_block(
-            file_obj, version, metadata_deserializer, qiskit_version=qiskit_version
-        )
+        schedule = schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
         if name not in calibrations:
             calibrations[name] = {(qubits, params): schedule}
@@ -815,7 +804,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
     _write_calibrations(file_obj, circuit.calibrations, metadata_serializer)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=None):
+def read_circuit(file_obj, version, metadata_deserializer=None):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -828,7 +817,6 @@ def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=N
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-        qiskit_version (tuple): tuple with major, minor and patch versions of qiskit.
 
     Returns:
         QuantumCircuit: The circuit object from the file.
@@ -879,9 +867,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=N
 
     # Read calibrations
     if version >= 5:
-        circ.calibrations = _read_calibrations(
-            file_obj, version, vectors, metadata_deserializer, qiskit_version=qiskit_version
-        )
+        circ.calibrations = _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -202,7 +202,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test using a backend and expectation converter in get_fidelity warns."""
         ansatz = PauliTwoDesign(2, reps=1, seed=2)
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarns(PendingDeprecationWarning):
             _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
 
     def test_qnspsa_fidelity_primitives(self):
