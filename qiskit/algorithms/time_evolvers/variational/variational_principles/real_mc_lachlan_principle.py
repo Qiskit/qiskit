@@ -54,16 +54,25 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
                 If ``None`` provided, ``LinCombQGT`` is used.
             gradient: Instance of a class used to compute the state gradient.
                 If ``None`` provided, ``LinCombEstimatorGradient`` is used.
+
+        Raises:
+            AlgorithmError: If the gradient instance does not contain an estimator.
         """
         self._validate_grad_settings(gradient)
 
-        if gradient is not None and gradient._estimator is not None and qgt is None:
-            estimator = gradient._estimator
-            qgt = LinCombQGT(estimator)
-        elif qgt is None and gradient is None:
+        if gradient is not None:
+            try:
+                estimator = gradient._estimator
+            except Exception as exc:
+                raise AlgorithmError(
+                    "The provided gradient instance  does not contain an estimator primitive."
+                ) from exc
+        else:
             estimator = Estimator()
-            qgt = LinCombQGT(estimator)
             gradient = LinCombEstimatorGradient(estimator, derivative_type=DerivativeType.IMAG)
+
+        if qgt is None:
+            qgt = LinCombQGT(estimator)
 
         super().__init__(qgt, gradient)
 

@@ -21,15 +21,16 @@ with the Quantum Time Evolution Framework in Qiskit Terra, that is implemented b
 imaginary time evolution respectively. The variational approach is taken according to a variational
 principle chosen by a user.
 
-Examples:
+Example:
 
-    .. code-block::python
+    .. code-block:: python
+
+        import numpy as np
 
         from qiskit.algorithms import TimeEvolutionProblem, VarQITE
         from qiskit.algorithms.time_evolvers.variational import ImaginaryMcLachlanPrinciple
         from qiskit.circuit.library import EfficientSU2
         from qiskit.quantum_info import SparsePauliOp
-        import numpy as np
 
         observable = SparsePauliOp.from_list(
             [
@@ -60,7 +61,10 @@ Variational Principles
 With variational principles we can project time evolution of a quantum state
 onto the parameters of a model, in our case a variational quantum circuit.
 
-They can be divided into two categories: Variational Quantum _Real_ Time Evolution, which evolves the variational ansatz under the standard Schroediger equation and Variational Quantum _Imaginary_ Time Evolution, which evolves under the normalized Wick-rotated Schroedinger equation.
+They can be divided into two categories: Variational Quantum _Real_ Time Evolution, which evolves
+the variational ansatz under the standard Schroediger equation and
+Variational Quantum _Imaginary_ Time Evolution, which evolves under the normalized
+Wick-rotated Schroedinger equation.
 
 .. autosummary::
    :toctree: ../stubs/

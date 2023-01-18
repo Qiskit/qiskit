@@ -73,8 +73,7 @@ class VarQTE(ABC):
             ode_solver: ODE solver callable that implements a SciPy ``OdeSolver`` interface or a
                 string indicating a valid method offered by SciPy.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
-                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
-                solver is used.
+                solve ``Ax=b`` and returns ``x``.
             num_timesteps: The number of timesteps to take. If None, it is
                 automatically selected to achieve a timestep of approximately 0.01. Only
                 relevant in case of the ``ForwardEulerSolver``.
@@ -113,7 +112,12 @@ class VarQTE(ABC):
         self._validate_aux_ops(evolution_problem)
 
         if evolution_problem.initial_state is not None:
-            raise ValueError("An initial_state was provided in the TimeEvolutionProblem but is not supported by VarQTE.")
+            raise ValueError(
+                "An initial_state was provided to the TimeEvolutionProblem but this is not "
+                "supported by VarQTE. Please remove this state from the problem definition "
+                "and set VarQTE.initial_parameters with the corresponding initial parameter "
+                "values instead."
+            )
 
         init_state_param_dict = self._create_init_state_param_dict(
             self.initial_parameters, self.ansatz.parameters

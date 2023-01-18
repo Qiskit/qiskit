@@ -95,7 +95,8 @@ class VarQTELinearSolver:
             Solution to the LSE, A from Ax=b, b from Ax=b.
 
         Raises:
-            ValueError: If time dependence expected from a non ``SparsePauliOp`` operator.
+            TypeError: If a non ``SparsePauliOp`` time-dependant operator is provided.
+            ValueError: If not time value is provided for time dependant hamiltonians.
 
         """
         param_values = list(param_dict.values())
@@ -103,15 +104,22 @@ class VarQTELinearSolver:
         hamiltonian = self._hamiltonian
 
         if self._time_param is not None:
-            if isinstance(self._hamiltonian, SparsePauliOp):
-                parametrized_coeffs = copy.deepcopy(self._hamiltonian.coeffs)
-                bound_params_array = assign_parameters(parametrized_coeffs, [time_value])
-                hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
+            if time_value is not None:
+                if isinstance(self._hamiltonian, SparsePauliOp):
+                    parametrized_coeffs = copy.deepcopy(self._hamiltonian.coeffs)
+                    bound_params_array = assign_parameters(parametrized_coeffs, [time_value])
+                    hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
+                else:
+                    raise TypeError(
+                        f"``time_param`` was provided as not ``None`` but the  Hamiltonian provided is "
+                        f"of the type {type(self._hamiltonian)} that does not support parametrization."
+                        f"Provide the Hamiltonian as a parametrized SparsePauliOp instead."
+                    )
             else:
                 raise ValueError(
-                    f"``time_param`` was provided as not ``None`` but the  Hamiltonian provided is "
-                    f"of the type {type(self._hamiltonian)} that does not support parametrization."
-                    f"Provide the Hamiltonian as a parametrized SparsePauliOp instead."
+                    f"Providing a time_value is required for time-dependant hamiltonians,"
+                    f"but got time_value = {time_value}. "
+                    f"Please provide a time_value to the solve_lse method."
                 )
 
         evolution_grad_lse_rhs = self._var_principle.evolution_gradient(

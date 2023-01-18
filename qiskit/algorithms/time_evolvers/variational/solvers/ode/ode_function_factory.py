@@ -47,8 +47,7 @@ class OdeFunctionFactory(ABC):
             ode_function_type: An Enum that defines a type of an ODE function to be built. If
                 not provided, a default ``STANDARD_ODE`` is used.
             lse_solver: Linear system of equations solver callable. It accepts ``A`` and ``b`` to
-                solve ``Ax=b`` and returns ``x``. If ``None``, the default ``np.linalg.lstsq``
-                solver is used.
+                solve ``Ax=b`` and returns ``x``.
         """
         self.ode_function_type = ode_function_type
         self.lse_solver = lse_solver
