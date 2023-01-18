@@ -25,7 +25,7 @@ Overview of all available backends
 
 .. code-block::
 
-    from qiskit import IBMQ
+    from qiskit.providers.ibmq import IBMQ
     import qiskit.tools.jupyter
     %matplotlib inline
 
@@ -39,7 +39,7 @@ Detailed information on a single backend
 
 .. code-block::
 
-    from qiskit import IBMQ
+    from qiskit.providers.ibmq import IBMQ
     import qiskit.tools.jupyter
     %matplotlib inline
 
@@ -61,7 +61,7 @@ Load Qiskit Job Watcher
 HTMLProgressBar
 ===============
 
-.. jupyter-execute::
+.. code-block::
 
     import numpy as np
     from qiskit.tools.parallel import parallel_map
@@ -74,7 +74,7 @@ HTMLProgressBar
 Qiskit version table
 ====================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %qiskit_version_table
@@ -83,7 +83,7 @@ Qiskit version table
 Qiskit copyright
 ================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %qiskit_copyright
@@ -91,7 +91,7 @@ Qiskit copyright
 Monospaced output
 =================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %monospaced_output

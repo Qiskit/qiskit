@@ -14,6 +14,8 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import numpy as np
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
@@ -43,7 +45,7 @@ def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
     return qc
 
 
-def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
+def init_observable(observable: BaseOperator | PauliSumOp | str) -> SparsePauliOp:
     """Initialize observable by converting the input to a :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     Args:
@@ -64,9 +66,7 @@ def init_observable(observable: BaseOperator | PauliSumOp) -> SparsePauliOp:
                 f"Observable must have numerical coefficient, not {type(observable.coeff)}."
             )
         return observable.coeff * observable.primitive
-    elif isinstance(observable, BasePauli):
-        return SparsePauliOp(observable)
-    elif isinstance(observable, BaseOperator):
+    elif isinstance(observable, BaseOperator) and not isinstance(observable, BasePauli):
         return SparsePauliOp.from_operator(observable)
     else:
         return SparsePauliOp(observable)
@@ -125,6 +125,16 @@ def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
     )
 
 
+def _format_params(param):
+    if isinstance(param, np.ndarray):
+        return param.data.tobytes()
+    elif isinstance(param, QuantumCircuit):
+        return _circuit_key(param)
+    elif isinstance(param, Iterable):
+        return tuple(param)
+    return param
+
+
 def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
     """Private key function for QuantumCircuit.
 
@@ -147,10 +157,7 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
                 _bits_key(data.qubits, circuit),  # qubits
                 _bits_key(data.clbits, circuit),  # clbits
                 data.operation.name,  # operation.name
-                tuple(
-                    param.data.tobytes() if isinstance(param, np.ndarray) else param
-                    for param in data.operation.params
-                ),  # operation.params
+                tuple(_format_params(param) for param in data.operation.params),  # operation.params
             )
             for data in circuit.data
         ),
