@@ -10,18 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Permutation circuit."""
+"""Permutation circuit (the old way to specify permutation, which is required for
+backward compatibility and which will be eventually deprecated) and the permutation
+gate (the new way to specify permutations, allowing a variety of synthesis algorithms).
+"""
 
 from typing import List, Optional
 
 import numpy as np
 
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumcircuit import Gate
 from qiskit.circuit.exceptions import CircuitError
 
 
-class Permutation(Gate):
-    """An gate that permutes qubits."""
+class Permutation(QuantumCircuit):
+    """An n_qubit circuit that permutes qubits."""
 
     def __init__(
         self,
@@ -29,7 +33,7 @@ class Permutation(Gate):
         pattern: Optional[List[int]] = None,
         seed: Optional[int] = None,
     ) -> None:
-        """Return a permutation gate.
+        """Return an n_qubit permutation circuit implemented using SWAPs.
 
         Args:
             num_qubits: circuit width.
@@ -49,26 +53,19 @@ class Permutation(Gate):
         Reference Circuit:
             .. plot::
 
-                from qiskit.circuit.quantumcircuit import QuantumCircuit
-                from qiskit.circuit.library import Permutation
-                A = [2,4,3,0,1]
-                permutation = Permutation(5, A)
-                circuit = QuantumCircuit(5)
-                circuit.append(permutation, [0, 1, 2, 3, 4])
-                circuit.draw('mpl')
+               from qiskit.circuit.library import Permutation
+               A = [2,4,3,0,1]
+               circuit = Permutation(5, A)
+               circuit.draw('mpl')
 
         Expanded Circuit:
             .. plot::
 
-                from qiskit.circuit.quantumcircuit import QuantumCircuit
-                from qiskit.circuit.library import Permutation
-                from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
-                A = [2,4,3,0,1]
-                permutation = Permutation(5, A)
-                circuit = QuantumCircuit(5)
-                circuit.append(permutation, [0, 1, 2, 3, 4])
-
-                _generate_circuit_library_visualization(circuit.decompose())
+               from qiskit.circuit.library import Permutation
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               A = [2,4,3,0,1]
+               circuit = Permutation(5, A)
+               _generate_circuit_library_visualization(circuit.decompose())
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
@@ -80,6 +77,73 @@ class Permutation(Gate):
             rng = np.random.default_rng(seed)
             pattern = np.arange(num_qubits)
             rng.shuffle(pattern)
+
+        name = "permutation_" + np.array_str(pattern).replace(" ", ",")
+
+        circuit = QuantumCircuit(num_qubits, name=name)
+
+        super().__init__(num_qubits, name=name)
+
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
+
+        for i, j in _get_ordered_swap(pattern):
+            circuit.swap(i, j)
+
+        all_qubits = self.qubits
+        self.append(circuit.to_gate(), all_qubits)
+
+
+class PermutationGate(Gate):
+    """A gate that permutes qubits."""
+
+    def __init__(
+        self,
+        pattern: List[int],
+    ) -> None:
+        """Return a permutation gate.
+
+        Args:
+            pattern: permutation pattern, describing which qubits occupy the
+                positions 0, 1, 2, etc. after applying the permutation, that
+                is ``pattern[k] = m`` when the permutation maps qubit ``m``
+                to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
+                means that qubit ``2`` goes to position ``0``, qubit ``4``
+                goes to the position ``1``, etc.
+
+        Raises:
+            CircuitError: if permutation pattern is malformed.
+
+        Reference Circuit:
+            .. plot::
+
+                from qiskit.circuit.quantumcircuit import QuantumCircuit
+                from qiskit.circuit.library import PermutationGate
+                A = [2,4,3,0,1]
+                permutation = PermutationGate(A)
+                circuit = QuantumCircuit(5)
+                circuit.append(permutation, [0, 1, 2, 3, 4])
+                circuit.draw('mpl')
+
+        Expanded Circuit:
+            .. plot::
+
+                from qiskit.circuit.quantumcircuit import QuantumCircuit
+                from qiskit.circuit.library import PermutationGate
+                from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+                A = [2,4,3,0,1]
+                permutation = Permutation(A)
+                circuit = QuantumCircuit(5)
+                circuit.append(permutation, [0, 1, 2, 3, 4])
+
+                _generate_circuit_library_visualization(circuit.decompose())
+        """
+        num_qubits = len(pattern)
+        if sorted(pattern) != list(range(num_qubits)):
+            raise CircuitError(
+                "Permutation pattern must be some ordering of 0..num_qubits-1 in a list."
+            )
+        pattern = np.array(pattern)
 
         # This is needed to support qasm()
         self._qasm_name = "permutation__" + "_".join([str(n) for n in pattern]) + "_"
@@ -117,7 +181,7 @@ class Permutation(Gate):
         # pylint: disable=cyclic-import
         from qiskit.synthesis.permutation.permutation_utils import _inverse_pattern
 
-        return Permutation(self.num_qubits, pattern=_inverse_pattern(self.pattern))
+        return PermutationGate(pattern=_inverse_pattern(self.pattern))
 
     def qasm(self):
         """The qasm for a permutation."""

@@ -4092,9 +4092,9 @@ class QuantumCircuit:
             A handle to the instructions created.
         """
         # pylint: disable=cyclic-import
-        from .library.generalized_gates.permutation import Permutation
+        from .library.generalized_gates.permutation import PermutationGate
 
-        return self.append(Permutation(len(pattern), pattern), qubits, [])
+        return self.append(PermutationGate(pattern), qubits, [])
 
     def _push_scope(
         self,

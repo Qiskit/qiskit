@@ -18,7 +18,7 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit.quantum_info.operators import Operator
-from qiskit.circuit.library import LinearFunction, Permutation
+from qiskit.circuit.library import LinearFunction, PermutationGate
 from qiskit.synthesis import synth_permutation_acg
 from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms, synth_permutation_basic
 from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
@@ -34,12 +34,12 @@ class TestPermutationSynthesis(QiskitTestCase):
         """Test get_ordered_swap function produces correct swap list."""
         np.random.seed(1)
         for _ in range(5):
-            permutation = np.random.permutation(width)
-            swap_list = _get_ordered_swap(permutation)
+            pattern = np.random.permutation(width)
+            swap_list = _get_ordered_swap(pattern)
             output = list(range(width))
             for i, j in swap_list:
                 output[i], output[j] = output[j], output[i]
-            self.assertTrue(np.array_equal(permutation, output))
+            self.assertTrue(np.array_equal(pattern, output))
             self.assertLess(len(swap_list), width)
 
     @data(4, 5, 10, 15, 20)
@@ -117,7 +117,7 @@ class TestPermutationSynthesis(QiskitTestCase):
             pattern = np.random.permutation(width)
             qc = synth_permutation_depth_lnn_kms(pattern)
             expected = Operator(qc)
-            constructed = Operator(Permutation(width, pattern))
+            constructed = Operator(PermutationGate(pattern))
             self.assertEqual(expected, constructed)
 
 

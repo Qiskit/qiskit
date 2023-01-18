@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test library of permutation logic quantum circuits."""
+"""Test permutation quantum circuits, permutation gates, and quantum circuits that
+contain permutation gates."""
 
 import unittest
 import numpy as np
@@ -19,16 +20,34 @@ from qiskit import QuantumRegister
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.library import Permutation
+from qiskit.circuit.library import Permutation, PermutationGate
 from qiskit.quantum_info import Operator
 
 
-class TestPermutationGate(QiskitTestCase):
-    """Tests for the Permutation class."""
+class TestPermutationLibrary(QiskitTestCase):
+    """Test library of permutation logic quantum circuits."""
 
     def test_permutation(self):
         """Test permutation circuit."""
-        perm = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
+        circuit = Permutation(num_qubits=4, pattern=[1, 0, 3, 2])
+        expected = QuantumCircuit(4)
+        expected.swap(0, 1)
+        expected.swap(2, 3)
+        expected = Operator(expected)
+        simulated = Operator(circuit)
+        self.assertTrue(expected.equiv(simulated))
+
+    def test_permutation_bad(self):
+        """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
+        self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+
+
+class TestPermutationGate(QiskitTestCase):
+    """Tests for the PermutationGate class."""
+
+    def test_permutation(self):
+        """Test that Operator can be constructed."""
+        perm = PermutationGate(pattern=[1, 0, 3, 2])
         expected = QuantumCircuit(4)
         expected.swap(0, 1)
         expected.swap(2, 3)
@@ -38,11 +57,11 @@ class TestPermutationGate(QiskitTestCase):
 
     def test_permutation_bad(self):
         """Test that [0,..,n-1] permutation is required (no -1 for last element)."""
-        self.assertRaises(CircuitError, Permutation, 4, [1, 0, -1, 2])
+        self.assertRaises(CircuitError, PermutationGate, [1, 0, -1, 2])
 
     def test_permutation_array(self):
         """Test correctness of the ``__array__`` method."""
-        perm = Permutation(3, [1, 2, 0])
+        perm = PermutationGate([1, 2, 0])
         # The permutation pattern means q1->q0, q2->q1, q0->q2, or equivalently
         # q0'=q1, q1'=q2, q2'=q0, where the primed values are the values after the
         # permutation. The following matrix is the expected unitary matrix for this.
@@ -67,31 +86,31 @@ class TestPermutationGate(QiskitTestCase):
     def test_pattern(self):
         """Test the ``pattern`` method."""
         pattern = [1, 3, 5, 0, 4, 2]
-        perm = Permutation(6, pattern)
+        perm = PermutationGate(pattern)
         self.assertTrue(np.array_equal(perm.pattern, pattern))
 
     def test_inverse(self):
         """Test correctness of the ``inverse`` method."""
-        perm = Permutation(6, [1, 3, 5, 0, 4, 2])
+        perm = PermutationGate([1, 3, 5, 0, 4, 2])
 
         # We have the permutation 1->0, 3->1, 5->2, 0->3, 4->4, 2->5.
         # The inverse permutations is 0->1, 1->3, 2->5, 3->0, 4->4, 5->2, or
         # after reordering 3->0, 0->1, 5->2, 1->3, 4->4, 2->5.
         inverse_perm = perm.inverse()
-        expected_inverse_perm = Permutation(6, [3, 0, 5, 1, 4, 2])
+        expected_inverse_perm = PermutationGate([3, 0, 5, 1, 4, 2])
         self.assertTrue(np.array_equal(inverse_perm.pattern, expected_inverse_perm.pattern))
 
 
-class TestPermutationCircuit(QiskitTestCase):
+class TestPermutationGatesOnCircuit(QiskitTestCase):
     """Tests for quantum circuits containing permutations."""
 
     def test_append_to_circuit(self):
         """Test method for adding Permutations to quantum circuit."""
         qc = QuantumCircuit(5)
-        qc.append(Permutation(3, [1, 2, 0]), [0, 1, 2])
+        qc.append(PermutationGate([1, 2, 0]), [0, 1, 2])
         qc.permutation([2, 3, 0, 1], [1, 2, 3, 4])
-        self.assertIsInstance(qc.data[0].operation, Permutation)
-        self.assertIsInstance(qc.data[1].operation, Permutation)
+        self.assertIsInstance(qc.data[0].operation, PermutationGate)
+        self.assertIsInstance(qc.data[1].operation, PermutationGate)
 
     def test_inverse(self):
         """Test inverse method for circuits with permutations."""
@@ -128,10 +147,9 @@ class TestPermutationCircuit(QiskitTestCase):
         qr = QuantumRegister(5, "q0")
         circuit = QuantumCircuit(qr)
         pattern = [2, 4, 3, 0, 1]
-        permutation = Permutation(5, pattern)
+        permutation = PermutationGate(pattern)
         circuit.append(permutation, [0, 1, 2, 3, 4])
         circuit.h(qr[0])
-        print(circuit.qasm())
 
         expected_qasm = (
             "OPENQASM 2.0;\n"
