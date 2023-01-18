@@ -19,7 +19,7 @@ Physical (qu)bits are integers.
 """
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, Optional
 
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.transpiler.exceptions import LayoutError
@@ -374,3 +374,4 @@ class TranspileLayout:
 
     initial_layout: Layout
     input_qubit_mapping: Dict[Qubit, int]
+    final_layout: Optional[Layout] = None
