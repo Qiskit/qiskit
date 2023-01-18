@@ -19,7 +19,7 @@ from datetime import datetime
 import json
 import os
 
-from qiskit import IBMQ
+from qiskit.providers.ibmq import IBMQ
 from qiskit.circuit.parameterexpression import ParameterExpression
 
 
