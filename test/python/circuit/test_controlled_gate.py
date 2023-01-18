@@ -19,7 +19,7 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
-from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
+from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError, transpile
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.exceptions import CircuitError
@@ -394,10 +394,13 @@ class TestControlledGate(QiskitTestCase):
         c_cu1 = cu1gate.control(1)
         qc_cu1.append(c_cu1, qr, [])
 
-        job = execute(
-            [qcnu1, qu1, qcu1, qc_cu1],
-            BasicAer.get_backend("unitary_simulator"),
-            basis_gates=["u1", "u2", "u3", "id", "cx"],
+        backend = BasicAer.get_backend("unitary_simulator")
+        job = backend.run(
+            transpile(
+                [qcnu1, qu1, qcu1, qc_cu1],
+                backend=backend,
+                basis_gates=["u1", "u2", "u3", "id", "cx"],
+            )
         )
         result = job.result()
 

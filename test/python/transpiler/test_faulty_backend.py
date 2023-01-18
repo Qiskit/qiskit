@@ -14,7 +14,7 @@
 
 from ddt import ddt, data
 
-from qiskit import QuantumCircuit, QuantumRegister, BasicAer, execute
+from qiskit import QuantumCircuit, QuantumRegister, BasicAer
 from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
@@ -38,26 +38,30 @@ class TestFaultyBackendCase(QiskitTestCase):
         shots = 2048
 
         result1 = (
-            execute(
-                circuit1,
-                backend,
-                basis_gates=["u1", "u2", "u3", "id", "cx"],
-                seed_simulator=0,
-                seed_transpiler=0,
+            backend.run(
+                transpile(
+                    circuit1,
+                    backend,
+                    basis_gates=["u1", "u2", "u3", "id", "cx"],
+                    seed_transpiler=0,
+                ),
                 shots=shots,
+                seed_simulator=0,
             )
             .result()
             .get_counts()
         )
 
         result2 = (
-            execute(
-                circuit2,
-                backend,
-                basis_gates=["u1", "u2", "u3", "id", "cx"],
-                seed_simulator=0,
-                seed_transpiler=0,
+            backend.run(
+                transpile(
+                    circuit2,
+                    backend,
+                    basis_gates=["u1", "u2", "u3", "id", "cx"],
+                    seed_transpiler=0,
+                ),
                 shots=shots,
+                seed_simulator=0,
             )
             .result()
             .get_counts()

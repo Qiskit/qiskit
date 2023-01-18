@@ -434,7 +434,7 @@ def execute(
             DeprecationWarning,
             stacklevel=2,
         )
-    if not schedule_circuit:
+    if schedule_circuit:
         warnings.warn(
             "The schedule_circuit argument is deprecated as of Qiskit Terra 0.23.0, "
             "and will be removed in a future release. If you require scheduling your circuit "
