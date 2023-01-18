@@ -60,6 +60,8 @@ class Suzuki(TrotterizationBase):
 
         if isinstance(operator.coeff, (float, ParameterExpression)):
             coeff = operator.coeff
+            if not isinstance(coeff, float):
+                coeff = 1
         else:
             if isreal(operator.coeff):
                 coeff = operator.coeff.real

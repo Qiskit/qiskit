@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fix wrong time value in Trotterized unitary #8126.
+    When Computing a suzuki decomposition of a Hamiltonian for a given time t, if t is a float, everything works fine. 
+    If t is a Parameter object the value gets squared when it is bound.
+    This is tested with function test_suzuki_trotterization_time_parameter(self).
+    Refer to https://github.com/Qiskit/qiskit-terra/issues/8126
+    

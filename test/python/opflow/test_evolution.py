@@ -365,6 +365,18 @@ class TestEvolution(QiskitOpflowTestCase):
         )
         np.testing.assert_array_almost_equal(evolution.to_matrix(), matrix)
 
+    def test_suzuki_trotterization_time_parameter(self):
+        """Test for Suzuki converter"""
+
+        time = 11.0
+        ham = (X ^ X ^ X) + (Z ^ Z ^ Z)
+        u1 = Suzuki(1, order=1).convert(time * ham)
+
+        ti = Parameter("t")
+        u2 = Suzuki(1, order=1).convert(ti * ham)
+        u2_t = u2.bind_parameters({ti: time})
+        self.assertEqual(u2_t, u1)
+
     def test_evolved_op_to_instruction(self):
         """Test calling `to_instruction` on a plain EvolvedOp.
 
