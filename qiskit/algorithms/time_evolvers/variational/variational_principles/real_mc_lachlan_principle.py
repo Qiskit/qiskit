@@ -65,7 +65,7 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
                 estimator = gradient._estimator
             except Exception as exc:
                 raise AlgorithmError(
-                    "The provided gradient instance  does not contain an estimator primitive."
+                    "The provided gradient instance does not contain an estimator primitive."
                 ) from exc
         else:
             estimator = Estimator()
