@@ -94,34 +94,8 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
         subgraph, component_id, prev_node = draw_subgraph(controller_group, component_id, style, prev_node, index)
         graph.add_subgraph(subgraph)
 
-    if raw:
-        if filename:
-            graph.write(filename, format="raw")
-            return None
-        else:
-            raise VisualizationError("if format=raw, then a filename is required.")
-
-    if not _optionals.HAS_PIL and filename:
-        # pylint says this isn't a method - it is
-        graph.write_png(filename)  # pylint: disable=no-member
-        return None
-
-    _optionals.HAS_PIL.require_now("pass manager drawer")
-
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        from PIL import Image
-
-        tmppath = os.path.join(tmpdirname, "pass_manager.png")
-
-        # pylint says this isn't a method - it is
-        graph.write_png(tmppath)  # pylint: disable=no-member
-
-        image = Image.open(tmppath)
-        image = utils._trim(image)
-        os.remove(tmppath)
-        if filename:
-            image.save(filename, "PNG")
-        return image
+    output = make_output(graph, raw, filename)
+    return output
 
 
 def _get_node_color(pss, style):
@@ -207,34 +181,8 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
                 idx += 1
             graph.add_subgraph(stagegraph)
 
-    if raw:
-        if filename:
-            graph.write(filename, format="raw")
-            return None
-        else:
-            raise VisualizationError("if format=raw, then a filename is required.")
-
-    if not _optionals.HAS_PIL and filename:
-        # pylint says this isn't a method - it is
-        graph.write_png(filename)  # pylint: disable=no-member
-        return None
-
-    _optionals.HAS_PIL.require_now("pass manager drawer")
-
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        from PIL import Image
-
-        tmppath = os.path.join(tmpdirname, "pass_manager.png")
-
-        # pylint says this isn't a method - it is
-        graph.write_png(tmppath)  # pylint: disable=no-member
-
-        image = Image.open(tmppath)
-        image = utils._trim(image)
-        os.remove(tmppath)
-        if filename:
-            image.save(filename, "PNG")
-        return image
+    output = make_output(graph, raw, filename)
+    return output
 
 
 def draw_subgraph(controller_group, component_id, style, prev_node, idx):
@@ -299,3 +247,35 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
         prev_node = node
 
     return subgraph, component_id, prev_node
+
+
+def make_output(graph, raw, filename):
+    """Produce output for pass_manager."""
+    if raw:
+        if filename:
+            graph.write(filename, format="raw")
+            return None
+        else:
+            raise VisualizationError("if format=raw, then a filename is required.")
+
+    if not _optionals.HAS_PIL and filename:
+        # pylint says this isn't a method - it is
+        graph.write_png(filename)  # pylint: disable=no-member
+        return None
+
+    _optionals.HAS_PIL.require_now("pass manager drawer")
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        from PIL import Image
+
+        tmppath = os.path.join(tmpdirname, "pass_manager.png")
+
+        # pylint says this isn't a method - it is
+        graph.write_png(tmppath)  # pylint: disable=no-member
+
+        image = Image.open(tmppath)
+        image = utils._trim(image)
+        os.remove(tmppath)
+        if filename:
+            image.save(filename, "PNG")
+        return image
