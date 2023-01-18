@@ -42,26 +42,25 @@ Qiskit has four pre-built transpilation pipelines available here:
 :mod:`qiskit.transpiler.preset_passmanagers`.  Unless the reader is familiar with
 quantum circuit optimization methods and their usage, it is best to use one of
 these ready-made routines. By default the preset pass managers are composed
-of 6 stages:
+of six stages:
 
 #. ``init`` - This stage runs any initial passes that are run before we start embedding the
    circuit to the backend
 #. ``layout`` - This stage runs layout and maps the virtual qubits in the circuit to the
    physical qubits on a backend. See :ref:`layout_stage` for more details.
-#. ``routing`` - This stage runs after a layout has been run and will insert any
+#. ``routing`` - This stage runs after a layout has been assigned and will insert any
    necessary gates to move the qubit states around until it can be run on
-   backend's compuling map. See :ref:`routing_stage` for more details.
-#. ``translation`` - This stage performs the basis gate translation, in other words translate the
-   gates in the circuit to the target backend's basis set. For more details on this stage you can
-   refer to :ref:`translation_stage`.
-#. ``optimization`` - This stage runs the main optimization loop, this will typically run in a loop
-   trying to optimize the circuit until a condtion (such as fixed depth) is reached. See
-   :ref:`optimization_stage` for more details.
-#. ``scheduling`` - This stage is for any hardware aware scheduling passes. See
+   backend's connectivity. See :ref:`routing_stage` for more details.
+#. ``translation`` - This stage translates the gates in the circuit to the target backend's basis set.
+   For more details on this stage you can refer to :ref:`translation_stage`.
+#. ``optimization`` - This stage runs the main optimization loop repeatedly 
+   until a condition (such as fixed depth) is reached. See :ref:`optimization_stage` for more details.
+#. ``scheduling`` - This stage is for any hardware-aware scheduling passes. See
    :ref:`scheduling_stage` for more details.
 
-When using :func:`~.transpile` the specifics of each stage can modified with the ``*_method``
-arguments (e.g. ``layout_method``) and also refer to external plugins. You can refer to
+When using :func:`~.transpile`, the implementation of each stage can be modified with the ``*_method``
+arguments (e.g. ``layout_method``). These can be set to one of the built-in methods and
+can also refer to available external plugins. See
 :mod:`qiskit.transpiler.preset_passmanagers.plugin` for details on this plugin interface.
 
 .. _working_with_preset_pass_managers:
@@ -70,12 +69,13 @@ Working With Preset Pass Managers
 =================================
 
 By default Qiskit includes functions to build preset :class:`~.PassManager` objects.
-These preset passmanagers are what get used by the :func:`~.transpile` function
+These preset passmanagers are used by the :func:`~.transpile` function
 for each optimization level. There are 4 optimization levels from 0 to 3 where an increasing
-optimization level trades off execution time and computational effort vs potential optimization.
-Level 0 performs no optimization and just maps the input circuit to the constraints of the
-target backend and optimization level 3 spends the most effort to optimize the circuit. However,
-as most of the optimization techniques in the transpiler are heuristic based spending more
+optimization level trades off execution time and computational effort for potential optimization.
+Optimization level 0 is intended for device characterization experiments and, as such, only
+maps the input circuit to the constraints of the target backend and performs no
+optimizations. Optimization level 3 spends the most effort to optimize the circuit. However,
+as many of the optimization techniques in the transpiler are heuristic based, spending more
 computation effort does not always correlate to an improvement in the quality of the output
 circuit.
 

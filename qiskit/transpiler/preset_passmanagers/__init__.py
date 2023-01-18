@@ -19,7 +19,7 @@ Preset Passmanagers (:mod:`qiskit.transpiler.preset_passmanagers`)
 
 This module contains functions for generating the preset pass managers
 for the transpiler. The preset pass managers are instances of
-:class;`~.StagedPassManager` which are used to execute the circuit
+:class:`~.StagedPassManager` which are used to execute the circuit
 transformations as part of Qiskit's compiler inside the
 :func:`~.transpile` function at the different optimization levels.
 The functionality here is divided into two parts, the first are the
