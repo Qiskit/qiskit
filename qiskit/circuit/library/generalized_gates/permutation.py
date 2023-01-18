@@ -132,7 +132,7 @@ class PermutationGate(Gate):
                 from qiskit.circuit.library import PermutationGate
                 from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
                 A = [2,4,3,0,1]
-                permutation = Permutation(A)
+                permutation = PermutationGate(A)
                 circuit = QuantumCircuit(5)
                 circuit.append(permutation, [0, 1, 2, 3, 4])
 
