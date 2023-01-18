@@ -49,20 +49,42 @@ class BaseEstimatorGradient(ABC):
         self,
         estimator: BaseEstimator,
         options: Options | None = None,
+        derivative_type: DerivativeType = DerivativeType.REAL,
     ):
-        """
+        r"""
         Args:
             estimator: The estimator used to compute the gradients.
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > gradient's
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting
+            derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+                ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``.
+
+                    - ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.COMPLEX`` computes :math:`2 ⟨ψ(ω)|O(θ)|dω ψ(ω)〉`.
+
+                Defaults to ``DerivativeType.REAL``, as this yields e.g. the commonly-used energy
+                gradient and this type is the only supported type for function-level schemes like
+                finite difference.
         """
         self._estimator: BaseEstimator = estimator
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
+        self._derivative_type = derivative_type
+
         self._gradient_circuit_cache: dict[QuantumCircuit, GradientCircuit] = {}
+
+    @property
+    def derivative_type(self) -> DerivativeType:
+        """Return the derivative type (real, imaginary or complex).
+
+        Returns:
+            The derivative type.
+        """
+        return self._derivative_type
 
     def run(
         self,

@@ -88,8 +88,12 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 Higher priority setting overrides lower priority setting.
         """
         self._lin_comb_cache = {}
+        super().__init__(estimator, options, derivative_type=derivative_type)
+
+    @BaseEstimatorGradient.derivative_type.setter
+    def derivative_type(self, derivative_type: DerivativeType) -> None:
+        """Set the derivative type."""
         self._derivative_type = derivative_type
-        super().__init__(estimator, options)
 
     def _run(
         self,
@@ -144,7 +148,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             )
             # If its derivative type is `DerivativeType.COMPLEX`, calculate the gradient
             # of the real and imaginary parts separately.
-            meta["derivative_type"] = self._derivative_type
+            meta["derivative_type"] = self.derivative_type
             metadata.append(meta)
             # Combine inputs into a single job to reduce overhead.
             if self._derivative_type == DerivativeType.COMPLEX:
@@ -174,10 +178,14 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         gradients = []
         partial_sum_n = 0
         for n in all_n:
-            if self._derivative_type == DerivativeType.COMPLEX:
+            # this disable is needed as Pylint does not understand derivative_type is a property if
+            # it is only defined in the base class and the getter is in the child
+            # pylint: disable=comparison-with-callable
+            if self.derivative_type == DerivativeType.COMPLEX:
                 gradient = np.zeros(n // 2, dtype="complex")
                 gradient.real = results.values[partial_sum_n : partial_sum_n + n // 2]
                 gradient.imag = results.values[partial_sum_n + n // 2 : partial_sum_n + n]
+
             else:
                 gradient = np.real(results.values[partial_sum_n : partial_sum_n + n])
             partial_sum_n += n
