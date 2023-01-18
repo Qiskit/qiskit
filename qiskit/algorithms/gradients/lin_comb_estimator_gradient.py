@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -25,12 +25,11 @@ from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import init_observable, _circuit_key
 from qiskit.providers import Options
-from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import DerivativeType, _make_lin_comb_gradient_circuit
+from .utils import DerivativeType, _make_lin_comb_gradient_circuit, _make_lin_comb_observables
 
 
 class LinCombEstimatorGradient(BaseEstimatorGradient):
@@ -88,8 +87,12 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 Higher priority setting overrides lower priority setting.
         """
         self._lin_comb_cache = {}
+        super().__init__(estimator, options, derivative_type=derivative_type)
+
+    @BaseEstimatorGradient.derivative_type.setter
+    def derivative_type(self, derivative_type: DerivativeType) -> None:
+        """Set the derivative type."""
         self._derivative_type = derivative_type
-        super().__init__(estimator, options)
 
     def _run(
         self,
@@ -144,7 +147,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             )
             # If its derivative type is `DerivativeType.COMPLEX`, calculate the gradient
             # of the real and imaginary parts separately.
-            meta["derivative_type"] = self._derivative_type
+            meta["derivative_type"] = self.derivative_type
             metadata.append(meta)
             # Combine inputs into a single job to reduce overhead.
             if self._derivative_type == DerivativeType.COMPLEX:
@@ -174,10 +177,14 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         gradients = []
         partial_sum_n = 0
         for n in all_n:
-            if self._derivative_type == DerivativeType.COMPLEX:
+            # this disable is needed as Pylint does not understand derivative_type is a property if
+            # it is only defined in the base class and the getter is in the child
+            # pylint: disable=comparison-with-callable
+            if self.derivative_type == DerivativeType.COMPLEX:
                 gradient = np.zeros(n // 2, dtype="complex")
                 gradient.real = results.values[partial_sum_n : partial_sum_n + n // 2]
                 gradient.imag = results.values[partial_sum_n + n // 2 : partial_sum_n + n]
+
             else:
                 gradient = np.real(results.values[partial_sum_n : partial_sum_n + n])
             partial_sum_n += n
@@ -185,32 +192,3 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
 
         opt = self._get_local_options(options)
         return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)
-
-
-def _make_lin_comb_observables(
-    observable: BaseOperator | PauliSumOp,
-    derivative_type: DerivativeType,
-) -> tuple[BaseOperator | PauliSumOp, BaseOperator | PauliSumOp | None]:
-    """Make the observable with an ancillary operator for the linear combination gradient.
-
-    Args:
-        observable: The observable.
-        derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
-            ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``.
-
-    Returns:
-        The observable with an ancillary operator for the linear combination gradient.
-
-    Raises:
-        ValueError: If the derivative type is not supported.
-    """
-    if derivative_type == DerivativeType.REAL:
-        return observable.expand(SparsePauliOp.from_list([("Z", 1)])), None
-    elif derivative_type == DerivativeType.IMAG:
-        return observable.expand(SparsePauliOp.from_list([("Y", -1)])), None
-    elif derivative_type == DerivativeType.COMPLEX:
-        return observable.expand(SparsePauliOp.from_list([("Z", 1)])), observable.expand(
-            SparsePauliOp.from_list([("Y", -1)])
-        )
-    else:
-        raise ValueError(f"Derivative type {derivative_type} is not supported.")
