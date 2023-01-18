@@ -13,6 +13,8 @@
 """Test permutation quantum circuits, permutation gates, and quantum circuits that
 contain permutation gates."""
 
+import io
+
 import unittest
 import numpy as np
 
@@ -22,6 +24,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import Permutation, PermutationGate
 from qiskit.quantum_info import Operator
+from qiskit.qpy import dump, load
 
 
 class TestPermutationLibrary(QiskitTestCase):
@@ -160,6 +163,21 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
             "h q0[0];\n"
         )
         self.assertEqual(expected_qasm, circuit.qasm())
+
+    def test_qpy(self):
+        """Test qpy for circuits with permutations."""
+        circuit = QuantumCircuit(6, 1)
+        circuit.cx(0, 1)
+        circuit.append(PermutationGate([1, 2, 0]), [2, 4, 5])
+        circuit.h(4)
+        print(circuit)
+
+        qpy_file = io.BytesIO()
+        dump(circuit, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+
+        self.assertEqual(circuit, new_circuit)
 
 
 if __name__ == "__main__":
