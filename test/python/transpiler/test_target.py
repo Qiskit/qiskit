@@ -1753,13 +1753,13 @@ class TestTargetFromConfiguration(QiskitTestCase):
 
     def test_missing_custom_basis_no_coupling(self):
         basis_gates = ["my_X", "cx"]
-        with self.assertRaises(KeyError):
+        with self.assertRaisesRegex(KeyError, "is not present in the standard gate names"):
             Target.from_configuration(basis_gates, num_qubits=4)
 
     def test_missing_custom_basis_with_coupling(self):
         basis_gates = ["my_X", "cx"]
         cmap = CouplingMap.from_line(3)
-        with self.assertRaises(KeyError):
+        with self.assertRaisesRegex(KeyError, "is not present in the standard gate names"):
             Target.from_configuration(basis_gates, 3, cmap)
 
     def test_over_two_qubit_gate_without_coupling(self):
@@ -1770,5 +1770,5 @@ class TestTargetFromConfiguration(QiskitTestCase):
     def test_over_two_qubits_with_coupling(self):
         basis_gates = ["ccx", "cx", "swap", "u"]
         cmap = CouplingMap.from_line(15)
-        with self.assertRaises(TranspilerError):
+        with self.assertRaisesRegex(TranspilerError, "has an invalid number of qubits"):
             Target.from_configuration(basis_gates, 15, cmap)
