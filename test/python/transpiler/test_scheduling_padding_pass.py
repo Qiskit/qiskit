@@ -12,7 +12,6 @@
 
 """Test the Scheduling/PadDelay passes"""
 
-import math
 import unittest
 
 from ddt import ddt, data, unpack
@@ -31,7 +30,6 @@ from qiskit.transpiler.passes import (
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target, InstructionProperties
-from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2
 
 
 @ddt
