@@ -113,7 +113,7 @@ class VarQTE(ABC):
         self._validate_aux_ops(evolution_problem)
 
         if evolution_problem.initial_state is not None:
-            raise ValueError("initial_state provided but not applicable to VarQTE.")
+            raise ValueError("An initial_state was provided in the TimeEvolutionProblem but is not supported by VarQTE.")
 
         init_state_param_dict = self._create_init_state_param_dict(
             self.initial_parameters, self.ansatz.parameters
