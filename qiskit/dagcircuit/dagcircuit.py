@@ -1858,7 +1858,7 @@ class DAGCircuit:
         }
         return summary
 
-    def draw(self, scale=0.7, filename=None, style="color", **kwargs):
+    def draw(self, scale=0.7, filename=None, style="color"):
         """
         Draws the dag circuit.
 
@@ -1871,11 +1871,11 @@ class DAGCircuit:
             style (str):
                 'plain': B&W graph;
                 'color' (default): color input/output/op nodes
-            kwargs (dict): addtional kwargs understood by dag_visualization
+
         Returns:
             Ipython.display.Image: if in Jupyter notebook and not saving to file,
             otherwise None.
         """
         from qiskit.visualization.dag_visualization import dag_drawer
 
-        return dag_drawer(dag=self, scale=scale, filename=filename, style=style, **kwargs)
+        return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
