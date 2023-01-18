@@ -64,6 +64,14 @@ class VarQTELinearSolver:
         self.lse_solver = lse_solver
         self._imag_part_tol = imag_part_tol
 
+        if self._time_param is not None and not isinstance(self._hamiltonian, SparsePauliOp):
+            raise TypeError(
+                f"A time parameter {t_param} has been specified, so a time-dependent "
+                f"hamiltonian was expected. The operator provided is of type {type(self._hamiltonian)}, "
+                f"which does not support parametrization. "
+                f"Please provide the parametrized hamiltonian as a SparsePauliOp."
+            )
+
     @property
     def lse_solver(self) -> Callable[[np.ndarray, np.ndarray], np.ndarray]:
         """Returns an LSE solver callable."""
@@ -105,16 +113,9 @@ class VarQTELinearSolver:
 
         if self._time_param is not None:
             if time_value is not None:
-                if isinstance(self._hamiltonian, SparsePauliOp):
-                    parametrized_coeffs = copy.deepcopy(self._hamiltonian.coeffs)
-                    bound_params_array = assign_parameters(parametrized_coeffs, [time_value])
-                    hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
-                else:
-                    raise TypeError(
-                        f"``time_param`` was provided as not ``None`` but the  Hamiltonian provided is "
-                        f"of the type {type(self._hamiltonian)} that does not support parametrization."
-                        f"Provide the Hamiltonian as a parametrized SparsePauliOp instead."
-                    )
+                parametrized_coeffs = copy.deepcopy(self._hamiltonian.coeffs)
+                bound_params_array = assign_parameters(parametrized_coeffs, [time_value])
+                hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
             else:
                 raise ValueError(
                     f"Providing a time_value is required for time-dependant hamiltonians,"
