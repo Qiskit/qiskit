@@ -1048,6 +1048,14 @@ class Target(Mapping):
         the :class:`~.Target`. This function provides a simple interface
         to convert those separate objects to a :class:`~.Target`.
 
+        This constructor will use the input from ``basis_gates``, ``num_qubits``,
+        and ``coupling_map`` to build a base model of the backend and the
+        ``instruction_durations``, ``backend_properties``, and ``inst_map`` inputs
+        are then queried (in that order) based on that model to look up the properties
+        of each instruction and qubit. If there is an inconsistency between the inputs
+        any extra or conflicting information present in ``instruction_durations``,
+        ``backend_properties``, or ``inst_map`` will be ignored.
+
         Args:
             basis_gates: The list of basis gate names for the backend. For the
                 target to be created these names must either be in the output
