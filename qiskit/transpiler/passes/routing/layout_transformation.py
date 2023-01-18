@@ -30,9 +30,9 @@ class LayoutTransformation(TransformationPass):
 
     def __init__(
         self,
-        coupling_map: CouplingMap,
-        from_layout: Union[Layout, str],
-        to_layout: Union[Layout, str],
+        coupling_map: CouplingMap = None,
+        from_layout: Union[Layout, str] = None,
+        to_layout: Union[Layout, str] = None,
         seed: Union[int, np.random.default_rng] = None,
         trials=4,
         target=None,
@@ -59,8 +59,16 @@ class LayoutTransformation(TransformationPass):
             target (Target): A target representing the target backend, if both
                 ``coupling_map`` and this are specified then this argument will take
                 precedence and the other argument will be ignored.
+
+        Raises:
+            ValueError: If requried arguments ``from_layout`` or ``to_layout`` are not
+                specified.
         """
         super().__init__()
+        if from_layout is None:
+            raise TypeError("Required from_layout argument not provided.")
+        if to_layout is None:
+            raise TypeError("Required to_layout argument not provided.")
         self.from_layout = from_layout
         self.to_layout = to_layout
         self.coupling_map = coupling_map
