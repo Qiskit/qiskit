@@ -91,64 +91,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     prev_node = None
 
     for index, controller_group in enumerate(passes):
-
-        # label is the name of the flow controller parameter
-        label = "[{}] {}".format(index, ", ".join(controller_group["flow_controllers"]))
-
-        # create the subgraph for this controller
-        subgraph = pydot.Cluster(
-            str(component_id), label=label, fontname="helvetica", labeljust="l"
-        )
-        component_id += 1
-
-        for pass_ in controller_group["passes"]:
-
-            # label is the name of the pass
-            node = pydot.Node(
-                str(component_id),
-                label=str(type(pass_).__name__),
-                color=_get_node_color(pass_, style),
-                shape="rectangle",
-                fontname="helvetica",
-            )
-
-            subgraph.add_node(node)
-            component_id += 1
-
-            # the arguments that were provided to the pass when it was created
-            arg_spec = inspect.getfullargspec(pass_.__init__)
-            # 0 is the args, 1: to remove the self arg
-            args = arg_spec[0][1:]
-
-            num_optional = len(arg_spec[3]) if arg_spec[3] else 0
-
-            # add in the inputs to the pass
-            for arg_index, arg in enumerate(args):
-                nd_style = "solid"
-                # any optional args are dashed
-                # the num of optional counts from the end towards the start of the list
-                if arg_index >= (len(args) - num_optional):
-                    nd_style = "dashed"
-
-                input_node = pydot.Node(
-                    component_id,
-                    label=arg,
-                    color="black",
-                    shape="ellipse",
-                    fontsize=10,
-                    style=nd_style,
-                    fontname="helvetica",
-                )
-                subgraph.add_node(input_node)
-                component_id += 1
-                subgraph.add_edge(pydot.Edge(input_node, node))
-
-            # if there is a previous node, add an edge between them
-            if prev_node:
-                subgraph.add_edge(pydot.Edge(prev_node, node))
-
-            prev_node = node
-
+        subgraph, component_id, prev_node = draw_subgraph(controller_group, component_id, style, prev_node, index)
         graph.add_subgraph(subgraph)
 
     if raw:
@@ -257,69 +200,11 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
 
         if stage is not None:
             passes = stage.passes()
-            stagegraph = pydot.Cluster(str(st), label="", fontname="helvetica", labeljust="l")
+            stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
             for controller_group in passes:
-
-                # label is the name of the flow controller parameter
-                label = "[{}] {}".format(idx, ", ".join(controller_group["flow_controllers"]))
-
-                # create the subgraph for this controller
-                subgraph = pydot.Cluster(
-                    str(component_id), label=label, fontname="helvetica", labeljust="l"
-                )
-                component_id += 1
-
-                for pass_ in controller_group["passes"]:
-
-                    # label is the name of the pass
-                    node = pydot.Node(
-                        str(component_id),
-                        label=str(type(pass_).__name__),
-                        color=_get_node_color(pass_, style),
-                        shape="rectangle",
-                        fontname="helvetica",
-                    )
-
-                    subgraph.add_node(node)
-                    component_id += 1
-
-                    # the arguments that were provided to the pass when it was created
-                    arg_spec = inspect.getfullargspec(pass_.__init__)
-                    # 0 is the args, 1: to remove the self arg
-                    args = arg_spec[0][1:]
-
-                    num_optional = len(arg_spec[3]) if arg_spec[3] else 0
-
-                    # add in the inputs to the pass
-                    for arg_index, arg in enumerate(args):
-                        nd_style = "solid"
-                        # any optional args are dashed
-                        # the num of optional counts from the end towards the start of the list
-                        if arg_index >= (len(args) - num_optional):
-                            nd_style = "dashed"
-
-                        input_node = pydot.Node(
-                            component_id,
-                            label=arg,
-                            color="black",
-                            shape="ellipse",
-                            fontsize=10,
-                            style=nd_style,
-                            fontname="helvetica",
-                        )
-                        subgraph.add_node(input_node)
-                        component_id += 1
-                        subgraph.add_edge(pydot.Edge(input_node, node))
-
-                    # if there is a previous node, add an edge between them
-                    if prev_node:
-                        subgraph.add_edge(pydot.Edge(prev_node, node))
-
-                    prev_node = node
-
+                subgraph, component_id, prev_node = draw_subgraph(controller_group, component_id, style, prev_node, idx)
                 stagegraph.add_subgraph(subgraph)
                 idx += 1
-
             graph.add_subgraph(stagegraph)
 
     if raw:
@@ -350,3 +235,67 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
         if filename:
             image.save(filename, "PNG")
         return image
+
+
+def draw_subgraph(controller_group, component_id, style, prev_node, idx):
+    """Draw subgraph."""
+    import pydot
+
+    # label is the name of the flow controller parameter
+    label = "[{}] {}".format(idx, ", ".join(controller_group["flow_controllers"]))
+
+    # create the subgraph for this controller
+    subgraph = pydot.Cluster(
+        str(component_id), label=label, fontname="helvetica", labeljust="l"
+    )
+    component_id += 1
+
+    for pass_ in controller_group["passes"]:
+
+        # label is the name of the pass
+        node = pydot.Node(
+            str(component_id),
+            label=str(type(pass_).__name__),
+            color=_get_node_color(pass_, style),
+            shape="rectangle",
+            fontname="helvetica",
+        )
+
+        subgraph.add_node(node)
+        component_id += 1
+
+        # the arguments that were provided to the pass when it was created
+        arg_spec = inspect.getfullargspec(pass_.__init__)
+        # 0 is the args, 1: to remove the self arg
+        args = arg_spec[0][1:]
+
+        num_optional = len(arg_spec[3]) if arg_spec[3] else 0
+
+        # add in the inputs to the pass
+        for arg_index, arg in enumerate(args):
+            nd_style = "solid"
+            # any optional args are dashed
+            # the num of optional counts from the end towards the start of the list
+            if arg_index >= (len(args) - num_optional):
+                nd_style = "dashed"
+
+            input_node = pydot.Node(
+                component_id,
+                label=arg,
+                color="black",
+                shape="ellipse",
+                fontsize=10,
+                style=nd_style,
+                fontname="helvetica",
+            )
+            subgraph.add_node(input_node)
+            component_id += 1
+            subgraph.add_edge(pydot.Edge(input_node, node))
+
+        # if there is a previous node, add an edge between them
+        if prev_node:
+            subgraph.add_edge(pydot.Edge(prev_node, node))
+
+        prev_node = node
+
+    return subgraph, component_id, prev_node
