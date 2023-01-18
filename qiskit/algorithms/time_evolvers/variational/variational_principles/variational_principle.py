@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -27,12 +28,18 @@ from ....gradients import BaseEstimatorGradient, BaseQGT, DerivativeType
 
 class VariationalPrinciple(ABC):
     """A Variational Principle class. It determines the time propagation of parameters in a
-    quantum state provided as a parametrized quantum circuit (ansatz)."""
+    quantum state provided as a parametrized quantum circuit (ansatz).
+
+    Attributes:
+            qgt (BaseQGT): Instance of a class used to compute the GQT.
+            gradient (BaseEstimatorGradient): Instance of a class used to compute the
+                state gradient.
+    """
 
     def __init__(
         self,
-        qgt: BaseQGT | None = None,
-        gradient: BaseEstimatorGradient | None = None,
+        qgt: BaseQGT,
+        gradient: BaseEstimatorGradient,
     ) -> None:
         """
         Args:
@@ -42,7 +49,9 @@ class VariationalPrinciple(ABC):
         self.qgt = qgt
         self.gradient = gradient
 
-    def metric_tensor(self, ansatz: QuantumCircuit, param_values: list[float]) -> np.ndarray:
+    def metric_tensor(
+        self, ansatz: QuantumCircuit, param_values: Sequence[float]
+    ) -> Sequence[float]:
         """
         Calculates a metric tensor according to the rules of this variational principle.
 
@@ -70,8 +79,8 @@ class VariationalPrinciple(ABC):
         self,
         hamiltonian: BaseOperator,
         ansatz: QuantumCircuit,
-        param_values: list[float],
-        gradient_params: list[Parameter] | None = None,
+        param_values: Sequence[float],
+        gradient_params: Sequence[Parameter] | None = None,
     ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.

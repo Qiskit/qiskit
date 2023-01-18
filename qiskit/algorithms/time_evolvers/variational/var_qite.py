@@ -13,6 +13,7 @@
 """Variational Quantum Imaginary Time Evolution algorithm."""
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from typing import Type, Callable
 
 import numpy as np
@@ -66,7 +67,7 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
     def __init__(
         self,
         ansatz: QuantumCircuit,
-        initial_parameters: dict[Parameter, float] | list[float] | np.ndarray,
+        initial_parameters: Mapping[Parameter, float] | Sequence[float],
         variational_principle: ImaginaryVariationalPrinciple | None = None,
         estimator: BaseEstimator | None = None,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,

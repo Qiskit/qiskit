@@ -13,6 +13,7 @@
 """Class for solving ODEs for Quantum Time Evolution."""
 from __future__ import annotations
 
+from collections.abc import Sequence
 from functools import partial
 from typing import Type
 
@@ -28,7 +29,7 @@ class VarQTEOdeSolver:
 
     def __init__(
         self,
-        init_params: list[float],
+        init_params: Sequence[float],
         ode_function: AbstractOdeFunction,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         num_timesteps: int | None = None,
@@ -50,7 +51,7 @@ class VarQTEOdeSolver:
         self._ode_solver = ode_solver
         self._num_timesteps = num_timesteps
 
-    def run(self, evolution_time: float) -> list[float]:
+    def run(self, evolution_time: float) -> Sequence[float]:
         """
         Finds numerical solution with ODE Solver.
 

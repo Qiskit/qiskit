@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from abc import ABC
+from collections.abc import Mapping, Sequence
 from typing import Type, Callable
 
 import numpy as np
@@ -45,6 +46,26 @@ class VarQTE(ABC):
     Hermitian operator (Hamiltonian) and a quantum state prepared by a parameterized quantum
     circuit.
 
+    Attributes:
+            ansatz (QuantumCircuit): Ansatz to be used for variational time evolution.
+            initial_parameters (Mapping[Parameter, float] | Sequence[float]): Initial
+                parameter values for an ansatz.
+            variational_principle (VariationalPrinciple): Variational Principle to be used.
+            estimator (BaseEstimator): An estimator primitive used for calculating expectation
+                values of ``TimeEvolutionProblem.aux_operators``.
+            ode_solver(Type[OdeSolver] | str): ODE solver callable that implements a SciPy
+                ``OdeSolver`` interface or a string indicating a valid method offered by SciPy.
+            lse_solver (Callable[[np.ndarray, np.ndarray], np.ndarray] | None): Linear system
+                of equations solver callable. It accepts ``A`` and ``b`` to solve ``Ax=b``
+                and returns ``x``.
+            num_timesteps (int | None): The number of timesteps to take. If None, it is
+                automatically selected to achieve a timestep of approximately 0.01. Only
+                relevant in case of the ``ForwardEulerSolver``.
+            imag_part_tol (float): Allowed value of an imaginary part that can be neglected if no
+                imaginary part is expected.
+            num_instability_tol (float): The amount of negative value that is allowed to be
+                rounded up to 0 for quantities that are expected to be
+                non-negative.
     References:
 
         [1] Benjamin, Simon C. et al. (2019).
@@ -54,9 +75,9 @@ class VarQTE(ABC):
     def __init__(
         self,
         ansatz: QuantumCircuit,
-        initial_parameters: dict[Parameter, float] | list[float] | np.ndarray,
-        variational_principle: VariationalPrinciple | None = None,
-        estimator: BaseEstimator | None = None,
+        initial_parameters: Mapping[Parameter, float] | Sequence[float],
+        variational_principle: VariationalPrinciple,
+        estimator: BaseEstimator,
         ode_solver: Type[OdeSolver] | str = ForwardEulerSolver,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         num_timesteps: int | None = None,
@@ -90,15 +111,15 @@ class VarQTE(ABC):
         self.estimator = estimator
         self.num_timesteps = num_timesteps
         self.lse_solver = lse_solver
-        # OdeFunction abstraction kept for potential extensions - unclear at the moment;
-        # currently hidden from the user
-        self._ode_function_factory = OdeFunctionFactory(lse_solver=lse_solver)
         self.ode_solver = ode_solver
         self.imag_part_tol = imag_part_tol
         self.num_instability_tol = num_instability_tol
+        # OdeFunction abstraction kept for potential extensions - unclear at the moment;
+        # currently hidden from the user
+        self._ode_function_factory = OdeFunctionFactory()
 
     def evolve(self, evolution_problem: TimeEvolutionProblem) -> VarQTEResult:
-        """Apply Variational Quantum Time Evolution w.r.t. the given operator.
+        """Apply Variational Quantum Time Evolution to the given operator.
 
         Args:
             evolution_problem: Instance defining an evolution problem.
@@ -163,7 +184,7 @@ class VarQTE(ABC):
 
     def _evolve(
         self,
-        init_state_param_dict: dict[Parameter, float],
+        init_state_param_dict: Mapping[Parameter, float],
         hamiltonian: BaseOperator,
         time: float,
         t_param: Parameter | None = None,
@@ -184,7 +205,7 @@ class VarQTE(ABC):
         """
 
         init_state_parameters = list(init_state_param_dict.keys())
-        init_state_parameters_values = list(init_state_param_dict.values())
+        init_state_parameter_values = list(init_state_param_dict.values())
 
         linear_solver = VarQTELinearSolver(
             self.variational_principle,
@@ -202,7 +223,7 @@ class VarQTE(ABC):
         )
 
         ode_solver = VarQTEOdeSolver(
-            init_state_parameters_values, ode_function, self.ode_solver, self.num_timesteps
+            init_state_parameter_values, ode_function, self.ode_solver, self.num_timesteps
         )
         final_param_values, param_values, time_points = ode_solver.run(time)
         param_dict_from_ode = dict(zip(init_state_parameters, final_param_values))
@@ -211,9 +232,9 @@ class VarQTE(ABC):
 
     @staticmethod
     def _create_init_state_param_dict(
-        param_values: dict[Parameter, float] | list[float] | np.ndarray,
-        init_state_parameters: list[Parameter],
-    ) -> dict[Parameter, float]:
+        param_values: Mapping[Parameter, float] | Sequence[float],
+        init_state_parameters: Sequence[Parameter],
+    ) -> Mapping[Parameter, float]:
         r"""
         If ``param_values`` is a dictionary, it looks for parameters present in an initial state
         (an ansatz) in a ``param_values``. Based on that, it creates a new dictionary containing
@@ -235,7 +256,7 @@ class VarQTE(ABC):
                 same length as the list of parameters.
             TypeError: If an unsupported type of ``param_values`` provided.
         """
-        if isinstance(param_values, dict):
+        if isinstance(param_values, Mapping):
             init_state_parameter_values = []
             for param in init_state_parameters:
                 if param in param_values.keys():
@@ -248,7 +269,7 @@ class VarQTE(ABC):
                         f"parameters in the dictionary: "
                         f"{list(param_values.keys())}."
                     )
-        elif isinstance(param_values, (list, np.ndarray)):
+        elif isinstance(param_values, (Sequence, np.ndarray)):
             if len(init_state_parameters) != len(param_values):
                 raise ValueError(
                     f"Initial state has {len(init_state_parameters)} parameters and the"

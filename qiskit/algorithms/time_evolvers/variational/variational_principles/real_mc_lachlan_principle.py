@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import warnings
 
+from collections.abc import Sequence
+
 import numpy as np
 from numpy import real
 
@@ -80,8 +82,8 @@ class RealMcLachlanPrinciple(RealVariationalPrinciple):
         self,
         hamiltonian: BaseOperator,
         ansatz: QuantumCircuit,
-        param_values: list[float],
-        gradient_params: list[Parameter] | None = None,
+        param_values: Sequence[float],
+        gradient_params: Sequence[Parameter] | None = None,
     ) -> np.ndarray:
         """
         Calculates an evolution gradient according to the rules of this variational principle.

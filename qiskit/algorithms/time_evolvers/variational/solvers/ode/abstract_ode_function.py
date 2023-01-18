@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from typing import Iterable
 
 from qiskit.circuit import Parameter
@@ -27,7 +28,7 @@ class AbstractOdeFunction(ABC):
     def __init__(
         self,
         varqte_linear_solver: VarQTELinearSolver,
-        param_dict: dict[Parameter, float],
+        param_dict: Mapping[Parameter, float],
         t_param: Parameter | None = None,
     ) -> None:
 
@@ -36,14 +37,14 @@ class AbstractOdeFunction(ABC):
         self._t_param = t_param
 
     @abstractmethod
-    def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:
+    def var_qte_ode_function(self, time: float, parameter_values: Iterable) -> Iterable:
         """
         Evaluates an ODE function for a given time and parameter values. It is used by an ODE
         solver.
 
         Args:
             time: Current time of evolution.
-            parameters_values: Current values of parameters.
+            parameter_values: Current values of parameters.
 
         Returns:
             ODE gradient arising from solving a system of linear equations.

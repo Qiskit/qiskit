@@ -94,6 +94,7 @@ from .var_qrte import VarQRTE
 from .var_qite import VarQITE
 
 from .var_qte import VarQTE
+from .var_qte_result import VarQTEResult
 from .variational_principles import (
     VariationalPrinciple,
     RealVariationalPrinciple,
@@ -105,6 +106,7 @@ from .variational_principles import (
 __all__ = [
     "ForwardEulerSolver",
     "VarQTE",
+    "VarQTEResult",
     "VariationalPrinciple",
     "RealVariationalPrinciple",
     "ImaginaryVariationalPrinciple",

@@ -19,19 +19,19 @@ from .abstract_ode_function import AbstractOdeFunction
 class OdeFunction(AbstractOdeFunction):
     """Class for generating ODE functions based on ODE gradients."""
 
-    def var_qte_ode_function(self, time: float, parameters_values: Iterable) -> Iterable:
+    def var_qte_ode_function(self, time: float, parameter_values: Iterable) -> Iterable:
         """
         Evaluates an ODE function for a given time and parameter values. It is used by an ODE
         solver.
 
         Args:
             time: Current time of evolution.
-            parameters_values: Current values of parameters.
+            parameter_values: Current values of parameters.
 
         Returns:
             ODE gradient arising from solving a system of linear equations.
         """
-        current_param_dict = dict(zip(self._param_dict.keys(), parameters_values))
+        current_param_dict = dict(zip(self._param_dict.keys(), parameter_values))
 
         ode_grad_res, _, _ = self._varqte_linear_solver.solve_lse(
             current_param_dict,

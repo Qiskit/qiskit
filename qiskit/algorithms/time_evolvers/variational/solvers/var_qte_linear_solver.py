@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping, Sequence
 from typing import Callable
 
 import numpy as np
@@ -23,7 +24,7 @@ from qiskit.circuit import Parameter
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .ode.assign_params import assign_parameters
+from .ode.assign_params import _assign_parameters
 
 from ..variational_principles import VariationalPrinciple
 
@@ -36,7 +37,7 @@ class VarQTELinearSolver:
         var_principle: VariationalPrinciple,
         hamiltonian: BaseOperator,
         ansatz: QuantumCircuit,
-        gradient_params: list[Parameter] | None = None,
+        gradient_params: Sequence[Parameter] | None = None,
         t_param: Parameter | None = None,
         lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None = None,
         imag_part_tol: float = 1e-7,
@@ -70,8 +71,8 @@ class VarQTELinearSolver:
         if self._time_param is not None and not isinstance(self._hamiltonian, SparsePauliOp):
             raise TypeError(
                 f"A time parameter {t_param} has been specified, so a time-dependent "
-                f"hamiltonian was expected. The operator provided is of type {type(self._hamiltonian)}, "
-                f"which does not support parametrization. "
+                f"hamiltonian is expected. The operator provided is of type {type(self._hamiltonian)}, "
+                f"which might not support parametrization. "
                 f"Please provide the parametrized hamiltonian as a SparsePauliOp."
             )
 
@@ -90,9 +91,9 @@ class VarQTELinearSolver:
 
     def solve_lse(
         self,
-        param_dict: dict[Parameter, float],
+        param_dict: Mapping[Parameter, float],
         time_value: float | None = None,
-    ) -> (list | np.ndarray, list | np.ndarray, np.ndarray):
+    ) -> (np.ndarray, np.ndarray, np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle for the
         calculation without error bounds.
@@ -116,7 +117,7 @@ class VarQTELinearSolver:
         if self._time_param is not None:
             if time_value is not None:
                 parametrized_coeffs = copy.deepcopy(self._hamiltonian.coeffs)
-                bound_params_array = assign_parameters(parametrized_coeffs, [time_value])
+                bound_params_array = _assign_parameters(parametrized_coeffs, [time_value])
                 hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
             else:
                 raise ValueError(

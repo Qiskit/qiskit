@@ -371,6 +371,8 @@ from .time_evolvers import (
     SciPyRealEvolver,
     VarQITE,
     VarQRTE,
+    VarQTE,
+    VarQTEResult,
 )
 
 __all__ = [
@@ -434,4 +436,6 @@ __all__ = [
     "estimate_observables",
     "VarQITE",
     "VarQRTE",
+    "VarQTE",
+    "VarQTEResult",
 ]

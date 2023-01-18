@@ -53,8 +53,8 @@ class ForwardEulerSolver(OdeSolver):
                 Generally determined by a derived solver class capabilities. Default is False.
             num_t_steps: Number of time steps for the forward Euler method.
         """
-        self.y_old = None
-        self.step_length = (t_bound - t0) / num_t_steps
+        self._y_old = None
+        self._step_length = (t_bound - t0) / num_t_steps
         super().__init__(function, t0, y0, t_bound, vectorized, support_complex)
 
     def _step_impl(self):
@@ -62,12 +62,12 @@ class ForwardEulerSolver(OdeSolver):
         Takes an Euler step.
         """
         try:
-            self.y_old = self.y
-            self.y = list(np.add(self.y, self.step_length * self.fun(self.t, self.y)))
-            self.t += self.step_length
+            self._y_old = self.y
+            self.y = list(np.add(self.y, self._step_length * self.fun(self.t, self.y)))
+            self.t += self._step_length
             return True, None
         except Exception as ex:  # pylint: disable=broad-except
             return False, f"Unknown ODE solver error: {str(ex)}."
 
     def _dense_output_impl(self):
-        return ConstantDenseOutput(self.t_old, self.t, self.y_old)
+        return ConstantDenseOutput(self.t_old, self.t, self._y_old)

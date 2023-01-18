@@ -14,11 +14,9 @@
 
 from abc import ABC
 
-from ..variational_principles.variational_principle import (
-    VariationalPrinciple,
-)
+from .variational_principle import VariationalPrinciple
 
 
 class ImaginaryVariationalPrinciple(VariationalPrinciple, ABC):
-    """Abstract class for an Imaginary Variational Principle. The imaginary variant means that we
-    consider imaginary time dynamics."""
+    """Abstract class for an Imaginary Variational Principle. The imaginary variant
+    means that we consider imaginary time dynamics."""

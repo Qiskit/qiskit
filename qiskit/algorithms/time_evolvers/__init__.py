@@ -18,7 +18,7 @@ from .time_evolution_problem import TimeEvolutionProblem
 from .time_evolution_result import TimeEvolutionResult
 from .pvqd import PVQD, PVQDResult
 from .classical_methods import SciPyImaginaryEvolver, SciPyRealEvolver
-from .variational import VarQITE, VarQRTE
+from .variational import VarQITE, VarQRTE, VarQTE, VarQTEResult
 
 __all__ = [
     "ImaginaryTimeEvolver",
@@ -31,4 +31,6 @@ __all__ = [
     "SciPyRealEvolver",
     "VarQITE",
     "VarQRTE",
+    "VarQTE",
+    "VarQTEResult",
 ]

@@ -11,15 +11,12 @@
 # that they have been altered from the originals.
 
 """Class for a Real Variational Principle."""
-from __future__ import annotations
 
 from abc import ABC
 
-from .variational_principle import (
-    VariationalPrinciple,
-)
+from .variational_principle import VariationalPrinciple
 
 
 class RealVariationalPrinciple(VariationalPrinciple, ABC):
-    """Class for a Real Variational Principle. The real variant means that we consider real time
-    dynamics."""
+    """Class for a Real Variational Principle. The real variant
+    means that we consider real time dynamics."""

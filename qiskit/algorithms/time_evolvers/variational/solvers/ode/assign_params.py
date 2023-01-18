@@ -11,14 +11,16 @@
 # that they have been altered from the originals.
 
 """Helper class for assigning values to parameters."""
+from collections.abc import Sequence
+
 import numpy as np
 
 from qiskit.circuit import ParameterExpression
 from qiskit.circuit.parametertable import ParameterView
 
 
-def get_parameters(array: np.array) -> ParameterView:
-    """Retrieves parameters from a np.array as a ``ParameterView``."""
+def _get_parameters(array: np.ndarray) -> ParameterView:
+    """Retrieves parameters from a numpy array as a ``ParameterView``."""
     ret = set()
     for a in array:
         if isinstance(a, ParameterExpression):
@@ -26,14 +28,13 @@ def get_parameters(array: np.array) -> ParameterView:
     return ParameterView(ret)
 
 
-def assign_parameters(array: np.array, parameter_values: np.array) -> np.array:
-    """Binds ``ParameterExpression``s in a np.array to provided values."""
-    if isinstance(parameter_values, list):
-        parameter_values = dict(zip(get_parameters(array), parameter_values))
+def _assign_parameters(array: np.ndarray, parameter_values: Sequence[float]) -> np.ndarray:
+    """Binds ``ParameterExpression``s in a numpy array to provided values."""
+    parameter_dict = dict(zip(_get_parameters(array), parameter_values))
     for i, a in enumerate(array):
         if isinstance(a, ParameterExpression):
-            for key in a.parameters & parameter_values.keys():
-                a = a.assign(key, parameter_values[key])
+            for key in a.parameters & parameter_dict.keys():
+                a = a.assign(key, parameter_dict[key])
             if not a.parameters:
                 a = complex(a)
             array[i] = a
