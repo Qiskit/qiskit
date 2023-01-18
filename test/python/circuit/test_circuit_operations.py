@@ -147,6 +147,15 @@ class TestCircuitOperations(QiskitTestCase):
         with self.subTest("c list"), self.assertRaisesRegex(CircuitError, "Invalid bit index"):
             test.append(opaque, [[0]], [[specifier]])
 
+    @data([], [0], [0, 1, 2])
+    def test_append_rejects_bad_arguments_opaque(self, bad_arg):
+        inst = QuantumCircuit(2, 2).to_instruction()
+        qc = QuantumCircuit(3, 3)
+        with self.assertRaisesRegex(CircuitError, "The amount of qubit arguments"):
+            qc.append(inst, bad_arg, [0, 1])
+        with self.assertRaisesRegex(CircuitError, "The amount of clbit arguments"):
+            qc.append(inst, [0, 1], bad_arg)
+
     def test_anding_self(self):
         """Test that qc &= qc finishes, which can be prone to infinite while-loops.
 
