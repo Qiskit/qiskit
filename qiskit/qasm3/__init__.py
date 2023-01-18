@@ -53,9 +53,9 @@ respectively loading a program indirectly from a named file and directly from a 
 
 .. note::
 
-    While we are still in the initial exploratory release period, to use either function, the
-    package ``qiskit_qasm3_import`` must be installed.  This can be done by installing Qiskit Terra
-    with the ``qasm3-import`` extra, such as by:
+    While we are still in the exploratory release period, to use either function, the package
+    ``qiskit_qasm3_import`` must be installed.  This can be done by installing Qiskit Terra with the
+    ``qasm3-import`` extra, such as by:
 
     .. code-block:: text
 
