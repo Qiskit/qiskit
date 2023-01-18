@@ -53,12 +53,16 @@ respectively loading a program indirectly from a named file and directly from a 
 
 .. note::
 
-    To use either function, the package ``qiskit_qasm3_import`` must be installed.  This can be done
-    by installing Qiskit Terra with the ``qasm3-import`` extra, such as by:
+    While we are still in the initial exploratory release period, to use either function, the
+    package ``qiskit_qasm3_import`` must be installed.  This can be done by installing Qiskit Terra
+    with the ``qasm3-import`` extra, such as by:
 
     .. code-block:: text
 
         pip install qiskit-terra[qasm3-import]
+
+    We expect that this functionality will eventually be merged into core Terra, and no longer
+    require an optional import, but we do not yet have a timeline for this.
 
 .. autofunction:: load
 .. autofunction:: loads
@@ -66,6 +70,57 @@ respectively loading a program indirectly from a named file and directly from a 
 Both of these two functions raise :exc:`QASM3ImporterError` on failure.
 
 .. autoexception:: QASM3ImporterError
+
+For example, we can define a quantum program using OpenQASM 3, and use :func:`loads` to directly
+convert it into a :class:`.QuantumCircuit`:
+
+.. plot::
+    :include-source:
+
+    import qiskit.qasm3
+
+    program = \"\"\"
+        OPENQASM 3.0;
+        include "stdgates.inc";
+
+        input float[64] a;
+        qubit[3] q;
+        bit[2] mid;
+        bit[3] out;
+
+        let aliased = q[0:1];
+
+        gate my_gate(a) c, t {
+          gphase(a / 2);
+          ry(a) c;
+          cx c, t;
+        }
+        gate my_phase(a) c {
+          ctrl @ inv @ gphase(a) c;
+        }
+
+        my_gate(a * 2) aliased[0], q[{1, 2}][0];
+        measure q[0] -> mid[0];
+        measure q[1] -> mid[1];
+
+        while (mid == "00") {
+          reset q[0];
+          reset q[1];
+          my_gate(a) q[0], q[1];
+          my_phase(a - pi/2) q[1];
+          mid[0] = measure q[0];
+          mid[1] = measure q[1];
+        }
+
+        if (mid[0]) {
+          let inner_alias = q[{0, 1}];
+          reset inner_alias;
+        }
+
+        out = measure q;
+    \"\"\"
+    circuit = qiskit.qasm3.loads(program)
+    circuit.draw("mpl")
 """
 
 from qiskit.utils import optionals as _optionals
