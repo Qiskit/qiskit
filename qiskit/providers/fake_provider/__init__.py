@@ -70,7 +70,7 @@ Here is an example of using a fake backend for transpilation and simulation.
 
     .. code-block:: python
 
-        from qiskit import IBMQ
+        from qiskit.providers.ibmq import IBMQ
         from qiskit.providers.aer import AerSimulator
 
         # get a real backend from a real provider
@@ -136,12 +136,14 @@ Fake V2 backends are fake backends with IBM Quantum systems snapshots implemente
     FakeOurenseV2
     FakeParisV2
     FakePerth
+    FakePrague
     FakePoughkeepsieV2
     FakeQuitoV2
     FakeRochesterV2
     FakeRomeV2
     .. FakeRueschlikonV2 # no v2 version
     FakeSantiagoV2
+    FakeSherbrooke
     FakeSingaporeV2
     FakeSydneyV2
     .. FakeTenerifeV2 # no v2 version

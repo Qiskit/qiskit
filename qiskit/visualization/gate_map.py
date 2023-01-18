@@ -767,8 +767,9 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
             import numpy as np
             from qiskit import QuantumCircuit, transpile
             from qiskit.providers.fake_provider import FakeVigoV2
-            from qiskit.visualization import plot_histogram, plot_gate_map, plot_circuit_layout
+            from qiskit.visualization import plot_circuit_layout
             from qiskit.tools.monitor import job_monitor
+            from qiskit.providers.fake_provider import FakeVigoV2
             import matplotlib.pyplot as plt
 
             ghz = QuantumCircuit(3, 3)
@@ -849,7 +850,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     """Plots the error map of a given backend.
 
     Args:
-        backend (IBMQBackend): Given backend.
+        backend (Backend): Given backend.
         figsize (tuple): Figure size in inches.
         show_title (bool): Show the title or not.
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
@@ -862,7 +863,6 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
         Figure: A matplotlib figure showing error map.
 
     Raises:
-        VisualizationError: Input is not IBMQ backend.
         VisualizationError: The backend does not provide gate errors for the 'sx' gate.
         MissingOptionalLibraryError: If seaborn is not installed
 
