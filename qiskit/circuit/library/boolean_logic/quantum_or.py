@@ -30,25 +30,23 @@ class OR(QuantumCircuit):
 
     The OR gate without special flags:
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import OR
-        import qiskit.tools.jupyter
-        circuit = OR(5)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import OR
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       circuit = OR(5)
+       _generate_circuit_library_visualization(circuit)
 
     Using flags we can negate qubits or skip them. For instance, if we have 5 qubits and want to
     return ``True`` if the first qubit is ``False`` or one of the last two are ``True`` we use the
     flags ``[-1, 0, 0, 1, 1]``.
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import OR
-        import qiskit.tools.jupyter
-        circuit = OR(5, flags=[-1, 0, 0, 1, 1])
-        %circuit_library_info circuit
+       from qiskit.circuit.library import OR
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       circuit = OR(5, flags=[-1, 0, 0, 1, 1])
+       _generate_circuit_library_visualization(circuit)
 
     """
 

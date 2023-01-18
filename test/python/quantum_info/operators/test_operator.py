@@ -206,6 +206,12 @@ class TestOperator(OperatorTestCase):
         op = Operator(mat)
         assert_allclose(mat, op.data)
 
+    def test_to_matrix(self):
+        """Test Operator to_matrix method."""
+        mat = self.rand_matrix(2, 2)
+        op = Operator(mat)
+        assert_allclose(mat, op.to_matrix())
+
     def test_dim(self):
         """Test Operator dim property."""
         mat = self.rand_matrix(4, 4)

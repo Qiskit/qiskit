@@ -18,14 +18,18 @@ use pyo3::Python;
 
 mod dense_layout;
 mod edge_collections;
+mod error_map;
+mod euler_one_qubit_decomposer;
 mod nlayout;
 mod optimize_1q_gates;
 mod pauli_exp_val;
 mod results;
+mod sabre_layout;
 mod sabre_swap;
 mod sampled_exp_val;
 mod sparse_pauli_op;
 mod stochastic_swap;
+mod vf2_layout;
 
 #[inline]
 pub fn getenv_use_multiple_threads() -> bool {
@@ -47,9 +51,15 @@ fn _accelerate(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pymodule!(sabre_swap::sabre_swap))?;
     m.add_wrapped(wrap_pymodule!(pauli_exp_val::pauli_expval))?;
     m.add_wrapped(wrap_pymodule!(dense_layout::dense_layout))?;
+    m.add_wrapped(wrap_pymodule!(error_map::error_map))?;
     m.add_wrapped(wrap_pymodule!(sparse_pauli_op::sparse_pauli_op))?;
     m.add_wrapped(wrap_pymodule!(results::results))?;
     m.add_wrapped(wrap_pymodule!(optimize_1q_gates::optimize_1q_gates))?;
     m.add_wrapped(wrap_pymodule!(sampled_exp_val::sampled_exp_val))?;
+    m.add_wrapped(wrap_pymodule!(sabre_layout::sabre_layout))?;
+    m.add_wrapped(wrap_pymodule!(vf2_layout::vf2_layout))?;
+    m.add_wrapped(wrap_pymodule!(
+        euler_one_qubit_decomposer::euler_one_qubit_decomposer
+    ))?;
     Ok(())
 }

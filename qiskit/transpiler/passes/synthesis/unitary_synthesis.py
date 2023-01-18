@@ -157,7 +157,7 @@ class UnitarySynthesis(TransformationPass):
 
         This pass can approximate 2-qubit unitaries given some
         approximation closeness measure (expressed as
-        approximation_degree). Other unitaries are synthesized
+        ``approximation_degree``). Other unitaries are synthesized
         exactly.
 
         Args:
@@ -170,37 +170,37 @@ class UnitarySynthesis(TransformationPass):
             coupling_map (CouplingMap): the coupling map of the backend
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
-                account if pulse_optimize is True/None and natural_direction
-                is True/None.
+                account if ``pulse_optimize`` is ``True``/``None`` and ``natural_direction``
+                is ``True``/``None``.
             backend_props (BackendProperties): Properties of a backend to
                 synthesize for (e.g. gate fidelities).
             pulse_optimize (bool): Whether to optimize pulses during
-                synthesis. A value of None will attempt it but fall
-                back if it doesn't succeed. A value of True will raise
+                synthesis. A value of ``None`` will attempt it but fall
+                back if it does not succeed. A value of ``True`` will raise
                 an error if pulse-optimized synthesis does not succeed.
             natural_direction (bool): Whether to apply synthesis considering
                 directionality of 2-qubit gates. Only applies when
-                `pulse_optimize` is True or None. The natural direction is
+                ``pulse_optimize`` is ``True`` or ``None``. The natural direction is
                 determined by first checking to see whether the
                 coupling map is unidirectional.  If there is no
                 coupling map or the coupling map is bidirectional,
                 the gate direction with the shorter
                 duration from the backend properties will be used. If
                 set to True, and a natural direction can not be
-                determined, raises TranspileError. If set to None, no
+                determined, raises :class:`~TranspileError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
             synth_gates (list[str]): List of gates to synthesize. If None and
-                `pulse_optimize` is False or None, default to
-                ['unitary']. If None and `pulse_optimzie` == True,
-                default to ['unitary', 'swap']
+                ``pulse_optimize`` is False or None, default to
+                ``['unitary']``. If ``None`` and ``pulse_optimize == True``,
+                default to ``['unitary', 'swap']``
             method (str): The unitary synthesis method plugin to use.
             min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
                 and the unitary is less than the specified number of qubits it will not be
                 synthesized.
-            plugin_config: Optional extra configuration arguments (as a dict)
+            plugin_config: Optional extra configuration arguments (as a ``dict``)
                 which are passed directly to the specified unitary synthesis
-                plugin. By default this will have no effect as the default
+                plugin. By default, this will have no effect as the default
                 plugin has no extra arguments. Refer to the documentation of
                 your unitary synthesis plugin on how to use this.
             target: The optional :class:`~.Target` for the target device the pass
@@ -234,7 +234,7 @@ class UnitarySynthesis(TransformationPass):
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the UnitarySynthesis pass on `dag`.
+        """Run the UnitarySynthesis pass on ``dag``.
 
         Args:
             dag: input dag.
@@ -243,7 +243,7 @@ class UnitarySynthesis(TransformationPass):
             Output dag with UnitaryGates synthesized to target basis.
 
         Raises:
-            TranspilerError: if a 'method' was specified for the class and is not
+            TranspilerError: if ``method`` was specified for the class and is not
                 found in the installed plugins list. The list of installed
                 plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
@@ -310,7 +310,7 @@ class UnitarySynthesis(TransformationPass):
         )
 
     def _run_main_loop(self, dag, plugin_method, plugin_kwargs, default_method, default_kwargs):
-        """Inner loop for the optimizer, after all DAG-idependent set-up has been completed."""
+        """Inner loop for the optimizer, after all DAG-independent set-up has been completed."""
 
         def _recurse(dag):
             # This isn't quite a trivially recursive call because we need to close over the
