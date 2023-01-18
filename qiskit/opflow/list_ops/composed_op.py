@@ -15,6 +15,7 @@
 from functools import partial, reduce
 from typing import List, Optional, Union, cast, Dict
 
+from numbers import Number
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -63,6 +64,20 @@ class ComposedOp(ListOp):
     # def tensorpower(self, other):
     #     """ Tensor product with Self Multiple Times """
     #     raise NotImplementedError
+
+    def to_matrix(self, massive: bool = False) -> np.ndarray:
+        OperatorBase._check_massive("to_matrix", True, self.num_qubits, massive)
+
+        mat = self.coeff * reduce(
+            np.dot, [np.asarray(op.to_matrix(massive=massive)) for op in self.oplist]
+        )
+
+        # Note: As ComposedOp has a combo function of inner product we can end up here not with
+        # a matrix (array) but a scalar. In which case we make a single element array of it.
+        if isinstance(mat, Number):
+            mat = [mat]
+
+        return np.asarray(mat, dtype=complex)
 
     def to_circuit(self) -> QuantumCircuit:
         """Returns the quantum circuit, representing the composed operator.
