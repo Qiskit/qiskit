@@ -110,35 +110,19 @@ the Qiskit Primitives.
    VQDResult
 
 
-Evolvers
---------
-
-Pending deprecation: This package has been superseded by the package below. It will be
-deprecated in a future release and subsequently removed after that:
-
-`Time Evolvers`_
+Time Evolvers
+-------------
 
 Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
 with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
 used to train Quantum Boltzmann Machine Neural Networks for example.
 
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
+Primitive-based Time Evolvers
++++++++++++++++++++++++++++++
 
-    RealEvolver
-    ImaginaryEvolver
-    TrotterQRTE
-    EvolutionResult
-    EvolutionProblem
-
-
-Time Evolvers
--------------
-
-Primitives-enabled algorithms to evolve quantum states in time. Both real and imaginary time
-evolution is possible with algorithms that support them. For machine learning, Quantum Imaginary
-Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks for example.
+These algorithms are based on the Qiskit Primitives, such as :class:`.Estimator`.
+This execution paradigm replaces the use of :class:`.QuantumInstance` in the algorithms
+and in future, the primitive-based Time Evolvers should be used.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -152,6 +136,24 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
     TimeEvolutionProblem
     SciPyImaginaryEvolver
     SciPyRealEvolver
+
+
+Legacy Time Evolvers (pending deprecation)
+++++++++++++++++++++++++++++++++++++++++++
+
+These algorithms are still based on the :class:`.QuantumInstance` and are pending deprecation.
+One should instead make use of the Time Evolver classes in the section above, which leverage
+the Qiskit Primitives.
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+    RealEvolver
+    ImaginaryEvolver
+    TrotterQRTE
+    EvolutionResult
+    EvolutionProblem
 
 
 Trotterization-based Quantum Real Time Evolution
