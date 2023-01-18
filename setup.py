@@ -34,9 +34,7 @@ with open(README_PATH) as readme_file:
 
 
 qasm3_import_extras = [
-    # Pinned exactly, because we're including the optional effectively as an alternative to
-    # vendoring the package's code into Terra.
-    "qiskit-qasm3-import==0.1.0",
+    "qiskit-qasm3-import>=0.1.0",
 ]
 visualization_extras = [
     "matplotlib>=3.3",
