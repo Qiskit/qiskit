@@ -1132,9 +1132,9 @@ class TestCircuitOperations(QiskitTestCase):
         a, b, c, d = qreg
         x, y, z = creg
 
-        circuit_1 = QuantumCircuit(2)
+        circuit_1 = QuantumCircuit(2, 1)
         circuit_1.x(0)
-        circuit_2 = QuantumCircuit(2)
+        circuit_2 = QuantumCircuit(2, 1)
         circuit_2.y(0)
 
         def instructions():
