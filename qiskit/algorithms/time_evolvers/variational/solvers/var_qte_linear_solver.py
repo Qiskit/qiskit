@@ -95,7 +95,7 @@ class VarQTELinearSolver:
             Solution to the LSE, A from Ax=b, b from Ax=b.
 
         Raises:
-            TypeError: If a non ``SparsePauliOp`` time-dependant operator is provided.
+            TypeError: If a non ``SparsePauliOp`` time-dependent operator is provided.
             ValueError: If not time value is provided for time dependant hamiltonians.
 
         """
