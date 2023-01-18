@@ -9,7 +9,7 @@ features:
     remove the duplicate implicit :class:`~.Measure` from the :class:`~.Reset`
     operation. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
         from qiskit.transpiler.passes import ResetAfterMeasureSimplification
@@ -19,7 +19,7 @@ features:
         qc.reset(0)
         qc.draw('mpl')
 
-    .. jupyter-execute::
+    .. code-block::
 
         result = ResetAfterMeasureSimplification()(qc)
         result.draw('mpl')

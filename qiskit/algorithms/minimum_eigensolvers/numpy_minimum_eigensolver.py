@@ -43,7 +43,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     ) -> None:
         """
         Args:
-            filter_criterion: callable that allows to filter eigenvalues/eigenstates. The minimum
+            filter_criterion: Callable that allows to filter eigenvalues/eigenstates. The minimum
                 eigensolver is only searching over feasible states and returns an eigenstate that
                 has the smallest eigenvalue among feasible states. The callable has the signature
                 ``filter(eigenstate, eigenvalue, aux_values)`` and must return a boolean to indicate

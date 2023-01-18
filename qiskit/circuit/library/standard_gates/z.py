@@ -13,12 +13,16 @@
 """Z, CZ and CCZ gates."""
 
 from typing import Optional, Union
+
 import numpy
-from qiskit.qasm import pi
+
+from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit._utils import _compute_control_matrix
+from qiskit.qasm import pi
+
+from .p import PhaseGate
 
 
 class ZGate(Gate):
@@ -74,6 +78,7 @@ class ZGate(Gate):
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -116,6 +121,10 @@ class ZGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the Z gate."""
         return numpy.array([[1, 0], [0, -1]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(numpy.pi * exponent)
 
 
 class CZGate(ControlledGate):
@@ -163,6 +172,7 @@ class CZGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .h import HGate
         from .x import CXGate
 
@@ -241,6 +251,7 @@ class CCZGate(ControlledGate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .h import HGate
         from .x import CCXGate
 
