@@ -4087,21 +4087,6 @@ class QuantumCircuit:
 
         return self.append(PauliGate(pauli_string), qubits, [])
 
-    def permutation(self, pattern: List[int], qubits: Sequence[QubitSpecifier]) -> InstructionSet:
-        r"""Apply :class:`~qiskit.circuit.library.PermutationGate`.
-
-        Args:
-            pattern: The permutation pattern.
-            qubits: The qubit(s) to apply the gate to.
-
-        Returns:
-            A handle to the instructions created.
-        """
-        # pylint: disable=cyclic-import
-        from .library.generalized_gates.permutation import PermutationGate
-
-        return self.append(PermutationGate(pattern), qubits, [])
-
     def _push_scope(
         self,
         qubits: Iterable[Qubit] = (),

@@ -108,14 +108,14 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
         """Test method for adding Permutations to quantum circuit."""
         qc = QuantumCircuit(5)
         qc.append(PermutationGate([1, 2, 0]), [0, 1, 2])
-        qc.permutation([2, 3, 0, 1], [1, 2, 3, 4])
+        qc.append(PermutationGate([2, 3, 0, 1]), [1, 2, 3, 4])
         self.assertIsInstance(qc.data[0].operation, PermutationGate)
         self.assertIsInstance(qc.data[1].operation, PermutationGate)
 
     def test_inverse(self):
         """Test inverse method for circuits with permutations."""
         qc = QuantumCircuit(5)
-        qc.permutation([1, 2, 3, 0], [0, 4, 2, 1])
+        qc.append(PermutationGate([1, 2, 3, 0]), [0, 4, 2, 1])
         qci = qc.inverse()
         qci_pattern = qci.data[0].operation.pattern
         expected_pattern = [3, 0, 1, 2]
@@ -128,7 +128,7 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
     def test_reverse_ops(self):
         """Test reverse_ops method for circuits with permutations."""
         qc = QuantumCircuit(5)
-        qc.permutation([1, 2, 3, 0], [0, 4, 2, 1])
+        qc.append(PermutationGate([1, 2, 3, 0]), [0, 4, 2, 1])
         qcr = qc.reverse_ops()
 
         # The reversed circuit should have the permutation gate with the same pattern and over the
@@ -139,7 +139,7 @@ class TestPermutationGatesOnCircuit(QiskitTestCase):
     def test_conditional(self):
         """Test adding conditional permutations."""
         qc = QuantumCircuit(5, 1)
-        qc.permutation([1, 2, 0], [2, 3, 4]).c_if(0, 1)
+        qc.append(PermutationGate([1, 2, 0]), [2, 3, 4]).c_if(0, 1)
         self.assertIsNotNone(qc.data[0].operation.condition)
 
     def test_qasm(self):

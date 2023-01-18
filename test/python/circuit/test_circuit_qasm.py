@@ -533,8 +533,10 @@ p(pi) q[0];\n"""
 
     def test_circuit_qasm_with_permutations(self):
         """Test circuit qasm() method with Permutation gates."""
+        from qiskit.circuit.library import PermutationGate
+
         qc = QuantumCircuit(4)
-        qc.permutation([2, 1, 0], [0, 1, 2])
+        qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
 
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
