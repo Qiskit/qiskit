@@ -1,5 +1,6 @@
 ---
-fixes:
+features:
   - |
-    Fixed a bug where :class:`~.BackendSampler` failed to set the ``shots``
+    :class:`~.BackendSampler` now sets the ``shots``
     and ``stddev_upper_bound`` attributes of the returned :class:`~.QuasiDistribution`.
+    Previously it did not.
