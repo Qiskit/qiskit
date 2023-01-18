@@ -1,6 +1,22 @@
 ---
 features:
   - |
+    Added a new class :class:`~qiskit.circuit.library.PermutationGate` for
+    representing permutation logic. The older way of representing permutations
+    via quantum circuits, see :class:`~qiskit.circuit.library.Permutation`,
+    remains for backward compatibility, but will be deprecated in the future.
+    The new way of representing permutation logic avoids synthesizing a permutation
+    circuit when a ``PermutationGate`` is declared, delaying the actual synthesis to
+    the transpiler. It also allows to easily choose between several different
+    algorithms for synthesizing permutations, which are available as high-level-synthesis
+    permutation plugins.
+
+    The :class:`~qiskit.circuit.library.PermutationGate` has a method
+    ``__array__`` that returns a unitary matrix for a permutation, in particular
+    allowing to create unitary matrices from circuits containing
+    :class:`~qiskit.circuit.library.PermutationGate` gates.
+
+  - |
     Added several high-level-synthesis plugins for synthesizing permutations.
     The ``BasicSynthesisPermutation`` plugin applies to fully-connected
     architectures and is based on sorting. This is the previously used
@@ -14,11 +30,14 @@ features:
 
     For example::
 
-        from qiskit.circuit.library import Permutation
         from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import PermutationGate
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig, HighLevelSynthesis
+        from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPluginManager
 
         # Create a permutation and add it to a quantum circuit
-        perm = Permutation(8, [4, 6, 3, 7, 1, 2, 0, 5])
+        perm = PermutationGate([4, 6, 3, 7, 1, 2, 0, 5])
         qc = QuantumCircuit(8)
         qc.append(perm, range(8))
 
@@ -47,17 +66,3 @@ features:
         qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("acg", {})]))).run(qc)
         print(f"acg: {qct.size() = }, {qct.depth() = }")
 
-upgrade:
-  - |
-    The :class:`~qiskit.circuit.library.Permutation` is now of type
-    :class:`~qiskit.circuit.Gate` and not :class:`qiskit.circuit.QuantumCircuit`.
-    This change should be completely transparent to all users. However, it
-    avoids synthesizing a permutation circuit when the ``Permutation`` gate
-    is declared, delaying the actual synthesis to transpiler. It also allows
-    to easily choose between several different algorithms for synthesizing permutations,
-    which are available as high-level-synthesis permutation plugins.
-
-    The :class:`~qiskit.circuit.library.Permutation` has a new method
-    ``__array__`` that returns a unitary matrix for a permutation, in particular
-    allowing to create unitary matrices from circuits containing
-    :class:`~qiskit.circuit.library.Permutation` gates.
