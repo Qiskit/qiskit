@@ -267,8 +267,6 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
                 params = [len(qargs)]
             elif gate_name in {"BreakLoopOp", "ContinueLoopOp"}:
                 params = [len(qargs), len(cargs)]
-            elif gate_name == "Permutation":
-                params = [len(qargs), params[0]]
             gate = gate_class(*params)
         gate.condition = condition_tuple
     if instruction.label_size > 0:

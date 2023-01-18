@@ -4088,7 +4088,7 @@ class QuantumCircuit:
         return self.append(PauliGate(pauli_string), qubits, [])
 
     def permutation(self, pattern: List[int], qubits: Sequence[QubitSpecifier]) -> InstructionSet:
-        r"""Apply :class:`~qiskit.circuit.library.Permutation`.
+        r"""Apply :class:`~qiskit.circuit.library.PermutationGate`.
 
         Args:
             pattern: The permutation pattern.

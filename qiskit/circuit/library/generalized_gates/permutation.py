@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Permutation circuit (the old way to specify permutation, which is required for
+"""Permutation circuit (the old way to specify permutations, which is required for
 backward compatibility and which will be eventually deprecated) and the permutation
 gate (the new way to specify permutations, allowing a variety of synthesis algorithms).
 """
