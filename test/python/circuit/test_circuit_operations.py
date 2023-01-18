@@ -149,6 +149,7 @@ class TestCircuitOperations(QiskitTestCase):
 
     @data([], [0], [0, 1, 2])
     def test_append_rejects_bad_arguments_opaque(self, bad_arg):
+        """Test that a suitable exception is raised when there is an argument mismatch."""
         inst = QuantumCircuit(2, 2).to_instruction()
         qc = QuantumCircuit(3, 3)
         with self.assertRaisesRegex(CircuitError, "The amount of qubit arguments"):
