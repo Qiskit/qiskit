@@ -91,6 +91,18 @@ def _append_operation(clifford, operation, qargs=None):
             raise QiskitError("Invalid qubits for 2-qubit gate.")
         return _BASIS_2Q[name](clifford, qargs[0], qargs[1])
 
+    # If gate is a Clifford, we can either unroll the gate using the "to_circuit"
+    # method, or we can compose the Cliffords directly. Experimentally, for large
+    # cliffords the second method is considerably faster.
+
+    # pylint: disable=cyclic-import
+    from qiskit.quantum_info import Clifford
+
+    if isinstance(gate, Clifford):
+        composed_clifford = clifford.compose(gate, qargs=qargs, front=False)
+        clifford.tableau = composed_clifford.tableau
+        return clifford
+
     # If not a Clifford basis gate we try to unroll the gate and
     # raise an exception if unrolling reaches a non-Clifford gate.
     # TODO: We could also check u3 params to see if they
