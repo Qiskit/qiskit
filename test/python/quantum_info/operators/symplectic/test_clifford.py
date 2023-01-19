@@ -483,8 +483,16 @@ class TestCliffordGates(QiskitTestCase):
         circuit.swap(0, 2)
         circuit.append(qc, [0, 1])
 
-        # Check that Clifford can be constructed from such circuit.
-        Clifford(circuit)
+        # Make sure that Clifford can be constructed from such circuit.
+        combined_clifford = Clifford(circuit)
+
+        # Additionally, make sure that it produces the correct clifford.
+        expected_clifford_dict = {
+            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+        }
+        expected_clifford = Clifford.from_dict(expected_clifford_dict)
+        self.assertEqual(combined_clifford, expected_clifford)
 
 
 @ddt
