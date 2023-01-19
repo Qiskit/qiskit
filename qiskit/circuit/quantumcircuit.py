@@ -1699,8 +1699,9 @@ class QuantumCircuit:
 
                 # decompose gate using definitions if they are not defined in OpenQASM2
                 if operation.name not in existing_gate_names:
+                    op_qasm_name = None
                     if operation.name == "permutation":
-                        op_qasm_name = getattr(operation, "_qasm_name")
+                        op_qasm_name = getattr(operation, "_qasm_name", None)
                     if op_qasm_name:
                         operation = operation.copy(name=op_qasm_name)
 
