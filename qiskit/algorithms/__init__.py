@@ -83,7 +83,7 @@ Primitive-based Eigensolvers
 ++++++++++++++++++++++++++++
 
 These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
- :class:`.QuantumInstance` in algorithms. In the future, primitive-based Eigensolvers should be used in 
+ :class:`.QuantumInstance` in algorithms. In the future, primitive-based Eigensolvers should be used in
  place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
@@ -120,7 +120,7 @@ Primitive-based Time Evolvers
 +++++++++++++++++++++++++++++
 
 These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
- :class:`.QuantumInstance` in algorithms. In the future, primitive-based Time Evolvers should be used in 
+ :class:`.QuantumInstance` in algorithms. In the future, primitive-based Time Evolvers should be used in
  place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
@@ -224,7 +224,7 @@ Primitive-based Minimum Eigensolvers
 ++++++++++++++++++++++++++++++++++++
 
 These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
- :class:`.QuantumInstance` in algorithms. In the future, primitive-based Minimum Eigensolvers should 
+ :class:`.QuantumInstance` in algorithms. In the future, primitive-based Minimum Eigensolvers should
  be used in place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
