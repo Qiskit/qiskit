@@ -61,7 +61,7 @@ class LayoutTransformation(TransformationPass):
                 precedence and the other argument will be ignored.
 
         Raises:
-            ValueError: If requried arguments ``from_layout`` or ``to_layout`` are not
+            TypeError: If requried arguments ``from_layout`` or ``to_layout`` are not
                 specified.
         """
         super().__init__()
