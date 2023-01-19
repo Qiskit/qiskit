@@ -30,6 +30,7 @@ Estimator Gradients
    LinCombEstimatorGradient
    ParamShiftEstimatorGradient
    SPSAEstimatorGradient
+   ReverseEstimatorGradient
 
 Sampler Gradients
 =================
@@ -51,6 +52,7 @@ Quantum Geometric Tensor
    BaseQGT
    LinCombQGT
    QFI
+   ReverseQGT
 
 Results
 =======
@@ -81,6 +83,8 @@ from .qgt_result import QGTResult
 from .sampler_gradient_result import SamplerGradientResult
 from .spsa_estimator_gradient import SPSAEstimatorGradient
 from .spsa_sampler_gradient import SPSASamplerGradient
+from .reverse_gradient.reverse_gradient import ReverseEstimatorGradient
+from .reverse_gradient.reverse_qgt import ReverseQGT
 
 __all__ = [
     "BaseEstimatorGradient",
@@ -101,4 +105,6 @@ __all__ = [
     "SamplerGradientResult",
     "SPSAEstimatorGradient",
     "SPSASamplerGradient",
+    "ReverseEstimatorGradient",
+    "ReverseQGT",
 ]

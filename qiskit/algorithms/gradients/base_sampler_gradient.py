@@ -21,7 +21,6 @@ from collections import defaultdict
 from collections.abc import Sequence
 from copy import copy
 
-from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.primitives import BaseSampler
 from qiskit.primitives.utils import _circuit_key
@@ -35,6 +34,8 @@ from .utils import (
     _make_gradient_parameter_set,
     _make_gradient_parameter_values,
 )
+
+from ..algorithm_job import AlgorithmJob
 
 
 class BaseSamplerGradient(ABC):

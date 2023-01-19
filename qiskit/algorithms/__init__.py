@@ -127,15 +127,16 @@ and in future, the primitive-based Time Evolvers should be used.
    :toctree: ../stubs/
    :nosignatures:
 
-    RealTimeEvolver
-    ImaginaryTimeEvolver
-    PVQD
-    PVQDResult
-    TimeEvolutionResult
-    TimeEvolutionProblem
-    SciPyImaginaryEvolver
-    SciPyRealEvolver
-
+   RealTimeEvolver
+   ImaginaryTimeEvolver
+   TimeEvolutionResult
+   TimeEvolutionProblem
+   PVQD
+   PVQDResult
+   SciPyImaginaryEvolver
+   SciPyRealEvolver
+   VarQITE
+   VarQRTE
 
 Legacy Time Evolvers
 ++++++++++++++++++++
@@ -154,10 +155,23 @@ by the primitive-based versions in the section above but are still supported for
     EvolutionProblem
 
 
-Trotterization-based Quantum Real Time Evolution
-------------------------------------------------
+Variational Quantum Time Evolution
+++++++++++++++++++++++++++++++++++
 
-Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
+Classes used by variational quantum time evolution algorithms - :class:`.VarQITE` and
+:class:`.VarQRTE`.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.variational
+
+
+Trotterization-based Quantum Real Time Evolution
+++++++++++++++++++++++++++++++++++++++++++++++++
+
+Package for primitives-enabled Trotterization-based quantum time evolution
+algorithm - :class:`~.time_evolvers.TrotterQRTE`.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -312,10 +326,6 @@ from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
-from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
-from .time_evolvers.real_time_evolver import RealTimeEvolver
-from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
-from .time_evolvers.time_evolution_result import TimeEvolutionResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -355,8 +365,20 @@ from .aux_ops_evaluator import eval_observables
 from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
 
-from .time_evolvers.pvqd import PVQD, PVQDResult
-from .time_evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
+from .time_evolvers import (
+    ImaginaryTimeEvolver,
+    RealTimeEvolver,
+    TimeEvolutionProblem,
+    TimeEvolutionResult,
+    PVQD,
+    PVQDResult,
+    SciPyImaginaryEvolver,
+    SciPyRealEvolver,
+    VarQITE,
+    VarQRTE,
+    VarQTE,
+    VarQTEResult,
+)
 
 __all__ = [
     "AlgorithmJob",
@@ -417,4 +439,8 @@ __all__ = [
     "AlgorithmError",
     "eval_observables",
     "estimate_observables",
+    "VarQITE",
+    "VarQRTE",
+    "VarQTE",
+    "VarQTEResult",
 ]

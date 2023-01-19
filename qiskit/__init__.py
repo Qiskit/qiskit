@@ -158,6 +158,16 @@ class IBMQWrapper:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
+                warnings.warn(
+                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                    "in a future release. Instead you should use the qiskit-ibm-provider package "
+                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                    "'pip install qiskit_ibm_provider'",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
             except ImportError:
                 return False
         return True
@@ -168,6 +178,16 @@ class IBMQWrapper:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
+                warnings.warn(
+                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                    "in a future release. Instead you should use the qiskit-ibm-provider package "
+                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                    "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
+                    "'qiskit_ibm_provider.IBMProvider'",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"
