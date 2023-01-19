@@ -749,6 +749,77 @@ class TestOperator(OperatorTestCase):
         global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
         self.assertTrue(global_phase_equivalent)
 
+    def test_from_circuit_constructor_reverse_embedded_layout_from_transpile(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        output = transpile(circuit, initial_layout=[2, 1, 0])
+        op = Operator.from_circuit(output)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_from_transpile_with_registers(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(0)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 2)
+        output = transpile(circuit, initial_layout=[2, 1, 0])
+        op = Operator.from_circuit(output)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_and_final_layout(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+            Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0}),
+        )
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        op = Operator.from_circuit(circuit)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
+    def test_from_circuit_constructor_reverse_embedded_layout_and_manual_final_layout(self):
+        """Test initialization from a circuit with an embedded final layout."""
+        # Test tensor product of 1-qubit gates
+        qr = QuantumRegister(3, name="test_reg")
+        circuit = QuantumCircuit(qr)
+        circuit.h(2)
+        circuit.x(1)
+        circuit.ry(np.pi / 2, 0)
+        circuit._layout = TranspileLayout(
+            Layout({circuit.qubits[2]: 0, circuit.qubits[1]: 1, circuit.qubits[0]: 2}),
+            {qubit: index for index, qubit in enumerate(circuit.qubits)},
+        )
+        final_layout = Layout({circuit.qubits[0]: 1, circuit.qubits[1]: 2, circuit.qubits[2]: 0})
+        circuit.swap(0, 1)
+        circuit.swap(1, 2)
+        op = Operator.from_circuit(circuit, final_layout=final_layout)
+        y90 = (1 / np.sqrt(2)) * np.array([[1, -1], [1, 1]])
+        target = np.kron(y90, np.kron(self.UX, self.UH))
+        global_phase_equivalent = matrix_equal(op.data, target, ignore_phase=True)
+        self.assertTrue(global_phase_equivalent)
+
     def test_from_circuit_constructor_reverse_embedded_layout_ignore_set_layout(self):
         """Test initialization from a circuit with an ignored embedded reverse layout."""
         # Test tensor product of 1-qubit gates
