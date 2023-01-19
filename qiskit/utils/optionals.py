@@ -120,7 +120,7 @@ External Python Libraries
     * - .. py:data:: HAS_QASM3_IMPORT
       - The functions :func:`.qasm3.load` and :func:`.qasm3.loads` for importing OpenQASM 3 programs
         into :class:`.QuantumCircuit` instances use `an external importer package
-        <https://jakelishman.github.io/qiskit-qasm3-import>`__.
+        <https://qiskit.github.io/qiskit-qasm3-import>`__.
 
     * - .. py:data:: HAS_SEABORN
       - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.  Some
