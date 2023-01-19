@@ -17,7 +17,7 @@ import warnings
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.circuit.library import Permutation
+from qiskit.circuit.library import PermutationGate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
 
@@ -62,6 +62,6 @@ class LinearFunctionsToPermutations(TransformationPass):
             except CircuitError:
                 continue
 
-            permutation = Permutation(len(pattern), pattern)
-            dag.substitute_node(node, permutation.to_instruction())
+            permutation = PermutationGate(pattern)
+            dag.substitute_node(node, permutation)
         return dag
