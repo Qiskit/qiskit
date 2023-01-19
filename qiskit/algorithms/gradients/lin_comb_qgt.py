@@ -19,7 +19,6 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import _circuit_key
@@ -31,16 +30,18 @@ from .lin_comb_estimator_gradient import LinCombEstimatorGradient
 from .qgt_result import QGTResult
 from .utils import DerivativeType, _make_lin_comb_qgt_circuit, _make_lin_comb_observables
 
+from ..exceptions import AlgorithmError
+
 
 class LinCombQGT(BaseQGT):
-    """Computes the Quantum Geometric Tensor (QGT) given a pure,
-    parameterized quantum state. This method employs a linear
-    combination of unitaries [1].
+    """Computes the Quantum Geometric Tensor (QGT) given a pure, parameterized quantum state.
+
+    This method employs a linear combination of unitaries [1].
 
     **Reference:**
-    [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
-    `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
 
+        [1]: Schuld et al., "Evaluating analytic gradients on quantum hardware" (2018).
+             `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
 
     SUPPORTED_GATES = [

@@ -152,9 +152,9 @@ pub fn build_swap_map(
     neighbor_table: &NeighborTable,
     distance_matrix: PyReadonlyArray2<f64>,
     heuristic: &Heuristic,
-    seed: Option<u64>,
     layout: &mut NLayout,
     num_trials: usize,
+    seed: Option<u64>,
     run_in_parallel: Option<bool>,
 ) -> (SwapMap, PyObject) {
     let dist = distance_matrix.as_array();
