@@ -18,7 +18,6 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Sequence
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
 from qiskit.primitives.utils import _circuit_key
@@ -27,6 +26,8 @@ from qiskit.providers import Options
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
 from .utils import _make_lin_comb_gradient_circuit
+
+from ..exceptions import AlgorithmError
 
 
 class LinCombSamplerGradient(BaseSamplerGradient):
