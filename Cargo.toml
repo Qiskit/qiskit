@@ -1,6 +1,6 @@
 [package]
 name = "qiskit-terra"
-version = "0.23.0"
+version = "0.24.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
