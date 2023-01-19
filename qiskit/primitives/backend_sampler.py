@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from typing import Any, cast
 
@@ -162,14 +163,16 @@ class BackendSampler(BaseSampler):
         counts = _prepare_counts(result)
         shots = sum(counts[0].values())
 
-        probabilies = []
+        probabilities = []
         metadata: list[dict[str, Any]] = [{}] * len(circuits)
         for count in counts:
             prob_dist = {k: v / shots for k, v in count.int_outcomes().items()}
-            probabilies.append(QuasiDistribution(prob_dist))
+            probabilities.append(
+                QuasiDistribution(prob_dist, shots=shots, stddev_upper_bound=math.sqrt(1 / shots))
+            )
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        return SamplerResult(probabilies, metadata)
+        return SamplerResult(probabilities, metadata)
 
     def _transpile(self):
         from qiskit.compiler import transpile

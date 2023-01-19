@@ -18,12 +18,13 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Sequence
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
 from .utils import _make_param_shift_parameter_values
+
+from ..exceptions import AlgorithmError
 
 
 class ParamShiftSamplerGradient(BaseSamplerGradient):
