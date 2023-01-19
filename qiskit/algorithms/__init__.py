@@ -82,9 +82,9 @@ knowledge to do this in that application domain.
 Primitive-based Eigensolvers
 ++++++++++++++++++++++++++++
 
-These algorithms are based on the Qiskit Primitives, such as :class:`.Estimator`.
-This execution paradigm replaces the use of :class:`.QuantumInstance` in the algorithms
-and in future, the primitive-based Eigensolvers should be used.
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
+ :class:`.QuantumInstance` in algorithms. In the future, primitive-based Eigensolvers should be used in 
+ place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -119,9 +119,9 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
 Primitive-based Time Evolvers
 +++++++++++++++++++++++++++++
 
-These algorithms are based on the Qiskit Primitives, such as :class:`.Estimator`.
-This execution paradigm replaces the use of :class:`.QuantumInstance` in the algorithms
-and in future, the primitive-based Time Evolvers should be used.
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
+ :class:`.QuantumInstance` in algorithms. In the future, primitive-based Time Evolvers should be used in 
+ place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -223,9 +223,9 @@ Algorithms that can find the minimum eigenvalue of an operator.
 Primitive-based Minimum Eigensolvers
 ++++++++++++++++++++++++++++++++++++
 
-These algorithms are based on the Qiskit Primitives, such as :class:`.Estimator`.
-This execution paradigm replaces the use of :class:`.QuantumInstance` in the algorithms
-and in future, the primitive-based Minimum Eigensolvers should be used.
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
+ :class:`.QuantumInstance` in algorithms. In the future, primitive-based Minimum Eigensolvers should 
+ be used in place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
    :toctree: ../stubs/
