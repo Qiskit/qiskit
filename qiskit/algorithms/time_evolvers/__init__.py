@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,10 +12,25 @@
 
 """Quantum Time Evolution package."""
 
-from .time_evolution_result import TimeEvolutionResult
+from .imaginary_time_evolver import ImaginaryTimeEvolver
+from .real_time_evolver import RealTimeEvolver
 from .time_evolution_problem import TimeEvolutionProblem
+from .time_evolution_result import TimeEvolutionResult
+from .pvqd import PVQD, PVQDResult
+from .classical_methods import SciPyImaginaryEvolver, SciPyRealEvolver
+from .variational import VarQITE, VarQRTE, VarQTE, VarQTEResult
 
 __all__ = [
-    "TimeEvolutionResult",
+    "ImaginaryTimeEvolver",
+    "RealTimeEvolver",
     "TimeEvolutionProblem",
+    "TimeEvolutionResult",
+    "PVQD",
+    "PVQDResult",
+    "SciPyImaginaryEvolver",
+    "SciPyRealEvolver",
+    "VarQITE",
+    "VarQRTE",
+    "VarQTE",
+    "VarQTEResult",
 ]
