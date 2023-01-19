@@ -1,7 +1,7 @@
 ---
-upgrade:
+features:
   - |
-    Upgrading :class:`~CollectCliffords` transpiler pass to collect and combine blocks
+    Extending :class:`~CollectCliffords` transpiler pass to collect and combine blocks
     of "clifford gates" into :class:`qiskit.quantum_info.Clifford` objects, where the
     "clifford gates" may now also include objects of type :class:`.LinearFunction`,
     :class:`qiskit.quantum_info.Clifford`, and :class:`~qiskit.circuit.library.PauliGate`.
