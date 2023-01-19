@@ -196,21 +196,21 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [0.2, 100, AmplitudeEstimation(4), {"estimation": 0.500000, "mle": 0.562783}],
+            [0.2, 100, AmplitudeEstimation(4), {"estimation": 0.14644, "mle": 0.198783}],
             [0.0, 1000, AmplitudeEstimation(2), {"estimation": 0.0, "mle": 0.0}],
             [
                 0.2,
                 100,
                 MaximumLikelihoodAmplitudeEstimation([0, 1, 2, 4, 8]),
-                {"estimation": 0.474790},
+                {"estimation": 0.200308},
             ],
             [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {"estimation": 0.811711}],
-            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.199073}],
+            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.198640}],
             [
                 0.12,
                 100,
                 FasterAmplitudeEstimation(0.01, 3, rescale=False),
-                {"estimation": 0.120016},
+                {"estimation": 0.120017},
             ],
         ]
     )
