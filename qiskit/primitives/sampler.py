@@ -118,7 +118,9 @@ class Sampler(BaseSampler):
             )
             qargs_list.append(self._qargs_list[i])
         probabilities = [
-            Statevector(bound_circuit_to_instruction(circ)).probabilities_dict(qargs=qargs)
+            Statevector(bound_circuit_to_instruction(circ)).probabilities_dict(
+                qargs=qargs, decimals=16
+            )
             for circ, qargs in zip(bound_circuits, qargs_list)
         ]
         if shots is not None:
