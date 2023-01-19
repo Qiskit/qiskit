@@ -180,6 +180,7 @@ set the amount of qubits involved at instantiation time.
    MCMT
    MCMTVChain
    Permutation
+   PermutationGate
    GMS
    GR
    GRX
@@ -497,6 +498,7 @@ from .generalized_gates import (
     MCMT,
     MCMTVChain,
     Permutation,
+    PermutationGate,
     GMS,
     MSGate,
     GR,
