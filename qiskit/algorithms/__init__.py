@@ -92,12 +92,11 @@ and in future, the primitive-based Eigensolvers should be used.
    eigensolvers
 
 
-Legacy Eigensolvers (pending deprecation)
-+++++++++++++++++++++++++++++++++++++++++
+Legacy Eigensolvers
++++++++++++++++++++
 
-These algorithms are still based on the :class:`.QuantumInstance` and are pending deprecation.
-One should instead make use of the Eigensolver classes in the section above, which leverage
-the Qiskit Primitives.
+These algorithms, still based on the :class:`.QuantumInstance`, are superseded
+by the primitive-based versions in the section above but are still supported for now.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -138,12 +137,11 @@ and in future, the primitive-based Time Evolvers should be used.
     SciPyRealEvolver
 
 
-Legacy Time Evolvers (pending deprecation)
-++++++++++++++++++++++++++++++++++++++++++
+Legacy Time Evolvers
+++++++++++++++++++++
 
-These algorithms are still based on the :class:`.QuantumInstance` and are pending deprecation.
-One should instead make use of the Time Evolver classes in the section above, which leverage
-the Qiskit Primitives.
+These algorithms, still based on the :class:`.QuantumInstance`, are superseded
+by the primitive-based versions in the section above but are still supported for now.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -221,12 +219,11 @@ and in future, the primitive-based Minimum Eigensolvers should be used.
    minimum_eigensolvers
 
 
-Legacy Minimum Eigensolvers (pending deprecation)
-+++++++++++++++++++++++++++++++++++++++++++++++++
+Legacy Minimum Eigensolvers
++++++++++++++++++++++++++++
 
-These algorithms are still based on the :class:`.QuantumInstance` and are pending deprecation.
-One should instead make use of the Eigensolver classes in the section above, which leverage
-the Qiskit Primitives.
+These algorithms, still based on the :class:`.QuantumInstance`, are superseded
+by the primitive-based versions in the section above but are still supported for now.
 
 .. autosummary::
    :toctree: ../stubs/
