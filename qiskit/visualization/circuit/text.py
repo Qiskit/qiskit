@@ -595,6 +595,7 @@ class TextDrawing:
         qubits,
         clbits,
         nodes,
+        circuit,
         reverse_bits=False,
         plotbarriers=True,
         line_length=None,
@@ -603,14 +604,11 @@ class TextDrawing:
         cregbundle=None,
         encoding=None,
         with_layout=False,
-        circuit=None,
     ):
-        if circuit is None:
-            raise VisualizationError("A circuit is needed.")
-        self._circuit = circuit
         self.qubits = qubits
         self.clbits = clbits
         self.nodes = nodes
+        self._circuit = circuit
         if with_layout:
             if self._circuit._layout:
                 self.layout = self._circuit._layout.initial_layout

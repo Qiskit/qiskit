@@ -355,12 +355,12 @@ def _text_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         reverse_bits=reverse_bits,
         initial_state=initial_state,
         cregbundle=cregbundle,
         encoding=encoding,
         with_layout=with_layout,
-        circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
