@@ -155,8 +155,8 @@ class LookaheadSwap(TransformationPass):
 
             mapped_gates.extend(gates_mapped)
 
+        self.property_set["final_layout"] = current_state.layout
         if self.fake_run:
-            self.property_set["final_layout"] = current_state.layout
             return dag
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
