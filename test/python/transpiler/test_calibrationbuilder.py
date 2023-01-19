@@ -57,15 +57,21 @@ class TestCalibrationBuilder(QiskitTestCase):
         def _get_cr(time_inst, name):
             return isinstance(time_inst[1], Play) and time_inst[1].pulse.name.startswith(name)
 
-        cx_sched = self.inst_map.get("cx", (0, 1))
+        qubits = (0, 1)
+        if "cx" in self.inst_map.qubit_instructions(qubits):
+            cr_sched = self.inst_map.get("cx", qubits=qubits)
+        elif "ecr" in self.inst_map.qubit_instructions(qubits):
+            cr_sched = self.inst_map.get("ecr", qubits=qubits)
+        elif "ecr" in self.inst_map.qubit_instructions(tuple(reversed(qubits))):
+            cr_sched = self.inst_map.get("ecr", tuple(reversed(qubits)))
 
         # CR tone
-        self.u0p_play = cx_sched.filter(lambda elm: _get_cr(elm, "CR90p_u")).instructions[0][1]
-        self.u0m_play = cx_sched.filter(lambda elm: _get_cr(elm, "CR90m_u")).instructions[0][1]
+        self.u0p_play = cr_sched.filter(lambda elm: _get_cr(elm, "CR90p_u")).instructions[0][1]
+        self.u0m_play = cr_sched.filter(lambda elm: _get_cr(elm, "CR90m_u")).instructions[0][1]
 
         # Rotary tone
-        self.d1p_play = cx_sched.filter(lambda elm: _get_cr(elm, "CR90p_d")).instructions[0][1]
-        self.d1m_play = cx_sched.filter(lambda elm: _get_cr(elm, "CR90m_d")).instructions[0][1]
+        self.d1p_play = cr_sched.filter(lambda elm: _get_cr(elm, "CR90p_d")).instructions[0][1]
+        self.d1m_play = cr_sched.filter(lambda elm: _get_cr(elm, "CR90m_d")).instructions[0][1]
 
     def compute_stretch_duration(self, play_gaussian_square_pulse, theta):
         """Compute duration of stretched Gaussian Square pulse."""
