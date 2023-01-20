@@ -387,15 +387,12 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
                 shots = ret.metadata[0].get("shots")
                 if shots is None:
-                    result.circuit_results = {
-                        np.binary_repr(k, circuit.num_qubits): v
-                        for k, v in ret.quasi_dists[0].items()
-                    }
+                    result.circuit_results = ret.quasi_dists[0].binary_probabilities()
                     shots = 1
                 else:
                     result.circuit_results = {
-                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
-                        for k, v in ret.quasi_dists[0].items()
+                        k: round(v * shots)
+                        for k, v in ret.quasi_dists[0].binary_probabilities().items()
                     }
 
         # store shots
