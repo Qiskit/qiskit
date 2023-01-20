@@ -198,6 +198,67 @@ class Operator(LinearOp):
                 op = op.compose(label_mats[char], qargs=[qubit])
         return op
 
+    def apply_permutation(self, pattern: list[int], front: bool = False):
+        """Modifies operator's data by composing it with a permutation.
+
+        This is achieved by directly swapping the rows or the columns of the
+        array, and is more efficient than the more general ``compose``.
+
+        Args:
+            pattern (list[int]): permutation pattern, describing which qubits
+                occupy the positions 0, 1, 2, etc. after applying the permutation.
+            front (bool): When set to ``True`` the permutation is applied before the
+                operator, when set to ``False`` the permutation is applied after the
+                operator.
+        Returns:
+            Operator: The modified operator.
+
+        Raises:
+            QiskitError: if the size of the permutation pattern does not match the
+                dimensions of the operator.
+        """
+
+        def _operator_permutation_pattern(qubit_pattern, invert):
+            """Given a permutation for the qubits, returns the induced permutation
+            for the operator's data."""
+            # A permutation over N qubits induces a permutation over the
+            # 2^N rows or columns of the operator.
+            nq = len(qubit_pattern)
+            op_pat = [0] * (2**nq)
+            for r in range(2**nq):
+                # convert row to bitstring, reverse, apply permutation pattern, reverse again,
+                # and convert to row
+                bit = bin(r)[2:].zfill(nq)[::-1]
+                permuted_bit = "".join([bit[j] for j in qubit_pattern])
+                pr = int(permuted_bit[::-1], 2)
+                if not invert:
+                    op_pat[pr] = r
+                else:
+                    op_pat[r] = pr
+            return op_pat
+
+        if not front:
+            # Permutation is applied at the back, corresponds to permuting the rows.
+            expected_dim = 2 ** len(pattern)
+            if self._data.shape[0] != expected_dim:
+                raise QiskitError("Permutation size does not match dimensions of the operator.")
+            # Induced permutation over the rows.
+            op_pat = _operator_permutation_pattern(pattern, True)
+            # Python integer array indexing
+            self._data[op_pat] = self._data[range(len(op_pat))]
+
+        else:
+            # Permutation is applied at the front, corresponds to permuting the columns.
+            expected_dim = 2 ** len(pattern)
+            if self._data.shape[1] != expected_dim:
+                raise QiskitError("Permutation size does not match dimensions of the operator.")
+            # Induced permutation over the rows.
+            op_pat = _operator_permutation_pattern(pattern, False)
+            # Python integer array indexing
+            self._data[:, op_pat] = self._data[:, range(len(op_pat))]
+
+        return self
+
     @classmethod
     def from_circuit(cls, circuit, ignore_set_layout=False, layout=None, final_layout=None):
         """Create a new Operator object from a :class:`.QuantumCircuit`

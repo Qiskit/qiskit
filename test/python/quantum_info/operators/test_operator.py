@@ -1050,6 +1050,64 @@ class TestOperator(OperatorTestCase):
         result = Operator.from_circuit(tqc)
         self.assertTrue(Operator(circuit).equiv(result))
 
+    def test_apply_permutation_back(self):
+        """Test applying permutation to the operator."""
+        op = Operator(self.rand_matrix(64, 64))
+        pattern = [1, 2, 0, 3, 5, 4]
+
+        # Consider several methods of computing this operator and show
+        # they all lead to the same result.
+
+        from qiskit.circuit.library import Permutation, PermutationGate
+
+        # Compose the operator with the operator constructed from the
+        # permutation circuit.
+        op2 = op.copy()
+        perm_op = Operator(Permutation(6, pattern))
+        op2 &= perm_op
+
+        # Compose the operator with the operator constructed from the
+        # permutation gate.
+        op3 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op3 &= perm_op
+
+        # Modify the operator using apply_permutation method.
+        op4 = op.copy()
+        op4 = op4.apply_permutation(pattern, front=False)
+
+        self.assertEqual(op2, op3)
+        self.assertEqual(op2, op4)
+
+    def test_apply_permutation_front(self):
+        """Test applying permutation to the operator."""
+        op = Operator(self.rand_matrix(64, 64))
+        pattern = [1, 2, 0, 3, 5, 4]
+
+        # Consider several methods of computing this operator and show
+        # they all lead to the same result.
+
+        from qiskit.circuit.library import Permutation, PermutationGate
+
+        # Compose the operator with the operator constructed from the
+        # permutation circuit.
+        op2 = op.copy()
+        perm_op = Operator(Permutation(6, pattern))
+        op2 = perm_op & op2
+
+        # Compose the operator with the operator constructed from the
+        # permutation gate.
+        op3 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op3 = perm_op & op
+
+        # Modify the operator using apply_permutation method.
+        op4 = op.copy()
+        op4 = op4.apply_permutation(pattern, front=True)
+
+        self.assertEqual(op2, op3)
+        self.assertEqual(op2, op4)
+
 
 if __name__ == "__main__":
     unittest.main()
