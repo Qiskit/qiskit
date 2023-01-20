@@ -12,6 +12,7 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import unittest
 from math import pi
 import re
 
@@ -529,3 +530,21 @@ p(pi) q[0];\n"""
 
         with self.assertRaisesRegex(QasmError, "OpenQASM 2 can only condition on registers"):
             qc.qasm()
+
+    def test_circuit_qasm_with_permutations(self):
+        """Test circuit qasm() method with Permutation gates."""
+        from qiskit.circuit.library import PermutationGate
+
+        qc = QuantumCircuit(4)
+        qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate permutation__2_1_0_ q0,q1,q2 { swap q0,q2; }
+qreg q[4];
+permutation__2_1_0_ q[0],q[1],q[2];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+
+if __name__ == "__main__":
+    unittest.main()

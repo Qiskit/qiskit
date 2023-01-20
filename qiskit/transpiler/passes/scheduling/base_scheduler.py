@@ -20,6 +20,7 @@ from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class BaseSchedulerTransform(TransformationPass):
@@ -217,9 +218,10 @@ class BaseSchedulerTransform(TransformationPass):
 
     def __init__(
         self,
-        durations: InstructionDurations,
+        durations: InstructionDurations = None,
         clbit_write_latency: int = 0,
         conditional_latency: int = 0,
+        target: Target = None,
     ):
         """Scheduler initializer.
 
@@ -237,6 +239,9 @@ class BaseSchedulerTransform(TransformationPass):
                 The gate operation occurs after this latency. This appears as a delay
                 in front of the DAGOpNode of the gate.
                 This defaults to 0 dt.
+            target: The :class:`~.Target` representing the target backend, if both
+                ``durations`` and this are specified then this argument will take
+                precedence and ``durations`` will be ignored.
         """
         super().__init__()
         self.durations = durations
@@ -247,6 +252,8 @@ class BaseSchedulerTransform(TransformationPass):
 
         # Ensure op node durations are attached and in consistent unit
         self.requires.append(TimeUnitConversion(durations))
+        if target is not None:
+            self.durations = target.durations()
 
     @staticmethod
     def _get_node_duration(
