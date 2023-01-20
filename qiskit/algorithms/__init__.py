@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -77,7 +77,7 @@ Eigen Solvers
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
 states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain. These algorithms are deprecated.
+knowledge to do this in that application domain. These algorithms are pending deprecation.
 One should instead make use of the Eigensolver classes in the section below, which leverage
 Runtime primitives.
 
@@ -111,7 +111,7 @@ knowledge to do this in that application domain.
 Evolvers
 --------
 
-Deprecated: This package has been superseded by the package below. It will be
+Pending deprecation: This package has been superseded by the package below. It will be
 deprecated in a future release and subsequently removed after that:
 
 `Time Evolvers`_
@@ -124,11 +124,11 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
    :toctree: ../stubs/
    :nosignatures:
 
-    RealEvolver
-    ImaginaryEvolver
-    TrotterQRTE
-    EvolutionResult
-    EvolutionProblem
+   RealEvolver
+   ImaginaryEvolver
+   TrotterQRTE
+   EvolutionResult
+   EvolutionProblem
 
 
 Time Evolvers
@@ -142,18 +142,31 @@ Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks 
    :toctree: ../stubs/
    :nosignatures:
 
-    RealTimeEvolver
-    ImaginaryTimeEvolver
-    PVQD
-    PVQDResult
-    TimeEvolutionResult
-    TimeEvolutionProblem
-    SciPyImaginaryEvolver
-    SciPyRealEvolver
+   RealTimeEvolver
+   ImaginaryTimeEvolver
+   TimeEvolutionResult
+   TimeEvolutionProblem
+   PVQD
+   PVQDResult
+   SciPyImaginaryEvolver
+   SciPyRealEvolver
+   VarQITE
+   VarQRTE
+
+
+Variational Quantum Time Evolution
+++++++++++++++++++++++++++++++++++
+
+Classes used by variational quantum time evolution algorithms - VarQITE and VarQRTE.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   time_evolvers.variational
 
 
 Trotterization-based Quantum Real Time Evolution
-------------------------------------------------
+++++++++++++++++++++++++++++++++++++++++++++++++
 
 Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
 
@@ -203,7 +216,7 @@ Minimum Eigen Solvers
 ---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
-These algorithms are deprecated. One should instead make use of the
+These algorithms are pending deprecation. One should instead make use of the
 Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
 
 .. autosummary::
@@ -308,10 +321,6 @@ from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
-from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
-from .time_evolvers.real_time_evolver import RealTimeEvolver
-from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
-from .time_evolvers.time_evolution_result import TimeEvolutionResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -351,8 +360,20 @@ from .aux_ops_evaluator import eval_observables
 from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
 
-from .time_evolvers.pvqd import PVQD, PVQDResult
-from .time_evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
+from .time_evolvers import (
+    ImaginaryTimeEvolver,
+    RealTimeEvolver,
+    TimeEvolutionProblem,
+    TimeEvolutionResult,
+    PVQD,
+    PVQDResult,
+    SciPyImaginaryEvolver,
+    SciPyRealEvolver,
+    VarQITE,
+    VarQRTE,
+    VarQTE,
+    VarQTEResult,
+)
 
 __all__ = [
     "AlgorithmJob",
@@ -413,4 +434,8 @@ __all__ = [
     "AlgorithmError",
     "eval_observables",
     "estimate_observables",
+    "VarQITE",
+    "VarQRTE",
+    "VarQTE",
+    "VarQTEResult",
 ]

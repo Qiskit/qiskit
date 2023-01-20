@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,7 +32,7 @@ class TimeEvolutionResult(AlgorithmResult):
         observables (ListOrDict[tuple[np.ndarray, np.ndarray]] | None): Optional list of
             observables for which expected on an evolved state are calculated at each timestep.
             These values are in fact lists of tuples formatted as (mean, standard deviation).
-            times (np.array | None): Optional list of times at wich each observable has been evaluated.
+        times (np.array | None): Optional list of times at which each observable has been evaluated.
     """
 
     def __init__(

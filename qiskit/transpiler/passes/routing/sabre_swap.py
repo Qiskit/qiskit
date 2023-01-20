@@ -229,9 +229,9 @@ class SabreSwap(TransformationPass):
             self._neighbor_table,
             self.dist_matrix,
             heuristic,
-            self.seed,
             layout,
             self.trials,
+            self.seed,
         )
 
         layout_mapping = layout.layout_mapping()
