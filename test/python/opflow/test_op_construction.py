@@ -1110,6 +1110,15 @@ class TestOpConstruction(QiskitOpflowTestCase):
 
         np.testing.assert_almost_equal(composed.to_matrix(), expected)
 
+    def test_tensored_op_to_matrix(self):
+        """Test tensored operators to matrix works correctly with a global coefficient.
+
+        Regression test of Qiskit/qiskit-terra#9398.
+        """
+        op = TensoredOp([X, I], coeff=0.5)
+        expected = 1 / 2 * np.kron(X.to_matrix(), I.to_matrix())
+        np.testing.assert_almost_equal(op.to_matrix(), expected)
+
 
 class TestOpMethods(QiskitOpflowTestCase):
     """Basic method tests."""
