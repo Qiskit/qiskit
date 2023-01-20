@@ -91,7 +91,9 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     prev_node = None
 
     for index, controller_group in enumerate(passes):
-        subgraph, component_id, prev_node = draw_subgraph(controller_group, component_id, style, prev_node, index)
+        subgraph, component_id, prev_node = draw_subgraph(
+            controller_group, component_id, style, prev_node, index
+        )
         graph.add_subgraph(subgraph)
 
     output = make_output(graph, raw, filename)
@@ -176,7 +178,9 @@ def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=Fals
             passes = stage.passes()
             stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
             for controller_group in passes:
-                subgraph, component_id, prev_node = draw_subgraph(controller_group, component_id, style, prev_node, idx)
+                subgraph, component_id, prev_node = draw_subgraph(
+                    controller_group, component_id, style, prev_node, idx
+                )
                 stagegraph.add_subgraph(subgraph)
                 idx += 1
             graph.add_subgraph(stagegraph)
@@ -193,9 +197,7 @@ def draw_subgraph(controller_group, component_id, style, prev_node, idx):
     label = "[{}] {}".format(idx, ", ".join(controller_group["flow_controllers"]))
 
     # create the subgraph for this controller
-    subgraph = pydot.Cluster(
-        str(component_id), label=label, fontname="helvetica", labeljust="l"
-    )
+    subgraph = pydot.Cluster(str(component_id), label=label, fontname="helvetica", labeljust="l")
     component_id += 1
 
     for pass_ in controller_group["passes"]:
