@@ -28,7 +28,7 @@ import math
 import io
 import base64
 import warnings
-from typing import ClassVar, Optional, Type
+from typing import ClassVar, Optional, Type, Union
 
 import logging
 
@@ -1087,7 +1087,7 @@ class TwoQubitBasisDecomposer:
     @deprecate_arguments({"target": "unitary"})
     def __call__(
         self,
-        unitary,
+        unitary: Union[Operator, np.ndarray],
         basis_fidelity: float = None,
         approximate=True,
         *,

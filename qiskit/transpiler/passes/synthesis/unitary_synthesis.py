@@ -281,8 +281,10 @@ class UnitarySynthesis(TransformationPass):
                 not specified the ``target`` argument must be used. If both this
                 and the ``target`` are specified the value of ``target`` will
                 be used and this will be ignored.
-            approximation_degree (float): Closeness of approximation
-                (0: lowest, 1: highest).
+            approximation_degree (float): heuristic dial used for circuit approximation
+                (1.0=no approximation, 0.0=maximal approximation). Approximation can
+                make the synthesized circuit cheaper at the cost of straying from
+                the original unitary.
             coupling_map (CouplingMap): the coupling map of the backend
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
@@ -620,12 +622,12 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         decomposers = []
 
         def is_supercontrolled(gate):
-            coords = TwoQubitWeylDecomposition(Operator(gate).data)
-            return isclose(coords.a, pi / 4) and isclose(coords.c, 0.0)
+            kak = TwoQubitWeylDecomposition(Operator(gate).data)
+            return isclose(kak.a, pi / 4) and isclose(kak.c, 0.0)
 
         def is_controlled(gate):
-            coords = TwoQubitWeylDecomposition(Operator(gate).data)
-            return isclose(coords.b, 0.0) and isclose(coords.c, 0.0)
+            kak = TwoQubitWeylDecomposition(Operator(gate).data)
+            return isclose(kak.b, 0.0) and isclose(kak.c, 0.0)
 
         # possible supercontrolled decomposers (i.e. TwoQubitBasisDecomposer)
         supercontrolled_basis = {
