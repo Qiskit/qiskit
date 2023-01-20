@@ -120,7 +120,5 @@ class TensoredOp(ListOp):
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         OperatorBase._check_massive("to_matrix", True, self.num_qubits, massive)
 
-        mat = self.coeff * reduce(
-            np.kron, [np.asarray(op.to_matrix(massive=massive)) for op in self.oplist]
-        )
+        mat = self.coeff * reduce(np.kron, [np.asarray(op.to_matrix()) for op in self.oplist])
         return np.asarray(mat, dtype=complex)
