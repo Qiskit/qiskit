@@ -15,13 +15,24 @@
 
 
 from qiskit.converters import circuit_to_dag
-from qiskit.synthesis import synth_permutation_basic, synth_permutation_acg
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.synthesis import synth_clifford_full
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh
-from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms
+
+from qiskit.synthesis.clifford import (
+    synth_clifford_full,
+    synth_clifford_layers,
+    synth_clifford_greedy,
+    synth_clifford_ag,
+    synth_clifford_bm,
+)
+from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
+from qiskit.synthesis.permutation import (
+    synth_permutation_basic,
+    synth_permutation_acg,
+    synth_permutation_depth_lnn_kms,
+)
+
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
@@ -156,7 +167,12 @@ class HighLevelSynthesis(TransformationPass):
 
 
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
-    """The default clifford synthesis plugin."""
+    """The default clifford synthesis plugin.
+
+    For N <= 3 qubits this is the optimal CX cost decomposition by Bravyi, Maslov.
+    For N > 3 qubits this is done using the general non-optimal greedy compilation
+    routine from reference by Bravyi, Hu, Maslov, Shaydulin.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Clifford."""
@@ -164,8 +180,62 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
         return decomposition
 
 
-class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
-    """The default linear function synthesis plugin."""
+class AGSynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the Aaronson-Gottesman method."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        decomposition = synth_clifford_ag(high_level_object)
+        return decomposition
+
+
+class BMSynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the Bravyi-Maslov method.
+
+    The method only works on Cliffords with at most 3 qubits, for which it
+    constructs the optimal CX cost decomposition.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        if high_level_object.num_qubits <= 3:
+            decomposition = synth_clifford_bm(high_level_object)
+        else:
+            decomposition = None
+        return decomposition
+
+
+class GreedySynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the greedy synthesis
+    Bravyi-Hu-Maslov-Shaydulin method."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        decomposition = synth_clifford_greedy(high_level_object)
+        return decomposition
+
+
+class LayerSynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the Bravyi-Maslov method
+    to synthesize Cliffords into layers."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        decomposition = synth_clifford_layers(high_level_object)
+        return decomposition
+
+
+class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """Linear function synthesis plugin based on the Kutin-Moulton-Smithline method."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given LinearFunction."""
+        decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
+        return decomposition
+
+
+class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """Linear function synthesis plugin based on the Patel-Markov-Hayes method."""
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
@@ -179,6 +249,15 @@ class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
         decomposition = synth_permutation_depth_lnn_kms(high_level_object.pattern)
+        return decomposition
+
+
+class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """The default linear function synthesis plugin."""
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given LinearFunction."""
+        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
         return decomposition
 
 
