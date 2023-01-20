@@ -252,7 +252,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
         gate = gate_class(condition_tuple, *params)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
-        if gate_name in {"MCPhaseGate", "MCU1Gate", "MCXGrayCode"}:
+        if gate_name in {
+            "MCPhaseGate",
+            "MCU1Gate",
+            "MCXGrayCode",
+            "MCXGate",
+            "MCXRecursive",
+            "MCXVChain",
+        }:
             gate = gate_class(*params, instruction.num_ctrl_qubits)
         else:
             gate = gate_class(*params)
