@@ -348,12 +348,12 @@ def _check_calibration_type(
         QiskitError: Unknown calibration type is detected.
     """
     cal_type = None
-    if "cx" in inst_sched_map.qubit_instructions(qubits):
+    if inst_sched_map.has("cx", qubits):
         cr_sched = inst_sched_map.get("cx", qubits=qubits)
-    elif "ecr" in inst_sched_map.qubit_instructions(qubits):
+    elif inst_sched_map.has("ecr", qubits):
         cr_sched = inst_sched_map.get("ecr", qubits=qubits)
         cal_type = CRCalType.ECR_FORWARD
-    elif "ecr" in inst_sched_map.qubit_instructions(tuple(reversed(qubits))):
+    elif inst_sched_map.has("ecr", tuple(reversed(qubits))):
         cr_sched = inst_sched_map.get("ecr", tuple(reversed(qubits)))
         cal_type = CRCalType.ECR_REVERSE
     else:

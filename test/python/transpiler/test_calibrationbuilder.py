@@ -58,11 +58,11 @@ class TestCalibrationBuilder(QiskitTestCase):
             return isinstance(time_inst[1], Play) and time_inst[1].pulse.name.startswith(name)
 
         qubits = (0, 1)
-        if "cx" in self.inst_map.qubit_instructions(qubits):
+        if self.inst_map.has("cx", qubits):
             cr_sched = self.inst_map.get("cx", qubits=qubits)
-        elif "ecr" in self.inst_map.qubit_instructions(qubits):
+        elif self.inst_map.has("ecr", qubits):
             cr_sched = self.inst_map.get("ecr", qubits=qubits)
-        elif "ecr" in self.inst_map.qubit_instructions(tuple(reversed(qubits))):
+        elif self.inst_map.has("ecr", tuple(reversed(qubits))):
             cr_sched = self.inst_map.get("ecr", tuple(reversed(qubits)))
 
         # CR tone
