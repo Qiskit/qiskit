@@ -198,14 +198,14 @@ class Operator(LinearOp):
                 op = op.compose(label_mats[char], qargs=[qubit])
         return op
 
-    def apply_permutation(self, pattern: list[int], front: bool = False):
+    def apply_permutation(self, pattern: list, front: bool = False):
         """Modifies operator's data by composing it with a permutation.
 
         This is achieved by directly swapping the rows or the columns of the
         array, and is more efficient than the more general ``compose``.
 
         Args:
-            pattern (list[int]): permutation pattern, describing which qubits
+            pattern (list): permutation pattern, describing which qubits
                 occupy the positions 0, 1, 2, etc. after applying the permutation.
             front (bool): When set to ``True`` the permutation is applied before the
                 operator, when set to ``False`` the permutation is applied after the
