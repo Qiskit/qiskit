@@ -196,21 +196,21 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [0.2, 100, AmplitudeEstimation(4), {"estimation": 0.500000, "mle": 0.562783}],
+            [0.2, 100, AmplitudeEstimation(4), {"estimation": 0.14644, "mle": 0.198783}],
             [0.0, 1000, AmplitudeEstimation(2), {"estimation": 0.0, "mle": 0.0}],
             [
                 0.2,
                 100,
                 MaximumLikelihoodAmplitudeEstimation([0, 1, 2, 4, 8]),
-                {"estimation": 0.474790},
+                {"estimation": 0.200308},
             ],
             [0.8, 10, IterativeAmplitudeEstimation(0.1, 0.05), {"estimation": 0.811711}],
-            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.199073}],
+            [0.2, 1000, FasterAmplitudeEstimation(0.1, 3, rescale=False), {"estimation": 0.198640}],
             [
                 0.12,
                 100,
                 FasterAmplitudeEstimation(0.01, 3, rescale=False),
-                {"estimation": 0.120016},
+                {"estimation": 0.120017},
             ],
         ]
     )
@@ -422,10 +422,10 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [2, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.270290}],
-            [4, MaximumLikelihoodAmplitudeEstimation(4), {"estimation": 0.0}],
-            [3, IterativeAmplitudeEstimation(0.1, 0.1), {"estimation": 0.0}],
-            [3, FasterAmplitudeEstimation(0.01, 1), {"estimation": 0.017687}],
+            [2, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.2702}],
+            [4, MaximumLikelihoodAmplitudeEstimation(4), {"estimation": 0.2725}],
+            [3, IterativeAmplitudeEstimation(0.1, 0.1), {"estimation": 0.2721}],
+            [3, FasterAmplitudeEstimation(0.01, 1), {"estimation": 0.2792}],
         ]
     )
     @unpack
@@ -444,7 +444,7 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [4, 10, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.333333}],
+            [4, 100, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.281196}],
             [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {"estimation": 0.256878}],
             [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {"estimation": 0.271790}],
             [3, 1000, FasterAmplitudeEstimation(0.1, 4), {"estimation": 0.274168}],
@@ -465,10 +465,10 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
     @idata(
         [
-            [4, 10, AmplitudeEstimation(2), {"estimation": 0.0, "mle": 0.0}],
-            [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {"estimation": 0.0}],
-            [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {"estimation": 0.0}],
-            [3, 1000, FasterAmplitudeEstimation(0.1, 4), {"estimation": 0.000551}],
+            [4, 1000, AmplitudeEstimation(2), {"estimation": 0.5, "mle": 0.2636}],
+            [3, 10, MaximumLikelihoodAmplitudeEstimation(2), {"estimation": 0.2904}],
+            [3, 1000, IterativeAmplitudeEstimation(0.01, 0.01), {"estimation": 0.2706}],
+            [3, 1000, FasterAmplitudeEstimation(0.1, 4), {"estimation": 0.2764}],
         ]
     )
     @unpack
