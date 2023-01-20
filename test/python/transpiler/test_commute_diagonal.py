@@ -15,7 +15,7 @@
 import numpy as np
 import scipy.stats
 
-from qiskit.circuit import QuantumCircuit, Qubit
+from qiskit.circuit import QuantumCircuit, Qubit, Barrier
 from qiskit.circuit.library.standard_gates import (
     XGate,
     YGate,
@@ -567,3 +567,55 @@ class TestCommuteDiagonal(QiskitTestCase):
         self.assertEqual(circ_expand.count_ops()["cx"], 9)
         self.assertEqual(ccirc_opt.count_ops()["cx"], 6)
         self.assertEqual(Operator(ccirc_opt), Operator(circ))
+
+    def test_barriers(self):
+        """
+        Test commutation chains together properly for a sequence of five 2q unitaries.
+
+           ┌───────────┐     ┌───────────┐      ░ ┌───────────┐     ┌───────────┐
+        0: ┤0          ├─────┤0          ├──────░─┤0          ├─────┤0          ├
+           │  Unitary0 │     │  Unitary1 │      ░ │  Unitary2 │     │  Unitary3 │
+        1: ┤1          ├──■──┤1          ├──■───░─┤1          ├──■──┤1          ├
+           └───────────┘┌─┴─┐└───────────┘┌─┴─┐ ░ └───────────┘┌─┴─┐└───────────┘
+        2: ─────────────┤ X ├─────────────┤ X ├─░──────────────┤ X ├─────────────
+                        └───┘             └───┘ ░              └───┘             
+        """
+        np.set_printoptions(precision=2, linewidth=200, suppress=True)
+        pass_ = CommuteDiagonal()
+        qr = [Qubit(), Qubit(), Qubit()]
+        dag = DAGCircuit()
+        dag.add_qubits(qr)
+        mat0 = scipy.stats.unitary_group.rvs(4, random_state=61)
+        mat1 = scipy.stats.unitary_group.rvs(4, random_state=94)
+        mat2 = scipy.stats.unitary_group.rvs(4, random_state=98)
+        mat3 = scipy.stats.unitary_group.rvs(4, random_state=945)
+        mat4 = scipy.stats.unitary_group.rvs(4, random_state=45)
+        ug0 = UnitaryGate(mat0)
+        ug0.name = "unitary0"
+        dag.apply_operation_back(ug0, qargs=qr[0:2])
+        dag.apply_operation_back(CXGate(), qargs=[qr[1], qr[2]])
+        ug1 = UnitaryGate(mat1)
+        ug1.name = "unitary1"
+        dag.apply_operation_back(ug1, qargs=qr[0:2])
+        dag.apply_operation_back(CXGate(), qargs=[qr[1], qr[2]])
+
+        # barrier
+        dag.apply_operation_back(Barrier(1), qargs=qr)
+
+        ug2 = UnitaryGate(mat2)
+        ug2.name = "unitary2"
+        dag.apply_operation_back(ug2, qargs=qr[0:2])
+        dag.apply_operation_back(CXGate(), qargs=[qr[1], qr[2]])
+        ug3 = UnitaryGate(mat3)
+        ug3.name = "unitary3"
+        dag.apply_operation_back(ug3, qargs=qr[0:2])
+        ug4 = UnitaryGate(mat4)
+        circ = dag_to_circuit(dag)
+        circ_opt = transpile(circ, basis_gates=["cx", "u"], optimization_level=1)
+        ccirc = pass_(circ_opt)
+        ccirc_opt = transpile(ccirc, basis_gates=["cx", "u"], optimization_level=1)
+
+        self.assertEqual(circ_opt.count_ops()["cx"], 15)
+        self.assertEqual(ccirc_opt.count_ops()["cx"], 13)
+        self.assertEqual(Operator(ccirc_opt), Operator(circ))
+

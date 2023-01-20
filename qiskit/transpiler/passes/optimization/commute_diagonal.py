@@ -20,12 +20,14 @@ the diagonal, an overall reduction of CNOT gates can be obtained.
 import functools
 import enum
 import numpy as np
+import rustworkx
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import two_qubit_decompose
 from qiskit.extensions import UnitaryGate
+from qiskit.circuit import Barrier, Gate, Qubit
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 
@@ -72,6 +74,9 @@ class CommuteDiagonal(TransformationPass):
                 inter_nodes = _collect_nodes_between_blocks(dag, block_qubits, block0, block1)
                 if not inter_nodes:
                     # no nodes between blocks
+                    continue
+                if self._nodes_contain_barrier(inter_nodes):
+                    # don't optimize over barriere
                     continue
                 # check if blocks would benefit from pass
                 circ0 = _block_to_circuit(dag, block0, remove_idle_qubits=True)
@@ -347,6 +352,12 @@ class CommuteDiagonal(TransformationPass):
             new_dag.apply_operation_back(node.op.copy(), qargs=node.qargs, cargs=node.cargs)
         return new_dag
 
+    def _nodes_contain_barrier(self, nodes):
+        for node in nodes:
+            if isinstance(node, DAGOpNode) and isinstance(node.op, Barrier):
+                return True
+        return False
+
 
 def _collect_nodes_between_blocks(dag, block_qubits, block0, block1):
     """collect nodes between 2q blocks"""
@@ -357,6 +368,8 @@ def _collect_nodes_between_blocks(dag, block_qubits, block0, block1):
         return []
     stop_node0, _ = _get_first_last_node(dag, block_qubits[0], block1)
     stop_node1, _ = _get_first_last_node(dag, block_qubits[1], block1)
+    if stop_node0 is None and stop_node1 is None:
+        return []
     inter_nodes = _collect_circuit_between_nodes(
         dag, block_qubits, (start_node0, start_node1), (stop_node0, stop_node1)
     )
@@ -487,3 +500,30 @@ def _copy_dag_bit_like(dag):
     for creg in dag.cregs.values():
         target_dag.add_creg(creg)
     return target_dag
+
+def collect_2q_runs_on_qubits(dag, run_qubits):
+    """Return a set of non-conditional runs of "op" nodes which directly connect to run_qubits."""
+    to_qid = {}
+    run_qubits_set = set(run_qubits)
+    for i, qubit in enumerate(dag.qubits):
+        to_qid[qubit] = i
+
+    def filter_fn(node):
+        if isinstance(node, DAGOpNode):
+            return (
+                isinstance(node.op, Gate)
+                and len(node.qargs) <= 2
+                and not getattr(node.op, "condition", None)
+                and not node.op.is_parameterized()
+                and set(node.qargs).issubset(run_qubits_set)
+            )
+        else:
+            return None
+
+    def color_fn(edge):
+        if isinstance(edge, Qubit):
+            return to_qid[edge]
+        else:
+            return None
+
+    return rustworkx.collect_bicolor_runs(dag._multi_graph, filter_fn, color_fn)
