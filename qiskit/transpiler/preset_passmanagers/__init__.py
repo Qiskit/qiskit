@@ -85,7 +85,7 @@ def generate_preset_pass_manager(
     routing_method=None,
     translation_method=None,
     scheduling_method=None,
-    approximation_degree=None,
+    approximation_degree=1.0,
     seed_transpiler=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,

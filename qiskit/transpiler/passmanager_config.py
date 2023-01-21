@@ -33,7 +33,7 @@ class PassManagerConfig:
         scheduling_method=None,
         instruction_durations=None,
         backend_properties=None,
-        approximation_degree=None,
+        approximation_degree=1.0,
         seed_transpiler=None,
         timing_constraints=None,
         unitary_synthesis_method="default",

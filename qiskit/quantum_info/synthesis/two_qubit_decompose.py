@@ -34,8 +34,7 @@ import logging
 
 import numpy as np
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
@@ -864,7 +863,13 @@ class TwoQubitBasisDecomposer:
             if unknown.
     """
 
-    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None, pulse_optimize=None):
+    def __init__(
+            self,
+            gate: Gate,
+            basis_fidelity: float = 1.0,
+            euler_basis: str = None,
+            pulse_optimize: bool = None
+        ):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize

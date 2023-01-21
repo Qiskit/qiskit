@@ -111,7 +111,7 @@ def _choose_bases(basis_gates, basis_dict=None):
     return out_basis
 
 
-def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximation_degree=None):
+def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximation_degree=1.0):
     decomposer2q = None
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)

@@ -156,7 +156,7 @@ def if_has_control_flow_else(if_present, if_absent):
 def generate_unroll_3q(
     target,
     basis_gates=None,
-    approximation_degree=None,
+    approximation_degree=1.0,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
@@ -333,7 +333,7 @@ def generate_translation_passmanager(
     target,
     basis_gates=None,
     method="translator",
-    approximation_degree=None,
+    approximation_degree=1.0,
     coupling_map=None,
     backend_props=None,
     unitary_synthesis_method="default",
