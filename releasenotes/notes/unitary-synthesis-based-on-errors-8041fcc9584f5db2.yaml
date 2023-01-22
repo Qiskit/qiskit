@@ -14,7 +14,6 @@ features:
 upgrade:
   - |
     The interface for :class:`~.UnitarySynthesisPlugin` has been changed so
-    now `gate_lengths` and `gate_errors` have the form:
-      `{(qubits,): [Gate, length]}`
-    This allows gates that have the same name but different parameters to
-    be represented separately.
+    now `gate_lengths` and `gate_errors` have the form
+    ``{(qubits,): [Gate, length]}``. This allows gates that have the same
+    name but different parameters to be represented separately.

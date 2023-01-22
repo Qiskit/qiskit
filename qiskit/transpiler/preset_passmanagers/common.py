@@ -156,7 +156,7 @@ def if_has_control_flow_else(if_present, if_absent):
 def generate_unroll_3q(
     target,
     basis_gates=None,
-    approximation_degree=1.0,
+    approximation_degree=None,
     unitary_synthesis_method="default",
     unitary_synthesis_plugin_config=None,
     hls_config=None,
@@ -167,7 +167,7 @@ def generate_unroll_3q(
         target (Target): the :class:`~.Target` object representing the backend
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
-        approximation_degree (float): The heuristic approximation degree to
+        approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
         unitary_synthesis_method (str): The unitary synthesis method to use
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
@@ -333,7 +333,7 @@ def generate_translation_passmanager(
     target,
     basis_gates=None,
     method="translator",
-    approximation_degree=1.0,
+    approximation_degree=None,
     coupling_map=None,
     backend_props=None,
     unitary_synthesis_method="default",
@@ -347,7 +347,7 @@ def generate_translation_passmanager(
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
         method (str): The basis translation method to use
-        approximation_degree (float): The heuristic approximation degree to
+        approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
         coupling_map (CouplingMap): the coupling map of the backend
             in case synthesis is done on a physical circuit. The

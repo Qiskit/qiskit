@@ -13,7 +13,7 @@
 """Synthesize UnitaryGates."""
 
 from math import pi, inf, isclose
-from typing import List, Union
+from typing import List, Union, Optional
 from copy import deepcopy
 from itertools import product
 from functools import partial
@@ -111,14 +111,15 @@ def _choose_bases(basis_gates, basis_dict=None):
     return out_basis
 
 
-def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximation_degree=1.0):
+def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximation_degree=None):
     decomposer2q = None
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)
+    basis_fidelity = approximation_degree or 1.0
     if isinstance(kak_gate, RZXGate):
         backup_optimizer = TwoQubitBasisDecomposer(
             CXGate(),
-            basis_fidelity=approximation_degree,
+            basis_fidelity=basis_fidelity,
             euler_basis=euler_basis,
             pulse_optimize=pulse_optimize,
         )
@@ -126,7 +127,7 @@ def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximat
     elif kak_gate is not None:
         decomposer2q = TwoQubitBasisDecomposer(
             kak_gate,
-            basis_fidelity=approximation_degree,
+            basis_fidelity=basis_fidelity,
             euler_basis=euler_basis,
             pulse_optimize=pulse_optimize,
         )
@@ -259,7 +260,7 @@ class UnitarySynthesis(TransformationPass):
     def __init__(
         self,
         basis_gates: List[str] = None,
-        approximation_degree: float = 1.0,
+        approximation_degree: Optional[float] = 1.0,
         coupling_map: CouplingMap = None,
         backend_props: BackendProperties = None,
         pulse_optimize: Union[bool, None] = None,
@@ -273,9 +274,9 @@ class UnitarySynthesis(TransformationPass):
         """Synthesize unitaries over some basis gates.
 
         This pass can approximate 2-qubit unitaries given some
-        approximation closeness measure (expressed as
-        ``approximation_degree``). Other unitaries are synthesized
-        exactly.
+        gate fidelities (either via ``backend_props`` or ``target``).
+        More approximation can be forced by setting a heuristic dial
+        ``approximation_degree``.
 
         Args:
             basis_gates (list[str]): List of gate names to target. If this is
@@ -285,7 +286,7 @@ class UnitarySynthesis(TransformationPass):
             approximation_degree (float): heuristic dial used for circuit approximation
                 (1.0=no approximation, 0.0=maximal approximation). Approximation can
                 make the synthesized circuit cheaper at the cost of straying from
-                the original unitary.
+                the original unitary. If None, approximation is done based on gate fidelities.
             coupling_map (CouplingMap): the coupling map of the backend
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
@@ -612,7 +613,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             pass
         if not available_2q_basis:
             raise TranspilerError(
-                f"Target has no gates available on qubits {qubits} " f"to synthesize over."
+                f"Target has no gates available on qubits {qubits} to synthesize over."
             )
         # available decomposition basis on each of the qubits of the pair
         # NOTE: assumes both qubits have the same single-qubit gates
@@ -637,7 +638,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         for basis_1q, basis_2q in product(available_1q_basis, supercontrolled_basis.keys()):
             basis_2q_fidelity = 1 - getattr(available_2q_props[basis_2q], "error", 0.0)
             if approximation_degree is not None:
-                basis_2q_fidelity = approximation_degree
+                basis_2q_fidelity *= approximation_degree
             decomposer = TwoQubitBasisDecomposer(
                 supercontrolled_basis[basis_2q],
                 euler_basis=basis_1q,
@@ -744,7 +745,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return synth_dag
 
     def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree):
-        approximate = not np.isclose(approximation_degree, 1.0)
+        approximate = not approximation_degree == 1.0
         synth_circ = decomposer2q(su4_mat, approximate=approximate)
 
         # if the gates in synthesis are in the opposite direction of the preferred direction
