@@ -178,7 +178,7 @@ class TestPassManagerConfig(QiskitTestCase):
 	              'name': 'readout_length',
 	              'unit': 'ns',
 	              'value': 4977.777777777777}]]}
-	approximation_degree: None
+	approximation_degree: 1.0
 	seed_transpiler: None
 	timing_constraints: None
 	unitary_synthesis_method: default
