@@ -132,15 +132,23 @@ class HighLevelSynthesis(TransformationPass):
                 methods = []
 
             for method in methods:
-                plugin_name, plugin_args = method
+                # There are two ways to specify an individual method being run, either a tuple
+                #   ("kms", {"all_mats": 1, "max_paths": 100, "orig_circuit": 0}),
+                # or as a class instance
+                #   KMSSynthesisLinearFunction(all_mats=1, max_paths=100, orig_circuit=0).
+                if isinstance(method, tuple):
+                    plugin_name, plugin_args = method
 
-                if plugin_name not in hls_plugin_manager.method_names(node.name):
-                    raise TranspilerError(
-                        "Specified method: %s not found in available plugins for %s"
-                        % (plugin_name, node.name)
-                    )
+                    if plugin_name not in hls_plugin_manager.method_names(node.name):
+                        raise TranspilerError(
+                            "Specified method: %s not found in available plugins for %s"
+                            % (plugin_name, node.name)
+                        )
 
-                plugin_method = hls_plugin_manager.method(node.name, plugin_name)
+                    plugin_method = hls_plugin_manager.method(node.name, plugin_name)
+                else:
+                    plugin_method = method
+                    plugin_args = {}
 
                 # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
                 #       e.g. coupling_map to the synthesis algorithm.
