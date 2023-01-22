@@ -19,7 +19,6 @@ import numpy as np
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.converters import circuit_to_dag
 
 logger = logging.getLogger(__name__)
 

@@ -151,6 +151,7 @@ def _error(circuit, target=None, qubits=None):
             keys = target.operation_names_for_qargs(inst_qubits)
             for key in keys:
                 target_op = target.operation_from_name(key)
+                # pylint: disable=unidiomatic-typecheck
                 if type(target_op) == type(inst.operation) and (
                     target_op.is_parameterized()
                     or all(
@@ -165,11 +166,11 @@ def _error(circuit, target=None, qubits=None):
                     break
             else:
                 raise KeyError
-        except KeyError:
+        except KeyError as error:
             raise TranspilerError(
                 f"Encountered a bad synthesis. "
                 f"Target has no {inst.operation} on qubits {qubits}."
-            )
+            ) from error
     # TODO:return np.sum(gate_durations)
     return 1 - np.product(gate_fidelities)
 
@@ -662,8 +663,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             # basis equivalent to CX are well optimized so use for the pi/2 angle if available
             if isclose(strength, pi / 2) and k in supercontrolled_basis:
                 pi2_basis = v
+        # if we are using the approximation_degree knob, use it to scale already-given fidelities
         if approximation_degree is not None:
-            basis_fidelity = approximation_degree
+            basis_2q_fidelity = {k: v * approximation_degree for k, v in basis_2q_fidelity.items()}
         for basis_1q in available_1q_basis:
             if isinstance(pi2_basis, CXGate) and basis_1q == "ZSX":
                 pi2_decomposer = TwoQubitBasisDecomposer(
@@ -742,7 +744,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return synth_dag
 
     def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree):
-        approximate = True if not np.isclose(approximation_degree, 1.0) else False
+        approximate = not np.isclose(approximation_degree, 1.0)
         synth_circ = decomposer2q(su4_mat, approximate=approximate)
 
         # if the gates in synthesis are in the opposite direction of the preferred direction

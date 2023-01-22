@@ -1105,6 +1105,8 @@ class TwoQubitBasisDecomposer:
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
         Returns:
             QuantumCircuit: Synthesized circuit.
+        Raises:
+            QiskitError: if pulse_optimize is True but we don't know how to do it.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
         if approximate is False:

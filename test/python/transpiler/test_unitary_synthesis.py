@@ -51,7 +51,6 @@ from qiskit.circuit.library import (
     ECRGate,
     UGate,
     ZGate,
-    XGate,
     RYYGate,
     RZZGate,
     RXXGate,
@@ -743,12 +742,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertGreaterEqual(len(tqc.get_instructions("ryy")), 1)
         self.assertEqual(Operator(tqc), Operator(circ))
 
-    @combine(
-        opt_level=[0, 1, 2, 3],
-        dsc=("Test approximation with controlled basis"),
-        name="opt_level_{opt_level}",
-    )
-    def test_approximation_controlled(self, opt_level):
+    def test_approximation_controlled(self):
         target = Target(2)
         target.add_instruction(RZZGate(np.pi / 10), {(0, 1): InstructionProperties(error=0.006)})
         target.add_instruction(RXXGate(np.pi / 3), {(0, 1): InstructionProperties(error=0.01)})
@@ -760,7 +754,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         circ.append(random_unitary(4, seed=7), [1, 0])
 
         dag = circuit_to_dag(circ)
-        dag_100 = UnitarySynthesis(target=target, approximation_degree=0.100).run(dag)
+        dag_100 = UnitarySynthesis(target=target, approximation_degree=1.0).run(dag)
         dag_99 = UnitarySynthesis(target=target, approximation_degree=0.99).run(dag)
         self.assertGreaterEqual(dag_100.depth(), dag_99.depth())
         self.assertEqual(Operator(dag_to_circuit(dag_100)), Operator(circ))
