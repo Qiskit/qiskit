@@ -65,6 +65,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         Returns the newly synthesized circuit in the indicated basis, or None
         if no synthesis routine applied.
+
+        When multiple synthesis options are available, it prefers the one with lowest
+        error when the circuit is applied to `qubit`.
         """
         if self._target:
             if qubit is not None:
@@ -135,8 +138,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         for run in runs:
             qubit = qubit_indices[run[0].qargs[0]]
             operator = run[0].op.to_matrix()
-            for gate in run[1:]:
-                operator = gate.op.to_matrix().dot(operator)
+            for node in run[1:]:
+                operator = node.op.to_matrix().dot(operator)
             new_dag = self._resynthesize_run(operator, qubit)
 
             if self._target is None:

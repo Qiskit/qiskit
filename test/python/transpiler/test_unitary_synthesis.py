@@ -64,7 +64,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc.unitary(op_2q.data, [0, 1])
         qc.unitary(op_3q.data, [0, 1, 2])
 
-        out = UnitarySynthesis(None)(qc)
+        out = UnitarySynthesis(basis_gates=None, min_qubits=2)(qc)
 
         self.assertEqual(out.count_ops(), {"unitary": 3})
 
