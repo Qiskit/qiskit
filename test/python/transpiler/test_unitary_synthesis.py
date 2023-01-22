@@ -46,7 +46,16 @@ from qiskit.transpiler.passes import (
     SabreSwap,
     TrivialLayout,
 )
-from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate, XGate, RYYGate
+from qiskit.circuit.library import (
+    CXGate,
+    ECRGate,
+    UGate,
+    ZGate,
+    XGate,
+    RYYGate,
+    RZZGate,
+    RXXGate,
+)
 from qiskit.circuit import Parameter
 
 
@@ -733,6 +742,28 @@ class TestUnitarySynthesis(QiskitTestCase):
         )
         self.assertGreaterEqual(len(tqc.get_instructions("ryy")), 1)
         self.assertEqual(Operator(tqc), Operator(circ))
+
+    @combine(
+        opt_level=[0, 1, 2, 3],
+        dsc=("Test approximation with controlled basis"),
+        name="opt_level_{opt_level}",
+    )
+    def test_approximation_controlled(self, opt_level):
+        target = Target(2)
+        target.add_instruction(RZZGate(np.pi / 10), {(0, 1): InstructionProperties(error=0.006)})
+        target.add_instruction(RXXGate(np.pi / 3), {(0, 1): InstructionProperties(error=0.01)})
+        target.add_instruction(
+            UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")),
+            {(0,): InstructionProperties(error=0.001), (1,): InstructionProperties(error=0.002)},
+        )
+        circ = QuantumCircuit(2)
+        circ.append(random_unitary(4, seed=7), [1, 0])
+
+        dag = circuit_to_dag(circ)
+        dag_100 = UnitarySynthesis(target=target, approximation_degree=0.100).run(dag)
+        dag_99 = UnitarySynthesis(target=target, approximation_degree=0.99).run(dag)
+        self.assertGreaterEqual(dag_100.depth(), dag_99.depth())
+        self.assertEqual(Operator(dag_to_circuit(dag_100)), Operator(circ))
 
     def test_if_simple(self):
         """Test a simple if statement."""
