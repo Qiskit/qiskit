@@ -58,6 +58,9 @@ class XXDecomposer:
     (i.e., each locally equivalent to CAN(alpha, 0, 0) for a possibly varying alpha).
 
     Args:
+        basis_fidelity: available strengths and fidelity of each.
+            Can be either (1) a dictionary mapping XX angle values to fidelity at that angle; or
+            (2) a single float f, interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
         euler_basis: Basis string provided to OneQubitEulerDecomposer for 1Q synthesis.
             Defaults to "U".
         embodiments: A dictionary mapping interaction strengths alpha to native circuits which
@@ -67,9 +70,6 @@ class XXDecomposer:
             has no efficient decomposition of its own. Useful for special cases involving 2 or 3
             applications of XX(pi/2), in which case standard synthesis methods provide lower
             1Q gate count.
-        basis_fidelity: Fidelity of basis gates. Can be either (1) a dictionary
-            mapping XX angle values to fidelity at that angle; or (2) a single float f,
-            interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
 
     .. note::
         If ``embodiments`` is not passed, or if an entry is missing, it will be populated as needed
@@ -78,10 +78,10 @@ class XXDecomposer:
 
     def __init__(
         self,
+        basis_fidelity: Union[dict, float] = 1.0,
         euler_basis: str = "U",
         embodiments: Optional[dict] = None,
         backup_optimizer: Optional[Callable] = None,
-        basis_fidelity: Union[dict, float, None] = 1.0,
     ):
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
             Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
@@ -215,7 +215,12 @@ class XXDecomposer:
 
         raise TypeError("Unknown basis_fidelity payload.")
 
-    def __call__(self, unitary, basis_fidelity=None, approximate=True):
+    def __call__(
+        self,
+        unitary: Union[Operator, np.ndarray],
+        basis_fidelity: Optional[Union[dict, float]] = None,
+        approximate: bool = True,
+    ):
         """
         Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation
         `unitary`, using the circuit templates supplied at initialization as `embodiments`.  The

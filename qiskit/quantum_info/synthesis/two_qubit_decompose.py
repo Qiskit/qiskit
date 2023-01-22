@@ -855,7 +855,6 @@ class TwoQubitBasisDecomposer:
         basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
         euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
             Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'PSX', 'ZSX', 'RR'].
-            Default 'U3'.
         pulse_optimize (None or bool): If True, try to do decomposition which minimizes
             local unitaries in between entangling gates. This will raise an exception if an
             optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
@@ -864,21 +863,18 @@ class TwoQubitBasisDecomposer:
     """
 
     def __init__(
-            self,
-            gate: Gate,
-            basis_fidelity: float = 1.0,
-            euler_basis: str = None,
-            pulse_optimize: bool = None
-        ):
+        self,
+        gate: Gate,
+        basis_fidelity: float = 1.0,
+        euler_basis: str = "U",
+        pulse_optimize: Optional[bool] = None,
+    ):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
 
         basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
-        if euler_basis is not None:
-            self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
-        else:
-            self._decomposer1q = OneQubitEulerDecomposer("U3")
+        self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
 
         # FIXME: find good tolerances
         self.is_supercontrolled = math.isclose(basis.a, np.pi / 4) and math.isclose(basis.c, 0.0)
@@ -1093,8 +1089,8 @@ class TwoQubitBasisDecomposer:
     def __call__(
         self,
         unitary: Union[Operator, np.ndarray],
-        basis_fidelity: float = None,
-        approximate=True,
+        basis_fidelity: Optional[float] = None,
+        approximate: bool = True,
         *,
         _num_basis_uses: int = None,
     ) -> QuantumCircuit:
@@ -1103,7 +1099,7 @@ class TwoQubitBasisDecomposer:
 
         Args:
             unitary (Operator or ndarray): 4x4 unitary to synthesize.
-            basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate.
+            basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
                 If given, overrides basis_fidelity given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].

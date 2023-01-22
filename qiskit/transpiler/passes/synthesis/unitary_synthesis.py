@@ -80,7 +80,7 @@ def _choose_euler_basis(basis_gates):
         if set(gates).issubset(basis_set):
             return basis
 
-    return None
+    return "U"
 
 
 def _find_matching_euler_bases(target, qubit):
@@ -676,10 +676,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             else:
                 pi2_decomposer = None
             decomposer = XXDecomposer(
+                basis_fidelity=basis_2q_fidelity,
                 euler_basis=basis_1q,
                 embodiments=embodiments,
                 backup_optimizer=pi2_decomposer,
-                basis_fidelity=basis_2q_fidelity,
             )
             decomposers.append(decomposer)
 
@@ -742,7 +742,8 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         return synth_dag
 
     def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree):
-        synth_circ = decomposer2q(su4_mat)
+        approximate = True if not np.isclose(approximation_degree, 1.0) else False
+        synth_circ = decomposer2q(su4_mat, approximate=approximate)
 
         # if the gates in synthesis are in the opposite direction of the preferred direction
         # resynthesize a new operator which is the original conjugated by swaps.
@@ -755,5 +756,5 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             su4_mat_mm = deepcopy(su4_mat)
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
             su4_mat_mm[:, [1, 2]] = su4_mat_mm[:, [2, 1]]
-            synth_circ = decomposer2q(su4_mat_mm).reverse_bits()
+            synth_circ = decomposer2q(su4_mat_mm, approximate=approximate).reverse_bits()
         return synth_circ
