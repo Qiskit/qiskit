@@ -82,9 +82,9 @@ knowledge to do this in that application domain.
 Primitive-based Eigensolvers
 ++++++++++++++++++++++++++++
 
-These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
-:class:`.QuantumInstance` in algorithms. In the future, primitive-based Eigensolvers should be used in
-place of the legacy :class:`.QuantumInstance`-based ones.
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use
+of :class:`.QuantumInstance` in algorithms. To ensure continued support and development, we recommend
+using the primitive-based Eigensolvers in place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -119,9 +119,9 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
 Primitive-based Time Evolvers
 +++++++++++++++++++++++++++++
 
-These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
-:class:`.QuantumInstance` in algorithms. In the future, primitive-based Time Evolvers should be used in
-place of the legacy :class:`.QuantumInstance`-based ones.
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use
+of :class:`.QuantumInstance` in algorithms. To ensure continued support and development, we recommend
+using the primitive-based Time Evolvers in place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -223,9 +223,10 @@ Algorithms that can find the minimum eigenvalue of an operator.
 Primitive-based Minimum Eigensolvers
 ++++++++++++++++++++++++++++++++++++
 
-These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use of
-:class:`.QuantumInstance` in algorithms. In the future, primitive-based Minimum Eigensolvers should
-be used in place of the legacy :class:`.QuantumInstance`-based ones.
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use
+of :class:`.QuantumInstance` in algorithms. To ensure continued support and development, we recommend
+using the primitive-based Minimum Eigensolvers in place of the legacy :class:`.QuantumInstance`-based
+ones.
 
 .. autosummary::
    :toctree: ../stubs/
