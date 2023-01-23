@@ -1256,13 +1256,13 @@ class TestParameterExpressions(QiskitTestCase):
         qc.assign_parameters({phi: pi, theta: 1}, inplace=True)
 
         qc_ref = QuantumCircuit(2)
-        qc.p(numpy.abs(pi), 0)
-        qc.p(numpy.cos(pi), 0)
-        qc.p(numpy.sin(pi), 0)
-        qc.p(numpy.tan(pi), 0)
-        qc.rz(numpy.arccos(1), 1)
-        qc.rz(numpy.arctan(1), 1)
-        qc.rz(numpy.arcsin(1), 1)
+        qc_ref.p(numpy.abs(pi), 0)
+        qc_ref.p(numpy.cos(pi), 0)
+        qc_ref.p(numpy.sin(pi), 0)
+        qc_ref.p(numpy.tan(pi), 0)
+        qc_ref.rz(numpy.arccos(1), 1)
+        qc_ref.rz(numpy.arctan(1), 1)
+        qc_ref.rz(numpy.arcsin(1), 1)
 
         self.assertEqual(qc, qc_ref)
 
