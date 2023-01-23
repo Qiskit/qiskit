@@ -19,7 +19,7 @@ from ddt import data, ddt
 
 from qiskit import circuit, schedule
 from qiskit.circuit.library.standard_gates import SXGate, RZGate
-from qiskit.providers.fake_provider import FakeHanoi
+from qiskit.providers.fake_provider import FakeHanoi, FakeHanoiV2
 from qiskit.pulse import (
     ControlChannel,
     DriveChannel,
@@ -108,6 +108,132 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             RZXCalibrationBuilder.rescale_cr_inst(self.d1p_play, theta)
 
         self.assertEqual(test_sched.duration, self.compute_stretch_duration(self.d1p_play, theta))
+
+    def test_native_cr_with_target(self):
+        """Test that correct pulse sequence is generated for native CR pair."""
+        # Sufficiently large angle to avoid minimum duration, i.e. amplitude rescaling
+        theta = np.pi / 4
+
+        qc = circuit.QuantumCircuit(2)
+        qc.rzx(theta, 0, 1)
+
+        target = FakeHanoiV2().target
+
+        _pass = RZXCalibrationBuilder(target=target)
+        test_qc = PassManager(_pass).run(qc)
+
+        duration = self.compute_stretch_duration(self.u0p_play, theta)
+        with builder.build(
+            self.backend,
+            default_alignment="sequential",
+            default_transpiler_settings={"optimization_level": 0},
+        ) as ref_sched:
+            with builder.align_left():
+                # Positive CRs
+                u0p_params = self.u0p_play.pulse.parameters
+                u0p_params["duration"] = duration
+                u0p_params["width"] = self.compute_stretch_width(self.u0p_play, theta)
+                builder.play(
+                    GaussianSquare(**u0p_params),
+                    ControlChannel(0),
+                )
+                d1p_params = self.d1p_play.pulse.parameters
+                d1p_params["duration"] = duration
+                d1p_params["width"] = self.compute_stretch_width(self.d1p_play, theta)
+                builder.play(
+                    GaussianSquare(**d1p_params),
+                    DriveChannel(1),
+                )
+            builder.x(0)
+            with builder.align_left():
+                # Negative CRs
+                u0m_params = self.u0m_play.pulse.parameters
+                u0m_params["duration"] = duration
+                u0m_params["width"] = self.compute_stretch_width(self.u0m_play, theta)
+                builder.play(
+                    GaussianSquare(**u0m_params),
+                    ControlChannel(0),
+                )
+                d1m_params = self.d1m_play.pulse.parameters
+                d1m_params["duration"] = duration
+                d1m_params["width"] = self.compute_stretch_width(self.d1m_play, theta)
+                builder.play(
+                    GaussianSquare(**d1m_params),
+                    DriveChannel(1),
+                )
+            builder.x(0)
+
+        self.assertEqual(schedule(test_qc, self.backend), target_qobj_transform(ref_sched))
+
+    def test_non_native_cr_with_target(self):
+        """Test that correct pulse sequence is generated for non-native CR pair."""
+        # Sufficiently large angle to avoid minimum duration, i.e. amplitude rescaling
+        theta = np.pi / 4
+
+        qc = circuit.QuantumCircuit(2)
+        qc.rzx(theta, 1, 0)
+
+        target = FakeHanoiV2().target
+
+        _pass = RZXCalibrationBuilder(target=target)
+        test_qc = PassManager(_pass).run(qc)
+
+        duration = self.compute_stretch_duration(self.u0p_play, theta)
+        with builder.build(
+            self.backend,
+            default_alignment="sequential",
+            default_transpiler_settings={"optimization_level": 0},
+        ) as ref_sched:
+            # Hadamard gates
+            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            builder.call_gate(SXGate(), qubits=(0,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            builder.call_gate(SXGate(), qubits=(1,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            with builder.align_left():
+                # Positive CRs
+                u0p_params = self.u0p_play.pulse.parameters
+                u0p_params["duration"] = duration
+                u0p_params["width"] = self.compute_stretch_width(self.u0p_play, theta)
+                builder.play(
+                    GaussianSquare(**u0p_params),
+                    ControlChannel(0),
+                )
+                d1p_params = self.d1p_play.pulse.parameters
+                d1p_params["duration"] = duration
+                d1p_params["width"] = self.compute_stretch_width(self.d1p_play, theta)
+                builder.play(
+                    GaussianSquare(**d1p_params),
+                    DriveChannel(1),
+                )
+            builder.x(0)
+            with builder.align_left():
+                # Negative CRs
+                u0m_params = self.u0m_play.pulse.parameters
+                u0m_params["duration"] = duration
+                u0m_params["width"] = self.compute_stretch_width(self.u0m_play, theta)
+                builder.play(
+                    GaussianSquare(**u0m_params),
+                    ControlChannel(0),
+                )
+                d1m_params = self.d1m_play.pulse.parameters
+                d1m_params["duration"] = duration
+                d1m_params["width"] = self.compute_stretch_width(self.d1m_play, theta)
+                builder.play(
+                    GaussianSquare(**d1m_params),
+                    DriveChannel(1),
+                )
+            builder.x(0)
+            # Hadamard gates
+            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            builder.call_gate(SXGate(), qubits=(0,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            builder.call_gate(SXGate(), qubits=(1,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+
+        self.assertEqual(schedule(test_qc, self.backend), target_qobj_transform(ref_sched))
 
     def test_native_cr(self):
         """Test that correct pulse sequence is generated for native CR pair."""
