@@ -29,7 +29,6 @@ class TestSparseZ2Symmetries(QiskitTestCase):
             symmetries=[],
             sq_paulis=[],
             sq_list=[],
-            tapering_values=[],
         )
         self.assertTrue(z2_symmetries.is_empty())
 

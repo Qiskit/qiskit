@@ -21,7 +21,7 @@ from typing import Union, cast
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
 class Z2Symmetries:
@@ -47,8 +47,8 @@ class Z2Symmetries:
 
     def __init__(
         self,
-        symmetries: list[Pauli] | PauliList,
-        sq_paulis: list[Pauli] | PauliList,
+        symmetries: list[Pauli],
+        sq_paulis: list[Pauli],
         sq_list: list[int],
         tapering_values: list[int] | None = None,
         *,
@@ -97,12 +97,12 @@ class Z2Symmetries:
         self.tol = tol
 
     @property
-    def symmetries(self) -> list[Pauli] | PauliList:
+    def symmetries(self) -> list[Pauli]:
         """Return symmetries."""
         return self._symmetries
 
     @property
-    def sq_paulis(self) -> list[Pauli] | PauliList:
+    def sq_paulis(self) -> list[Pauli]:
         """Return sq paulis."""
         return self._sq_paulis
 
@@ -291,7 +291,7 @@ class Z2Symmetries:
                     # We break out of the loop over columns only when one valid test is identified.
                     break
 
-        return cls(PauliList(pauli_symmetries), PauliList(sq_paulis), sq_list, None)
+        return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
     def convert_clifford(self, operator: SparsePauliOp) -> SparsePauliOp:
         """This method operates the first part of the tapering.
