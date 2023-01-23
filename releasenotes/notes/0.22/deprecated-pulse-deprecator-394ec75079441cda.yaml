@@ -1,7 +1,0 @@
----
-deprecations:
-  - |
-    The pulse-module function ``qiskit.pulse.utils.deprecated_functionality`` is
-    deprecated and will be removed in a future release.  This was a primarily
-    internal-only function.  The same functionality is supplied by
-    ``qiskit.utils.deprecate_function``, which should be used instead.

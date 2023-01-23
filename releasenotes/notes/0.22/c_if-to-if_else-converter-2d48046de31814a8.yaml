@@ -1,9 +1,0 @@
----
-features:
-  - |
-    A new transpiler pass, :class:`.ConvertConditionsToIfOps` was added, which
-    can be used to convert old-style :meth:`.Instruction.c_if`-conditioned
-    instructions into :class:`.IfElseOp` objects.  This is to help ease the transition
-    from the old type to the new type for backends.  For most users, there is no
-    need to add this to your pass managers, and it is not included in any preset
-    pass managers.

@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Added a new ``atol`` keyword argument to the :meth:`.SparsePauliOp.equiv`
-    method to adjust to tolerance of the equivalence check,

@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with the :class:`~.UnitarySynthesis` pass where a circuit
-    with 1 qubit gates and a :class:`~.Target` input would sometimes fail
-    instead of processing the circuit as expected.

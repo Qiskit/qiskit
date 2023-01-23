@@ -1,9 +1,0 @@
----
-deprecations:
-  - |
-    Modules :mod:`qiskit.algorithms.factorizers` and
-    :mod:`qiskit.algorithms.linear_solvers` are deprecated and will
-    be removed in a future release.
-    They are replaced by tutorials in the Qiskit Textbook:
-    `Shor <https://qiskit.org/textbook/ch-algorithms/shor.html>`__
-    `HHL <https://qiskit.org/textbook/ch-applications/hhl_tutorial.html>`__

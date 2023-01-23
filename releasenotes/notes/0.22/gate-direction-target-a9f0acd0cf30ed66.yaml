@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    The :class:`.GateDirection` transpiler pass will now respect the available
-    values for gate parameters when handling parametrised gates with a
-    :class:`.Target`.
