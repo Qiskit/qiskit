@@ -1236,6 +1236,36 @@ class TestParameterExpressions(QiskitTestCase):
         self.assertEqual(abs(x) * abs(y), abs(x * y))
         self.assertEqual(abs(x) / abs(y), abs(x / y))
 
+    def test_circuit_bind_with_ufunc(self):
+        """Test construction of circuit and binding of parameters
+        after we apply universal functions."""
+        from math import pi
+
+        phi = Parameter(name="phi")
+        theta = Parameter(name="theta")
+
+        qc = QuantumCircuit(2)
+        qc.p(numpy.abs(phi), 0)
+        qc.p(numpy.cos(phi), 0)
+        qc.p(numpy.sin(phi), 0)
+        qc.p(numpy.tan(phi), 0)
+        qc.rz(numpy.arccos(theta), 1)
+        qc.rz(numpy.arctan(theta), 1)
+        qc.rz(numpy.arcsin(theta), 1)
+
+        qc.assign_parameters({phi: pi, theta: 1}, inplace=True)
+
+        qc_ref = QuantumCircuit(2)
+        qc.p(numpy.abs(pi), 0)
+        qc.p(numpy.cos(pi), 0)
+        qc.p(numpy.sin(pi), 0)
+        qc.p(numpy.tan(pi), 0)
+        qc.rz(numpy.arccos(1), 1)
+        qc.rz(numpy.arctan(1), 1)
+        qc.rz(numpy.arcsin(1), 1)
+
+        self.assertEqual(qc, qc_ref)
+
     def test_cast_to_float_when_bound(self):
         """Verify expression can be cast to a float when fully bound."""
 
