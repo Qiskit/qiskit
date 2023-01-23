@@ -33,6 +33,7 @@ from qiskit.pulse import (
 from qiskit.pulse import builder
 from qiskit.pulse.filters import filter_instructions
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.transpiler.target import Target
 
 from .base_builder import CalibrationBuilder
 from .exceptions import CalibrationNotAvailable
@@ -66,6 +67,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         instruction_schedule_map: InstructionScheduleMap = None,
         qubit_channel_mapping: List[List[str]] = None,
         verbose: bool = True,
+        target: Target = None,
     ):
         """
         Initializes a RZXGate calibration builder.
@@ -76,6 +78,9 @@ class RZXCalibrationBuilder(CalibrationBuilder):
             qubit_channel_mapping: The list mapping qubit indices to the list of
                 channel names that apply on that qubit.
             verbose: Set True to raise a user warning when RZX schedule cannot be built.
+            target: The :class:`~.Target` representing the target backend, if both
+                 ``instruction_schedule_map`` and this are specified then this argument will take
+                 precedence and ``instruction_schedule_map`` will be ignored.
 
         Raises:
             QiskitError: Instruction schedule map is not provided.
@@ -93,6 +98,8 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         self._inst_map = instruction_schedule_map
         self._verbose = verbose
+        if target:
+            self._inst_map = target.instruction_schedule_map()
 
     def supported(self, node_op: CircuitInst, qubits: List) -> bool:
         """Determine if a given node supports the calibration.
