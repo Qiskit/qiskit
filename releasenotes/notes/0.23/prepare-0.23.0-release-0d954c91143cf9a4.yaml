@@ -12,15 +12,21 @@ prelude: |
       Qiskit. This includes the following new synthesis algorithms:
 
         * Clifford Synthesis
+
           * :func:`~.synth_clifford_layers`
           * :func:`~.synth_clifford_greedy`
-        * Linear Function Synthesis
+
+        * Linear Function Synthesis:
+
           * :func:`~.synth_cnot_depth_line_kms`
           * :func:`~.synth_cnot_count_full_pmh`
-        * Permutation Synthesis
+
+        * Permutation Synthesis:
+
           * :func:`~.synth_permutation_basic`
           * :func:`~synth_permutation_acg`
           * :func:`~synth_permutation_depth_lnn_kms`
+
         * :class:`~.SolovayKitaevDecomposition` detailed in:
           https://arxiv.org/abs/quant-ph/0505030
 
@@ -102,7 +108,7 @@ prelude: |
           plt.legend()
           plt.show()
 
-  This release also deprecates Support for running with Python 3.7. A ``DeprecationWarning`
+  This release also deprecates support for running with Python 3.7. A ``DeprecationWarning``
   will now be emitted if you run Qiskit with Python 3.7. Support for Python 3.7 will be removed
   as part of the 0.25.0 release (currently planned for release in July 2022), starting in that
   release you will need at least Python 3.8 to use Qiskit.

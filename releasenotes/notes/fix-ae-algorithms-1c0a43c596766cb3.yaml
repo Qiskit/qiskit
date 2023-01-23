@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fix the amplitude estimation algorithms in :mod:`.amplitude_estimators` for the usage
-    with the :class:`.BaseSampler` primitive. Previously, the measurements results were 
-    expanded to more bits than actually measured which, for oracles with more than one qubit,
-    led to potential errors in the detection of the "good" quantum states for oracles.

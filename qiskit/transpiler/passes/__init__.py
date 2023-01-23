@@ -74,6 +74,7 @@ Optimizations
    CollectMultiQBlocks
    CollectLinearFunctions
    CollectCliffords
+   CollectAndCollapse
    ConsolidateBlocks
    CXCancellation
    InverseCancellation
@@ -232,6 +233,7 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
+from .optimization import CollectAndCollapse
 
 # circuit analysis
 from .analysis import ResourceEstimation
