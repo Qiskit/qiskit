@@ -47,8 +47,8 @@ class Z2Symmetries:
 
     def __init__(
         self,
-        symmetries: PauliList,
-        sq_paulis: PauliList,
+        symmetries: list[Pauli] | PauliList,
+        sq_paulis: list[Pauli] | PauliList,
         sq_list: list[int],
         tapering_values: list[int] | None = None,
         *,
@@ -56,9 +56,9 @@ class Z2Symmetries:
     ):
         r"""
         Args:
-            symmetries: PauliList object representing the list of $Z_2$ symmetries. These correspond to
+            symmetries: Object representing the list of $Z_2$ symmetries. These correspond to
                 the generators of the symmetry group $\langle \tau_1, \tau_2\dots \rangle>$.
-            sq_paulis: PauliList object representing the list of single-qubit Pauli $\sigma^x_{q(i)}$
+            sq_paulis: Object representing the list of single-qubit Pauli $\sigma^x_{q(i)}$
                 anti-commuting with the symmetry $\tau_i$ and commuting with all the other symmetries
                 $\tau_{j\neq i}$. These operators are used to construct the unitary Clifford operators.
             sq_list: The list of indices $q(i)$ of the single-qubit Pauli operators used to build the
@@ -97,12 +97,12 @@ class Z2Symmetries:
         self.tol = tol
 
     @property
-    def symmetries(self) -> PauliList:
+    def symmetries(self) -> list[Pauli] | PauliList:
         """Return symmetries."""
         return self._symmetries
 
     @property
-    def sq_paulis(self) -> PauliList:
+    def sq_paulis(self) -> list[Pauli] | PauliList:
         """Return sq paulis."""
         return self._sq_paulis
 
@@ -202,7 +202,7 @@ class Z2Symmetries:
         }
 
         if _sparse_pauli_op_is_zero(operator):
-            return cls(PauliList([]), PauliList([]), [], None)
+            return cls([], [], [], None)
 
         for pauli in iter(operator):
             stacked_paulis.append(
@@ -213,7 +213,7 @@ class Z2Symmetries:
         symmetries = _kernel_f2(stacked_matrix)
 
         if not symmetries:
-            return cls(PauliList([]), PauliList([]), [], None)
+            return cls([], [], [], None)
 
         stacked_symmetries = np.stack(symmetries)
         symm_shape = stacked_symmetries.shape

@@ -23,6 +23,34 @@ from qiskit.quantum_info.analysis.z2_symmetries import Z2Symmetries
 class TestSparseZ2Symmetries(QiskitTestCase):
     """Z2Symmetries tests."""
 
+    def test_create_empty(self):
+        """Test creating empty symmetry"""
+        z2_symmetries = Z2Symmetries(
+            symmetries=[],
+            sq_paulis=[],
+            sq_list=[],
+            tapering_values=[],
+        )
+        self.assertTrue(z2_symmetries.is_empty())
+
+    def test_find_z2_symmetries_empty_op(self):
+        """Test finding symmetries of empty operator. Should return empty symmetry"""
+        qubit_op = SparsePauliOp.from_list([("II", 0.0)])
+        z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
+        self.assertTrue(z2_symmetries.is_empty())
+
+    def test_find_z2_symmetries_op_without_sym(self):
+        """Test finding symmetries of operator without symmetries. Should return empty symmetry"""
+        qubit_op = SparsePauliOp.from_list(
+            [
+                ("I", -1.0424710218959303),
+                ("Z", -0.7879673588770277),
+                ("X", -0.18128880821149604),
+            ]
+        )
+        z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
+        self.assertTrue(z2_symmetries.is_empty())
+
     def test_find_z2_symmetries(self):
         """test for find_z2_symmetries"""
 
