@@ -23,6 +23,7 @@ import numpy as np
 import rustworkx
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import two_qubit_decompose
@@ -30,6 +31,7 @@ from qiskit.extensions import UnitaryGate
 from qiskit.circuit import Barrier, Gate, Qubit
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.exceptions import QiskitError
 
 
 class Diagonality(enum.Enum):
@@ -55,13 +57,18 @@ class CommuteDiagonal(TransformationPass):
         self._global_index_map = None
         self._block_list = None
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         # identify 2-qubit runs
         self._global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
         blocks = dag.collect_2q_runs()
         candidate_blocks = self.get_candidate_2q_blocks(blocks, dag)
         # iterate over all 2q runs for each pair of qubits where they exist
-        oporig = Operator(dag_to_circuit(dag))
+        try:
+            # this is just to track global phase of circuit: FIX
+            oporig = Operator(dag_to_circuit(dag))
+        except QiskitError:
+            return dag
         for block_qubits, block_list in candidate_blocks.items():
             self._block_list = block_list
             if len(block_list) < 2:
@@ -486,7 +493,7 @@ def _block_to_circuit(dag, block, remove_idle_qubits=False):
     for node in block:
         block_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
     if remove_idle_qubits:
-        block_dag.remove_qubits(*set(block_dag.idle_wires()))
+        block_dag.remove_qubits(*{bit for bit in block_dag.idle_wires() if isinstance(bit, Qubit)})
     return dag_to_circuit(block_dag)
 
 
@@ -500,6 +507,7 @@ def _copy_dag_bit_like(dag):
     for creg in dag.cregs.values():
         target_dag.add_creg(creg)
     return target_dag
+
 
 def collect_2q_runs_on_qubits(dag, run_qubits):
     """Return a set of non-conditional runs of "op" nodes which directly connect to run_qubits."""

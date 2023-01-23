@@ -15,7 +15,7 @@
 import numpy as np
 import scipy.stats
 
-from qiskit.circuit import QuantumCircuit, Qubit, Barrier
+from qiskit.circuit import QuantumCircuit, Qubit, Barrier, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library.standard_gates import (
     XGate,
     YGate,
@@ -33,6 +33,7 @@ from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.quantum_info.operators import Operator
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.optimization.commute_diagonal import (
     CommuteDiagonal,
     _collect_circuit_between_nodes,
@@ -578,7 +579,7 @@ class TestCommuteDiagonal(QiskitTestCase):
         1: ┤1          ├──■──┤1          ├──■───░─┤1          ├──■──┤1          ├
            └───────────┘┌─┴─┐└───────────┘┌─┴─┐ ░ └───────────┘┌─┴─┐└───────────┘
         2: ─────────────┤ X ├─────────────┤ X ├─░──────────────┤ X ├─────────────
-                        └───┘             └───┘ ░              └───┘             
+                        └───┘             └───┘ ░              └───┘
         """
         np.set_printoptions(precision=2, linewidth=200, suppress=True)
         pass_ = CommuteDiagonal()
@@ -589,7 +590,6 @@ class TestCommuteDiagonal(QiskitTestCase):
         mat1 = scipy.stats.unitary_group.rvs(4, random_state=94)
         mat2 = scipy.stats.unitary_group.rvs(4, random_state=98)
         mat3 = scipy.stats.unitary_group.rvs(4, random_state=945)
-        mat4 = scipy.stats.unitary_group.rvs(4, random_state=45)
         ug0 = UnitaryGate(mat0)
         ug0.name = "unitary0"
         dag.apply_operation_back(ug0, qargs=qr[0:2])
@@ -609,7 +609,6 @@ class TestCommuteDiagonal(QiskitTestCase):
         ug3 = UnitaryGate(mat3)
         ug3.name = "unitary3"
         dag.apply_operation_back(ug3, qargs=qr[0:2])
-        ug4 = UnitaryGate(mat4)
         circ = dag_to_circuit(dag)
         circ_opt = transpile(circ, basis_gates=["cx", "u"], optimization_level=1)
         ccirc = pass_(circ_opt)
@@ -619,3 +618,82 @@ class TestCommuteDiagonal(QiskitTestCase):
         self.assertEqual(ccirc_opt.count_ops()["cx"], 13)
         self.assertEqual(Operator(ccirc_opt), Operator(circ))
 
+    def test_if_else(self):
+        """Test that the pass recurses in a simple if-else."""
+        num_qubits = 4
+
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(1)
+        mat0 = scipy.stats.unitary_group.rvs(4, random_state=61)
+        mat1 = scipy.stats.unitary_group.rvs(4, random_state=94)
+
+        test = QuantumCircuit(qr, cr)
+        test.h(0)
+        test.measure(0, 0)
+        test_true = QuantumCircuit(qr)
+        test_true.unitary(mat0, qr[0:2])
+        test_true.cx(1, 2)
+        test_true.unitary(mat1, qr[0:2])
+        test.if_else((0, True), test_true.copy(), None, range(num_qubits), [0])
+
+        passmanager = PassManager()
+        passmanager.append(self._pass)
+        result = passmanager.run(test)
+        result_if_circuit = transpile(result.data[2].operation.params[0], basis_gates=["u", "cx"])
+        self.assertEqual(Operator(result_if_circuit), Operator(test_true))
+        self.assertEqual(result_if_circuit.count_ops()["cx"], 6)
+
+    def test_nested_control_flow(self):
+        """Test that collection recurses into nested control flow."""
+        num_qubits = 4
+
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(1)
+        mat0 = scipy.stats.unitary_group.rvs(4, random_state=61)
+        mat1 = scipy.stats.unitary_group.rvs(4, random_state=94)
+
+        test = QuantumCircuit(qr, cr)
+        test.h(0)
+        test.measure(0, 0)
+        test_true = QuantumCircuit(qr, cr)
+        test_for = QuantumCircuit(qr, cr)
+        test_for.unitary(mat0, qr[0:2])
+        test_for.cx(1, 2)
+        test_for.unitary(mat1, qr[0:2])
+
+        test_true.for_loop(range(4), body=test_for, qubits=qr, clbits=cr)
+        test.if_else((0, True), test_true.copy(), None, range(num_qubits), [0])
+
+        passmanager = PassManager()
+        passmanager.append(self._pass)
+        result = passmanager.run(test)
+
+        result_for_circuit = transpile(
+            result.data[2].operation.params[0].data[0].operation.params[2], basis_gates=["u", "cx"]
+        )
+        self.assertEqual(Operator(result_for_circuit), Operator(test_for))
+        self.assertEqual(result_for_circuit.count_ops()["cx"], 6)
+
+    def test_for_loop(self):
+        """Test that collection recurses into nested control flow."""
+        num_qubits = 3
+
+        qr = QuantumRegister(num_qubits)
+        cr = ClassicalRegister(1)
+        mat0 = scipy.stats.unitary_group.rvs(4, random_state=61)
+        mat1 = scipy.stats.unitary_group.rvs(4, random_state=94)
+
+        test = QuantumCircuit(qr, cr)
+        test.h(0)
+        test_for = QuantumCircuit(qr, cr)
+        test_for.unitary(mat0, qr[0:2])
+        test_for.cx(1, 2)
+        test_for.unitary(mat1, qr[0:2])
+        test.for_loop(range(4), body=test_for, qubits=qr, clbits=cr)
+
+        passmanager = PassManager()
+        passmanager.append(self._pass)
+        result = passmanager.run(test)
+        result_for_circuit = transpile(result.data[1].operation.params[2], basis_gates=["u", "cx"])
+        self.assertEqual(Operator(result_for_circuit), Operator(test_for))
+        self.assertEqual(result_for_circuit.count_ops()["cx"], 6)
