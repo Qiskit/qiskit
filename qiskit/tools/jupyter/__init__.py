@@ -25,7 +25,7 @@ Overview of all available backends
 
 .. code-block::
 
-    from qiskit import IBMQ
+    from qiskit.providers.ibmq import IBMQ
     import qiskit.tools.jupyter
     %matplotlib inline
 
@@ -39,7 +39,7 @@ Detailed information on a single backend
 
 .. code-block::
 
-    from qiskit import IBMQ
+    from qiskit.providers.ibmq import IBMQ
     import qiskit.tools.jupyter
     %matplotlib inline
 

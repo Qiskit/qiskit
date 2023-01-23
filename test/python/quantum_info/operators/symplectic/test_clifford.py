@@ -31,6 +31,8 @@ from qiskit.circuit.library import (
     XGate,
     YGate,
     ZGate,
+    LinearFunction,
+    PauliGate,
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
@@ -431,6 +433,66 @@ class TestCliffordGates(QiskitTestCase):
 
         with self.assertRaises(QiskitError):
             Clifford(qc)
+
+    def test_from_circuit_with_other_clifford(self):
+        """Test initialization from circuit containing another clifford."""
+        cliff = random_clifford(1, seed=777)
+        qc = QuantumCircuit(1)
+        qc.append(cliff, [0])
+        cliff1 = Clifford(qc)
+        self.assertEqual(cliff, cliff1)
+
+    def test_from_circuit_with_multiple_cliffords(self):
+        """Test initialization from circuit containing multiple clifford."""
+        cliff1 = random_clifford(2, seed=777)
+        cliff2 = random_clifford(2, seed=999)
+
+        # Append the two cliffords to circuit and create the clifford from this circuit
+        qc1 = QuantumCircuit(3)
+        qc1.append(cliff1, [0, 1])
+        qc1.append(cliff2, [1, 2])
+        expected_cliff1 = Clifford(qc1)
+
+        # Compose the two cliffords directly
+        qc2 = QuantumCircuit(3)
+        expected_cliff2 = Clifford(qc2)
+        expected_cliff2 = Clifford.compose(expected_cliff2, cliff1, qargs=[0, 1], front=False)
+        expected_cliff2 = Clifford.compose(expected_cliff2, cliff2, qargs=[1, 2], front=False)
+        self.assertEqual(expected_cliff1, expected_cliff2)
+
+    def test_from_circuit_with_all_types(self):
+        """Test initialization from circuit containing various Clifford-like objects."""
+
+        # Construct objects that can go onto a Clifford circuit.
+        # These include regular clifford gates, linear functions, Pauli gates, other Clifford,
+        # and even circuits with other clifford objects.
+        linear_function = LinearFunction([[0, 1], [1, 1]])
+        pauli_gate = PauliGate("YZ")
+        cliff = random_clifford(2, seed=777)
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.append(random_clifford(1, seed=999), [1])
+
+        # Construct a quantum circuit with these objects and convert it to clifford
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.append(linear_function, [0, 2])
+        circuit.cz(0, 1)
+        circuit.append(pauli_gate, [2, 1])
+        circuit.append(cliff, [0, 1])
+        circuit.swap(0, 2)
+        circuit.append(qc, [0, 1])
+
+        # Make sure that Clifford can be constructed from such circuit.
+        combined_clifford = Clifford(circuit)
+
+        # Additionally, make sure that it produces the correct clifford.
+        expected_clifford_dict = {
+            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+        }
+        expected_clifford = Clifford.from_dict(expected_clifford_dict)
+        self.assertEqual(combined_clifford, expected_clifford)
 
 
 @ddt

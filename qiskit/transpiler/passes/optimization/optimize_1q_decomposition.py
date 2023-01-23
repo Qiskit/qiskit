@@ -70,7 +70,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
             operator = gate.op.to_matrix().dot(operator)
 
         if self._target:
-            qubits_tuple = (qubit,)
+            if qubit is not None:
+                qubits_tuple = (qubit,)
+            else:
+                qubits_tuple = None
             if qubits_tuple in self._local_decomposers_cache:
                 decomposers = self._local_decomposers_cache[qubits_tuple]
             else:
