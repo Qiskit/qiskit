@@ -14,7 +14,6 @@
 """Test Estimator Gradients"""
 
 import unittest
-from test import combine
 
 import numpy as np
 from ddt import ddt, data, unpack
@@ -25,6 +24,7 @@ from qiskit.algorithms.gradients import (
     LinCombEstimatorGradient,
     ParamShiftEstimatorGradient,
     SPSAEstimatorGradient,
+    ReverseEstimatorGradient,
     DerivativeType,
 )
 from qiskit.circuit import Parameter
@@ -35,12 +35,15 @@ from qiskit.quantum_info import Operator, SparsePauliOp, Pauli
 from qiskit.quantum_info.random import random_pauli_list
 from qiskit.test import QiskitTestCase
 
+from .logging_primitives import LoggingEstimator
+
 gradient_factories = [
     lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="central"),
     lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="forward"),
     lambda estimator: FiniteDiffEstimatorGradient(estimator, epsilon=1e-6, method="backward"),
     ParamShiftEstimatorGradient,
     LinCombEstimatorGradient,
+    lambda estimator: ReverseEstimatorGradient(),  # does not take an estimator!
 ]
 
 
@@ -48,7 +51,7 @@ gradient_factories = [
 class TestEstimatorGradient(QiskitTestCase):
     """Test Estimator Gradient"""
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_operators(self, grad):
         """Test the estimator gradient for different operators"""
         estimator = Estimator()
@@ -70,7 +73,23 @@ class TestEstimatorGradient(QiskitTestCase):
         value = gradient.run([qc], [op], [param]).result().gradients[0]
         self.assertAlmostEqual(value[0], correct_result, 3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
+    def test_single_circuit_observable(self, grad):
+        """Test the estimator gradient for a single circuit and observable"""
+        estimator = Estimator()
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.p(a, 0)
+        qc.h(0)
+        gradient = grad(estimator)
+        op = SparsePauliOp.from_list([("Z", 1)])
+        correct_result = -1 / np.sqrt(2)
+        param = [np.pi / 4]
+        value = gradient.run(qc, op, [param]).result().gradients[0]
+        self.assertAlmostEqual(value[0], correct_result, 3)
+
+    @data(*gradient_factories)
     def test_gradient_p(self, grad):
         """Test the estimator gradient for p"""
         estimator = Estimator()
@@ -88,7 +107,7 @@ class TestEstimatorGradient(QiskitTestCase):
             for j, value in enumerate(gradients):
                 self.assertAlmostEqual(value, correct_results[i][j], 3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_u(self, grad):
         """Test the estimator gradient for u"""
         estimator = Estimator()
@@ -109,7 +128,7 @@ class TestEstimatorGradient(QiskitTestCase):
             for j, value in enumerate(gradients):
                 self.assertAlmostEqual(value, correct_results[i][j], 3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_efficient_su2(self, grad):
         """Test the estimator gradient for EfficientSU2"""
         estimator = Estimator()
@@ -137,7 +156,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_2qubit_gate(self, grad):
         """Test the estimator gradient for 2 qubit gates"""
         estimator = Estimator()
@@ -162,7 +181,7 @@ class TestEstimatorGradient(QiskitTestCase):
                 gradients = gradient.run([qc], [op], [param]).result().gradients[0]
                 np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_parameter_coefficient(self, grad):
         """Test the estimator gradient for parameter variables with coefficients"""
         estimator = Estimator()
@@ -183,7 +202,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_parameters(self, grad):
         """Test the estimator gradient for parameters"""
         estimator = Estimator()
@@ -202,7 +221,7 @@ class TestEstimatorGradient(QiskitTestCase):
             gradients = gradient.run([qc], [op], [param], parameters=[[a]]).result().gradients[0]
             np.testing.assert_allclose(gradients, correct_results[i], atol=1e-3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_multi_arguments(self, grad):
         """Test the estimator gradient for multiple arguments"""
         estimator = Estimator()
@@ -241,9 +260,7 @@ class TestEstimatorGradient(QiskitTestCase):
         np.testing.assert_allclose(gradients2[1], correct_results2[1], atol=1e-3)
         np.testing.assert_allclose(gradients2[2], correct_results2[2], atol=1e-3)
 
-    @combine(
-        grad=[FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient]
-    )
+    @data(FiniteDiffEstimatorGradient, ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_validation(self, grad):
         """Test estimator gradient's validation"""
         estimator = Estimator()
@@ -302,7 +319,7 @@ class TestEstimatorGradient(QiskitTestCase):
         gradients = gradient.run([qc], [op], param_list).result().gradients
         np.testing.assert_allclose(gradients, correct_results, atol=1e-3)
 
-    @combine(grad=[ParamShiftEstimatorGradient, LinCombEstimatorGradient])
+    @data(ParamShiftEstimatorGradient, LinCombEstimatorGradient)
     def test_gradient_random_parameters(self, grad):
         """Test param shift and lin comb w/ random parameters"""
         rng = np.random.default_rng(123)
@@ -345,22 +362,24 @@ class TestEstimatorGradient(QiskitTestCase):
 
     @data((DerivativeType.IMAG, -1.0), (DerivativeType.COMPLEX, -1.0j))
     @unpack
-    def test_lin_comb_imag_gradient(self, derivative_type, expected_gradient_value):
+    def test_complex_gradient(self, derivative_type, expected_gradient_value):
         """Tests if the ``LinCombEstimatorGradient`` has the correct value."""
         estimator = Estimator()
-        gradient = LinCombEstimatorGradient(estimator, derivative_type=derivative_type)
-        c = QuantumCircuit(1)
-        c.rz(Parameter("p"), 0)
-        result = gradient.run([c], [Pauli("I")], [[0.0]]).result()
-        self.assertAlmostEqual(result.gradients[0][0], expected_gradient_value)
+        lcu = LinCombEstimatorGradient(estimator, derivative_type=derivative_type)
+        reverse = ReverseEstimatorGradient(derivative_type=derivative_type)
 
-    @combine(
-        grad=[
-            FiniteDiffEstimatorGradient,
-            ParamShiftEstimatorGradient,
-            LinCombEstimatorGradient,
-            SPSAEstimatorGradient,
-        ],
+        for gradient in [lcu, reverse]:
+            with self.subTest(gradient=gradient):
+                c = QuantumCircuit(1)
+                c.rz(Parameter("p"), 0)
+                result = gradient.run([c], [Pauli("I")], [[0.0]]).result()
+                self.assertAlmostEqual(result.gradients[0][0], expected_gradient_value)
+
+    @data(
+        FiniteDiffEstimatorGradient,
+        ParamShiftEstimatorGradient,
+        LinCombEstimatorGradient,
+        SPSAEstimatorGradient,
     )
     def test_options(self, grad):
         """Test estimator gradient's run options"""
@@ -410,6 +429,45 @@ class TestEstimatorGradient(QiskitTestCase):
             self.assertEqual(result.options.get("shots"), 300)
             # Only default + estimator options. Not run.
             self.assertEqual(options.get("shots"), 200)
+
+    @data(
+        FiniteDiffEstimatorGradient,
+        ParamShiftEstimatorGradient,
+        LinCombEstimatorGradient,
+        SPSAEstimatorGradient,
+    )
+    def test_operations_preserved(self, gradient_cls):
+        """Test non-parameterized instructions are preserved and not unrolled."""
+        x = Parameter("x")
+        circuit = QuantumCircuit(2)
+        circuit.initialize([0.5, 0.5, 0.5, 0.5])  # this should remain as initialize
+        circuit.crx(x, 0, 1)  # this should get unrolled
+
+        values = [np.pi / 2]
+        expect = -1 / (2 * np.sqrt(2))
+
+        observable = SparsePauliOp(["XX"])
+
+        ops = []
+
+        def operations_callback(op):
+            ops.append(op)
+
+        estimator = LoggingEstimator(operations_callback=operations_callback)
+
+        if gradient_cls in [SPSAEstimatorGradient, FiniteDiffEstimatorGradient]:
+            gradient = gradient_cls(estimator, epsilon=0.01)
+        else:
+            gradient = gradient_cls(estimator)
+
+        job = gradient.run([circuit], [observable], [values])
+        result = job.result()
+
+        with self.subTest(msg="assert initialize is preserved"):
+            self.assertTrue(all("initialize" in ops_i[0].keys() for ops_i in ops))
+
+        with self.subTest(msg="assert result is correct"):
+            self.assertAlmostEqual(result.gradients[0].item(), expect, places=5)
 
 
 if __name__ == "__main__":

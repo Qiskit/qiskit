@@ -19,7 +19,6 @@ import numpy as np
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.converters import circuit_to_dag
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +54,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         if basis:
             self._global_decomposers = _possible_decomposers(set(basis))
+        elif target is None:
+            self._global_decomposers = _possible_decomposers(None)
+            self._basis_gates = None
 
     def _resynthesize_run(self, run, qubit=None):
         """
@@ -68,7 +70,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
             operator = gate.op.to_matrix().dot(operator)
 
         if self._target:
-            qubits_tuple = (qubit,)
+            if qubit is not None:
+                qubits_tuple = (qubit,)
+            else:
+                qubits_tuple = None
             if qubits_tuple in self._local_decomposers_cache:
                 decomposers = self._local_decomposers_cache[qubits_tuple]
             else:
@@ -97,10 +102,14 @@ class Optimize1qGatesDecomposition(TransformationPass):
         # does this run have uncalibrated gates?
         uncalibrated_p = not has_cals_p or any(not dag.has_calibration_for(g) for g in old_run)
         # does this run have gates not in the image of ._decomposers _and_ uncalibrated?
-        uncalibrated_and_not_basis_p = any(
-            g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
-            for g in old_run
-        )
+        if basis is not None:
+            uncalibrated_and_not_basis_p = any(
+                g.name not in basis and (not has_cals_p or not dag.has_calibration_for(g))
+                for g in old_run
+            )
+        else:
+            # If no basis is specified then we're always in the basis
+            uncalibrated_and_not_basis_p = False
 
         # if we're outside of the basis set, we're obligated to logically decompose.
         # if we're outside of the set of gates for which we have physical definitions,
@@ -124,23 +133,18 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        if self._basis_gates is None and self._target is None:
-            logger.info("Skipping pass because no basis or target is set")
-            return dag
-
         runs = dag.collect_1q_runs()
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for run in runs:
             qubit = qubit_indices[run[0].qargs[0]]
-            new_circ = self._resynthesize_run(run, qubit)
+            new_dag = self._resynthesize_run(run, qubit)
 
             if self._target is None:
                 basis = self._basis_gates
             else:
                 basis = self._target.operation_names_for_qargs((qubit,))
 
-            if new_circ is not None and self._substitution_checks(dag, run, new_circ, basis, qubit):
-                new_dag = circuit_to_dag(new_circ)
+            if new_dag is not None and self._substitution_checks(dag, run, new_dag, basis, qubit):
                 dag.substitute_node_with_dag(run[0], new_dag)
                 # Delete the other nodes in the run
                 for current_node in run[1:]:
@@ -151,11 +155,19 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
 def _possible_decomposers(basis_set):
     decomposers = []
-    euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
-    for euler_basis_name, gates in euler_basis_gates.items():
-        if set(gates).issubset(basis_set):
-            decomposer = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis_name)
-            decomposers.append(decomposer)
+    if basis_set is None:
+        decomposers = [
+            one_qubit_decompose.OneQubitEulerDecomposer(basis, use_dag=True)
+            for basis in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
+        ]
+    else:
+        euler_basis_gates = one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES
+        for euler_basis_name, gates in euler_basis_gates.items():
+            if set(gates).issubset(basis_set):
+                decomposer = one_qubit_decompose.OneQubitEulerDecomposer(
+                    euler_basis_name, use_dag=True
+                )
+                decomposers.append(decomposer)
     return decomposers
 
 
@@ -168,7 +180,10 @@ def _error(circuit, target, qubit):
     of circuit as a weak proxy for error.
     """
     if target is None:
-        return len(circuit)
+        if isinstance(circuit, list):
+            return len(circuit)
+        else:
+            return len(circuit._multi_graph) - 2
     else:
         if isinstance(circuit, list):
             gate_fidelities = [
@@ -176,11 +191,16 @@ def _error(circuit, target, qubit):
             ]
         else:
             gate_fidelities = [
-                1 - getattr(target[inst.operation.name].get((qubit,)), "error", 0.0)
-                for inst in circuit
+                1 - getattr(target[inst.op.name].get((qubit,)), "error", 0.0)
+                for inst in circuit.op_nodes()
             ]
         gate_error = 1 - np.product(gate_fidelities)
         if gate_error == 0.0:
-            return -100 + len(circuit)  # prefer shorter circuits among those with zero error
+            if isinstance(circuit, list):
+                return -100 + len(circuit)
+            else:
+                return -100 + len(
+                    circuit._multi_graph
+                )  # prefer shorter circuits among those with zero error
         else:
             return gate_error

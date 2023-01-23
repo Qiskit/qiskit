@@ -182,27 +182,30 @@ def graysynth(cnots, angles, section_size=2):
 
 def synth_cnot_count_full_pmh(state, section_size=2):
     """
-    This function is an implementation of the Patel–Markov–Hayes algorithm
-    for optimal synthesis of linear reversible circuits, as specified by an
-    n x n matrix.
+    Synthesize linear reversible circuits for all-to-all architecture
+    using Patel, Markov and Hayes method.
 
-    The algorithm is described in detail in the following paper:
-    "Optimal synthesis of linear reversible circuits."
-    Patel, Ketan N., Igor L. Markov, and John P. Hayes.
-    Quantum Information & Computation 8.3 (2008): 282-294.
+    This function is an implementation of the Patel, Markov and Hayes algorithm from [1]
+    for optimal synthesis of linear reversible circuits for all-to-all architecture,
+    as specified by an n x n matrix.
 
     Args:
-        state (list[list] or ndarray): n x n matrix, describing the state
+        state (list[list] or ndarray): n x n boolean invertible matrix, describing the state
             of the input circuit
-        section_size (int): the size of each section, used in _lwr_cnot_synth(), in the
-            Patel–Markov–Hayes algorithm. section_size must be a factor of num_qubits.
+        section_size (int): the size of each section, used in the
+            Patel–Markov–Hayes algorithm [1]. section_size must be a factor of num_qubits.
 
     Returns:
-        QuantumCircuit: a CNOT-only circuit implementing the
-            desired linear transformation
+        QuantumCircuit: a CX-only circuit implementing the linear transformation.
 
     Raises:
-        QiskitError: when variable "state" isn't of type numpy.matrix
+        QiskitError: when variable "state" isn't of type numpy.ndarray
+
+    References:
+        1. Patel, Ketan N., Igor L. Markov, and John P. Hayes,
+           *Optimal synthesis of linear reversible circuits*,
+           Quantum Information & Computation 8.3 (2008): 282-294.
+           `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
     """
     if not isinstance(state, (list, np.ndarray)):
         raise QiskitError(

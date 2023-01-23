@@ -31,15 +31,18 @@ from qiskit.circuit.library import (
     XGate,
     YGate,
     ZGate,
+    LinearFunction,
+    PauliGate,
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_operation
-from qiskit.quantum_info.synthesis.clifford_decompose import (
-    decompose_clifford_ag,
-    decompose_clifford_bm,
-    decompose_clifford_greedy,
+from qiskit.synthesis.clifford import (
+    synth_clifford_full,
+    synth_clifford_ag,
+    synth_clifford_bm,
+    synth_clifford_greedy,
 )
 from qiskit.test import QiskitTestCase
 
@@ -431,6 +434,66 @@ class TestCliffordGates(QiskitTestCase):
         with self.assertRaises(QiskitError):
             Clifford(qc)
 
+    def test_from_circuit_with_other_clifford(self):
+        """Test initialization from circuit containing another clifford."""
+        cliff = random_clifford(1, seed=777)
+        qc = QuantumCircuit(1)
+        qc.append(cliff, [0])
+        cliff1 = Clifford(qc)
+        self.assertEqual(cliff, cliff1)
+
+    def test_from_circuit_with_multiple_cliffords(self):
+        """Test initialization from circuit containing multiple clifford."""
+        cliff1 = random_clifford(2, seed=777)
+        cliff2 = random_clifford(2, seed=999)
+
+        # Append the two cliffords to circuit and create the clifford from this circuit
+        qc1 = QuantumCircuit(3)
+        qc1.append(cliff1, [0, 1])
+        qc1.append(cliff2, [1, 2])
+        expected_cliff1 = Clifford(qc1)
+
+        # Compose the two cliffords directly
+        qc2 = QuantumCircuit(3)
+        expected_cliff2 = Clifford(qc2)
+        expected_cliff2 = Clifford.compose(expected_cliff2, cliff1, qargs=[0, 1], front=False)
+        expected_cliff2 = Clifford.compose(expected_cliff2, cliff2, qargs=[1, 2], front=False)
+        self.assertEqual(expected_cliff1, expected_cliff2)
+
+    def test_from_circuit_with_all_types(self):
+        """Test initialization from circuit containing various Clifford-like objects."""
+
+        # Construct objects that can go onto a Clifford circuit.
+        # These include regular clifford gates, linear functions, Pauli gates, other Clifford,
+        # and even circuits with other clifford objects.
+        linear_function = LinearFunction([[0, 1], [1, 1]])
+        pauli_gate = PauliGate("YZ")
+        cliff = random_clifford(2, seed=777)
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.append(random_clifford(1, seed=999), [1])
+
+        # Construct a quantum circuit with these objects and convert it to clifford
+        circuit = QuantumCircuit(3)
+        circuit.h(0)
+        circuit.append(linear_function, [0, 2])
+        circuit.cz(0, 1)
+        circuit.append(pauli_gate, [2, 1])
+        circuit.append(cliff, [0, 1])
+        circuit.swap(0, 2)
+        circuit.append(qc, [0, 1])
+
+        # Make sure that Clifford can be constructed from such circuit.
+        combined_clifford = Clifford(circuit)
+
+        # Additionally, make sure that it produces the correct clifford.
+        expected_clifford_dict = {
+            "stabilizer": ["-IZX", "+ZYZ", "+ZII"],
+            "destabilizer": ["+ZIZ", "+ZXZ", "-XIX"],
+        }
+        expected_clifford = Clifford.from_dict(expected_clifford_dict)
+        self.assertEqual(combined_clifford, expected_clifford)
+
 
 @ddt
 class TestCliffordSynthesis(QiskitTestCase):
@@ -473,36 +536,47 @@ class TestCliffordSynthesis(QiskitTestCase):
                 self.assertEqual(target, value)
 
     @combine(num_qubits=[2, 3])
-    def test_decompose_2q_bm(self, num_qubits):
+    def test_synth_bm(self, num_qubits):
         """Test B&M synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(decompose_clifford_bm(target))
+            value = Clifford(synth_clifford_bm(target))
             self.assertEqual(value, target)
 
     @combine(num_qubits=[2, 3, 4, 5])
-    def test_decompose_2q_ag(self, num_qubits):
+    def test_synth_ag(self, num_qubits):
         """Test A&G synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(decompose_clifford_ag(target))
+            value = Clifford(synth_clifford_ag(target))
             self.assertEqual(value, target)
 
     @combine(num_qubits=[1, 2, 3, 4, 5])
-    def test_decompose_2q_greedy(self, num_qubits):
+    def test_synth_greedy(self, num_qubits):
         """Test greedy synthesis for set of {num_qubits}-qubit Cliffords"""
         rng = np.random.default_rng(1234)
         samples = 50
         for _ in range(samples):
             circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
             target = Clifford(circ)
-            value = Clifford(decompose_clifford_greedy(target))
+            value = Clifford(synth_clifford_greedy(target))
+            self.assertEqual(value, target)
+
+    @combine(num_qubits=[1, 2, 3, 4, 5])
+    def test_synth_full(self, num_qubits):
+        """Test synthesis for set of {num_qubits}-qubit Cliffords"""
+        rng = np.random.default_rng(1234)
+        samples = 50
+        for _ in range(samples):
+            circ = random_clifford_circuit(num_qubits, 5 * num_qubits, seed=rng)
+            target = Clifford(circ)
+            value = Clifford(synth_clifford_full(target))
             self.assertEqual(value, target)
 
 
