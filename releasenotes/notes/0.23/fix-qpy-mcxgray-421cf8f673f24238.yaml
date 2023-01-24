@@ -3,6 +3,6 @@ fixes:
   - |
     Fixed a deserialization issue in QPY's (:mod:`qiskit.qpy`) :func:`~.qpy.load`
     function where circuits containing gates of class :class:`.MCXGate`,
-    :class:`.MCXGrayCode`, and :class:`.MCXRecursive`, and
+    :class:`.MCXGrayCode`, :class:`.MCXRecursive`, and
     :class:`.MCXVChain` would fail to deserialize.
     Fixed `#9390 <https://github.com/Qiskit/qiskit-terra/issues/9390>`__.

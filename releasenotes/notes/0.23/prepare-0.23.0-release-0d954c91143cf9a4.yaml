@@ -1,12 +1,12 @@
 ---
 prelude: |
-  The Qiskit Terra 0.23.0 is a mjaor feature release that includes
-  multitudinous new feature and bugfixes. The highlights for this release
+  The Qiskit Terra 0.23.0 is a major feature release that includes
+  multitudinous new features and bugfixes. The highlights for this release
   are:
 
-    * Support for importing `OpenQASM3` programs and creating :class:`~QuantumCircuit` objects
+    * Support for importing `OpenQASM3` programs and creating :class:`.QuantumCircuit` objects
       from the input program via two new functions :func:`qiskit.qasm3.load` and
-      :qiskit.qasm3.loads`.
+      :func:`qiskit.qasm3.loads`.
 
     * Improvements to the library of synthesis algorithms included in
       Qiskit. This includes the following new synthesis algorithms:
@@ -29,6 +29,7 @@ prelude: |
 
         * :class:`~.SolovayKitaevDecomposition` detailed in:
           https://arxiv.org/abs/quant-ph/0505030
+
         * New plugins for :class:`~.HighLevelSynthesis`:
 
           * :class:`~.ACGSynthesisPermutation`
@@ -43,9 +44,9 @@ prelude: |
       is now primarily written in Rust which can lead to a runtime
       improvement, however the bigger improvement is in the quality of
       the output (measured by decreasing number of :class:`~.SwapGate`
-      introduced by :class:`~.SabreSwap`). For, example running
+      introduced by :class:`~.SabreSwap`). For example, running
       :class:`~.SabreLayout` and :class:`~.SabreSwap` on Bernstein
-      Vazirani circuits targetting the :class:`~.FakeSherbrooke` backend
+      Vazirani circuits targeting the :class:`~.FakeSherbrooke` backend
       yields the following results:
 
       .. plot::
