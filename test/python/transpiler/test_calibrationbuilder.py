@@ -19,7 +19,7 @@ from ddt import data, ddt
 
 from qiskit import circuit, schedule
 from qiskit.circuit.library.standard_gates import SXGate, RZGate
-from qiskit.providers.fake_provider import FakeHanoi
+from qiskit.providers.fake_provider import FakeHanoi, FakeHanoiV2, FakeSherbrooke
 from qiskit.pulse import (
     ControlChannel,
     DriveChannel,
@@ -47,31 +47,167 @@ class TestCalibrationBuilder(QiskitTestCase):
     __angle = np.pi / 2
     __granularity = 16
 
-    def setUp(self):
-        super().setUp()
-        # This backend provides CX(0,1) with native ECR direction.
-        self.backend = FakeHanoi()
-        self.inst_map = self.backend.defaults().instruction_schedule_map
+    @staticmethod
+    def get_cr_play(cr_schedule, name):
+        """A helper function to filter CR pulses."""
 
-        # Get positive CR tone
-        def _get_cr(time_inst, name):
+        def _filter_func(time_inst):
             return isinstance(time_inst[1], Play) and time_inst[1].pulse.name.startswith(name)
 
-        qubits = (0, 1)
-        if self.inst_map.has("cx", qubits):
-            cr_sched = self.inst_map.get("cx", qubits=qubits)
-        elif self.inst_map.has("ecr", qubits):
-            cr_sched = self.inst_map.get("ecr", qubits=qubits)
-        elif self.inst_map.has("ecr", tuple(reversed(qubits))):
-            cr_sched = self.inst_map.get("ecr", tuple(reversed(qubits)))
+        return cr_schedule.filter(_filter_func).instructions[0][1]
 
-        # CR tone
-        self.u0p_play = cr_sched.filter(lambda elm: _get_cr(elm, "CR90p_u")).instructions[0][1]
-        self.u0m_play = cr_sched.filter(lambda elm: _get_cr(elm, "CR90m_u")).instructions[0][1]
+    def build_stretched_ecr_pulse_forward(
+        self,
+        backend,
+        theta,
+        u0p_play,
+        d1p_play,
+        u0m_play,
+        d1m_play,
+    ):
+        """A helper function to generate reference pulse schedule for forward direction."""
+        duration = self.compute_stretch_duration(u0p_play, theta)
+        width = self.compute_stretch_width(u0p_play, theta)
 
-        # Rotary tone
-        self.d1p_play = cr_sched.filter(lambda elm: _get_cr(elm, "CR90p_d")).instructions[0][1]
-        self.d1m_play = cr_sched.filter(lambda elm: _get_cr(elm, "CR90m_d")).instructions[0][1]
+        with builder.build(
+            backend,
+            default_alignment="sequential",
+            default_transpiler_settings={"optimization_level": 0},
+        ) as ref_sched:
+            with builder.align_left():
+                # Positive CRs
+                u0p_params = u0p_play.pulse.parameters
+                u0p_params["duration"] = duration
+                u0p_params["width"] = width
+                builder.play(
+                    GaussianSquare(**u0p_params),
+                    ControlChannel(0),
+                )
+                d1p_params = d1p_play.pulse.parameters
+                d1p_params["duration"] = duration
+                d1p_params["width"] = width
+                builder.play(
+                    GaussianSquare(**d1p_params),
+                    DriveChannel(1),
+                )
+            builder.x(0)
+            with builder.align_left():
+                # Negative CRs
+                u0m_params = u0m_play.pulse.parameters
+                u0m_params["duration"] = duration
+                u0m_params["width"] = width
+                builder.play(
+                    GaussianSquare(**u0m_params),
+                    ControlChannel(0),
+                )
+                d1m_params = d1m_play.pulse.parameters
+                d1m_params["duration"] = duration
+                d1m_params["width"] = width
+                builder.play(
+                    GaussianSquare(**d1m_params),
+                    DriveChannel(1),
+                )
+            builder.x(0)
+        return ref_sched
+
+    def build_stretched_ecr_pulse_backward(
+        self,
+        backend,
+        theta,
+        u0p_play,
+        d1p_play,
+        u0m_play,
+        d1m_play,
+    ):
+        """A helper function to generate reference pulse schedule for backward direction."""
+        duration = self.compute_stretch_duration(u0p_play, theta)
+        width = self.compute_stretch_width(u0p_play, theta)
+
+        with builder.build(
+            backend,
+            default_alignment="sequential",
+            default_transpiler_settings={"optimization_level": 0},
+        ) as ref_sched:
+            # Hadamard gates
+            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            builder.call_gate(SXGate(), qubits=(0,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            builder.call_gate(SXGate(), qubits=(1,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            with builder.align_left():
+                # Positive CRs
+                u0p_params = u0p_play.pulse.parameters
+                u0p_params["duration"] = duration
+                u0p_params["width"] = width
+                builder.play(
+                    GaussianSquare(**u0p_params),
+                    ControlChannel(0),
+                )
+                d1p_params = d1p_play.pulse.parameters
+                d1p_params["duration"] = duration
+                d1p_params["width"] = width
+                builder.play(
+                    GaussianSquare(**d1p_params),
+                    DriveChannel(1),
+                )
+            builder.x(0)
+            with builder.align_left():
+                # Negative CRs
+                u0m_params = u0m_play.pulse.parameters
+                u0m_params["duration"] = duration
+                u0m_params["width"] = width
+                builder.play(
+                    GaussianSquare(**u0m_params),
+                    ControlChannel(0),
+                )
+                d1m_params = d1m_play.pulse.parameters
+                d1m_params["duration"] = duration
+                d1m_params["width"] = width
+                builder.play(
+                    GaussianSquare(**d1m_params),
+                    DriveChannel(1),
+                )
+            builder.x(0)
+            # Hadamard gates
+            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            builder.call_gate(SXGate(), qubits=(0,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(0,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+            builder.call_gate(SXGate(), qubits=(1,))
+            builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
+
+        return ref_sched
+
+    def build_stretched_pulse_forward(
+        self,
+        theta,
+        u0p_play,
+        d1p_play,
+    ):
+        """A helper function to generate reference pulse schedule for forward direction."""
+        duration = self.compute_stretch_duration(u0p_play, 2.0 * theta)
+        width = self.compute_stretch_width(u0p_play, 2.0 * theta)
+
+        with builder.build() as ref_sched:
+            # Positive CRs
+            u0p_params = u0p_play.pulse.parameters
+            u0p_params["duration"] = duration
+            u0p_params["width"] = width
+            builder.play(
+                GaussianSquare(**u0p_params),
+                ControlChannel(0),
+            )
+            d1p_params = d1p_play.pulse.parameters
+            d1p_params["duration"] = duration
+            d1p_params["width"] = width
+            builder.play(
+                GaussianSquare(**d1p_params),
+                DriveChannel(1),
+            )
+            builder.delay(duration, DriveChannel(0))
+
+        return ref_sched
 
     def compute_stretch_duration(self, play_gaussian_square_pulse, theta):
         """Compute duration of stretched Gaussian Square pulse."""
@@ -93,6 +229,93 @@ class TestCalibrationBuilder(QiskitTestCase):
 
         target_area = abs(theta) / self.__angle * full_area
         return max(0, target_area - risefall_area)
+
+    def test_native_cr(self):
+        """Test that correct pulse sequence is generated for native CR pair."""
+        # Sufficiently large angle to avoid minimum duration, i.e. amplitude rescaling
+        theta = np.pi / 4
+
+        backend = FakeHanoi()
+        inst_map = backend.defaults().instruction_schedule_map
+        cr_schedule = inst_map.get("cx", (0, 1))
+
+        qc = circuit.QuantumCircuit(2)
+        qc.rzx(theta, 0, 1)
+        _pass = RZXCalibrationBuilder(instruction_schedule_map=inst_map)
+        test_qc = PassManager(_pass).run(qc)
+
+        ref_sched = self.build_stretched_ecr_pulse_forward(
+            backend=backend,
+            theta=theta,
+            u0p_play=self.get_cr_play(cr_schedule, "CR90p_u"),
+            d1p_play=self.get_cr_play(cr_schedule, "CR90m_u"),
+            u0m_play=self.get_cr_play(cr_schedule, "CR90p_d"),
+            d1m_play=self.get_cr_play(cr_schedule, "CR90m_d"),
+        )
+
+        self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
+
+    # TODO - uncomment this test once target is a valid argument for RZXCalibrationBuilder
+    # def test_native_cr_v2(self):
+    #     """Test that correct pulse sequence is generated for native CR pair for V2 backend."""
+    #     # Sufficiently large angle to avoid minimum duration, i.e. amplitude rescaling
+    #     theta = np.pi / 4
+
+    #     backend = FakeHanoiV2()
+    #     target = backend.target
+    #     cr_schedule = target["cx"][(0, 1)].calibration
+
+    #     qc = circuit.QuantumCircuit(2)
+    #     qc.rzx(theta, 0, 1)
+    #     # _pass = RZXCalibrationBuilder(target=target)
+    #     inst_map = target.instruction_schedule_map()
+    #     _pass = RZXCalibrationBuilder(instruction_schedule_map=inst_map) # temporary fix for line above
+    #     test_qc = PassManager(_pass).run(qc)
+
+    #     ref_sched = self.build_stretched_ecr_pulse_forward(
+    #         backend=backend,
+    #         theta=theta,
+    #         u0p_play=self.get_cr_play(cr_schedule, "CR90p_u"),
+    #         d1p_play=self.get_cr_play(cr_schedule, "CR90m_u"),
+    #         u0m_play=self.get_cr_play(cr_schedule, "CR90p_d"),
+    #         d1m_play=self.get_cr_play(cr_schedule, "CR90m_d"),
+    #     )
+
+    #     self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
+
+    # TODO - uncomment this test once target is a valid argument for RZXCalibrationBuilder
+    # def test_native_ecr(self):
+    #     """Test that correct pulse sequence is generated for native ECR pair."""
+    #     # Sufficiently large angle to avoid minimum duration, i.e. amplitude rescaling
+    #     theta = np.pi / 4
+
+    #     backend = FakeSherbrooke()
+    #     target = backend.target
+    #     inst_map = target.instruction_schedule_map()
+    #     test_qubits = (0, 1)
+
+    #     if inst_map.has("ecr", qubits=test_qubits):
+    #         qubits = test_qubits
+    #     else:
+    #         qubits = tuple(reversed(test_qubits))
+
+    #     cr_schedule = target["ecr"][qubits].calibration
+
+    #     qc = circuit.QuantumCircuit(2)
+    #     qc.rzx(theta, qubits[0], qubits[1])
+    #     _pass = RZXCalibrationBuilder(target=target)
+    #     test_qc = PassManager(_pass).run(qc)
+
+    #     ref_sched = self.build_stretched_ecr_pulse_forward(
+    #         backend=backend,
+    #         theta=theta,
+    #         u0p_play=self.get_cr_play(cr_schedule, "CR90p_u"),
+    #         d1p_play=self.get_cr_play(cr_schedule, "CR90m_u"),
+    #         u0m_play=self.get_cr_play(cr_schedule, "CR90p_d"),
+    #         d1m_play=self.get_cr_play(cr_schedule, "CR90m_d"),
+    #     )
+
+    #     self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
 
 @ddt
