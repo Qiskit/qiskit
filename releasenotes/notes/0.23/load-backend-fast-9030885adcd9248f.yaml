@@ -3,18 +3,19 @@ features:
   - |
     :class:`.InstructionScheduleMap` has been updated to store backend calibration data
     in the format of PulseQobj JSON and invokes conversion when the data is accessed
-    for the first time, i.e. lazy conversion is implemented.
+    for the first time, i.e. lazy conversion.
     This internal logic update drastically improves the performance of loading backend
     especially with many calibration entries.
   - |
     New module :mod:`qiskit.pulse.calibration_entries` has been added. This
     contains several wrapper classes for different pulse schedule representations.
 
-    * :class:`~qiskit.pulse.calibration_entries.ScheduleDef`
-    * :class:`~qiskit.pulse.calibration_entries.CallableDef`
-    * :class:`~qiskit.pulse.calibration_entries.PulseQobjDef`
+    * :class:`~.ScheduleDef`
+    * :class:`~.CallableDef`
+    * :class:`~.PulseQobjDef`
 
-    These classes implement get_schedule and get_signature method
-    that returns pulse schedule and parameter names to assign, respectively.
-    These classes are internally managed by the instruction schedule map or backend target,
-    and thus they will not appear in the user programs.
+    These classes implement the :meth:`~.ScheduleDef.get_schedule` and
+    :meth:`~.ScheduleDef.get_signature` methods that returns pulse schedule
+    and parameter names to assign, respectively. These classes are internally
+    managed by the :class:`.InstructionScheduleMap` or backend :class:`~.Target`,
+    and thus they will not appear in a typical user programs.

@@ -3,7 +3,7 @@ features:
   - |
     Added support for using the Python exponentiation operator, ``**``, with
     :class:`~.Gate` objects is now supported. It is equivalent to running the
-    :meth:`.Gate.pow` method on the object.
+    :meth:`.Gate.power` method on the object.
 
     For example::
 

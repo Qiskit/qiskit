@@ -1,19 +1,19 @@
 ---
 features:
   - |
-    The return type for the :meth:`~.Gate.pow` method on several standard
+    The return type for the :meth:`~.Gate.power` method on several standard
     library gate classes have been updated to return a more specific
     gate object that results in a less lossy and more efficient output.
-    For example, running :meth:`~.IGate.pow` now returns an :class:`~.IGate`
+    For example, running :meth:`~.IGate.power` now returns an :class:`~.IGate`
     instance instead of :class:`~.UnitaryGate` as was done previously.
 
     The full list of output types that have been improved are:
 
-    .. list-table:: Output for :meth:`~.Gate.pow`
+    .. list-table:: Output for :meth:`~.Gate.power`
        :header-rows: 1
 
        * - Gate Class
-         - Output Class from :meth:`~.Gate.pow`
+         - Output Class from :meth:`~.Gate.power`
        * - :class:`~.CPhaseGate`
          - :class:`~.CPhaseGate`
        * - :class:`~.CSGate`

@@ -17,7 +17,7 @@ features:
          - :math:`\frac{f(x+e)-f(x-e)}{2e}`
        * - ``"forward"``
          - :math:`\frac{f(x+e) - f(x)}{e}`
-       * - "backward"
+       * - ``"backward"``
          - :math:`\frac{f(x)-f(x-e)}{e}`
 
     where :math:`e` is the offset epsilon.

@@ -4,7 +4,7 @@ features:
     Add a new function :func:`~.synth_cnot_count_full_pmh` which is used to
     synthesize linear reversible circuits for all-to-all architectures
     using the Patel, Markov and Hayes method. This function is identical to
-    the available ``qiskit.transpiler.synthesis.graysynth.cnot_synth()``
+    the available ``qiskit.transpiler.synthesis.cnot_synth()``
     function but has a more descriptive name and is more logically placed
     in the package tree. This new function supersedes the legacy function
     which will likely be deprecated in a future release.
