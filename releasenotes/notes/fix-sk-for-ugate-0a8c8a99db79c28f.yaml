@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug in :class:`.SolovayKitaev` where on some platforms certain gates led to
-    an accumulation of roundoff errors and to the failure of an orthogonality check.
-    Now, all Qiskit :class:`.Gate` objects pass without raising errors.
-    Fixed `#9437 <https://github.com/Qiskit/qiskit-terra/issues/9437>`__.
