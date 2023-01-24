@@ -16,6 +16,8 @@ import unittest
 
 from ddt import ddt, data, unpack
 from qiskit import QuantumCircuit
+from qiskit.circuit import Measure
+from qiskit.circuit.library import CXGate, HGate
 from qiskit.pulse import Schedule, Play, Constant, DriveChannel
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.instruction_durations import InstructionDurations
@@ -27,6 +29,7 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target, InstructionProperties
 
 
 @ddt
@@ -49,6 +52,35 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         alap_qc = pm.run(qc)
 
         pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
+        new_qc = pm.run(qc.reverse_ops())
+        new_qc = new_qc.reverse_ops()
+        new_qc.name = new_qc.name
+
+        self.assertEqual(alap_qc, new_qc)
+
+    def test_alap_agree_with_reverse_asap_with_target(self):
+        """Test if ALAP schedule agrees with doubly-reversed ASAP schedule."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+        target = Target(num_qubits=2, dt=3.5555555555555554)
+        target.add_instruction(HGate(), {(0,): InstructionProperties(duration=200)})
+        target.add_instruction(CXGate(), {(0, 1): InstructionProperties(duration=700)})
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=1000),
+                (1,): InstructionProperties(duration=1000),
+            },
+        )
+
+        pm = PassManager([ALAPScheduleAnalysis(target=target), PadDelay()])
+        alap_qc = pm.run(qc)
+
+        pm = PassManager([ASAPScheduleAnalysis(target=target), PadDelay()])
         new_qc = pm.run(qc.reverse_ops())
         new_qc = new_qc.reverse_ops()
         new_qc.name = new_qc.name

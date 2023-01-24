@@ -33,15 +33,20 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
-    def __init__(self, instruction_schedule_map):
+    def __init__(self, instruction_schedule_map=None, target=None):
         """EchoRZXWeylDecomposition pass.
 
         Args:
             instruction_schedule_map (InstructionScheduleMap): the mapping from circuit
                 :class:`~.circuit.Instruction` names and arguments to :class:`.Schedule`\\ s.
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``instruction_schedule_map`` and this are specified then this argument will take
+                precedence and ``instruction_schedule_map`` will be ignored.
         """
         super().__init__()
         self._inst_map = instruction_schedule_map
+        if target is not None:
+            self._inst_map = target.instruction_schedule_map()
 
     def _is_native(self, qubit_pair: Tuple) -> bool:
         """Return the direction of the qubit pair that is native, i.e. with the shortest schedule."""
