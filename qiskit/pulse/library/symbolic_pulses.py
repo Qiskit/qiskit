@@ -1074,7 +1074,8 @@ def GaussianSquareEcho(
     sigma: Union[float, ParameterExpression],
     width: Optional[Union[float, ParameterExpression]] = None,
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
-    active_amp: Optional[Union[complex, ParameterExpression]] = 0,
+    active_amp: Optional[Union[float, ParameterExpression]] = 0,
+    active_angle: Optional[Union[float, ParameterExpression]] = 0,
     risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
@@ -1095,13 +1096,15 @@ def GaussianSquareEcho(
     
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
-        amp: The amplitude of the DRAG rise and fall and of the square pulse.
-        sigma: A measure of how wide or narrow the DRAG risefall is; see the class
+        amp: The amplitude of the rise and fall and of the square pulse.
+        sigma: A measure of how wide or narrow the risefall is; see the class
                docstring for more details.
         width: The duration of the embedded square pulse.
         angle: The angle in radians of the complex phase factor uniformly
             scaling the pulse. Default value 0.
         active_amp: The amplitude of the active cancellation tone.
+        active_angle: The angle in radian of the complex phase factor uniformly
+            scaling the active pulse. Default value 0.
         risefall_sigma_ratio: The ratio of each risefall duration to sigma.
         name: Display name for this pulse envelope.
         limit_amplitude: If ``True``, then limit the amplitude of the
@@ -1133,11 +1136,12 @@ def GaussianSquareEcho(
 
 
 
-    parameters = {"sigma": sigma, "width": width, "width_echo": width_echo, "active_amp": active_amp}
+    parameters = {"sigma": sigma, "width": width, "width_echo": width_echo, 
+                    "active_amp": active_amp, "active_angle": active_angle}
 
     # Prepare symbolic expressions
-    _t, _duration, _amp, _sigma, _active_amp, _width, _width_echo, _angle = sym.symbols(
-        "t, duration, amp, sigma, active_amp, width, width_echo, angle"
+    _t, _duration, _amp, _sigma, _active_amp, _width, _width_echo, _angle, _active_angle = sym.symbols(
+        "t, duration, amp, sigma, active_amp, width, width_echo, angle, active_angle"
     )
 
     # gaussian square echo for rotary tone
@@ -1188,7 +1192,7 @@ def GaussianSquareEcho(
     _gaussian_ledge_xy = _lifted_gaussian(_t, _sq_t0_xy, -1, _sigma)
     _gaussian_redge_xy = _lifted_gaussian(_t, _sq_t1_xy, _duration + 1, _sigma)
 
-    envelope_expr_xy = _active_amp * sym.Piecewise(
+    envelope_expr_xy = _active_amp * sym.exp(sym.I * _active_angle) * sym.Piecewise(
         (_gaussian_ledge_xy, _t <= _sq_t0_xy), (_gaussian_redge_xy, _t >= _sq_t1_xy), (1, True)
     )
 
@@ -1196,9 +1200,12 @@ def GaussianSquareEcho(
 
 
     consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width, _duration/2 >= _width_echo)
-    valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0)
 
-    instance = ScalableSymbolicPulse(
+    # Check validity of amplitudes
+    valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0)
+    valid_amp_conditions_expr = sym.And(sym.Abs(_active_amp) <= 1.0)
+
+    instance = SymbolicPulse(
         pulse_type="GaussianSquareEcho",
         duration=duration,
         amp=amp,
