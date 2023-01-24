@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 
 """Expand a gate in a circuit using its decomposition rules."""
-import warnings
 from typing import Type, Union, List, Optional
 from fnmatch import fnmatch
 
@@ -19,61 +18,23 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.circuit.gate import Gate
-from qiskit.utils.deprecation import deprecate_arguments
 
 
 class Decompose(TransformationPass):
     """Expand a gate in a circuit using its decomposition rules."""
 
-    @deprecate_arguments({"gate": "gates_to_decompose"}, since="0.19.0")
     def __init__(
         self,
-        gate: Optional[Type[Gate]] = None,
         gates_to_decompose: Optional[Union[Type[Gate], List[Type[Gate]], List[str], str]] = None,
     ) -> None:
         """Decompose initializer.
 
         Args:
-            gate: DEPRECATED gate to decompose.
             gates_to_decompose: optional subset of gates to be decomposed,
                 identified by gate label, name or type. Defaults to all gates.
         """
         super().__init__()
-
-        if gate is not None:
-            self.gates_to_decompose = gate
-        else:
-            self.gates_to_decompose = gates_to_decompose
-
-    @property
-    def gate(self) -> Gate:
-        """Returns the gate"""
-        warnings.warn(
-            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
-            "will be removed no earlier than 3 months after that "
-            "release date. You should use the gates_to_decompose argument "
-            "instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gates_to_decompose
-
-    @gate.setter
-    def gate(self, value):
-        """Sets the gate
-
-        Args:
-            value (Gate): new value for gate
-        """
-        warnings.warn(
-            "The gate argument is deprecated as of qiskit-terra 0.19.0, and "
-            "will be removed no earlier than 3 months after that "
-            "release date. You should use the gates_to_decompose argument "
-            "instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.gates_to_decompose = value
+        self.gates_to_decompose = gates_to_decompose
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the Decompose pass on `dag`.

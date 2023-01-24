@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,7 +24,7 @@ from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):
-    """Deprecated: Eigensolver Interface.
+    """Pending deprecation: Eigensolver Interface.
 
     The Eigensolver interface has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.Eigensolver` interface.
@@ -38,8 +38,7 @@ class Eigensolver(ABC):
 
     @deprecate_function(
         "The Eigensolver interface has been superseded by the "
-        "qiskit.algorithms.eigensolvers.Eigensolver interface. "
-        "This interface will be removed in the future.",
+        "qiskit.algorithms.eigensolvers.Eigensolver interface. ",
         category=DeprecationWarning,
         since="0.23.0",
     )
@@ -79,7 +78,7 @@ class Eigensolver(ABC):
 
 
 class EigensolverResult(AlgorithmResult):
-    """Deprecated: Eigensolver Result.
+    """Pending deprecation: Eigensolver Result.
 
     The EigensolverResult class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.EigensolverResult` class.
@@ -90,8 +89,7 @@ class EigensolverResult(AlgorithmResult):
 
     @deprecate_function(
         "The EigensolverResult class has been superseded by the "
-        "qiskit.algorithms.eigensolvers.EigensolverResult class. "
-        "This class will be removed in the future.",
+        "qiskit.algorithms.eigensolvers.EigensolverResult class. ",
         category=DeprecationWarning,
         since="0.23.0",
     )

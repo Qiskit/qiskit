@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,7 +24,7 @@ from ..list_or_dict import ListOrDict
 
 
 class MinimumEigensolver(ABC):
-    """Deprecated: Minimum Eigensolver Interface.
+    """Pending deprecation: Minimum Eigensolver Interface.
 
     The Minimum Eigensolver interface has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver` interface.
@@ -38,8 +38,7 @@ class MinimumEigensolver(ABC):
 
     @deprecate_function(
         "The Minimum Eigensolver interface has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver interface. "
-        "This interface will be removed in the future.",
+        "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver interface. ",
         category=DeprecationWarning,
         since="0.23.0",
     )
@@ -83,7 +82,7 @@ class MinimumEigensolver(ABC):
 
 
 class MinimumEigensolverResult(AlgorithmResult):
-    """Deprecated: Minimum Eigensolver Result.
+    """Pending deprecation: Minimum Eigensolver Result.
 
     The MinimumEigensolverResult class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult` class.
@@ -94,8 +93,7 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     @deprecate_function(
         "The MinimumEigensolverResult class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class. "
-        "This class will be removed in the future.",
+        "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class.",
         category=DeprecationWarning,
         since="0.23.0",
     )

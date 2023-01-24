@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
-    Deprecated: Numpy Minimum Eigensolver algorithm.
+    Pending deprecation: Numpy Minimum Eigensolver algorithm.
 
     The NumPyMinimumEigensolver class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver` class.
@@ -39,8 +39,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
 
     @deprecate_function(
         "The NumPyMinimumEigensolver class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver class. "
-        "This class will be removed in the future.",
+        "qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver class. ",
         category=DeprecationWarning,
         since="0.23.0",
     )

@@ -270,7 +270,6 @@ def load(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
-                qiskit_version=qiskit_version,
             )
         )
     return programs

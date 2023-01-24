@@ -135,6 +135,7 @@ class BasePass(metaclass=MetaPass):
             result_circuit._layout = TranspileLayout(
                 initial_layout=self.property_set["layout"],
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
+                final_layout=self.property_set["final_layout"],
             )
         if self.property_set["clbit_write_latency"] is not None:
             result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]

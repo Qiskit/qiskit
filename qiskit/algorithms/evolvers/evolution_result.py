@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,7 +22,7 @@ from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):
-    """Deprecated: Class for holding evolution result.
+    """Pending deprecation: Class for holding evolution result.
 
     The EvolutionResult class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.TimeEvolutionResult` class.
@@ -33,8 +33,7 @@ class EvolutionResult(AlgorithmResult):
 
     @deprecate_function(
         "The EvolutionResult class has been superseded by the "
-        "qiskit.algorithms.time_evolvers.TimeEvolutionResult class. "
-        "This class will be removed in the future.",
+        "qiskit.algorithms.time_evolvers.TimeEvolutionResult class. ",
         category=DeprecationWarning,
         since="0.23.0",
     )

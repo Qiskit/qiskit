@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 class VQD(VariationalAlgorithm, Eigensolver):
-    r"""Deprecated: Variational Quantum Deflation algorithm.
+    r"""Pending deprecation: Variational Quantum Deflation algorithm.
 
     The VQD class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.VQD` class.
@@ -97,9 +97,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     """
 
     @deprecate_function(
-        "The VQD class has been superseded by the "
-        "qiskit.algorithms.eigensolvers.VQD class. "
-        "This class will be removed in the future.",
+        "The VQD class has been superseded by the " "qiskit.algorithms.eigensolvers.VQD class. ",
         category=DeprecationWarning,
         since="0.23.0",
     )
@@ -757,7 +755,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
 
 class VQDResult(VariationalResult, EigensolverResult):
-    """Deprecated: VQD Result.
+    """Pending deprecation: VQD Result.
 
     The VQDResult class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.VQDResult` class.
@@ -768,8 +766,7 @@ class VQDResult(VariationalResult, EigensolverResult):
 
     @deprecate_function(
         "The VQDResult class has been superseded by the "
-        "qiskit.algorithms.eigensolvers.VQDResult class. "
-        "This class will be removed in the future.",
+        "qiskit.algorithms.eigensolvers.VQDResult class. ",
         category=DeprecationWarning,
         since="0.23.0",
     )

@@ -170,7 +170,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             target=target,
         ),
         Optimize1qGatesDecomposition(basis=basis_gates, target=target),
-        CommutativeCancellation(),
+        CommutativeCancellation(target=target),
     ]
 
     # Build pass manager
@@ -289,7 +289,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     if scheduling_method is None or scheduling_method in {"alap", "asap"}:
         sched = common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map
+            instruction_durations, scheduling_method, timing_constraints, inst_map, target=target
         )
     elif isinstance(scheduling_method, PassManager):
         sched = scheduling_method

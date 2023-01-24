@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -30,7 +30,7 @@ from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
 class QAOA(VQE):
     """
-    Deprecated: Quantum Approximate Optimization Algorithm.
+    Pending deprecation: Quantum Approximate Optimization Algorithm.
 
     The QAOA class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.QAOA` class.
@@ -61,8 +61,7 @@ class QAOA(VQE):
 
     @deprecate_function(
         "The QAOA class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.QAOA class. "
-        "This class will be removed in the future.",
+        "qiskit.algorithms.minimum_eigensolvers.QAOA class. ",
         category=DeprecationWarning,
         since="0.23.0",
     )

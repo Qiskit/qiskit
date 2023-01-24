@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
-    r"""Deprecated: Variational Quantum Eigensolver algorithm.
+    r"""Pending deprecation: Variational Quantum Eigensolver algorithm.
 
     The VQE class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.VQE` class.
@@ -129,8 +129,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     @deprecate_function(
         "The VQE class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.VQE class. "
-        "This class will be removed in the future.",
+        "qiskit.algorithms.minimum_eigensolvers.VQE class. ",
         category=DeprecationWarning,
         since="0.23.0",
     )
@@ -657,7 +656,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
-    """Deprecated: VQE Result.
+    """Pending deprecation: VQE Result.
 
     The VQEResult class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.VQEResult` class.
@@ -668,9 +667,8 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     @deprecate_function(
         "The VQEResult class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.VQEResult class. "
-        "This class will be removed in the future.",
-        category=DeprecationWarning,
+        "qiskit.algorithms.minimum_eigensolvers.VQEResult class. ",
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(self) -> None:
