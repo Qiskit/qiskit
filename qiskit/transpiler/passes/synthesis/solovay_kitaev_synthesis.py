@@ -149,7 +149,7 @@ class SolovayKitaev(TransformationPass):
 
             # we do not check the input matrix as we know it comes from a Qiskit gate, as this
             # we know it will generate a valid SU(2) matrix
-            check_input = isinstance(node.op, Gate)
+            check_input = not isinstance(node.op, Gate)
 
             if not hasattr(node.op, "to_matrix"):
                 raise TranspilerError(
