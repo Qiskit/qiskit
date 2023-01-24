@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fixes a bug that ``PauliOp.adjoint()`` does not return a correct value. Refer to
-    `#9433 <https://github.com/Qiskit/qiskit-terra/issues/9433>` for more
-    details.
+    Fixed a bug where :meth:`.PauliOp.adjoint` did not return a correct value for Paulis
+    with complex coefficients, like ``PauliOp(Pauli("iX"))``. 
+    Fixed `#9433 <https://github.com/Qiskit/qiskit-terra/issues/9433>`.
