@@ -18,6 +18,7 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.gate import Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.synthesis.discrete_basis.solovay_kitaev import SolovayKitaevDecomposition
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
@@ -146,16 +147,21 @@ class SolovayKitaev(TransformationPass):
             if not node.op.num_qubits == 1:
                 continue  # ignore all non-single qubit gates
 
+            # we do not check the input matrix as we know it comes from a Qiskit gate, as this
+            # we know it will generate a valid SU(2) matrix
+            check_input = isinstance(node.op, Gate)
+
             if not hasattr(node.op, "to_matrix"):
                 raise TranspilerError(
-                    "SolovayKitaev does not support gate without "
-                    f"to_matrix method: {node.op.name}"
+                    f"SolovayKitaev does not support gate without to_matrix method: {node.op.name}"
                 )
 
             matrix = node.op.to_matrix()
 
             # call solovay kitaev
-            approximation = self._sk.run(matrix, self.recursion_degree, return_dag=True)
+            approximation = self._sk.run(
+                matrix, self.recursion_degree, return_dag=True, check_input=check_input
+            )
 
             # convert to a dag and replace the gate by the approximation
             dag.substitute_node_with_dag(node, approximation)
