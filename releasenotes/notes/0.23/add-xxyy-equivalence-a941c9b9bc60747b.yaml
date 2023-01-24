@@ -1,5 +1,7 @@
 ---
 features:
   - |
-    Equivalence rules for :class:`.XXPlusYYGate` and :class:`.XXMinusYYGate` are
-    now available in the standard equivalence library shipped with Qiskit Terra.
+    Added rules for converting to :class:`.XXPlusYYGate` and
+    :class:`.XXMinusYYGate` to the ``SessionEquivalenceLibrary``. This enables
+    running :func:`~.transpile` targetting a backend or :class:`~.Target` that
+    uses these gates.

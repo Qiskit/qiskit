@@ -1,10 +1,23 @@
 ---
 features:
   - |
-    :class:`.FiniteDiffEstimatorGradient` and :class:`FiniteDiffSamplerGradient`
-    have new argument method.
-    There are three methods, "central", "forward", and "backward".
-    This option changes the gradient calculation methods.
-    "central" calculates :math:`\frac{f(x+e)-f(x-e)}{2e}`, "forward"
-    :math:`\frac{f(x+e) - f(x)}{e}`, and "backward" :math:`\frac{f(x)-f(x-e)}{e}` where
-    :math:`e` is the offset epsilon.
+    Added a new keyword argument, ``method`` to the constructors for the
+    :class:`.FiniteDiffEstimatorGradient` and :class:`.FiniteDiffSamplerGradient`
+    classes. The ``method`` argument accepts a string to indicate the
+    computation method to use for the gradient. There are three methods,
+    available ``"central"``, ``"forward"``, and ``"backward"``. The
+    definition of the methods are:
+
+    .. list-table::
+       :header-rows: 1
+
+       * - Method
+         - Computation
+       * - ``"central"``
+         - :math:`\frac{f(x+e)-f(x-e)}{2e}`
+       * - ``"forward"``
+         - :math:`\frac{f(x+e) - f(x)}{e}`
+       * - "backward"
+         - :math:`\frac{f(x)-f(x-e)}{e}`
+
+    where :math:`e` is the offset epsilon.

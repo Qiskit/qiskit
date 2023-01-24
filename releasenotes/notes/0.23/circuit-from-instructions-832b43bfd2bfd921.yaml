@@ -1,5 +1,26 @@
 ---
 features:
   - |
-    Added the method :meth:`.QuantumCircuit.from_instructions`
-    for constructing a quantum circuit from an iterable of instructions.
+    Added a new constructor method :meth:`.QuantumCircuit.from_instructions`
+    that enables creating a :class:`~.QuantumCircuit` object from an iterable
+    of instructions. For example:
+
+    .. plot::
+       :include-source:
+
+       from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+       from qiskit.circuit.quantumcircuitdata import CircuitInstruction
+       from qiskit.circuit import Measure
+       from qiskit.circuit.library import HGate, CXGate
+
+
+       qr = QuantumRegister(2)
+       cr = ClassicalRegister(2)
+       instructions = [
+           CircuitInstruction(HGate(), [qr[0]], []),
+           CircuitInstruction(CXGate(), [qr[0], qr[1]], []),
+           CircuitInstruction(Measure(), [qr[0]], [cr[0]]),
+           CircuitInstruction(Measure(), [qr[1]], [cr[1]]),
+       ]
+       circuit = QuantumCircuit.from_instructions(instructions)
+       circuit.draw("mpl")

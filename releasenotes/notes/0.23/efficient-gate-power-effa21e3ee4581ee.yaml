@@ -1,25 +1,58 @@
 ---
 features:
   - |
-    Overrides some gate power methods to make them more efficient and less lossy:
-    - Powering a :class:`~.CPhaseGate` gives a :class:`~.CPhaseGate`.
-    - Powering a :class:`~.CSGate` gives a :class:`~.CPhaseGate`.
-    - Powering a :class:`~.CSdgGate` gives a :class:`~.CPhaseGate`.
-    - Powering an :class:`~.IGate` gives an :class:`~.IGate`.
-    - Powering a :class:`~.PhaseGate` gives a :class:`~.PhaseGate`.
-    - Powering an :class:`~.RGate` gives an :class:`~.RGate`.
-    - Powering an :class:`~.RXGate` gives an :class:`~.RXGate`.
-    - Powering an :class:`~.RXXGate` gives an :class:`~.RXXGate`.
-    - Powering an :class:`~.RYGate` gives an :class:`~.RYGate`.
-    - Powering an :class:`~.RYYGate` gives an :class:`~.RYYGate`.
-    - Powering an :class:`~.RZGate` gives an :class:`~.RZGate`.
-    - Powering an :class:`~.RZXGate` gives an :class:`~.RZXGate`.
-    - Powering an :class:`~.RZZGate` gives an :class:`~.RZZGate`.
-    - Powering a :class:`~.SdgGate` gives a :class:`~.PhaseGate`.
-    - Powering an :class:`~.SGate` gives a :class:`~.PhaseGate`.
-    - Powering a :class:`~.TdgGate` gives a :class:`~.PhaseGate`.
-    - Powering a :class:`~.TGate` gives a :class:`~.PhaseGate`.
-    - Powering an :class:`~.XXMinusYYGate` gives an :class:`~.XXMinusYYGate`.
-    - Powering an :class:`~.XXPlusYYGate` gives an :class:`~.XXPlusYYGate`.
-    - Powering a :class:`~.ZGate` gives a :class:`~.PhaseGate`.
-    - Powering an :class:`~.iSwapGate` gives an :class:`~.XXPlusYYGate`.
+    The return type for the :meth:`~.Gate.pow` method on several standard
+    library gate classes have been updated to return a more specific
+    gate object that results in a less lossy and more efficient output.
+    For example, running :meth:`~.IGate.pow` now returns an :class:`~.IGate`
+    instance instead of :class:`~.UnitaryGate` as was done previously.
+
+    The full list of output types that have been improved are:
+
+    .. list-table:: Output for :meth:`~.Gate.pow`
+       :header-rows: 1
+
+       * - Gate Class
+         - Output Class from :meth:`~.Gate.pow`
+       * - :class:`~.CPhaseGate`
+         - :class:`~.CPhaseGate`
+       * - :class:`~.CSGate`
+         - :class:`~.CPhaseGate`
+       * - :class:`~.CSdgGate`
+         - :class:`~.CPhaseGate`
+       * - :class:`~.IGate`
+         - :class:`~.IGate`.
+       * - :class:`~.PhaseGate`
+         - :class:`~.PhaseGate`
+       * - :class:`~.RGate`
+         - :class:`~.RGate`
+       * - :class:`~.RXGate`
+         - :class:`~.RXGate`
+       * - :class:`~.RXXGate`
+         - :class:`~.RXXGate`
+       * - :class:`~.RYGate`
+         - :class:`~.RYGate`
+       * - :class:`~.RYYGate`
+         - :class:`~.RYYGate`
+       * - :class:`~.RZGate`
+         - :class:`~.RZGate`
+       * - :class:`~.RZXGate`
+         - :class:`~.RZXGate`
+       * - :class:`~.RZZGate`
+         - :class:`~.RZZGate`
+       * - :class:`~.SdgGate`
+         - :class:`~.PhaseGate`
+       * - :class:`~.SGate`
+         - :class:`~.PhaseGate`
+       * - :class:`~.TdgGate`
+         - :class:`~.PhaseGate`
+       * - :class:`~.TGate`
+         - :class:`~.PhaseGate`
+       * - :class:`~.XXMinusYYGate`
+         - :class:`~.XXMinusYYGate`
+       * - :class:`~.XXPlusYYGate`
+         - :class:`~.XXPlusYYGate`
+       * - :class:`~.ZGate`
+         - :class:`~.PhaseGate`
+       * - :class:`~.iSwapGate`
+         - :class:`~.XXPlusYYGate`

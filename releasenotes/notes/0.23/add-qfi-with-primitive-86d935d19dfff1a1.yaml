@@ -2,7 +2,7 @@
 features:
   - |
     Added new classes for Quantum Fisher Information (QFI) and Quantum
-    Geometric Tensor (QGT) algorithms using the :mod:`~qiskit.primitives`,
+    Geometric Tensor (QGT) algorithms using :mod:`~qiskit.primitives`,
     :class:`qiskit.algorithms.gradients.QFI` and
     :class:`qiskit.algorithms.gradients.LinCombQGT`, have been added to the
     gradients module: :mod:`qiskit.algorithms.gradients`. For example::

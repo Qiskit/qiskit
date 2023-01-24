@@ -1,6 +1,9 @@
 ---
 features:
   - |
-    Added `allow_unknown_parameters` argument to
-    :meth:`~.ParameterExpression.bind` and :meth:`~.ParameterExpression.subs`
-    to allow passing a dictionary containing unknown parameters without causing an error to be raised.
+    Added a new keyword argument, ``allow_unknown_parameters``, to the
+    :meth:`.ParameterExpression.bind` and :meth:`.ParameterExpression.subs`
+    methods. When set this new argument enables passing a dictionary
+    containing unknown parameters to these methods without causing an error
+    to be raised. Previously, this would always raise an error without
+    any way to disable that behavior.
