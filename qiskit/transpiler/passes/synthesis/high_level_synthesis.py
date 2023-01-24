@@ -174,7 +174,29 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
 
 class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on the Kutin, Moulton, Smithline method."""
+    """The permutation synthesis plugin based on the Kutin, Moulton, Smithline method.
+
+
+    This plugin can be accessed by the ``kms`` method name in the
+    ``HLSConfig`` for ``permutation``. For example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import PermutationGate
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig, HighLevelSynthesis
+        from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPluginManager
+
+        # Create a permutation and add it to a quantum circuit
+        perm = PermutationGate([4, 6, 3, 7, 1, 2, 0, 5])
+        qc = QuantumCircuit(8)
+        qc.append(perm, range(8))
+
+        # KMSSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 18 and depth 6
+        # but adhering to the linear nearest-neighbor architecture.
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("kms", {})]))).run(qc)
+        print(f"kms: {qct.size() = }, {qct.depth() = }")
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
@@ -183,7 +205,27 @@ class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
 
 
 class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on sorting."""
+    """The permutation synthesis plugin based on sorting.
+
+    This plugin can be accessed by the ``basic`` method name in the
+    ``HLSConfig`` for ``permutation``. For example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import PermutationGate
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig, HighLevelSynthesis
+        from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPluginManager
+
+        # Create a permutation and add it to a quantum circuit
+        perm = PermutationGate([4, 6, 3, 7, 1, 2, 0, 5])
+        qc = QuantumCircuit(8)
+        qc.append(perm, range(8))
+
+        # BasicSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 6 and depth 3
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("basic", {})]))).run(qc)
+        print(f"basic: {qct.size() = }, {qct.depth() = }")
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
@@ -192,7 +234,27 @@ class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
 
 
 class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on the Alon, Chung, Graham method."""
+    """The permutation synthesis plugin based on the Alon, Chung, Graham method.
+
+    This plugin can be accessed by the ``acg`` method name in the
+    ``HLSConfig`` for ``permutation``. For example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import PermutationGate
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig, HighLevelSynthesis
+        from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPluginManager
+
+        # Create a permutation and add it to a quantum circuit
+        perm = PermutationGate([4, 6, 3, 7, 1, 2, 0, 5])
+        qc = QuantumCircuit(8)
+        qc.append(perm, range(8))
+
+        # ACGSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 6 and depth 2
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("acg", {})]))).run(qc)
+        print(f"acg: {qct.size() = }, {qct.depth() = }")
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
