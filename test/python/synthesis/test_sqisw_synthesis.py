@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
 """Test synthesis of two-qubit unitaries into SQiSW gates."""
 
 import unittest

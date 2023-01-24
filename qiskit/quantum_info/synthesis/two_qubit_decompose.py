@@ -34,7 +34,7 @@ import logging
 
 import numpy as np
 
-from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
+from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
@@ -1135,19 +1135,18 @@ class TwoQubitBasisDecomposer:
                 raise
 
         # do default decomposition
-        q = QuantumRegister(2)
         decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
-        return_circuit = QuantumCircuit(q)
+        return_circuit = QuantumCircuit(2)
         return_circuit.global_phase = target_decomposed.global_phase
         return_circuit.global_phase -= best_nbasis * self.basis.global_phase
         if best_nbasis == 2:
             return_circuit.global_phase += np.pi
         for i in range(best_nbasis):
-            return_circuit.compose(decomposition_euler[2 * i], [q[0]], inplace=True)
-            return_circuit.compose(decomposition_euler[2 * i + 1], [q[1]], inplace=True)
-            return_circuit.append(self.gate, [q[0], q[1]])
-        return_circuit.compose(decomposition_euler[2 * best_nbasis], [q[0]], inplace=True)
-        return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [q[1]], inplace=True)
+            return_circuit.compose(decomposition_euler[2 * i], [0], inplace=True)
+            return_circuit.compose(decomposition_euler[2 * i + 1], [1], inplace=True)
+            return_circuit.append(self.gate, [0, 1])
+        return_circuit.compose(decomposition_euler[2 * best_nbasis], [0], inplace=True)
+        return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [1], inplace=True)
         return return_circuit
 
     def _pulse_optimal_chooser(self, best_nbasis, decomposition, target_decomposed):

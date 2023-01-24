@@ -10,27 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name, non-ascii-name
+
 """Synthesis of two-qubit unitaries using at most 3 applications of the sqrt(iSWAP) gate."""
 
-
-import numpy as np
 import cmath
+from typing import Optional, List
+import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
 from qiskit.circuit.library import (
     SQiSWGate,
-    RXXGate,
-    RYYGate,
-    RZZGate,
-    RZGate,
-    RYGate,
     XGate,
     YGate,
     ZGate,
-    SGate,
-    SdgGate,
 )
 
 
@@ -51,10 +46,13 @@ class SQiSWDecomposer:
            `arXiv:2105.06074 <https://arxiv.org/abs/2105.06074>`_
     """
 
-    def __init__(self, euler_basis: list = ["u"]):
+    def __init__(self, euler_basis: Optional[List[str]]):
         # decomposer for the local single-qubit gates
-        from qiskit.transpiler.passes import Optimize1qGatesDecomposition
+        from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
+            Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
+        )
 
+        euler_basis = euler_basis or ["u"]
         self._decomposer1q = Optimize1qGatesDecomposition(euler_basis)
 
     def __call__(self, unitary, basis_fidelity=1.0, approximate=True):
