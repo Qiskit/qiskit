@@ -148,6 +148,17 @@ Synthesis
    SolovayKitaev
    SolovayKitaevSynthesis
 
+Synthesis Plugins
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   SolovayKitaevSynthesis
+   BasicSynthesisPermutation
+   ACGSynthesisPermutation
+   KMSSynthesisPermutation
+
 Post Layout (Post transpile qubit selection)
 ============================================
 
@@ -253,6 +264,9 @@ from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
 from .synthesis import SolovayKitaev
 from .synthesis import SolovayKitaevSynthesis
+from .synthesis import BasicSynthesisPermutation
+from .synthesis import ACGSynthesisPermutation
+from .synthesis import KMSSynthesisPermutation
 
 # calibration
 from .calibration import PulseGates

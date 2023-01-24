@@ -1,27 +1,16 @@
 ---
 features:
   - |
-    Added a new base transpiler pass, :class:`~CollectAndCollapse`, to collect and to consolidate
-    blocks of nodes in a circuit. To be completely general, this pass depends on two functions:
-    the collection function and the collapsing function. The collection function ``collect_function``
-    takes a DAG and returns a list of blocks. The collapsing function ``collapse_function``
-    takes a DAG and a list of blocks, consolidates each block, and returns the modified
-    DAG.
-
-    As two examples, the inherited :class:`~CollectLinearFunctions`
-    collects blocks of :class:`.CXGate` and :class:`.SwapGate` gates, and replaces
-    each block with a :class:`.LinearFunction`, while the inherited class
-    :class:`~CollectCliffords` collects blocks of "Clifford" gates and replaces
-    each block with a :class:`qiskit.quantum_info.Clifford`.
-
-    To allow code reuse between the collection and collapsing functions of inherited classes,
-    added a new class :class:`~BlockCollector` that implements various collection strategies,
-    and a new class :class:`~BlockCollapser` that implements various collapsing strategies.
-    Currently :class:`~BlockCollector`  includes the strategy to greedily collect all gates
-    adhering to a given filter function (for example, collecting all Clifford gates), and
-    :class:`~BlockCollapser` includes the strategy to consolidate all gates in a block to a
-    single object (or example, a block of Clifford gates can be consolidated to a single
-    ``Clifford``).
+    Added a new transpiler pass, :class:`~CollectAndCollapse`, to collect and to consolidate
+    blocks of nodes in a circuit. This pass is designed to be a general base class for
+    combined block collection and consolidation.  To be completely general, the work of
+    collecting and collapsing the blocks is done via functions provided during
+    instantiating the pass. For example, the :class:`~CollectLinearFunctions` has been
+    updated to inherit from :class:`~CollectAndCollapse` and  collects blocks of
+    :class:`.CXGate` and :class:`.SwapGate` gates, and replaces each block with a
+    :class:`.LinearFunction`. While the :class:`~CollectCliffords` which is also now
+    based on :class:`~CollectAndCollapse`, collects blocks of "Clifford" gates and
+    replaces each block with a :class:`qiskit.quantum_info.Clifford`.
 
     The interface also supports the option ``do_commutative_analysis``, which allows
     to exploit commutativity between gates in order to collect larger blocks of nodes.
@@ -34,6 +23,14 @@ features:
 
     allows to consolidate the two CX gates, as the first CX gate and the Z-gate commute.
 
+  - |
+    Added a new class :class:`~BlockCollector` that implements various collection strategies,
+    and a new class :class:`~BlockCollapser` that implements various collapsing strategies.
+    Currently :class:`~BlockCollector`  includes the strategy to greedily collect all gates
+    adhering to a given filter function (for example, collecting all Clifford gates), and
+    :class:`~BlockCollapser` includes the strategy to consolidate all gates in a block to a
+    single object (or example, a block of Clifford gates can be consolidated to a single
+    ``Clifford``).
   - |
     Added a new :class:`~CollectCliffords` transpiler pass that collects blocks of clifford
     gates and consolidates these blocks into :class:`qiskit.quantum_info.Clifford` objects.

@@ -29,6 +29,15 @@ prelude: |
 
         * :class:`~.SolovayKitaevDecomposition` detailed in:
           https://arxiv.org/abs/quant-ph/0505030
+        * New plugins for :class:`~.HighLevelSynthesis`:
+
+          * :class:`~.ACGSynthesisPermutation`
+          * :class:`~.KMSSynthesisPermutation`
+          * :class:`~.BasicSynthesisPermutation`
+
+        * New plugin for :class:`~.UnitarySynthesis`
+
+          * :class:`~.SolovayKitaevSynthesis`
 
     * Performance improvements to the :class:`~.SabreLayout`. The pass
       is now primarily written in Rust which can lead to a runtime

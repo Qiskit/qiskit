@@ -18,13 +18,13 @@ features:
 
   - |
     Added several high-level-synthesis plugins for synthesizing permutations.
-    The ``BasicSynthesisPermutation`` plugin applies to fully-connected
+    The :class:`~.BasicSynthesisPermutation` plugin applies to fully-connected
     architectures and is based on sorting. This is the previously used
     algorithm for constructing quantum circuits for permutations.
-    The ``ACGSynthesisPermutation`` plugin also applies to fully-connected
+    The :class:`~.ACGSynthesisPermutation` plugin also applies to fully-connected
     architectures but is based on the Alon, Chung, Graham method. It synthesizes
     any permutation in depth 2 (measured in terms of SWAPs).
-    The ``KMSSynthesisPermutation`` plugin applies to linear nearest-neighbor
+    The :class:`~.KMSSynthesisPermutation` plugin applies to linear nearest-neighbor
     architectures and corresponds to the recently added Kutin, Moulton, Smithline
     method.
 

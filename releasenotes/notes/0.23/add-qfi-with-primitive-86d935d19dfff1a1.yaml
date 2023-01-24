@@ -7,8 +7,6 @@ features:
 
     Example::
 
-    .. code-block:: python
-
       from qiskit.circuit import QuantumCircuit, Parameter
       from qiskit.algorithms.gradients import LinCombQGT, QFI
 
