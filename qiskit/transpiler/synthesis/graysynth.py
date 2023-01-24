@@ -10,6 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-wildcard-import, wildcard-import
+
+"""
+Implementation of the GraySynth algorithm for synthesizing CNOT-Phase
+circuits with efficient CNOT cost, and the Patel-Hayes-Markov algorithm
+for optimal synthesis of linear (CNOT-only) reversible circuits.
+"""
+
+
 # Redirect getattrs to modules new location
 # TODO: Deprecate in 0.24.0 and remove in 0.26.0
 from qiskit.synthesis.linear.graysynth import *
@@ -42,4 +51,4 @@ def cnot_synth(state, section_size=2):
            Quantum Information & Computation 8.3 (2008): 282-294.
            `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
     """
-    return synth_cnot_count_full_pmh(state, section_size=2)
+    return synth_cnot_count_full_pmh(state, section_size=section_size)
