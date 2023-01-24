@@ -67,7 +67,7 @@ class TrotterQRTE(RealEvolver):
     @deprecate_function(
         "The TrotterQRTE class has been superseded by the "
         "qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE class. ",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(

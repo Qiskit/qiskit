@@ -36,7 +36,7 @@ class EvolutionProblem:
     @deprecate_function(
         "The EvolutionProblem class has been superseded by the "
         "qiskit.algorithms.time_evolvers.TimeEvolutionProblem class. ",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(

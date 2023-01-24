@@ -62,7 +62,7 @@ class QAOA(VQE):
     @deprecate_function(
         "The QAOA class has been superseded by the "
         "qiskit.algorithms.minimum_eigensolvers.QAOA class. ",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(

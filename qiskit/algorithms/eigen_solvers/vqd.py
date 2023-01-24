@@ -98,7 +98,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @deprecate_function(
         "The VQD class has been superseded by the " "qiskit.algorithms.eigensolvers.VQD class. ",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(

@@ -40,7 +40,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     @deprecate_function(
         "The NumPyMinimumEigensolver class has been superseded by the "
         "qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver class. ",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(

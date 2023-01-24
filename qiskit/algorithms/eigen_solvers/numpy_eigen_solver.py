@@ -52,7 +52,7 @@ class NumPyEigensolver(Eigensolver):
     @deprecate_function(
         "The NumPyEigensolver class has been superseded by the "
         "qiskit.algorithms.eigensolvers.NumPyEigensolver class. ",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(
