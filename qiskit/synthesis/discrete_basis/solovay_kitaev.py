@@ -147,14 +147,14 @@ class SolovayKitaevDecomposition:
         if n == 0:
             return self.find_basic_approximation(sequence)
 
-        u_n1 = self._recurse(sequence, n - 1)
+        u_n1 = self._recurse(sequence, n - 1, check_input=check_input)
 
         v_n, w_n = commutator_decompose(
             sequence.dot(u_n1.adjoint()).product, check_input=check_input
         )
 
-        v_n1 = self._recurse(v_n, n - 1)
-        w_n1 = self._recurse(w_n, n - 1)
+        v_n1 = self._recurse(v_n, n - 1, check_input=check_input)
+        w_n1 = self._recurse(w_n, n - 1, check_input=check_input)
         return v_n1.dot(w_n1).dot(v_n1.adjoint()).dot(w_n1.adjoint()).dot(u_n1)
 
     def find_basic_approximation(self, sequence: GateSequence) -> Gate:
