@@ -182,16 +182,14 @@ to "embed" a selected initial :class:`~.Layout` from a layout pass to the specif
 Representing Quantum Computers
 ==============================
 
-To be able to compile a :class:`~.QuantumCircuit` for a target backend the compiler needs to
-be able to represent that backend for the compiler. There are a few data structures for doing
-this. While the :class:`~.BackendV2` class defines the abstract user facing interface for
-querying and interacting with quantum hardware the transpiler has more targeted data structures
-which are used to represent a backend in the transpiler.
-
-The primary data structure for this is the :class:`~.Target` class, which is used to represent
-the constraints and characteristics of a backend. It contains information on the properties of
-the various instructions and qubits on the device and any other information about the backend
-which can be used to influence the compilation of the :class:`~.QuantumCircuit`.
+To be able to compile a :class:`~.QuantumCircuit` for a specific backend, the transpiler needs a
+specialized representation of that backend, including its constraints, instruction set, qubit
+properties, and more, to be able to compile and optimize effectively. While the
+:class:`~.BackendV2` class defines an interface for querying and interacting
+with backends, its scope is larger than just the transpiler's needs including
+managing job submission and potentially interfacing with remote services.
+The specific information needed by the transpiler is described by the
+:class:`~.Target` class
 
 For example, to construct a simple :class:`~.Target` object, one can iteratively add
 descriptions of the instructions it supports:
