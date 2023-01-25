@@ -22,10 +22,10 @@ for the transpiler. The preset pass managers are instances of
 :class:`~.StagedPassManager` which are used to execute the circuit
 transformations as part of Qiskit's compiler inside the
 :func:`~.transpile` function at the different optimization levels.
-The functionality here is divided into two parts, the first are the
+The functionality here is divided into two parts, the first includes the
 functions used generate the entire pass manager which is used by
 :func:`~.transpile` (:ref:`preset_pass_manager_generators`) and the
-second are functions which are used to build (either entirely or in
+second includes functions which are used to build (either entirely or in
 part) the stages which the preset pass managers are composed of
 (:ref:`stage_generators`).
 
