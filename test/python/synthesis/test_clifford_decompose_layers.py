@@ -50,11 +50,11 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
             self.assertEqual(circ.data[6].operation.name, "H1")
             self.assertEqual(circ.data[7].operation.name, "Pauli")
 
-    @combine(num_qubits=[5])
+    @combine(num_qubits=[4, 5, 6, 7])
     def test_decompose_lnn_depth(self, num_qubits):
         """Test layered decomposition for linear-nearest-neighbour connectivity."""
         rng = np.random.default_rng(1234)
-        samples = 1
+        samples = 10
         for _ in range(samples):
             cliff = random_clifford(num_qubits, seed=rng)
             circ = synth_clifford_layers(

@@ -138,6 +138,8 @@ def synth_clifford_layers(
     layeredCircuit.append(S1_circ, qubit_list)
     layeredCircuit.append(CZ1_circ, qubit_list)
 
+    if cz_synth_func == synth_cz_depth_line_mr:
+        H1_circ = H1_circ.reverse_bits()
     layeredCircuit.append(H1_circ, qubit_list)
 
     # Add Pauli layer to fix the Clifford phase signs

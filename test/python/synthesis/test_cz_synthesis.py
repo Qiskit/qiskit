@@ -16,7 +16,8 @@ import unittest
 
 import random
 import numpy as np
-from ddt import ddt, data
+from test import combine
+from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import Permutation
 from qiskit.synthesis.linear import synth_cz_depth_line_mr
@@ -28,14 +29,16 @@ from qiskit.test import QiskitTestCase
 class TestCZSynth(QiskitTestCase):
     """Test the linear reversible circuit synthesis functions."""
 
-    @data(5, 6)
-    def test_lnn(self, n):
-        """Test the synthesis code."""
-        mat = np.zeros((n, n))
-        qctest = QuantumCircuit(n)
-        for _ in range(10):
-            i = random.randint(0, n - 1)
-            j = random.randint(0, n - 1)
+    @combine(num_qubits=[4, 5, 6, 7])
+    def test_cz_synth_lnn(self, num_qubits):
+        """Test the CZ synthesis code."""
+        mat = np.zeros((num_qubits, num_qubits))
+        qctest = QuantumCircuit(num_qubits)
+        samples = 10
+        for _ in range(samples):
+            # Generate a random CZ circuit
+            i = random.randint(0, num_qubits - 1)
+            j = random.randint(0, num_qubits - 1)
             if i != j:
                 qctest.cz(i, j)
                 if j > i:
@@ -43,7 +46,7 @@ class TestCZSynth(QiskitTestCase):
                 else:
                     mat[j][i] = (mat[j][i] + 1) % 2
         qc = synth_cz_depth_line_mr(mat)
-        perm = Permutation(num_qubits=n, pattern=range(n)[::-1])
+        perm = Permutation(num_qubits=num_qubits, pattern=range(num_qubits)[::-1])
         qctest = qctest.compose(perm)
         self.assertEqual(Clifford(qc), Clifford(qctest))
 
