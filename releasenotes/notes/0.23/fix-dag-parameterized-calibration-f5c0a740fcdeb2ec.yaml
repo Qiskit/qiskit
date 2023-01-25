@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed an issue where :meth:`.QuantumCircuit.add_calibrations` and
+    :meth:`.DAGCircuit.add_calibrations` methods had a mismatch in
+    their behavior of parameter formatting logic. Previously
+    :meth:`.DAGCircuit.add_calibrations` tried to cast every parameter
+    into ``float``, :meth:`.QuantumCircuit.add_calibrations` used given
+    parameters as-is. This would potentially cause an error when running
+    :func:`~.transpile` was run on a :class:`~.QuantumCircuit` with pulse
+    gates as the parameters of the calibrations could be kept as
+    :class:`~.ParameterExpresion` objects.
