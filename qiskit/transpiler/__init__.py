@@ -44,16 +44,16 @@ quantum circuit optimization methods and their usage, it is best to use one of
 these ready-made routines. By default the preset pass managers are composed
 of six stages:
 
-#. ``init`` - This stage runs any initial passes that are run before we start embedding the
+#. ``init`` - This stage runs any initial passes that are required before we start embedding the
    circuit to the backend. This typically involves unrolling custom instructions and converting
    the circuit to all 1 and 2 qubit gates.
-#. ``layout`` - This stage runs layout and maps the virtual qubits in the circuit to the
+#. ``layout`` - This stage applies a layout, mapping the virtual qubits in the circuit to the
    physical qubits on a backend. See :ref:`layout_stage` for more details.
-#. ``routing`` - This stage runs after a layout has been assigned and will insert any
-   necessary gates to move the qubit states around until it can be run on
-   backend's connectivity. See :ref:`routing_stage` for more details.
+#. ``routing`` - This stage runs after a layout has been applied and will inject
+   gates (i.e. swaps) into the original circuit to make it compatible
+   with the backend's connectivity. See :ref:`routing_stage` for more details.
 #. ``translation`` - This stage translates the gates in the circuit to the target backend's basis set.
-   For more details on this stage you can refer to :ref:`translation_stage`.
+   See :ref:`translation_stage` for more details.
 #. ``optimization`` - This stage runs the main optimization loop repeatedly
    until a condition (such as fixed depth) is reached. See :ref:`optimization_stage` for more details.
 #. ``scheduling`` - This stage is for any hardware-aware scheduling passes. See
@@ -66,7 +66,7 @@ can also refer to available external plugins. See
 
 .. _working_with_preset_pass_managers:
 
-Working With Preset Pass Managers
+Working with Preset Pass Managers
 =================================
 
 By default Qiskit includes functions to build preset :class:`~.PassManager` objects.
@@ -95,11 +95,11 @@ function to easily generate one. For example:
 which will generate a :class:`~.StagedPassManager` object for optimization level 3
 targeting the :class:`~.FakeLagosV2` backend (equivalent to what is used internally
 by :func:`~.transpile` with ``backend=FakeLagosV2()`` and ``optimization_level=3``).
-You can use this just like working with any other :class:`~.PassManager`. However,
+You can use this just like you would any other :class:`~.PassManager`. However,
 because it is a :class:`~.StagedPassManager` it also makes it easy to compose and/or
 replace stages of the pipeline. For example, if you wanted to run a custom scheduling
 stage using dynamical decoupling (via the :class:`~.PadDynamicalDecoupling` pass) and
-also add initial logical optimization prior to routing you would do something like
+also add initial logical optimization prior to routing, you would do something like
 (building off the previous example):
 
 .. code-block:: python
@@ -512,7 +512,7 @@ operations. The allowed instructions for a given backend can be found by queryin
    print(backend.target)
 
 Every quantum circuit run on the target device must be expressed using only these instructions.
-For example, suppose one wants to run a simple phase estimation circuit:
+For example, to run a simple phase estimation circuit:
 
 .. plot::
    :include-source:
@@ -560,7 +560,7 @@ models the historical IBM Vigo 5 qubit device for test purposes):
    qc_basis.draw(output='mpl')
 
 A few things to highlight. First, the circuit has gotten longer with respect to the
-initial one.  This can be verified by checking the depth of the circuits:
+original.  This can be verified by checking the depth of both circuits:
 
 .. code-block::
 
