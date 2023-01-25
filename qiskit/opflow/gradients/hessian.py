@@ -236,7 +236,7 @@ class Hessian(HessianBase):
             )
 
             _optionals.HAS_JAX.require_now("automatic differentiation")
-            from jax import grad, jit  # pylint: disable=import-error
+            from jax import grad, jit
 
             if operator.grad_combo_fn:
                 first_partial_combo_fn = operator.grad_combo_fn

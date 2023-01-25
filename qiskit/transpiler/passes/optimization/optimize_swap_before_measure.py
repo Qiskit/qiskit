@@ -16,6 +16,7 @@
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 
 
@@ -26,6 +27,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
     the classical bit of the measure instruction.
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the OptimizeSwapBeforeMeasure pass on `dag`.
 
@@ -35,6 +37,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps[::-1]:
             if getattr(swap.op, "condition", None) is not None:

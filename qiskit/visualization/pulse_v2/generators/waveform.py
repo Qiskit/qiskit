@@ -44,7 +44,7 @@ from typing import Dict, Any, List, Union
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.pulse import instructions
+from qiskit.pulse import instructions, library
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
@@ -105,10 +105,11 @@ def gen_filled_waveform_stepwise(
             if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
 
-        if hasattr(data.inst.pulse, "pulse_type"):
-            pulse_shape = data.inst.pulse.pulse_type
+        pulse_data = data.inst.pulse
+        if isinstance(pulse_data, library.SymbolicPulse):
+            pulse_shape = pulse_data.pulse_type
         else:
-            pulse_shape = data.inst.pulse.__class__.__name__
+            pulse_shape = "Waveform"
 
         return _draw_opaque_waveform(
             init_time=data.t0,
@@ -174,7 +175,14 @@ def gen_ibmq_latex_waveform_name(
         systematic_name = data.inst.name or "Delay"
         latex_name = None
     else:
-        systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
+        pulse_data = data.inst.pulse
+        if pulse_data.name:
+            systematic_name = pulse_data.name
+        else:
+            if isinstance(pulse_data, library.SymbolicPulse):
+                systematic_name = pulse_data.pulse_type
+            else:
+                systematic_name = "Waveform"
 
         template = r"(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+"
         match_result = re.match(template, systematic_name)
@@ -391,7 +399,7 @@ def _draw_shaped_waveform(
             channels=channel,
             xvals=re_xvals,
             yvals=re_yvals,
-            fill=True,
+            fill=formatter["control.fill_waveform"],
             meta=re_meta,
             styles=re_style,
         )
@@ -417,7 +425,7 @@ def _draw_shaped_waveform(
             channels=channel,
             xvals=im_xvals,
             yvals=im_yvals,
-            fill=True,
+            fill=formatter["control.fill_waveform"],
             meta=im_meta,
             styles=im_style,
         )
@@ -560,11 +568,11 @@ def _parse_waveform(
             if isinstance(duration, circuit.Parameter):
                 duration = None
 
-            if hasattr(operand, "pulse_type"):
-                # Symbolic pulse
-                meta["waveform shape"] = operand.pulse_type
+            if isinstance(operand, library.SymbolicPulse):
+                pulse_shape = operand.pulse_type
             else:
-                meta["waveform"] = operand.__class__.__name__
+                pulse_shape = "Waveform"
+            meta["waveform shape"] = pulse_shape
 
             meta.update(
                 {

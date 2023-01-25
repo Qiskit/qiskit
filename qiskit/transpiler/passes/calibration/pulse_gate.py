@@ -20,6 +20,7 @@ from qiskit.pulse import (
     ScheduleBlock,
 )
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.transpiler.target import Target
 
 from .base_builder import CalibrationBuilder
 
@@ -50,15 +51,21 @@ class PulseGates(CalibrationBuilder):
 
     def __init__(
         self,
-        inst_map: InstructionScheduleMap,
+        inst_map: InstructionScheduleMap = None,
+        target: Target = None,
     ):
         """Create new pass.
 
         Args:
             inst_map: Instruction schedule map that user may override.
+            target: The :class:`~.Target` representing the target backend, if both
+                ``inst_map`` and this are specified then this argument will take
+                precedence and ``inst_map`` will be ignored.
         """
         super().__init__()
         self.inst_map = inst_map
+        if target:
+            self.inst_map = target.instruction_schedule_map()
 
     def supported(self, node_op: CircuitInst, qubits: List) -> bool:
         """Determine if a given node supports the calibration.

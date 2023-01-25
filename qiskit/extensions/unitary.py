@@ -21,13 +21,12 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.circuit.quantumcircuit import _qasm_escape_gate_name
+from qiskit.circuit.quantumcircuit import _qasm_escape_name
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.quantum_info.synthesis.one_qubit_decompose import OneQubitEulerDecomposer
-from qiskit.quantum_info.synthesis.qsd import qs_decomposition
 from qiskit.quantum_info.synthesis.two_qubit_decompose import two_qubit_cnot_decompose
 from qiskit.extensions.exceptions import ExtensionError
 
@@ -135,6 +134,10 @@ class UnitaryGate(Gate):
         elif self.num_qubits == 2:
             self.definition = two_qubit_cnot_decompose(self.to_matrix())
         else:
+            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+                qs_decomposition,
+            )
+
             self.definition = qs_decomposition(self.to_matrix())
 
     def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
@@ -156,7 +159,7 @@ class UnitaryGate(Gate):
         mat = self.to_matrix()
         cmat = _compute_control_matrix(mat, num_ctrl_qubits, ctrl_state=None)
         iso = isometry.Isometry(cmat, 0, 0)
-        cunitary = ControlledGate(
+        return ControlledGate(
             "c-unitary",
             num_qubits=self.num_qubits + num_ctrl_qubits,
             params=[mat],
@@ -166,18 +169,6 @@ class UnitaryGate(Gate):
             ctrl_state=ctrl_state,
             base_gate=self.copy(),
         )
-        from qiskit.quantum_info import Operator
-
-        # hack to correct global phase; should fix to prevent need for correction here
-        pmat = Operator(iso.inverse()).data @ cmat
-        diag = numpy.diag(pmat)
-        if not numpy.allclose(diag, diag[0]):
-            raise ExtensionError("controlled unitary generation failed")
-        phase = numpy.angle(diag[0])
-        if phase:
-            # need to apply to _definition since open controls creates temporary definition
-            cunitary._definition.global_phase = phase
-        return cunitary
 
     def qasm(self):
         """The qasm for a custom unitary gate
@@ -187,7 +178,7 @@ class UnitaryGate(Gate):
 
         # give this unitary a name
         self._qasm_name = (
-            _qasm_escape_gate_name(self.label) if self.label else "unitary" + str(id(self))
+            _qasm_escape_name(self.label, "gate_") if self.label else "unitary" + str(id(self))
         )
 
         qubit_to_qasm = {bit: f"p{i}" for i, bit in enumerate(self.definition.qubits)}

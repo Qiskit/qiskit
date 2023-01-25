@@ -33,7 +33,7 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.7", "3.8", "3.9", "3.10"]
+    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
@@ -43,13 +43,12 @@ parameters:
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.10"
+    default: "3.11"
 
   - name: "minimumRustVersion"
     displayName: "Minimum supported version of Rust"
     type: string
-    default: "1.56.1"
-
+    default: "1.61.0"
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -65,6 +64,10 @@ parameters:
     type: string
     default: "3.8"
 
+  - name: "documentationPythonVersion"
+    displayName: "Version of Python to use to build Sphinx documentation"
+    type: string
+    default: "3.9"
 
 # Conditional compilation logic.  This is all the logic for "what to run"; each
 # stage in turn delegates to various templates in ".azure" that provide the
@@ -143,12 +146,12 @@ stages:
 
         - template: ".azure/docs-linux.yml"
           parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
+            pythonVersion: ${{ parameters.documentationPythonVersion }}
 
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-            testQPY: false
+            testQPY: true
             testImages: false
             rustVersion: ${{ parameters.minimumRustVersion }}
 
@@ -168,7 +171,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
-            testQPY: true
+            testQPY: false
             testImages: true
             installFromSdist: true
 

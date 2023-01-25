@@ -40,6 +40,7 @@ import numpy
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.qasm.exceptions import QasmError
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
 from qiskit.circuit.operation import Operation
@@ -130,11 +131,13 @@ class Instruction(Operation):
                 pass
 
             try:
-                if numpy.shape(self_param) == numpy.shape(other_param) and numpy.allclose(
+                self_asarray = numpy.asarray(self_param)
+                other_asarray = numpy.asarray(other_param)
+                if numpy.shape(self_asarray) == numpy.shape(other_asarray) and numpy.allclose(
                     self_param, other_param, atol=_CUTOFF_PRECISION, rtol=0
                 ):
                     continue
-            except TypeError:
+            except (ValueError, TypeError):
                 pass
 
             try:
@@ -438,6 +441,10 @@ class Instruction(Operation):
         """Print an if statement if needed."""
         if self.condition is None:
             return string
+        if not isinstance(self.condition[0], ClassicalRegister):
+            raise QasmError(
+                "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
+            )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
     def qasm(self):
@@ -450,7 +457,7 @@ class Instruction(Operation):
         if self.params:
             name_param = "{}({})".format(
                 name_param,
-                ",".join([pi_check(i, ndigits=8, output="qasm") for i in self.params]),
+                ",".join([pi_check(i, output="qasm", eps=1e-12) for i in self.params]),
             )
 
         return self._qasmif(name_param)

@@ -87,6 +87,9 @@ class Gate(Instruction):
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
         return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
 
+    def __pow__(self, exponent: float) -> "Gate":
+        return self.power(exponent)
+
     def _return_repeat(self, exponent: float) -> "Gate":
         return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)
 
@@ -204,6 +207,10 @@ class Gate(Instruction):
         if any(not qarg for qarg in qargs):
             raise CircuitError("One or more of the arguments are empty")
 
+        if len(qargs) == 0:
+            return [
+                ([], []),
+            ]
         if len(qargs) == 1:
             return Gate._broadcast_single_argument(qargs[0])
         elif len(qargs) == 2:

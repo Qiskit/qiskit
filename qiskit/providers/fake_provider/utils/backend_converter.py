@@ -113,17 +113,19 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
         inst_map = pulse_defs.instruction_schedule_map
         for inst in inst_map.instructions:
             for qarg in inst_map.qubits_with_instruction(inst):
-                sched = inst_map.get(inst, qarg)
+                try:
+                    qargs = tuple(qarg)
+                except TypeError:
+                    qargs = (qarg,)
+                # Do NOT call .get method. This parses Qpbj immediately.
+                # This operation is computationally expensive and should be bypassed.
+                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
                 if inst in target:
-                    try:
-                        qarg = tuple(qarg)
-                    except TypeError:
-                        qarg = (qarg,)
                     if inst == "measure":
-                        for qubit in qarg:
-                            target[inst][(qubit,)].calibration = sched
-                    else:
-                        target[inst][qarg].calibration = sched
+                        for qubit in qargs:
+                            target[inst][(qubit,)].calibration = calibration_entry
+                    elif qargs in target[inst]:
+                        target[inst][qargs].calibration = calibration_entry
     target.add_instruction(
         Delay(Parameter("t")), {(bit,): None for bit in range(target.num_qubits)}
     )

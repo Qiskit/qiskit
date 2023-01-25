@@ -24,7 +24,18 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate, DCXGate, MCU1Gate
+from qiskit.circuit.library import (
+    XGate,
+    QFT,
+    QAOAAnsatz,
+    PauliEvolutionGate,
+    DCXGate,
+    MCU1Gate,
+    MCXGate,
+    MCXGrayCode,
+    MCXRecursive,
+    MCXVChain,
+)
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
@@ -32,8 +43,9 @@ from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.extensions import UnitaryGate
 from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.qpy_serialization import dump, load
+from qiskit.qpy import dump, load
 from qiskit.quantum_info.random import random_unitary
+from qiskit.circuit.controlledgate import ControlledGate
 
 
 class TestLoadFromQPY(QiskitTestCase):
@@ -998,6 +1010,17 @@ class TestLoadFromQPY(QiskitTestCase):
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
 
+    def test_controlled_gate_open_controls(self):
+        """Test a controlled gate with open controls round-trips exactly."""
+        qc = QuantumCircuit(3)
+        controlled_gate = DCXGate().control(1, ctrl_state=0)
+        qc.append(controlled_gate, [0, 1, 2])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
     def test_nested_controlled_gate(self):
         """Test a custom nested controlled gate."""
         custom_gate = Gate("black_box", 1, [])
@@ -1031,9 +1054,17 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_standard_control_gates(self):
         """Test standard library controlled gates."""
-        qc = QuantumCircuit(3)
+        qc = QuantumCircuit(6)
         mcu1_gate = MCU1Gate(np.pi, 2)
+        mcx_gate = MCXGate(5)
+        mcx_gray_gate = MCXGrayCode(5)
+        mcx_recursive_gate = MCXRecursive(4)
+        mcx_vchain_gate = MCXVChain(3)
         qc.append(mcu1_gate, [0, 2, 1])
+        qc.append(mcx_gate, list(range(0, 6)))
+        qc.append(mcx_gray_gate, list(range(0, 6)))
+        qc.append(mcx_recursive_gate, list(range(0, 5)))
+        qc.append(mcx_vchain_gate, list(range(0, 5)))
         qc.mcp(np.pi, [0, 2], 1)
         qc.mct([0, 2], 1)
         qc.mcx([0, 2], 1)
@@ -1043,3 +1074,119 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
+
+    def test_controlled_gate_subclass_custom_definition(self):
+        """Test controlled gate with overloaded definition.
+
+        Reproduce from: https://github.com/Qiskit/qiskit-terra/issues/8794
+        """
+
+        class CustomCXGate(ControlledGate):
+            """Custom CX with overloaded _define."""
+
+            def __init__(self, label=None, ctrl_state=None):
+                super().__init__(
+                    "cx", 2, [], label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=XGate()
+                )
+
+            def _define(self) -> None:
+                qc = QuantumCircuit(2, name=self.name)
+                qc.cx(0, 1)
+                self.definition = qc
+
+        qc = QuantumCircuit(2)
+        qc.append(CustomCXGate(), [0, 1])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(qc.decompose(), new_circ.decompose())
+
+    def test_load_with_loose_bits(self):
+        """Test that loading from a circuit with loose bits works."""
+        qc = QuantumCircuit([Qubit(), Qubit(), Clbit()])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(tuple(new_circuit.qregs), ())
+        self.assertEqual(tuple(new_circuit.cregs), ())
+        self.assertEqual(qc, new_circuit)
+
+    def test_load_with_loose_bits_and_registers(self):
+        """Test that loading from a circuit with loose bits and registers works."""
+        qc = QuantumCircuit(QuantumRegister(3), ClassicalRegister(1), [Clbit()])
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_registers_after_loose_bits(self):
+        """Test that a circuit whose registers appear after some loose bits roundtrips. Regression
+        test of gh-9094."""
+        qc = QuantumCircuit()
+        qc.add_bits([Qubit(), Clbit()])
+        qc.add_register(QuantumRegister(2, name="q1"))
+        qc.add_register(ClassicalRegister(2, name="c1"))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+
+    def test_roundtrip_empty_register(self):
+        """Test that empty registers round-trip correctly."""
+        qc = QuantumCircuit(QuantumRegister(0), ClassicalRegister(0))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(qc.qregs, new_circuit.qregs)
+        self.assertEqual(qc.cregs, new_circuit.cregs)
+
+    def test_roundtrip_several_empty_registers(self):
+        """Test that several empty registers round-trip correctly."""
+        qc = QuantumCircuit(
+            QuantumRegister(0, "a"),
+            QuantumRegister(0, "b"),
+            ClassicalRegister(0, "c"),
+            ClassicalRegister(0, "d"),
+        )
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(qc.qregs, new_circuit.qregs)
+        self.assertEqual(qc.cregs, new_circuit.cregs)
+
+    def test_roundtrip_empty_registers_with_loose_bits(self):
+        """Test that empty registers still round-trip correctly in the presence of loose bits."""
+        loose = [Qubit(), Clbit()]
+
+        qc = QuantumCircuit(loose, QuantumRegister(0), ClassicalRegister(0))
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(qc.qregs, new_circuit.qregs)
+        self.assertEqual(qc.cregs, new_circuit.cregs)
+
+        qc = QuantumCircuit(QuantumRegister(0), ClassicalRegister(0), loose)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertEqual(qc.qregs, new_circuit.qregs)
+        self.assertEqual(qc.cregs, new_circuit.cregs)
+
+    def test_qpy_deprecation(self):
+        """Test the old import path's deprecations fire."""
+        with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
+            # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
+            from qiskit.circuit.qpy_serialization import dump, load

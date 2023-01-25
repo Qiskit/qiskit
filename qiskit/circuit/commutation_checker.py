@@ -80,6 +80,14 @@ class CommutationChecker:
         Returns:
             bool: whether two operations commute.
         """
+        # We don't support commutation of conditional gates for now due to bugs in
+        # CommutativeCancellation.  See gh-8553.
+        if (
+            getattr(op1, "condition", None) is not None
+            or getattr(op2, "condition", None) is not None
+        ):
+            return False
+
         # These lines are adapted from dag_dependency and say that two gates over
         # different quantum and classical bits necessarily commute. This is more
         # permissive that the check from commutation_analysis, as for example it
@@ -91,16 +99,14 @@ class CommutationChecker:
         if not (intersection_q or intersection_c):
             return True
 
-        # These lines are adapted from commutation_analysis, which is more restrictive
-        # than the check from dag_dependency when considering nodes with "_directive"
-        # or "condition". It would be nice to think which optimizations
-        # from dag_dependency can indeed be used.
+        # These lines are adapted from commutation_analysis, which is more restrictive than the
+        # check from dag_dependency when considering nodes with "_directive".  It would be nice to
+        # think which optimizations from dag_dependency can indeed be used.
         for op in [op1, op2]:
             if (
                 getattr(op, "_directive", False)
                 or op.name in {"measure", "reset", "delay"}
-                or getattr(op, "condition", None)
-                or op.is_parameterized()
+                or (getattr(op, "is_parameterized", False) and op.is_parameterized())
             ):
                 return False
 

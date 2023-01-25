@@ -163,4 +163,7 @@ from .synthesis import (
     XXDecomposer,
 )
 
-from .analysis import hellinger_distance, hellinger_fidelity
+from .analysis import (
+    hellinger_distance,
+    hellinger_fidelity,
+)
