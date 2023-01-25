@@ -54,6 +54,7 @@ Pulse Models
 
    Waveform
    SymbolicPulse
+   ScalableSymbolicPulse
    ParametricPulse
 
 

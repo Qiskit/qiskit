@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """Internal format of calibration data in target."""
+
 import inspect
 from abc import ABCMeta, abstractmethod
 from enum import IntEnum

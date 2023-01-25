@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    Random-circuit generation with ``qiskit.circuit.random.random_circuit`` is
+    Random-circuit generation with :func:`qiskit.circuit.random.random_circuit` is
     now significantly faster for large circuits.
-  - Random-circuit generation with ``qiskit.circuit.random.random_circuit`` will
-    now output all "standard" gates in Qiskit's circuit library (:mod:`.circuit.library`).
+  - Random-circuit generation with :func:`qiskit.circuit.random.random_circuit` will
+    now output all "standard" gates in Qiskit's circuit library (:mod:`qiskit.circuit.library`).
     This includes two 4-qubit gates :class:`.C3SXGate` and :class:`.RC3XGate`, and the
     allowed values of ``max_operands`` have been expanded accordingly.
 upgrade:

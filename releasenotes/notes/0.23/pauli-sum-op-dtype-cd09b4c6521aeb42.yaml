@@ -1,6 +1,7 @@
 ---
 features:
   - |
-    Added ``dtype`` argument to :meth:`~.PauliSumOp.from_list`
-    for passing type information to the internal
-    :class:`~.SparsePauliOp`.
+    Added a new keyword argument, ``dtype``, to the :meth:`.PauliSumOp.from_list`
+    method. When specified this argument can be used to specify the ``dtype``
+    of the numpy array allocated for the :class:`~.SparsePauliOp` used
+    internally by the constructed :class:`~.PauliSumOp`.

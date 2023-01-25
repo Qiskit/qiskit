@@ -9,7 +9,7 @@ prelude: |
       :func:`qiskit.qasm3.loads`.
 
     * Improvements to the library of synthesis algorithms included in
-      Qiskit. This includes the following new synthesis algorithms:
+      Qiskit. This includes the following new synthesis functions:
 
         * Clifford Synthesis
 
@@ -24,8 +24,8 @@ prelude: |
         * Permutation Synthesis:
 
           * :func:`~.synth_permutation_basic`
-          * :func:`~synth_permutation_acg`
-          * :func:`~synth_permutation_depth_lnn_kms`
+          * :func:`~.synth_permutation_acg`
+          * :func:`~.synth_permutation_depth_lnn_kms`
 
         * :class:`~.SolovayKitaevDecomposition` detailed in:
           https://arxiv.org/abs/quant-ph/0505030
