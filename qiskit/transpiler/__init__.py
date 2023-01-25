@@ -45,7 +45,8 @@ these ready-made routines. By default the preset pass managers are composed
 of six stages:
 
 #. ``init`` - This stage runs any initial passes that are run before we start embedding the
-   circuit to the backend
+   circuit to the backend. This typically involves unrolling custom instructions and converting
+   the circuit to all 1 and 2 qubit gates.
 #. ``layout`` - This stage runs layout and maps the virtual qubits in the circuit to the
    physical qubits on a backend. See :ref:`layout_stage` for more details.
 #. ``routing`` - This stage runs after a layout has been assigned and will insert any
