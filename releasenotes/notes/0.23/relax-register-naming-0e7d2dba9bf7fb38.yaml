@@ -7,7 +7,7 @@ fixes:
 upgrade:
   - |
     The names of :class:`.Register` instances (which includes instances of
-    :class:`~.QuantumRegister` and :class:`~.ClassicalRegigster) are no longer constrained to be
+    :class:`~.QuantumRegister` and :class:`~.ClassicalRegigster`) are no longer constrained to be
     valid OpenQASM 2 identifiers.  This is being done as the restriction is
     overly strict as Qiskit becomes more decoupled from OpenQASM 2, and even the
     OpenQASM 3 specification is not so restrictive.  If you were relying on
