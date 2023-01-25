@@ -311,12 +311,9 @@ There are also specific data structures to represent a specific subset of inform
 :class:`~.Target`. For example, the :class:`~.CouplingMap` class is used to solely represent the
 connectivity constraints of a backend as a directed graph. A coupling map can be generated from
 a :class:`~.Target` using the :meth:`.Target.build_coupling_map` method. These data structures
-typically pre-date the :class:`~.Target` class but are often used with transpiler passes that do
-not work natively with a :class:`~.Target` instance or with backends that aren't using the latest
-:class:`~.BackendV2` interface. However, they do also offer more targeted interaction methods
-with the limited view they provide. For example, :class:`~.CouplingMap` provides methods for
-analyzing the connectivity graph, such as :meth:`.CouplingMap.shortest_undirected_path`, which
-can be useful if analysis of the connectivity constraints of a backend is desired.
+typically pre-date the :class:`~.Target` class but are still used by some transpiler passes that do
+not work natively with a :class:`~.Target` instance yet or when dealing with backends that aren't
+using the latest :class:`~.BackendV2` interface.
 
 For example, if we wanted to visualize the :class:`~.CouplingMap` for the
 example 3 qubit :class:`~.Target` above:
