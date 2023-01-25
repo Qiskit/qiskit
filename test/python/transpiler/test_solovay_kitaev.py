@@ -202,6 +202,35 @@ class TestSolovayKitaev(QiskitTestCase):
             discretized = skd(transpiled)
             self.assertLess(_trace_distance(transpiled, discretized), 7)
 
+    def test_u_gates_work(self):
+        """Test SK works on Qiskit's UGate.
+
+        Regression test of Qiskit/qiskit-terra#9437.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.u(np.pi / 2, -np.pi, -np.pi, 0)
+        circuit.u(np.pi / 2, np.pi / 2, -np.pi, 0)
+        circuit.u(-np.pi / 4, 0, -np.pi / 2, 0)
+        circuit.u(np.pi / 4, -np.pi / 16, 0, 0)
+        circuit.u(0, 0, np.pi / 16, 0)
+        circuit.u(0, np.pi / 4, np.pi / 4, 0)
+        circuit.u(np.pi / 2, 0, -15 * np.pi / 16, 0)
+        circuit.p(-np.pi / 4, 0)
+        circuit.p(np.pi / 4, 0)
+        circuit.u(np.pi / 2, 0, -3 * np.pi / 4, 0)
+        circuit.u(0, 0, -np.pi / 16, 0)
+        circuit.u(np.pi / 2, 0, 15 * np.pi / 16, 0)
+
+        depth = 4
+        basis_gates = ["h", "t", "tdg", "s", "z"]
+        gate_approx_library = generate_basic_approximations(basis_gates=basis_gates, depth=depth)
+
+        skd = SolovayKitaev(recursion_degree=2, basic_approximations=gate_approx_library)
+        discretized = skd(circuit)
+
+        included_gates = set(discretized.count_ops().keys())
+        self.assertEqual(set(basis_gates), included_gates)
+
 
 @ddt
 class TestGateSequence(QiskitTestCase):
