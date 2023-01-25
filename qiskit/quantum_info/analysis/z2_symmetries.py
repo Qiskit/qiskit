@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import itertools
+from collections.abc import Iterable
 from copy import deepcopy
 from typing import Union, cast
 
@@ -47,10 +48,10 @@ class Z2Symmetries:
 
     def __init__(
         self,
-        symmetries: list[Pauli],
-        sq_paulis: list[Pauli],
-        sq_list: list[int],
-        tapering_values: list[int] | None = None,
+        symmetries: Iterable[Pauli],
+        sq_paulis: Iterable[Pauli],
+        sq_list: Iterable[int],
+        tapering_values: Iterable[int] | None = None,
         *,
         tol: float = 1e-14,
     ):
@@ -71,6 +72,11 @@ class Z2Symmetries:
                 and tapering values must be of equal length. This length is the number of applied
                 symmetries and translates directly to the number of eliminated qubits.
         """
+        symmetries = list(symmetries)
+        sq_paulis = list(sq_paulis)
+        sq_list = list(sq_list)
+        tapering_values = None if tapering_values is None else list(tapering_values)
+
         if len(symmetries) != len(sq_paulis):
             raise QiskitError(
                 f"The number of Z2 symmetries, {len(symmetries)}, has to match the number \
@@ -116,7 +122,7 @@ class Z2Symmetries:
         """
         cliffords = [
             (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / np.sqrt(2)
-            for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)  # type: ignore
+            for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)
         ]
         return cliffords
 
