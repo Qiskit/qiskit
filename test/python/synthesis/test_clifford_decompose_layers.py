@@ -22,6 +22,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.operators import Clifford
 from qiskit.quantum_info import random_clifford
 from qiskit.synthesis.clifford import synth_clifford_layers
+from qiskit.synthesis.linear import synth_cz_depth_line_mr, synth_cnot_depth_line_kms
 
 
 @ddt
@@ -48,6 +49,22 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
             self.assertEqual(circ.data[5].operation.name, "CZ")
             self.assertEqual(circ.data[6].operation.name, "H1")
             self.assertEqual(circ.data[7].operation.name, "Pauli")
+
+    @combine(num_qubits=[5])
+    def test_decompose_lnn_depth(self, num_qubits):
+        """Test layered decomposition for linear-nearest-neighbour connectivity."""
+        rng = np.random.default_rng(1234)
+        samples = 1
+        for _ in range(samples):
+            cliff = random_clifford(num_qubits, seed=rng)
+            circ = synth_clifford_layers(
+                cliff,
+                cx_synth_func=synth_cnot_depth_line_kms,
+                cz_synth_func=synth_cz_depth_line_mr,
+                validate=True,
+            )
+            cliff_target = Clifford(circ)
+            self.assertEqual(cliff, cliff_target)
 
 
 if __name__ == "__main__":
