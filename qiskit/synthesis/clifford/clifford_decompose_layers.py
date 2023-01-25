@@ -15,9 +15,10 @@ Circuit synthesis for the Clifford class into layers.
 # pylint: disable=invalid-name
 
 import numpy as np
+
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh
+from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cz_depth_line_mr
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
     check_invertible_binary_matrix,
@@ -32,24 +33,22 @@ from qiskit.quantum_info.operators.symplectic.clifford_circuits import (
 )
 
 
-def _default_cx_synth_func(mat, validate):
+def _default_cx_synth_func(mat):
     """
     Construct the layer of CX gates from a boolean invertible matrix mat.
     """
-    if validate:
-        if not check_invertible_binary_matrix(mat):
-            raise QiskitError("The matrix for CX circuit is not invertible.")
+    if not check_invertible_binary_matrix(mat):
+        raise QiskitError("The matrix for CX circuit is not invertible.")
 
     CX_circ = synth_cnot_count_full_pmh(mat)
     CX_circ.name = "CX"
 
-    if validate:
-        _check_gates(CX_circ, ("cx", "swap"))
+    _check_gates(CX_circ, ("cx", "swap"))
 
     return CX_circ
 
 
-def _default_cz_synth_func(symmetric_mat, validate):
+def _default_cz_synth_func(symmetric_mat):
     """
     Construct the layer of CZ gates from a symmetric matrix.
     """
@@ -61,8 +60,7 @@ def _default_cz_synth_func(symmetric_mat, validate):
             if symmetric_mat[i][j]:
                 qc.cz(i, j)
 
-    if validate:
-        _check_gates(qc, "cz")
+    _check_gates(qc, "cz")
     return qc
 
 
@@ -108,11 +106,15 @@ def synth_clifford_layers(
     """
 
     num_qubits = cliff.num_qubits
+    if cz_synth_func == synth_cz_depth_line_mr:
+        cliff0 = _reverse_clifford(cliff)
+    else:
+        cliff0 = cliff
 
     qubit_list = list(range(num_qubits))
     layeredCircuit = QuantumCircuit(num_qubits)
 
-    H1_circ, cliff1 = _create_graph_state(cliff, validate=validate)
+    H1_circ, cliff1 = _create_graph_state(cliff0, validate=validate)
 
     H2_circ, CZ1_circ, S1_circ, cliff2 = _decompose_graph_state(
         cliff1, validate=validate, cz_synth_func=cz_synth_func
@@ -269,7 +271,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
                 "The multiplication of stabx_inv and stab_z is not a symmetric matrix."
             )
 
-    CZ1_circ = cz_synth_func(stabz_update, validate=validate)
+    CZ1_circ = cz_synth_func(stabz_update)
 
     for j in range(num_qubits):
         for i in range(0, j):
@@ -339,10 +341,12 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
         )
         return S2_circ, CZ2_circ, CX_circ
 
-    CZ2_circ = cz_synth_func(destabz_update, validate=validate)
+    CZ2_circ = cz_synth_func(destabz_update)
 
     mat = destabx.transpose()
-    CX_circ = cx_synth_func(mat, validate=validate)
+    if cz_synth_func == synth_cz_depth_line_mr:
+        mat = np.flip(mat, axis=0)
+    CX_circ = cx_synth_func(mat)
 
     return S2_circ, CZ2_circ, CX_circ
 
