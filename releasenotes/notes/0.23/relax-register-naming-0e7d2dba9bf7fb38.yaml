@@ -36,4 +36,4 @@ deprecations:
     The class-variable regular expression :attr:`.Register.name_format` is
     deprecated and wil be removed in a future release.  The names of registers
     are now permitted to be any valid Python string, so the regular expression
-    has no use.
+    has no use any longer.
