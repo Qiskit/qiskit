@@ -69,14 +69,15 @@ can also refer to available external plugins. See
 Working with Preset Pass Managers
 =================================
 
-By default Qiskit includes functions to build preset :class:`~.PassManager` objects.
+Qiskit includes functions to build preset :class:`~.PassManager` objects.
 These preset passmanagers are used by the :func:`~.transpile` function
-for each optimization level. There are 4 optimization levels from 0 to 3 where an increasing
-optimization level trades off execution time and computational effort for potential optimization.
+for each optimization level. There are 4 optimization levels ranging from 0 to 3, where higher
+optimization levels take more time and computational effort but may yield a
+more optimal circuit.
 Optimization level 0 is intended for device characterization experiments and, as such, only
-maps the input circuit to the constraints of the target backend and performs no
-optimizations. Optimization level 3 spends the most effort to optimize the circuit. However,
-as many of the optimization techniques in the transpiler are heuristic based, spending more
+maps the input circuit to the constraints of the target backend, without
+performing any optimizations. Optimization level 3 spends the most effort to optimize the circuit.
+However, as many of the optimization techniques in the transpiler are heuristic based, spending more
 computational effort does not always result in an improvement in the quality of the output
 circuit.
 
@@ -532,11 +533,11 @@ For example, to run a simple phase estimation circuit:
    qc.measure([0], [0])
    qc.draw(output='mpl')
 
-We have :math:`H`, :math:`X`, and controlled-:math:`P` gates, all of which are
-not in our device's basis gate set, and must be translated.  This translation is taken
+We have :math:`H`, :math:`X`, and controlled-:math:`P` gates, none of which are
+in our device's basis gate set, and thus must be translated.  This translation is taken
 care of for us in the :func:`qiskit.execute` function. However, we can
 transpile the circuit to show what it will look like in the native gate set of
-the IBM Quantum devices (the :class:`~.FakeVigoV2` backend is a fake backend that
+the target IBM Quantum device (the :class:`~.FakeVigoV2` backend is a fake backend that
 models the historical IBM Vigo 5 qubit device for test purposes):
 
 .. plot::
