@@ -501,8 +501,8 @@ Translation Stage
 
 When writing a quantum circuit you are free to use any quantum gate (unitary operator) that
 you like, along with a collection of non-gate operations such as qubit measurements and
-reset operations.  However, most quantum devices only natively support a handful of quantum gates and non-gate
-operations. The allowed instructions for a given backend can be found by querying the
+reset operations.  However, most quantum devices only natively support a handful of quantum gates
+and non-gate operations. The allowed instructions for a given backend can be found by querying the
 :class:`~.Target` for the devices:
 
 .. code-block:
@@ -658,8 +658,9 @@ For the first stage there are 2 passes typically used for this:
   when executing the circuit.
 
 - :class:`~.TrivialLayout`: Map each virtual qubit to the same numbered physical qubit on the device,
-  i.e. ``[0,1,2,3,4]`` -> ``[0,1,2,3,4]``. This is historical behavior used only in ``optimization_level=1`` to try
-  to find a perfect layout. If it fails to do so, :class:`~.VF2Layout` is tried next).
+  i.e. ``[0,1,2,3,4]`` -> ``[0,1,2,3,4]``. This is historical behavior used only in
+  ``optimization_level=1`` to try to find a perfect layout. If it fails to do so, :class:`~.VF2Layout`
+  is tried next).
 
 Next, for the heuristic stage, 2 passes are used by default:
 
