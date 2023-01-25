@@ -767,7 +767,7 @@ class VQDResult(VariationalResult, EigensolverResult):
     @deprecate_function(
         "The VQDResult class has been superseded by the "
         "qiskit.algorithms.eigensolvers.VQDResult class. ",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(self) -> None:
