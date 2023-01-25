@@ -94,7 +94,7 @@ class MinimumEigensolverResult(AlgorithmResult):
     @deprecate_function(
         "The MinimumEigensolverResult class has been superseded by the "
         "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class.",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(self) -> None:
