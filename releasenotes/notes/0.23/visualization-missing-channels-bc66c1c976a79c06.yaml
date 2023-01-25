@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Fixed an issue where in some cases pulse visualization would omit some of
-    the channels in a schedule. Fixed #8981.
+    Fixed an issue with the :func:`~.pulse_drawer` where in some cases the
+    output visualization would omit some of the channels in a schedule.
+    Fixed `#8981 <https://github.com/Qiskit/qiskit-terra/issues/8981>`__.

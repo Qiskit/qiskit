@@ -1,5 +1,7 @@
 ---
 fixes:
   - |
-    Fixed loss function in :class:`.PVQD`, which was squaring the fidelity. Now the loss function matches
-    the definition in the original algorithm definition.
+    Fixed an issue with the :class:`.PVQD` class where the loss function
+    was incorrecly squaring the fidelity. This has been fixed so that
+    the loss function matches the definition in the original algorithm
+    definition.
