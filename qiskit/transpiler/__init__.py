@@ -77,7 +77,7 @@ Optimization level 0 is intended for device characterization experiments and, as
 maps the input circuit to the constraints of the target backend and performs no
 optimizations. Optimization level 3 spends the most effort to optimize the circuit. However,
 as many of the optimization techniques in the transpiler are heuristic based, spending more
-computation effort does not always correlate to an improvement in the quality of the output
+computational effort does not always result in an improvement in the quality of the output
 circuit.
 
 If you'd like to work directly with a
@@ -142,11 +142,10 @@ and for the ``scheduling`` stage our custom :class:`~.PassManager`
 Custom Pass Managers
 ====================
 
-While modifying the built-in preset pass managers to alter a particular stage
-of the compilation another common use case is to construct a custom pass
-manager to build an entirely custom pipeline for transforming the input
+In addition to modifying preset pass managers, it is also possible to construct a pass
+manager to build an entirely custom pipeline for transforming input
 circuits. You can leverage the :class:`~.StagedPassManager` class directly to do
-this. You can define arbitrary stage names and populate them a :class:`~.PassManager`
+this. You can define arbitrary stage names and populate them with a :class:`~.PassManager`
 instance. For example::
 
     from qiskit.transpiler.passes import (
@@ -175,18 +174,17 @@ will create a new :class:`~.StagedPassManager` that has 2 stages ``init`` and ``
 There is no limit on the number of stages you can put in a custom :class:`~.StagedPassManager`
 instance.
 
-If you're building a custom pass manager the :ref:`stage_generators` functions may be useful
-for the construction of these pass managers. They are functions that provide common functionality
-which are used in most pass managers. For example :func:`~.generate_embed_passmanager` is used
-to "embed" a selected initial layout from a layout pass to the specified target device. For any
-layout pass that is working with a :class:`~.Layout` this will be needed to apply the layout.
+The :ref:`stage_generators` functions may be useful for the construction of custom pass managers.
+They generate stages which provide common functionality used in many pass managers.
+For example, :func:`~.generate_embed_passmanager` can be used to generate a stage
+to "embed" a selected initial :class:`~.Layout` from a layout pass to the specified target device.
 
 Representing Quantum Computers
 ==============================
 
 To be able to compile a :class:`~.QuantumCircuit` for a target backend the compiler needs to
 be able to represent that backend for the compiler. There are a few data structures for doing
-this. WHile the :class:`~.BackendV2` class defines the abstract user facing interface for
+this. While the :class:`~.BackendV2` class defines the abstract user facing interface for
 querying and interacting with quantum hardware the transpiler has more targeted data structures
 which are used to represent a backend in the transpiler.
 
@@ -195,7 +193,8 @@ the constraints and characteristics of a backend. It contains information on the
 the various instructions and qubits on the device and any other information about the backend
 which can be used to influence the compilation of the :class:`~.QuantumCircuit`.
 
-For example, to construct a simple :class:`~.Target` object:
+For example, to construct a simple :class:`~.Target` object, one can iteratively add
+descriptions of the instructions it supports:
 
 .. code-block::
 
@@ -305,7 +304,7 @@ For example, to construct a simple :class:`~.Target` object:
                 Duration: 5e-07 sec.
                 Error Rate: 0.2
 
-This :class:`~.Target` represents a 3 qubit QPU that supports :class:`~.CXGate` between qubits
+This :class:`~.Target` represents a 3 qubit backend that supports :class:`~.CXGate` between qubits
 0 and 1, :class:`~.UGate` on qubits 0 and 1, :class:`~.RZGate`, :class:`~.RXGate`,
 and :class:`~.RYGate` on qubits 1 and 2, :class:`~.CZGate` between qubits 1 and 2, and qubits
 2 and 0, and :class:`~.Measure` on all qubits.
@@ -381,7 +380,7 @@ example 3 qubit :class:`~.Target` above:
 
 This shows the global connectivity of the :class:`~.Target` which is the
 combination of the supported qubits for :class:`~.CXGate` and :class:`~.CZGate`. To
-see the individual connectivity uou can pass the operation name to
+see the individual connectivity, you can pass the operation name to
 :meth:`.CouplingMap.build_coupling_map`:
 
 .. plot::
@@ -506,10 +505,7 @@ Translation Stage
 
 When writing a quantum circuit you are free to use any quantum gate (unitary operator) that
 you like, along with a collection of non-gate operations such as qubit measurements and
-reset operations.  However, when running a circuit on a real quantum device one no longer
-has this flexibility.  Due to limitations in, for example, the physical interactions
-between qubits, difficulty in implementing multi-qubit gates, control electronics etc,
-a quantum computing device can only natively support a handful of quantum gates and non-gate
+reset operations.  However, most quantum devices only natively support a handful of quantum gates and non-gate
 operations. The allowed instructions for a given backend can be found by querying the
 :class:`~.Target` for the devices:
 
@@ -542,9 +538,9 @@ For example, suppose one wants to run a simple phase estimation circuit:
    qc.draw(output='mpl')
 
 We have :math:`H`, :math:`X`, and controlled-:math:`P` gates, all of which are
-not in our devices basis gate set, and must be expanded.  This expansion is taken
+not in our device's basis gate set, and must be translated.  This translation is taken
 care of for us in the :func:`qiskit.execute` function. However, we can
-decompose the circuit to show what it would look like in the native gate set of
+transpile the circuit to show what it will look like in the native gate set of
 the IBM Quantum devices (the :class:`~.FakeVigoV2` backend is a fake backend that
 models the historical IBM Vigo 5 qubit device for test purposes):
 
@@ -607,9 +603,9 @@ It is important to highlight two special cases:
       swap_circ.swap(0, 1)
       swap_circ.decompose().draw(output='mpl')
 
-   As a product of three CNOT gates, swap gates are expensive operations to perform on a
+   As a product of three CNOT gates, swap gates are expensive operations to perform on
    noisy quantum devices.  However, such operations are usually necessary for embedding a
-   circuit into the limited entangling gate connectivities of actual devices. Thus,
+   circuit into the limited gate connectivities of many devices. Thus,
    minimizing the number of swap gates in a circuit is a primary goal in the
    transpilation process.
 
@@ -645,20 +641,18 @@ manner to the "physical" qubits in an actual quantum device.
 
 .. image:: /source_images/mapping.png
 
+
+
+
 By default, qiskit will do this mapping for you.  The choice of mapping depends on the
 properties of the circuit, the particular device you are targeting, and the optimization
-level that is chosen The choice of initial layout is extremely important when:
-
-1. Computing the number of swap operations needed to map the input circuit onto the device
-   topology.
-
-2. Taking into account the noise properties of the device.
-
-The choice of `initial_layout` can mean the difference between getting a result,
-and getting nothing but noise. Due to the importance of this stage the preset pass managers
-try a few different methods to find the best layout. Typically this involves 2 stages, first
-trying to find a "perfect" layout (a layout which does not require any swap operations) and
-a heuristic pass that tries to find the best layout to use if a perfect layout can not be found.
+level that is chosen. The choice of initial layout is extremely important for minimizing the
+number of swap operations needed to map the input circuit onto the device topology and
+for minimizing the loss due to non-uniform noise properties across a device. Due to the
+importance of this stage, the preset pass managers
+try a few different methods to find the best layout. Typically this involves 2 stages: first,
+trying to find a "perfect" layout (a layout which does not require any swap operations) and then,
+a heuristic pass that tries to find the best layout to use if a perfect layout cannot be found.
 For the first stage there are 2 passes typically used for this:
 
 - :class:`~.VF2Layout`: Models layout selection as a subgraph isomorphism problem and tries
@@ -667,23 +661,23 @@ For the first stage there are 2 passes typically used for this:
   scoring heuristic is run to select the mapping which would result in the lowest average error
   when executing the circuit.
 
-- :class:`~.TrivialLayout`: Map virtual qubits to the same numbered physical qubit on the device,
-  i.e. ``[0,1,2,3,4]`` -> ``[0,1,2,3,4]``. This is only used in ``optimization_level=1`` to find a
-  perfect layout and if it fails :class:`~.VF2Layout` is used instead).
+- :class:`~.TrivialLayout`: Map each virtual qubit to the same numbered physical qubit on the device,
+  i.e. ``[0,1,2,3,4]`` -> ``[0,1,2,3,4]``. This is historical behavior used only in ``optimization_level=1`` to try
+  to find a perfect layout. If it fails to do so, :class:`~.VF2Layout` is tried next).
 
-Then for the heuristic pass 2 passes are used by default:
+Next, for the heuristic stage, 2 passes are used by default:
 
 - :class:`~.SabreLayout`: Used to select a layout if a perfect layout isn't found for optimization
   levels 1, 2, and 3.
 - :class:`~.TrivialLayout`: Always used for the layout at optimization level 0
-- :class:`~.DenseLayout`: Find the sub-graph of the device with same number
-  of qubits as the circuit with the greatest connectivity. Used for
+- :class:`~.DenseLayout`: Find the sub-graph of the device with greatest connectivity
+  that has the same number of qubits as the circuit. Used for
   optimization level 1 if there are control flow operations (such as
   :class:`~.IfElseOp`) present in the circuit.
 
-Let's see what layouts are automatically picked at various optimization levels.  The modified
-circuits returned by :func:`qiskit.compiler.transpile` have this initial layout information
-in them, and we can view this layout selection graphically using
+Let's see what layouts are automatically picked at various optimization levels.  The circuits
+returned by :func:`qiskit.compiler.transpile` are annotated with this initial layout information,
+and we can view this layout selection graphically using
 :func:`qiskit.visualization.plot_circuit_layout`:
 
 .. plot::
@@ -741,7 +735,7 @@ in them, and we can view this layout selection graphically using
       plot_circuit_layout(new_circ_lv3, backend)
 
 
-It is completely possible to specify your own initial layout.  To do so we can
+It is possible to override automatic layout selection by specifying an initial layout.  To do so we can
 pass a list of integers to :func:`qiskit.compiler.transpile` via the `initial_layout`
 keyword argument, where the index labels the virtual qubit in the circuit and the
 corresponding value is the label for the physical qubit to map onto:
