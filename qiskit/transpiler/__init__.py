@@ -645,7 +645,7 @@ level that is chosen. The choice of initial layout is extremely important for mi
 number of swap operations needed to map the input circuit onto the device topology and
 for minimizing the loss due to non-uniform noise properties across a device. Due to the
 importance of this stage, the preset pass managers
-try a few different methods to find the best layout. Typically this involves 2 stages: first,
+try a few different methods to find the best layout. Typically this involves 2 steps: first,
 trying to find a "perfect" layout (a layout which does not require any swap operations) and then,
 a heuristic pass that tries to find the best layout to use if a perfect layout cannot be found.
 For the first stage there are 2 passes typically used for this:
@@ -831,6 +831,14 @@ used the least number of swaps. If you would like to increase the number of tria
 :class:`~.SabreSwap` runs you can refer to :ref:`working_with_preset_pass_managers`
 and modifying the ``routing`` stage with a custom instance of :class:`~.SabreSwap`
 with a larger value for the ``trials`` argument.
+
+Typically following the swap mapper the routing stage in the preset pass managers
+also includes running the :class:`~.VF2PostLayout` pass. As its name implies,
+:class:`~.VF2PostLayout` uses the same basic algorithm as :class:`~.VF2Layout`,
+but instead of using it to find a perfect initial layout it is designed to try
+run after mapping and find a layout on qubits with lower error rates which will
+result in better output fidelity when running the circuit. The details of this
+algorithm are described in `arXiv:2209.15512 <https://arxiv.org/abs/2209.15512>`__.
 
 .. _optimization_stage:
 
