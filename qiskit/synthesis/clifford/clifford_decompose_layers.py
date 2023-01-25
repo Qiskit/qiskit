@@ -106,7 +106,7 @@ def synth_clifford_layers(
     """
 
     num_qubits = cliff.num_qubits
-    if cz_synth_func == synth_cz_depth_line_mr:
+    if cz_synth_func.__name__ == synth_cz_depth_line_mr.__name__:
         cliff0 = _reverse_clifford(cliff)
     else:
         cliff0 = cliff
@@ -138,7 +138,7 @@ def synth_clifford_layers(
     layeredCircuit.append(S1_circ, qubit_list)
     layeredCircuit.append(CZ1_circ, qubit_list)
 
-    if cz_synth_func == synth_cz_depth_line_mr:
+    if cz_synth_func.__name__ == synth_cz_depth_line_mr.__name__:
         H1_circ = H1_circ.reverse_bits()
     layeredCircuit.append(H1_circ, qubit_list)
 
@@ -346,7 +346,7 @@ def _decompose_hadamard_free(cliff, validate, cz_synth_func, cx_synth_func, cx_c
     CZ2_circ = cz_synth_func(destabz_update)
 
     mat = destabx.transpose()
-    if cz_synth_func == synth_cz_depth_line_mr:
+    if cz_synth_func.__name__ == synth_cz_depth_line_mr.__name__:
         mat = np.flip(mat, axis=0)
     CX_circ = cx_synth_func(mat)
 

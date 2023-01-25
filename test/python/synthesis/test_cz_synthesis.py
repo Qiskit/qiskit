@@ -15,8 +15,8 @@
 import unittest
 
 import random
-import numpy as np
 from test import combine
+import numpy as np
 from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import Permutation
