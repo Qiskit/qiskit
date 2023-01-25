@@ -15,8 +15,10 @@
 into smaller sub-blocks, and to consolidate blocks."""
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
-from . import DAGOpNode, DAGCircuit, DAGDependency
-from .exceptions import DAGCircuitError
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode
+from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.exceptions import DAGCircuitError
 
 
 class BlockCollector:
