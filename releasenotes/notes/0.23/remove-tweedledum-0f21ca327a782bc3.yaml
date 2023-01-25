@@ -3,9 +3,7 @@ upgrade:
   - |
     ``tweedledum`` has been removed as a core requirement of Qiskit Terra.  The
     functionality provided (:mod:`qiskit.circuit.classicalfunction`) is still
-    available, if ``tweedledum`` is installed manually, such as by:
-
-      .. code-block:: text
+    available, if ``tweedledum`` is installed manually, such as by::
 
       pip install tweedledum
 

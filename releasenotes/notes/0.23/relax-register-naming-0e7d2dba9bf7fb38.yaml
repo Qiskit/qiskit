@@ -6,7 +6,8 @@ fixes:
     `#5043 <https://github.com/Qiskit/qiskit-terra/issues/5043>`__.
 upgrade:
   - |
-    The names of :class:`.Register` instances are no longer constrained to be
+    The names of :class:`.Register` instances (which includes instances of
+    :class:`~.QuantumRegister` and :class:`~.ClassicalRegigster) are no longer constrained to be
     valid OpenQASM 2 identifiers.  This is being done as the restriction is
     overly strict as Qiskit becomes more decoupled from OpenQASM 2, and even the
     OpenQASM 3 specification is not so restrictive.  If you were relying on
@@ -16,7 +17,7 @@ upgrade:
 
       import re
       import string
-      
+
       def escape(name: str) -> str:
         out = re.sub(r"\W", "_", name, flags=re.ASCII)
         if not out or out[0] not in string.ascii_lowercase:

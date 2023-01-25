@@ -14,7 +14,7 @@ features:
     and correctly compares pulses according to their complex amplitude.
 upgrade:
   - |
-    The QPY version format version emitted by :func:.qpy.dump has been
+    The QPY version format version emitted by :func:`~.qpy.dump` has been
     increased to version 6. This new format version is incompatible with the
     previous versions and will result in an error when trying to load it with
     a deserializer that isn't able to handle QPY version 6. This change was

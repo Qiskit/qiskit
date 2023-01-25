@@ -6,10 +6,3 @@ features:
     for linear reversible circuits :class:`~qiskit.circuit.library.LinearFunction`
     over the linear nearest-neighbor architecture,
     following the paper: https://arxiv.org/abs/quant-ph/0701194.
-upgrade:
-  - |
-    Added to the Qiskit documentation the synthesis algorithm
-    :func:`~.synth_cnot_count_full_pmh`
-    for linear reversible circuits :class:`~qiskit.circuit.library.LinearFunction`
-    for all-to-all architecture, following the paper:
-    https://arxiv.org/abs/quant-ph/0302002.
