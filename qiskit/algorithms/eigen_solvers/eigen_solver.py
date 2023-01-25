@@ -90,7 +90,7 @@ class EigensolverResult(AlgorithmResult):
     @deprecate_function(
         "The EigensolverResult class has been superseded by the "
         "qiskit.algorithms.eigensolvers.EigensolverResult class. ",
-        category=DeprecationWarning,
+        category=PendingDeprecationWarning,
         since="0.23.0",
     )
     def __init__(self) -> None:
