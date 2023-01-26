@@ -1125,7 +1125,7 @@ class DAGCircuit:
 
         for node in node_block:
             print(node._node_id, node.name)
-        breakpoint()
+
         try:
             new_node._node_id = self._multi_graph.contract_nodes(
                 block_ids, new_node, check_cycle=cycle_check
