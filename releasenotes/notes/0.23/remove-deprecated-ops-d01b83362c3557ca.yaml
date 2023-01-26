@@ -1,5 +1,10 @@
 ---
 upgrade:
   - |
-    Remove ``qiskit.circuit.measure.measure`` and ``qiskit.circuit.reset.reset`` 
-    functions deprecated since 0.19.
+    The previously deprecated functions: ``qiskit.circuit.measure.measure()``
+    and ``qiskit.circuit.reset.reset()`` have been removed. These functions
+    were deprecated in the Qiskit Terra 0.19.0 release (December, 2021).
+    Instead you should use the :meth:`.QuantumCircuit.measure` and
+    :meth:`.QuantumCircuit.reset` methods of the :class:`~.QuantumCircuit`
+    object you wish to append a :class:`~.Measure` or :class:`~.Reset`
+    operation to.

@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    Fixed an issue of :class:`~.LinCombSamplerGradient` that raises an error
-    with Aer Sampler.
+    Fixed an issue with :class:`~.LinCombSamplerGradient` where it would
+    potentially raise an error when run with the
+    :class:`~qiskit_aer.primitives.Sampler` class from ``qiskit-aer``.

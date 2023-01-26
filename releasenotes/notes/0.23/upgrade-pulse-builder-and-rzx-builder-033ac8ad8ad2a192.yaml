@@ -27,5 +27,6 @@ upgrade:
     instead of returning a :class:`.Play` instruction with the stretched pulse.
 fixes:
   - |
-    The ECR pulse sequence misalignment of :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
-    pass has been fixed. See Qiskit/qiskit-terra/#9013 for details.
+    Fixed an issue in the :class:`~.RZXCalibrationBuilder` where
+    the ECR pulse sequence was misaligned.
+    Fixed `#9013 <https://github.com/Qiskit/qiskit-terra/issues/9013>`__.

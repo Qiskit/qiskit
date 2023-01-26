@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Add new gates :class:`.CCZGate`, :class:`.CSGate`, and :class:`.CSdgGate`
-    to the standard gates in the Circuit Library
-    (:mod:`qiskit.circuit.library`).

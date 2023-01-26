@@ -1,5 +1,12 @@
 ---
 features:
   - |
-    Powering gates using ``**`` is now supported.
-    Example: ``sqrt_x = XGate() ** 0.5``
+    Added support for using the Python exponentiation operator, ``**``, with
+    :class:`~.Gate` objects is now supported. It is equivalent to running the
+    :meth:`.Gate.power` method on the object.
+
+    For example::
+
+        from qiskit.circuit.library import XGate
+
+        sx = XGate() ** 0.5

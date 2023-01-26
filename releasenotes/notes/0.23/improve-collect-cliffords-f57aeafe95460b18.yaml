@@ -1,11 +1,11 @@
 ---
 features:
   - |
-    Extending :class:`~CollectCliffords` transpiler pass to collect and combine blocks
-    of "clifford gates" into :class:`qiskit.quantum_info.Clifford` objects, where the
+    The :class:`~.CollectCliffords` transpiler pass has been expanded to collect
+    and combine blocks of "clifford gates" into :class:`.Clifford` objects, where
     "clifford gates" may now also include objects of type :class:`.LinearFunction`,
-    :class:`qiskit.quantum_info.Clifford`, and :class:`~qiskit.circuit.library.PauliGate`.
-    As an example::
+    :class:`~.Clifford`, and :class:`~.PauliGate`.
+    For example::
 
         from qiskit.circuit import QuantumCircuit
         from qiskit.circuit.library import LinearFunction, PauliGate
@@ -37,11 +37,11 @@ features:
         # Run CollectCliffords transpiler pass
         qct = PassManager(CollectCliffords()).run(qc)
 
-    All the gates will be collected and combined into a single Clifford. Thus the final
-    circuit consists of a single Clifford object.
+    All the gates will be collected and combined into a single :class:`~.Clifford`. Thus the final
+    circuit consists of a single :class:`~.Clifford` object.
 
 fixes:
   - |
-    Restoring the functionality to construct :class:`qiskit.quantum_info.Clifford`
-    objects from quantum circuits containing other :class:`qiskit.quantum_info.Clifford`
+    Fixed a regression in the construction of :class:`~.Clifford` objects
+    from :class:`~.QuantumCircuits` that contain other :class:`~.Clifford`
     objects.

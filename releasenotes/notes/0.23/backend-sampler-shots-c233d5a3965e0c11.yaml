@@ -1,6 +1,9 @@
 ---
-features:
+fixes:
   - |
-    :class:`~.BackendSampler` now sets the ``shots``
-    and ``stddev_upper_bound`` attributes of the returned :class:`~.QuasiDistribution`.
-    Previously it did not.
+    The output from the :meth:`~.BackendSampler.run` method of the the
+    :class:`~.BackendSampler` class now sets the
+    ``shots`` and ``stddev_upper_bound`` attributes of the returned
+    :class:`~.QuasiDistribution`. Previously these attributes were missing
+    which prevent some post-processing using the output.
+    Fixed `#9311 <https://github.com/Qiskit/qiskit-terra/issues/9311>`__

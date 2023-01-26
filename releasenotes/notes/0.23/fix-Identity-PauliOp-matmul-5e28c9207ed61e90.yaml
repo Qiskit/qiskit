@@ -1,6 +1,6 @@
 ---
-issues:
+fixes:
   - |
-    Fixes PauliOp matmul gives incorrect result with iI. Refer to
-    `#8680 <https://github.com/Qiskit/qiskit-terra/issues/8680>` for more
-    details.
+    Fixed an issue with the :meth:`.PauliOp.matmul` method where it would
+    return incorrect results with ``iI``.
+    Fixed `#8680 <https://github.com/Qiskit/qiskit-terra/issues/8680>`__.

@@ -1,8 +1,0 @@
-fixes:
-  - |
-    Fixed an issue in the output callable from the
-    :meth:`~qiskit.algorithms.VQD.get_energy_evaluation` method of
-    the :class:`~qiskit.algorithms.VQD` class will now correctly call
-    the specified ``callback`` when run. Previously the callback would
-    incorrectly not be used in this case.
-    Fixed `#8575 <https://github.com/Qiskit/qiskit-terra/issues/8575>`__

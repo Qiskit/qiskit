@@ -1,4 +1,20 @@
 ---
 upgrade:
   - |
-    The classes :class:`~.MCMT` and :class:`~.MCMTVChain` deprecated the argument ``label`` in Terra 0.19, and it has now been removed.
+    The previously deprecated ``label`` argument for the constructor of the
+    :class:`~.MCMT` and :class:`~.MCMTVChain` classes has been removed.
+    It was deprecated as of the Qiskit Terra 0.19.0 release (Decemeber, 2021).
+    Using the ``label`` argument on these classes was undefined behavior
+    as they are subclasses of :class:`~.QuantumCircuit` instead of
+    :class:`~.circuit.Instruction`. This would result in the assigned label generally
+    being ignored. If you need to assign a ``label`` to an
+    instance of :class:`~.MCMT` or :class:`~.MCMTVChain` you should convert
+    them to an :class:`~.Gate` instance with :meth:`~.QuantumCircuit.to_gate`
+    and then assign the desired label to :attr:`~.Gate.label` attribute. For
+    example::
+
+        from qiskit.circuit.library import MCMT, XGate
+
+        mcmt_circuit = MCMT(XGate(), 3, 2)
+        mcmt_gate = mcmt_circuit.to_gate()
+        mcmt_gate.label = "Custom MCMT X"

@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed a bug in :meth:`.TensoredOp.to_matrix` where the global coefficient of the operator
-    was multiplied to the final matrix more than once. Now, the global coefficient is correclty
-    applied, independent of the number of tensored operators or states.
-    Fixed `#9398 <https://github.com/Qiskit/qiskit-terra/issues/9398>`__.

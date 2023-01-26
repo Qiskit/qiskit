@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    :class:`.Clifford` now takes an optional ``copy`` keyword argument in its
+    The :class:`.Clifford` class now takes an optional ``copy`` keyword argument in its
     constructor.  If set to ``False``, then a :class:`.StabilizerTable` provided
     as input will not be copied, but will be used directly.  This can have
     performance benefits, if the data in the table will never be mutated by any

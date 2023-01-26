@@ -1,4 +1,12 @@
 ---
 upgrade:
   - |
-    The ``gate`` argument to the transpiler pass :class:`~.Decompose` was deprecated in Terra 0.19 and is now removed.
+    The previously deprecated ``gate`` argument to the constructor of the
+    :class:`~.Decompose` transpiler pass, along with its matching attribute
+    ``Decompose.gate`` have been removed. The argument and attribute were
+    deprecated as part of the Qiskit Terra 0.19.0 release (December, 2021).
+    Instead the ``gates_to_decompose`` argument for the constructor along
+    with the :attr:`.Decompose.gates_to_decompose` attribute should be used
+    instead. The ``gates_to_decompose`` argument and attribute should function
+    the same, but has a more explicit name and also enables specifying lists
+    of gates instead of only supporting a single gate.

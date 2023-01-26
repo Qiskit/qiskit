@@ -1,0 +1,124 @@
+---
+prelude: |
+  Qiskit Terra 0.23.0 is a major feature release that includes
+  a multitude of new features and bugfixes. The highlights for this release
+  are:
+
+    * Support for importing OpenQASM 3 programs and creating :class:`.QuantumCircuit` objects
+      from the input program via two new functions :func:`qiskit.qasm3.load` and
+      :func:`qiskit.qasm3.loads`.
+
+    * Improvements to the library of synthesis algorithms included in
+      Qiskit. This includes the following new synthesis functions:
+
+        * Clifford Synthesis
+
+          * :func:`~.synth_clifford_layers`
+          * :func:`~.synth_clifford_greedy`
+
+        * Linear Function Synthesis:
+
+          * :func:`~.synth_cnot_depth_line_kms`
+          * :func:`~.synth_cnot_count_full_pmh`
+
+        * Permutation Synthesis:
+
+          * :func:`~.synth_permutation_basic`
+          * :func:`~.synth_permutation_acg`
+          * :func:`~.synth_permutation_depth_lnn_kms`
+
+        * :class:`~.SolovayKitaevDecomposition` detailed in:
+          https://arxiv.org/abs/quant-ph/0505030
+
+        * New plugins for :class:`~.HighLevelSynthesis`:
+
+          * :class:`~.ACGSynthesisPermutation`
+          * :class:`~.KMSSynthesisPermutation`
+          * :class:`~.BasicSynthesisPermutation`
+
+        * New plugin for :class:`~.UnitarySynthesis`
+
+          * :class:`~.SolovayKitaevSynthesis`
+
+    * Performance improvements to :class:`~.SabreLayout`. The pass
+      is now primarily written in Rust which can lead to a runtime
+      improvement, however the bigger improvement is in the quality of
+      the output (on average, fewer :class:`~.SwapGate` gates
+      introduced by :class:`~.SabreSwap`). For example, running
+      :class:`~.SabreLayout` and :class:`~.SabreSwap` on Bernstein
+      Vazirani circuits targeting the :class:`~.FakeSherbrooke` backend
+      yields the following results:
+
+      .. plot::
+
+          import time
+
+          import numpy as np
+
+          from qiskit.circuit import QuantumCircuit
+          from qiskit.providers.fake_provider import FakeSherbrooke
+          from qiskit.transpiler.passes import SabreLayout, SabreSwap
+          from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
+          from qiskit.transpiler import PassManager
+
+          import matplotlib.pyplot as plt
+
+          backend = FakeSherbrooke()
+          cmap = backend.target.build_coupling_map()
+
+
+          def build_bv_circuit(num_qubits):
+              qc = QuantumCircuit(num_qubits, num_qubits - 1)
+              for i in range(num_qubits - 1):
+                  qc.h(i)
+              qc.x(num_qubits - 1)
+              for i in range(0, num_qubits - 1, 2):
+                  qc.cx(i, num_qubits - 1)
+              for i in range(0, num_qubits - 1):
+                  qc.measure(i, i)
+              return qc
+
+
+          new_sabre_pass = SabreLayout(cmap, seed=23042, swap_trials=10, layout_trials=10)
+          old_sabre_pass = PassManager(
+              SabreLayout(
+                  cmap,
+                  routing_pass=SabreSwap(cmap, "decay", seed=23042, fake_run=True, trials=10),
+                  seed=23042,
+              )
+          )
+          old_sabre_pass += generate_embed_passmanager(cmap)
+          old_sabre_pass.append(SabreSwap(cmap, "decay", 23042, trials=5))
+
+          new_run_times = []
+          old_run_times = []
+          new_non_local_counts = []
+          old_non_local_counts = []
+          bv_sizes = []
+
+          for i in np.linspace(10, 120, dtype=int):
+              bv_sizes.append(i)
+              qc = build_bv_circuit(i)
+              start = time.perf_counter()
+              new_res = new_sabre_pass(qc)
+              stop = time.perf_counter()
+              new_run_times.append(stop - start)
+              new_non_local_counts.append(new_res.num_nonlocal_gates())
+              start = time.perf_counter()
+              old_run = old_sabre_pass.run(qc)
+              stop = time.perf_counter()
+              old_run_times.append(stop - start)
+              old_non_local_counts.append(old_run.num_nonlocal_gates())
+
+          plt.plot(bv_sizes, new_non_local_counts, label="New SabreLayout")
+          plt.plot(bv_sizes, old_non_local_counts, label="Old SabreLayout")
+          plt.xlabel("Number of BV Circuit Qubits")
+          plt.ylabel("Number of non-local gates in output")
+          plt.title("Number of non-local gates after SabreLayout and SabreSwap")
+          plt.legend()
+          plt.show()
+
+  This release also deprecates support for running with Python 3.7. A ``DeprecationWarning``
+  will now be emitted if you run Qiskit with Python 3.7. Support for Python 3.7 will be removed
+  as part of the 0.25.0 release (currently planned for release in July 2022), at which point
+  you will need Python 3.8 or newer to use Qiskit.

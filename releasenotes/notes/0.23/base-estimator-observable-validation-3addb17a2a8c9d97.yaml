@@ -1,8 +1,8 @@
 ---
-upgrade:
+features:
   - |
-    Fully normalize ``observables`` arg in ``BaseEstimator.run()`` method to the more 
-    specific type ``tuple[SparsePauliOp, ...]``.
-  - |
-    Additionally, through this new normalization ``str`` types are now accepted both 
-    standalone, or as elements in a ``Sequence`` object.
+    The :meth:`.BaseEstimator.run` method's ``observables`` argument now
+    accepts a ``str`` or sequence of ``str`` input type in addition to the
+    other types already accepted. When used the input string format
+    should match the Pauli string representation accepted by the constructor
+    for :class:`~.quantum_info.Pauli` objects.

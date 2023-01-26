@@ -2,25 +2,30 @@
 features:
   - |
     Introduced a new subclass :class:`~qiskit.pulse.library.ScalableSymbolicPulse`, as a
-    sub class of :class:`~qiskit.pulse.library.SymbolicPulse`. The new subclass behaves
+    subclass of :class:`~qiskit.pulse.library.SymbolicPulse`. The new subclass behaves
     the same as :class:`~qiskit.pulse.library.SymbolicPulse`,
     except that it assumes that the envelope of the pulse includes a complex amplitude
-    pre-factor of the form `amp * exp(1j * angle)`.
+    pre-factor of the form :math:`\text{amp} * e^{i \times \text{angle}}`.
     This envelope shape matches many common pulses, including all of the pulses in
-    the Qiskit Pulse library (which were also converted to 'amp','angle' representation in
+    the Qiskit Pulse library (which were also converted to ``amp``, ``angle`` representation in
     this release).
 
-    The new subclass removes the non-unique nature of the `amp`,`angle` representation,
+    The new subclass removes the non-unique nature of the ``amp``, ``angle`` representation,
     and correctly compares pulses according to their complex amplitude.
 upgrade:
   - |
-    The QPY version format version emitted by :func:.qpy.dump has been
+    The QPY version format version emitted by :func:`~.qpy.dump` has been
     increased to version 6. This new format version is incompatible with the
     previous versions and will result in an error when trying to load it with
     a deserializer that isn't able to handle QPY version 6. This change was
     necessary to support the introduction of :class:`~qiskit.pulse.library.ScalableSymbolicPulse`
-    which was handled by adding a `class_name_size` attribute to the header
-    of dumped :class:`~qiskit.pulse.library.SymbolicPulse` objects.
+    which was handled by adding a ``class_name_size`` attribute to the header
+    of the dumped :class:`~qiskit.pulse.library.SymbolicPulse` objects.
   - |
-    The hashing option for :class:`~qiskit.pulse.library.SymbolicPulse` was removed
-    to better reflect their mutable nature (via parameter assignment).
+    The ``__hash__`` method for the :class:`~qiskit.pulse.library.SymbolicPulse` was removed.
+    This was done to reflect the mutable nature (via parameter assignment) of this class
+    which could result in errors when using :class:`~qiskit.pulse.library.SymbolicPulse`
+    in situtations where a hashable object was required. This means the builtin ``hash()``
+    method and using :class:`~qiskit.pulse.library.SymbolicPulse` as keys in dictionaries
+    or set members will no longer work.
+

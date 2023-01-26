@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue in :func:`~.circuit_drawer` and :meth:`.QuantumCircuit.draw`
-    with the ``latex`` method where an ``OSError`` would be raised on systems
-    whose temporary directories (*e.g* ``/tmp``) are on a different
-    filesystem than the working directory.
-    Fixes `#8542 <https://github.com/Qiskit/qiskit-terra/issues/8542>`__

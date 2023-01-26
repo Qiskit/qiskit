@@ -1,7 +1,8 @@
 ---
-fixes:
+features:
   - |
-    Added gate reversal directions for the symmetric :class:`~RXXGate`, :class:`~RYYGate`, and :class:`~RZZGate` gates.
-    Definitions are defined by a static method to include the angle of 
-    rotation as a Parameter, and gate reversal is done by simply changing
-    the order of the quantum registers in the DAG.
+    Added support to the :class:`~.GateDirection` transpiler pass to
+    handle the the symmetric :class:`~.RXXGate`, :class:`~.RYYGate`, and
+    :class:`~.RZZGate` gates. The pass will now correctly handle these gates
+    and simply reverse the qargs order in place without any other
+    modifications.

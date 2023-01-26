@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    Added a validation check to :meth:`.BaseSampler.run`.
-    It raises an error if there is no classical bit.

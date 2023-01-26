@@ -15,12 +15,16 @@
 into smaller sub-blocks, and to consolidate blocks."""
 
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
-from . import DAGOpNode, DAGCircuit, DAGDependency
-from .exceptions import DAGCircuitError
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit.dagnode import DAGOpNode
+from qiskit.dagcircuit.dagdependency import DAGDependency
+from qiskit.dagcircuit.exceptions import DAGCircuitError
 
 
 class BlockCollector:
-    """This class implements various strategies of dividing a DAG (direct acyclic graph)
+    """Class for implementing block collection on a DAG.
+
+    This class implements various strategies of dividing a DAG (direct acyclic graph)
     into blocks of nodes that satisfy certain criteria. It works both with the
     :class:`~qiskit.dagcircuit.DAGCircuit` and
     :class:`~qiskit.dagcircuit.DAGDependency` representations of a DAG, where
@@ -107,8 +111,11 @@ class BlockCollector:
         return len(self._pending_nodes) > 0
 
     def collect_matching_block(self, filter_fn):
-        """Iteratively collects the largest block of input nodes (that is, nodes with
+        """Iteratively collects the largest block of input nodes
+
+        The largest block is the block that contains nodes with
         ``_in_degree`` equal to 0) that match a given filtering function.
+
         Examples of this include collecting blocks of swap gates,
         blocks of linear gates (CXs and SWAPs), blocks of Clifford gates, blocks of single-qubit gates,
         blocks of two-qubit gates, etc.  Here 'iteratively' means that once a node is collected,
@@ -143,13 +150,14 @@ class BlockCollector:
 
     def collect_all_matching_blocks(self, filter_fn, split_blocks=True, min_block_size=2):
         """Collects all blocks that match a given filtering function filter_fn.
+
         This iteratively finds the largest block that does not match filter_fn,
         then the largest block that matches filter_fn, and so on, until no more uncollected
         nodes remain. Intuitively, finding larger blocks of non-matching nodes helps to
         find larger blocks of matching nodes later on.
 
         The option ``split_blocks`` allows to collected blocks into sub-blocks over
-        disjoint qubit subsets. The option ``min_block_size``specifies the minimum number
+        disjoint qubit subsets. The option ``min_block_size`` specifies the minimum number
         of gates in the block for the block to be collected.
 
         Returns the list of matching blocks only.
@@ -235,8 +243,10 @@ class BlockSplitter:
 
 
 class BlockCollapser:
-    """This class implements various strategies of consolidating blocks of nodes
-     in a DAG (direct acyclic graph). It works both with the
+    """Class to consolidate a given block from the dag into a single node
+
+    This class implements various strategies of consolidating blocks of nodes
+    in a DAG (direct acyclic graph). It works both with the
     :class:`~qiskit.dagcircuit.DAGCircuit` and
     :class:`~qiskit.dagcircuit.DAGDependency` DAG representations.
     """

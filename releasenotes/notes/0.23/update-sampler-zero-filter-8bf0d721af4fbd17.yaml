@@ -1,5 +1,13 @@
 ---
 upgrade:
   - |
-    Updated the reference implementation :meth:`~.Sampler.run` to return
-    only states with non-zero probabilities.
+    The output :class:`~.QuasiDistribution` from the :class:`.Sampler.run`
+    method has been updated to filter out any states with a probability of
+    zero. Now if a valid state is missing from the dictionary output it can
+    be assumed to have a 0 probability. Previously, all possible outcomes for
+    a given number of bits (e.g. for a 3 bit result ``000``, ``001``,
+    ``010``, ``011``, ``100``, ``101``, ``110``, and ``111``) even if the
+    probability of a given state was 0. This change was made to reduce the
+    size of the output as for larger number of bits the output size could be
+    quite large. Also, filtering the zero probability results makes the output
+    consistent with other implementations of :class:`~.BaseSampler`.

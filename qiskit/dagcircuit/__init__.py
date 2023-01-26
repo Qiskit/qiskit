@@ -31,6 +31,15 @@ DAG Circuits
    DAGDepNode
    DAGDependency
 
+Block Collection
+================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   BlockCollector
+   BlockCollapser
+
 Exceptions
 ==========
 
@@ -44,3 +53,4 @@ from .dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from .dagdepnode import DAGDepNode
 from .exceptions import DAGCircuitError
 from .dagdependency import DAGDependency
+from .collect_blocks import BlockCollector, BlockCollapser

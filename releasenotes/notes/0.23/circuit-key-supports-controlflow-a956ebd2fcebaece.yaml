@@ -1,9 +1,12 @@
 ---
-features:
+fixes:
   - |
-    Primitives may now support dynamic circuits with control flow, if the particular
-    provider's implementation can support them.  Previously, the
-    :class:`~BaseSampler` and :class:`~BaseEstimator` base classes could not correctly
-    normalize such circuits.  This change does not automatically make all
-    primitives support dynamic circuits, but it does make it possible for them
-    to be supported by downstream providers.
+    Fixed support in the :mod:`~.qiskit.primitives` module for running
+    :class:`~.QuantumCircuit` objects with control flow instructions (e.g.
+    :class:`~.IfElseOp`). Previously, the :class:`~BaseSampler` and
+    :class:`~BaseEstimator` base classes could not correctly
+    normalize such circuits. However, executing these circuits is dependent
+    on the particular implementation of the primitive supporting control
+    flow instructions. This just fixed support to enable a particular
+    implementation of :class:`~BaseSampler` or :class:`~BaseEstimator`
+    to use control flow instructions.

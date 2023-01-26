@@ -36,13 +36,8 @@ deprecations:
 
 fixes:
   - |
-    :class:`.QobjToInstructionConverter` has been upgraded to fix waveform name
-    collision when multiple backends are called and they accidentally have the
-    same pulse name in the pulse library.
-
-    This is an edge case caused only when a user keeps a converter instance,
-    while instantiating another converter with different backend.
-    Usually a converter instance is immediately discarted in the Qiskit client,
-    thus usually an end-user should not have encountered to this bug.
-
-    See Qiskit/qiskit-terra/#8839 for more details.
+    Fixed an issue with the :class:`.QobjToInstructionConverter`
+    when multiple backends are called and they accidentally have the
+    same pulse name in the pulse library. This was an edge case that could
+    only be  caused when a converter instance was reused across multiple
+    backends (this was not a typical usage pattern).

@@ -51,6 +51,7 @@ Amplitude Amplifiers
    Grover
    GroverResult
 
+.. _amplitude_estimators:
 
 Amplitude Estimators
 --------------------

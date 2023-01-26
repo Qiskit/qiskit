@@ -1,5 +1,7 @@
+---
 fixes:
   - |
-    Fixed an issue with the approximate quantum compiler (:class:`~qiskit.transpiler.synthesis.aqc.AQC`) that caused
-    it to return a wrong circuit when the unitary has a determinant −1.
-    
+    Fixed an issue with the Approximate Quantum Compiler (:class:`~.AQC`)
+    class which caused it to return an incorrect circuit when the input
+    unitary had a determinant of -1.
+    Fixed `#9327 <https://github.com/Qiskit/qiskit-terra/issues/9327>`__

@@ -1,12 +1,13 @@
 ---
 features:
   - |
-    Added a new synthesis method of a Clifford circuit into layers, based on a paper by
-    Bravyi and Maslov (arxiv:2003.09412).
-    It decomposes the Clifford into 8 layers of gates.
-    There are two layers of CZ gates, and one layer of CX gates.
-
-    For example, a 5-qubit Clifford circuit is decomposed into the following layers:
+    Added a new synthesis function :func:`~.synth_clifford_layers`, for
+    synthesizing a :class:`~.Clifford` into layers. The algorithm is based
+    on S. Bravyi, D. Maslov, `Hadamard-free circuits expose the structure
+    of the Clifford group`, `arxiv:2003.09412 <https://arxiv.org/abs/2003.09412>`__.
+    This decomposes the Clifford into 8 layers of gates including two layers
+    of CZ gates, and one layer of CX gates. For example, a 5-qubit Clifford
+    circuit is decomposed into the following layers:
 
     .. parsed-literal::
              ┌─────┐┌─────┐┌────────┐┌─────┐┌─────┐┌─────┐┌─────┐┌────────┐
@@ -21,8 +22,5 @@ features:
         q_4: ┤4    ├┤4    ├┤4       ├┤4    ├┤4    ├┤4    ├┤4    ├┤4       ├
              └─────┘└─────┘└────────┘└─────┘└─────┘└─────┘└─────┘└────────┘
 
-    This method will allow to decompose a Clifford circuit in 2-qubit depth 7n+2 for
-    linear nearest neighbor (LNN) connectivity.
-    Since a CZ circuit can be decomposed in 2-qubit depth 2n by arxiv:1705.09176,
-    and a CX-CZ circuit can be decomposed in 2-qubit depth 2n by arxiv:2210.16195.
-    These algorithms will be added in future PRs.
+    This method will allow to decompose a :class:`~.Clifford` in 2-qubit depth
+    :math:`7n+2` for linear nearest neighbor (LNN) connectivity.

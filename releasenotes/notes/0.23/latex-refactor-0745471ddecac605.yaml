@@ -1,11 +1,16 @@
 ---
 deprecations:
   - |
-    Two mostly internal functions in ``qiskit.visualization.state_visualization``,
-    ``num_to_latex_ket`` and ``num_to_latex_terms``, have been deprecated and will
-    be removed no sooner than Qiskit Terra 0.25.  These were old internal worker
-    functions that are no longer used.  For similar functionality, look at Sympy's
-    ``nsimplify`` and ``latex`` functions.
+    The ``qiskit.visualization.state_visualization.num_to_latex_ket()``
+    and ``qiskit.visualization.state_visualization.num_to_latex_terms()``
+    functions have been deprecated and will be removed in a future release.
+    These function were primarily used internally by the LaTeX output from
+    :meth:`.Statevector.draw` and :meth:`.DensityMatrix.draw` which no longer
+    are using these function and are leverging
+    `sympy <https://pypi.org/project/sympy/>`__ for this instead. If you were
+    using these functions you should cosinder using Sympy's
+    `nsimplify() <https://docs.sympy.org/latest/modules/simplify/simplify.html>`__
+    `latex() <https://docs.sympy.org/latest/modules/printing.html>`__ functions.
 upgrade:
   - |
     The LaTeX array drawers (e.g. ``array_to_latex``,

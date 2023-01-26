@@ -1,15 +1,19 @@
 ---
 features:
   - |
-    Add primitive-enabled algorithms for Variational Quantum Time Evolution that implement the
-    interface for Quantum Time Evolution. The feature supports real
-    (:class:`qiskit.algorithms.VarQRTE`.) and imaginary (:class:`qiskit.algorithms.VarQITE`.)
+    Added primitive-enabled algorithms for Variational Quantum Time Evolution that implement the
+    interface for Quantum Time Evolution. The :class:`qiskit.algorithms.VarQRTE` class is used
+    for real and the :class:`qiskit.algorithms.VarQITE` class is used for imaginary
     quantum time evolution according to a variational principle passed.
-    Each algorithm accepts a variational principle and the following are provided:
-    :class:`qiskit.algorithms.time_evolvers.variational.ImaginaryMcLachlanPrinciple`,
-    :class:`qiskit.algorithms.time_evolvers.variational.RealMcLachlanPrinciple`,
-    Both algorithms require solving ODE equations and linear equations which is handled by classes
-    implemented in `qiskit.algorithms.time_evolvers.variational.solvers` module.
+
+    Each algorithm accepts a variational principle which implements the
+    :class:`~.ImaginaryVariationalPrinciple` abstract interface. The
+    following implementations are included:
+
+      * :class:`~.ImaginaryMcLachlanPrinciple`
+      * :class:`~.RealMcLachlanPrinciple`
+
+    For example:
 
     .. code-block:: python
 

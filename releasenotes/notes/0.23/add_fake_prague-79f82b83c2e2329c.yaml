@@ -1,4 +1,9 @@
 ---
 features:
   - |
-    Adds the :class:`~.FakePrague` Egret R1 backend to the FakeProvider.
+    Added two new fake backends, :class:`~.FakePrague` and
+    :class:`~.FakeSherbrooke` to the :mod:`qiskit.providers.fake_provider` module.
+    :class:`~.FakePrague` provides a backend with a snapshot of the properties
+    from the IBM Prague Egret R1 backend and :class:`~.FakeSherbrooke`
+    provides a backend with a snapshot of the properties from the IBM
+    Sherbrooke Eagle R3 backend.

@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue with  the amplitude estimation algorithms in the
+    ``qiskit.algorithms.amplitude_estimators`` module (see :ref:`amplitude_estimators`) for
+    the usage with primitives built from the abstract :class:`.BaseSampler` primitive (such
+    as :class:`~.Sampler` and :class:`~.BackendSampler`). Previously, the measurement
+    results were expanded to more bits than actually measured which for oracles with more
+    than one qubit led to potential errors in the detection of the "good" quantum states
+    for oracles.

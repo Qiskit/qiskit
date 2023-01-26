@@ -1,6 +1,30 @@
 ---
 upgrade:
   - |
-    Methods inherited from ``set`` have been removed from :class:`.ParameterView`, the type returned
-    by :attr:`.QuantumCircuit.parameters`.  These were deprecated since Terra 0.17; this type has been
-    a general view type since then.
+    The previously deprecated :class:`.ParameterView` methods which were
+    inherited from ``set`` have been removed from :class:`.ParameterView`,
+    the type returned by :attr:`.QuantumCircuit.parameters`. The specific
+    methods which have been removed are:
+
+      * ``add()``
+      * ``difference()``
+      * ``difference_update()``
+      * ``discard()``
+      * ``intersection()``
+      * ``intersection_update()``
+      * ``issubset()``
+      * ``issuperset()``
+      * ``symmetric_difference()``
+      * ``symmetric_difference_update()``
+      * ``union()``
+      * ``update()``
+
+    along with support for the Python operators:
+
+      * ``ixor``: ``^=``
+      * ``isub``: ``-=``
+      * ``ior``: ``|=``
+
+    These were deprecated in the Qiskit Terra 0.17.0 release (April, 2021).
+    The :class:`.ParameterView` type is now a general sequence view type and doesn't
+    support these ``set`` operations any longer.

@@ -1,6 +1,20 @@
 ---
 deprecations:
   - |
-    The class ``LinearFunctionsSynthesis`` was marked as deprecated, as it is simply
-    a special case of the more general ``HighLevelSynthesis`` transpiler pass. It will be
-    removed in a future release.
+    The class :class:`~.LinearFunctionsSynthesis` class is now deprecated
+    and will be removed in a future release. It has been superseded
+    by the more general :class:`~.HighLevelSynthesis` class which should
+    be used instead. For example, you can instantiate an instance of
+    :class:`~.HighLevelSynthesis` that will behave the same way as
+    :class:`~.LinearFunctionSynthesis` with::
+
+        from qiskit.transpiler.passes import HighLevelSynthesis
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
+
+        HighLevelSynthesis(
+            HLSConfig(
+                linear_function=[("default", {})],
+                use_default_on_unspecified=False,
+            )
+        )
+
