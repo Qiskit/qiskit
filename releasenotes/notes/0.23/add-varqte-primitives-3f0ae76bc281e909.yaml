@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Add primitive-enabled algorithms for Variational Quantum Time Evolution that implement the
+    Added primitive-enabled algorithms for Variational Quantum Time Evolution that implement the
     interface for Quantum Time Evolution. The :class:`qiskit.algorithms.VarQRTE` class is used
     for real and the :class:`qiskit.algorithms.VarQITE` class is used for imaginary
     quantum time evolution according to a variational principle passed.

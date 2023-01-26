@@ -6,7 +6,7 @@ fixes:
     that the method now accepts the same set of qubit and clbit
     specifiers as other :class:`.QuantumCircuit` methods, such as
     :meth:`~.QuantumCircuit.append`.
-    `#8691 <https://github.com/Qiskit/qiskit-terra/issues/8691>`__.
+    Fixed `#8691 <https://github.com/Qiskit/qiskit-terra/issues/8691>`__.
   - |
     Fixed an issue with the :meth:`.QuantumCircuit.compose` method where it would
     incorrectly map registers in conditions on the given circuit to complete
@@ -16,4 +16,4 @@ fixes:
     being expanded to be on a larger register, which is not a valid transformation. Now, a
     condition on a single bit or a register will be composed to be on precisely the bits as defined
     by the ``clbits`` argument. A new aliasing register will be added to the base circuit to
-    facilitate this, if necessary. Fixed `#6583 <https://github.com/Qiskit/qiskit-terra/issues/5583>`__.
+    facilitate this, if necessary. Fixed `#6583 <https://github.com/Qiskit/qiskit-terra/issues/6583>`__.

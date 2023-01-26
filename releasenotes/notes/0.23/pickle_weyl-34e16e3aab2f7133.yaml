@@ -3,5 +3,5 @@ fixes:
   - |
     Fixed an issue with the :class:`~.TwoQubitWeylDecomposition` class (and
     its subclasses) to enable the Python standard library ``pickle``
-    to serialize thes classes. This partial fixed
+    to serialize these classes. This partially fixed
     `#7312 <https://github.com/Qiskit/qiskit-terra/issues/7312>`__

@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    The return type for the :meth:`~.Gate.power` method on several standard
-    library gate classes have been updated to return a more specific
-    gate object that results in a less lossy and more efficient output.
+    The return types for the :meth:`~.Gate.power` methods on several standard
+    library gate classes have been updated to return more specific
+    gate objects that result in a less lossy and more efficient output.
     For example, running :meth:`~.IGate.power` now returns an :class:`~.IGate`
     instance instead of :class:`~.UnitaryGate` as was done previously.
 

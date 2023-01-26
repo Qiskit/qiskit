@@ -26,5 +26,5 @@ upgrade:
       * ``ior``: ``|=``
 
     These were deprecated in the Qiskit Terra 0.17.0 release (April, 2021).
-    The :class:`.ParameterView` type is now a general view type and doesn't
+    The :class:`.ParameterView` type is now a general sequence view type and doesn't
     support these ``set`` operations any longer.

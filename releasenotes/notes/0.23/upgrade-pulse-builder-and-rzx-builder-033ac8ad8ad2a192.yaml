@@ -28,5 +28,5 @@ upgrade:
 fixes:
   - |
     Fixed an issue in the :class:`~.RZXCalibrationBuilder` where
-    the ECR pulse sequence was misalignmed.
+    the ECR pulse sequence was misaligned.
     Fixed `#9013 <https://github.com/Qiskit/qiskit-terra/issues/9013>`__.

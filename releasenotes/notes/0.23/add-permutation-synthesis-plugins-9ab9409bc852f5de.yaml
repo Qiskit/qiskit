@@ -5,7 +5,7 @@ features:
     representing permutation logic as a circuit element. Unlike the existing
     :class:`~qiskit.circuit.library.Permutation` circuit library element
     which had a static definition this new class avoids synthesizing a permutation
-    circuit when it is declared. This delays the actual synthesis to the transpiler
+    circuit when it is declared. This delays the actual synthesis to the transpiler.
     It also allows enables using several different algorithms for synthesizing
     permutations, which are available as high-level-synthesis
     permutation plugins.

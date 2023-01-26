@@ -49,7 +49,7 @@ features:
         )
 
         vf2_pass = VF2Layout(target=target, seed=1234568942)
-        pm = PassManager([FakeScore(), vf2_pass])
+        pm = PassManager([CustomVF2Scoring(), vf2_pass])
 
     That will run :class:`~.VF2Layout` with the custom scoring from ``error_map`` for
     a 2 qubit :class:`~.Target` that doesn't contain any error rates.

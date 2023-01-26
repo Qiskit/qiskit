@@ -4,7 +4,7 @@ features:
     The :class:`~.EquivalenceLibrary` is now
     represented internally as a ``PyDiGraph``, this underlying graph object
     can be accesed from the new :attr:`~.EquivalenceLibrary.graph` attribute.
-    This attribute is intended for use internally in qiskit and therefore
+    This attribute is intended for use internally in Qiskit and therefore
     should always be copied before being modified by the user to prevent
     possible corruption of the internal equivalence graph.
 upgrade:

@@ -3,13 +3,13 @@ deprecations:
     The legacy version of the pulse drawer present in the
     :mod:`qiskit.visualization.pulse` has been deprecated and will be
     removed in a future release. This includes the :class:`~.ScheduleDrawer`
-    and :class`WaveformDrawer` classes. This module has been supersceded
+    and :class`WaveformDrawer` classes. This module has been superseded
     by the :mod:`qiskit.visualization.pulse_v2` drawer and the typical user
     API :func:`.pulse_drawer` and :meth:`.PulseBlock.draw` are already updated
     internally to use :mod:`qiskit.visualization.pulse_v2`.
   - |
     The :meth:`.pulse.Instruction.draw` method has been deprecated and will
-    removed in a future release. The need for this method has been supersceded
+    removed in a future release. The need for this method has been superseded
     by the :mod:`qiskit.visualization.pulse_v2` drawer which doesn't require
     :class:`~.pulse.Instrucion` objects to have their own draw method. If
     you need to draw a pulse instruction you should leverage the

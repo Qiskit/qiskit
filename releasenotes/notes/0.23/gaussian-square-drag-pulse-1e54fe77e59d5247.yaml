@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Add new :class:`~.GaussianSquareDrag` pulse shape to the :mod:`qiskit.pulse.library`
+    Added new :class:`~.GaussianSquareDrag` pulse shape to the :mod:`qiskit.pulse.library`
     module. This pulse shape is similar to :class:`~.GaussianSquare` but uses
     the :class:`~.Drag` shape during its rise and fall. The correction
     from the DRAG pulse shape can suppress part of the frequency spectrum of

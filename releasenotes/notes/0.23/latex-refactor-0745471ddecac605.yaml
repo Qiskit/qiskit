@@ -4,7 +4,7 @@ deprecations:
     The ``qiskit.visualization.state_visualization.num_to_latex_ket()``
     and ``qiskit.visualization.state_visualization.num_to_latex_terms()``
     functions have been deprecated and will be removed in a future release.
-    These function were primarily used internally by the latex output from
+    These function were primarily used internally by the LaTeX output from
     :meth:`.Statevector.draw` and :meth:`.DensityMatrix.draw` which no longer
     are using these function and are leverging
     `sympy <https://pypi.org/project/sympy/>`__ for this instead. If you were

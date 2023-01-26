@@ -9,5 +9,5 @@ upgrade:
     ``010``, ``011``, ``100``, ``101``, ``110``, and ``111``) even if the
     probability of a given state was 0. This change was made to reduce the
     size of the output as for larger number of bits the output size could be
-    quite large. Also filtering the zero proability results makes the output
-    consitstent with other implementations of :class:`~.BaseSampler`.
+    quite large. Also, filtering the zero probability results makes the output
+    consistent with other implementations of :class:`~.BaseSampler`.

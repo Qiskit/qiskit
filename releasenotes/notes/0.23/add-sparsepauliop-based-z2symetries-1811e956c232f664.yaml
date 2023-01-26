@@ -1,6 +1,6 @@
 ---
 features:
   - |
-    Added a new class :class:`~.Z2Symmetries` to the :mod:`qiskit.quantum_info`
+    Added a new class :class:`~.Z2Symmetries` to :mod:`qiskit.quantum_info`
     which is used to identify any :math:`Z_2` symmetries from an input
     :class:`~.SparsePauliOp`.

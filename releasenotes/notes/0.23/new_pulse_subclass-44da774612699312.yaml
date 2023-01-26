@@ -5,7 +5,7 @@ features:
     subclass of :class:`~qiskit.pulse.library.SymbolicPulse`. The new subclass behaves
     the same as :class:`~qiskit.pulse.library.SymbolicPulse`,
     except that it assumes that the envelope of the pulse includes a complex amplitude
-    pre-factor of the form :math:`amp * e^{1j * angle}`.
+    pre-factor of the form :math:`\text{amp} * e^{i \times \text{angle}}`.
     This envelope shape matches many common pulses, including all of the pulses in
     the Qiskit Pulse library (which were also converted to ``amp``, ``angle`` representation in
     this release).

@@ -3,7 +3,7 @@ deprecations:
   - |
     The functions :func:`qiskit.quantum_info.synthesis.decompose_clifford`
     and :func:`qiskit.quantum_info.synthesis.decompose_cnot_dihedral`
-    are deprecated and will be removed in the future release.
+    are deprecated and will be removed in a future release.
     They are replaced by the two functions
     :func:`qiskit.synthesis.synth_clifford_full` and
     :func:`qiskit.synthesis.synth_cnotdihedral_full` respectively.

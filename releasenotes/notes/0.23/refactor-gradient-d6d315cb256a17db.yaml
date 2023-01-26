@@ -1,10 +1,10 @@
 ---
 features:
   - |
-    The :mod:`~.qiskit.primtives` based gradient classes defined by the
+    The :mod:`~.qiskit.primitives`\ -based gradient classes defined by the
     :class:`~.BaseEstimatorGradient` and :class:`~.BaseSamplerGradient`
-    abstract classes have been update to simplify extending the base
-    interface. There are three new internal overrideable methods, ``_preprocess()``,
+    abstract classes have been updated to simplify extending the base
+    interface. There are three new internal overridable methods, ``_preprocess()``,
     ``_postprocess()``, and ``_run_unique()``. ``_preprocess()`` enables
     a subclass to customize the input gradient circuits and parameters,
     ``_postprocess`` enables to customize the output result, and

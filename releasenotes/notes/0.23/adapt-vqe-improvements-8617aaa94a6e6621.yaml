@@ -11,8 +11,33 @@ features:
         from qiskit.circuit.library import EvolvedOperatorAnsatz
         from qiskit.opflow import PauliSumOp
         from qiskit.primitives import Estimator
+        from qiskit.quantum_info import SparsePauliOp
         from qiskit.utils import algorithm_globals
 
+        excitation_pool = [
+            PauliSumOp(
+                SparsePauliOp(["IIIY", "IIZY"], coeffs=[0.5 + 0.0j, -0.5 + 0.0j]), coeff=1.0
+            ),
+            PauliSumOp(
+                SparsePauliOp(["ZYII", "IYZI"], coeffs=[-0.5 + 0.0j, 0.5 + 0.0j]), coeff=1.0
+            ),
+            PauliSumOp(
+                SparsePauliOp(
+                    ["ZXZY", "IXIY", "IYIX", "ZYZX", "IYZX", "ZYIX", "ZXIY", "IXZY"],
+                    coeffs=[
+                        -0.125 + 0.0j,
+                        0.125 + 0.0j,
+                        -0.125 + 0.0j,
+                        0.125 + 0.0j,
+                        0.125 + 0.0j,
+                        -0.125 + 0.0j,
+                        0.125 + 0.0j,
+                        -0.125 + 0.0j,
+                    ],
+                ),
+                coeff=1.0,
+            ),
+        ]
         ansatz = EvolvedOperatorAnsatz(excitation_pool, initial_state=self.initial_state)
         optimizer = SLSQP()
         h2_op = PauliSumOp.from_list(

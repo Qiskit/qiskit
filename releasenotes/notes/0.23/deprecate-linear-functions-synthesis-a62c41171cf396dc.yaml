@@ -2,7 +2,7 @@
 deprecations:
   - |
     The class :class:`~.LinearFunctionsSynthesis` class is now deprecated
-    and will be removed in a future release. It has been supersceded
+    and will be removed in a future release. It has been superseded
     by the more general :class:`~.HighLevelSynthesis` class which should
     be used instead. For example, you can instantiate an instance of
     :class:`~.HighLevelSynthesis` that will behave the same way as

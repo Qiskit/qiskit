@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Added a new keyword argument, ``method`` to the constructors for the
+    Added a new keyword argument, ``method``, to the constructors for the
     :class:`.FiniteDiffEstimatorGradient` and :class:`.FiniteDiffSamplerGradient`
     classes. The ``method`` argument accepts a string to indicate the
     computation method to use for the gradient. There are three methods,

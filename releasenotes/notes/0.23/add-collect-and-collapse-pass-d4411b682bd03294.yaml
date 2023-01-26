@@ -8,7 +8,7 @@ features:
     instantiating the pass. For example, the :class:`~.CollectLinearFunctions` has been
     updated to inherit from :class:`~.CollectAndCollapse` and  collects blocks of
     :class:`.CXGate` and :class:`.SwapGate` gates, and replaces each block with a
-    :class:`.LinearFunction`. While the :class:`~.CollectCliffords` which is also now
+    :class:`.LinearFunction`. The :class:`~.CollectCliffords` which is also now
     based on :class:`~.CollectAndCollapse`, collects blocks of "Clifford" gates and
     replaces each block with a :class:`.Clifford`.
 
@@ -22,7 +22,7 @@ features:
         qc.cx(1, 0)
 
     using ``do_commutative_analysis`` enables consolidating the two CX gates, as
-    the first CX gate and the Z-gate commute.
+    the first CX gate and the Z gate commute.
   - |
     Added a new class :class:`~.BlockCollector` that implements various collection strategies,
     and a new class :class:`~.BlockCollapser` that implements various collapsing strategies.
@@ -30,9 +30,9 @@ features:
     adhering to a given filter function (for example, collecting all Clifford gates), and
     :class:`~.BlockCollapser` includes the strategy to consolidate all gates in a block to a
     single object (or example, a block of Clifford gates can be consolidated to a single
-    ``Clifford``).
+    :class:`.Clifford`).
   - |
-    Added a new :class:`~.CollectCliffords` transpiler pass that collects blocks of clifford
+    Added a new :class:`~.CollectCliffords` transpiler pass that collects blocks of Clifford
     gates and consolidates these blocks into :class:`qiskit.quantum_info.Clifford` objects.
     This pass inherits from :class:`~.CollectAndCollapse` and in particular supports the option
     ``do_commutative_analysis``.
