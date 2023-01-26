@@ -52,7 +52,11 @@ class EchoRZXWeylDecomposition(TransformationPass):
     def _is_native(self, qubit_pair: Tuple) -> bool:
         """Return the direction of the qubit pair that is native."""
         cal_type, _, _ = _check_calibration_type(self._inst_map, qubit_pair)
-        return cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD, CRCalType.DIRECT_CX_FORWARD]
+        return cal_type in [
+            CRCalType.ECR_CX_FORWARD,
+            CRCalType.ECR_FORWARD,
+            CRCalType.DIRECT_CX_FORWARD,
+        ]
 
     @staticmethod
     def _echo_rzx_dag(theta):

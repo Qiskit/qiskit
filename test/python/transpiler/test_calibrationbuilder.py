@@ -56,6 +56,7 @@ class TestCalibrationBuilder(QiskitTestCase):
 
         return cr_schedule.filter(_filter_func).instructions[0][1]
 
+
     def build_stretched_ecr_pulse_forward(
         self,
         backend,
@@ -248,8 +249,8 @@ class TestCalibrationBuilder(QiskitTestCase):
             backend=backend,
             theta=theta,
             u0p_play=self.get_cr_play(cr_schedule, "CR90p_u"),
-            d1p_play=self.get_cr_play(cr_schedule, "CR90m_u"),
-            u0m_play=self.get_cr_play(cr_schedule, "CR90p_d"),
+            u0m_play=self.get_cr_play(cr_schedule, "CR90m_u"),
+            d1p_play=self.get_cr_play(cr_schedule, "CR90p_d"),
             d1m_play=self.get_cr_play(cr_schedule, "CR90m_d"),
         )
 
@@ -325,18 +326,28 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
     @data(-np.pi / 4, 0.1, np.pi / 4, np.pi / 2, np.pi)
     def test_rzx_calibration_cr_pulse_stretch(self, theta: float):
         """Test that cross resonance pulse durations are computed correctly."""
+        # TODO - need to do this with BackendV2 and FakeSherbrooke
+        backend = FakeHanoi()
+        inst_map = backend.defaults().instruction_schedule_map
+        cr_schedule = inst_map.get("cx", (0, 1))
+        u0p_play = self.get_cr_play(cr_schedule, "CR90p_u")
         with builder.build() as test_sched:
-            RZXCalibrationBuilder.rescale_cr_inst(self.u0p_play, theta)
+            RZXCalibrationBuilder.rescale_cr_inst(u0p_play, theta)
 
-        self.assertEqual(test_sched.duration, self.compute_stretch_duration(self.u0p_play, theta))
+        self.assertEqual(test_sched.duration, self.compute_stretch_duration(u0p_play, theta))
 
     @data(-np.pi / 4, 0.1, np.pi / 4, np.pi / 2, np.pi)
     def test_rzx_calibration_rotary_pulse_stretch(self, theta: float):
         """Test that rotary pulse durations are computed correctly."""
+        # TODO - need to do this with BackendV2 and FakeSherbrooke
+        backend = FakeHanoi()
+        inst_map = backend.defaults().instruction_schedule_map
+        cr_schedule = inst_map.get("cx", (0, 1))
+        d1p_play = self.get_cr_play(cr_schedule, "CR90p_d")
         with builder.build() as test_sched:
-            RZXCalibrationBuilder.rescale_cr_inst(self.d1p_play, theta)
+            RZXCalibrationBuilder.rescale_cr_inst(d1p_play, theta)
 
-        self.assertEqual(test_sched.duration, self.compute_stretch_duration(self.d1p_play, theta))
+        self.assertEqual(test_sched.duration, self.compute_stretch_duration(d1p_play, theta))
 
     def test_native_cr(self):
         """Test that correct pulse sequence is generated for native CR pair."""
@@ -346,27 +357,34 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         qc = circuit.QuantumCircuit(2)
         qc.rzx(theta, 0, 1)
 
-        _pass = RZXCalibrationBuilder(self.inst_map)
+        backend = FakeHanoi()
+        inst_map = backend.defaults().instruction_schedule_map
+        _pass = RZXCalibrationBuilder(inst_map)
         test_qc = PassManager(_pass).run(qc)
 
-        duration = self.compute_stretch_duration(self.u0p_play, theta)
+        cr_schedule = inst_map.get("cx", (0, 1))
+        u0p_play = self.get_cr_play(cr_schedule, "CR90p_u")
+        u0m_play = self.get_cr_play(cr_schedule, "CR90m_u")
+        d1p_play = self.get_cr_play(cr_schedule, "CR90p_d")
+        d1m_play = self.get_cr_play(cr_schedule, "CR90m_d")
+        duration = self.compute_stretch_duration(u0p_play, theta)
         with builder.build(
-            self.backend,
+            backend,
             default_alignment="sequential",
             default_transpiler_settings={"optimization_level": 0},
         ) as ref_sched:
             with builder.align_left():
                 # Positive CRs
-                u0p_params = self.u0p_play.pulse.parameters
+                u0p_params = u0p_play.pulse.parameters
                 u0p_params["duration"] = duration
-                u0p_params["width"] = self.compute_stretch_width(self.u0p_play, theta)
+                u0p_params["width"] = self.compute_stretch_width(u0p_play, theta)
                 builder.play(
                     GaussianSquare(**u0p_params),
                     ControlChannel(0),
                 )
-                d1p_params = self.d1p_play.pulse.parameters
+                d1p_params = d1p_play.pulse.parameters
                 d1p_params["duration"] = duration
-                d1p_params["width"] = self.compute_stretch_width(self.d1p_play, theta)
+                d1p_params["width"] = self.compute_stretch_width(d1p_play, theta)
                 builder.play(
                     GaussianSquare(**d1p_params),
                     DriveChannel(1),
@@ -374,23 +392,23 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             builder.x(0)
             with builder.align_left():
                 # Negative CRs
-                u0m_params = self.u0m_play.pulse.parameters
+                u0m_params = u0m_play.pulse.parameters
                 u0m_params["duration"] = duration
-                u0m_params["width"] = self.compute_stretch_width(self.u0m_play, theta)
+                u0m_params["width"] = self.compute_stretch_width(u0m_play, theta)
                 builder.play(
                     GaussianSquare(**u0m_params),
                     ControlChannel(0),
                 )
-                d1m_params = self.d1m_play.pulse.parameters
+                d1m_params = d1m_play.pulse.parameters
                 d1m_params["duration"] = duration
-                d1m_params["width"] = self.compute_stretch_width(self.d1m_play, theta)
+                d1m_params["width"] = self.compute_stretch_width(d1m_play, theta)
                 builder.play(
                     GaussianSquare(**d1m_params),
                     DriveChannel(1),
                 )
             builder.x(0)
 
-        self.assertEqual(schedule(test_qc, self.backend), target_qobj_transform(ref_sched))
+        self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
     def test_non_native_cr(self):
         """Test that correct pulse sequence is generated for non-native CR pair."""
@@ -400,12 +418,19 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
         qc = circuit.QuantumCircuit(2)
         qc.rzx(theta, 1, 0)
 
-        _pass = RZXCalibrationBuilder(self.inst_map)
+        backend = FakeHanoi()
+        inst_map = backend.defaults().instruction_schedule_map
+        _pass = RZXCalibrationBuilder(inst_map)
         test_qc = PassManager(_pass).run(qc)
 
-        duration = self.compute_stretch_duration(self.u0p_play, theta)
+        cr_schedule = inst_map.get("cx", (0, 1))
+        u0p_play = self.get_cr_play(cr_schedule, "CR90p_u")
+        u0m_play = self.get_cr_play(cr_schedule, "CR90m_u")
+        d1p_play = self.get_cr_play(cr_schedule, "CR90p_d")
+        d1m_play = self.get_cr_play(cr_schedule, "CR90m_d")
+        duration = self.compute_stretch_duration(u0p_play, theta)
         with builder.build(
-            self.backend,
+            backend,
             default_alignment="sequential",
             default_transpiler_settings={"optimization_level": 0},
         ) as ref_sched:
@@ -418,16 +443,16 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
             with builder.align_left():
                 # Positive CRs
-                u0p_params = self.u0p_play.pulse.parameters
+                u0p_params = u0p_play.pulse.parameters
                 u0p_params["duration"] = duration
-                u0p_params["width"] = self.compute_stretch_width(self.u0p_play, theta)
+                u0p_params["width"] = self.compute_stretch_width(u0p_play, theta)
                 builder.play(
                     GaussianSquare(**u0p_params),
                     ControlChannel(0),
                 )
-                d1p_params = self.d1p_play.pulse.parameters
+                d1p_params = d1p_play.pulse.parameters
                 d1p_params["duration"] = duration
-                d1p_params["width"] = self.compute_stretch_width(self.d1p_play, theta)
+                d1p_params["width"] = self.compute_stretch_width(d1p_play, theta)
                 builder.play(
                     GaussianSquare(**d1p_params),
                     DriveChannel(1),
@@ -435,16 +460,16 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             builder.x(0)
             with builder.align_left():
                 # Negative CRs
-                u0m_params = self.u0m_play.pulse.parameters
+                u0m_params = u0m_play.pulse.parameters
                 u0m_params["duration"] = duration
-                u0m_params["width"] = self.compute_stretch_width(self.u0m_play, theta)
+                u0m_params["width"] = self.compute_stretch_width(u0m_play, theta)
                 builder.play(
                     GaussianSquare(**u0m_params),
                     ControlChannel(0),
                 )
-                d1m_params = self.d1m_play.pulse.parameters
+                d1m_params = d1m_play.pulse.parameters
                 d1m_params["duration"] = duration
-                d1m_params["width"] = self.compute_stretch_width(self.d1m_play, theta)
+                d1m_params["width"] = self.compute_stretch_width(d1m_play, theta)
                 builder.play(
                     GaussianSquare(**d1m_params),
                     DriveChannel(1),
@@ -458,7 +483,7 @@ class TestRZXCalibrationBuilder(TestCalibrationBuilder):
             builder.call_gate(SXGate(), qubits=(1,))
             builder.call_gate(RZGate(np.pi / 2), qubits=(1,))
 
-        self.assertEqual(schedule(test_qc, self.backend), target_qobj_transform(ref_sched))
+        self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
     def test_pass_alive_with_dcx_ish(self):
         """Test if the pass is not terminated by error with direct CX input."""
@@ -500,29 +525,35 @@ class TestRZXCalibrationBuilderNoEcho(TestCalibrationBuilder):
         qc = circuit.QuantumCircuit(2)
         qc.rzx(theta, 0, 1)
 
-        _pass = RZXCalibrationBuilderNoEcho(self.inst_map)
+        backend = FakeHanoi()
+        inst_map = backend.defaults().instruction_schedule_map
+
+        _pass = RZXCalibrationBuilderNoEcho(inst_map)
         test_qc = PassManager(_pass).run(qc)
 
-        duration = self.compute_stretch_duration(self.u0p_play, 2.0 * theta)
+        cr_schedule = inst_map.get("cx", (0, 1))
+        u0p_play = self.get_cr_play(cr_schedule, "CR90p_u")
+        d1p_play = self.get_cr_play(cr_schedule, "CR90p_d")
+        duration = self.compute_stretch_duration(u0p_play, 2.0 * theta)
         with builder.build() as ref_sched:
             # Positive CRs
-            u0p_params = self.u0p_play.pulse.parameters
+            u0p_params = u0p_play.pulse.parameters
             u0p_params["duration"] = duration
-            u0p_params["width"] = self.compute_stretch_width(self.u0p_play, 2.0 * theta)
+            u0p_params["width"] = self.compute_stretch_width(u0p_play, 2.0 * theta)
             builder.play(
                 GaussianSquare(**u0p_params),
                 ControlChannel(0),
             )
-            d1p_params = self.d1p_play.pulse.parameters
+            d1p_params = d1p_play.pulse.parameters
             d1p_params["duration"] = duration
-            d1p_params["width"] = self.compute_stretch_width(self.d1p_play, 2.0 * theta)
+            d1p_params["width"] = self.compute_stretch_width(d1p_play, 2.0 * theta)
             builder.play(
                 GaussianSquare(**d1p_params),
                 DriveChannel(1),
             )
             builder.delay(duration, DriveChannel(0))
 
-        self.assertEqual(schedule(test_qc, self.backend), target_qobj_transform(ref_sched))
+        self.assertEqual(schedule(test_qc, backend), target_qobj_transform(ref_sched))
 
     def test_pass_alive_with_dcx_ish(self):
         """Test if the pass is not terminated by error with direct CX input."""

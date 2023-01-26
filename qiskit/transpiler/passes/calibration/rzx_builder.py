@@ -198,7 +198,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
 
         cal_type, cr_tones, comp_tones = _check_calibration_type(self._inst_map, qubits)
 
-        if cal_type == CRCalType.DIRECT_CX:
+        if cal_type in [CRCalType.DIRECT_CX_FORWARD, CRCalType.DIRECT_CX_REVERSE]:
             if self._verbose:
                 warnings.warn(
                     f"CR instruction for qubits {qubits} is likely {cal_type.value} sequence. "
@@ -293,7 +293,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
 
         cal_type, cr_tones, comp_tones = _check_calibration_type(self._inst_map, qubits)
 
-        if cal_type == CRCalType.DIRECT_CX:
+        if cal_type in [CRCalType.DIRECT_CX_FORWARD, CRCalType.DIRECT_CX_REVERSE]:
             if self._verbose:
                 warnings.warn(
                     f"CR instruction for qubits {qubits} is likely {cal_type.value} sequence. "
