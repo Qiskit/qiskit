@@ -46,7 +46,8 @@ class CRCalType(enum.Enum):
     ECR_REVERSE = "Echoed Cross Resonance reverse of native operation"
     ECR_CX_FORWARD = "Echoed Cross Resonance CX corresponding to native operation"
     ECR_CX_REVERSE = "Echoed Cross Resonance CX reverse of native operation"
-    DIRECT_CX = "Direct CX"
+    DIRECT_CX_FORWARD = "Direct CX corresponding to native operation"
+    DIRECT_CX_REVERSE = "Direct CX reverse of native operation"
 
 
 class RZXCalibrationBuilder(CalibrationBuilder):
@@ -393,8 +394,10 @@ def _check_calibration_type(
     if len(cr_tones) == 1 and len(comp_tones) == 1:
         # Direct CX must have compensation tone on target qubit.
         # Otherwise, it cannot eliminate IX interaction.
-        return CRCalType.DIRECT_CX, cr_tones, comp_tones
-
+        if comp_tones[0].channel.index == qubits[1]:
+            return CRCalType.DIRECT_CX_FORWARD, cr_tones, comp_tones
+        else:
+            return CRCalType.DIRECT_CX_REVERSE, cr_tones, comp_tones
     raise QiskitError(
         f"{repr(cr_sched)} is undefined pulse sequence. "
         "Check if this is a calibration for cross resonance operation."
