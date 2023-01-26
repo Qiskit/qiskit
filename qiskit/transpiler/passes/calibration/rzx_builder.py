@@ -107,7 +107,9 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         Returns:
             Return ``True`` is calibration can be provided.
         """
-        return isinstance(node_op, RZXGate) and self._inst_map.has("cx", qubits)
+        has_ecr = self._inst_map.has("cx", qubits) or self._inst_map.has("ecr", qubits)
+
+        return isinstance(node_op, RZXGate) and has_ecr
 
     @staticmethod
     @builder.macro
@@ -190,7 +192,13 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         if np.isclose(theta, 0.0):
             return ScheduleBlock(name="rzx(0.000)")
 
-        cx_sched = self._inst_map.get("cx", qubits=qubits)
+        if self._inst_map.has("cx", qubits=qubits):
+            cx_sched = self._inst_map.get("cx", qubits=qubits)
+        elif self._inst_map.has("ecr", qubits=qubits):
+            cx_sched = self._inst_map.get("ecr", qubits=qubits)
+        else:
+            raise QiskitError("No cx or ecr gate to scale.")
+
         cal_type, cr_tones, comp_tones = _check_calibration_type(cx_sched)
 
         if cal_type != CXCalType.ECR:
@@ -293,7 +301,13 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
         if np.isclose(theta, 0.0):
             return ScheduleBlock(name="rzx(0.000)")
 
-        cx_sched = self._inst_map.get("cx", qubits=qubits)
+        if self._inst_map.has("cx", qubits=qubits):
+            cx_sched = self._inst_map.get("cx", qubits=qubits)
+        elif self._inst_map.has("ecr", qubits=qubits):
+            cx_sched = self._inst_map.get("ecr", qubits=qubits)
+        else:
+            raise QiskitError("No cx or ecr gate to scale.")
+
         cal_type, cr_tones, comp_tones = _check_calibration_type(cx_sched)
 
         if cal_type != CXCalType.ECR:
@@ -380,5 +394,5 @@ def _check_calibration_type(cx_sched) -> Tuple[CXCalType, List[Play], List[Play]
 
     raise QiskitError(
         f"{repr(cx_sched)} is undefined pulse sequence. "
-        "Check if this is a calibration for CX gate."
+        "Check if this is a calibration for a CX or ECR gate."
     )

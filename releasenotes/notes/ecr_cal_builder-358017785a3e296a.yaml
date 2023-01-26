@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The Calibration builders for pulse-efficient transpilation have been updated
+    to handle backends that expose ecr or cx gates.
