@@ -14,17 +14,23 @@
 
 import unittest
 
+import ddt
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.quantum_info.operators import Operator
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.synthesis.linear import graysynth, synth_cnot_count_full_pmh
+from qiskit.transpiler.synthesis import cnot_synth  # pylint: disable=no-name-in-module
+from qiskit.transpiler.synthesis.graysynth import graysynth as legacy_graysynth
 from qiskit.test import QiskitTestCase
 
 
+@ddt.ddt
 class TestGraySynth(QiskitTestCase):
     """Test the Gray-Synth algorithm."""
 
-    def test_gray_synth(self):
+    @ddt.data(graysynth, legacy_graysynth)
+    def test_gray_synth(self, synth_func):
         """Test synthesis of a small parity network via gray_synth.
 
         The algorithm should take the following matrix as an input:
@@ -66,7 +72,7 @@ class TestGraySynth(QiskitTestCase):
             [0, 1, 0, 0, 1, 0],
         ]
         angles = ["s", "t", "z", "s", "t", "t"]
-        c_gray = graysynth(cnots, angles)
+        c_gray = synth_func(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
@@ -200,11 +206,13 @@ class TestGraySynth(QiskitTestCase):
         self.assertEqual(unitary_gray, unitary_compare)
 
 
+@ddt.ddt
 class TestPatelMarkovHayes(QiskitTestCase):
     """Test the Patel-Markov-Hayes algorithm for synthesizing linear
     CNOT-only circuits."""
 
-    def test_patel_markov_hayes(self):
+    @ddt.data(cnot_synth, synth_cnot_count_full_pmh)
+    def test_patel_markov_hayes(self, synth_func):
         """Test synthesis of a small linear circuit
         (example from paper, Figure 3).
 
@@ -239,7 +247,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
             [1, 1, 0, 1, 1, 1],
             [0, 0, 1, 1, 1, 0],
         ]
-        c_patel = synth_cnot_count_full_pmh(state)
+        c_patel = synth_func(state)
         unitary_patel = UnitaryGate(Operator(c_patel))
 
         # Create the circuit displayed above:

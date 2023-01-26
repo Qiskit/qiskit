@@ -88,9 +88,6 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         """
         super().__init__()
 
-        if instruction_schedule_map is None:
-            raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
-
         if qubit_channel_mapping:
             warnings.warn(
                 "'qubit_channel_mapping' is no longer used. This value is ignored.",
@@ -101,6 +98,8 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         self._verbose = verbose
         if target:
             self._inst_map = target.instruction_schedule_map()
+        if self._inst_map is None:
+            raise QiskitError("Calibrations can only be added to Pulse-enabled backends")
 
     def supported(self, node_op: CircuitInst, qubits: List) -> bool:
         """Determine if a given node supports the calibration.
