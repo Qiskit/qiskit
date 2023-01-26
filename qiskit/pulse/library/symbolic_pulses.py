@@ -1131,7 +1131,7 @@ def GaussianSquareEcho(
 
 
 
-    parameters = {"sigma": sigma, "width": width, "width_echo": width_echo, 
+    parameters = {"amp": amp, "angle": angle, "sigma": sigma, "width": width, "width_echo": width_echo, 
                     "active_amp": active_amp, "active_angle": active_angle}
 
     # Prepare symbolic expressions
@@ -1203,8 +1203,6 @@ def GaussianSquareEcho(
     instance = SymbolicPulse(
         pulse_type="GaussianSquareEcho",
         duration=duration,
-        amp=amp,
-        angle=angle,
         parameters=parameters,
         name=name,
         limit_amplitude=limit_amplitude,
