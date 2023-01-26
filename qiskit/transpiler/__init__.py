@@ -664,8 +664,13 @@ For the first stage there are 2 passes typically used for this:
 
 Next, for the heuristic stage, 2 passes are used by default:
 
-- :class:`~.SabreLayout`: Used to select a layout if a perfect layout isn't found for optimization
-  levels 1, 2, and 3.
+- :class:`~.SabreLayout`: Selects a layout by starting from an initial random layout and then
+  repeatedly running a routing algorithm (by default :class:`~.SabreSwap`) both forwards and
+  backwards over the circuit using the permutation caused by swap insertions to adjust that
+  initial random layout. For more details you can refer to the paper describing the algorithm:
+  `arXiv:1809.02573 <https://arxiv.org/abs/1809.02573>`__
+  :class:`~.SabreLayout` is use to select a layout if a perfect layout isn't found for
+  optimization levels 1, 2, and 3.
 - :class:`~.TrivialLayout`: Always used for the layout at optimization level 0
 - :class:`~.DenseLayout`: Find the sub-graph of the device with greatest connectivity
   that has the same number of qubits as the circuit. Used for
