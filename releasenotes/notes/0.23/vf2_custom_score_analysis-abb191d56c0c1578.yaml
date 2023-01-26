@@ -33,11 +33,15 @@ features:
         from qiskit.circuit import Parameter
 
         class CustomVF2Scoring(AnalysisPass):
+          """Set custom score for vf2."""
+
+          def run(self, dag):
             error_map = ErrorMap(3)
             error_map.add_error((0, 0), 0.0024)
             error_map.add_error((0, 1), 0.01)
             error_map.add_error((1, 1), 0.0032)
-            return error_map
+            self.property_set["vf2_avg_error_map"] = error_map
+
 
         target = Target(num_qubits=2)
         target.add_instruction(
