@@ -50,9 +50,29 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     def _is_native(self, qubit_pair: Tuple) -> bool:
         """Return the direction of the qubit pair that is native, i.e. with the shortest schedule."""
-        cx1 = self._inst_map.get("cx", qubit_pair)
-        cx2 = self._inst_map.get("cx", qubit_pair[::-1])
-        return cx1.duration < cx2.duration
+        if self._inst_map.has("cx", qubit_pair) or self._inst_map.has("cx", qubit_pair[::-1]):
+            gate = "cx"
+        elif self._inst_map.has("ecr", qubit_pair) or self._inst_map.has("ecr", qubit_pair[::-1]):
+            gate = "ecr"
+        else:
+            raise TranspilerError("Could not find cx or ecr gate.")
+
+        # If both directions are present return the shortest.
+        cx1, cx2 = None, None
+        if self._inst_map.has(gate, qubit_pair):
+            cx1 = self._inst_map.get(gate, qubit_pair)
+
+        if self._inst_map.has(gate, qubit_pair[::-1]):
+            cx2 = self._inst_map.get(gate, qubit_pair[::-1])
+
+        if cx1 is not None and cx2 is not None:
+            return cx1.duration < cx2.duration
+        if cx1 is None and cx2 is not None:
+            return False
+        if cx1 is not None and cx2 is None:
+            return True
+
+        raise TranspilerError("Could not find cx or ecr gate.")
 
     @staticmethod
     def _echo_rzx_dag(theta):
