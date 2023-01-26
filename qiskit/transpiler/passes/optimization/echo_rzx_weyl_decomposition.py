@@ -20,6 +20,7 @@ from qiskit.circuit.library.standard_gates import RZXGate, HGate, XGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.passes.calibration.rzx_builder import _check_calibration_type, CRCalType
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
@@ -49,10 +50,9 @@ class EchoRZXWeylDecomposition(TransformationPass):
             self._inst_map = target.instruction_schedule_map()
 
     def _is_native(self, qubit_pair: Tuple) -> bool:
-        """Return the direction of the qubit pair that is native, i.e. with the shortest schedule."""
-        cx1 = self._inst_map.get("cx", qubit_pair)
-        cx2 = self._inst_map.get("cx", qubit_pair[::-1])
-        return cx1.duration < cx2.duration
+        """Return the direction of the qubit pair that is native."""
+        cal_type, _, _ = _check_calibration_type(self._inst_map, qubit_pair)
+        return cal_type in [CRCalType.ECR_FORWARD, CRCalType.ECR_CX_FORWARD, CRCalType.DIRECT_CX_FORWARD]
 
     @staticmethod
     def _echo_rzx_dag(theta):
