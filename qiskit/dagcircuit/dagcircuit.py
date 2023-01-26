@@ -1393,13 +1393,13 @@ class DAGCircuit:
             self._decrement_op(node.op)
         return new_node
 
-    def decompose_dag(self) -> List["DAGCircuit"]:
-        """Decompose the dag circuit into its disconnected components."""
-        disconnected_components = rx.weakly_connected_components(self._multi_graph)
+    def weakly_connected_components(self) -> List["DAGCircuit"]:
+        """Decompose the dag circuit into its weakly connected components."""
+        connected_components = rx.weakly_connected_components(self._multi_graph)
 
         # Collect each disconnected subgraph
         disconnected_subgraphs = []
-        for components in disconnected_components:
+        for components in connected_components:
             disconnected_subgraphs.append(self._multi_graph.subgraph(list(components)))
 
         # Create new DAGCircuit objects from each of the rustworkx subgraph objects
@@ -1412,16 +1412,6 @@ class DAGCircuit:
                     continue
                 new_dag.apply_operation_back(node.op, node.qargs)
             decomposed_dags.append(new_dag)
-
-        # Clean up idle wires from each DAG
-        for dag in decomposed_dags:
-            idle_qubits = []
-            # These loops are done consecutively since the second loop changes size
-            # of data idle_wires() generator is acting on
-            for qubit in dag.idle_wires():
-                idle_qubits.append(qubit)
-            for qubit in idle_qubits:
-                dag.remove_qubits(qubit)
 
         return decomposed_dags
 
