@@ -383,7 +383,6 @@ class TestCommuteDiagonal(QiskitTestCase):
                         └───┘
 
         """
-        np.set_printoptions(precision=2, linewidth=200, suppress=True)
         pass_ = CommuteDiagonal()
         qr = [Qubit(), Qubit(), Qubit()]
         dag = DAGCircuit()
@@ -413,7 +412,6 @@ class TestCommuteDiagonal(QiskitTestCase):
         2: ─────────────┤ X ├─────────────┤ X ├─────────────┤ X ├─────────────┤ X ├─────────────┤ X ├
                         └───┘             └───┘             └───┘             └───┘             └───┘
         """
-        np.set_printoptions(precision=2, linewidth=200, suppress=True)
         pass_ = CommuteDiagonal()
         qr = [Qubit(), Qubit(), Qubit()]
         dag = DAGCircuit()
@@ -465,7 +463,6 @@ class TestCommuteDiagonal(QiskitTestCase):
         2: ──────────────■────■────■──────────────
 
         """
-        np.set_printoptions(precision=2, linewidth=200, suppress=True)
         pass_ = CommuteDiagonal()
         qr = [Qubit(), Qubit(), Qubit()]
         dag = DAGCircuit()
@@ -510,7 +507,6 @@ class TestCommuteDiagonal(QiskitTestCase):
         optimized.
 
         """
-        np.set_printoptions(precision=2, linewidth=200, suppress=True)
         pass_ = CommuteDiagonal()
         qr = [Qubit(), Qubit(), Qubit()]
         circ = QuantumCircuit(qr)
@@ -551,7 +547,6 @@ class TestCommuteDiagonal(QiskitTestCase):
         2: ──────────────■────■────■──────────────
 
         """
-        np.set_printoptions(precision=2, linewidth=200, suppress=True)
         pass_ = CommuteDiagonal()
         qr = [Qubit(), Qubit(), Qubit()]
         circ = QuantumCircuit(qr)
@@ -581,7 +576,6 @@ class TestCommuteDiagonal(QiskitTestCase):
         2: ─────────────┤ X ├─────────────┤ X ├─░──────────────┤ X ├─────────────
                         └───┘             └───┘ ░              └───┘
         """
-        np.set_printoptions(precision=2, linewidth=200, suppress=True)
         pass_ = CommuteDiagonal()
         qr = [Qubit(), Qubit(), Qubit()]
         dag = DAGCircuit()
@@ -697,3 +691,32 @@ class TestCommuteDiagonal(QiskitTestCase):
         result_for_circuit = transpile(result.data[1].operation.params[2], basis_gates=["u", "cx"])
         self.assertEqual(Operator(result_for_circuit), Operator(test_for))
         self.assertEqual(result_for_circuit.count_ops()["cx"], 6)
+
+    def test_global_phase(self):
+        np.set_printoptions(linewidth=200, precision=2, suppress=True)
+        pass_ = CommuteDiagonal()
+        qr = [Qubit(), Qubit(), Qubit()]
+        circ = QuantumCircuit(qr)
+        circ.cx(0, 1)
+        circ.ry(0.2, 0)
+        circ.rz(0.2, 1)
+        circ.cx(0, 1)
+        circ.ry(0.3, 0)
+        circ.rz(0.3, 1)
+        circ.cx(0, 1)
+        circ.ch(2, 1)
+        circ.cx(2, 1)
+        circ.ch(2, 1)
+        circ.cx(0, 1)
+        circ.ry(0.2, 0)
+        circ.rz(0.2, 1)
+        circ.cx(0, 1)
+        circ.ry(0.3, 0)
+        circ.rz(0.3, 1)
+        circ.cx(0, 1)
+        circ_expand = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        ccirc = pass_(circ_expand)
+        ccirc_opt = transpile(ccirc, basis_gates=["cx", "u"], optimization_level=0)
+        self.assertEqual(circ_expand.count_ops()["cx"], 9)
+        self.assertEqual(ccirc_opt.count_ops()["cx"], 6)
+        self.assertEqual(Operator(ccirc_opt), Operator(circ))

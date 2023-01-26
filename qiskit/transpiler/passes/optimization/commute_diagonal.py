@@ -20,6 +20,7 @@ the diagonal, an overall reduction of CNOT gates can be obtained.
 import functools
 import enum
 import numpy as np
+import logging
 import rustworkx
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -28,11 +29,39 @@ from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.quantum_info import Operator
 from qiskit.quantum_info.synthesis import two_qubit_decompose
 from qiskit.extensions import UnitaryGate
-from qiskit.circuit import Barrier, Gate, Qubit
+from qiskit.circuit import Barrier, Gate, Qubit, Instruction
 from qiskit.circuit.library.standard_gates import CXGate
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.exceptions import QiskitError
 
+# BEGIN TEMPORARY DEBUG CODE
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    
+def cprint(text, bcolor):
+    print(bcolor + text + bcolors.ENDC)
+
+def print_node_ids(block):
+    for node in block:
+        print(node._node_id, node.name, hex(id(node)), node.op.params)
+
+def print_node_map(node_map):
+    for node1, node2 in node_map.items():
+        print(f'{node1._node_id} {node1.name} {hex(id(node1))} ==> {node2._node_id} {node2.name} {hex(id(node2))}')
+        print(node1.op.params, node2.op.params)
+    
+def print_node_id_map(node_id_map):
+    for key, node in node_id_map.items():
+        print(f'{key}: {node._node_id} {node.name} {hex(id(node))} {node.op.params}')
+# END TEMPORARY DEBUG CODE
 
 class Diagonality(enum.Enum):
     """Class for defining 'how' diagonal an operation is"""
@@ -136,6 +165,7 @@ class CommuteDiagonal(TransformationPass):
                         for node in local_successor_nodes
                         if not set(node.qargs).issubset(set(block_qubits))
                     ]
+                    
                     circ0 = _block_to_circuit(dag, block0, remove_idle_qubits=True)
                     circ1 = _block_to_circuit(dag, block1, remove_idle_qubits=True)
                     dag0 = circuit_to_dag(circ0)
@@ -146,37 +176,100 @@ class CommuteDiagonal(TransformationPass):
                     mat0_2q = Operator(circ0_2q).data
                     mat1_2q = Operator(circ1_2q).data
                     dmat, qc2cx = self._diag_decomp(mat0_2q)
-                    unitary0 = qc2cx.to_gate()
-                    unitary1 = UnitaryGate(mat1_2q @ dmat)
 
-                    self._replace_block_with_unitary(dag, block0, unitary0, block_qubits)
-                    self._replace_block_with_unitary(dag, block1, unitary1, block_qubits)
-                    # add locals to controlled equivalent op
-                    inter_dag_local = dag.copy_empty_like()
-                    for node in inter_block_local0:
-                        inter_dag_local.apply_operation_back(
-                            node.op, qargs=node.qargs, cargs=node.cargs
-                        )
-                    inter_dag_local.apply_operation_back(
-                        nonlocal_node.op, qargs=nonlocal_node.qargs, cargs=nonlocal_node.cargs
-                    )
-                    for node in inter_block_local1:
-                        inter_dag_local.apply_operation_back(
-                            node.op, qargs=node.qargs, cargs=node.cargs
-                        )
-                    inter_dag_local.remove_qubits(*inter_dag_local.idle_wires())
-                    inter_op_local = dag_to_circuit(inter_dag_local).to_gate()
 
-                    dag.replace_block_with_op(
-                        inter_nodes, inter_op_local, self._global_index_map, cycle_check=True
-                    )
+                    from qiskit.extensions.quantum_initializer import DiagonalGate
+                    diag_gate = DiagonalGate(np.diag(dmat).tolist())
+
+                    qc2cx_dag = circuit_to_dag(qc2cx)
+                    qargs = [qc2cx.qubits[i] for i in range(len(circ0.qubits))]
+                    cargs = [qc2cx.clbits[i] for i in range(len(circ0.clbits))]
+                    qc2cx_dag.apply_operation_back(diag_gate, qargs=qargs, cargs=cargs)
+
+                    inter_block_local = inter_block_local0 + [nonlocal_node] + inter_block_local1
+
+
+                    print("starting dag\n", dag_to_circuit(dag))
+                    print(_block_to_circuit(dag, block0))
+                    print("section to replace\n", dag_to_circuit(inter_dag))
+                    new_inter_nodes = local_predeccessor_nodes + [nonlocal_node] + local_successor_nodes
+                    node_id_map = self._replace_block_with_block(
+                        dag, 
+                        inter_nodes,
+                        new_inter_nodes,
+                        phase = local_phase)
+                    print_node_id_map(node_id_map)
+                    cprint('post replacement of inter_nodes', bcolors.OKBLUE)
+                    print(dag_to_circuit(dag))
+                    print(f"dag equal orig? {Operator(dag_to_circuit(dag)) == oporig}")
+                    
+                    node_map = self._get_node_map(new_inter_nodes, node_id_map)
+                    print_node_map(node_map)
+                    breakpoint()
+                    
+                    print(_block_to_circuit(dag, block0_local))
+                    block0_local = self._update_block_nodes(node_map, block0_local)
+                    print(_block_to_circuit(dag, block0_local))
+                    
+
+                    self._update_block_nodes(node_map, inter_nodes)                    
+                    self._update_block_nodes(node_map, block1)
+                    
+
+                    cprint('replacing block0_local', bcolors.OKBLUE)
+                    print(_block_to_circuit(dag, block0_local))
+
+                    self._replace_block_with_dag(
+                        dag,
+                        block0_local,
+                        qc2cx_dag)
+                    print("updated dag\n", dag_to_circuit(dag))
+                    print(f"dag equal orig? {Operator(dag_to_circuit(dag)) == oporig}")                    
+                    breakpoint()
+                    
+
+                    self._replace_block_with_block(dag, block0, block0_local)
+                    self._replace_block_with_block(dag, inter_nodes, inter_block_local)
+                    self._replace_block_with_dag(dag, block1, qc2cx_dag)
+
+                    breakpoint()
+                    # unitary0 = qc2cx.to_gate()
+                    # unitary1 = UnitaryGate(mat1_2q @ dmat)
+
+                    # #self._replace_block_with_unitary(dag, block0, unitary0, block_qubits)
+                    # #self._replace_block_with_unitary(dag, block1, unitary1, block_qubits)
+                    # # add locals to controlled equivalent op
+
+                    # inter_dag_local = dag.copy_empty_like()
+                    # for node in inter_block_local0:
+                    #     inter_dag_local.apply_operation_back(
+                    #         node.op, qargs=node.qargs, cargs=node.cargs
+                    #     )
+                    # inter_dag_local.apply_operation_back(
+                    #     nonlocal_node.op, qargs=nonlocal_node.qargs, cargs=nonlocal_node.cargs
+                    # )
+                    # for node in inter_block_local1:
+                    #     inter_dag_local.apply_operation_back(
+                    #         node.op, qargs=node.qargs, cargs=node.cargs
+                    #     )
+                    # inter_dag_local.remove_qubits(*inter_dag_local.idle_wires())
+                    # inter_op_local = dag_to_circuit(inter_dag_local).to_gate()
+
+                    # dag.replace_block_with_op(
+                    #     inter_nodes, inter_op_local, self._global_index_map, cycle_check=True
+                    # )
 
                     dag.global_phase += local_phase
                     # TODO: fix the need for global phase correction here.
                     angle_offset = np.angle(
                         oporig.data[0, 0] / Operator(dag_to_circuit(dag)).data[0, 0]
                     )
-                    dag.global_phase += angle_offset
+                    if abs(angle_offset) > 1e-6:
+                        print(f'global phase correction: {angle_offset}')
+                        dag.global_phase += angle_offset
+                    else:
+                        #breakpoint()
+                        pass
                 elif diagonality == Diagonality.FALSE:
                     continue
         return dag
@@ -208,6 +301,68 @@ class CommuteDiagonal(TransformationPass):
         # also need to update block_list
         self._block_list[self._block_list.index(block)] = [new_node]
 
+    def _replace_block_with_block(self, dag, block_a, block_b, phase=None):
+        """substitute a block of nodes with another set of nodes"""
+        #block_index_map = _block_qargs_to_indices(block_qubits, self._global_index_map)        
+        num_qubits = len({qubit for node in block_a for qubit in node.qargs})
+        num_clbits = len({clbit for node in block_a for clbit in node.cargs})
+        placeholder_op = Instruction('placeholder', num_qubits, num_clbits, params=[])
+        placeholder_node = dag.replace_block_with_op(block_a, placeholder_op, self._global_index_map)
+        dag_b = _block_to_dag(dag, block_b, remove_idle_qubits=True)
+        node_id_map = dag.substitute_node_with_dag(placeholder_node, dag_b)
+        node_map = self._get_node_map(block_b, node_id_map)
+        breakpoint()
+        #self._update_block_lists(node_id_map)
+        #self._update_block_ids(block_a, node_id_map)
+        if phase:
+            dag.global_phase += phase
+        return node_id_map
+
+    def _replace_block_with_dag(self, dag, block_a, dag_b):
+        """substitute a block of nodes with another set of nodes"""
+        #block_index_map = _block_qargs_to_indices(block_qubits, self._global_index_map)        
+        num_qubits = len({qubit for node in block_a for qubit in node.qargs})
+        num_clbits = len({clbit for node in block_a for clbit in node.cargs})
+        placeholder_op = Instruction('placeholder', num_qubits, num_clbits, params=[])
+        placeholder_node = dag.replace_block_with_op(block_a, placeholder_op, self._global_index_map)
+        node_id_map = dag.substitute_node_with_dag(placeholder_node, dag_b)
+        breakpoint()
+        
+        #self._update_block_lists(node_id_map)
+        #self._update_block_ids(block_a, node_id_map)
+        return node_id_map
+
+    def _update_block_lists(self, node_id_map):
+        for block in self._block_list:
+            for node in block:
+                if node._node_id in node_id_map:
+                    node = node_id_map[node._node_id]
+
+    def _update_block_lists2(self, node_id_map):
+        for i, block in enumerate(self._block_list):
+            for j, node in enumerate(block):
+                if node._node_id in node_id_map:
+                    self._block_list[i][j] = node_id_map[node._node_id]
+                    
+    def _update_block_ids(self, block, node_id_map):
+        for node in block:
+            if node._node_id in node_id_map:
+                node = node_id_map[node._node_id]
+
+    def _get_node_map(self, block, node_id_map):
+        """
+        Args:
+           block (List(OpNode)): nodes which were replaced
+           node_id_map(Dict): maps old node_id to new node
+        Return:
+           dict: map old node to new node
+        """
+        return {node: node_id_map[node._node_id] for node in block
+                if node._node_id in node_id_map.keys()}
+        
+    def _update_block_nodes(self, node_map, block):
+        return [node_map[node] if node in node_map else node for node in block]
+                    
     def get_candidate_2q_blocks(self, blocks, dag):
         """
         Return list of blocks which share same qubits.
@@ -284,6 +439,13 @@ class CommuteDiagonal(TransformationPass):
             nonlocal_dag.apply_operation_back(
                 nonlocal_node.op, qargs=nonlocal_node.qargs, cargs=nonlocal_node.cargs
             )
+            cprint("equivalence circuit check", bcolors.OKBLUE)
+            cprint("starting matrix", bcolors.OKBLUE)
+            print(mat2q)
+            cprint('decomposition', bcolors.OKBLUE)
+            print(circ_2q)
+            print(Operator(circ_2q).data)
+            cprint(f'circuits equal? {Operator(mat2q) == Operator(circ_2q)}', bcolors.OKBLUE)
 
             if self._diagonal_commute_on_bits(dag_to_circuit(nonlocal_dag), partial_qubits_2q):
                 return Diagonality.LOCAL, diag_context
@@ -488,14 +650,17 @@ def _block_qargs_to_indices(block_qargs, global_index_map):
     return block_positions
 
 
-def _block_to_circuit(dag, block, remove_idle_qubits=False):
+def _block_to_dag(dag, block, remove_idle_qubits=False):
     block_dag = _copy_dag_bit_like(dag)
     for node in block:
         block_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
     if remove_idle_qubits:
         block_dag.remove_qubits(*{bit for bit in block_dag.idle_wires() if isinstance(bit, Qubit)})
-    return dag_to_circuit(block_dag)
+    return block_dag
 
+def _block_to_circuit(dag, block, remove_idle_qubits=False):
+    block_dag = _block_to_dag(dag, block, remove_idle_qubits=remove_idle_qubits) 
+    return dag_to_circuit(block_dag)
 
 def _copy_dag_bit_like(dag):
     target_dag = DAGCircuit()
