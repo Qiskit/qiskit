@@ -494,6 +494,12 @@ see the individual connectivity, you can pass the operation name to
 Transpiler Stage Details
 ========================
 
+Below are a description of the default transpiler stages and the problems
+they solve. The default passes used for each stage are described, but
+the specifics are configurable via the ``*_method`` keyword arguments for
+the :func:`~.transpile` and :func:`~.generate_preset_pass_manager` functions
+which can be used to override the methods described in this section.
+
 .. _translation_stage:
 
 Translation Stage
