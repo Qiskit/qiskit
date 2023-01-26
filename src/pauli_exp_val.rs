@@ -58,8 +58,7 @@ pub fn expval_pauli_no_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too large and would overflow",
-            num_qubits
+            "The value for num_qubits, {num_qubits}, is too large and would overflow"
         )));
     }
     let data_arr = data.as_slice()?;
@@ -93,8 +92,7 @@ pub fn expval_pauli_with_x(
 ) -> PyResult<f64> {
     if num_qubits > usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too large and would overflow",
-            num_qubits
+            "The value for num_qubits, {num_qubits}, is too large and would overflow",
         )));
     }
     let data_arr = data.as_slice()?;
@@ -149,8 +147,7 @@ pub fn density_expval_pauli_no_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too large and would overflow",
-            num_qubits
+            "The value for num_qubits, {num_qubits}, is too large and would overflow",
         )));
     }
     let data_arr = data.as_slice()?;
@@ -185,8 +182,7 @@ pub fn density_expval_pauli_with_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too large and would overflow",
-            num_qubits
+            "The value for num_qubits, {num_qubits}, is too large and would overflow",
         )));
     }
     let data_arr = data.as_slice()?;
