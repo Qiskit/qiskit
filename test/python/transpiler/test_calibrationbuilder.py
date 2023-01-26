@@ -56,7 +56,6 @@ class TestCalibrationBuilder(QiskitTestCase):
 
         return cr_schedule.filter(_filter_func).instructions[0][1]
 
-
     def build_stretched_ecr_pulse_forward(
         self,
         backend,
