@@ -195,7 +195,7 @@ class CommuteDiagonal(TransformationPass):
                     qc2cx_dag = circuit_to_dag(qc2cx)
                     qargs = [qc2cx.qubits[i] for i in range(len(circ0.qubits))]
                     cargs = [qc2cx.clbits[i] for i in range(len(circ0.clbits))]
-                    qc2cx_dag.apply_operation_back(diag_gate, qargs=qargs, cargs=cargs)
+                    #qc2cx_dag.apply_operation_back(diag_gate, qargs=qargs, cargs=cargs)
 
                     inter_block_local = inter_block_local0 + [nonlocal_node] + inter_block_local1
 
@@ -205,10 +205,32 @@ class CommuteDiagonal(TransformationPass):
                     print("section to replace\n", dag_to_circuit(inter_dag))
                     new_inter_nodes = local_predeccessor_nodes + [nonlocal_node] + local_successor_nodes
                     node_map = self._replace_block_with_block(
-                        dag, 
+                        dag,
                         inter_nodes,
-                        new_inter_nodes,
-                        phase = local_phase)
+                        new_inter_nodes)
+                    print_circuit_equal(Operator(dag_to_circuit(dag)), oporig)
+
+                    # update left block
+                    block0_local = self._update_block_nodes(node_map, block0_local)
+                    block1_local = self._update_block_nodes(node_map, block1_local)                    
+                    node_map = self._replace_block_with_dag(
+                        dag, 
+                        block0_local,
+                        qc2cx_dag)
+                    print(dag_to_circuit(dag))
+
+                    # update right block
+                    block1_local_diag = [DAGOpNode(diag_gate, qargs=block_qubits)] + block1_local
+                    block1_local_diag_dag = _block_to_circuit(block1_local_diag)
+                    breakpoint()
+                    node_map = self._replace_block_with_block(
+                        dag,
+                        block1_local,
+                        block1_local_diag)
+                    print_circuit_equal(Operator(dag_to_circuit(dag)), oporig)
+                    breakpoint()
+
+                    print_circuit_equal(Operator(dag_to_circuit(dag)), oporig)
                     cprint('post replacement of inter_nodes', bcolors.OKBLUE)
 
                     print(dag_to_circuit(dag))
