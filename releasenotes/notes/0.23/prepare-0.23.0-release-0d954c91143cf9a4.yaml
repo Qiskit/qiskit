@@ -4,7 +4,7 @@ prelude: |
   a multitude of new features and bugfixes. The highlights for this release
   are:
 
-    * Support for importing `OpenQASM3` programs and creating :class:`.QuantumCircuit` objects
+    * Support for importing OpenQASM 3 programs and creating :class:`.QuantumCircuit` objects
       from the input program via two new functions :func:`qiskit.qasm3.load` and
       :func:`qiskit.qasm3.loads`.
 
