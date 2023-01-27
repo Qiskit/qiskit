@@ -35,13 +35,14 @@ class FraxisOptimizer(SciPyOptimizer):
           https://arxiv.org/abs/2104.14875
     """
 
-    _OPTIONS = ["maxiter", "disp"]
+    _OPTIONS = ["maxiter", "disp", "initialize"]
 
     # pylint: disable=unused-argument
     def __init__(
         self,
         maxiter: Optional[int] = None,
         disp: bool = False,
+        initialize: bool = True,
         options: Optional[dict] = None,
         **kwargs,
     ) -> None:
@@ -50,6 +51,7 @@ class FraxisOptimizer(SciPyOptimizer):
             maxiter: Maximum number of iterations to perform.
             disp: Set to True to print convergence messages.
             options: A dictionary of solver options.
+            initialize: Set to True to initialize ``x0`` randomly.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if options is None:
@@ -95,7 +97,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
         maxiter (int):
             Maximum number of iterations to perform.
             Default: None.
-        initialize (bool): initialize ``x0`` randomly if True.
+        initialize (bool): initialize ``x0`` randomly if True. Otherwise, use ``x0`` directly.
         **_ : additional options
         callback (callable, optional):
             Called after each iteration.
@@ -104,12 +106,13 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
             The optimization result represented as a ``OptimizeResult`` object.
             Important attributes are: ``x`` the solution array. See
             `OptimizeResult` for a description of other attributes.
+    Raises:
+        ValueError: if the size of ``x0`` is not multiple of 3.
     """
 
     x0 = np.asarray(x0)
-    size = x0.shape[0]
-    if size % 3 != 0:
-        raise ValueError(f"The size of x0 should be multiple of 3. actual size: {size}")
+    if x0.size % 3 != 0:
+        raise ValueError(f"The size of x0 should be multiple of 3. actual size: {x0.size}")
     niter = 0
     funcalls = 0
 
@@ -120,14 +123,16 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
             x0[idx : idx + 3] = _vec2angles(vec)
 
     while True:
-        idx = (niter * 3) % size
+        idx = (niter * 3) % x0.size
 
-        vals = []
+        xs = []
         for angles in ANGLES:
             p = np.copy(x0)
             p[idx : idx + 3] = angles
-            vals.append(fun(p, *args))
-            funcalls += 1
+            xs.append(p)
+
+        vals = fun(xs, *args)
+        funcalls += len(xs)
 
         r_x = vals[0]
         r_y = vals[1]
@@ -152,7 +157,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
         niter += 1
 
         if callback is not None:
-            callback(np.copy(x0))
+            callback(np.copy(x0), eigvals[0] / 2)
 
         if maxiter is not None:
             if niter >= maxiter:
