@@ -551,6 +551,21 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         """Convert operator to Numpy matrix."""
         return self.to_operator().data
 
+    @classmethod
+    def from_matrix(cls, matrix):
+        """Create a Clifford from a unitary matrix.
+
+        Note that this function takes exponentially longer w.r.t. the number of qubits.
+
+        Returns:
+            Clifford: the Clifford object for the unitary matrix.
+
+        Raises:
+            QiskitError: if the input instruction is non-Clifford matrix.
+        """
+        tableau = cls._unitary_matrix_to_tableau(matrix)
+        return cls(tableau)
+
     def to_operator(self):
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
@@ -847,6 +862,72 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 zs[num_qubits - 1 - i] = True
         symp[-1] = phase
         return symp
+
+    @staticmethod
+    def _unitary_matrix_to_tableau(matrix):
+        # pylint: disable=invalid-name
+        U = Operator(matrix)
+        Udg = U.adjoint()
+        num_qubits = U.num_qubits
+        # Create full table for a n-qubit Pauli matrix to a row of the tableau
+        x_table = {
+            "I": False,
+            "X": True,
+            "Z": False,
+            "Y": True,
+        }
+        z_table = {
+            "I": False,
+            "X": False,
+            "Z": True,
+            "Y": True,
+        }
+        matrix_row_pairs = []
+        for paulis in itertools.product(["I", "X", "Y", "Z"], repeat=num_qubits):
+            # positive phase Pauli case
+            row_p = np.empty(2 * num_qubits + 1, dtype=bool)
+            phase = False
+            for i, pauli in enumerate(paulis):
+                row_p[i] = x_table[pauli]
+                row_p[i + num_qubits] = z_table[pauli]
+                phase ^= pauli == "Y"
+            row_p[-1] = phase
+            pauli_str = "".join(reversed(paulis))
+            pauli_op = Operator.from_label(pauli_str)
+            matrix_p = ((-1) ** phase) * pauli_op.to_matrix()
+            matrix_row_pairs.append((matrix_p, row_p))
+            # negative phase Pauli case
+            row_n = np.copy(row_p)
+            row_n[-1] ^= True
+            matrix_row_pairs.append(((-1) * matrix_p, row_n))
+
+        # Construct stabilizer/destabilizer tables
+        stab = np.empty((num_qubits, 2 * num_qubits + 1), dtype=bool)
+        for i in range(num_qubits):
+            label = "I" * (num_qubits - i - 1) + "X" + "I" * i
+            Xi = Operator.from_label(label).to_matrix()
+            target = U @ Xi @ Udg
+            for mat, row in matrix_row_pairs:
+                if np.allclose(mat, target):
+                    stab[i] = row
+                    break
+            else:
+                raise QiskitError("Non-Clifford matrix is not convertible")
+
+        destab = np.empty((num_qubits, 2 * num_qubits + 1), dtype=bool)
+        for i in range(num_qubits):
+            label = "I" * (num_qubits - i - 1) + "Z" + "I" * i
+            Zi = Operator.from_label(label).to_matrix()
+            target = U @ Zi @ Udg
+            for mat, row in matrix_row_pairs:
+                if np.allclose(mat, target):
+                    destab[i] = row
+                    break
+            else:
+                raise QiskitError("Non-Clifford matrix is not convertible")
+
+        tableau = np.vstack([stab, destab])
+        return tableau
 
 
 # Update docstrings for API docs

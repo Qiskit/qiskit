@@ -13,8 +13,8 @@
 Circuit simulation for the Clifford class.
 """
 
-from qiskit.circuit.barrier import Barrier
-from qiskit.circuit.delay import Delay
+from qiskit.circuit import Barrier, Delay, Gate
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 
 
@@ -51,7 +51,7 @@ def _append_operation(clifford, operation, qargs=None):
 
     Args:
         clifford (Clifford): the Clifford to update.
-        operation (Instruction or str): the operation or composite operation to apply.
+        operation (Instruction or Clifford or str): the operation or composite operation to apply.
         qargs (list or None): The qubits to apply operation to.
 
     Returns:
@@ -103,12 +103,24 @@ def _append_operation(clifford, operation, qargs=None):
         clifford.tableau = composed_clifford.tableau
         return clifford
 
-    # If not a Clifford basis gate we try to unroll the gate and
-    # raise an exception if unrolling reaches a non-Clifford gate.
-    # TODO: We could also check u3 params to see if they
-    # are a single qubit Clifford gate rather than raise an exception.
+    # If the gate is not in predefined basis gates but with up to 3 qubits,
+    # we try to construct a Clifford to be appended from its matrix representation.
+    if isinstance(gate, Gate) and len(qargs) <= 3:
+        try:
+            matrix = gate.to_matrix()
+            try:
+                gate_cliff = Clifford.from_matrix(matrix)
+                return _append_operation(clifford, gate_cliff, qargs=qargs)
+            except QiskitError as err:
+                raise QiskitError(f"Cannot apply non-Clifford gate: {gate.name}") from err
+        except TypeError as err:
+            raise QiskitError(f"Cannot apply {gate.name} gate with unbounded parameters") from err
+        except CircuitError:
+            pass
+
+    # If the gate is not directly appendable, we try to unroll the gate with its definition
     if gate.definition is None:
-        raise QiskitError(f"Cannot apply Instruction: {gate.name}")
+        raise QiskitError(f"Cannot apply {gate}")
 
     return _append_circuit(clifford, gate.definition, qargs)
 
