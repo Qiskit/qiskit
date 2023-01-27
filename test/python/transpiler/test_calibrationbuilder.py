@@ -19,7 +19,7 @@ from ddt import data, ddt
 
 from qiskit import circuit, schedule
 from qiskit.circuit.library.standard_gates import SXGate, RZGate
-from qiskit.providers.fake_provider import FakeHanoi, FakeHanoiV2  # TODO - include FakeSherbrooke
+from qiskit.providers.fake_provider import FakeHanoi  # TODO - include FakeHanoiV2, FakeSherbrooke
 from qiskit.pulse import (
     ControlChannel,
     DriveChannel,
