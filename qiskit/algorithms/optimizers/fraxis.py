@@ -18,15 +18,18 @@ import numpy as np
 from scipy.optimize import OptimizeResult
 
 from qiskit.quantum_info import OneQubitEulerDecomposer, Pauli
+from qiskit.utils import algorithm_globals
 
 from .scipy_optimizer import SciPyOptimizer
 
 
 class FraxisOptimizer(SciPyOptimizer):
     """
-    Free-Axis Selection (Fraxis) algorithm.
+    Free-Axis Selection (Fraxis) algorithm [1].
 
-    Reference
+    More precisely, this class implements π-Fraxis algorithm in Algorithm 1 of [1].
+
+    References
       [1] "Optimizing Parameterized Quantum Circuits with Free-Axis Selection,"
           HC. Watanabe, R. Raymond, Y. Ohnishi, E. Kaminishi, M. Sugawara
           https://arxiv.org/abs/2104.14875
@@ -69,10 +72,16 @@ DECOMPOSER = OneQubitEulerDecomposer()
 ANGLES = [DECOMPOSER.angles(mat) for mat in MATRICES]
 
 
+def _vec2angles(vec: np.ndarray) -> tuple[float, float, float]:
+    r_d = X_mat * vec[0] + Y_mat * vec[1] + Z_mat * vec[2]
+    return DECOMPOSER.angles(r_d)
+
+
 # pylint: disable=invalid-name
-def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
+def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
     """
     Find the global minimum of a function using Fraxis algorithm.
+
     Args:
         fun (callable): ``f(x, *args)``
             Function to be optimized.  ``args`` can be passed as an optional item
@@ -86,7 +95,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
         maxiter (int):
             Maximum number of iterations to perform.
             Default: None.
-        eps (float): eps
+        initialize (bool): initialize ``x0`` randomly if True.
         **_ : additional options
         callback (callable, optional):
             Called after each iteration.
@@ -95,17 +104,20 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
             The optimization result represented as a ``OptimizeResult`` object.
             Important attributes are: ``x`` the solution array. See
             `OptimizeResult` for a description of other attributes.
-    Notes:
-        In this optimization method, the optimization function have to satisfy
-        three conditions written in [1].
     """
 
     x0 = np.asarray(x0)
     size = x0.shape[0]
-    assert size % 3 == 0
+    if size % 3 != 0:
+        raise ValueError(f"The size of x0 should be multiple of 3. actual size: {size}")
     niter = 0
     funcalls = 0
-    f_last = None
+
+    if initialize:
+        for idx in range(0, x0.size, 3):
+            vec = 2 * algorithm_globals.random.random(3) - 1
+            vec /= np.linalg.norm(vec)
+            x0[idx : idx + 3] = _vec2angles(vec)
 
     while True:
         idx = (niter * 3) % size
@@ -132,23 +144,10 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
             ]
         )
         mat += mat.T
-        _, eigvecs = np.linalg.eigh(mat)
+        eigvals, eigvecs = np.linalg.eigh(mat)
 
-        vals = []
-        for vec in eigvecs.T:
-            r_d = X_mat * vec[0] + Y_mat * vec[1] + Z_mat * vec[2]
-            angles = DECOMPOSER.angles(r_d)
-            p = np.copy(x0)
-            p[idx : idx + 3] = angles
-            vals.append([fun(p, *args), *angles])
-            funcalls += 1
-
-        f_min, *angles = min(vals)
-        if f_last is not None:
-            print(f_last, f_min, f_last > f_min)
-        if f_last is None or f_last > f_min:
-            x0[idx : idx + 3] = angles
-            f_last = f_min
+        # use the eigenvector `eigvecs[:, 0]` with the minimum eigenvalue
+        x0[idx : idx + 3] = _vec2angles(eigvecs[:, 0])
 
         niter += 1
 

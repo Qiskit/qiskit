@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The two-local gate circuit."""
+"""Free-Axis Selection (Fraxis) circuit."""
 
 from typing import Any, Callable, List, Optional, Union
 
@@ -39,14 +39,24 @@ from .n_local import NLocal
 
 
 class FraxisCircuit(NLocal):
-    r"""The two-local circuit.
+    r"""Free-Axis Selection (Fraxis) circuit.
 
-    The two-local circuit is a parameterized circuit consisting of alternating rotation layers and
-    entanglement layers. The rotation layers are single qubit gates applied on all qubits.
+    The Fraxis circuit is a parameterized circuit consisting of alternating rotation layers and
+    entanglement layers. The rotation layers are single qubit U3 gates applied on all qubits
     The entanglement layer uses two-qubit gates to entangle the qubits according to a strategy set
     using ``entanglement``. Both the rotation and entanglement gates can be specified as
-    string (e.g. ``'ry'`` or ``'cx'``), as gate-type (e.g. ``RYGate`` or ``CXGate``) or
+    string (e.g. ``'u'`` or ``'cx'``), as gate-type (e.g. ``UGate`` or ``CXGate``) or
     as QuantumCircuit (e.g. a 1-qubit circuit or 2-qubit circuit).
+
+    The Fraxis circuit is supposed to be optimized with
+    :class:`~qiskit.algorithms.optimizers.FraxisOptimizer`.
+    See `HC. Watanabe et al. <https://arxiv.org/abs/2104.14875>`__ for details.
+
+    Note 1: Only U(U3) gate is allowed for rotation layers. Other single qubit gates with parameters
+    such as Ry and Rz gates are not allowed.
+
+    Note 2: Only entanglement gates without parameters are allowed for entanglement layers.
+    Entanglement gates with parameters such as CRx and Rxx gates are not allowed.
 
     A set of default entanglement strategies is provided:
 
@@ -87,63 +97,36 @@ class FraxisCircuit(NLocal):
 
     Examples:
 
-        >>> two = FraxisCircuit(3, 'ry', 'cx', 'linear', reps=2, insert_barriers=True)
-        >>> print(two)  # decompose the layers into standard gates
-             ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
-        q_0: ┤ Ry(θ[0]) ├─░───■────────░─┤ Ry(θ[3]) ├─░───■────────░─┤ Ry(θ[6]) ├
-             ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤ ░ ┌─┴─┐      ░ ├──────────┤
-        q_1: ┤ Ry(θ[1]) ├─░─┤ X ├──■───░─┤ Ry(θ[4]) ├─░─┤ X ├──■───░─┤ Ry(θ[7]) ├
-             ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤ ░ └───┘┌─┴─┐ ░ ├──────────┤
-        q_2: ┤ Ry(θ[2]) ├─░──────┤ X ├─░─┤ Ry(θ[5]) ├─░──────┤ X ├─░─┤ Ry(θ[8]) ├
-             └──────────┘ ░      └───┘ ░ └──────────┘ ░      └───┘ ░ └──────────┘
+        >>> circ = FraxisCircuit(3, 'u', 'cx', 'linear', reps=2, insert_barriers=True)
+        >>> print(circ.decompose())
+             ┌───────────────────┐ ░            ░ ┌─────────────────────┐  ░            ░ ┌──────────────────────┐
+        q_0: ┤ U(θ[0],θ[1],θ[2]) ├─░───■────────░─┤ U(θ[9],θ[10],θ[11]) ├──░───■────────░─┤ U(θ[18],θ[19],θ[20]) ├
+             ├───────────────────┤ ░ ┌─┴─┐      ░ ├─────────────────────┴┐ ░ ┌─┴─┐      ░ ├──────────────────────┤
+        q_1: ┤ U(θ[3],θ[4],θ[5]) ├─░─┤ X ├──■───░─┤ U(θ[12],θ[13],θ[14]) ├─░─┤ X ├──■───░─┤ U(θ[21],θ[22],θ[23]) ├
+             ├───────────────────┤ ░ └───┘┌─┴─┐ ░ ├──────────────────────┤ ░ └───┘┌─┴─┐ ░ ├──────────────────────┤
+        q_2: ┤ U(θ[6],θ[7],θ[8]) ├─░──────┤ X ├─░─┤ U(θ[15],θ[16],θ[17]) ├─░──────┤ X ├─░─┤ U(θ[24],θ[25],θ[26]) ├
+             └───────────────────┘ ░      └───┘ ░ └──────────────────────┘ ░      └───┘ ░ └──────────────────────┘
 
-        >>> two = FraxisCircuit(3, ['ry','rz'], 'cz', 'full', reps=1, insert_barriers=True)
-        >>> qc = QuantumCircuit(3)
-        >>> qc += two
-        >>> print(qc.decompose().draw())
-             ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
-        q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
-             ├──────────┤├──────────┤ ░  │  │     ░ ├──────────┤┌┴──────────┤
-        q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├─░──■──┼──■──░─┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├
-             ├──────────┤├──────────┤ ░     │  │  ░ ├──────────┤├───────────┤
-        q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├─░─────■──■──░─┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├
-             └──────────┘└──────────┘ ░           ░ └──────────┘└───────────┘
+        >>> circ = FraxisCircuit(3, ['h','u'], 'cz', 'full', reps=1, insert_barriers=True)
+        >>> print(circ.decompose())
+             ┌───┐┌───────────────────┐ ░           ░ ┌───┐┌─────────────────────┐
+        q_0: ┤ H ├┤ U(θ[0],θ[1],θ[2]) ├─░──■──■─────░─┤ H ├┤ U(θ[9],θ[10],θ[11]) ├─
+             ├───┤├───────────────────┤ ░  │  │     ░ ├───┤├─────────────────────┴┐
+        q_1: ┤ H ├┤ U(θ[3],θ[4],θ[5]) ├─░──■──┼──■──░─┤ H ├┤ U(θ[12],θ[13],θ[14]) ├
+             ├───┤├───────────────────┤ ░     │  │  ░ ├───┤├──────────────────────┤
+        q_2: ┤ H ├┤ U(θ[6],θ[7],θ[8]) ├─░─────■──■──░─┤ H ├┤ U(θ[15],θ[16],θ[17]) ├
+             └───┘└───────────────────┘ ░           ░ └───┘└──────────────────────┘
 
         >>> entangler_map = [[0, 1], [1, 2], [2, 0]]  # circular entanglement for 3 qubits
-        >>> two = FraxisCircuit(3, 'x', 'crx', entangler_map, reps=1)
-        >>> print(two)  # note: no barriers inserted this time!
-                ┌───┐                             ┌──────────┐┌───┐
-        q_0: |0>┤ X ├─────■───────────────────────┤ Rx(θ[2]) ├┤ X ├
-                ├───┤┌────┴─────┐            ┌───┐└─────┬────┘└───┘
-        q_1: |0>┤ X ├┤ Rx(θ[0]) ├─────■──────┤ X ├──────┼──────────
-                ├───┤└──────────┘┌────┴─────┐└───┘      │     ┌───┐
-        q_2: |0>┤ X ├────────────┤ Rx(θ[1]) ├───────────■─────┤ X ├
-                └───┘            └──────────┘                 └───┘
-
-        >>> entangler_map = [[0, 3], [0, 2]]  # entangle the first and last two-way
-        >>> two = FraxisCircuit(4, [], 'cry', entangler_map, reps=1)
-        >>> circuit = two + two
-        >>> print(circuit.decompose().draw())  # note, that the parameters are the same!
-        q_0: ─────■───────────■───────────■───────────■──────
-                  │           │           │           │
-        q_1: ─────┼───────────┼───────────┼───────────┼──────
-                  │      ┌────┴─────┐     │      ┌────┴─────┐
-        q_2: ─────┼──────┤ Ry(θ[1]) ├─────┼──────┤ Ry(θ[1]) ├
-             ┌────┴─────┐└──────────┘┌────┴─────┐└──────────┘
-        q_3: ┤ Ry(θ[0]) ├────────────┤ Ry(θ[0]) ├────────────
-             └──────────┘            └──────────┘
-
-        >>> layer_1 = [(0, 1), (0, 2)]
-        >>> layer_2 = [(1, 2)]
-        >>> two = FraxisCircuit(3, 'x', 'cx', [layer_1, layer_2], reps=2, insert_barriers=True)
-        >>> print(two)
-             ┌───┐ ░            ░ ┌───┐ ░       ░ ┌───┐
-        q_0: ┤ X ├─░───■────■───░─┤ X ├─░───────░─┤ X ├
-             ├───┤ ░ ┌─┴─┐  │   ░ ├───┤ ░       ░ ├───┤
-        q_1: ┤ X ├─░─┤ X ├──┼───░─┤ X ├─░───■───░─┤ X ├
-             ├───┤ ░ └───┘┌─┴─┐ ░ ├───┤ ░ ┌─┴─┐ ░ ├───┤
-        q_2: ┤ X ├─░──────┤ X ├─░─┤ X ├─░─┤ X ├─░─┤ X ├
-             └───┘ ░      └───┘ ░ └───┘ ░ └───┘ ░ └───┘
+        >>> circ = FraxisCircuit(3, 'u', 'cx', entangler_map, reps=1)
+        >>> print(circ.decompose())  # note: no barriers inserted this time!
+             ┌───────────────────┐                                  ┌───┐┌─────────────────────┐
+        q_0: ┤ U(θ[0],θ[1],θ[2]) ├──■───────────────────────────────┤ X ├┤ U(θ[9],θ[10],θ[11]) ├─
+             ├───────────────────┤┌─┴─┐     ┌──────────────────────┐└─┬─┘└─────────────────────┘
+        q_1: ┤ U(θ[3],θ[4],θ[5]) ├┤ X ├──■──┤ U(θ[12],θ[13],θ[14]) ├──┼──────────────────────────
+             ├───────────────────┤└───┘┌─┴─┐└──────────────────────┘  │  ┌──────────────────────┐
+        q_2: ┤ U(θ[6],θ[7],θ[8]) ├─────┤ X ├──────────────────────────■──┤ U(θ[15],θ[16],θ[17]) ├
+             └───────────────────┘     └───┘                             └──────────────────────┘
 
     """
 
@@ -165,7 +148,7 @@ class FraxisCircuit(NLocal):
         initial_state: Optional[Any] = None,
         name: str = "Fraxis",
     ) -> None:
-        """Construct a new two-local circuit.
+        """Construct a new Fraxis circuit.
 
         Args:
             num_qubits: The number of qubits of the two-local circuit.
@@ -178,11 +161,11 @@ class FraxisCircuit(NLocal):
             entanglement_blocks: The gates used in the entanglement layer. Can be specified in
                 the same format as ``rotation_blocks``.
             entanglement: Specifies the entanglement structure. Can be a string (``'full'``,
-                ``'linear'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``),
+                ``'linear'``, ``'pairwise'``, ``'reverse_linear'``, ``'circular'`` or ``'sca'``),
                 a list of integer-pairs specifying the indices
                 of qubits entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
-                Default to ``'full'`` entanglement.
+                Default to ``'pairwise'`` entanglement.
                 Note that if ``entanglement_blocks = 'cx'``, then ``'full'`` entanglement provides the
                 same unitary as ``'reverse_linear'`` but the latter option has fewer entangling gates.
                 See the Examples section for more detail.
@@ -216,9 +199,9 @@ class FraxisCircuit(NLocal):
         )
 
     def _convert_to_block(self, layer: Union[str, type, Gate, QuantumCircuit]) -> QuantumCircuit:
-        """For a layer provided as str (e.g. ``'ry'``) or type (e.g. :class:`.RYGate`) this function
+        """For a layer provided as str (e.g. ``'u'``) or type (e.g. :class:`.UGate`) this function
          returns the
-         according layer type along with the number of parameters (e.g. ``(RYGate, 1)``).
+         according layer type along with the number of parameters (e.g. ``(UGate, 3)``).
 
         Args:
             layer: The qubit layer.
