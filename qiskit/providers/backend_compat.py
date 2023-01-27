@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import warnings
 from typing import List, Iterable, Any, Dict, Optional
 
 from qiskit.exceptions import QiskitError
@@ -149,6 +150,14 @@ def convert_to_target(
                         if filter_faulty and any(qubit in faulty_qubits for qubit in qargs):
                             continue
                         target[inst][qargs].calibration = calibration_entry
+            if inst not in target and inst not in name_mapping:
+                warnings.warn(
+                    f"Custom calibration for '{inst}' defined in 'defaults' is dropped "
+                    "during the conversion to a target. If you don't want that, "
+                    "supply a custom_name_mapping or "
+                    "add the custom calibration to a target after building the target.",
+                    UserWarning,
+                )
     combined_global_ops = set()
     if configuration.basis_gates:
         combined_global_ops.update(configuration.basis_gates)
