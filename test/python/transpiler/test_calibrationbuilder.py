@@ -231,15 +231,19 @@ class TestCalibrationBuilder(QiskitTestCase):
         return max(0, target_area - risefall_area)
 
     def u0p_play(self, cr_schedule):
+        """Returns the positive CR pulse from cr_schedule."""
         return self.get_cr_play(cr_schedule, "CR90p_u")
 
     def u0m_play(self, cr_schedule):
+        """Returns the negative CR pulse from cr_schedule."""
         return self.get_cr_play(cr_schedule, "CR90m_u")
 
     def d1p_play(self, cr_schedule):
+        """Returns the positive rotary echo pulse from cr_schedule."""
         return self.get_cr_play(cr_schedule, "CR90p_d")
 
     def d1m_play(self, cr_schedule):
+        """Returns the negative rotary echo pulse from cr_schedule."""
         return self.get_cr_play(cr_schedule, "CR90m_d")
 
     def test_native_cr(self):
