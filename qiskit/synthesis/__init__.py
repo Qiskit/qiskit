@@ -30,7 +30,7 @@ Evolution Synthesis
    MatrixExponential
 
 Linear Function and Linear-Phase Synthesis
-================================+=========
+==========================================
 .. autosummary::
    :toctree: ../stubs/
 
