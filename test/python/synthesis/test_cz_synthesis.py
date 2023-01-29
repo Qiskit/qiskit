@@ -13,14 +13,13 @@
 """Test linear reversible circuits synthesis functions."""
 
 import unittest
-
-import random
 from test import combine
 import numpy as np
 from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import Permutation
 from qiskit.synthesis.linear import synth_cz_depth_line_mr
+from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity, get_circ_cx_depth
 from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase
 
@@ -31,24 +30,35 @@ class TestCZSynth(QiskitTestCase):
 
     @combine(num_qubits=[4, 5, 6, 7])
     def test_cz_synth_lnn(self, num_qubits):
-        """Test the CZ synthesis code."""
-        mat = np.zeros((num_qubits, num_qubits))
-        qctest = QuantumCircuit(num_qubits)
-        samples = 10
-        for _ in range(samples):
+        """Test the CZ synthesis code for linear nearest neighbour connectivity."""
+        seed = 1234
+        rng = np.random.default_rng(seed)
+        num_gates = 10
+        num_trials = 5
+        for _ in range(num_trials):
+            mat = np.zeros((num_qubits, num_qubits))
+            qctest = QuantumCircuit(num_qubits)
+
             # Generate a random CZ circuit
-            i = random.randint(0, num_qubits - 1)
-            j = random.randint(0, num_qubits - 1)
-            if i != j:
-                qctest.cz(i, j)
-                if j > i:
-                    mat[i][j] = (mat[i][j] + 1) % 2
-                else:
-                    mat[j][i] = (mat[j][i] + 1) % 2
-        qc = synth_cz_depth_line_mr(mat)
-        perm = Permutation(num_qubits=num_qubits, pattern=range(num_qubits)[::-1])
-        qctest = qctest.compose(perm)
-        self.assertEqual(Clifford(qc), Clifford(qctest))
+            for _ in range(num_gates):
+                i = rng.integers(num_qubits - 1)
+                j = rng.integers(num_qubits - 1)
+                if i != j:
+                    qctest.cz(i, j)
+                    if j > i:
+                        mat[i][j] = (mat[i][j] + 1) % 2
+                    else:
+                        mat[j][i] = (mat[j][i] + 1) % 2
+
+            qc = synth_cz_depth_line_mr(mat)
+            # Check that the output circuit 2-qubit depth equals to 2*n+2
+            self.assertTrue(get_circ_cx_depth(qc) == 2 * num_qubits + 2)
+            # Check that the output circuit has LNN connectivity
+            self.assertTrue(check_lnn_connectivity(qc))
+            # Assert that we get the same element, up to reverse order of qubits
+            perm = Permutation(num_qubits=num_qubits, pattern=range(num_qubits)[::-1])
+            qctest = qctest.compose(perm)
+            self.assertEqual(Clifford(qc), Clifford(qctest))
 
 
 if __name__ == "__main__":

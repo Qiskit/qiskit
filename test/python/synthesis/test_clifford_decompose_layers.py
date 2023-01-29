@@ -23,6 +23,7 @@ from qiskit.quantum_info.operators import Clifford
 from qiskit.quantum_info import random_clifford
 from qiskit.synthesis.clifford import synth_clifford_layers
 from qiskit.synthesis.linear import synth_cz_depth_line_mr, synth_cnot_depth_line_kms
+from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity, get_circ_cx_depth
 
 
 @ddt
@@ -52,7 +53,7 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
 
     @combine(num_qubits=[4, 5, 6, 7])
     def test_decompose_lnn_depth(self, num_qubits):
-        """Test layered decomposition for linear-nearest-neighbour connectivity."""
+        """Test layered decomposition for linear-nearest-neighbour (LNN) connectivity."""
         rng = np.random.default_rng(1234)
         samples = 10
         for _ in range(samples):
@@ -63,6 +64,10 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
                 cz_synth_func=synth_cz_depth_line_mr,
                 validate=True,
             )
+            # Check that the Clifford circuit 2-qubit depth is bounded by 9*n+4
+            self.assertTrue(get_circ_cx_depth(circ.decompose()) <= 9 * num_qubits + 4)
+            # Check that the Clifford circuit has linear nearest neighbour connectivity
+            self.assertTrue(check_lnn_connectivity(circ.decompose()))
             cliff_target = Clifford(circ)
             self.assertEqual(cliff, cliff_target)
 
