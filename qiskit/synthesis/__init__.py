@@ -59,6 +59,7 @@ Clifford Synthesis
    synth_clifford_bm
    synth_clifford_greedy
    synth_clifford_layers
+   synth_clifford_depth_lnn
 
 CNOTDihedral Synthesis
 ======================
@@ -105,6 +106,7 @@ from .clifford import (
     synth_clifford_bm,
     synth_clifford_greedy,
     synth_clifford_layers,
+    synth_clifford_depth_lnn,
 )
 from .cnotdihedral import (
     synth_cnotdihedral_full,

@@ -18,7 +18,11 @@ import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cz_depth_line_mr
+from qiskit.synthesis.linear import (
+    synth_cnot_count_full_pmh,
+    synth_cnot_depth_line_kms,
+    synth_cz_depth_line_mr,
+)
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
     check_invertible_binary_matrix,
@@ -395,3 +399,31 @@ def _check_gates(qc, allowed_gates):
     for inst, _, _ in qc.data:
         if not inst.name in allowed_gates:
             raise QiskitError("The gate name is not in the allowed_gates list.")
+
+
+def synth_clifford_depth_lnn(cliff):
+    """Synthesis of a Clifford into layers for linear-nearest neighbour connectivity.
+
+    The depth of the synthesized n-qubit circuit is bounded by 9*n+4, which is not optimal.
+    It should be replaced by a better algorithm that provides a depth bounded by 7*n+2.
+
+    Args:
+        cliff (Clifford): a clifford operator.
+
+    Return:
+        QuantumCircuit: a circuit implementation of the Clifford.
+
+    Reference:
+        1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
+           structure of the Clifford group*,
+           `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
+        2. Dmitri Maslov, Martin Roetteler,
+           Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations,
+           `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
+    """
+    circ = synth_clifford_layers(
+        cliff,
+        cx_synth_func=synth_cnot_depth_line_kms,
+        cz_synth_func=synth_cz_depth_line_mr,
+    )
+    return circ
