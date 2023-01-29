@@ -72,7 +72,7 @@ def synth_clifford_layers(
     validate=False,
 ):
     """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
-    described in Lemma 8 of [1].
+    described in Lemma 8 of Bravyi and Maslov.
 
     For example, a 5-qubit Clifford circuit is decomposed into the following layers:
 

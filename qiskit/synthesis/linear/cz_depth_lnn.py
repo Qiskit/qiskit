@@ -13,7 +13,7 @@
 """
 Optimize the synthesis of an n-qubit circuit contains only CZ gates for
 linear nearest neighbor (LNN) connectivity, using CX and phase (S, Sdg or Z) gates.
-The 2-qubit depth of the circuit is bounded by 2*n+2.
+The two-qubit depth of the circuit is bounded by 2*n+2.
 
 References:
     [1]: Dmitri Maslov, Martin Roetteler,
@@ -21,10 +21,12 @@ References:
          `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
 """
 
+import numpy as np
 from qiskit.circuit import QuantumCircuit
 
 
 def _append_cx_stage1(qc, n):
+    """A single layer of CX gates."""
     for i in range(int(n / 2)):
         qc.cx(2 * i, 2 * i + 1)
     for i in range(int((n + 1) / 2) - 1):
@@ -33,6 +35,7 @@ def _append_cx_stage1(qc, n):
 
 
 def _append_cx_stage2(qc, n):
+    """A single layer of CX gates."""
     for i in range(int(n / 2)):
         qc.cx(2 * i + 1, 2 * i)
     for i in range(int((n + 1) / 2) - 1):
@@ -48,6 +51,7 @@ def _append_cx_stage(qc, n):
 
 
 def _odd_pattern1(n):
+    """A pattern for odd number of qubits."""
     pat = []
     pat.append(n - 2)
     for i in range(int((n - 3) / 2)):
@@ -60,6 +64,7 @@ def _odd_pattern1(n):
 
 
 def _odd_pattern2(n):
+    """A pattern for odd number of qubits."""
     pat = []
     for i in range(int((n - 1) / 2)):
         pat.append(2 * i + 2)
@@ -72,6 +77,7 @@ def _odd_pattern2(n):
 
 
 def _even_pattern1(n):
+    """A pattern for even number of qubits."""
     pat = []
     pat.append(n - 1)
     for i in range(int((n - 2) / 2)):
@@ -85,6 +91,7 @@ def _even_pattern1(n):
 
 
 def _even_pattern2(n):
+    """A pattern for even number of qubits."""
     pat = []
     for i in range(int((n - 2) / 2)):
         pat.append(2 * (i + 1))
@@ -123,11 +130,24 @@ def _create_patterns(n):
     return pats
 
 
-def synth_cz_depth_line_mr(mat):
-    """Synthesis of a CZ circuit"""
-    # A CZ circuit is represented by an upper-diagonal matrix mat:
-    # mat[i][j]=1 for i<j represents a CZ(i,j) gate
-    # The function return an n-qubits circuit of depth 2*n with LNN connectivity
+def synth_cz_depth_line_mr(mat: np.ndarray):
+    """Synthesis of a CZ circuit for linear nearest neighbour (LNN) connectivity,
+    based on Maslov and Roetteler.
+    Note that this method *reverts* the order of qubits in the circuit.
+
+    Args:
+        mat: an upper-diagonal matrix representing the CZ circuit.
+            mat[i][j]=1 for i<j represents a CZ(i,j) gate
+
+    Return:
+        QuantumCircuit: a circuit implementation of the CZ circuit of depth 2*n+2 for LNL connectivity.
+            The circuit contains CX and phase (S, Sdg or Z) gates.
+
+    Reference:
+        1. Dmitri Maslov, Martin Roetteler,
+           Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations,
+           `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
+    """
     num_qubits = mat.shape[0]
     pats = _create_patterns(num_qubits)
     patlist = []

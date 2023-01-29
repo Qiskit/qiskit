@@ -29,13 +29,14 @@ Evolution Synthesis
    SuzukiTrotter
    MatrixExponential
 
-Linear Function Synthesis
-=========================
+Linear Function and Linear-Phase Synthesis
+================================+=========
 .. autosummary::
    :toctree: ../stubs/
 
     synth_cnot_count_full_pmh
     synth_cnot_depth_line_kms
+    synth_cz_depth_line_mr
 
 Permutation Synthesis
 =====================
@@ -93,7 +94,11 @@ from .permutation import (
     synth_permutation_basic,
     synth_permutation_acg,
 )
-from .linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
+from .linear import (
+    synth_cnot_count_full_pmh,
+    synth_cnot_depth_line_kms,
+    synth_cz_depth_line_mr,
+)
 from .clifford import (
     synth_clifford_full,
     synth_clifford_ag,
