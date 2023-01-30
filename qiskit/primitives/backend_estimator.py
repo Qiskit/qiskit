@@ -119,12 +119,7 @@ class BackendEstimator(BaseEstimator):
                 of the input circuits is skipped and the circuit objects
                 will be directly executed when this object is called.
         """
-        super().__init__(
-            circuits=None,
-            observables=None,
-            parameters=None,
-            options=options,
-        )
+        super().__init__(options=options)
 
         self._abelian_grouping = abelian_grouping
 
@@ -139,16 +134,8 @@ class BackendEstimator(BaseEstimator):
         self._grouping = list(zip(range(len(self._circuits)), range(len(self._observables))))
         self._skip_transpilation = skip_transpilation
 
-    def __new__(  # pylint: disable=signature-differs
-        cls,
-        backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
-    ):
-        self = super().__new__(cls)
-        return self
-
-    def __getnewargs__(self):
-        return (self._backend,)
+        self._circuit_ids = {}
+        self._observable_ids = {}
 
     @property
     def transpile_options(self) -> Options:
