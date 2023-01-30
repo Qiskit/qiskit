@@ -6,10 +6,3 @@ features:
     backend, in addition to the `cx` gates they were build for. These native gates
     contain the calibrated pulse schedules that the pulse scaling passes use to 
     generate arbitraty rotations of the :class:`~RZXGate` operation.
-issues:
-  - |
-    Currently the FakeSherbrooke backend does not contain `.defaults()` from which
-    the instruction schedule map is obtained. The unit test `TestCalibrationBuilder` 
-    requires this to check `ecr` operations work similarly to the `cx` gate case. 
-    As of this PR, `ibm_sherbrooke` is the only backend with native `ecr` gates, so 
-    this requires updating. 
