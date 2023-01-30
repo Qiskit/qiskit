@@ -21,22 +21,39 @@ from ddt import ddt
 
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
     CXGate,
+    CYGate,
     CZGate,
+    ECRGate,
     HGate,
     IGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
     SdgGate,
     SGate,
     SwapGate,
     XGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
     YGate,
     ZGate,
+    iSwapGate,
     LinearFunction,
     PauliGate,
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_operation
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
@@ -941,6 +958,43 @@ class TestCliffordOperators(QiskitTestCase):
         # of getattr(op, "condition", None)
         clifford = random_clifford(3, seed=0)
         print(clifford)
+
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_from_matrix_round_trip(self, num_qubits):
+        """Test round trip conversion to and from matrix"""
+        for i in range(10):
+            expected = random_clifford(num_qubits, seed=42 + i)
+            actual = Clifford.from_matrix(expected.to_matrix())
+            self.assertEqual(expected, actual)
+
+    @combine(
+        gate=[
+            RXGate(theta=np.pi / 2),
+            RYGate(theta=np.pi / 2),
+            RZGate(phi=np.pi / 2),
+            CPhaseGate(theta=np.pi),
+            CRXGate(theta=np.pi),
+            CRYGate(theta=np.pi),
+            CRZGate(theta=np.pi),
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            ECRGate(),
+            RXXGate(theta=np.pi / 2),
+            RYYGate(theta=np.pi / 2),
+            RZZGate(theta=np.pi / 2),
+            RZXGate(theta=np.pi / 2),
+            SwapGate(),
+            iSwapGate(),
+            XXMinusYYGate(theta=np.pi),
+            XXPlusYYGate(theta=-np.pi),
+        ]
+    )
+    def test_create_from_gates(self, gate):
+        """Test if matrix of Clifford created from gate equals the gate matrix up to global phase"""
+        self.assertTrue(
+            matrix_equal(Clifford(gate).to_matrix(), gate.to_matrix(), ignore_phase=True)
+        )
 
 
 if __name__ == "__main__":
