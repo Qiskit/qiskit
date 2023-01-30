@@ -230,7 +230,7 @@ class QNSPSA(SPSA):
         # compute the preconditioner point estimate
         diff = fidelity_values[2] - fidelity_values[0]
         diff -= fidelity_values[3] - fidelity_values[1]
-        diff /= 2 * eps**2
+        diff = diff / (2 * eps**2)
 
         rank_one = np.outer(delta1, delta2)
         # -0.5 factor comes from the fact that we need -0.5 * fidelity
