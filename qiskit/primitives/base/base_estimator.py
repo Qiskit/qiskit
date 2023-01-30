@@ -94,8 +94,6 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from ..utils import init_observable
 from .base_primitive import BasePrimitive
 
-# from warnings import warn
-
 
 class BaseEstimator(BasePrimitive):
     """Estimator base class.

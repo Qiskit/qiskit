@@ -85,8 +85,6 @@ from qiskit.providers import JobV1 as Job
 
 from .base_primitive import BasePrimitive
 
-# from warnings import warn
-
 
 class BaseSampler(BasePrimitive):
     """Sampler base class
