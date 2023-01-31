@@ -17,6 +17,7 @@ Base register reference object.
 """
 import re
 import itertools
+import warnings
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
@@ -35,15 +36,16 @@ class Register:
     # In historical version of Terra, registers' name had to conform to the OpenQASM 2 specification
     # (see appendix A of https://arxiv.org/pdf/1707.03429v2.pdf), and this regex enforced it.  That
     # restriction has been relaxed, so this is no longer necessary.
+    @classmethod
     @property
     @deprecate_function(
         "Register.name_format is deprecated as of Qiskit Terra 0.23, and will be removed in a"
         " future release. There is no longer a restriction on the names of registers, so the"
         " attribute has no meaning any more."
     )
-    def name_format(self):
+    def name_format(cls):
         # pylint: disable=missing-function-docstring
-        return self._name_format
+        return cls._name_format
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()

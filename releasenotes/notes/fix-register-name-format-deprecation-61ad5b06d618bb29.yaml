@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed a bad deprecation of :attr:`.Register.name_format` which had made the class attribute
+    available only from instances and not the class.  When trying to send dynamic-circuits jobs to
+    hardware backends, this would frequently cause the error:
+
+      AttributeError: 'property' object has no attribute 'match'
