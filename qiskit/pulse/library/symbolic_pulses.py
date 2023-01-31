@@ -1167,7 +1167,7 @@ def GaussianSquareEcho(
     # gaussian square echo for rotary tone
     _center = _duration / 4
 
-    _width_echo = (_duration - 2*(_duration - _width))/2
+    _width_echo = (_duration - 2 * (_duration - _width)) / 2
 
     _sq_t0 = _center - _width_echo / 2
     _sq_t1 = _center + _width_echo / 2
