@@ -2,11 +2,8 @@
 fixes:
   - |
     An edge case of pickle :class:`.InstructionScheduleMap` with
-    non-picklable iterable ``arguments`` is supported.
-    When :meth:`InstructionScheduleMap.add` is called with
-    ``arguments``, this method typecasts the user value to a python list
-    to guarantee the added entry is picklable.
-    For example, a user may supply a python dict keys as ``arguments``.
-    This also guarantees parallel transpile works with such a custom
-    instruction schedule map, where the map object is pickled and
-    distributed to every parallel threads.
+    non-picklable iterable ``arguments`` is now fixed.
+    Previously, using an unpickleable iterable as the ``arguments``
+    parameter to :meth:`.InstructionScheduleMap.add` (such as ``dict_keys``)
+    could cause parallel calls to :func:`.transpile` to fail.  These
+    arguments will now correctly be normalized internally to ``list``.

@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fix a performance bug in :class:`.ReverseEstimatorGradient` where the calculation 
+    Fixed a performance bug in :class:`.ReverseEstimatorGradient` where the calculation 
     did a large amount of unnecessary copies if the gradient was only calculated for 
     a subset of parameters, or in a circuit with many unparameterized gates.
