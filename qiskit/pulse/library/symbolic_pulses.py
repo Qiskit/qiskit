@@ -1088,11 +1088,29 @@ def GaussianSquareEcho(
         \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
     If ``width`` is not None and ``risefall_sigma_ratio`` is None:
     .. math:: \\text{risefall} = \\frac{\\text{duration} - \\text{width}}{2}
-    Gaussian :math:`g(x, c, σ)` and lifted gaussian :math:`g'(x, c, σ)` curves
-    can be written as:
+    The Gaussian Square Echo pulse is composed of three pulses. First, a Gaussian Square pulse
+    :math: `f_{echo}(x)` with amplitude ``amp`` and phase ``angle`` playing for half duration, followed by a second 
+    Gaussian Square pulse :math: `-f_{echo}(x)` with opposite amplitude and same phase playing for the rest of the 
+    duration. Third a Gaussian Square pulse :math: `f_{active}(x)` with amplitude ``active_amp`` and phase ``active_angle``
+    playing for the entire duration. The Gaussian Square Echo pulse :math: `g_e()` can be written as:
     .. math::
-        g(x, c, σ) &= \\exp\\Bigl(-\\frac12 \\frac{(x - c)^2}{σ^2}\\Bigr)\\\\
-        g'(x, c, σ) &= \\frac{g(x, c, σ)-g(-1, c, σ)}{1-g(-1, c, σ)}
+
+        g_e(x) &= \\begin{cases}\
+            f_{\\text{active}} + f_{\\text{echo}}(x)\
+                & x < \\frac{\\text{duration}}{2}\\\\
+            f_{\\text{active}} - f_{\\text{echo}}(x)\
+                & \\frac{\\text{duration}}{2} < x\\\\ 
+
+
+    References:
+        1. |citation1|_
+
+        .. _citation1: https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.1.020318
+
+        .. |citation1| replace:: *Sundaresan, N., Lauer, I., Pritchett, E., 
+           Magesan, E.,  Jurcevic, P. & Gambetta, J. M.
+           Reducing Unitary and Spectator Errors in Cross Resonance with
+           Optimized Rotary Echoes. PRX Quantum 1, 020318 (2020).*
     
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
@@ -1127,22 +1145,35 @@ def GaussianSquareEcho(
 
     if width is not None and risefall_sigma_ratio is None:
         total_risefall = duration - width
-        echo_risefall = 2*total_risefall
-        width_echo = (duration - echo_risefall)/2
+        echo_risefall = 2 * total_risefall
+        width_echo = (duration - echo_risefall) / 2
 
     if width is None and risefall_sigma_ratio is not None:
         width = duration - 2.0 * risefall_sigma_ratio * sigma
-        width_echo = (duration - 4.0 * risefall_sigma_ratio * sigma)/2
+        width_echo = (duration - 4.0 * risefall_sigma_ratio * sigma) / 2
 
-
-
-    parameters = {"amp": amp, "angle": angle, "sigma": sigma, "width": width, "width_echo": width_echo, 
-                    "active_amp": active_amp, "active_angle": active_angle}
+    parameters = {
+        "amp": amp,
+        "angle": angle,
+        "sigma": sigma,
+        "width": width,
+        "width_echo": width_echo,
+        "active_amp": active_amp,
+        "active_angle": active_angle,
+    }
 
     # Prepare symbolic expressions
-    _t, _duration, _amp, _sigma, _active_amp, _width, _width_echo, _angle, _active_angle = sym.symbols(
-        "t, duration, amp, sigma, active_amp, width, width_echo, angle, active_angle"
-    )
+    (
+        _t,
+        _duration,
+        _amp,
+        _sigma,
+        _active_amp,
+        _width,
+        _width_echo,
+        _angle,
+        _active_angle,
+    ) = sym.symbols("t, duration, amp, sigma, active_amp, width, width_echo, angle, active_angle")
 
     # gaussian square echo for rotary tone
     _center = _duration / 4
@@ -1151,7 +1182,7 @@ def GaussianSquareEcho(
     _sq_t1 = _center + _width_echo / 2
 
     _gaussian_ledge = _lifted_gaussian(_t, _sq_t0, -1, _sigma)
-    _gaussian_redge = _lifted_gaussian(_t, _sq_t1, _duration/2 + 1, _sigma)
+    _gaussian_redge = _lifted_gaussian(_t, _sq_t1, _duration / 2 + 1, _sigma)
 
     envelope_expr_p = (
         _amp
@@ -1163,16 +1194,17 @@ def GaussianSquareEcho(
         )
     )
 
-    _center_echo = _duration/2 + _duration / 4
+    _center_echo = _duration / 2 + _duration / 4
 
     _sq_t0_echo = _center_echo - _width_echo / 2
     _sq_t1_echo = _center_echo + _width_echo / 2
 
-    _gaussian_ledge_echo = _lifted_gaussian(_t, _sq_t0_echo, _duration/2-1, _sigma)
+    _gaussian_ledge_echo = _lifted_gaussian(_t, _sq_t0_echo, _duration / 2 - 1, _sigma)
     _gaussian_redge_echo = _lifted_gaussian(_t, _sq_t1_echo, _duration + 1, _sigma)
 
     envelope_expr_echo = (
-        -1*_amp
+        -1
+        * _amp
         * sym.exp(sym.I * _angle)
         * sym.Piecewise(
             (_gaussian_ledge_echo, _t <= _sq_t0_echo),
@@ -1181,10 +1213,12 @@ def GaussianSquareEcho(
         )
     )
 
-    envelope_expr = sym.Piecewise( (envelope_expr_p, _t <= _duration/2), (envelope_expr_echo, _t >= _duration/2), (0, True) )
+    envelope_expr = sym.Piecewise(
+        (envelope_expr_p, _t <= _duration / 2), (envelope_expr_echo, _t >= _duration / 2), (0, True)
+    )
 
     # gaussian square for active cancellation tone
-    _center_xy = _duration/2
+    _center_xy = _duration / 2
 
     _sq_t0_xy = _center_xy - _width / 2
     _sq_t1_xy = _center_xy + _width / 2
@@ -1192,14 +1226,19 @@ def GaussianSquareEcho(
     _gaussian_ledge_xy = _lifted_gaussian(_t, _sq_t0_xy, -1, _sigma)
     _gaussian_redge_xy = _lifted_gaussian(_t, _sq_t1_xy, _duration + 1, _sigma)
 
-    envelope_expr_xy = _active_amp * sym.exp(sym.I * _active_angle) * sym.Piecewise(
-        (_gaussian_ledge_xy, _t <= _sq_t0_xy), (_gaussian_redge_xy, _t >= _sq_t1_xy), (1, True)
+    envelope_expr_xy = (
+        _active_amp
+        * sym.exp(sym.I * _active_angle)
+        * sym.Piecewise(
+            (_gaussian_ledge_xy, _t <= _sq_t0_xy), (_gaussian_redge_xy, _t >= _sq_t1_xy), (1, True)
+        )
     )
 
     envelop_expr_total = envelope_expr + envelope_expr_xy
 
-
-    consts_expr = sym.And(_sigma > 0, _width >= 0, _duration >= _width, _duration/2 >= _width_echo)
+    consts_expr = sym.And(
+        _sigma > 0, _width >= 0, _duration >= _width, _duration / 2 >= _width_echo
+    )
 
     # Check validity of amplitudes
     valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0)
