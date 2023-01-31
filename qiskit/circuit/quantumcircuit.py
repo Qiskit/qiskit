@@ -361,7 +361,7 @@ class QuantumCircuit:
         r"""Return any associated layout information anout the circuit
 
         This attribute contains an optional :class:`~.TranspileLayout`
-        object. This is typical set on the output from :func:`~.transpile`
+        object. This is typically set on the output from :func:`~.transpile`
         or :meth:`.PassManager.run` to retain information about the
         permutations caused on the input circuit by transpilation.
 
