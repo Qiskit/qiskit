@@ -1393,8 +1393,12 @@ class DAGCircuit:
             self._decrement_op(node.op)
         return new_node
 
-    def weakly_connected_components(self) -> List["DAGCircuit"]:
-        """Decompose the dag circuit into its weakly connected components."""
+    def separable_circuits(self) -> List["DAGCircuit"]:
+        """Separate the dag circuit into its weakly connected components.
+
+           The global phase information in `self` will not be maintained in the
+           subcircuits returned by this method.
+        """
         connected_components = rx.weakly_connected_components(self._multi_graph)
 
         # Collect each disconnected subgraph
@@ -1405,13 +1409,15 @@ class DAGCircuit:
         # Create new DAGCircuit objects from each of the rustworkx subgraph objects
         decomposed_dags = []
         for subgraph in disconnected_subgraphs:
-            new_dag = DAGCircuit()
-            new_dag.add_qubits(self.qubits)
+            new_dag = self.copy_empty_like()
             for node in subgraph.nodes():
                 if not isinstance(node, DAGOpNode):
                     continue
                 new_dag.apply_operation_back(node.op, node.qargs)
-            decomposed_dags.append(new_dag)
+
+            # Ignore DAGs created for empty qubits and classical bits
+            if new_dag.op_nodes():
+                decomposed_dags.append(new_dag)
 
         return decomposed_dags
 

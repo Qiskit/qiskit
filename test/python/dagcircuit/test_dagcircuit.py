@@ -1223,6 +1223,30 @@ class TestCircuitProperties(QiskitTestCase):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
+    def test_separable_circuits(self):
+        """Test separating disconnected sets of qubits in a circuit."""
+        # Empty case
+        dag = DAGCircuit()
+        self.assertEqual([], dag.separable_circuits())
+
+        # 3 disconnected qubits
+        qreg = QuantumRegister(3, "qr")
+        creg = ClassicalRegister(2, "cr")
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(HGate(), [qreg[0]], [])
+        dag.apply_operation_back(HGate(), [qreg[1]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
+        self.assertEqual(3, len(dag.separable_circuits()))
+
+        # 2 sets of disconnected qubits
+        dag.apply_operation_back(CXGate(), [qreg[1], qreg[2]], [])
+        self.assertEqual(2, len(dag.separable_circuits()))
+
+        # One connected component
+        dag.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
+        self.assertEqual(1, len(dag.separable_circuits()))
+
 
 class TestCircuitControlFlowProperties(QiskitTestCase):
     """Properties tests of DAGCircuit with control-flow instructions."""
