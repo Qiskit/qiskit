@@ -597,7 +597,7 @@ class _NaiveDecomposer(_ObservableDecomposer):
     def _decompose(
         self,
         observable: SparsePauliOp,
-    ) -> tuple[SparsePauliOp]:
+    ) -> tuple[SparsePauliOp, ...]:
         return tuple(observable)
 
     def _extract_singlet_basis(self, observable: SparsePauliOp) -> Pauli:
