@@ -1140,21 +1140,14 @@ def GaussianSquareEcho(
             " but not both."
         )
 
-    if width is not None and risefall_sigma_ratio is None:
-        total_risefall = duration - width
-        echo_risefall = 2 * total_risefall
-        width_echo = (duration - echo_risefall) / 2
-
     if width is None and risefall_sigma_ratio is not None:
         width = duration - 2.0 * risefall_sigma_ratio * sigma
-        width_echo = (duration - 4.0 * risefall_sigma_ratio * sigma) / 2
 
     parameters = {
         "amp": amp,
         "angle": angle,
         "sigma": sigma,
         "width": width,
-        "width_echo": width_echo,
         "active_amp": active_amp,
         "active_angle": active_angle,
     }
@@ -1167,13 +1160,14 @@ def GaussianSquareEcho(
         _sigma,
         _active_amp,
         _width,
-        _width_echo,
         _angle,
         _active_angle,
-    ) = sym.symbols("t, duration, amp, sigma, active_amp, width, width_echo, angle, active_angle")
+    ) = sym.symbols("t, duration, amp, sigma, active_amp, width, angle, active_angle")
 
     # gaussian square echo for rotary tone
     _center = _duration / 4
+
+    _width_echo = (_duration - 2*(_duration - _width))/2
 
     _sq_t0 = _center - _width_echo / 2
     _sq_t1 = _center + _width_echo / 2
