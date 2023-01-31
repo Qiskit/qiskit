@@ -79,7 +79,14 @@ class ScheduleDef(CalibrationEntry):
 
         Args:
             arguments: User provided argument names for this entry, if parameterized.
+
+        Raises:
+            PulseError: When `arguments` is not a sequence of string.
         """
+        if arguments and not all(isinstance(arg, str) for arg in arguments):
+            raise PulseError(f"Arguments must be name of parameters. Not {arguments}.")
+        if arguments:
+            arguments = list(arguments)
         self._user_arguments = arguments
 
         self._definition = None
