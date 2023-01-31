@@ -44,14 +44,16 @@ def _append_cx_stage2(qc, n):
 
 
 def _append_cx_stage(qc, n):
-    """Append a depth 2 layer of CX gates"""
+    """Append a depth 2 layer of CX gates."""
     qc.compose(_append_cx_stage1(qc, n))
     qc.compose(_append_cx_stage2(qc, n))
     return qc
 
 
 def _odd_pattern1(n):
-    """A pattern for odd number of qubits."""
+    """A pattern denoted by Pj in [1] for odd number of qubits:
+    [n-2, n-4, n-4, ..., 3, 3, 1, 1, 0, 0, 2, 2, ..., n-3, n-3]
+    """
     pat = []
     pat.append(n - 2)
     for i in range(int((n - 3) / 2)):
@@ -64,7 +66,9 @@ def _odd_pattern1(n):
 
 
 def _odd_pattern2(n):
-    """A pattern for odd number of qubits."""
+    """A pattern denoted by Pk in [1] for odd number of qubits:
+    [2, 2, 4, 4, ..., n-1, n-1, n-2, n-2, n-4, n-4, ..., 5, 5, 3, 3, 1]
+    """
     pat = []
     for i in range(int((n - 1) / 2)):
         pat.append(2 * i + 2)
@@ -77,7 +81,9 @@ def _odd_pattern2(n):
 
 
 def _even_pattern1(n):
-    """A pattern for even number of qubits."""
+    """A pattern denoted by Pj in [1] for even number of qubits:
+    [n-1, n-3, n-3, n-5, n-5, ..., 1, 1, 0, 0, 2, 2, ..., n-4, n-4, n-2]
+    """
     pat = []
     pat.append(n - 1)
     for i in range(int((n - 2) / 2)):
@@ -91,7 +97,9 @@ def _even_pattern1(n):
 
 
 def _even_pattern2(n):
-    """A pattern for even number of qubits."""
+    """A pattern denoted by Pk in [1] for even number of qubits:
+    [2, 2, 4, 4, ..., n-2, n-2, n-1, n-1, ..., 3, 3, 1, 1]
+    """
     pat = []
     for i in range(int((n - 2) / 2)):
         pat.append(2 * (i + 1))
@@ -103,7 +111,7 @@ def _even_pattern2(n):
 
 
 def _create_patterns(n):
-    """Creating the patterns for the phase layer."""
+    """Creating the patterns for the phase layers."""
     if (n % 2) == 0:
         pat1 = _even_pattern1(n)
         pat2 = _even_pattern2(n)
