@@ -610,7 +610,7 @@ class _AbelianDecomposer(_ObservableDecomposer):
     def _decompose(
         self,
         observable: SparsePauliOp,
-    ) -> tuple[SparsePauliOp]:
+    ) -> tuple[SparsePauliOp, ...]:
         components = observable.group_commuting(qubit_wise=True)
         return tuple(components)
 
