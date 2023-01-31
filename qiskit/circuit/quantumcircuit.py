@@ -73,7 +73,7 @@ except Exception:  # pylint: disable=broad-except
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
-    from qiskit.transpiler.layout import TranspileLayout
+    from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
