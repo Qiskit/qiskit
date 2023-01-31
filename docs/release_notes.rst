@@ -22,6 +22,129 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.41.0
+*************
+
+Terra 0.23.1
+============
+
+0.23.1
+======
+
+.. _Release Notes_0.23.1_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.23.1-9fa7d954a6c0590e.yaml @ b'd4e7144efa9c661817161f84553313bf39406fac'
+
+Qiskit Terra 0.23.1 is a small patch release to fix bugs identified in Qiskit Terra 0.23.0
+
+
+.. _Release Notes_0.23.1_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/fix-instmap-add-with-arguments-250de2a7960565dc.yaml @ b'd4e7144efa9c661817161f84553313bf39406fac'
+
+- An edge case of pickle :class:`.InstructionScheduleMap` with
+  non-picklable iterable ``arguments`` is now fixed.
+  Previously, using an unpickleable iterable as the ``arguments``
+  parameter to :meth:`.InstructionScheduleMap.add` (such as ``dict_keys``)
+  could cause parallel calls to :func:`.transpile` to fail.  These
+  arguments will now correctly be normalized internally to ``list``.
+
+.. releasenotes/notes/fix-partial-reverse-gradient-f35fb1f30ee15692.yaml @ b'd4e7144efa9c661817161f84553313bf39406fac'
+
+- Fixed a performance bug in :class:`.ReverseEstimatorGradient` where the calculation
+  did a large amount of unnecessary copies if the gradient was only calculated for
+  a subset of parameters, or in a circuit with many unparameterized gates.
+
+.. releasenotes/notes/fix-register-name-format-deprecation-61ad5b06d618bb29.yaml @ b'6ec3efff0f38f5857dbd80137bf1cba9cb379f22'
+
+- Fixed a bad deprecation of :attr:`.Register.name_format` which had made the class attribute
+  available only from instances and not the class.  When trying to send dynamic-circuits jobs to
+  hardware backends, this would frequently cause the error::
+
+    AttributeError: 'property' object has no attribute 'match'
+
+  Fixed `#9493 <https://github.com/Qiskit/qiskit-terra/issues/9493>`__.
+
+Aer 0.11.2
+==========
+
+No change
+
+.. _Release Notes_IBMQ_0.20.0:
+
+IBM Q Provider 0.20.0
+=====================
+
+Prelude
+-------
+
+This release of the ``qiskit-ibmq-provider`` package marks the package as deprecated and will be retired and archived
+in the future. The functionality in ``qiskit-ibmq-provider`` has been supersceded by 3 packages ``qiskit-ibm-provider``,
+``qiskit-ibm-runtime``, and ``qiskit-ibm-experiment`` which offer different subsets of functionality that
+``qiskit-ibmq-provider`` contained. You can refer to the table here:
+
+https://github.com/Qiskit/qiskit-ibmq-provider#migration-guides
+
+for links to the migration guides for moving from ``qiskit-ibmq-provider`` to its replacmeent packages.
+
+
+.. _Release Notes_IBMQ_0.20.0_Deprecation Notes:
+
+Deprecation Notes
+-----------------
+
+.. releasenotes/notes/0.20.0/deprecation-message-37792b01e4118b5b.yaml @ b'bff830447c097e7286d38ebb885e19bd06b0a684'
+
+- As of version 0.20.0, ``qiskit-ibmq-provider`` has been deprecated with its support
+  ending and eventual archival being no sooner than 3 months from that date.
+  The function provided by qiskit-ibmq-provider is not going away rather it has being split out
+  to separate repositories. Please see https://github.com/Qiskit/qiskit-ibmq-provider#migration-guides.
+
+
+.. _Release Notes_IBMQ_0.20.0_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/0.19/fix-terra-version-string-parsing-12afae5b2b947211.yaml @ b'7720d6051b16ead74b8b9f4021247fc76558f3e1'
+
+- In the upcoming terra release there will be a release candidate tagged
+  prior to the final release. However changing the version string for the
+  package is blocked on the qiskit-ibmq-provider right now because it is trying
+  to parse the version and is assuming there will be no prelease suffix on
+  the version string (see `#8200 <https://github.com/Qiskit/qiskit-terra/pull/8200>`__
+  for the details). PR `#1135 <https://github.com/Qiskit/qiskit-ibmq-provider/pull/1135>`__
+  fixes this version parsing to use the regex from the
+  pypa/packaging project which handles all the PEP440 package versioning
+  include pre-release suffixes. This will enable terra to release an
+  0.21.0rc1 tag without breaking the qiskit-ibmq-provider.
+
+.. releasenotes/notes/0.19/remove-basebackend-typehint-63bbcad7e5dd0dc5.yaml @ b'4f1f8c64543aa9b787a8e9e41be106fb8cdfe435'
+
+- PR `#1129 <https://github.com/Qiskit/qiskit-ibmq-provider/pull/1129>`__ updates
+  :meth:`~qiskit.providers.ibmq.least_busy` method to no longer support `BaseBackend` as a valid
+  input or output type since it has been long deprecated in qiskit-terra and has recently
+  been removed.
+
+.. releasenotes/notes/0.19/replace-threading-aliases-64a9552b28abd3cd.yaml @ b'7720d6051b16ead74b8b9f4021247fc76558f3e1'
+
+- ``threading.currentThread`` and ``notifyAll`` were deprecated in Python 3.10 (October 2021)
+  and will be removed in Python 3.12 (October 2023).
+  PR `#1133 <https://github.com/Qiskit/qiskit-ibmq-provider/pull/1133>`__ replaces them
+  with ``threading.current_thread``, ``notify_all`` added in Python 2.6 (October 2008).
+
+.. releasenotes/notes/0.20.0/add-dynamic-circuits-warning-7e17eac231aed88d.yaml @ b'bff830447c097e7286d38ebb885e19bd06b0a684'
+
+- Calls to run a quantum circuit with ``dynamic=True`` now raise an error
+  that asks the user to install the new ``qiskit-ibm-provider``.
+
+*************
 Qiskit 0.40.0
 *************
 This release officially deprecates the Qiskit IBMQ provider project as part of the Qiskit metapackage.
