@@ -563,7 +563,7 @@ class _ObservableDecomposer(ABC):
     def _decompose(
         self,
         observable: SparsePauliOp,
-    ) -> tuple[SparsePauliOp]:
+    ) -> tuple[SparsePauliOp, ...]:
         ...
 
     def extract_pauli_basis(self, observable: BaseOperator | PauliSumOp) -> PauliList:
