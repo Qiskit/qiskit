@@ -242,8 +242,8 @@ the Visual C++ build tools so that rust can link against the system c/c++
 libraries. You can see more details on this in the
 [rustup documentation](https://rust-lang.github.io/rustup/installation/windows.html).
 
-Qiskit Terra has a minimum supported Rust version (MSRV) of 1.56.1. This means
-to build Qiskit Terra from source you must have at least rustc version 1.56.1
+Qiskit Terra has a minimum supported Rust version (MSRV) of 1.61.0. This means
+to build Qiskit Terra from source you must have at least rustc version 1.61.0
 installed, older versions will not be able to compile Qiskit.
 
 Once you have a rust compiler installed you can rely on the normal Python

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import math
 import numpy as np
+from qiskit.quantum_info.operators.predicates import is_identity_matrix
 from .gate_sequence import _check_is_so3, GateSequence
 
 
@@ -217,10 +218,7 @@ def commutator_decompose(
         # assert that the input matrix is really SO(3)
         _check_is_so3(u_so3)
 
-        identity = np.identity(3)
-        if not (
-            np.allclose(u_so3.dot(u_so3.T), identity) and np.allclose(u_so3.T.dot(u_so3), identity)
-        ):
+        if not is_identity_matrix(u_so3.dot(u_so3.T)):
             raise ValueError("Input matrix is not orthogonal.")
 
     angle = _solve_decomposition_angle(u_so3)

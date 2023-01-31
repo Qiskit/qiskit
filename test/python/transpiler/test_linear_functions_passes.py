@@ -208,7 +208,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         # check that there is one linear function and one permutation
         self.assertEqual(circuit3.count_ops()["linear_function"], 1)
-        self.assertEqual(circuit3.count_ops()["permutation_[2,0,1]"], 1)
+        self.assertEqual(circuit3.count_ops()["permutation"], 1)
 
         # check that the final circuit is still equivalent to the original circuit
         self.assertEqual(Operator(circuit1), Operator(circuit3))

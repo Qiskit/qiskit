@@ -15,13 +15,14 @@
 from __future__ import annotations
 
 import itertools
+from collections.abc import Iterable
 from copy import deepcopy
 from typing import Union, cast
 
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp
 
 
 class Z2Symmetries:
@@ -47,18 +48,18 @@ class Z2Symmetries:
 
     def __init__(
         self,
-        symmetries: PauliList,
-        sq_paulis: PauliList,
-        sq_list: list[int],
-        tapering_values: list[int] | None = None,
+        symmetries: Iterable[Pauli],
+        sq_paulis: Iterable[Pauli],
+        sq_list: Iterable[int],
+        tapering_values: Iterable[int] | None = None,
         *,
         tol: float = 1e-14,
     ):
         r"""
         Args:
-            symmetries: PauliList object representing the list of $Z_2$ symmetries. These correspond to
+            symmetries: Object representing the list of $Z_2$ symmetries. These correspond to
                 the generators of the symmetry group $\langle \tau_1, \tau_2\dots \rangle>$.
-            sq_paulis: PauliList object representing the list of single-qubit Pauli $\sigma^x_{q(i)}$
+            sq_paulis: Object representing the list of single-qubit Pauli $\sigma^x_{q(i)}$
                 anti-commuting with the symmetry $\tau_i$ and commuting with all the other symmetries
                 $\tau_{j\neq i}$. These operators are used to construct the unitary Clifford operators.
             sq_list: The list of indices $q(i)$ of the single-qubit Pauli operators used to build the
@@ -71,6 +72,11 @@ class Z2Symmetries:
                 and tapering values must be of equal length. This length is the number of applied
                 symmetries and translates directly to the number of eliminated qubits.
         """
+        symmetries = list(symmetries)
+        sq_paulis = list(sq_paulis)
+        sq_list = list(sq_list)
+        tapering_values = None if tapering_values is None else list(tapering_values)
+
         if len(symmetries) != len(sq_paulis):
             raise QiskitError(
                 f"The number of Z2 symmetries, {len(symmetries)}, has to match the number \
@@ -97,12 +103,12 @@ class Z2Symmetries:
         self.tol = tol
 
     @property
-    def symmetries(self) -> PauliList:
+    def symmetries(self) -> list[Pauli]:
         """Return symmetries."""
         return self._symmetries
 
     @property
-    def sq_paulis(self) -> PauliList:
+    def sq_paulis(self) -> list[Pauli]:
         """Return sq paulis."""
         return self._sq_paulis
 
@@ -116,7 +122,7 @@ class Z2Symmetries:
         """
         cliffords = [
             (SparsePauliOp(pauli_symm) + SparsePauliOp(sq_pauli)) / np.sqrt(2)
-            for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)  # type: ignore
+            for pauli_symm, sq_pauli in zip(self._symmetries, self._sq_paulis)
         ]
         return cliffords
 
@@ -202,7 +208,7 @@ class Z2Symmetries:
         }
 
         if _sparse_pauli_op_is_zero(operator):
-            return cls(PauliList([]), PauliList([]), [], None)
+            return cls([], [], [], None)
 
         for pauli in iter(operator):
             stacked_paulis.append(
@@ -213,7 +219,7 @@ class Z2Symmetries:
         symmetries = _kernel_f2(stacked_matrix)
 
         if not symmetries:
-            return cls(PauliList([]), PauliList([]), [], None)
+            return cls([], [], [], None)
 
         stacked_symmetries = np.stack(symmetries)
         symm_shape = stacked_symmetries.shape
@@ -291,7 +297,7 @@ class Z2Symmetries:
                     # We break out of the loop over columns only when one valid test is identified.
                     break
 
-        return cls(PauliList(pauli_symmetries), PauliList(sq_paulis), sq_list, None)
+        return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
     def convert_clifford(self, operator: SparsePauliOp) -> SparsePauliOp:
         """This method operates the first part of the tapering.
