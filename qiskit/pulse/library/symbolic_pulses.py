@@ -1102,6 +1102,7 @@ def GaussianSquareEcho(
                 & \\frac{\\text{duration}}{2} < x\\\\ 
 
 
+
     References:
         1. |citation1|_
 
@@ -1218,23 +1219,23 @@ def GaussianSquareEcho(
     )
 
     # gaussian square for active cancellation tone
-    _center_xy = _duration / 2
+    _center_active = _duration / 2
 
-    _sq_t0_xy = _center_xy - _width / 2
-    _sq_t1_xy = _center_xy + _width / 2
+    _sq_t0_active = _center_active - _width / 2
+    _sq_t1_active = _center_active + _width / 2
 
-    _gaussian_ledge_xy = _lifted_gaussian(_t, _sq_t0_xy, -1, _sigma)
-    _gaussian_redge_xy = _lifted_gaussian(_t, _sq_t1_xy, _duration + 1, _sigma)
+    _gaussian_ledge_active = _lifted_gaussian(_t, _sq_t0_active, -1, _sigma)
+    _gaussian_redge_active = _lifted_gaussian(_t, _sq_t1_active, _duration + 1, _sigma)
 
-    envelope_expr_xy = (
+    envelope_expr_active = (
         _active_amp
         * sym.exp(sym.I * _active_angle)
         * sym.Piecewise(
-            (_gaussian_ledge_xy, _t <= _sq_t0_xy), (_gaussian_redge_xy, _t >= _sq_t1_xy), (1, True)
+            (_gaussian_ledge_active, _t <= _sq_t0_active), (_gaussian_redge_active, _t >= _sq_t1_active), (1, True)
         )
     )
 
-    envelop_expr_total = envelope_expr + envelope_expr_xy
+    envelop_expr_total = envelope_expr + envelope_expr_active
 
     consts_expr = sym.And(
         _sigma > 0, _width >= 0, _duration >= _width, _duration / 2 >= _width_echo
