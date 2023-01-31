@@ -543,7 +543,7 @@ class BackendEstimator(BaseEstimator):
 class _ObservableDecomposer(ABC):
     """Strategy interface for decomposing observables and getting associated measurement bases."""
 
-    def decompose(self, observable: BaseOperator | PauliSumOp) -> tuple[SparsePauliOp]:
+    def decompose(self, observable: BaseOperator | PauliSumOp) -> tuple[SparsePauliOp, ...]:
         """Decomposes a given observable into singly measurable components.
 
         Note that component decomposition is not unique, for instance, commuting components
