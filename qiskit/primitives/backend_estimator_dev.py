@@ -262,7 +262,7 @@ class BackendEstimator(BaseEstimator):
 
     def _execute_matrix(
         self, circuits_matrix: Sequence[Sequence[QuantumCircuit]], **run_options
-    ) -> tuple[tuple[Counts]]:
+    ) -> Tuple[Tuple[Counts, ...], ...]:
         """Execute circuit matrix and return counts in identical (i.e. one-to-one) arrangement.
 
         Each :class:`qiskit.result.Counts` object is annotated with the metadata
