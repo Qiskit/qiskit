@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed bug in QNSPSA which raised a type error when trying to divide or subtract
+    an int by a float or viceversa.
