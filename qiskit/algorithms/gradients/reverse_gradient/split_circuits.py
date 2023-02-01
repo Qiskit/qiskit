@@ -35,31 +35,31 @@ def split(
     corresponding_parameters = []
 
     sub = QuantumCircuit(*circuit.qregs, *circuit.cregs)
-    for op in circuit.data:
+    for inst in circuit.data:
         # check if new split must be created
         if parameters is None:
             params = [
                 param
-                for param in op[0].params
+                for param in inst.operation.params
                 if isinstance(param, ParameterExpression) and len(param.parameters) > 0
             ]
         else:
-            if op[0].definition is not None:
-                free_op_params = op[0].definition.parameters
+            if inst[0].definition is not None:
+                free_inst_params = inst.operation.definition.parameters
             else:
-                free_op_params = {}
+                free_inst_params = {}
 
-            params = [p for p in parameters if p in free_op_params]
+            params = [p for p in parameters if p in free_inst_params]
 
         new_split = bool(len(params) > 0)
 
         if new_split:
-            sub.data += [op]
+            sub.append(inst)
             circuits.append(sub)
             corresponding_parameters.append(params)
             sub = QuantumCircuit(*circuit.qregs, *circuit.cregs)
         else:
-            sub.data += [op]
+            sub.append(inst)
 
     # handle leftover gates
     if len(sub.data) > 0:

@@ -38,7 +38,7 @@ class CommutativeCancellation(TransformationPass):
         H, X, Y, Z, CX, CY, CZ
     """
 
-    def __init__(self, basis_gates=None):
+    def __init__(self, basis_gates=None, target=None):
         """
         CommutativeCancellation initializer.
 
@@ -47,12 +47,17 @@ class CommutativeCancellation(TransformationPass):
                 ``['u3', 'cx']``. For the effects of this pass, the basis is
                 the set intersection between the ``basis_gates`` parameter
                 and the gates in the dag.
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``basis_gates`` and this are specified then this argument will take
+                precedence and ``basis_gates`` will be ignored.
         """
         super().__init__()
         if basis_gates:
             self.basis = set(basis_gates)
         else:
             self.basis = set()
+        if target is not None:
+            self.basis = set(target.operation_names)
 
         self._var_z_map = {"rz": RZGate, "p": PhaseGate, "u1": U1Gate}
         self.requires.append(CommutationAnalysis())

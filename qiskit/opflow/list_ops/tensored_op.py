@@ -116,3 +116,9 @@ class TensoredOp(ListOp):
             "Conversion to_circuit supported only for operators, where a single "
             "underlying circuit can be produced."
         )
+
+    def to_matrix(self, massive: bool = False) -> np.ndarray:
+        OperatorBase._check_massive("to_matrix", True, self.num_qubits, massive)
+
+        mat = self.coeff * reduce(np.kron, [np.asarray(op.to_matrix()) for op in self.oplist])
+        return np.asarray(mat, dtype=complex)
