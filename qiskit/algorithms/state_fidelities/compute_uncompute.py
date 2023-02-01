@@ -49,10 +49,25 @@ class ComputeUncompute(BaseStateFidelity):
 
     """
 
-    def __init__(self, sampler: BaseSampler, options: Options | None = None) -> None:
+    def __init__(
+        self,
+        sampler: BaseSampler,
+        average_local: bool = False,
+        options: Options | None = None,
+    ) -> None:
         """
         Args:
             sampler: Sampler primitive instance.
+            average_local: If set to ``True``, the fidelity is averaged over
+                single-qubit projectors
+                .. math::
+
+                    \hat{O} = \frac{1}{N}\sum_{i=1}^N|0_i\rangle\langle 0_i|,
+
+                instead of the global projector :math:`|0\rangle\langle 0|^{\otimes n}`.
+                This coincides with the standard (global) fidelity in the limit of
+                the fidelity approaching 1. Might be used to increase the variance
+                to improve trainability in algorithms such as p-VQD.
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > fidelity's
                 default options > primitive's default setting.
@@ -66,6 +81,7 @@ class ComputeUncompute(BaseStateFidelity):
                 f"The sampler should be an instance of BaseSampler, " f"but got {type(sampler)}"
             )
         self._sampler: BaseSampler = sampler
+        self._average_local = average_local
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
@@ -145,7 +161,15 @@ class ComputeUncompute(BaseStateFidelity):
         except Exception as exc:
             raise AlgorithmError("Sampler job failed!") from exc
 
-        raw_fidelities = [prob_dist.get(0, 0) for prob_dist in result.quasi_dists]
+        if self._average_local:
+            raw_fidelities = [
+                self._get_local_fidelity(prob_dist, circuit.num_qubits)
+                for prob_dist, circuit in zip(result.quasi_dists, circuits)
+            ]
+        else:
+            raw_fidelities = [
+                self._get_global_fidelity(prob_dist) for prob_dist in result.quasi_dists
+            ]
         fidelities = self._truncate_fidelities(raw_fidelities)
 
         return StateFidelityResult(
@@ -190,3 +214,35 @@ class ComputeUncompute(BaseStateFidelity):
         opts = copy(self._sampler.options)
         opts.update_options(**options)
         return opts
+
+    def _get_global_fidelity(self, probability_distribution: dict[int, float]) -> float:
+        """Process the probability distribution of a measurement to determine the
+        global fidelity.
+
+        Args:
+            probability_distribution: Obtained from the measurement result
+
+        Returns:
+            The global fidelity.
+        """
+        return probability_distribution.get(0, 0)
+
+    def _get_local_fidelity(
+        self, probability_distribution: dict[int, float], num_qubits: int
+    ) -> float:
+        """Process the probability distribution of a measurement to determine the
+        local fidelity by averaging over single-qubit projectors.
+
+        Args:
+            probability_distribution: Obtained from the measurement result
+
+        Returns:
+            The local fidelity.
+        """
+        fidelity = 0.0
+        for qubit in range(num_qubits):
+            for bitstring, prob in probability_distribution.items():
+                # Check whether the bit representing the current qubit is 0
+                if not bitstring >> qubit & 1:
+                    fidelity += prob / num_qubits
+        return fidelity

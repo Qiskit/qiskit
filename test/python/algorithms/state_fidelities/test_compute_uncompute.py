@@ -56,7 +56,22 @@ class TestComputeUncompute(QiskitTestCase):
         """test for fidelity with one pair of parameters"""
         fidelity = ComputeUncompute(self._sampler)
         job = fidelity.run(
-            self._circuit[0], self._circuit[1], self._left_params[0], self._right_params[0]
+            self._circuit[0],
+            self._circuit[1],
+            self._left_params[0],
+            self._right_params[0],
+        )
+        result = job.result()
+        np.testing.assert_allclose(result.fidelities, np.array([1.0]))
+
+    def test_1param_pair_local(self):
+        """test for fidelity with one pair of parameters"""
+        fidelity = ComputeUncompute(self._sampler, average_local=True)
+        job = fidelity.run(
+            self._circuit[0],
+            self._circuit[1],
+            self._left_params[0],
+            self._right_params[0],
         )
         result = job.result()
         np.testing.assert_allclose(result.fidelities, np.array([1.0]))
@@ -66,7 +81,10 @@ class TestComputeUncompute(QiskitTestCase):
         fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
         job = fidelity.run(
-            [self._circuit[0]] * n, [self._circuit[1]] * n, self._left_params, self._right_params
+            [self._circuit[0]] * n,
+            [self._circuit[1]] * n,
+            self._left_params,
+            self._right_params,
         )
         results = job.result()
         np.testing.assert_allclose(results.fidelities, np.array([1.0, 0.5, 0.25, 0.0]), atol=1e-16)
@@ -76,10 +94,16 @@ class TestComputeUncompute(QiskitTestCase):
         fidelity = ComputeUncompute(self._sampler)
         n = len(self._left_params)
         job_1 = fidelity.run(
-            [self._circuit[0]] * n, [self._circuit[0]] * n, self._left_params, self._right_params
+            [self._circuit[0]] * n,
+            [self._circuit[0]] * n,
+            self._left_params,
+            self._right_params,
         )
         job_2 = fidelity.run(
-            [self._circuit[0]] * n, [self._circuit[0]] * n, self._right_params, self._left_params
+            [self._circuit[0]] * n,
+            [self._circuit[0]] * n,
+            self._right_params,
+            self._left_params,
         )
         results_1 = job_1.result()
         results_2 = job_2.result()
