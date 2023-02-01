@@ -600,15 +600,20 @@ def plot_state_city(
 def plot_state_paulivec(
     state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
 ):
-    """Plot the paulivec representation of a quantum state.
+    r"""Plot the paulivec representation of a quantum state.
 
-    Plot a bargraph of the mixed state rho over the pauli matrices
+    Plot a bargraph of the density matrix of a quantum state using as a basis all
+    possible tensor products of Pauli operators and identities, that is,
+    :math:`\{\bigotimes_{i=0}^{N-1}P_i\}_{P_i\in \{I,X,Y,Z\}}`, where
+    :math:`N` is the number of qubits.
+
+
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
-        color (list or str): Color of the expectation value bars.
+        color (list or str): Color of the coefficient value bars.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
@@ -686,7 +691,7 @@ def plot_state_paulivec(
     ax.bar(ind, values, width, color=color, zorder=2)
     ax.axhline(linewidth=1, color="k")
     # add some text for labels, title, and axes ticks
-    ax.set_ylabel("Expectation value", fontsize=14)
+    ax.set_ylabel("Coefficients", fontsize=14)
     ax.set_xticks(ind)
     ax.set_yticks([-1, -0.5, 0, 0.5, 1])
     ax.set_xticklabels(labels, fontsize=14, rotation=70)

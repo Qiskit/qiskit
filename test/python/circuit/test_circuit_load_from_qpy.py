@@ -24,7 +24,18 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.library import XGate, QFT, QAOAAnsatz, PauliEvolutionGate, DCXGate, MCU1Gate
+from qiskit.circuit.library import (
+    XGate,
+    QFT,
+    QAOAAnsatz,
+    PauliEvolutionGate,
+    DCXGate,
+    MCU1Gate,
+    MCXGate,
+    MCXGrayCode,
+    MCXRecursive,
+    MCXVChain,
+)
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
@@ -1043,9 +1054,17 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_standard_control_gates(self):
         """Test standard library controlled gates."""
-        qc = QuantumCircuit(3)
+        qc = QuantumCircuit(6)
         mcu1_gate = MCU1Gate(np.pi, 2)
+        mcx_gate = MCXGate(5)
+        mcx_gray_gate = MCXGrayCode(5)
+        mcx_recursive_gate = MCXRecursive(4)
+        mcx_vchain_gate = MCXVChain(3)
         qc.append(mcu1_gate, [0, 2, 1])
+        qc.append(mcx_gate, list(range(0, 6)))
+        qc.append(mcx_gray_gate, list(range(0, 6)))
+        qc.append(mcx_recursive_gate, list(range(0, 5)))
+        qc.append(mcx_vchain_gate, list(range(0, 5)))
         qc.mcp(np.pi, [0, 2], 1)
         qc.mct([0, 2], 1)
         qc.mcx([0, 2], 1)
