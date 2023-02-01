@@ -526,3 +526,9 @@ class StagedPassManager(PassManager):
     ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
         self._update_passmanager()
         return super().run(circuits, output_name, callback)
+
+    def draw(self, filename=None, style=None, raw=False):
+        """Draw the staged pass manager."""
+        from qiskit.visualization import staged_pass_manager_drawer
+
+        return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw)

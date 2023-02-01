@@ -286,6 +286,7 @@ from .transition_visualization import visualize_transition
 from .dag_visualization import dag_drawer
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
 from .pass_manager_visualization import pass_manager_drawer
+from .pass_manager_visualization import staged_pass_manager_drawer
 
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle
