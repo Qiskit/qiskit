@@ -53,8 +53,8 @@ def measure(
     """
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
     try:
-        inst_map = inst_map or backend.defaults().instruction_schedule_map
-        meas_map = meas_map or backend.configuration().meas_map
+        inst_map = inst_map or backend.instruction_schedule_map
+        meas_map = meas_map or backend.meas_map
     except AttributeError as ex:
         raise exceptions.PulseError(
             "inst_map or meas_map, and backend cannot be None simultaneously"

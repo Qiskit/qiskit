@@ -21,11 +21,13 @@ from qiskit.pulse import builder, exceptions, macros
 from qiskit.pulse.instructions import directives
 from qiskit.pulse.transforms import target_qobj_transform
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.fake_provider import FakeMumbai
 from qiskit.providers.fake_provider.utils.configurable_backend import (
     ConfigurableFakeBackend as ConfigurableBackend,
 )
 from qiskit.pulse import library, instructions
+
 
 
 class TestBuilder(QiskitTestCase):
@@ -33,7 +35,7 @@ class TestBuilder(QiskitTestCase):
 
     def setUp(self):
         super().setUp()
-        self.backend = FakeOpenPulse2Q()
+        self.backend = FakeMumbai()
         self.configuration = self.backend.configuration()
         self.defaults = self.backend.defaults()
         self.inst_map = self.defaults.instruction_schedule_map
@@ -563,7 +565,7 @@ class TestUtilities(TestBuilder):
     def test_active_backend(self):
         """Test getting active builder backend."""
         with pulse.build(self.backend):
-            self.assertEqual(pulse.active_backend(), self.backend)
+            self.assertEqual(isinstance(pulse.active_backend(), BackendV2Converter), True)
 
     def test_append_schedule(self):
         """Test appending a schedule to the active builder."""
@@ -619,7 +621,7 @@ class TestUtilities(TestBuilder):
     def test_num_qubits(self):
         """Test builder utility to get number of qubits."""
         with pulse.build(self.backend):
-            self.assertEqual(pulse.num_qubits(), 2)
+            self.assertEqual(pulse.num_qubits(), 27)
 
     def test_samples_to_seconds(self):
         """Test samples to time"""

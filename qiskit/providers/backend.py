@@ -501,6 +501,27 @@ class BackendV2(Backend, ABC):
         if isinstance(qubit, int):
             return self.target.qubit_properties[qubit]
         return [self.target.qubit_properties[q] for q in qubit]
+    
+    def get_qubit_channel(self, qubit: int):
+        r"""Return a list of channels which operate on the given ``qubit``.
+
+        Returns:
+            List of ``Channel``\s operated on my the given ``qubit``.
+        """
+        channels = []    
+
+        # add multi-qubit channels
+        for node_qubits in self.coupling_map:
+            if qubit in node_qubits:
+                control_channels = self.control_channel(node_qubits)
+                if control_channels:
+                    channels.extend(control_channels)
+        
+        # add single qubit channels
+        channels.append(self.drive_channel(qubit))
+        channels.append(self.measure_channel(qubit))
+        channels.append(self.acquire_channel(qubit))
+        return channels
 
     def drive_channel(self, qubit: int):
         """Return the drive channel for the given qubit.

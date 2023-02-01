@@ -35,6 +35,8 @@ class FakeOpenPulse2Q(FakeBackend):
         configuration = PulseBackendConfiguration(
             backend_name="fake_openpulse_2q",
             backend_version="0.0.0",
+            description="A fake simple FakeOpenPulse2Q example",
+            online_date=datetime.datetime.utcnow(),
             n_qubits=2,
             meas_levels=[0, 1, 2],
             basis_gates=["u1", "u2", "u3", "cx", "id"],
