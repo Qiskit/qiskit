@@ -1,11 +1,9 @@
 ---
 features:
   - |
-    There is currently no easy way to retrieve all of the disconnected subsets
-    of qubits in a quantum circuit with Qiskit. This feature introduces a new
-    `DAGCircuit` class method, `separable_circuits`, which returns a list of
-    `DAGCircuit` objects -- one for each mutually disconnected set of qubits
-    in the `DAGCircuit` object.
+    This feature introduces a new `DAGCircuit` class method,
+    `separable_circuits`, which returns a list of `DAGCircuit` objects,
+    one for each mutually disconnected set of qubits in the `DAGCircuit` object.
 
     This method  will not return a DAG for idle wires.
 
