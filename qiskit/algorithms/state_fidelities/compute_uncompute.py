@@ -67,7 +67,7 @@ class ComputeUncompute(BaseStateFidelity):
                 instead of the global projector :math:`|0\rangle\langle 0|^{\otimes n}`.
                 This coincides with the standard (global) fidelity in the limit of
                 the fidelity approaching 1. Might be used to increase the variance
-                to improve trainability in algorithms such as p-VQD.
+                to improve trainability in algorithms such as :class:`~.time_evolvers.PVQD`.
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > fidelity's
                 default options > primitive's default setting.
