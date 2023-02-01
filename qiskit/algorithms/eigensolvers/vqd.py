@@ -171,7 +171,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         return self._initial_point
 
     @initial_point.setter
-    def initial_point(self, initial_point: Optional[Union[np.ndarray, List[np.ndarray]]]):
+    def initial_point(self, initial_point: Sequence[float] | Sequence[Sequence[float]] | None):
         """Sets initial point"""
         self._initial_point = initial_point
 
