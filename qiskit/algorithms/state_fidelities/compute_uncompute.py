@@ -52,13 +52,13 @@ class ComputeUncompute(BaseStateFidelity):
     def __init__(
         self,
         sampler: BaseSampler,
-        average_local: bool = False,
         options: Options | None = None,
+        local: bool = False,
     ) -> None:
         r"""
         Args:
             sampler: Sampler primitive instance.
-            average_local: If set to ``True``, the fidelity is averaged over
+            local: If set to ``True``, the fidelity is averaged over
                 single-qubit projectors
                 .. math::
 
@@ -81,7 +81,7 @@ class ComputeUncompute(BaseStateFidelity):
                 f"The sampler should be an instance of BaseSampler, " f"but got {type(sampler)}"
             )
         self._sampler: BaseSampler = sampler
-        self._average_local = average_local
+        self._average_local = local
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
