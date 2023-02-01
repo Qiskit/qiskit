@@ -1396,8 +1396,8 @@ class DAGCircuit:
     def separable_circuits(self) -> List["DAGCircuit"]:
         """Separate the dag circuit into its weakly connected components.
 
-           The global phase information in `self` will not be maintained in the
-           subcircuits returned by this method.
+        The global phase information in `self` will not be maintained in the
+        subcircuits returned by this method.
         """
         connected_components = rx.weakly_connected_components(self._multi_graph)
 
@@ -1405,7 +1405,6 @@ class DAGCircuit:
         disconnected_subgraphs = []
         for components in connected_components:
             disconnected_subgraphs.append(self._multi_graph.subgraph(list(components)))
-
 
         # Helper function for ensuring rustworkx nodes are returned in lexicographical,
         # topological order
