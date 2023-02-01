@@ -279,7 +279,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             start_time = time()
 
             # TODO: add gradient support after FidelityGradients are implemented
-            if isinstance(self.optimizer, list):
+            if isinstance(self.optimizer, Sequence):
                 optimizer = self.optimizer[step - 1]
             else:
                 optimizer = self.optimizer  # fall back to single optimizer if not list
