@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug where :meth:`BackendV2Converter.meas_map` did not return correct value.
+    Fixed a bug where :meth:`BackendV2Converter.drive_channel`, 
+    :meth:`BackendV2Converter.measure_channel`, :meth:`BackendV2Converter.acquire_channel` and 
+    :meth:`BackendV2Converter.control_channel` did not return any value.
