@@ -58,6 +58,10 @@ class ComputeUncompute(BaseStateFidelity):
         r"""
         Args:
             sampler: Sampler primitive instance.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > fidelity's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting.
             local: If set to ``True``, the fidelity is averaged over
                 single-qubit projectors
                 .. math::
@@ -68,10 +72,6 @@ class ComputeUncompute(BaseStateFidelity):
                 This coincides with the standard (global) fidelity in the limit of
                 the fidelity approaching 1. Might be used to increase the variance
                 to improve trainability in algorithms such as :class:`~.time_evolvers.PVQD`.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > fidelity's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting.
 
         Raises:
             ValueError: If the sampler is not an instance of ``BaseSampler``.
