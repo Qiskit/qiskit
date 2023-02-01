@@ -231,7 +231,7 @@ class QNSPSA(SPSA):
         fidelity_values = [float(f) for f in fidelity_values]
         diff = fidelity_values[2] - fidelity_values[0]
         diff = diff - (fidelity_values[3] - fidelity_values[1])
-        diff = diff / (2 * float(eps)**2)
+        diff = diff / (2 * float(eps) ** 2)
 
         rank_one = np.outer(delta1, delta2)
         # -0.5 factor comes from the fact that we need -0.5 * fidelity

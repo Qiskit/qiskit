@@ -270,11 +270,12 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             def perturbation():
                 while True:
                     yield 1
+
             return perturbation
 
         qnspsa = QNSPSA(fidelity, maxiter=1, learning_rate=0.1, perturbation=get_perturbation())
-        initial_point = 1.
+        initial_point = 1.0
         result = qnspsa.minimize(objective, initial_point)
-        
+
         expected_nfev = 8  # 7 * maxiter + 1
         self.assertEqual(result.nfev, expected_nfev)
