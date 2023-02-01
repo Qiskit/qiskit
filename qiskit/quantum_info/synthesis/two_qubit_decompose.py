@@ -36,7 +36,7 @@ import numpy as np
 
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
-from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
+from qiskit.circuit.library.standard_gates import CXGate, RXGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.weyl import weyl_coordinates, transform_to_magic_basis
@@ -540,25 +540,34 @@ _oneq_xyx = OneQubitEulerDecomposer("XYX")
 _oneq_zyz = OneQubitEulerDecomposer("ZYZ")
 
 
+def _simplify_phi(theta, phi, lam, *, atol=DEFAULT_ATOL):
+    """Choose a phi to propagate through gates.
+    If theta is close to 0 or pi then propagate lam through as well"""
+    if abs(theta) < atol:
+        return phi + lam
+    elif abs(theta - np.pi) < atol:
+        return phi - lam
+    else:
+        return phi
+
+
 class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
     """U ~ Ud(α, 0, 0) ~ Ctrl-U
 
-    This gate binds 4 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rx(λl) ,
-        K2r = Ry(θr).Rx(λr) .
-    """
+    This gate binds 4 parameters, we make it canonical by propagating local X rotations through"""
 
     _default_1q_basis = "XYX"
 
     def specialize(self):
         self.b = self.c = 0
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
-        k2rtheta, k2rphi, k2rlambda, k2rphase = _oneq_xyx.angles_and_phase(self.K2r)
-        self.global_phase += k2lphase + k2rphase
-        self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
-        self.K1r = self.K1r @ np.asarray(RXGate(k2rphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
-        self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RXGate(k2rlambda))
+        phi_l = _simplify_phi(*_oneq_xyx.angles(self.K2l))
+        phi_r = _simplify_phi(*_oneq_xyx.angles(self.K2r))
+        corr_l = np.asarray(RXGate(phi_l))
+        corr_r = np.asarray(RXGate(phi_r))
+        self.K1l = self.K1l @ corr_l
+        self.K1r = self.K1r @ corr_r
+        self.K2l = corr_l.T.conj() @ self.K2l
+        self.K2r = corr_r.T.conj() @ self.K2r
 
 
 class TwoQubitControlledUDecomposer:
@@ -620,7 +629,7 @@ class TwoQubitControlledUDecomposer:
     def __call__(self, unitary, *, atol=DEFAULT_ATOL) -> QuantumCircuit:
         """Returns the Weyl decomposition in circuit form.
 
-        Note: atol ist passed to OneQubitEulerDecomposer.
+        Note: atol is passed to OneQubitEulerDecomposer.
         """
 
         # pylint: disable=attribute-defined-outside-init
@@ -727,20 +736,19 @@ class TwoQubitControlledUDecomposer:
 class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
     """U ~ Ud(𝜋/4, 𝜋/4, α) ~ SWAP . Ctrl-U
 
-    This gate binds 4 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rz(λl) ,
-        K2r = Ry(θr).Rz(λr) .
+    This gate binds 4 parameters, we make it canonical by setting propagating local rotations.
     """
 
     def specialize(self):
         self.a = self.b = np.pi / 4
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
-        k2rtheta, k2rphi, k2rlambda, k2rphase = _oneq_zyz.angles_and_phase(self.K2r)
-        self.global_phase += k2lphase + k2rphase
-        self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
-        self.K1l = self.K1l @ np.asarray(RZGate(k2rphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RZGate(k2llambda))
-        self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RZGate(k2rlambda))
+        phi_l = _simplify_phi(*_oneq_zyz.angles(self.K2l))
+        phi_r = _simplify_phi(*_oneq_zyz.angles(self.K2r))
+        corr_l = np.asarray(RZGate(phi_l))
+        corr_r = np.asarray(RZGate(phi_r))
+        self.K1l = self.K1l @ corr_r
+        self.K1r = self.K1r @ corr_l
+        self.K2l = corr_l.T.conj() @ self.K2l
+        self.K2r = corr_r.T.conj() @ self.K2r
 
     def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
         circ.swap(0, 1)
@@ -752,57 +760,51 @@ class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
 class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
     """U ~ Ud(α, α, β), α ≥ |β|
 
-    This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rz(λl) .
-    """
+    This gate binds 5 parameters, we make it canonical by setting propagating a local Z rotation"""
 
     def specialize(self):
         self.a = self.b = (self.a + self.b) / 2
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
-        self.global_phase += k2lphase
-        self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
-        self.K1l = self.K1l @ np.asarray(RZGate(k2lphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RZGate(k2llambda))
-        self.K2r = np.asarray(RZGate(-k2lphi)) @ self.K2r
+        phi_l = _simplify_phi(*_oneq_zyz.angles(self.K2l))
+        corr_l = np.asarray(RZGate(phi_l))
+        self.K1r = self.K1r @ corr_l
+        self.K1l = self.K1l @ corr_l
+        self.K2l = corr_l.T.conj() @ self.K2l
+        self.K2r = corr_l.T.conj() @ self.K2r
 
 
 class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
     """U ~ Ud(α, β, β), α ≥ β
 
-    This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rx(λl) .
-    """
+    This gate binds 5 parameters, we make it canonical by propagating a local X rotation"""
 
     _default_1q_basis = "XYX"
 
     def specialize(self):
         self.b = self.c = (self.b + self.c) / 2
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
-        self.global_phase += k2lphase
-        self.K1r = self.K1r @ np.asarray(RXGate(k2lphi))
-        self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
-        self.K2r = np.asarray(RXGate(-k2lphi)) @ self.K2r
+        phi_l = _simplify_phi(*_oneq_xyx.angles(self.K2l))
+        corr_l = np.asarray(RXGate(phi_l))
+        self.K1r = self.K1r @ corr_l
+        self.K1l = self.K1l @ corr_l
+        self.K2l = corr_l.T.conj() @ self.K2l
+        self.K2r = corr_l.T.conj() @ self.K2r
 
 
 class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
     """U ~ Ud(α, β, -β), α ≥ β ≥ 0
 
-    This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rx(λl) .
-    """
+    This gate binds 5 parameters, we make it canonical by propagating a local X rotation"""
 
     _default_1q_basis = "XYX"
 
     def specialize(self):
         self.b = (self.b - self.c) / 2
         self.c = -self.b
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
-        self.global_phase += k2lphase
-        self.K1r = self.K1r @ _ipz @ np.asarray(RXGate(k2lphi)) @ _ipz
-        self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
-        self.K2r = _ipz @ np.asarray(RXGate(-k2lphi)) @ _ipz @ self.K2r
+        phi_l = _simplify_phi(*_oneq_xyx.angles(self.K2l))
+        corr_l = np.asarray(RXGate(phi_l))
+        self.K1r = self.K1r @ corr_l.T.conj()
+        self.K1l = self.K1l @ corr_l
+        self.K2l = corr_l.T.conj() @ self.K2l
+        self.K2r = corr_l @ self.K2r
 
 
 class TwoQubitWeylGeneral(TwoQubitWeylDecomposition):
