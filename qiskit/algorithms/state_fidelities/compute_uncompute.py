@@ -81,7 +81,7 @@ class ComputeUncompute(BaseStateFidelity):
                 f"The sampler should be an instance of BaseSampler, " f"but got {type(sampler)}"
             )
         self._sampler: BaseSampler = sampler
-        self._average_local = local
+        self._local = local
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
@@ -161,7 +161,7 @@ class ComputeUncompute(BaseStateFidelity):
         except Exception as exc:
             raise AlgorithmError("Sampler job failed!") from exc
 
-        if self._average_local:
+        if self._local:
             raw_fidelities = [
                 self._get_local_fidelity(prob_dist, circuit.num_qubits)
                 for prob_dist, circuit in zip(result.quasi_dists, circuits)
