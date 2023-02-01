@@ -102,7 +102,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 These hyper-parameters balance the contribution of each overlap term to the cost
                 function and have a default value computed as the mean square sum of the
                 coefficients of the observable.
-            initial point (list[float] | list[list[float]]): An optional initial point (i.e.
+            initial point (Sequence[float] | Sequence[Sequence[float]] | None): An optional initial point (i.e.
                 initial parameter values) for the optimizer or a list of initial points, one
                 for every k-th eigenvalue. If ``None`` then VQD will look to the ansatz for a
                 preferred point and if not will simply compute a random one.
