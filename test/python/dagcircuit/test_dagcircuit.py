@@ -38,7 +38,7 @@ from qiskit.circuit.library.standard_gates.y import YGate
 from qiskit.circuit.library.standard_gates.u1 import U1Gate
 from qiskit.circuit.barrier import Barrier
 from qiskit.dagcircuit.exceptions import DAGCircuitError
-from qiskit.converters import circuit_to_dag
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.test import QiskitTestCase
 
 
@@ -1237,6 +1237,7 @@ class TestCircuitProperties(QiskitTestCase):
         dag.apply_operation_back(HGate(), [qreg[0]], [])
         dag.apply_operation_back(HGate(), [qreg[1]], [])
         dag.apply_operation_back(HGate(), [qreg[2]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
         self.assertEqual(3, len(dag.separable_circuits()))
 
         # 2 sets of disconnected qubits
@@ -1246,6 +1247,37 @@ class TestCircuitProperties(QiskitTestCase):
         # One connected component
         dag.apply_operation_back(CXGate(), [qreg[0], qreg[1]], [])
         self.assertEqual(1, len(dag.separable_circuits()))
+
+        # Test circuit ordering with measurements
+        dag = DAGCircuit()
+        qreg = QuantumRegister(3, "q")
+        creg = ClassicalRegister(1, "c")
+        dag.add_qreg(qreg)
+        dag.add_creg(creg)
+        dag.apply_operation_back(HGate(), [qreg[0]], [])
+        dag.apply_operation_back(XGate(), [qreg[0]], [])
+        dag.apply_operation_back(XGate(), [qreg[1]], [])
+        dag.apply_operation_back(HGate(), [qreg[1]], [])
+        dag.apply_operation_back(YGate(), [qreg[2]], [])
+        dag.apply_operation_back(HGate(), [qreg[2]], [])
+        dag.apply_operation_back(Measure(), [qreg[0]], [creg[0]])
+
+        compare1 = QuantumCircuit(3, 1)
+        compare1.h(0)
+        compare1.x(0)
+        compare1.measure(0, 0)
+        compare2 = QuantumCircuit(3, 1)
+        compare2.x(1)
+        compare2.h(1)
+        compare3 = QuantumCircuit(3, 1)
+        compare3.y(2)
+        compare3.h(2)
+
+        dags = dag.separable_circuits()
+
+        self.assertEqual(dag_to_circuit(dags[0]), compare1)
+        self.assertEqual(dag_to_circuit(dags[1]), compare2)
+        self.assertEqual(dag_to_circuit(dags[2]), compare3)
 
 
 class TestCircuitControlFlowProperties(QiskitTestCase):

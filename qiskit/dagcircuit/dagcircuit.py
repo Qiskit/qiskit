@@ -1406,14 +1406,20 @@ class DAGCircuit:
         for components in connected_components:
             disconnected_subgraphs.append(self._multi_graph.subgraph(list(components)))
 
+
+        # Helper function for ensuring rustworkx nodes are returned in lexicographical,
+        # topological order
+        def _key(x):
+            return x.sort_key
+
         # Create new DAGCircuit objects from each of the rustworkx subgraph objects
         decomposed_dags = []
         for subgraph in disconnected_subgraphs:
             new_dag = self.copy_empty_like()
-            for node in subgraph.nodes():
+            for node in rx.lexicographical_topological_sort(subgraph, key=_key):
                 if not isinstance(node, DAGOpNode):
                     continue
-                new_dag.apply_operation_back(node.op, node.qargs)
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
             # Ignore DAGs created for empty qubits and classical bits
             if new_dag.op_nodes():
