@@ -250,17 +250,15 @@ Once you have a rust compiler installed you can rely on the normal Python
 build/install steps to install Qiskit Terra. This means you just run
 `pip install .` in your local git clone to build and install Qiskit Terra.
 
-Note that in order to run `python seutp.py ...` commands you need have these
-packages installed in your environment: `setuptools`, `wheel`,
-`setuptools-rust`:
-
-    pip install setuptools wheel setuptools-rust
-
 Do note that if you do use develop mode/editable install (via `python setup.py develop` or `pip install -e .`) the Rust extension will be built in debug mode
 without any optimizations enabled. This will result in poor runtime performance.
 If you'd like to use an editable install with an optimized binary you can
 run `python setup.py build_rust --release --inplace` after you install in
 editable mode to recompile the rust extensions in release mode.
+
+Note that in order to run `python seutp.py ...` commands you need have build
+dependency packages installed in your environment, which are listed in the
+`pyproject.toml` file under the `[build-system]` section.
 
 
 ## Test
