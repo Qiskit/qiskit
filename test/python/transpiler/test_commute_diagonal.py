@@ -14,6 +14,7 @@
 
 import numpy as np
 import scipy.stats
+from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Qubit, Barrier, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library.standard_gates import (
@@ -42,6 +43,7 @@ from qiskit.transpiler.passes.optimization.commute_diagonal import (
 from qiskit import transpile
 
 
+@ddt
 class TestCommuteDiagonal(QiskitTestCase):
     """Test class for CommuteDiagonal transpiler optimization class"""
 
@@ -401,7 +403,40 @@ class TestCommuteDiagonal(QiskitTestCase):
         self.assertEqual(ccirc_opt.count_ops()["cx"], 6)
         self.assertEqual(Operator(ccirc_opt), Operator(circ))
 
-    def test_five_group_optimize(self):
+    def test_two_group_optimize_skip(self):
+        """
+        Test pass correctly can convert two 3 CNOT unituries to one 3 CNOT
+        and one 2 CNOT unitary.
+
+           ┌───────────┐     ┌───────────┐
+        0: ┤0          ├─────┤0          ├
+           │  Unitary0 │     │  Unitary1 │
+        1: ┤1          ├──■──┤1          ├
+           └───────────┘┌─┴─┐└───────────┘
+        2: ─────────────┤ X ├─────────────
+                        └───┘
+
+        """
+        pass_ = CommuteDiagonal()
+        qr = [Qubit(), Qubit(), Qubit()]
+        dag = DAGCircuit()
+        dag.add_qubits(qr)
+        mat0 = scipy.stats.unitary_group.rvs(4, random_state=61)
+        mat1 = scipy.stats.unitary_group.rvs(4, random_state=94)
+        dag.apply_operation_back(UnitaryGate(mat0), qargs=[qr[2], qr[0]])
+        dag.apply_operation_back(CXGate(), qargs=[qr[0], qr[1]])
+        dag.apply_operation_back(UnitaryGate(mat1), qargs=[qr[2], qr[0]])
+        circ = dag_to_circuit(dag)
+        cdag = pass_.run(dag)
+        ccirc = dag_to_circuit(cdag)
+        circ_opt = transpile(circ, basis_gates=["cx", "u"], optimization_level=1)
+        ccirc_opt = transpile(ccirc, basis_gates=["cx", "u"], optimization_level=1)
+        self.assertEqual(circ_opt.count_ops()["cx"], 7)
+        self.assertEqual(ccirc_opt.count_ops()["cx"], 6)
+        self.assertEqual(Operator(ccirc_opt), Operator(circ))
+        
+    @data(1, 2, 3, 4)
+    def test_five_group_optimize(self, seed):
         """
         Test commutation chains together properly for a sequence of five 2q unitaries.
            ┌───────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐     ┌───────────┐
@@ -412,15 +447,16 @@ class TestCommuteDiagonal(QiskitTestCase):
         2: ─────────────┤ X ├─────────────┤ X ├─────────────┤ X ├─────────────┤ X ├─────────────┤ X ├
                         └───┘             └───┘             └───┘             └───┘             └───┘
         """
+        np.set_printoptions(linewidth=250, precision=3, suppress=True)
         pass_ = CommuteDiagonal()
         qr = [Qubit(), Qubit(), Qubit()]
         dag = DAGCircuit()
         dag.add_qubits(qr)
-        mat0 = scipy.stats.unitary_group.rvs(4, random_state=61)
-        mat1 = scipy.stats.unitary_group.rvs(4, random_state=94)
-        mat2 = scipy.stats.unitary_group.rvs(4, random_state=98)
-        mat3 = scipy.stats.unitary_group.rvs(4, random_state=945)
-        mat4 = scipy.stats.unitary_group.rvs(4, random_state=45)
+        mat0 = scipy.stats.unitary_group.rvs(4, random_state=61 + seed)
+        mat1 = scipy.stats.unitary_group.rvs(4, random_state=94 + seed)
+        mat2 = scipy.stats.unitary_group.rvs(4, random_state=98 + seed)
+        mat3 = scipy.stats.unitary_group.rvs(4, random_state=945 + seed)
+        mat4 = scipy.stats.unitary_group.rvs(4, random_state=45 + seed)
         ug0 = UnitaryGate(mat0)
         ug0.name = "unitary0"
         dag.apply_operation_back(ug0, qargs=qr[0:2])
@@ -451,6 +487,28 @@ class TestCommuteDiagonal(QiskitTestCase):
         self.assertEqual(ccirc_opt.count_ops()["cx"], 16)
         self.assertEqual(Operator(ccirc_opt), Operator(circ))
 
+    @data(6, 8, 10)
+    def test_n_group_optimize(self, ngroup):
+        """
+        Test commutation chains together properly for a sequence of n 2q unitaries.
+        """
+        pass_ = CommuteDiagonal()
+        qr = [Qubit(), Qubit(), Qubit()]
+        dag = DAGCircuit()
+        dag.add_qubits(qr)
+        for igroup in range(ngroup):
+            mat = scipy.stats.unitary_group.rvs(4, random_state=61 + igroup)
+            ug = UnitaryGate(mat)
+            dag.apply_operation_back(ug, qargs=qr[0:2])
+            dag.apply_operation_back(CXGate(), qargs=[qr[1], qr[2]])
+        circ = dag_to_circuit(dag)
+        circ_opt = transpile(circ, basis_gates=["cx", "u"], optimization_level=1)
+        ccirc = pass_(circ_opt)
+        ccirc_opt = transpile(ccirc, basis_gates=["cx", "u"], optimization_level=1)
+        self.assertEqual(circ_opt.count_ops()["cx"], ngroup * 4)
+        self.assertEqual(ccirc_opt.count_ops()["cx"], ngroup * 3 + 1)
+        self.assertEqual(Operator(ccirc_opt), Operator(circ))
+        
     def test_collective_commute(self):
         """
         Test commutation works when gates between 2q gates collectivly commute with
