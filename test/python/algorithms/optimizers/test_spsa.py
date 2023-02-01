@@ -259,7 +259,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
     def test_point_sample(self):
         """Test point sample function in QNSPSA"""
 
-        def fidelity(x, y):
+        def fidelity(x, _y):
             x = np.asarray(x)
             return np.ones_like(x, dtype=float)  # some float
 
