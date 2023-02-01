@@ -64,6 +64,7 @@ class ComputeUncompute(BaseStateFidelity):
                 Higher priority setting overrides lower priority setting.
             local: If set to ``True``, the fidelity is averaged over
                 single-qubit projectors
+
                 .. math::
 
                     \hat{O} = \frac{1}{N}\sum_{i=1}^N|0_i\rangle\langle 0_i|,
