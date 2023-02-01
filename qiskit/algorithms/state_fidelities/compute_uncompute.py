@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -55,7 +55,7 @@ class ComputeUncompute(BaseStateFidelity):
         average_local: bool = False,
         options: Options | None = None,
     ) -> None:
-        """
+        r"""
         Args:
             sampler: Sampler primitive instance.
             average_local: If set to ``True``, the fidelity is averaged over
