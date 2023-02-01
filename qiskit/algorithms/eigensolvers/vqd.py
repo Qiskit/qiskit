@@ -93,7 +93,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             fidelity (BaseStateFidelity): The fidelity class instance used to compute the
                 overlap estimation as indicated in the VQD paper.
             ansatz (QuantumCircuit): A parameterized circuit used as ansatz for the wave function.
-            optimizer(Optimizer | list[Optimizer]): A classical optimizer or a list of optimizers,
+            optimizer(Optimizer | Sequence[Optimizer]): A classical optimizer or a list of optimizers,
             one for every k-th eigenvalue. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
             k (int): the number of eigenvalues to return. Returns the lowest k eigenvalues.
