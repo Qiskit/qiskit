@@ -31,8 +31,8 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     Draws the pass manager.
 
-    This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-    Graphviz <https://www.graphviz.org/>` to be installed.
+    This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
+    `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
     Args:
         pass_manager (PassManager): the pass manager to be drawn

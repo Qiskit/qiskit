@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a flag ``local`` to the :class:`~.ComputeUncompute` state fidelity class that 
+    allows to compute the local fidelity, which is defined by averaging over 
+    single-qubit projectors.
