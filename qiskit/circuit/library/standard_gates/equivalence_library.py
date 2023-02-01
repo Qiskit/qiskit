@@ -235,6 +235,33 @@ for inst, qargs, cargs in [
     crx_to_srycx.append(inst, qargs, cargs)
 _sel.add_equivalence(CRXGate(theta), crx_to_srycx)
 
+# CRX in terms of one RXX
+#                          ┌───┐   ┌────────────┐┌───┐
+# q_0: ────■────   q_0: ───┤ H ├───┤0           ├┤ H ├
+#      ┌───┴───┐ ≡      ┌──┴───┴──┐│  Rxx(-ϴ/2) │└───┘
+# q_1: ┤ Rx(ϴ) ├   q_1: ┤ Rx(ϴ/2) ├┤1           ├─────
+#      └───────┘        └─────────┘└────────────┘
+theta = Parameter("theta")
+crx_to_rxx = QuantumCircuit(2)
+crx_to_rxx.h(0)
+crx_to_rxx.rx(theta / 2, 1)
+crx_to_rxx.rxx(-theta / 2, 0, 1)
+crx_to_rxx.h(0)
+_sel.add_equivalence(CRXGate(theta), crx_to_rxx)
+
+# CRX to CRZ
+#
+# q_0: ────■────     q_0: ─────────■─────────
+#      ┌───┴───┐  ≡       ┌───┐┌───┴───┐┌───┐
+# q_1: ┤ Rx(ϴ) ├     q_1: ┤ H ├┤ Rz(ϴ) ├┤ H ├
+#      └───────┘          └───┘└───────┘└───┘
+theta = Parameter("theta")
+crx_to_crz = QuantumCircuit(2)
+crx_to_crz.h(1)
+crx_to_crz.crz(theta, 0, 1)
+crx_to_crz.h(1)
+_sel.add_equivalence(CRXGate(theta), crx_to_crz)
+
 # RXXGate
 #
 #      ┌─────────┐          ┌───┐                   ┌───┐
@@ -256,6 +283,20 @@ for inst, qargs, cargs in [
 ]:
     def_rxx.append(inst, qargs, cargs)
 _sel.add_equivalence(RXXGate(theta), def_rxx)
+
+# RXX to RZX
+#      ┌─────────┐        ┌───┐┌─────────┐┌───┐
+# q_0: ┤0        ├   q_0: ┤ H ├┤0        ├┤ H ├
+#      │  Rxx(ϴ) │ ≡      └───┘│  Rzx(ϴ) │└───┘
+# q_1: ┤1        ├   q_1: ─────┤1        ├─────
+#      └─────────┘             └─────────┘
+theta = Parameter("theta")
+rxx_to_rzx = QuantumCircuit(2)
+rxx_to_rzx.h(0)
+rxx_to_rzx.rzx(theta, 0, 1)
+rxx_to_rzx.h(0)
+_sel.add_equivalence(RXXGate(theta), rxx_to_rzx)
+
 
 # RXX to RZZ
 q = QuantumRegister(2, "q")
@@ -320,6 +361,49 @@ for inst, qargs, cargs in [
 ]:
     def_cry.append(inst, qargs, cargs)
 _sel.add_equivalence(CRYGate(theta), def_cry)
+
+# CRY to CRZ
+#
+# q_0: ────■────     q_0: ───────────────■────────────────
+#      ┌───┴───┐  ≡       ┌─────────┐┌───┴───┐┌──────────┐
+# q_1: ┤ Ry(ϴ) ├     q_1: ┤ Rx(π/2) ├┤ Rz(ϴ) ├┤ Rx(-π/2) ├
+#      └───────┘          └─────────┘└───────┘└──────────┘
+theta = Parameter("theta")
+cry_to_crz = QuantumCircuit(2)
+cry_to_crz.rx(pi / 2, 1)
+cry_to_crz.crz(theta, 0, 1)
+cry_to_crz.rx(-pi / 2, 1)
+_sel.add_equivalence(CRYGate(theta), cry_to_crz)
+
+# CRY to CRZ
+#
+# q_0: ────■────     q_0: ────────────────────■─────────────────────
+#      ┌───┴───┐  ≡       ┌───┐┌─────────┐┌───┴───┐┌──────────┐┌───┐
+# q_1: ┤ Ry(ϴ) ├     q_1: ┤ H ├┤ Rz(π/2) ├┤ Rx(ϴ) ├┤ Rz(-π/2) ├┤ H ├
+#      └───────┘          └───┘└─────────┘└───────┘└──────────┘└───┘
+theta = Parameter("theta")
+cry_to_crx = QuantumCircuit(2)
+cry_to_crx.h(1)
+cry_to_crx.rz(pi / 2, 1)
+cry_to_crx.crx(theta, 0, 1)
+cry_to_crx.rz(-pi / 2, 1)
+cry_to_crx.h(1)
+_sel.add_equivalence(CRYGate(theta), cry_to_crx)
+
+# CRY to RZZ
+#
+# q_0: ────■────    q_0: ────────────────────────■───────────────────
+#      ┌───┴───┐  ≡      ┌─────┐┌─────────┐┌───┐ │ZZ(-ϴ/2) ┌───┐┌───┐
+# q_1: ┤ Ry(ϴ) ├    q_1: ┤ Sdg ├┤ Rx(ϴ/2) ├┤ H ├─■─────────┤ H ├┤ S ├
+#      └───────┘         └─────┘└─────────┘└───┘           └───┘└───┘
+cry_to_rzz = QuantumCircuit(2)
+cry_to_rzz.sdg(1)
+cry_to_rzz.rx(theta / 2, 1)
+cry_to_rzz.h(1)
+cry_to_rzz.rzz(-theta / 2, 0, 1)
+cry_to_rzz.h(1)
+cry_to_rzz.s(1)
+_sel.add_equivalence(CRYGate(theta), cry_to_rzz)
 
 # RYYGate
 #
@@ -398,6 +482,44 @@ for inst, qargs, cargs in [
     def_crz.append(inst, qargs, cargs)
 _sel.add_equivalence(CRZGate(theta), def_crz)
 
+# CRZ to CRY
+#
+# q_0: ────■────     q_0: ────────────────■───────────────
+#      ┌───┴───┐  ≡       ┌──────────┐┌───┴───┐┌─────────┐
+# q_1: ┤ Rz(ϴ) ├     q_1: ┤ Rx(-π/2) ├┤ Ry(ϴ) ├┤ Rx(π/2) ├
+#      └───────┘          └──────────┘└───────┘└─────────┘
+theta = Parameter("theta")
+crz_to_cry = QuantumCircuit(2)
+crz_to_cry.rx(-pi / 2, 1)
+crz_to_cry.cry(theta, 0, 1)
+crz_to_cry.rx(pi / 2, 1)
+_sel.add_equivalence(CRZGate(theta), crz_to_cry)
+
+# CRZ to CRX
+#
+# q_0: ────■────     q_0: ─────────■─────────
+#      ┌───┴───┐  ≡       ┌───┐┌───┴───┐┌───┐
+# q_1: ┤ Rz(ϴ) ├     q_1: ┤ H ├┤ Rx(ϴ) ├┤ H ├
+#      └───────┘          └───┘└───────┘└───┘
+theta = Parameter("theta")
+crz_to_crx = QuantumCircuit(2)
+crz_to_crx.h(1)
+crz_to_crx.crx(theta, 0, 1)
+crz_to_crx.h(1)
+_sel.add_equivalence(CRZGate(theta), crz_to_crx)
+
+# CRZ to RZZ
+#
+# q_0: ────■────    q_0: ────────────■────────
+#      ┌───┴───┐  ≡      ┌─────────┐ │ZZ(-ϴ/2)
+# q_1: ┤ Rz(ϴ) ├    q_1: ┤ Rz(ϴ/2) ├─■────────
+#      └───────┘         └─────────┘
+theta = Parameter("theta")
+crz_to_rzz = QuantumCircuit(2)
+crz_to_rzz.rz(theta / 2, 1)
+crz_to_rzz.rzz(-theta / 2, 0, 1)
+_sel.add_equivalence(CRZGate(theta), crz_to_rzz)
+
 # RZZGate
 #
 # q_0: ─■─────     q_0: ──■─────────────■──
@@ -428,6 +550,19 @@ for inst, qargs, cargs in [
 ]:
     rzz_to_rxx.append(inst, qargs, cargs)
 _sel.add_equivalence(RZZGate(theta), rzz_to_rxx)
+
+# RZZ to RZX
+#                          ┌─────────┐
+# q_0: ─■─────   q_0: ─────┤0        ├─────
+#       │ZZ(ϴ) ≡      ┌───┐│  Rzx(ϴ) │┌───┐
+# q_1: ─■─────   q_1: ┤ H ├┤1        ├┤ H ├
+#                     └───┘└─────────┘└───┘
+theta = Parameter("theta")
+rzz_to_rzx = QuantumCircuit(2)
+rzz_to_rzx.h(1)
+rzz_to_rzx.rzx(theta, 0, 1)
+rzz_to_rzx.h(1)
+_sel.add_equivalence(RZZGate(theta), rzz_to_rzx)
 
 # RZZ to RYY
 q = QuantumRegister(2, "q")
