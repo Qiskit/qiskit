@@ -56,7 +56,6 @@ class ApplyLayout(TransformationPass):
             raise TranspilerError("The 'layout' must be full (with ancilla).")
 
         post_layout = self.property_set["post_layout"]
-
         q = QuantumRegister(len(layout), "q")
 
         new_dag = DAGCircuit()
@@ -75,6 +74,16 @@ class ApplyLayout(TransformationPass):
             for node in dag.topological_op_nodes():
                 qargs = [q[virtual_phsyical_map[qarg]] for qarg in node.qargs]
                 new_dag.apply_operation_back(node.op, qargs, node.cargs)
+            if self.property_set["elision_final_layout"]:
+                elission_virtual_map = self.property_set["elision_final_layout"].get_virtual_bits()
+                self.property_set["elision_final_layout"] = Layout(
+                    {
+                        new_dag.qubits[virtual_phsyical_map[bit]]: virtual_phsyical_map[
+                            dag.qubits[phys]
+                        ]
+                        for bit, phys in elission_virtual_map.items()
+                    }
+                )
         else:
             # First build a new layout object going from:
             # old virtual -> old phsyical -> new virtual -> new physical

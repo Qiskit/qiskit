@@ -61,5 +61,5 @@ class ElideSwaps(TransformationPass):
                 )
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
         self.property_set["original_qubit_indices"] = input_qubit_mapping
-        self.property_set["final_layout"] = Layout(dict(zip(dag.qubits, qubit_mapping)))
+        self.property_set["elision_final_layout"] = Layout(dict(zip(dag.qubits, qubit_mapping)))
         return new_dag

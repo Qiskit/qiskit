@@ -130,13 +130,16 @@ class RunningPassManager:
         else:
             circuit.name = name
         layout = self.property_set["layout"]
-        if not layout and self.property_set["original_layout"]:
+        if not layout:
             layout = self.property_set["original_layout"]
+        final_layout = self.property_set["final_layout"]
+        if not final_layout:
+            final_layout = self.property_set["elision_final_layout"]
         if layout is not None:
             circuit._layout = TranspileLayout(
                 initial_layout=layout,
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
+                final_layout=final_layout,
             )
         circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
         circuit._conditional_latency = self.property_set["conditional_latency"]
