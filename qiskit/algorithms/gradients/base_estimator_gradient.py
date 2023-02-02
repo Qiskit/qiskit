@@ -127,24 +127,24 @@ class BaseEstimatorGradient(ABC):
 
         if parameters is None:
             # If parameters is None, we calculate the gradients of all parameters in each circuit.
-            parameter_sets = [set(circuit.parameters) for circuit in circuits]
+            parameters_list = [circuit.parameters for circuit in circuits]
         else:
             # If parameters is not None, we calculate the gradients of the specified parameters.
             # None in parameters means that the gradients of all parameters in the corresponding
             # circuit are calculated.
-            parameter_sets = [
-                set(parameters_) if parameters_ is not None else set(circuits[i].parameters)
+            parameters_list = [
+                parameters_ if parameters_ is not None else circuits[i].parameters
                 for i, parameters_ in enumerate(parameters)
             ]
         # Validate the arguments.
-        self._validate_arguments(circuits, observables, parameter_values, parameter_sets)
+        self._validate_arguments(circuits, observables, parameter_values, parameters_list)
         # The priority of run option is as follows:
         # options in ``run`` method > gradient's default options > primitive's default setting.
         opts = copy(self._default_options)
         opts.update_options(**options)
         # Run the job.
         job = AlgorithmJob(
-            self._run, circuits, observables, parameter_values, parameter_sets, **opts.__dict__
+            self._run, circuits, observables, parameter_values, parameters_list, **opts.__dict__
         )
         job.submit()
         return job
@@ -155,7 +155,7 @@ class BaseEstimatorGradient(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
@@ -261,7 +261,7 @@ class BaseEstimatorGradient(ABC):
                         * results.gradients[idx][g_parameter_indices[g_parameter]]
                     )
             gradients.append(gradient)
-            metadata.append([{"parameters": parameter_indices}])
+            metadata.append({"parameters": parameter_indices})
         return EstimatorGradientResult(
             gradients=gradients, metadata=metadata, options=results.options
         )
@@ -271,7 +271,7 @@ class BaseEstimatorGradient(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters_list: Sequence[Sequence[Parameter]],
     ) -> None:
         """Validate the arguments of the ``run`` method.
 
@@ -279,9 +279,8 @@ class BaseEstimatorGradient(ABC):
             circuits: The list of quantum circuits to compute the gradients.
             observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameter_sets: The Sequence of parameter sets to calculate only the gradients of
-                the specified parameters. Each set of parameters corresponds to a circuit in
-                ``circuits``.
+            parameters_list: The sequence of parameters to calculate only the gradients of the specified
+                parameters.
 
         Raises:
             ValueError: Invalid arguments are given.
@@ -290,18 +289,6 @@ class BaseEstimatorGradient(ABC):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
-            )
-
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
-            )
-
-        if len(circuits) != len(parameter_sets):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of the specified parameter sets ({len(parameter_sets)})."
             )
 
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
@@ -313,6 +300,12 @@ class BaseEstimatorGradient(ABC):
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
+        if len(circuits) != len(observables):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(observables)})."
+            )
+
         for i, (circuit, observable) in enumerate(zip(circuits, observables)):
             if circuit.num_qubits != observable.num_qubits:
                 raise ValueError(
@@ -321,10 +314,16 @@ class BaseEstimatorGradient(ABC):
                     f"({observable.num_qubits})."
                 )
 
-        for i, (circuit, parameter_set) in enumerate(zip(circuits, parameter_sets)):
-            if not set(parameter_set).issubset(circuit.parameters):
+        if len(circuits) != len(parameters_list):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of the list of specified parameters ({len(parameters_list)})."
+            )
+
+        for i, (circuit, parameters) in enumerate(zip(circuits, parameters_list)):
+            if not set(parameters).issubset(circuit.parameters):
                 raise ValueError(
-                    f"The {i}-th parameter set contains parameters not present in the "
+                    f"The {i}-th parameters contains parameters not present in the "
                     f"{i}-th circuit."
                 )
 

@@ -76,20 +76,20 @@ class SPSAEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter] | None],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         job_circuits, job_observables, job_param_values, metadata, offsets = [], [], [], [], []
         all_n = []
-        for circuit, observable, parameter_values_, parameter_set in zip(
-            circuits, observables, parameter_values, parameter_sets
+        for circuit, observable, parameter_values_, parameters_ in zip(
+            circuits, observables, parameter_values, parameters
         ):
             # Indices of parameters to be differentiated.
             indices = [
-                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
+                circuit.parameters.data.index(p) for p in parameters_
             ]
-            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+            metadata.append({"parameters": parameters_})
             # Make random perturbation vectors.
             offset = [
                 (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
