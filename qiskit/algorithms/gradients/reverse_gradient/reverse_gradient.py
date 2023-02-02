@@ -77,24 +77,24 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the gradients of the expectation values by the parameter shift rule."""
-        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
-            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
+        g_circuits, g_parameter_values, g_parameters = self._preprocess(
+            circuits, parameter_values, parameters, self.SUPPORTED_GATES
         )
         results = self._run_unique(
-            g_circuits, observables, g_parameter_values, g_parameter_sets, **options
+            g_circuits, observables, g_parameter_values, g_parameters, **options
         )
-        return self._postprocess(results, circuits, parameter_values, parameter_sets)
+        return self._postprocess(results, circuits, parameter_values, parameters)
 
     def _run_unique(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,  # pylint: disable=unused-argument
     ) -> EstimatorGradientResult:
         num_gradients = len(circuits)
@@ -104,25 +104,26 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
         for i in range(num_gradients):
             # temporary variables for easier access
             circuit = circuits[i]
-            parameters = parameter_sets[i]
+            parameters_ = parameters[i]
             observable = observables[i]
             values = parameter_values[i]
 
             # the metadata only contains the parameters as there are no run configs here
             metadata.append(
                 {
-                    "parameters": [p for p in circuits[i].parameters if p in parameter_sets[i]],
+                    "parameters": parameters_,
                     "derivative_type": self.derivative_type,
                 }
             )
 
             # keep track of the parameter order of the circuit, as the circuit splitting might
             # produce a list of unitaries in a different order
-            original_parameter_order = [p for p in circuit.parameters if p in parameters]
+            # original_parameter_order = [p for p in circuit.parameters if p in parameters_]
+            original_parameter_order = parameters_
 
             # split the circuit and generate lists of unitaries [U_1, U_2, ...] and
             # parameters [p_1, p_2, ...] in these unitaries
-            unitaries, paramlist = split(circuit, parameters=parameters)
+            unitaries, paramlist = split(circuit, parameters=parameters_)
 
             parameter_binds = dict(zip(circuit.parameters, values))
             bound_circuit = bind(circuit, parameter_binds)

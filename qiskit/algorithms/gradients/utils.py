@@ -19,6 +19,7 @@ Utility functions for gradients
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
 
@@ -90,20 +91,20 @@ class LinearCombGradientCircuit:
 def _make_param_shift_parameter_values(
     circuit: QuantumCircuit,
     parameter_values: np.ndarray,
-    parameter_set: set[Parameter],
+    parameters: Sequence[Parameter],
 ) -> list[np.ndarray]:
     """Returns a list of parameter values with offsets for parameter shift rule.
 
     Args:
         circuit: The original quantum circuit
         parameter_values: parameter values to be added to the base parameter values.
-        param_set: set of parameters to be differentiated
+        parameters: The parameters to be shifted.
 
     Returns:
         A list of parameter values with offsets for parameter shift rule.
     """
     plus_offsets, minus_offsets = [], []
-    indices = [idx for idx, param in enumerate(circuit.parameters) if param in parameter_set]
+    indices = [circuit.parameters.data.index(p) for p in parameters]
     offset = np.identity(circuit.num_parameters)[indices, :]
     plus_offsets = parameter_values + offset * np.pi / 2
     minus_offsets = parameter_values - offset * np.pi / 2
@@ -311,6 +312,7 @@ def _assign_unique_parameters(
         for parameter in gradient_circuit.global_phase.parameters:
             if parameter in parameter_map:
                 substitution_map[parameter] = parameter_map[parameter][0][0]
+                # print(f'global phase {parameter_map[parameter][0][0]}')
             else:
                 new_parameter = Parameter(f"__gθ{num_gradient_parameters}")
                 substitution_map[parameter] = new_parameter
@@ -348,21 +350,42 @@ def _make_gradient_parameter_values(
     return g_parameter_values
 
 
-def _make_gradient_parameter_set(
+def _make_gradient_parameters(
     gradient_circuit: GradientCircuit,
-    parameter_set: set[Parameter],
-) -> set[Parameter]:
+    parameters: Sequence[Parameter],
+) -> Sequence[Parameter]:
     """Makes parameter set for the gradient circuit.
 
     Args:
         gradient_circuit: The gradient circuit
-        parameters: The parameters for the original circuit
+        parameters: The parameters in the original circuit to calculate gradients
 
     Returns:
-        The parameters for the gradient circuit.
+        The parameters in the gradient circuit to calculate gradients.
     """
-    return set(
+
+    return [
         g_parameter
-        for parameter in parameter_set
+        for parameter in parameters
         for g_parameter, _ in gradient_circuit.parameter_map[parameter]
-    )
+    ]
+
+def _make_gradient_parameter_set(
+    gradient_circuit: GradientCircuit,
+    parameters: Sequence[Parameter],
+) -> Sequence[Parameter]:
+    """Makes parameter set for the gradient circuit.
+
+    Args:
+        gradient_circuit: The gradient circuit
+        parameters: The parameters in the original circuit to calculate gradients
+
+    Returns:
+        The parameters in the gradient circuit to calculate gradients.
+    """
+
+    return [
+        g_parameter
+        for parameter in parameters
+        for g_parameter, _ in gradient_circuit.parameter_map[parameter]
+    ]

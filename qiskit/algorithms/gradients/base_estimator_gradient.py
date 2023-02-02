@@ -35,7 +35,7 @@ from .utils import (
     DerivativeType,
     GradientCircuit,
     _assign_unique_parameters,
-    _make_gradient_parameter_set,
+    _make_gradient_parameters,
     _make_gradient_parameter_values,
 )
 
@@ -165,9 +165,9 @@ class BaseEstimatorGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         supported_gates: Sequence[str],
-    ) -> tuple[Sequence[QuantumCircuit], Sequence[Sequence[float]], Sequence[set[Parameter]]]:
+    ) -> tuple[Sequence[QuantumCircuit], Sequence[Sequence[float]], Sequence[Sequence[Parameter]]]:
         """Preprocess the gradient. This makes a gradient circuit for each circuit. The gradient
         circuit is a transpiled circuit by using the supported gates, and has unique parameters.
         ``parameter_values`` and ``parameters`` are also updated to match the gradient circuit.
@@ -175,7 +175,7 @@ class BaseEstimatorGradient(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
+            parameters: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
             supported_gates: The supported gates used to transpile the circuit.
 
@@ -184,9 +184,9 @@ class BaseEstimatorGradient(ABC):
             parameter_values and parameters are updated to match the gradient circuit.
         """
         translator = TranslateParameterizedGates(supported_gates)
-        g_circuits, g_parameter_values, g_parameter_sets = [], [], []
-        for circuit, parameter_value_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
+        g_circuits, g_parameter_values, g_parameters = [], [], []
+        for circuit, parameter_value_, parameters_ in zip(
+            circuits, parameter_values, parameters
         ):
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._gradient_circuit_cache:
@@ -197,15 +197,15 @@ class BaseEstimatorGradient(ABC):
             g_parameter_values.append(
                 _make_gradient_parameter_values(circuit, gradient_circuit, parameter_value_)
             )
-            g_parameter_sets.append(_make_gradient_parameter_set(gradient_circuit, parameter_set))
-        return g_circuits, g_parameter_values, g_parameter_sets
+            g_parameters.append(_make_gradient_parameters(gradient_circuit, parameters_))
+        return g_circuits, g_parameter_values, g_parameters
 
     def _postprocess(
         self,
         results: EstimatorGradientResult,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
     ) -> EstimatorGradientResult:
         """Postprocess the gradients. This method computes the gradient of the original circuits
         by applying the chain rule to the gradient of the circuits with unique parameters.
@@ -214,17 +214,17 @@ class BaseEstimatorGradient(ABC):
             results: The computed gradients for the circuits with unique parameters.
             circuits: The list of original circuits submitted for gradient computation.
             parameter_values: The list of parameter values to be bound to the circuits.
-            parameter_sets: An optional subset of parameters with respect to which the gradients should
-                be calculated.
+            parameters: The sequence of parameters to calculate only the gradients of the specified
+                parameters.
 
         Returns:
             The gradients of the original circuits.
         """
         gradients, metadata = [], []
-        for idx, (circuit, parameter_values_, parameter_set) in enumerate(
-            zip(circuits, parameter_values, parameter_sets)
+        for idx, (circuit, parameter_values_, parameters_) in enumerate(
+            zip(circuits, parameter_values, parameters)
         ):
-            gradient = np.zeros(len(parameter_set))
+            gradient = np.zeros(len(parameters_))
             if (
                 "derivative_type" in results.metadata[idx]
                 and results.metadata[idx]["derivative_type"] == DerivativeType.COMPLEX
@@ -232,19 +232,24 @@ class BaseEstimatorGradient(ABC):
                 # If the derivative type is complex, cast the gradient to complex.
                 gradient = gradient.astype("complex")
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
-            g_parameter_set = _make_gradient_parameter_set(gradient_circuit, parameter_set)
+            g_parameters = _make_gradient_parameters(gradient_circuit, parameters_)
             # Make a map from the gradient parameter to the respective index in the gradient.
-            parameter_indices = [param for param in circuit.parameters if param in parameter_set]
-            g_parameter_indices = [
-                param
-                for param in gradient_circuit.gradient_circuit.parameters
-                if param in g_parameter_set
-            ]
-            g_parameter_indices = {param: i for i, param in enumerate(g_parameter_indices)}
+            # parameter_indices = [param for param in circuit.parameters if param in parameter_set]
+            # g_parameter_indices = [
+            #     param
+            #     for param in gradient_circuit.gradient_circuit.parameters
+            #     if param in g_parameter_set
+            # ]
+            g_parameter_indices = {param: i for i, param in enumerate(g_parameters)}
+            # print(g_parameters)
+            # print(results.gradients[idx])
             # Compute the original gradient from the gradient of the gradient circuit
             # by using the chain rule.
-            for i, parameter in enumerate(parameter_indices):
+            for i, parameter in enumerate(parameters_):
+                # print(i, parameter)
                 for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
+                    # print(g_parameter, coeff)
+                    # print(g_parameter_indices[g_parameter])
                     # Compute the coefficient
                     if isinstance(coeff, ParameterExpression):
                         local_map = {
@@ -261,7 +266,7 @@ class BaseEstimatorGradient(ABC):
                         * results.gradients[idx][g_parameter_indices[g_parameter]]
                     )
             gradients.append(gradient)
-            metadata.append({"parameters": parameter_indices})
+            metadata.append({"parameters": parameters_})
         return EstimatorGradientResult(
             gradients=gradients, metadata=metadata, options=results.options
         )
