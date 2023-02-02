@@ -10,27 +10,32 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name, missing-function-docstring
 
 """Helper class used to convert a pulse instruction into PulseQobjInstruction."""
 
 import hashlib
 import re
+import sys
 import warnings
-
 from enum import Enum
-from typing import Union
+from typing import Union, List, Iterator, Optional
+import numpy as np
 
+from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.pulse import channels, instructions, library
 from qiskit.pulse.configuration import Kernel, Discriminator
 from qiskit.pulse.exceptions import QiskitError
 from qiskit.pulse.parser import parse_string_expr
 from qiskit.pulse.schedule import Schedule
-from qiskit.qobj import QobjMeasurementOption
+from qiskit.qobj import QobjMeasurementOption, PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.utils import MeasLevel
-from qiskit.circuit import Parameter, ParameterExpression
+from qiskit.utils.deprecation import deprecate_function
 
-GIGAHERTZ_TO_SI_UNITS = 1e9
+if sys.version_info >= (3, 8):
+    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+else:
+    from singledispatchmethod import singledispatchmethod
 
 
 class ParametricPulseShapes(Enum):
@@ -42,6 +47,7 @@ class ParametricPulseShapes(Enum):
 
     gaussian = "Gaussian"
     gaussian_square = "GaussianSquare"
+    gaussian_square_drag = "GaussianSquareDrag"
     drag = "Drag"
     constant = "Constant"
 
@@ -87,96 +93,98 @@ class ParametricPulseShapes(Enum):
         return getattr(library, cls[name].value)
 
 
-class ConversionMethodBinder:
-    """Conversion method registrar."""
-
-    def __init__(self):
-        """Acts as method registration decorator and tracker for conversion methods."""
-        self._bound_instructions = {}
-
-    def __call__(self, bound):
-        """Converter decorator method.
-
-        Converter is defined for object to be converted matched on hash
-
-        Args:
-            bound (Hashable): Hashable object to bind to the converter.
-
-        """
-        # pylint: disable=missing-return-doc, missing-return-type-doc
-
-        def _apply_converter(converter):
-            """Return decorated converter function."""
-            # Track conversion methods for class.
-            self._bound_instructions[bound] = converter
-            return converter
-
-        return _apply_converter
-
-    def get_bound_method(self, bound):
-        """Get conversion method for bound object."""
-        try:
-            return self._bound_instructions[bound]
-        except KeyError as ex:
-            raise QiskitError(f"Bound method for {bound} is not found.") from ex
-
-
 class InstructionToQobjConverter:
-    """Converts pulse Instructions to Qobj models.
+    """Converts Qiskit Pulse in-memory representation into Qobj data.
 
-    Converter is constructed with qobj model and experimental configuration,
-    and returns proper qobj instruction to each backend.
+    This converter converts the Qiskit Pulse in-memory representation into
+    the transfer layer format to submit the data from client to the server.
 
-    Third party providers can be add their own custom pulse instructions by
-    providing custom converter methods.
+    The transfer layer format must be the text representation that coforms to
+    the `OpenPulse specification<https://arxiv.org/abs/1809.03452>`__.
+    Extention to the OpenPulse can be achieved by subclassing this this with
+    extra methods corresponding to each augumented instruction. For example,
 
+    .. code-block:: python
 
-    To create a custom converter for custom instruction::
+        class MyConverter(InstructionToQobjConverter):
 
-        class CustomConverter(InstructionToQobjConverter):
-
-            @bind_instruction(CustomInstruction)
-            def convert_custom_command(self, shift, instruction):
+            def _convert_NewInstruction(self, instruction, time_offset):
                 command_dict = {
-                    'name': 'custom_command',
-                    't0': shift + instruction.start_time,
+                    'name': 'new_inst',
+                    't0': time_offset + instruction.start_time,
                     'param1': instruction.param1,
                     'param2': instruction.param2
                 }
-                if self._run_config('option1', True):
-                    command_dict.update({
-                        'param3': instruction.param3
-                    })
-                return self.qobj_model(**command_dict)
+                return self._qobj_model(**command_dict)
+
+    where ``NewInstruction`` must be a class name of Qiskit Pulse instruction.
     """
 
-    # class level tracking of conversion methods
-    bind_instruction = ConversionMethodBinder()
-
-    def __init__(self, qobj_model, **run_config):
+    def __init__(
+        self,
+        qobj_model: PulseQobjInstruction,
+        **run_config,
+    ):
         """Create new converter.
 
         Args:
-             qobj_model (QobjInstruction): marshmallow model to serialize to object.
-             run_config (dict): experimental configuration.
+             qobj_model: Transfer layer data schema.
+             run_config: Run configuration.
         """
         self._qobj_model = qobj_model
         self._run_config = run_config
 
-    def __call__(self, shift, instruction):
+    def __call__(
+        self,
+        shift: int,
+        instruction: Union[instructions.Instruction, List[instructions.Acquire]],
+    ) -> PulseQobjInstruction:
+        """Convert Qiskit in-memory representation to Qobj instruction.
 
-        method = self.bind_instruction.get_bound_method(type(instruction))
-        return method(self, shift, instruction)
+        Args:
+            instruction: Instruction data in Qiskit Pulse.
 
-    @bind_instruction(instructions.Acquire)
-    def convert_acquire(self, shift, instruction):
+        Returns:
+            Qobj instruction data.
+
+        Raises:
+            QiskitError: When list of instruction is provided except for Acquire.
+        """
+        if isinstance(instruction, list):
+            if all(isinstance(inst, instructions.Acquire) for inst in instruction):
+                return self._convert_bundled_acquire(
+                    instruction_bundle=instruction,
+                    time_offset=shift,
+                )
+            raise QiskitError("Bundle of instruction is not supported except for Acquire.")
+
+        return self._convert_instruction(instruction, shift)
+
+    @singledispatchmethod
+    def _convert_instruction(
+        self,
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        raise QiskitError(
+            f"Pulse Qobj doesn't support {instruction.__class__.__name__}. "
+            "This instruction cannot be submitted with Qobj."
+        )
+
+    @_convert_instruction.register(instructions.Acquire)
+    def _convert_acquire(
+        self,
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
         """Return converted `Acquire`.
 
         Args:
-            shift(int): Offset time.
-            instruction (Acquire): acquire instruction.
+            instruction: Qiskit Pulse acquire instruction.
+            time_offset: Offset time.
+
         Returns:
-            dict: Dictionary of required parameters.
+            Qobj instruction data.
         """
         meas_level = self._run_config.get("meas_level", 2)
         mem_slot = []
@@ -185,7 +193,7 @@ class InstructionToQobjConverter:
 
         command_dict = {
             "name": "acquire",
-            "t0": shift + instruction.start_time,
+            "t0": time_offset + instruction.start_time,
             "duration": instruction.duration,
             "qubits": [instruction.channel.index],
             "memory_slot": mem_slot,
@@ -220,36 +228,212 @@ class InstructionToQobjConverter:
                 )
         return self._qobj_model(**command_dict)
 
-    def convert_bundled_acquires(
+    @_convert_instruction.register(instructions.SetFrequency)
+    def _convert_set_frequency(
         self,
-        shift,
-        instructions_,
-    ):
-        """Bundle a list of acquires instructions at the same time into a single
-        Qobj acquire instruction.
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        """Return converted `SetFrequency`.
 
         Args:
-            shift (int): Offset time.
-            instructions_ (List[Acquire]): List of acquire instructions to bundle.
-        Returns:
-            dict: Dictionary of required parameters.
-        Raises:
-            QiskitError: If ``instructions`` is empty.
-        """
-        if not instructions_:
-            raise QiskitError('"instructions" may not be empty.')
+            instruction: Qiskit Pulse set frequency instruction.
+            time_offset: Offset time.
 
+        Returns:
+            Qobj instruction data.
+        """
+        command_dict = {
+            "name": "setf",
+            "t0": time_offset + instruction.start_time,
+            "ch": instruction.channel.name,
+            "frequency": instruction.frequency / 1e9,
+        }
+        return self._qobj_model(**command_dict)
+
+    @_convert_instruction.register(instructions.ShiftFrequency)
+    def _convert_shift_frequency(
+        self,
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        """Return converted `ShiftFrequency`.
+
+        Args:
+            instruction: Qiskit Pulse shift frequency instruction.
+            time_offset: Offset time.
+
+        Returns:
+            Qobj instruction data.
+        """
+        command_dict = {
+            "name": "shiftf",
+            "t0": time_offset + instruction.start_time,
+            "ch": instruction.channel.name,
+            "frequency": instruction.frequency / 1e9,
+        }
+        return self._qobj_model(**command_dict)
+
+    @_convert_instruction.register(instructions.SetPhase)
+    def _convert_set_phase(
+        self,
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        """Return converted `SetPhase`.
+
+        Args:
+            instruction: Qiskit Pulse set phase instruction.
+            time_offset: Offset time.
+
+        Returns:
+            Qobj instruction data.
+        """
+        command_dict = {
+            "name": "setp",
+            "t0": time_offset + instruction.start_time,
+            "ch": instruction.channel.name,
+            "phase": instruction.phase,
+        }
+        return self._qobj_model(**command_dict)
+
+    @_convert_instruction.register(instructions.ShiftPhase)
+    def _convert_shift_phase(
+        self,
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        """Return converted `ShiftPhase`.
+
+        Args:
+            instruction: Qiskit Pulse shift phase instruction.
+            time_offset: Offset time.
+
+        Returns:
+            Qobj instruction data.
+        """
+        command_dict = {
+            "name": "fc",
+            "t0": time_offset + instruction.start_time,
+            "ch": instruction.channel.name,
+            "phase": instruction.phase,
+        }
+        return self._qobj_model(**command_dict)
+
+    @_convert_instruction.register(instructions.Delay)
+    def _convert_delay(
+        self,
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        """Return converted `Delay`.
+
+        Args:
+            instruction: Qiskit Pulse delay instruction.
+            time_offset: Offset time.
+
+        Returns:
+            Qobj instruction data.
+        """
+        command_dict = {
+            "name": "delay",
+            "t0": time_offset + instruction.start_time,
+            "ch": instruction.channel.name,
+            "duration": instruction.duration,
+        }
+        return self._qobj_model(**command_dict)
+
+    @_convert_instruction.register(instructions.Play)
+    def _convert_play(
+        self,
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        """Return converted `Play`.
+
+        Args:
+            instruction: Qiskit Pulse play instruction.
+            time_offset: Offset time.
+
+        Returns:
+            Qobj instruction data.
+        """
+        if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
+            params = dict(instruction.pulse.parameters)
+            # IBM backends expect "amp" to be the complex amplitude
+            if "amp" in params and "angle" in params:
+                params["amp"] = complex(params["amp"] * np.exp(1j * params["angle"]))
+                del params["angle"]
+
+            command_dict = {
+                "name": "parametric_pulse",
+                "pulse_shape": ParametricPulseShapes.from_instance(instruction.pulse).name,
+                "t0": time_offset + instruction.start_time,
+                "ch": instruction.channel.name,
+                "parameters": params,
+            }
+        else:
+            command_dict = {
+                "name": instruction.name,
+                "t0": time_offset + instruction.start_time,
+                "ch": instruction.channel.name,
+            }
+
+        return self._qobj_model(**command_dict)
+
+    @_convert_instruction.register(instructions.Snapshot)
+    def _convert_snapshot(
+        self,
+        instruction,
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        """Return converted `Snapshot`.
+
+        Args:
+            time_offset: Offset time.
+            instruction: Qiskit Pulse snapshot instruction.
+
+        Returns:
+            Qobj instruction data.
+        """
+        command_dict = {
+            "name": "snapshot",
+            "t0": time_offset + instruction.start_time,
+            "label": instruction.label,
+            "type": instruction.type,
+        }
+        return self._qobj_model(**command_dict)
+
+    def _convert_bundled_acquire(
+        self,
+        instruction_bundle: List[instructions.Acquire],
+        time_offset: int,
+    ) -> PulseQobjInstruction:
+        """Return converted list of parallel `Acquire` instructions.
+
+        Args:
+            instruction_bundle: List of Qiskit Pulse acquire instruction.
+            time_offset: Offset time.
+
+        Returns:
+            Qobj instruction data.
+
+        Raises:
+            QiskitError: When instructions are not aligned.
+            QiskitError: When instructions have different duration.
+            QiskitError: When discriminator or kernel is missing in a part of instructions.
+        """
         meas_level = self._run_config.get("meas_level", 2)
 
-        t0 = instructions_[0].start_time
-        duration = instructions_[0].duration
+        t0 = instruction_bundle[0].start_time
+        duration = instruction_bundle[0].duration
         memory_slots = []
         register_slots = []
         qubits = []
         discriminators = []
         kernels = []
 
-        for instruction in instructions_:
+        for instruction in instruction_bundle:
             qubits.append(instruction.channel.index)
 
             if instruction.start_time != t0:
@@ -290,7 +474,7 @@ class InstructionToQobjConverter:
                     )
         command_dict = {
             "name": "acquire",
-            "t0": t0 + shift,
+            "t0": time_offset + t0,
             "duration": duration,
             "qubits": qubits,
         }
@@ -322,180 +506,178 @@ class InstructionToQobjConverter:
 
         return self._qobj_model(**command_dict)
 
-    @bind_instruction(instructions.SetFrequency)
+    @deprecate_function(
+        "'convert_acquire' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_acquire(self, shift, instruction):
+        return self._convert_instruction(instruction, shift)
+
+    @deprecate_function(
+        "'convert_bundled_acquires' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_bundled_acquires(self, shift, instructions_):
+        return self._convert_bundled_acquire(instructions_, shift)
+
+    @deprecate_function(
+        "'convert_set_frequency' has been deprecated. Instead, call converter instance directly."
+    )
     def convert_set_frequency(self, shift, instruction):
-        """Return converted `SetFrequencyInstruction`.
+        return self._convert_instruction(instruction, shift)
 
-        Args:
-            shift (int): Offset time.
-            instruction (SetFrequency): set frequency instruction.
-
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            "name": "setf",
-            "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
-            "frequency": instruction.frequency / 1e9,
-        }
-        return self._qobj_model(**command_dict)
-
-    @bind_instruction(instructions.ShiftFrequency)
+    @deprecate_function(
+        "'convert_shift_frequency' has been deprecated. Instead, call converter instance directly."
+    )
     def convert_shift_frequency(self, shift, instruction):
-        """Return converted `ShiftFrequency`.
+        return self._convert_instruction(instruction, shift)
 
-        Args:
-            shift (int): Offset time.
-            instruction (ShiftFrequency): Shift frequency instruction.
-
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            "name": "shiftf",
-            "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
-            "frequency": instruction.frequency / 1e9,
-        }
-        return self._qobj_model(**command_dict)
-
-    @bind_instruction(instructions.SetPhase)
+    @deprecate_function(
+        "'convert_set_phase' has been deprecated. Instead, call converter instance directly."
+    )
     def convert_set_phase(self, shift, instruction):
-        """Return converted `SetPhase`.
+        return self._convert_instruction(instruction, shift)
 
-        Args:
-            shift(int): Offset time.
-            instruction (SetPhase): Set phase instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            "name": "setp",
-            "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
-            "phase": instruction.phase,
-        }
-        return self._qobj_model(**command_dict)
-
-    @bind_instruction(instructions.ShiftPhase)
+    @deprecate_function(
+        "'convert_shift_phase' has been deprecated. Instead, call converter instance directly."
+    )
     def convert_shift_phase(self, shift, instruction):
-        """Return converted `ShiftPhase`.
+        return self._convert_instruction(instruction, shift)
 
-        Args:
-            shift(int): Offset time.
-            instruction (ShiftPhase): Shift phase instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            "name": "fc",
-            "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
-            "phase": instruction.phase,
-        }
-        return self._qobj_model(**command_dict)
-
-    @bind_instruction(instructions.Delay)
+    @deprecate_function(
+        "'convert_delay' has been deprecated. Instead, call converter instance directly."
+    )
     def convert_delay(self, shift, instruction):
-        """Return converted `Delay`.
+        return self._convert_instruction(instruction, shift)
 
-        Args:
-            shift(int): Offset time.
-            instruction (Delay): Delay instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            "name": "delay",
-            "t0": shift + instruction.start_time,
-            "ch": instruction.channel.name,
-            "duration": instruction.duration,
-        }
-        return self._qobj_model(**command_dict)
-
-    @bind_instruction(instructions.Play)
+    @deprecate_function(
+        "'convert_play' has been deprecated. Instead, call converter instance directly."
+    )
     def convert_play(self, shift, instruction):
-        """Return the converted `Play`.
+        return self._convert_instruction(instruction, shift)
 
-        Args:
-            shift (int): Offset time.
-            instruction (Play): An instance of Play.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
-            command_dict = {
-                "name": "parametric_pulse",
-                "pulse_shape": ParametricPulseShapes.from_instance(instruction.pulse).name,
-                "t0": shift + instruction.start_time,
-                "ch": instruction.channel.name,
-                "parameters": instruction.pulse.parameters,
-            }
-        else:
-            command_dict = {
-                "name": instruction.name,
-                "t0": shift + instruction.start_time,
-                "ch": instruction.channel.name,
-            }
-
-        return self._qobj_model(**command_dict)
-
-    @bind_instruction(instructions.Snapshot)
+    @deprecate_function(
+        "'convert_snapshot' has been deprecated. Instead, call converter instance directly."
+    )
     def convert_snapshot(self, shift, instruction):
-        """Return converted `Snapshot`.
-
-        Args:
-            shift(int): Offset time.
-            instruction (Snapshot): snapshot instruction.
-        Returns:
-            dict: Dictionary of required parameters.
-        """
-        command_dict = {
-            "name": "snapshot",
-            "t0": shift + instruction.start_time,
-            "label": instruction.label,
-            "type": instruction.type,
-        }
-        return self._qobj_model(**command_dict)
+        return self._convert_instruction(instruction, shift)
 
 
 class QobjToInstructionConverter:
-    """Converts Qobj models to pulse Instructions"""
+    """Converts Qobj data into Qiskit Pulse in-memory representation.
 
-    # class level tracking of conversion methods
-    bind_name = ConversionMethodBinder()
-    chan_regex = re.compile(r"([a-zA-Z]+)(\d+)")
+    This converter converts data from transfer layer into the in-memory representation of
+    the front-end of Qiskit Pulse.
 
-    def __init__(self, pulse_library, **run_config):
+    The transfer layer format must be the text representation that coforms to
+    the `OpenPulse specification<https://arxiv.org/abs/1809.03452>`__.
+    Extention to the OpenPulse can be achieved by subclassing this this with
+    extra methods corresponding to each augumented instruction. For example,
+
+    .. code-block:: python
+
+        class MyConverter(QobjToInstructionConverter):
+
+            def get_supported_instructions(self):
+                instructions = super().get_supported_instructions()
+                instructions += ["new_inst"]
+
+                return instructions
+
+            def _convert_new_inst(self, instruction):
+                return NewInstruction(...)
+
+    where ``NewInstruction`` must be a subclass of :class:`~qiskit.pulse.instructions.Instruction`.
+    """
+
+    __chan_regex__ = re.compile(r"([a-zA-Z]+)(\d+)")
+
+    def __init__(
+        self,
+        pulse_library: Optional[List[PulseLibraryItem]] = None,
+        **run_config,
+    ):
         """Create new converter.
 
         Args:
-             pulse_library (List[PulseLibraryItem]): Pulse library to be used in conversion
-             run_config (dict): experimental configuration.
+            pulse_library: Pulse library in Qobj format.
+             run_config: Run configuration.
         """
-        self._run_config = run_config
-        # bind pulses to conversion methods
-        for pulse in pulse_library:
-            self.bind_pulse(pulse)
+        pulse_library_dict = {}
+        for lib_item in pulse_library:
+            pulse_library_dict[lib_item.name] = lib_item.samples
 
-    def __call__(self, instruction):
-        method = self.bind_name.get_bound_method(instruction.name)
-        return method(self, instruction)
+        self._pulse_library = pulse_library_dict
+        self._run_config = run_config
+
+    def __call__(self, instruction: PulseQobjInstruction) -> Schedule:
+        """Convert Qobj instruction to Qiskit in-memory representation.
+
+        Args:
+            instruction: Instruction data in Qobj format.
+
+        Returns:
+            Scheduled Qiskit Pulse instruction in Schedule format.
+        """
+        schedule = Schedule()
+        for inst in self._get_sequences(instruction):
+            schedule.insert(instruction.t0, inst, inplace=True)
+        return schedule
+
+    def _get_sequences(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """A method to iterate over pulse instructions without creating Schedule.
+
+        .. note::
+
+            This is internal fast-path function, and callers other than this converter class
+            might directly use this method to generate schedule from multiple
+            Qobj instructions. Because __call__ always returns a schedule with the time offset
+            parsed instruction, composing multiple Qobj instructions to create
+            a gate schedule is somewhat inefficient due to composing overhead of schedules.
+            Directly combining instructions with this method is much performant.
+
+        Args:
+            instruction: Instruction data in Qobj format.
+
+        Yields:
+            Qiskit Pulse instructions.
+
+        :meta public:
+        """
+        try:
+            method = getattr(self, f"_convert_{instruction.name}")
+        except AttributeError:
+            method = self._convert_generic
+
+        yield from method(instruction)
+
+    def get_supported_instructions(self) -> List[str]:
+        """Retrun a list of supported instructions."""
+        return [
+            "acquire",
+            "setp",
+            "fc",
+            "setf",
+            "shiftf",
+            "delay",
+            "parametric_pulse",
+            "snapshot",
+        ]
 
     def get_channel(self, channel: str) -> channels.PulseChannel:
         """Parse and retrieve channel from ch string.
 
         Args:
-            channel: Channel to match
+            channel: String identifier of pulse instruction channel.
 
         Returns:
-            Matched channel
+            Matched channel object.
 
         Raises:
             QiskitError: Is raised if valid channel is not matched
         """
-        match = self.chan_regex.match(channel)
+        match = self.__chan_regex__.match(channel)
         if match:
             prefix, index = match.group(1), int(match.group(2))
 
@@ -524,18 +706,21 @@ class QobjToInstructionConverter:
         if isinstance(value_expr, str):
             str_expr = parse_string_expr(value_expr, partial_binding=False)
             value_expr = str_expr(**{pname: Parameter(pname) for pname in str_expr.params})
+
         return value_expr
 
-    @bind_name("acquire")
-    def convert_acquire(self, instruction):
-        """Return converted `Acquire`.
+    def _convert_acquire(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Return converted `Acquire` instruction.
 
         Args:
-            instruction (PulseQobjInstruction): acquire qobj
-        Returns:
-            Schedule: Converted and scheduled Instruction
+            instruction: Acquire qobj
+
+        Yields:
+            Qiskit Pulse acquire instructions
         """
-        t0 = instruction.t0
         duration = instruction.duration
         qubits = instruction.qubits
         acquire_channels = [channels.AcquireChannel(qubit) for qubit in qubits]
@@ -575,143 +760,134 @@ class QobjToInstructionConverter:
         if kernel:
             kernel = Kernel(name=kernels[0].name, **kernels[0].params)
 
-        schedule = Schedule()
-
         for acquire_channel, mem_slot, reg_slot in zip(acquire_channels, mem_slots, register_slots):
-            schedule |= (
-                instructions.Acquire(
-                    duration,
-                    acquire_channel,
-                    mem_slot=mem_slot,
-                    reg_slot=reg_slot,
-                    kernel=kernel,
-                    discriminator=discriminator,
-                )
-                << t0
+            yield instructions.Acquire(
+                duration,
+                acquire_channel,
+                mem_slot=mem_slot,
+                reg_slot=reg_slot,
+                kernel=kernel,
+                discriminator=discriminator,
             )
 
-        return schedule
-
-    @bind_name("setp")
-    def convert_set_phase(self, instruction):
-        """Return converted `SetPhase`.
+    def _convert_setp(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Return converted `SetPhase` instruction.
 
         Args:
-            instruction (PulseQobjInstruction): phase set qobj instruction
-        Returns:
-            Schedule: Converted and scheduled Instruction
+            instruction: SetPhase qobj instruction
+
+        Yields:
+            Qiskit Pulse set phase instructions
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         phase = self.disassemble_value(instruction.phase)
 
-        return instructions.SetPhase(phase, channel) << t0
+        yield instructions.SetPhase(phase, channel)
 
-    @bind_name("fc")
-    def convert_shift_phase(self, instruction):
-        """Return converted `ShiftPhase`.
+    def _convert_fc(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Return converted `ShiftPhase` instruction.
 
         Args:
-            instruction (PulseQobjInstruction): phase shift qobj instruction
-        Returns:
-            Schedule: Converted and scheduled Instruction
+            instruction: ShiftPhase qobj instruction
+
+        Yields:
+            Qiskit Pulse shift phase schedule instructions
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         phase = self.disassemble_value(instruction.phase)
 
-        return instructions.ShiftPhase(phase, channel) << t0
+        yield instructions.ShiftPhase(phase, channel)
 
-    @bind_name("setf")
-    def convert_set_frequency(self, instruction):
-        """Return converted `SetFrequencyInstruction`.
+    def _convert_setf(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Return converted `SetFrequencyInstruction` instruction.
+
+        .. note::
+
+            We assume frequency value is expressed in string with "GHz".
+            Operand value is thus scaled by a factor of 1e9.
 
         Args:
-            instruction (PulseQobjInstruction): set frequency qobj instruction
-                                                The input frequency is expressed  in GHz,
-                                                so it will be scaled by a factor 1e9.
-        Returns:
-            Schedule: Converted and scheduled Instruction
+            instruction: SetFrequency qobj instruction
+
+        Yields:
+            Qiskit Pulse set frequency instructions
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.disassemble_value(instruction.frequency) * 1e9
 
-        return instructions.SetFrequency(frequency, channel) << t0
+        yield instructions.SetFrequency(frequency, channel)
 
-    @bind_name("shiftf")
-    def convert_shift_frequency(self, instruction):
-        """Return converted `ShiftFrequency`.
+    def _convert_shiftf(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Return converted `ShiftFrequency` instruction.
+
+        .. note::
+
+            We assume frequency value is expressed in string with "GHz".
+            Operand value is thus scaled by a factor of 1e9.
 
         Args:
-            instruction (PulseQobjInstruction): Shift frequency qobj instruction.
-                                                The input frequency is expressed  in GHz,
-                                                so it will be scaled by a factor 1e9.
+            instruction: ShiftFrequency qobj instruction
 
-        Returns:
-            Schedule: Converted and scheduled Instruction
+        Yields:
+            Qiskit Pulse shift frequency schedule instructions
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
-        frequency = self.disassemble_value(instruction.frequency) * GIGAHERTZ_TO_SI_UNITS
+        frequency = self.disassemble_value(instruction.frequency) * 1e9
 
-        return instructions.ShiftFrequency(frequency, channel) << t0
+        yield instructions.ShiftFrequency(frequency, channel)
 
-    @bind_name("delay")
-    def convert_delay(self, instruction):
-        """Return converted `Delay`.
+    def _convert_delay(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Return converted `Delay` instruction.
 
         Args:
-            instruction (Delay): Delay qobj instruction
+            instruction: Delay qobj instruction
 
-        Returns:
-            Schedule: Converted and scheduled Instruction
+        Yields:
+            Qiskit Pulse delay instructions
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
         duration = instruction.duration
-        return instructions.Delay(duration, channel) << t0
 
-    def bind_pulse(self, pulse):
-        """Bind the supplied pulse to a converter method by pulse name.
+        yield instructions.Delay(duration, channel)
 
-        Args:
-            pulse (PulseLibraryItem): Pulse to bind
-        """
-        pulse = library.Waveform(pulse.samples, pulse.name)
+    def _convert_parametric_pulse(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Return converted `Play` instruction with parametric pulse operand.
 
-        @self.bind_name(pulse.name)
-        def convert_named_drive(self, instruction):
-            """Return converted `Play`.
+        .. note::
 
-            Args:
-                instruction (PulseQobjInstruction): pulse qobj
-            Returns:
-                Schedule: Converted and scheduled pulse
-            """
-            t0 = instruction.t0
-            channel = self.get_channel(instruction.ch)
-            return instructions.Play(pulse, channel) << t0
-
-    @bind_name("parametric_pulse")
-    def convert_parametric(self, instruction):
-        """Return the ParametricPulse implementation that is described by the instruction.
-
-        If parametric pulse label is not provided by the backend, this method naively generates
-        a pulse name based on the pulse shape and bound parameters. This pulse name is formatted
-        to, for example, `gaussian_a4e3`, here the last four digits are a part of
-        the hash string generated based on the pulse shape and the parameters.
-        Because we are using a truncated hash for readability,
-        there may be a small risk of pulse name collision with other pulses.
-        Basically the parametric pulse name is used just for visualization purpose and
-        the pulse module should not have dependency on the parametric pulse names.
+            If parametric pulse label is not provided by the backend, this method naively generates
+            a pulse name based on the pulse shape and bound parameters. This pulse name is formatted
+            to, for example, `gaussian_a4e3`, here the last four digits are a part of
+            the hash string generated based on the pulse shape and the parameters.
+            Because we are using a truncated hash for readability,
+            there may be a small risk of pulse name collision with other pulses.
+            Basically the parametric pulse name is used just for visualization purpose and
+            the pulse module should not have dependency on the parametric pulse names.
 
         Args:
-            instruction (PulseQobjInstruction): pulse qobj
-        Returns:
-            Schedule: Schedule containing the converted pulse
+            instruction: Play qobj instruction with parametric pulse
+
+        Yields:
+            Qiskit Pulse play schedule instructions
         """
-        t0 = instruction.t0
         channel = self.get_channel(instruction.ch)
 
         try:
@@ -723,20 +899,140 @@ class QobjToInstructionConverter:
             )
             short_pulse_id = hashlib.md5(base_str.encode("utf-8")).hexdigest()[:4]
             pulse_name = f"{instruction.pulse_shape}_{short_pulse_id}"
+        params = dict(instruction.parameters)
+        if "amp" in params and isinstance(params["amp"], complex):
+            params["angle"] = np.angle(params["amp"])
+            params["amp"] = np.abs(params["amp"])
+        pulse = ParametricPulseShapes.to_type(instruction.pulse_shape)(**params, name=pulse_name)
 
-        pulse = ParametricPulseShapes.to_type(instruction.pulse_shape)(
-            **instruction.parameters, name=pulse_name
-        )
-        return instructions.Play(pulse, channel) << t0
+        yield instructions.Play(pulse, channel)
 
-    @bind_name("snapshot")
-    def convert_snapshot(self, instruction):
-        """Return converted `Snapshot`.
+    def _convert_snapshot(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Return converted `Snapshot` instruction.
 
         Args:
-            instruction (PulseQobjInstruction): snapshot qobj
-        Returns:
-            Schedule: Converted and scheduled Snapshot
+            instruction: Snapshot qobj instruction
+
+        Yields:
+            Qiskit Pulse snapshot instructions
         """
+        yield instructions.Snapshot(instruction.label, instruction.type)
+
+    def _convert_generic(
+        self,
+        instruction: PulseQobjInstruction,
+    ) -> Iterator[instructions.Instruction]:
+        """Convert generic pulse instruction.
+
+        Args:
+            instruction: Generic qobj instruction
+
+        Yields:
+            Qiskit Pulse generic instructions
+
+        Raises:
+            QiskitError: When instruction name not found.
+        """
+        if instruction.name in self._pulse_library:
+            waveform = library.Waveform(
+                samples=self._pulse_library[instruction.name],
+                name=instruction.name,
+            )
+            channel = self.get_channel(instruction.ch)
+
+            yield instructions.Play(waveform, channel)
+        else:
+            raise QiskitError(
+                f"Instruction {instruction.name} on qubit {instruction.qubits} is not found  "
+                "in Qiskit namespace. This instruction cannot be deserialized."
+            )
+
+    @deprecate_function(
+        "'convert_acquire' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_acquire(self, instruction):
         t0 = instruction.t0
-        return instructions.Snapshot(instruction.label, instruction.type) << t0
+        schedule = Schedule()
+        for inst in self._convert_acquire(instruction=instruction):
+            schedule.insert(t0, inst, inplace=True)
+        return schedule
+
+    @deprecate_function(
+        "'convert_set_phase' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_set_phase(self, instruction):
+        t0 = instruction.t0
+        schedule = Schedule()
+        for inst in self._convert_setp(instruction=instruction):
+            schedule.insert(t0, inst, inplace=True)
+        return schedule
+
+    @deprecate_function(
+        "'convert_shift_phase' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_shift_phase(self, instruction):
+        t0 = instruction.t0
+        schedule = Schedule()
+        for inst in self._convert_fc(instruction=instruction):
+            schedule.insert(t0, inst, inplace=True)
+        return schedule
+
+    @deprecate_function(
+        "'convert_set_frequency' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_set_frequency(self, instruction):
+        t0 = instruction.t0
+        schedule = Schedule()
+        for inst in self._convert_setf(instruction=instruction):
+            schedule.insert(t0, inst, inplace=True)
+        return schedule
+
+    @deprecate_function(
+        "'convert_shift_frequency' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_shift_frequency(self, instruction):
+        t0 = instruction.t0
+        schedule = Schedule()
+        for inst in self._convert_shiftf(instruction=instruction):
+            schedule.insert(t0, inst, inplace=True)
+        return schedule
+
+    @deprecate_function(
+        "'convert_delay' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_delay(self, instruction):
+        t0 = instruction.t0
+        schedule = Schedule()
+        for inst in self._convert_delay(instruction=instruction):
+            schedule.insert(t0, inst, inplace=True)
+        return schedule
+
+    @deprecate_function(
+        "'bind_pulse' has been deprecated. Instantiate the class with pulse library."
+    )
+    def bind_pulse(self, pulse):
+        if pulse.name not in self._pulse_library:
+            self._pulse_library[pulse.name] = pulse.samples
+
+    @deprecate_function(
+        "'convert_parametric' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_parametric(self, instruction):
+        t0 = instruction.t0
+        schedule = Schedule()
+        for inst in self._convert_parametric_pulse(instruction=instruction):
+            schedule.insert(t0, inst, inplace=True)
+        return schedule
+
+    @deprecate_function(
+        "'convert_snapshot' has been deprecated. Instead, call converter instance directly."
+    )
+    def convert_snapshot(self, instruction):
+        t0 = instruction.t0
+        schedule = Schedule()
+        for inst in self._convert_snapshot(instruction=instruction):
+            schedule.insert(t0, inst, inplace=True)
+        return schedule

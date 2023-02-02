@@ -119,17 +119,19 @@ def convert_to_target(
         inst_map = defaults.instruction_schedule_map
         for inst in inst_map.instructions:
             for qarg in inst_map.qubits_with_instruction(inst):
-                sched = inst_map.get(inst, qarg)
+                try:
+                    qargs = tuple(qarg)
+                except TypeError:
+                    qargs = (qarg,)
+                # Do NOT call .get method. This parses Qpbj immediately.
+                # This operation is computationally expensive and should be bypassed.
+                calibration_entry = inst_map._get_calibration_entry(inst, qargs)
                 if inst in target:
-                    try:
-                        qarg = tuple(qarg)
-                    except TypeError:
-                        qarg = (qarg,)
                     if inst == "measure":
-                        for qubit in qarg:
-                            target[inst][(qubit,)].calibration = sched
-                    elif qarg in target[inst]:
-                        target[inst][qarg].calibration = sched
+                        for qubit in qargs:
+                            target[inst][(qubit,)].calibration = calibration_entry
+                    elif qargs in target[inst]:
+                        target[inst][qargs].calibration = calibration_entry
     combined_global_ops = set()
     if configuration.basis_gates:
         combined_global_ops.update(configuration.basis_gates)
@@ -264,19 +266,19 @@ class BackendV2Converter(BackendV2):
 
     @property
     def meas_map(self) -> List[List[int]]:
-        return self._config.dt
+        return self._config.meas_map
 
     def drive_channel(self, qubit: int):
-        self._config.drive(qubit)
+        return self._config.drive(qubit)
 
     def measure_channel(self, qubit: int):
-        self._config.measure(qubit)
+        return self._config.measure(qubit)
 
     def acquire_channel(self, qubit: int):
-        self._config.acquire(qubit)
+        return self._config.acquire(qubit)
 
     def control_channel(self, qubits: Iterable[int]):
-        self._config.control(qubits)
+        return self._config.control(qubits)
 
     def run(self, run_input, **options):
         return self._backend.run(run_input, **options)

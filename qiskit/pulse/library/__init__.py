@@ -92,6 +92,7 @@ Parametric Pulse Representation
    Drag
    Gaussian
    GaussianSquare
+   GaussianSquareDrag
 
 """
 
@@ -111,6 +112,14 @@ from .discrete import (
     drag,
 )
 from .parametric_pulses import ParametricPulse
-from .symbolic_pulses import SymbolicPulse, Gaussian, GaussianSquare, Drag, Constant
+from .symbolic_pulses import (
+    SymbolicPulse,
+    ScalableSymbolicPulse,
+    Gaussian,
+    GaussianSquare,
+    GaussianSquareDrag,
+    Drag,
+    Constant,
+)
 from .pulse import Pulse
 from .waveform import Waveform

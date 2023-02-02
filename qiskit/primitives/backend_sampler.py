@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from typing import Any, cast
 
@@ -23,10 +24,10 @@ from qiskit.providers.options import Options
 from qiskit.result import QuasiDistribution, Result
 from qiskit.transpiler.passmanager import PassManager
 
+from .backend_estimator import _prepare_counts, _run_circuits
 from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
 from .utils import _circuit_key
-from .backend_estimator import _run_circuits, _prepare_counts
 
 
 class BackendSampler(BaseSampler):
@@ -72,7 +73,7 @@ class BackendSampler(BaseSampler):
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
         self._preprocessed_circuits: list[QuantumCircuit] | None = None
-        self._transpiled_circuits: list[QuantumCircuit] | None = None
+        self._transpiled_circuits: list[QuantumCircuit] = []
         self._skip_transpilation = skip_transpilation
 
     def __new__(  # pylint: disable=signature-differs
@@ -82,6 +83,9 @@ class BackendSampler(BaseSampler):
     ):
         self = super().__new__(cls)
         return self
+
+    def __getnewargs__(self):
+        return (self._backend,)
 
     @property
     def preprocessed_circuits(self) -> list[QuantumCircuit]:
@@ -105,8 +109,8 @@ class BackendSampler(BaseSampler):
         """
         if self._skip_transpilation:
             self._transpiled_circuits = list(self._circuits)
-        elif self._transpiled_circuits is None:
-            # Only transpile if have not done so yet
+        elif len(self._transpiled_circuits) < len(self._circuits):
+            # transpile only circuits that are not transpiled yet
             self._transpile()
         return self._transpiled_circuits
 
@@ -159,22 +163,24 @@ class BackendSampler(BaseSampler):
         counts = _prepare_counts(result)
         shots = sum(counts[0].values())
 
-        probabilies = []
+        probabilities = []
         metadata: list[dict[str, Any]] = [{}] * len(circuits)
         for count in counts:
             prob_dist = {k: v / shots for k, v in count.int_outcomes().items()}
-            probabilies.append(QuasiDistribution(prob_dist))
+            probabilities.append(
+                QuasiDistribution(prob_dist, shots=shots, stddev_upper_bound=math.sqrt(1 / shots))
+            )
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        return SamplerResult(probabilies, metadata)
+        return SamplerResult(probabilities, metadata)
 
     def _transpile(self):
         from qiskit.compiler import transpile
 
-        self._transpiled_circuits = cast(
-            "list[QuantumCircuit]",
+        start = len(self._transpiled_circuits)
+        self._transpiled_circuits.extend(
             transpile(
-                self.preprocessed_circuits,
+                self.preprocessed_circuits[start:],
                 self.backend,
                 **self.transpile_options.__dict__,
             ),
