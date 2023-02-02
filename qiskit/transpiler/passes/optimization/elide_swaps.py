@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 
-"""Remove the swaps followed by measurement (and adapt the measurement)."""
+"""Remove any swap gates in the circuit by pushing it through into a qubit permutation."""
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
@@ -21,7 +21,7 @@ from qiskit.transpiler.layout import Layout
 class ElideSwaps(TransformationPass):
     r"""Remove :class:`~SwapGate`\s from a pre-layout circuit
 
-    This pass is intended to be run before a layout (mapping logical qubits
+    This pass is intended to be run before a layout (mapping virtual qubits
     to physical qubits) is set during the transpilation pipeline. This
     pass iterates over the :class:`~.DAGCircuit` and when a :class:`~.SwapGate`
     is encountered it permutes the virtual qubits in the circuit and removes
@@ -30,7 +30,7 @@ class ElideSwaps(TransformationPass):
     """
 
     def run(self, dag):
-        """Run the OptimizeSwapBeforeMeasure pass on `dag`.
+        """Run the ElideSwaps pass on ``dag``.
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.

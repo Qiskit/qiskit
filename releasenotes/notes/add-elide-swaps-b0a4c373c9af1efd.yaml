@@ -21,6 +21,7 @@ features:
     will remove the swaps when the pass is run:
 
     .. plot::
+       :include-source:
 
        from qiskit.transpiler.passes import ElideSwaps
        from qiskit.circuit import QuantumCircuit
