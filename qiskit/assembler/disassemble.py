@@ -13,12 +13,15 @@
 """Disassemble function for a qobj into a list of circuits and its config"""
 from typing import Any, Dict, List, NewType, Tuple, Union
 import collections
+import math
 
 from qiskit import pulse
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
+
+from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
 
 # A ``CircuitModule`` is a representation of a circuit execution on the backend.
@@ -37,6 +40,14 @@ PulseModule = NewType("PulseModule", Tuple[List[pulse.Schedule], Dict[str, Any],
 def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
     """Disassemble a qobj and return the circuits or pulse schedules, run_config, and user header.
 
+    .. note::
+
+        ``disassemble(assemble(qc))`` is not guaranteed to produce an exactly equal circuit to the
+        input, due to limitations in the :obj:`.QasmQobj` format that need to be maintained for
+        backend system compatibility.  This is most likely to be the case when using newer features
+        of :obj:`.QuantumCircuit`.  In most cases, the output should be equivalent, if not quite
+        equal.
+
     Args:
         qobj (Qobj): The input qobj object to disassemble
 
@@ -46,6 +57,25 @@ def disassemble(qobj) -> Union[CircuitModule, PulseModule]:
             * programs: A list of quantum circuits or pulse schedules
             * run_config: The dict of the run config
             * user_qobj_header: The dict of any user headers in the qobj
+
+    Examples:
+
+        .. code-block:: python
+
+            from qiskit.circuit import QuantumRegister, ClassicalRegister, QuantumCircuit
+            from qiskit.compiler.assembler import assemble
+            from qiskit.assembler.disassemble import disassemble
+            # Create a circuit to assemble into a qobj
+            q = QuantumRegister(2)
+            c = ClassicalRegister(2)
+            qc = QuantumCircuit(q, c)
+            qc.h(q[0])
+            qc.cx(q[0], q[1])
+            qc.measure(q, c)
+            # Assemble the circuit into a Qobj
+            qobj = assemble(qc, shots=2000, memory=True)
+            # Disassemble the qobj back into a circuit
+            circuits, run_config_out, headers = disassemble(qobj)
     """
     if qobj.type == "PULSE":
         return _disassemble_pulse_schedule(qobj)
@@ -67,6 +97,31 @@ def _disassemble_circuit(qobj) -> CircuitModule:
 
     user_qobj_header = qobj.header.to_dict()
     return CircuitModule((_experiments_to_circuits(qobj), run_config, user_qobj_header))
+
+
+def _qobj_to_circuit_cals(qobj, pulse_lib):
+    """Return circuit calibrations dictionary from qobj/exp config calibrations."""
+    qobj_cals = qobj.config.calibrations.to_dict()["gates"]
+    converter = QobjToInstructionConverter(pulse_lib)
+
+    qc_cals = {}
+    for gate in qobj_cals:
+        config = (tuple(gate["qubits"]), tuple(gate["params"]))
+        cal = {
+            config: pulse.Schedule(
+                name="{} {} {}".format(gate["name"], str(gate["params"]), str(gate["qubits"]))
+            )
+        }
+        for instruction in gate["instructions"]:
+            qobj_instruction = PulseQobjInstruction.from_dict(instruction)
+            schedule = converter(qobj_instruction)
+            cal[config] = cal[config].insert(schedule.ch_start_time(), schedule)
+        if gate["name"] in qc_cals:
+            qc_cals[gate["name"]].update(cal)
+        else:
+            qc_cals[gate["name"]] = cal
+
+    return qc_cals
 
 
 def _experiments_to_circuits(qobj):
@@ -144,10 +199,27 @@ def _experiments_to_circuits(qobj):
                     mask = [0] * (full_bit_size - len(raw)) + raw
                     raw_map[creg] = mask
                     mask_map[int("".join(str(x) for x in mask), 2)] = creg
-                creg = mask_map[int(i.mask, 16)]
-                conditional["register"] = creg_dict[creg]
+                if bin(int(i.mask, 16)).count("1") == 1:
+                    # The condition is on a single bit.  This might be a single-bit condition, or it
+                    # might be a register of length one.  The case that it's a single-bit condition
+                    # in a register of length one is ambiguous, and we choose to return a condition
+                    # on the register.  This may not match the input circuit exactly, but is at
+                    # least equivalent.
+                    cbit = int(math.log2(int(i.mask, 16)))
+                    for reg in creg_dict.values():
+                        size = reg.size
+                        if cbit >= size:
+                            cbit -= size
+                        else:
+                            conditional["register"] = reg if reg.size == 1 else reg[cbit]
+                            break
+                    mask_str = bin(int(i.mask, 16))[2:].zfill(full_bit_size)
+                    mask = [int(item) for item in list(mask_str)]
+                else:
+                    creg = mask_map[int(i.mask, 16)]
+                    conditional["register"] = creg_dict[creg]
+                    mask = raw_map[creg]
                 val = int(i.val, 16)
-                mask = raw_map[creg]
                 for j in reversed(mask):
                     if j == 0:
                         val = val >> 1
@@ -162,6 +234,16 @@ def _experiments_to_circuits(qobj):
             if conditional and name != "bfunc":
                 _inst.c_if(conditional["register"], conditional["value"])
                 conditional = {}
+        pulse_lib = qobj.config.pulse_library if hasattr(qobj.config, "pulse_library") else []
+        # The dict update method did not work here; could investigate in the future
+        if hasattr(qobj.config, "calibrations"):
+            circuit.calibrations = dict(
+                **circuit.calibrations, **_qobj_to_circuit_cals(qobj, pulse_lib)
+            )
+        if hasattr(exp.config, "calibrations"):
+            circuit.calibrations = dict(
+                **circuit.calibrations, **_qobj_to_circuit_cals(exp, pulse_lib)
+            )
         circuits.append(circuit)
     return circuits
 

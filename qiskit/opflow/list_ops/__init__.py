@@ -12,7 +12,7 @@
 
 r"""
 List Operators (:mod:`qiskit.opflow.list_ops`)
-==============================================================
+==============================================
 
 .. currentmodule:: qiskit.opflow.list_ops
 
@@ -68,11 +68,11 @@ Note:
     before adding them, rather than adding them directly before the measurement.
 
 List Operators
-===============
+--------------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    ListOp
    ComposedOp

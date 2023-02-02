@@ -11,10 +11,12 @@
 # that they have been altered from the originals.
 
 """Rotation around the Z axis."""
-
+from cmath import exp
+from typing import Optional, Union
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RZGate(Gate):
@@ -22,6 +24,9 @@ class RZGate(Gate):
 
     This is a diagonal gate. It can be implemented virtually in hardware
     via framechanges (i.e. at zero error and duration).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rz` method.
 
     **Circuit symbol:**
 
@@ -35,7 +40,7 @@ class RZGate(Gate):
 
     .. math::
 
-        RZ(\lambda) = exp(-i\frac{\lambda}{2}Z) =
+        RZ(\lambda) = \exp\left(-i\frac{\lambda}{2}Z\right) =
             \begin{pmatrix}
                 e^{-i\frac{\lambda}{2}} & 0 \\
                 0 & e^{i\frac{\lambda}{2}}
@@ -54,7 +59,7 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, phi, label=None):
+    def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new RZ gate."""
         super().__init__("rz", 1, [phi], label=label)
 
@@ -75,7 +80,12 @@ class RZGate(Gate):
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-RZ gate.
 
         Args:
@@ -105,7 +115,12 @@ class RZGate(Gate):
         import numpy as np
 
         ilam2 = 0.5j * float(self.params[0])
-        return np.array([[np.exp(-ilam2), 0], [0, np.exp(ilam2)]], dtype=dtype)
+        return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RZGate(exponent * theta)
 
 
 class CRZGate(ControlledGate):
@@ -113,6 +128,9 @@ class CRZGate(ControlledGate):
 
     This is a diagonal but non-symmetric gate that induces a
     phase on the state of the target qubit, depending on the control state.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.crz` method.
 
     **Circuit symbol:**
 
@@ -169,7 +187,12 @@ class CRZGate(ControlledGate):
         phase difference.
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CRZ gate."""
         super().__init__(
             "crz",
@@ -192,6 +215,10 @@ class CRZGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
 
+        # q_0: ─────────────■────────────────■──
+        #      ┌─────────┐┌─┴─┐┌──────────┐┌─┴─┐
+        # q_1: ┤ Rz(λ/2) ├┤ X ├┤ Rz(-λ/2) ├┤ X ├
+        #      └─────────┘└───┘└──────────┘└───┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -216,11 +243,11 @@ class CRZGate(ControlledGate):
         arg = 1j * float(self.params[0]) / 2
         if self.ctrl_state:
             return numpy.array(
-                [[1, 0, 0, 0], [0, numpy.exp(-arg), 0, 0], [0, 0, 1, 0], [0, 0, 0, numpy.exp(arg)]],
+                [[1, 0, 0, 0], [0, exp(-arg), 0, 0], [0, 0, 1, 0], [0, 0, 0, exp(arg)]],
                 dtype=dtype,
             )
         else:
             return numpy.array(
-                [[numpy.exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, numpy.exp(arg), 0], [0, 0, 0, 1]],
+                [[exp(-arg), 0, 0, 0], [0, 1, 0, 0], [0, 0, exp(arg), 0], [0, 0, 0, 1]],
                 dtype=dtype,
             )

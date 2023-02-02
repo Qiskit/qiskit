@@ -21,6 +21,9 @@ class RVGate(Gate):
     r"""Rotation around arbitrary rotation axis :math:`v` where :math:`|v|` is
     angle of rotation in radians.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rv` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -63,7 +66,7 @@ class RVGate(Gate):
             self.definition = self._decomposer(self.to_matrix())
         except TypeError as ex:
             raise CircuitError(
-                f"The {self.name} gate cannot be decomposed " "with unbound parameters"
+                f"The {self.name} gate cannot be decomposed with unbound parameters"
             ) from ex
 
     def inverse(self):

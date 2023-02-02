@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,24 +13,42 @@
 """The Eigensolver interface"""
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Optional, List, Tuple
 
 import numpy as np
+
 from qiskit.opflow import OperatorBase
+from qiskit.utils.deprecation import deprecate_function
 from ..algorithm_result import AlgorithmResult
+from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):
-    """The Eigensolver Interface.
+    """Pending deprecation: Eigensolver Interface.
+
+    The Eigensolver interface has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.Eigensolver` interface.
+    This interface will be deprecated in a future release and subsequently
+    removed after that.
 
     Algorithms that can compute eigenvalues for an operator
     may implement this interface to allow different algorithms to be
     used interchangeably.
     """
 
+    @deprecate_function(
+        "The Eigensolver interface has been superseded by the "
+        "qiskit.algorithms.eigensolvers.Eigensolver interface. "
+        "This interface will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def __init__(self) -> None:
+        pass
+
     @abstractmethod
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
     ) -> "EigensolverResult":
         """
         Computes eigenvalues. Operator and aux_operators can be supplied here and
@@ -61,8 +79,22 @@ class Eigensolver(ABC):
 
 
 class EigensolverResult(AlgorithmResult):
-    """Eigensolver Result."""
+    """Pending deprecation: Eigensolver Result.
 
+    The EigensolverResult class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.EigensolverResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The EigensolverResult class has been superseded by the "
+        "qiskit.algorithms.eigensolvers.EigensolverResult class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(self) -> None:
         super().__init__()
         self._eigenvalues = None
@@ -90,11 +122,14 @@ class EigensolverResult(AlgorithmResult):
         self._eigenstates = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[np.ndarray]:
-        """return aux operator eigen values"""
+    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
+        """Return aux operator expectation values.
+
+        These values are in fact tuples formatted as (mean, standard deviation).
+        """
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: np.ndarray) -> None:
+    def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

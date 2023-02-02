@@ -13,18 +13,18 @@
 """Pulses are descriptions of waveform envelopes. They can be transmitted by control electronics
 to the device.
 """
-import warnings
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Any, Tuple, Union
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.utils import deprecated_functionality
+from qiskit.circuit.parameterexpression import ParameterExpression
 
 
 class Pulse(ABC):
     """The abstract superclass for pulses. Pulses are complex-valued waveform envelopes. The
     modulation phase and frequency are specified separately from ``Pulse``s.
     """
+
+    __slots__ = ("duration", "name", "_limit_amplitude")
 
     limit_amplitude = True
 
@@ -45,11 +45,12 @@ class Pulse(ABC):
                              by default but may be set by the user to disable amplitude
                              checks globally.
         """
+        if limit_amplitude is None:
+            limit_amplitude = self.__class__.limit_amplitude
 
         self.duration = duration
         self.name = name
-        if limit_amplitude is not None:
-            self.limit_amplitude = limit_amplitude
+        self._limit_amplitude = limit_amplitude
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
@@ -66,31 +67,9 @@ class Pulse(ABC):
         """Return True iff the instruction is parameterized."""
         raise NotImplementedError
 
-    @deprecated_functionality
-    @abstractmethod
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "Pulse":
-        """Return a new pulse with parameters assigned.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            New pulse with updated parameters.
-        """
-        raise NotImplementedError
-
     def draw(
         self,
-        dt: Any = None,  # deprecated
         style: Optional[Dict[str, Any]] = None,
-        filename: Any = None,  # deprecated
-        interp_method: Any = None,  # deprecated
-        scale: Any = None,  # deprecated
-        interactive: Any = None,  # deprecated
-        draw_title: Any = None,  # deprecated
         backend=None,  # importing backend causes cyclic import
         time_range: Optional[Tuple[int, int]] = None,
         time_unit: str = "dt",
@@ -102,9 +81,9 @@ class Pulse(ABC):
 
         Args:
             style: Stylesheet options. This can be dictionary or preset stylesheet classes. See
-                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
-                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
-                :py:class:~`qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXStandard`,
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXSimple`, and
+                :py:class:`~qiskit.visualization.pulse_v2.stylesheets.IQXDebugging` for details of
                 preset stylesheets.
             backend (Optional[BaseBackend]): Backend object to play the input pulse program.
                 If provided, the plotter may use to make the visualization hardware aware.
@@ -125,14 +104,6 @@ class Pulse(ABC):
                 the plotters use a given ``axis`` instead of internally initializing
                 a figure object. This object format depends on the plotter.
                 See plotter argument for details.
-            dt: Deprecated. This argument is used by the legacy pulse drawer.
-            filename: Deprecated. This argument is used by the legacy pulse drawer.
-                To save output image, you can call `.savefig` method with
-                returned Matplotlib Figure object.
-            interp_method: Deprecated. This argument is used by the legacy pulse drawer.
-            scale: Deprecated. This argument is used by the legacy pulse drawer.
-            interactive: Deprecated. This argument is used by the legacy pulse drawer.
-            draw_title: Deprecated. This argument is used by the legacy pulse drawer.
 
         Returns:
             Visualization output data.
@@ -140,48 +111,9 @@ class Pulse(ABC):
             If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """
         # pylint: disable=cyclic-import, missing-return-type-doc
-        from qiskit.visualization import pulse_drawer_v2, PulseStyle
+        from qiskit.visualization import pulse_drawer
 
-        legacy_args = {
-            "dt": dt,
-            "filename": filename,
-            "interp_method": interp_method,
-            "scale": scale,
-            "interactive": interactive,
-            "draw_title": draw_title,
-        }
-
-        active_legacy_args = []
-        for name, legacy_arg in legacy_args.items():
-            if legacy_arg is not None:
-                active_legacy_args.append(name)
-
-        if active_legacy_args:
-            warnings.warn(
-                "Legacy pulse drawer is deprecated. "
-                "Specified arguments {dep_args} are deprecated. "
-                "Please check the API document of new pulse drawer "
-                "`qiskit.visualization.pulse_drawer_v2`."
-                "".format(dep_args=", ".join(active_legacy_args)),
-                DeprecationWarning,
-            )
-
-        if filename:
-            warnings.warn(
-                "File saving is delegated to the plotter software in new drawer. "
-                "If you specify matplotlib plotter family to `plotter` argument, "
-                "you can call `savefig` method with the returned Figure object.",
-                DeprecationWarning,
-            )
-
-        if isinstance(style, PulseStyle):
-            style = None
-            warnings.warn(
-                "Legacy stylesheet is specified. This is ignored in the new drawer. "
-                "Please check the API documentation for this method."
-            )
-
-        return pulse_drawer_v2(
+        return pulse_drawer(
             program=self,
             style=style,
             backend=backend,

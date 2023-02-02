@@ -10,7 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The ``instruction`` module holds the various ``Instruction`` s which are supported by
+r"""
+.. _pulse-insts:
+
+===============================================
+Instructions (:mod:`qiskit.pulse.instructions`)
+===============================================
+
+The ``instructions`` module holds the various :obj:`Instruction`\ s which are supported by
 Qiskit Pulse. Instructions have operands, which typically include at least one
 :py:class:`~qiskit.pulse.channels.Channel` specifying where the instruction will be applied.
 
@@ -35,28 +42,28 @@ sequence of scheduled Pulse ``Instruction`` s over many channels. ``Instruction`
 
    Acquire
    Call
+   Reference
    Delay
    Play
+   RelativeBarrier
    SetFrequency
    ShiftFrequency
    SetPhase
    ShiftPhase
    Snapshot
+   TimeBlockade
 
-Abstract Classes
-----------------
-.. autosummary::
-   :toctree: ../stubs/
+These are all instances of the same base class:
 
-   Instruction
-
+.. autoclass:: Instruction
 """
 from .acquire import Acquire
 from .delay import Delay
-from .directives import Directive, RelativeBarrier
+from .directives import Directive, RelativeBarrier, TimeBlockade
 from .call import Call
 from .instruction import Instruction
 from .frequency import SetFrequency, ShiftFrequency
 from .phase import ShiftPhase, SetPhase
 from .play import Play
 from .snapshot import Snapshot
+from .reference import Reference

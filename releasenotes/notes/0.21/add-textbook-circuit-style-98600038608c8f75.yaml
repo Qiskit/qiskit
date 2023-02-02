@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added a new circuit drawing style, ``textbook``, which uses the color
+    scheme of the Qiskit Textbook.

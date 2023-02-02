@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The OpenQASM 2 exporter (:meth:`.QuantumCircuit.qasm`) will now emit higher
+    precision floating point numbers for gate parameters per default. This is
+    accomplished by relying on Python's built-in float formatting in case no
+    suitable approximation to some power/fraction of `pi` can be found.
+
+    In addition, a tighter bound (`1e-12` instead of `1e-6`) is used for checking
+    whether a given parameter is close to a fraction/power of `pi`.
+
+    Fixed `#7166 <https://github.com/Qiskit/qiskit-terra/issues/7166>`__.

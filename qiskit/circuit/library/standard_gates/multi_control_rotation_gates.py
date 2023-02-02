@@ -14,15 +14,22 @@ Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
 from math import pi
+from typing import Optional, Union, Tuple, List
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
 
 
 def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):
     if use_basis_gates:
         # pylint: disable=cyclic-import
+        #          ┌──────────────┐
+        # control: ┤ P(λ/2 + φ/2) ├──■──────────────────────────────────■────────────────
+        #          ├──────────────┤┌─┴─┐┌────────────────────────────┐┌─┴─┐┌────────────┐
+        #  target: ┤ P(λ/2 - φ/2) ├┤ X ├┤ U(-0.5*0,0,-0.5*λ - 0.5*φ) ├┤ X ├┤ U(0/2,φ,0) ├
+        #          └──────────────┘└───┘└────────────────────────────┘└───┘└────────────┘
         circuit.p((lam + phi) / 2, [control])
         circuit.p((lam - phi) / 2, [target])
         circuit.cx(control, target)
@@ -74,40 +81,32 @@ def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
         last_pattern = pattern
 
 
-def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
+def mcrx(
+    self,
+    theta: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    use_basis_gates: bool = False,
+):
     """
     Apply Multiple-Controlled X rotation gate
 
     Args:
         self (QuantumCircuit): The QuantumCircuit object to apply the mcrx gate on.
         theta (float): angle theta
-        q_controls (list(Qubit)): The list of control qubits
+        q_controls (QuantumRegister or list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
         use_basis_gates (bool): use p, u, cx
 
     Raises:
         QiskitError: parameter errors
     """
-
-    # check controls
-    if isinstance(q_controls, QuantumRegister):
-        control_qubits = list(q_controls)
-    elif isinstance(q_controls, list):
-        control_qubits = q_controls
-    else:
-        raise QiskitError(
-            "The mcrx gate needs a list of qubits or a quantum register for controls."
-        )
-
-    # check target
-    if isinstance(q_target, Qubit):
-        target_qubit = q_target
-    else:
-        raise QiskitError("The mcrx gate needs a single qubit as target.")
-
-    all_qubits = control_qubits + [target_qubit]
-
-    self._check_qargs(all_qubits)
+    control_qubits = self.qbit_argument_conversion(q_controls)
+    target_qubit = self.qbit_argument_conversion(q_target)
+    if len(target_qubit) != 1:
+        raise QiskitError("The mcrz gate needs a single qubit as target.")
+    all_qubits = control_qubits + target_qubit
+    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     n_c = len(control_qubits)
@@ -134,7 +133,15 @@ def mcrx(self, theta, q_controls, q_target, use_basis_gates=False):
         )
 
 
-def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basis_gates=False):
+def mcry(
+    self,
+    theta: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
+    mode: str = None,
+    use_basis_gates=False,
+):
     """
     Apply Multiple-Controlled Y rotation gate
 
@@ -150,38 +157,13 @@ def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basi
     Raises:
         QiskitError: parameter errors
     """
-
-    # check controls
-    if isinstance(q_controls, QuantumRegister):
-        control_qubits = list(q_controls)
-    elif isinstance(q_controls, list):
-        control_qubits = q_controls
-    else:
-        raise QiskitError(
-            "The mcry gate needs a list of qubits or a quantum " "register for controls."
-        )
-
-    # check target
-    if isinstance(q_target, Qubit):
-        target_qubit = q_target
-    else:
-        raise QiskitError("The mcry gate needs a single qubit as target.")
-
-    # check ancilla
-    if q_ancillae is None:
-        ancillary_qubits = []
-    elif isinstance(q_ancillae, QuantumRegister):
-        ancillary_qubits = list(q_ancillae)
-    elif isinstance(q_ancillae, list):
-        ancillary_qubits = q_ancillae
-    else:
-        raise QiskitError(
-            "The mcry gate needs None or a list of qubits or a " "quantum register for ancilla."
-        )
-
-    all_qubits = control_qubits + [target_qubit] + ancillary_qubits
-
-    self._check_qargs(all_qubits)
+    control_qubits = self.qbit_argument_conversion(q_controls)
+    target_qubit = self.qbit_argument_conversion(q_target)
+    if len(target_qubit) != 1:
+        raise QiskitError("The mcrz gate needs a single qubit as target.")
+    ancillary_qubits = [] if q_ancillae is None else self.qbit_argument_conversion(q_ancillae)
+    all_qubits = control_qubits + target_qubit + ancillary_qubits
+    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     # auto-select the best mode
@@ -219,7 +201,13 @@ def mcry(self, theta, q_controls, q_target, q_ancillae=None, mode=None, use_basi
         raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
 
-def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
+def mcrz(
+    self,
+    lam: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    use_basis_gates: bool = False,
+):
     """
     Apply Multiple-Controlled Z rotation gate
 
@@ -233,26 +221,12 @@ def mcrz(self, lam, q_controls, q_target, use_basis_gates=False):
     Raises:
         QiskitError: parameter errors
     """
-
-    # check controls
-    if isinstance(q_controls, QuantumRegister):
-        control_qubits = list(q_controls)
-    elif isinstance(q_controls, list):
-        control_qubits = q_controls
-    else:
-        raise QiskitError(
-            "The mcrz gate needs a list of qubits or a quantum register for controls."
-        )
-
-    # check target
-    if isinstance(q_target, Qubit):
-        target_qubit = q_target
-    else:
+    control_qubits = self.qbit_argument_conversion(q_controls)
+    target_qubit = self.qbit_argument_conversion(q_target)
+    if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
-
-    all_qubits = control_qubits + [target_qubit]
-
-    self._check_qargs(all_qubits)
+    all_qubits = control_qubits + target_qubit
+    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     n_c = len(control_qubits)

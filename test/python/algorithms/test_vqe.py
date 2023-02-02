@@ -10,14 +10,16 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,import-error
-
 """ Test VQE """
 
+import logging
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
+from test.python.transpiler._dummy_passes import DummyAP
 
+from functools import partial
 import numpy as np
+from scipy.optimize import minimize as scipy_minimize
 from ddt import data, ddt, unpack
 
 from qiskit import BasicAer, QuantumCircuit
@@ -27,11 +29,13 @@ from qiskit.algorithms.optimizers import (
     COBYLA,
     L_BFGS_B,
     P_BFGS,
+    QNSPSA,
     SLSQP,
     SPSA,
     TNC,
+    OptimizerResult,
 )
-from qiskit.circuit.library import EfficientSU2, TwoLocal
+from qiskit.circuit.library import EfficientSU2, RealAmplitudes, TwoLocal
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import (
     AerPauliExpectation,
@@ -45,10 +49,36 @@ from qiskit.opflow import (
     X,
     Z,
 )
+from qiskit.quantum_info import Statevector
+from qiskit.transpiler import PassManager, PassManagerConfig
+from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
 
 if has_aer():
     from qiskit import Aer
+
+logger = "LocalLogger"
+
+
+class LogPass(DummyAP):
+    """A dummy analysis pass that logs when executed"""
+
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+    def run(self, dag):
+        logging.getLogger(logger).info(self.message)
+
+
+# pylint: disable=invalid-name, unused-argument
+def _mock_optimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+    """A mock of a callable that can be used as minimizer in the VQE."""
+    result = OptimizerResult()
+    result.x = np.zeros_like(x0)
+    result.fun = fun(result.x)
+    result.nit = 0
+    return result
 
 
 @ddt
@@ -153,19 +183,17 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     @data(
         (SLSQP(maxiter=50), 5, 4),
-        (SPSA(maxiter=150), 3, 2),  # max_evals_grouped=n or =2 if n>2
+        (SPSA(maxiter=150), 2, 2),  # max_evals_grouped=n or =2 if n>2
     )
     @unpack
     def test_max_evals_grouped(self, optimizer, places, max_evals_grouped):
         """VQE Optimizers test"""
-        with self.assertWarns(DeprecationWarning):
-            vqe = VQE(
-                ansatz=self.ryrz_wavefunction,
-                optimizer=optimizer,
-                max_evals_grouped=max_evals_grouped,
-                quantum_instance=self.statevector_simulator,
-                sort_parameters_by_name=True,
-            )
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=optimizer,
+            max_evals_grouped=max_evals_grouped,
+            quantum_instance=self.statevector_simulator,
+        )
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
 
@@ -185,32 +213,14 @@ class TestVQE(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
 
-    def test_qasm_aux_operators_normalized(self):
-        """Test VQE with qasm_simulator returns normalized aux_operator eigenvalues."""
+    def test_qasm_eigenvector_normalized(self):
+        """Test VQE with qasm_simulator returns normalized eigenvector."""
         wavefunction = self.ry_wavefunction
         vqe = VQE(ansatz=wavefunction, quantum_instance=self.qasm_simulator)
-        _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
-        opt_params = [
-            3.50437328,
-            3.87415376,
-            0.93684363,
-            5.92219622,
-            -1.53527887,
-            1.87941418,
-            -4.5708326,
-            0.70187027,
-        ]
-
-        vqe._ret.optimal_point = opt_params
-        vqe._ret.optimal_parameters = dict(
-            zip(sorted(wavefunction.parameters, key=lambda p: p.name), opt_params)
-        )
-
-        with self.assertWarns(DeprecationWarning):
-            optimal_vector = vqe.get_optimal_vector()
-
-        self.assertAlmostEqual(sum(v ** 2 for v in optimal_vector.values()), 1.0, places=4)
+        amplitudes = list(result.eigenstate.values())
+        self.assertAlmostEqual(np.linalg.norm(amplitudes), 1.0, places=4)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_with_aer_statevector(self):
@@ -438,6 +448,299 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         with self.subTest("Check results."):
             self.assertEqual(len(result0.optimal_point), len(result1.optimal_point))
+
+    def test_batch_evaluate_with_qnspsa(self):
+        """Test batch evaluating with QNSPSA works."""
+        ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+
+        wrapped_backend = BasicAer.get_backend("qasm_simulator")
+        inner_backend = BasicAer.get_backend("statevector_simulator")
+
+        callcount = {"count": 0}
+
+        def wrapped_run(circuits, **kwargs):
+            kwargs["callcount"]["count"] += 1
+            return inner_backend.run(circuits)
+
+        wrapped_backend.run = partial(wrapped_run, callcount=callcount)
+
+        fidelity = QNSPSA.get_fidelity(ansatz, backend=wrapped_backend)
+        qnspsa = QNSPSA(fidelity, maxiter=5)
+
+        vqe = VQE(
+            ansatz=ansatz,
+            optimizer=qnspsa,
+            max_evals_grouped=100,
+            quantum_instance=wrapped_backend,
+        )
+        _ = vqe.compute_minimum_eigenvalue(Z ^ Z)
+
+        # 1 calibration + 1 stddev estimation + 1 initial blocking
+        # + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
+        expected = 1 + 1 + 1 + 5 * 3 + 1 + 1
+
+        self.assertEqual(callcount["count"], expected)
+
+    def test_set_ansatz_to_none(self):
+        """Tests that setting the ansatz to None results in the default behavior"""
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=L_BFGS_B(),
+            quantum_instance=self.statevector_simulator,
+        )
+        vqe.ansatz = None
+        self.assertIsInstance(vqe.ansatz, RealAmplitudes)
+
+    def test_set_optimizer_to_none(self):
+        """Tests that setting the optimizer to None results in the default behavior"""
+        vqe = VQE(
+            ansatz=self.ryrz_wavefunction,
+            optimizer=L_BFGS_B(),
+            quantum_instance=self.statevector_simulator,
+        )
+        vqe.optimizer = None
+        self.assertIsInstance(vqe.optimizer, SLSQP)
+
+    def test_optimizer_scipy_callable(self):
+        """Test passing a SciPy optimizer directly as callable."""
+        vqe = VQE(
+            optimizer=partial(scipy_minimize, method="L-BFGS-B", options={"maxiter": 2}),
+            quantum_instance=self.statevector_simulator,
+        )
+        result = vqe.compute_minimum_eigenvalue(Z)
+        self.assertEqual(result.cost_function_evals, 20)
+
+    def test_optimizer_callable(self):
+        """Test passing a optimizer directly as callable."""
+        ansatz = RealAmplitudes(1, reps=1)
+        vqe = VQE(
+            ansatz=ansatz, optimizer=_mock_optimizer, quantum_instance=self.statevector_simulator
+        )
+        result = vqe.compute_minimum_eigenvalue(Z)
+        self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
+
+    def test_aux_operators_list(self):
+        """Test list-based aux_operators."""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+
+        # Start with an empty list
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=[])
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertIsNone(result.aux_operator_eigenvalues)
+
+        # Go again with two auxiliary operators
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = [aux_op1, aux_op2]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0)
+
+        # Go again with additional None and zero operators
+        extra_ops = [*aux_ops, None, 0]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 4)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
+        self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
+
+    def test_aux_operators_dict(self):
+        """Test dictionary compatibility of aux_operators"""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+
+        # Start with an empty dictionary
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators={})
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertIsNone(result.aux_operator_eigenvalues)
+
+        # Go again with two auxiliary operators
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][1], 0.0)
+
+        # Go again with additional None and zero operators
+        extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
+        self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 3)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][0], 2, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][0], 0, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues["zero_operator"][0], 0.0)
+        self.assertTrue("None_operator" not in result.aux_operator_eigenvalues.keys())
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op1"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["aux_op2"][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues["zero_operator"][1], 0.0)
+
+    def test_aux_operator_std_dev_pauli(self):
+        """Test non-zero standard deviations of aux operators with PauliExpectation."""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(
+            ansatz=wavefunction,
+            expectation=PauliExpectation(),
+            optimizer=COBYLA(maxiter=0),
+            quantum_instance=self.qasm_simulator,
+        )
+
+        # Go again with two auxiliary operators
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = [aux_op1, aux_op2]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6796875, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.02534712219145965, places=6)
+
+        # Go again with additional None and zero operators
+        aux_ops = [*aux_ops, None, 0]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 4)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.57421875, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
+        self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
+        # # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(
+            result.aux_operator_eigenvalues[1][1], 0.026562146577166837, places=6
+        )
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
+
+    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
+    def test_aux_operator_std_dev_aer_pauli(self):
+        """Test non-zero standard deviations of aux operators with AerPauliExpectation."""
+        wavefunction = self.ry_wavefunction
+        vqe = VQE(
+            ansatz=wavefunction,
+            expectation=AerPauliExpectation(),
+            optimizer=COBYLA(maxiter=0),
+            quantum_instance=QuantumInstance(
+                backend=Aer.get_backend("qasm_simulator"),
+                shots=1,
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+            ),
+        )
+
+        # Go again with two auxiliary operators
+        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
+        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_ops = [aux_op1, aux_op2]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 2)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6698863565455391, places=6)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0, places=6)
+
+        # Go again with additional None and zero operators
+        aux_ops = [*aux_ops, None, 0]
+        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        self.assertEqual(len(result.aux_operator_eigenvalues), 4)
+        # expectation values
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][0], 0.6036400943063891, places=6)
+        self.assertEqual(result.aux_operator_eigenvalues[2][0], 0.0)
+        self.assertEqual(result.aux_operator_eigenvalues[3][0], 0.0)
+        # standard deviations
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[0][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[1][1], 0.0, places=6)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[2][1], 0.0)
+        self.assertAlmostEqual(result.aux_operator_eigenvalues[3][1], 0.0)
+
+    def test_2step_transpile(self):
+        """Test the two-step transpiler pass."""
+        # count how often the pass for parameterized circuits is called
+        pre_counter = LogPass("pre_passmanager")
+        pre_pass = PassManager(pre_counter)
+        config = PassManagerConfig(basis_gates=["u3", "cx"])
+        pre_pass += level_1_pass_manager(config)
+
+        # ... and the pass for bound circuits
+        bound_counter = LogPass("bound_pass_manager")
+        bound_pass = PassManager(bound_counter)
+
+        quantum_instance = QuantumInstance(
+            backend=BasicAer.get_backend("statevector_simulator"),
+            basis_gates=["u3", "cx"],
+            pass_manager=pre_pass,
+            bound_pass_manager=bound_pass,
+        )
+
+        optimizer = SPSA(maxiter=5, learning_rate=0.01, perturbation=0.01)
+
+        vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
+        _ = vqe.compute_minimum_eigenvalue(Z)
+
+        with self.assertLogs(logger, level="INFO") as cm:
+            _ = vqe.compute_minimum_eigenvalue(Z)
+
+        expected = [
+            "pre_passmanager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "bound_pass_manager",
+            "pre_passmanager",
+            "bound_pass_manager",
+        ]
+        self.assertEqual([record.message for record in cm.records], expected)
+
+    def test_construct_eigenstate_from_optpoint(self):
+        """Test constructing the eigenstate from the optimal point, if the default ansatz is used."""
+
+        # use Hamiltonian yielding more than 11 parameters in the default ansatz
+        hamiltonian = Z ^ Z ^ Z
+        optimizer = SPSA(maxiter=1, learning_rate=0.01, perturbation=0.01)
+        quantum_instance = QuantumInstance(
+            backend=BasicAer.get_backend("statevector_simulator"), basis_gates=["u3", "cx"]
+        )
+        vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
+        result = vqe.compute_minimum_eigenvalue(hamiltonian)
+
+        optimal_circuit = vqe.ansatz.bind_parameters(result.optimal_point)
+        self.assertTrue(Statevector(result.eigenstate).equiv(optimal_circuit))
 
 
 if __name__ == "__main__":

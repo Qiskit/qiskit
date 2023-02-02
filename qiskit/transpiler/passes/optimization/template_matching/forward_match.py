@@ -198,7 +198,7 @@ class ForwardMatch:
             successor_id (int): successor id to remove.
 
         Returns:
-            DAGNode: DAGNode with updated attribute 'SuccessorToVisit'.
+            DAGOpNode or DAGOutNode: Node with updated attribute 'SuccessorToVisit'.
         """
         node_update = node
         node_update.successorstovisit.pop(successor_id)
@@ -208,7 +208,7 @@ class ForwardMatch:
         """
         Return the successor for a given node and id.
         Args:
-            node (DAGNode): current node.
+            node (DAGOpNode or DAGOutNode): current node.
             list_id (int): id in the list for the successor to get.
 
         Returns:
@@ -313,13 +313,16 @@ class ForwardMatch:
         """
         if (
             node_circuit.type == "op"
-            and node_circuit.op.condition
+            and getattr(node_circuit.op, "condition", None)
             and node_template.type == "op"
-            and node_template.op.conditon
+            and getattr(node_template.op, "condition", None)
         ):
             if set(self.carg_indices) != set(node_template.cindices):
                 return False
-            if node_circuit.op.condition[1] != node_template.op.conditon[1]:
+            if (
+                getattr(node_circuit.op, "condition", None)[1]
+                != getattr(node_template.op, "condition", None)[1]
+            ):
                 return False
         return True
 

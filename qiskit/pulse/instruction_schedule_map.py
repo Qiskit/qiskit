@@ -26,20 +26,22 @@ An instance of this class is instantiated by Pulse-enabled backends and populate
     inst_map = backend.defaults().instruction_schedule_map
 
 """
-import inspect
+import functools
 import warnings
 from collections import defaultdict
-from typing import Callable, Iterable, List, Tuple, Union, Optional, NamedTuple
+from typing import Callable, Iterable, List, Tuple, Union, Optional
 
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
-from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.schedule import Schedule, ScheduleBlock, ParameterizedSchedule
-
-Generator = NamedTuple(
-    "Generator",
-    [("function", Union[Callable, Schedule, ScheduleBlock]), ("signature", inspect.Signature)],
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.pulse.calibration_entries import (
+    CalibrationPublisher,
+    CalibrationEntry,
+    ScheduleDef,
+    CallableDef,
+    PulseQobjDef,
 )
+from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
 
 class InstructionScheduleMap:
@@ -59,9 +61,22 @@ class InstructionScheduleMap:
     def __init__(self):
         """Initialize a circuit instruction to schedule mapper instance."""
         # The processed and reformatted circuit instruction definitions
-        self._map = defaultdict(lambda: defaultdict(Generator))
+
+        # Do not use lambda function for nested defaultdict, i.e. lambda: defaultdict(CalibrationEntry).
+        # This crashes qiskit parallel. Note that parallel framework passes args as
+        # pickled object, however lambda function cannot be pickled.
+        self._map = defaultdict(functools.partial(defaultdict, CalibrationEntry))
+
         # A backwards mapping from qubit to supported instructions
         self._qubit_instructions = defaultdict(set)
+
+    def has_custom_gate(self) -> bool:
+        """Return ``True`` if the map has user provided instruction."""
+        for qubit_inst in self._map.values():
+            for entry in qubit_inst.values():
+                if not isinstance(entry, PulseQobjDef):
+                    return True
+        return False
 
     @property
     def instructions(self) -> List[str]:
@@ -151,9 +166,7 @@ class InstructionScheduleMap:
                         inst=instruction, qubits=self.qubits_with_instruction(instruction)
                     )
                 )
-            raise PulseError(
-                "Operation '{inst}' is not defined for this " "system.".format(inst=instruction)
-            )
+            raise PulseError(f"Operation '{instruction}' is not defined for this system.")
 
     def get(
         self,
@@ -175,49 +188,34 @@ class InstructionScheduleMap:
 
         Returns:
             The Schedule defined for the input.
+        """
+        return self._get_calibration_entry(instruction, qubits).get_schedule(*params, **kwparams)
 
-        Raises:
-            PulseError: When invalid parameters are specified.
+    def _get_calibration_entry(
+        self,
+        instruction: Union[str, Instruction],
+        qubits: Union[int, Iterable[int]],
+    ) -> CalibrationEntry:
+        """Return the :class:`.CalibrationEntry` without generating schedule.
+
+        When calibration entry is un-parsed Pulse Qobj, this returns calibration
+        without parsing it. :meth:`CalibrationEntry.get_schedule` method
+        must be manually called with assigned parameters to get corresponding pulse schedule.
+
+        This method is expected be directly used internally by the V2 backend converter
+        for faster loading of the backend calibrations.
+
+        Args:
+            instruction: Name of the instruction or the instruction itself.
+            qubits: The qubits for the instruction.
+
+        Returns:
+            The calibration entry.
         """
         instruction = _get_instruction_string(instruction)
         self.assert_has(instruction, qubits)
-        generator = self._map[instruction][_to_tuple(qubits)]
 
-        _error_message = (
-            f"*params={params}, **kwparams={kwparams} do not match with "
-            f"the schedule generator signature {generator.signature}."
-        )
-
-        function = generator.function
-        if callable(function):
-            try:
-                # callables require full binding, but default values can exist.
-                binds = generator.signature.bind(*params, **kwparams)
-                binds.apply_defaults()
-            except TypeError as ex:
-                raise PulseError(_error_message) from ex
-            return function(**binds.arguments)
-
-        try:
-            # schedules allow partial binding
-            binds = generator.signature.bind_partial(*params, **kwparams)
-        except TypeError as ex:
-            raise PulseError(_error_message) from ex
-
-        if len(binds.arguments) > 0:
-            if isinstance(function, ParameterizedSchedule):
-                return function.bind_parameters(**binds.arguments)
-
-            value_dict = dict()
-            for param in function.parameters:
-                try:
-                    value_dict[param] = binds.arguments[param.name]
-                except KeyError:
-                    pass
-
-            return function.assign_parameters(value_dict, inplace=False)
-        else:
-            return function
+        return self._map[instruction][_to_tuple(qubits)]
 
     def add(
         self,
@@ -249,60 +247,49 @@ class InstructionScheduleMap:
 
         # generate signature
         if isinstance(schedule, (Schedule, ScheduleBlock)):
-            ordered_names = sorted(list({par.name for par in schedule.parameters}))
-            if arguments:
-                if set(arguments) != set(ordered_names):
-                    raise PulseError(
-                        "Arguments does not match with schedule parameters. "
-                        f"{set(arguments)} != {schedule.parameters}."
-                    )
-                ordered_names = arguments
-
-            parameters = list()
-            for argname in ordered_names:
-                param_signature = inspect.Parameter(
-                    name=argname,
-                    annotation=ParameterValueType,
-                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                )
-                parameters.append(param_signature)
-            signature = inspect.Signature(parameters=parameters, return_annotation=type(schedule))
-
-        elif isinstance(schedule, ParameterizedSchedule):
-            # TODO remove this
-            warnings.warn(
-                "ParameterizedSchedule has been deprecated. "
-                "Define Schedule with Parameter objects.",
-                DeprecationWarning,
-            )
-
-            parameters = list()
-            for argname in schedule.parameters:
-                param_signature = inspect.Parameter(
-                    name=argname,
-                    annotation=ParameterValueType,
-                    kind=inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                )
-                parameters.append(param_signature)
-            signature = inspect.Signature(parameters=parameters, return_annotation=Schedule)
-
+            entry = ScheduleDef(arguments)
+            # add metadata
+            if "publisher" not in schedule.metadata:
+                schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
         elif callable(schedule):
             if arguments:
                 warnings.warn(
-                    "Arguments are overridden by the callback function signature. "
+                    "Arguments are overruled by the callback function signature. "
                     "Input `arguments` are ignored.",
                     UserWarning,
                 )
-            signature = inspect.signature(schedule)
-
+            entry = CallableDef()
         else:
             raise PulseError(
                 "Supplied schedule must be one of the Schedule, ScheduleBlock or a "
                 "callable that outputs a schedule."
             )
+        entry.define(schedule)
+        self._add(instruction, qubits, entry)
 
-        self._map[instruction][qubits] = Generator(schedule, signature)
-        self._qubit_instructions[qubits].add(instruction)
+    def _add(
+        self,
+        instruction_name: str,
+        qubits: Tuple[int, ...],
+        entry: CalibrationEntry,
+    ):
+        """A method to resister calibration entry.
+
+        .. note::
+
+            This is internal fast-path function, and caller must ensure
+            the entry is properly formatted. This function may be used by other programs
+            that load backend calibrations to create Qiskit representation of it.
+
+        Args:
+            instruction_name: Name of instruction.
+            qubits: List of qubits that this calibration is applied.
+            entry: Calibration entry to register.
+
+        :meta public:
+        """
+        self._map[instruction_name][qubits] = entry
+        self._qubit_instructions[qubits].add(instruction_name)
 
     def remove(
         self, instruction: Union[str, Instruction], qubits: Union[int, Iterable[int]]
@@ -316,12 +303,14 @@ class InstructionScheduleMap:
         instruction = _get_instruction_string(instruction)
         qubits = _to_tuple(qubits)
         self.assert_has(instruction, qubits)
-        self._map[instruction].pop(qubits)
-        self._qubit_instructions[qubits].remove(instruction)
+
+        del self._map[instruction][qubits]
         if not self._map[instruction]:
-            self._map.pop(instruction)
+            del self._map[instruction]
+
+        self._qubit_instructions[qubits].remove(instruction)
         if not self._qubit_instructions[qubits]:
-            self._qubit_instructions.pop(qubits)
+            del self._qubit_instructions[qubits]
 
     def pop(
         self,
@@ -362,7 +351,7 @@ class InstructionScheduleMap:
         instruction = _get_instruction_string(instruction)
 
         self.assert_has(instruction, qubits)
-        signature = self._map[instruction][_to_tuple(qubits)].signature
+        signature = self._map[instruction][_to_tuple(qubits)].get_signature()
         return tuple(signature.parameters.keys())
 
     def __str__(self):
@@ -374,7 +363,20 @@ class InstructionScheduleMap:
             else:
                 multi_q_insts += f"  {qubits}: {insts}\n"
         instructions = single_q_insts + multi_q_insts
-        return "<{name}({insts})>" "".format(name=self.__class__.__name__, insts=instructions)
+        return f"<{self.__class__.__name__}({instructions})>"
+
+    def __eq__(self, other):
+        if not isinstance(other, InstructionScheduleMap):
+            return False
+
+        for inst in self.instructions:
+            for qinds in self.qubits_with_instruction(inst):
+                try:
+                    if self._map[inst][_to_tuple(qinds)] != other._map[inst][_to_tuple(qinds)]:
+                        return False
+                except KeyError:
+                    return False
+        return True
 
 
 def _to_tuple(values: Union[int, Iterable[int]]) -> Tuple[int, ...]:
@@ -400,5 +402,5 @@ def _get_instruction_string(inst: Union[str, Instruction]):
             return inst.name
         except AttributeError as ex:
             raise PulseError(
-                'Input "inst" has no attribute "name".' 'This should be a circuit "Instruction".'
+                'Input "inst" has no attribute "name". This should be a circuit "Instruction".'
             ) from ex

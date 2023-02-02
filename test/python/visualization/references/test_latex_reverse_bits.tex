@@ -1,13 +1,13 @@
 \documentclass[border=2px]{standalone}
-        
+
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
 
-\begin{document} 
+\begin{document}
 \scalebox{1.0}{
 \Qcircuit @C=1.0em @R=0.2em @!R { \\
-	 	\nghost{ {q}_{2} :  } & \lstick{ {q}_{2} :  } & \qw & \qw & \ctrl{1} & \qw & \qw\\ 
-	 	\nghost{ {q}_{1} :  } & \lstick{ {q}_{1} :  } & \qw & \targ & \ctrl{1} & \qw & \qw\\ 
-	 	\nghost{ {q}_{0} :  } & \lstick{ {q}_{0} :  } & \gate{\mathrm{H}} & \ctrl{-1} & \targ & \qw & \qw\\ 
+	 	\nghost{{q}_{2} :  } & \lstick{{q}_{2} :  } & \qw & \qw & \ctrl{1} & \qw & \qw\\
+	 	\nghost{{q}_{1} :  } & \lstick{{q}_{1} :  } & \qw & \targ & \ctrl{1} & \qw & \qw\\
+	 	\nghost{{q}_{0} :  } & \lstick{{q}_{0} :  } & \gate{\mathrm{H}} & \ctrl{-1} & \targ & \qw & \qw\\
 \\ }}
 \end{document}

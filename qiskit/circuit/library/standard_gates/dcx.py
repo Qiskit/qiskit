@@ -23,6 +23,9 @@ class DCXGate(Gate):
     A 2-qubit Clifford gate consisting of two back-to-back
     CNOTs with alternate controls.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.dcx` method.
+
     .. parsed-literal::
                   ┌───┐
         q_0: ──■──┤ X ├
@@ -50,7 +53,7 @@ class DCXGate(Gate):
 
     def _define(self):
         """
-        gate dcx a, b { cx a, b; cx a, b; }
+        gate dcx a, b { cx a, b; cx b, a; }
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit

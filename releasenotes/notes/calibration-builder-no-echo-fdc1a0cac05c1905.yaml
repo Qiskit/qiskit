@@ -1,7 +1,0 @@
-features:
-  - |
-    The RZXCalibrationBuilderNoEcho creates calibrations for RZXGate(theta) without 
-    inserting the echo pulses in the pulse schedule. This enables exposing the echo in
-    the cross-resonance sequence as gates so that the transpiler can simplify them.
-    The RZXCalibrationBuilderNoEcho only supports the hardware-native direction
-    of the CX gate.

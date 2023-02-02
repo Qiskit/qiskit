@@ -1,0 +1,14 @@
+features:
+  - |
+    A new transpiler pass,
+    :class:`~qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho`, was added
+    to the :mod:`qiskit.transpiler.passes` module. This pass is similar
+    to the existing :class:`~qiskit.transpiler.passes.RZXCalibrationBuilder`
+    in that it creates calibrations for an ``RZXGate(theta)``,
+    however :class:`~qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho`
+    does this without inserting the echo pulses in the pulse schedule. This
+    enables exposing the echo in the cross-resonance sequence as gates so that
+    the transpiler can simplify them. The
+    :class:`~qiskit.transpiler.passes.RZXCalibrationBuilderNoEcho` pass only
+    supports the hardware-native direction of the
+    :class:`~qiskit.circuit.library.CXGate`.

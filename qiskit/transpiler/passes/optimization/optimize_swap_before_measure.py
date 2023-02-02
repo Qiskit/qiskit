@@ -16,7 +16,8 @@
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.transpiler.passes.utils import control_flow
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 
 
 class OptimizeSwapBeforeMeasure(TransformationPass):
@@ -26,6 +27,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
     the classical bit of the measure instruction.
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the OptimizeSwapBeforeMeasure pass on `dag`.
 
@@ -35,15 +37,16 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
+
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps[::-1]:
-            if swap.op.condition is not None:
+            if getattr(swap.op, "condition", None) is not None:
                 continue
             final_successor = []
             for successor in dag.successors(swap):
                 final_successor.append(
-                    successor.type == "out"
-                    or (successor.type == "op" and isinstance(successor.op, Measure))
+                    isinstance(successor, DAGOutNode)
+                    or (isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure))
                 )
             if all(final_successor):
                 # the node swap needs to be removed and, if a measure follows, needs to be adapted
@@ -54,7 +57,7 @@ class OptimizeSwapBeforeMeasure(TransformationPass):
                 for creg in dag.cregs.values():
                     measure_layer.add_creg(creg)
                 for successor in list(dag.successors(swap)):
-                    if successor.type == "op" and successor.op.name == "measure":
+                    if isinstance(successor, DAGOpNode) and isinstance(successor.op, Measure):
                         # replace measure node with a new one, where qargs is set with the "other"
                         # swap qarg.
                         dag.remove_op_node(successor)

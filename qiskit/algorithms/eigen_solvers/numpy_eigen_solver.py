@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,15 +13,17 @@
 """The Eigensolver algorithm."""
 
 import logging
-from typing import List, Optional, Union, Tuple, Callable
-
+from typing import Callable, List, Optional, Tuple, Union
+import warnings
 import numpy as np
 from scipy import sparse as scisparse
 
-from qiskit.opflow import OperatorBase, I, StateFn, ListOp
+from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
-from .eigen_solver import Eigensolver, EigensolverResult
+from qiskit.utils.deprecation import deprecate_function
 from ..exceptions import AlgorithmError
+from .eigen_solver import Eigensolver, EigensolverResult
+from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,12 @@ logger = logging.getLogger(__name__)
 
 class NumPyEigensolver(Eigensolver):
     r"""
-    The NumPy Eigensolver algorithm.
+    Pending deprecation: NumPy Eigensolver algorithm.
+
+    The NumPyEigensolver class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.NumPyEigensolver` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     NumPy Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
@@ -42,11 +49,18 @@ class NumPyEigensolver(Eigensolver):
         operator size, mostly in terms of number of qubits it represents, gets larger.
     """
 
+    @deprecate_function(
+        "The NumPyEigensolver class has been superseded by the "
+        "qiskit.algorithms.eigensolvers.NumPyEigensolver class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(
         self,
         k: int = 1,
         filter_criterion: Callable[
-            [Union[List, np.ndarray], float, Optional[List[float]]], bool
+            [Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool
         ] = None,
     ) -> None:
         """
@@ -60,7 +74,9 @@ class NumPyEigensolver(Eigensolver):
                 fewer elements and can even be empty.
         """
         validate_min("k", k, 1)
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
         self._in_k = k
         self._k = k
@@ -84,7 +100,7 @@ class NumPyEigensolver(Eigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
+    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]]:
         """returns the filter criterion if set"""
         return self._filter_criterion
 
@@ -92,7 +108,7 @@ class NumPyEigensolver(Eigensolver):
     def filter_criterion(
         self,
         filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]
+            Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
         ],
     ) -> None:
         """set the filter criterion"""
@@ -104,8 +120,8 @@ class NumPyEigensolver(Eigensolver):
 
     def _check_set_k(self, operator: OperatorBase) -> None:
         if operator is not None:
-            if self._in_k > 2 ** operator.num_qubits:
-                self._k = 2 ** operator.num_qubits
+            if self._in_k > 2**operator.num_qubits:
+                self._k = 2**operator.num_qubits
                 logger.debug(
                     "WARNING: Asked for %s eigenvalues but max possible is %s.", self._in_k, self._k
                 )
@@ -123,13 +139,17 @@ class NumPyEigensolver(Eigensolver):
             for i, idx in enumerate(indices):
                 eigvec[idx, i] = 1.0
         else:
-            if self._k >= 2 ** operator.num_qubits - 1:
+            if self._k >= 2**operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
-                eigval, eigvec = np.linalg.eig(operator.to_matrix())
+                if operator.is_hermitian():
+                    eigval, eigvec = np.linalg.eigh(operator.to_matrix())
+                else:
+                    eigval, eigvec = np.linalg.eig(operator.to_matrix())
             else:
-                eigval, eigvec = scisparse.linalg.eigs(
-                    operator.to_spmatrix(), k=self._k, which="SR"
-                )
+                if operator.is_hermitian():
+                    eigval, eigvec = scisparse.linalg.eigsh(sp_mat, k=self._k, which="SA")
+                else:
+                    eigval, eigvec = scisparse.linalg.eigs(sp_mat, k=self._k, which="SR")
             indices = np.argsort(eigval)[: self._k]
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]
@@ -141,7 +161,7 @@ class NumPyEigensolver(Eigensolver):
             self._solve(operator)
 
     def _get_energies(
-        self, operator: OperatorBase, aux_operators: Optional[List[OperatorBase]]
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]]
     ) -> None:
         if self._ret.eigenvalues is None or self._ret.eigenstates is None:
             self._solve(operator)
@@ -156,12 +176,21 @@ class NumPyEigensolver(Eigensolver):
 
     @staticmethod
     def _eval_aux_operators(
-        aux_operators: List[OperatorBase], wavefn, threshold: float = 1e-12
-    ) -> np.ndarray:
-        values = []  # type: List[Tuple[float, int]]
-        for operator in aux_operators:
+        aux_operators: ListOrDict[OperatorBase], wavefn, threshold: float = 1e-12
+    ) -> ListOrDict[Tuple[complex, complex]]:
+
+        values: ListOrDict[Tuple[complex, complex]]
+
+        # As a list, aux_operators can contain None operators for which None values are returned.
+        # As a dict, the None operators in aux_operators have been dropped in compute_eigenvalues.
+        if isinstance(aux_operators, list):
+            values = [None] * len(aux_operators)
+            key_op_iterator = enumerate(aux_operators)
+        else:
+            values = {}
+            key_op_iterator = aux_operators.items()
+        for key, operator in key_op_iterator:
             if operator is None:
-                values.append(None)
                 continue
             value = 0.0
             if operator.coeff != 0:
@@ -173,12 +202,14 @@ class NumPyEigensolver(Eigensolver):
                     value = mat.dot(wavefn).dot(np.conj(wavefn))
                 else:
                     value = StateFn(operator, is_measurement=True).eval(wavefn)
-                value = value.real if abs(value.real) > threshold else 0.0
-            values.append((value, 0))
-        return np.array(values, dtype=object)
+                value = value if np.abs(value) > threshold else 0.0
+            # The value get's wrapped into a tuple: (mean, standard deviation).
+            # Since this is an exact computation, the standard deviation is known to be zero.
+            values[key] = (value, 0.0)
+        return values
 
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
     ) -> EigensolverResult:
         super().compute_eigenvalues(operator, aux_operators)
 
@@ -186,17 +217,23 @@ class NumPyEigensolver(Eigensolver):
             raise AlgorithmError("Operator was never provided")
 
         self._check_set_k(operator)
-        if aux_operators:
-            zero_op = I.tensorpower(operator.num_qubits) * 0.0
+        zero_op = I.tensorpower(operator.num_qubits) * 0.0
+        if isinstance(aux_operators, list) and len(aux_operators) > 0:
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
             aux_operators = [zero_op if op == 0 else op for op in aux_operators]
+        elif isinstance(aux_operators, dict) and len(aux_operators) > 0:
+            aux_operators = {
+                key: zero_op if op == 0 else op  # Convert zero values to zero operators
+                for key, op in aux_operators.items()
+                if op is not None  # Discard None values
+            }
         else:
             aux_operators = None
 
         k_orig = self._k
         if self._filter_criterion:
             # need to consider all elements if a filter is set
-            self._k = 2 ** operator.num_qubits
+            self._k = 2**operator.num_qubits
 
         self._ret = EigensolverResult()
         self._solve(operator)

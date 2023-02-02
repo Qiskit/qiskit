@@ -19,6 +19,7 @@ import scipy.linalg
 
 import qiskit
 from qiskit.circuit import Parameter, ParameterVector
+from qiskit.extensions import UnitaryGate
 from qiskit.opflow import (
     CX,
     CircuitOp,
@@ -45,7 +46,7 @@ class TestEvolution(QiskitOpflowTestCase):
     def test_exp_i(self):
         """exponential of Pauli test"""
         op = Z.exp_i()
-        gate = op.to_circuit().data[0][0]
+        gate = op.to_circuit().data[0].operation
         self.assertIsInstance(gate, qiskit.circuit.library.RZGate)
         self.assertEqual(gate.params[0], 2)
 
@@ -196,6 +197,17 @@ class TestEvolution(QiskitOpflowTestCase):
         # Check that original circuit is unchanged
         for p in thetas:
             self.assertIn(p, evo.to_circuit().parameters)
+
+    def test_bind_parameters_complex(self):
+        """bind parameters with a complex value test"""
+        th1 = Parameter("th1")
+        th2 = Parameter("th2")
+
+        operator = th1 * X + th2 * Y
+        bound_operator = operator.bind_parameters({th1: 3j, th2: 2})
+
+        expected_bound_operator = SummedOp([3j * X, (2 + 0j) * Y])
+        self.assertEqual(bound_operator, expected_bound_operator)
 
     def test_qdrift(self):
         """QDrift test"""
@@ -352,6 +364,19 @@ class TestEvolution(QiskitOpflowTestCase):
             [[0.29192658 - 0.45464871j, -0.84147098j], [-0.84147098j, 0.29192658 + 0.45464871j]]
         )
         np.testing.assert_array_almost_equal(evolution.to_matrix(), matrix)
+
+    def test_evolved_op_to_instruction(self):
+        """Test calling `to_instruction` on a plain EvolvedOp.
+
+        Regression test of Qiskit/qiskit-terra#8025.
+        """
+        op = EvolvedOp(0.5 * X)
+        circuit = op.to_instruction()
+
+        unitary = scipy.linalg.expm(-0.5j * X.to_matrix())
+        expected = UnitaryGate(unitary)
+
+        self.assertEqual(circuit, expected)
 
 
 if __name__ == "__main__":

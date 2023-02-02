@@ -12,20 +12,14 @@
 
 """Bound Optimization BY Quadratic Approximation (BOBYQA) optimizer."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Tuple, List, Callable, Optional
 
 import numpy as np
-from qiskit.exceptions import MissingOptionalLibraryError
-from .optimizer import Optimizer, OptimizerSupportLevel
-
-try:
-    import skquant.opt as skq
-
-    _HAS_SKQUANT = True
-except ImportError:
-    _HAS_SKQUANT = False
+from qiskit.utils import optionals as _optionals
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
+@_optionals.HAS_SKQUANT.require_in_instance
 class BOBYQA(Optimizer):
     """Bound Optimization BY Quadratic Approximation algorithm.
 
@@ -48,10 +42,6 @@ class BOBYQA(Optimizer):
         Raises:
             MissingOptionalLibraryError: scikit-quant not installed
         """
-        if not _HAS_SKQUANT:
-            raise MissingOptionalLibraryError(
-                libname="scikit-quant", name="BOBYQA", pip_install="pip install scikit-quant"
-            )
         super().__init__()
         self._maxiter = maxiter
 
@@ -67,23 +57,25 @@ class BOBYQA(Optimizer):
     def settings(self) -> Dict[str, Any]:
         return {"maxiter": self._maxiter}
 
-    def optimize(
+    def minimize(
         self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        """Runs the optimization."""
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        from skquant import opt as skq
+
         res, history = skq.minimize(
-            objective_function,
-            np.array(initial_point),
-            bounds=np.array(variable_bounds),
+            func=fun,
+            x0=np.asarray(x0),
+            bounds=np.array(bounds),
             budget=self._maxiter,
             method="bobyqa",
         )
-        return res.optpar, res.optval, len(history)
+
+        optimizer_result = OptimizerResult()
+        optimizer_result.x = res.optpar
+        optimizer_result.fun = res.optval
+        optimizer_result.nfev = len(history)
+        return optimizer_result

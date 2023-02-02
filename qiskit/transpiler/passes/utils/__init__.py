@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Utility passes used for other main passes."""
+"""Utility passes and functions used for other main passes."""
 
 from .check_map import CheckMap
 from .check_cx_direction import CheckCXDirection  # Deprecated
@@ -24,3 +24,9 @@ from .dag_fixed_point import DAGFixedPoint
 from .fixed_point import FixedPoint
 from .error import Error
 from .remove_barriers import RemoveBarriers
+from .contains_instruction import ContainsInstruction
+from .gates_basis import GatesInBasis
+from .convert_conditions_to_if_ops import ConvertConditionsToIfOps
+
+# Utility functions
+from . import control_flow

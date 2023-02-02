@@ -19,6 +19,7 @@ from qiskit.compiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import CXGate
+from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler import TranspilerError
 from ..providers.faulty_backends import (
     FakeOurenseFaultyQ1,
@@ -254,6 +255,20 @@ class TestFaultyCX13(TestFaultyBackendCase):
     @data(0, 1, 2)  # TODO: add 3 once https://github.com/Qiskit/qiskit-terra/issues/6406 is fixed
     def test_layout_level(self, level):
         """Test level {level} with a faulty CX(Q1, Q3) with a working initial layout"""
+
+        #       ┌───┐     ┌───┐                               ░ ┌─┐
+        # qr_0: ┤ H ├──■──┤ X ├───────────────────────────────░─┤M├────────────
+        #       ├───┤┌─┴─┐└─┬─┘     ┌───┐     ┌───┐           ░ └╥┘┌─┐
+        # qr_1: ┤ H ├┤ X ├──■────■──┤ X ├──■──┤ X ├───────────░──╫─┤M├─────────
+        #       ├───┤└───┘     ┌─┴─┐└─┬─┘  │  └─┬─┘           ░  ║ └╥┘┌─┐
+        # qr_2: ┤ H ├──────────┤ X ├──■────┼────┼─────────────░──╫──╫─┤M├──────
+        #       └───┘          └───┘     ┌─┴─┐  │       ┌───┐ ░  ║  ║ └╥┘┌─┐
+        # qr_3: ─────────────────────────┤ X ├──■────■──┤ X ├─░──╫──╫──╫─┤M├───
+        #                                └───┘     ┌─┴─┐└─┬─┘ ░  ║  ║  ║ └╥┘┌─┐
+        # qr_4: ───────────────────────────────────┤ X ├──■───░──╫──╫──╫──╫─┤M├
+        #                                          └───┘      ░  ║  ║  ║  ║ └╥┘
+        # meas: 5/═══════════════════════════════════════════════╩══╩══╩══╩══╩═
+        #                                                        0  1  2  3  4
         circuit = QuantumCircuit(QuantumRegister(5, "qr"))
         circuit.h(range(3))
         circuit.cx(0, 1)
@@ -291,7 +306,7 @@ class TestFaultyQ1(TestFaultyBackendCase):
         physical_qubits = QuantumRegister(5, "q")
         nodes = circuit_to_dag(circuit).nodes_on_wire(physical_qubits[1])
         for node in nodes:
-            if node.type == "op":
+            if isinstance(node, DAGOpNode):
                 raise AssertionError("Faulty Qubit Q1 not totally idle")
 
     @data(0, 1, 2, 3)

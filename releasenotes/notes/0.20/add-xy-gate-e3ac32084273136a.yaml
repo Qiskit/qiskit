@@ -1,0 +1,8 @@
+---
+
+features:
+  - |
+    Added new gate class, :class:`~qiskit.circuit.library.XXPlusYYGate`, to
+    the circuit library (:mod:`qiskit.circuit.library`). This gate is a
+    2-qubit parameterized XX+YY interaction, also known as an XY gate, and is
+    based on the gate described in https://arxiv.org/abs/1912.04424.

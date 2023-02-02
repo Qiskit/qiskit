@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`~qiskit.circuit.library.NLocal` class
+    in the :mod:`qiskit.circuit.library` module where it wouldn't properly
+    raise an exception at object initialization if an invalid type was
+    used for the ``reps`` kwarg which would result in an unexpected runtime
+    error later. A ``TypeError`` will now be properly raised if the ``reps``
+    kwarg is not an ``int`` value.
+    Fixed `#6515 <https://github.com/Qiskit/qiskit-terra/issues/6515>`__

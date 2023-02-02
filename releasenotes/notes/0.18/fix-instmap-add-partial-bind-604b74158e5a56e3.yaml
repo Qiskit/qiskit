@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue when passing a partially bound callable created with
+    the Python standard library's ``functools.partial()`` function as the
+    ``schedule`` kwarg to the
+    :meth:`~qiskit.pulse.InstructionScheduleMap.add` method of the
+    :class:`~qiskit.pulse.InstructionScheduleMap` class, which would previously
+    result in an error.
+    Fixed `#6278 <https://github.com/Qiskit/qiskit-terra/issues/6278>`__

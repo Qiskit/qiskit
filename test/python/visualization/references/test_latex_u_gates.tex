@@ -1,14 +1,14 @@
 \documentclass[border=2px]{standalone}
-        
+
 \usepackage[braket, qm]{qcircuit}
 \usepackage{graphicx}
 
-\begin{document} 
+\begin{document}
 \scalebox{1.0}{
 \Qcircuit @C=1.0em @R=0.2em @!R { \\
-	 	\nghost{ {q}_{0} :  } & \lstick{ {q}_{0} :  } & \gate{\mathrm{U_1}\,(\mathrm{\frac{3\pi}{2}})} & \ctrl{1} & \dstick{\hspace{2.0em}\mathrm{U_1}\,(\mathrm{\frac{\pi}{4}})} \qw & \qw & \qw & \ctrl{1} & \qw & \qw\\ 
-	 	\nghost{ {q}_{1} :  } & \lstick{ {q}_{1} :  } & \gate{\mathrm{U_2}\,(\mathrm{\frac{3\pi}{2},\frac{2\pi}{3}})} & \control \qw & \qw & \qw & \qw & \gate{\mathrm{U_3}\,(\mathrm{\frac{3\pi}{2},\frac{-3\pi}{4},\frac{-\pi}{2}})} & \qw & \qw\\ 
-	 	\nghost{ {q}_{2} :  } & \lstick{ {q}_{2} :  } & \gate{\mathrm{U_3}\,(\mathrm{\frac{3\pi}{2},4.5,\frac{\pi}{4}})} & \ctrl{1} & \qw & \qw & \qw & \qw & \qw & \qw\\ 
-	 	\nghost{ {q}_{3} :  } & \lstick{ {q}_{3} :  } & \qw & \gate{\mathrm{U_2}\,(\mathrm{\frac{\pi}{2},\frac{3\pi}{2}})} & \qw & \qw & \qw & \qw & \qw & \qw\\ 
+	 	\nghost{{q}_{0} :  } & \lstick{{q}_{0} :  } & \gate{\mathrm{U_1}\,(\mathrm{\frac{3\pi}{2}})} & \ctrl{1} & \dstick{\hspace{2.0em}\mathrm{U_1}\,(\mathrm{\frac{\pi}{4}})} \qw & \qw & \qw & \ctrl{1} & \qw & \qw\\
+	 	\nghost{{q}_{1} :  } & \lstick{{q}_{1} :  } & \gate{\mathrm{U_2}\,(\mathrm{\frac{3\pi}{2},\frac{2\pi}{3}})} & \control \qw & \qw & \qw & \qw & \gate{\mathrm{U_3}\,(\mathrm{\frac{3\pi}{2},\frac{-3\pi}{4},\frac{-\pi}{2}})} & \qw & \qw\\
+	 	\nghost{{q}_{2} :  } & \lstick{{q}_{2} :  } & \gate{\mathrm{U_3}\,(\mathrm{\frac{3\pi}{2},4.5,\frac{\pi}{4}})} & \ctrl{1} & \qw & \qw & \qw & \qw & \qw & \qw\\
+	 	\nghost{{q}_{3} :  } & \lstick{{q}_{3} :  } & \qw & \gate{\mathrm{U_2}\,(\mathrm{\frac{\pi}{2},\frac{3\pi}{2}})} & \qw & \qw & \qw & \qw & \qw & \qw\\
 \\ }}
 \end{document}

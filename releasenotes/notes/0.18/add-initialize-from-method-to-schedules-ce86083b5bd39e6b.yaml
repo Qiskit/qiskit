@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    A new constructor method
+    :meth:`~qiskit.pulse.Schedule.initialize_from` was added to the
+    :class:`~qiskit.pulse.Schedule` and :class:`~qiskit.pulse.ScheduleBlock`
+    classes. This method initializes a new empty schedule which
+    takes the attributes from other schedule. For example:
+
+    .. code-block:: python
+
+        sched = Schedule(name='my_sched')
+        new_sched = Schedule.initialize_from(sched)
+
+        assert sched.name == new_sched.name

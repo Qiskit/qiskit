@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    The deprecation of the :meth:`~qiskit.pulse.Instruction.parameters` method
+    for the :class:`~qiskit.pulse.Instruction` class has been reversed. This
+    method was originally deprecated in the 0.17.0, but it is still necessary
+    for several applications, including when running calibration experiments.
+    This method will continue to be supported and will **not** be removed.

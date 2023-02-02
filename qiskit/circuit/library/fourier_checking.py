@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Fourier checking circuit."""
 
 from typing import List
@@ -63,15 +61,14 @@ class FourierChecking(QuantumCircuit):
             CircuitError: if the inputs f and g are not valid.
 
         Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit.library import FourierChecking
-                import qiskit.tools.jupyter
-                f = [1, -1, -1, -1]
-                g = [1, 1, -1, -1]
-                circuit = FourierChecking(f, g)
-                %circuit_library_info circuit
+               from qiskit.circuit.library import FourierChecking
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               f = [1, -1, -1, -1]
+               g = [1, 1, -1, -1]
+               circuit = FourierChecking(f, g)
+               _generate_circuit_library_visualization(circuit)
         """
         num_qubits = math.log2(len(f))
 

@@ -12,28 +12,16 @@
 
 """Stable Noisy Optimization by Branch and FIT algorithm (SNOBFIT) optimizer."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Callable, Tuple, List
 
 import numpy as np
-from qiskit.exceptions import MissingOptionalLibraryError
-from .optimizer import Optimizer, OptimizerSupportLevel
+from qiskit.exceptions import QiskitError
+from qiskit.utils import optionals as _optionals
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
-try:
-    import skquant.opt as skq
-
-    _HAS_SKQUANT = True
-except ImportError:
-    _HAS_SKQUANT = False
-
-try:
-    from SQSnobFit import optset
-
-    _HAS_SKSNOBFIT = True
-except ImportError:
-    _HAS_SKSNOBFIT = False
-
-
+@_optionals.HAS_SKQUANT.require_in_instance
+@_optionals.HAS_SQSNOBFIT.require_in_instance
 class SNOBFIT(Optimizer):
     """Stable Noisy Optimization by Branch and FIT algorithm.
 
@@ -63,15 +51,17 @@ class SNOBFIT(Optimizer):
 
         Raises:
             MissingOptionalLibraryError: scikit-quant or SQSnobFit not installed
+            QiskitError: If NumPy 1.24.0 or above is installed.
+                See https://github.com/scikit-quant/scikit-quant/issues/24 for more details.
         """
-        if not _HAS_SKQUANT:
-            raise MissingOptionalLibraryError(
-                libname="scikit-quant", name="SNOBFIT", pip_install="pip install scikit-quant"
+        # check version
+        version = tuple(map(int, np.__version__.split(".")))
+        if version >= (1, 24, 0):
+            raise QiskitError(
+                "SnobFit is incompatible with NumPy 1.24.0 or above, please "
+                "install a previous version. See also scikit-quant/scikit-quant#24."
             )
-        if not _HAS_SKSNOBFIT:
-            raise MissingOptionalLibraryError(
-                libname="SQSnobFit", name="SNOBFIT", pip_install="pip install SQSnobFit"
-            )
+
         super().__init__()
         self._maxiter = maxiter
         self._maxfail = maxfail
@@ -95,18 +85,19 @@ class SNOBFIT(Optimizer):
             "verbose": self._verbose,
         }
 
-    def optimize(
+    def minimize(
         self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        """Runs the optimization."""
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
+        import skquant.opt as skq
+        from SQSnobFit import optset
+
+        if bounds is None or any(None in bound_tuple for bound_tuple in bounds):
+            raise ValueError("Optimizer SNOBFIT requires bounds for all parameters.")
+
         snobfit_settings = {
             "maxmp": self._maxmp,
             "maxfail": self._maxfail,
@@ -114,17 +105,24 @@ class SNOBFIT(Optimizer):
         }
         options = optset(optin=snobfit_settings)
         # counters the error when initial point is outside the acceptable bounds
-        for idx, theta in enumerate(initial_point):
-            if abs(theta) > variable_bounds[idx][0]:
-                initial_point[idx] = initial_point[idx] % variable_bounds[idx][0]
-            elif abs(theta) > variable_bounds[idx][1]:
-                initial_point[idx] = initial_point[idx] % variable_bounds[idx][1]
+        x0 = np.asarray(x0)
+        for idx, theta in enumerate(x0):
+            if abs(theta) > bounds[idx][0]:
+                x0[idx] = x0[idx] % bounds[idx][0]
+            elif abs(theta) > bounds[idx][1]:
+                x0[idx] = x0[idx] % bounds[idx][1]
+
         res, history = skq.minimize(
-            objective_function,
-            np.array(initial_point, dtype=float),
-            bounds=variable_bounds,
+            fun,
+            x0,
+            bounds=bounds,
             budget=self._maxiter,
             method="snobfit",
             options=options,
         )
-        return res.optpar, res.optval, len(history)
+
+        optimizer_result = OptimizerResult()
+        optimizer_result.x = res.optpar
+        optimizer_result.fun = res.optval
+        optimizer_result.nfev = len(history)
+        return optimizer_result

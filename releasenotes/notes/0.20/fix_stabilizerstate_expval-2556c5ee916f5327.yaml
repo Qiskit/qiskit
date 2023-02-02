@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :meth:`.StabilizerState.expectation_value`
+    method's expectation value calculation, where the output expectation value
+    would be incorrect if the input :class:`~.Pauli` operator for the ``oper``
+    argument had a non-trivial phase.
+    Fixed `#7441 <https://github.com/Qiskit/qiskit-terra/issues/7441>`__.

@@ -12,17 +12,37 @@
 
 """Map input circuit onto a backend topology via insertion of SWAPs."""
 
+import collections
+import copy
 import logging
-from copy import deepcopy
+import math
 
-from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.dagcircuit import DAGNode
+from qiskit.dagcircuit import DAGOpNode
 
 logger = logging.getLogger(__name__)
+
+
+_Step = collections.namedtuple("_Step", ("state", "swaps_added", "gates_mapped", "gates_remaining"))
+"""Describes one possible step in the lookahead process.
+
+The fields are:
+
+    state (_SystemState): The current state of the system, including its virtual-to-physical layout.
+    swaps_added (list): List of qargs of swap gates introduced.
+    gates_mapped (list): Gates that were mapped, including added SWAPs.
+    gates_remaining (list): Gates that could not be mapped.
+"""
+
+_SystemState = collections.namedtuple(
+    "_SystemState",
+    ("layout", "coupling_map", "register", "swaps"),
+    # The None default applies to the right-most element, i.e. `swaps`.
+    defaults=(None,),
+)
 
 
 class LookaheadSwap(TransformationPass):
@@ -100,135 +120,115 @@ class LookaheadSwap(TransformationPass):
                 f"available device qubits ({number_of_available_qubits})."
             )
 
-        canonical_register = dag.qregs["q"]
-        trivial_layout = Layout.generate_trivial_layout(canonical_register)
-        current_layout = trivial_layout.copy()
+        register = dag.qregs["q"]
+        current_state = _SystemState(
+            Layout.generate_trivial_layout(register), self.coupling_map, register
+        )
 
         mapped_gates = []
-        ordered_virtual_gates = list(dag.serial_layers())
-        gates_remaining = ordered_virtual_gates.copy()
+        gates_remaining = list(dag.serial_layers())
 
         while gates_remaining:
             logger.debug("Top-level routing step: %d gates remaining.", len(gates_remaining))
 
             best_step = _search_forward_n_swaps(
-                current_layout,
+                current_state,
                 gates_remaining,
-                self.coupling_map,
                 self.search_depth,
                 self.search_width,
             )
 
             if best_step is None:
                 raise TranspilerError(
-                    "Lookahead failed to find a swap which mapped "
-                    "gates or improved layout score."
+                    "Lookahead failed to find a swap which mapped gates or improved layout score."
                 )
 
             logger.debug(
                 "Found best step: mapped %d gates. Added swaps: %s.",
-                len(best_step["gates_mapped"]),
-                best_step["swaps_added"],
+                len(best_step.gates_mapped),
+                best_step.swaps_added,
             )
 
-            current_layout = best_step["layout"]
-            gates_mapped = best_step["gates_mapped"]
-            gates_remaining = best_step["gates_remaining"]
+            current_state = best_step.state
+            gates_mapped = best_step.gates_mapped
+            gates_remaining = best_step.gates_remaining
 
             mapped_gates.extend(gates_mapped)
 
+        self.property_set["final_layout"] = current_state.layout
         if self.fake_run:
-            self.property_set["final_layout"] = current_layout
             return dag
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.
-        mapped_dag = dag._copy_circuit_metadata()
-
+        mapped_dag = dag.copy_empty_like()
         for node in mapped_gates:
             mapped_dag.apply_operation_back(op=node.op, qargs=node.qargs, cargs=node.cargs)
 
         return mapped_dag
 
 
-def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
+def _search_forward_n_swaps(state, gates, depth, width):
     """Search for SWAPs which allow for application of largest number of gates.
 
     Args:
-        layout (Layout): Map from virtual qubit index to physical qubit index.
+        state (_SystemState): The ``namedtuple`` collection containing the state of the physical
+            system.  This includes the current layout, the coupling map, the canonical register and
+            the possible swaps available.
         gates (list): Gates to be mapped.
-        coupling_map (CouplingMap): CouplingMap of the target backend.
         depth (int): Number of SWAP layers to search before choosing a result.
         width (int): Number of SWAPs to consider at each layer.
     Returns:
-        optional(dict): Describes solution step found. If None, no swaps leading
-            to an improvement were found. Keys:
-            layout (Layout): Virtual to physical qubit map after SWAPs.
-            swaps_added (list): List of qargs of swap gates introduced.
-            gates_remaining (list): Gates that could not be mapped.
-            gates_mapped (list): Gates that were mapped, including added SWAPs.
-
+        Optional(_Step): Describes the solution step found.  If ``None``, no swaps leading to an
+        improvement were found.
     """
-    gates_mapped, gates_remaining = _map_free_gates(layout, gates, coupling_map)
-
-    base_step = {
-        "layout": layout,
-        "swaps_added": [],
-        "gates_mapped": gates_mapped,
-        "gates_remaining": gates_remaining,
-    }
+    if state.swaps is None:
+        # Include symmetric couplings (e.g [0,1] and [1,0]) as one swap.
+        state = state._replace(
+            swaps={((a, b) if a < b else (b, a)) for a, b in state.coupling_map.get_edges()}
+        )
+    gates_mapped, gates_remaining = _map_free_gates(state, gates)
+    base_step = _Step(state, [], gates_mapped, gates_remaining)
 
     if not gates_remaining or depth == 0:
         return base_step
 
-    # Include symmetric 2q gates (e.g coupling maps with both [0,1] and [1,0])
-    # as one available swap.
-    possible_swaps = {tuple(sorted(edge)) for edge in coupling_map.get_edges()}
-
-    def _score_swap(swap):
-        """Calculate the relative score for a given SWAP."""
-        trial_layout = layout.copy()
-        trial_layout.swap(*swap)
-        return _calc_layout_distance(gates, coupling_map, trial_layout)
-
-    ranked_swaps = sorted(possible_swaps, key=_score_swap)
+    ranked_swaps = sorted(
+        (_score_state_with_swap(swap, state, gates) for swap in state.swaps),
+        key=lambda x: x[0],
+    )
     logger.debug(
         "At depth %d, ranked candidate swaps: %s...",
         depth,
-        [(swap, _score_swap(swap)) for swap in ranked_swaps[: width * 2]],
+        [(swap, score) for score, swap, _ in ranked_swaps[: width * 2]],
     )
 
-    best_swap, best_step = None, None
-    for rank, swap in enumerate(ranked_swaps):
-        trial_layout = layout.copy()
-        trial_layout.swap(*swap)
-        next_step = _search_forward_n_swaps(
-            trial_layout, gates_remaining, coupling_map, depth - 1, width
-        )
+    best_swap, best_step, best_score = None, None, -math.inf
+    for rank, (_, swap, new_state) in enumerate(ranked_swaps):
+        next_step = _search_forward_n_swaps(new_state, gates_remaining, depth - 1, width)
 
         if next_step is None:
             continue
 
+        next_score = _score_step(next_step)
         # ranked_swaps already sorted by distance, so distance is the tie-breaker.
-        if best_swap is None or _score_step(next_step) > _score_step(best_step):
+        if next_score > best_score:
             logger.debug(
                 "At depth %d, updating best step: %s (score: %f).",
                 depth,
-                [swap] + next_step["swaps_added"],
-                _score_step(next_step),
+                [swap] + next_step.swaps_added,
+                next_score,
             )
-            best_swap, best_step = swap, next_step
+            best_swap, best_step, best_score = swap, next_step, next_score
 
         if (
             rank >= min(width, len(ranked_swaps) - 1)
             and best_step is not None
             and (
-                len(best_step["gates_mapped"]) > depth
-                or len(best_step["gates_remaining"]) < len(gates_remaining)
+                len(best_step.gates_mapped) > depth
+                or len(best_step.gates_remaining) < len(gates_remaining)
                 or (
-                    _calc_layout_distance(
-                        best_step["gates_remaining"], coupling_map, best_step["layout"]
-                    )
-                    < _calc_layout_distance(gates_remaining, coupling_map, layout)
+                    _calc_layout_distance(best_step.gates_remaining, best_step.state)
+                    < _calc_layout_distance(gates_remaining, new_state)
                 )
             )
         ):
@@ -240,24 +240,24 @@ def _search_forward_n_swaps(layout, gates, coupling_map, depth, width):
     else:
         return None
 
-    logger.debug("At depth %d, best_swap set: %s.", depth, [best_swap] + best_step["swaps_added"])
+    best_swap_gate = _swap_ops_from_edge(best_swap, state)
+    out = _Step(
+        best_step.state,
+        [best_swap] + best_step.swaps_added,
+        gates_mapped + best_swap_gate + best_step.gates_mapped,
+        best_step.gates_remaining,
+    )
+    logger.debug("At depth %d, best_swap set: %s.", depth, out.swaps_added)
+    return out
 
-    best_swap_gate = _swap_ops_from_edge(best_swap, layout)
-    return {
-        "layout": best_step["layout"],
-        "swaps_added": [best_swap] + best_step["swaps_added"],
-        "gates_remaining": best_step["gates_remaining"],
-        "gates_mapped": gates_mapped + best_swap_gate + best_step["gates_mapped"],
-    }
 
-
-def _map_free_gates(layout, gates, coupling_map):
+def _map_free_gates(state, gates):
     """Map all gates that can be executed with the current layout.
 
     Args:
-        layout (Layout): Map from virtual qubit index to physical qubit index.
+        state (_SystemState): The physical characteristics of the system, including its current
+            layout and the coupling map.
         gates (list): Gates to be mapped.
-        coupling_map (CouplingMap): CouplingMap for target device topology.
 
     Returns:
         tuple:
@@ -268,12 +268,13 @@ def _map_free_gates(layout, gates, coupling_map):
 
     mapped_gates = []
     remaining_gates = []
+    layout_map = state.layout._v2p
 
     for gate in gates:
         # Gates without a partition (barrier, snapshot, save, load, noise) may
         # still have associated qubits. Look for them in the qargs.
         if not gate["partition"]:
-            qubits = [n for n in gate["graph"].nodes() if n.type == "op"][0].qargs
+            qubits = _first_op_node(gate["graph"]).qargs
 
             if not qubits:
                 continue
@@ -282,7 +283,7 @@ def _map_free_gates(layout, gates, coupling_map):
                 blocked_qubits.update(qubits)
                 remaining_gates.append(gate)
             else:
-                mapped_gate = _transform_gate_for_layout(gate, layout)
+                mapped_gate = _transform_gate_for_system(gate, state)
                 mapped_gates.append(mapped_gate)
             continue
 
@@ -292,10 +293,10 @@ def _map_free_gates(layout, gates, coupling_map):
             blocked_qubits.update(qubits)
             remaining_gates.append(gate)
         elif len(qubits) == 1:
-            mapped_gate = _transform_gate_for_layout(gate, layout)
+            mapped_gate = _transform_gate_for_system(gate, state)
             mapped_gates.append(mapped_gate)
-        elif coupling_map.distance(*(layout[q] for q in qubits)) == 1:
-            mapped_gate = _transform_gate_for_layout(gate, layout)
+        elif state.coupling_map.distance(layout_map[qubits[0]], layout_map[qubits[1]]) == 1:
+            mapped_gate = _transform_gate_for_system(gate, state)
             mapped_gates.append(mapped_gate)
         else:
             blocked_qubits.update(qubits)
@@ -304,43 +305,66 @@ def _map_free_gates(layout, gates, coupling_map):
     return mapped_gates, remaining_gates
 
 
-def _calc_layout_distance(gates, coupling_map, layout, max_gates=None):
+def _calc_layout_distance(gates, state, max_gates=None):
     """Return the sum of the distances of two-qubit pairs in each CNOT in gates
     according to the layout and the coupling.
     """
     if max_gates is None:
-        max_gates = 50 + 10 * len(coupling_map.physical_qubits)
+        max_gates = 50 + 10 * len(state.coupling_map.physical_qubits)
 
-    return sum(
-        coupling_map.distance(*(layout[q] for q in gate["partition"][0]))
-        for gate in gates[:max_gates]
-        if gate["partition"] and len(gate["partition"][0]) == 2
-    )
+    layout_map = state.layout._v2p
+    out = 0
+    for gate in gates[:max_gates]:
+        if not gate["partition"]:
+            continue
+        qubits = gate["partition"][0]
+        if len(qubits) == 2:
+            out += state.coupling_map.distance(layout_map[qubits[0]], layout_map[qubits[1]])
+    return out
+
+
+def _score_state_with_swap(swap, state, gates):
+    """Calculate the relative score for a given SWAP.
+
+    Returns:
+        float: the score of the given swap.
+        Tuple[int, int]: the input swap that should be performed.
+        _SystemState: an updated system state with the new layout contained.
+    """
+    trial_layout = state.layout.copy()
+    trial_layout.swap(*swap)
+    new_state = state._replace(layout=trial_layout)
+    return _calc_layout_distance(gates, new_state), swap, new_state
 
 
 def _score_step(step):
     """Count the mapped two-qubit gates, less the number of added SWAPs."""
     # Each added swap will add 3 ops to gates_mapped, so subtract 3.
-    return len([g for g in step["gates_mapped"] if len(g.qargs) == 2]) - 3 * len(
-        step["swaps_added"]
-    )
+    return len([g for g in step.gates_mapped if len(g.qargs) == 2]) - 3 * len(step.swaps_added)
 
 
-def _transform_gate_for_layout(gate, layout):
+def _transform_gate_for_system(gate, state):
     """Return op implementing a virtual gate on given layout."""
-    mapped_op_node = deepcopy([n for n in gate["graph"].nodes() if n.type == "op"][0])
+    mapped_op_node = copy.copy(_first_op_node(gate["graph"]))
 
-    device_qreg = QuantumRegister(len(layout.get_physical_bits()), "q")
-    mapped_qargs = [device_qreg[layout[a]] for a in mapped_op_node.qargs]
-    mapped_op_node.qargs = mapped_qargs
+    device_qreg = state.register
+    layout_map = state.layout._v2p
+    mapped_op_node.qargs = tuple(device_qreg[layout_map[a]] for a in mapped_op_node.qargs)
 
     return mapped_op_node
 
 
-def _swap_ops_from_edge(edge, layout):
+def _swap_ops_from_edge(edge, state):
     """Generate list of ops to implement a SWAP gate along a coupling edge."""
-    device_qreg = QuantumRegister(len(layout.get_physical_bits()), "q")
-    qreg_edge = [device_qreg[i] for i in edge]
+    device_qreg = state.register
+    qreg_edge = tuple(device_qreg[i] for i in edge)
 
     # TODO shouldn't be making other nodes not by the DAG!!
-    return [DAGNode(op=SwapGate(), qargs=qreg_edge, cargs=[], type="op")]
+    return [DAGOpNode(op=SwapGate(), qargs=qreg_edge, cargs=())]
+
+
+def _first_op_node(dag):
+    """Get the first op node from a DAG."""
+    # This doesn't use `DAGCircuit.op_nodes` because that function always consumes the entire
+    # iterator to create a list, whereas we only need the first element.
+    return next(node for node in dag.nodes() if isinstance(node, DAGOpNode))

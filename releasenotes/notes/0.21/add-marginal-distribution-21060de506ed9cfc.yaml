@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Added a new function, :func:`~.marginal_distribution`, which is used to
+    marginalize an input dictionary of bitstrings to an integer (such as
+    :class:`~.Counts`). This is similar in functionality to the existing
+    :func:`~.marginal_counts` function with three key differences. The first
+    is that :func:`~.marginal_counts` works with either a counts dictionary
+    or a :class:`~.Results` object while :func:`~.marginal_distribution` only
+    works with a dictionary. The second is that :func:`~.marginal_counts` does
+    not respect the order of indices in its ``indices`` argument while
+    :func:`~.marginal_distribution` does and will permute the output bits
+    based on the ``indices`` order. The third difference is that
+    :func:`~.marginal_distribution` should be faster as its implementation
+    is written in Rust and streamlined for just marginalizing a dictionary
+    input.

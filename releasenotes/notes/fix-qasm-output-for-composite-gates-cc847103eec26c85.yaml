@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fix qasm output for composite gates such as MCXGate and its variants (MCXGrayCode, MCXRecursive and MCXVChain). Gate definition is added to qasm string if they are not defined in qelib1.inc. This works for nested composite gates as well. Children gates are ordered before parent gates to ensure they are defined before being called. Circuit id are appended to composite gates with the same name to make them unique.
-  - |
-    Remove code to handle unitary gates qasm output separately. Unitary gates are now handled in the same way as other gates.

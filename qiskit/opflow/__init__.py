@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 r"""
+================================
 Operators (:mod:`qiskit.opflow`)
-========================================
+================================
 
 .. currentmodule:: qiskit.opflow
 
@@ -60,6 +61,16 @@ f(1, 1) = 0.
 3. An n-qubit Measurement is a functional taking n-qubit State functions to complex values.
 For example, a Pauli Z Measurement can be defined by f(Zero) = 0 and f(One) = 1.
 
+.. note::
+
+    While every effort has been made to make programming the Operator Flow similar to mathematical
+    notation, in some places our hands are tied by the design of Python.  In particular, when using
+    mathematical operators such as ``+`` and ``^`` (tensor product), beware that these follow
+    `Python operator precedence rules
+    <https://docs.python.org/3/reference/expressions.html#operator-precedence>`__.  For example,
+    ``I^X + X^I`` will actually be interpreted as ``I ^ (X+X) ^ I == 2 * I^X^I``.  In these cases,
+    you should use extra parentheses, like ``(I ^ X) + (X ^ I)``, or use the relevant method calls.
+
 Below, you'll find a base class for all Operators, some convenience immutable global variables
 which simplify Operator construction, and two groups of submodules: Operators and Converters.
 
@@ -71,12 +82,14 @@ enforces the presence and consistency of methods to manipulate these objects con
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    OperatorBase
 
+
 Operator Globals
 ================
+
 The :mod:`operator_globals` is a set of immutable Operator instances that are convenient building
 blocks to reach for while working with the Operator flow.
 
@@ -93,20 +106,21 @@ Submodules
 ==========
 
 Operators
-+++++++++
+---------
 
 The Operators submodules include the PrimitiveOp, ListOp, and StateFn class groups which
 represent the primary Operator modules.
 
 .. autosummary::
-   :toctree:
+    :toctree: ../stubs/
 
-   primitive_ops
-   list_ops
-   state_fns
+    primitive_ops
+    list_ops
+    state_fns
+
 
 Converters
-++++++++++
+----------
 
 The Converter submodules include objects which manipulate Operators, usually recursing over an
 Operator structure and changing certain Operators' representation. For example, the
@@ -116,15 +130,16 @@ diagonalizing circuits following by :class:`~.state_fns.OperatorStateFn` measure
 only diagonal Paulis.
 
 .. autosummary::
-   :toctree:
+    :toctree: ../stubs/
 
-   converters
-   evolutions
-   expectations
-   gradients
+    converters
+    evolutions
+    expectations
+    gradients
+
 
 Utility functions
-===================
+=================
 
 .. autosummary::
    :toctree: ../stubs/
@@ -132,6 +147,7 @@ Utility functions
    commutator
    anti_commutator
    double_commutator
+
 
 Exceptions
 ==========

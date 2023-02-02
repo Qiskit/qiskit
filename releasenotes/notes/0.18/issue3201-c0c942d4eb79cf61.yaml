@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.visualization.circuit_drawer`
+    function and :meth:`~qiskit.circuit.QuantumCircuit.draw` method of
+    :class:`~qiskit.circuit.QuantumCircuit` with all output modes
+    where it would incorrectly render a custom instruction that includes
+    classical bits in some circumstances.
+    Fixed `#3201 <https://github.com/Qiskit/qiskit-terra/issues/3201>`__,
+    `#3202 <https://github.com/Qiskit/qiskit-terra/issues/3202>`__, and
+    `#6178 <https://github.com/Qiskit/qiskit-terra/issues/6178>`__

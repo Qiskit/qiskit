@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added a new state class, :class:`~qiskit.quantum_info.StabilizerState`,
+    to the :mod:`qiskit.quantum_info` module. This class represents a
+    stabilizer simulator state using the convention from
+    `Aaronson and Gottesman (2004) <https://arxiv.org/abs/quant-ph/0406196>`__.

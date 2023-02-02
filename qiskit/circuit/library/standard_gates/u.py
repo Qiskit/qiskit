@@ -11,10 +11,13 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
-
+import math
+from cmath import exp
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.exceptions import CircuitError
 
@@ -22,11 +25,8 @@ from qiskit.circuit.exceptions import CircuitError
 class UGate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
 
-    Implemented using two X90 pulses on IBM Quantum systems:
-
-    .. math::
-        U(\theta, \phi, \lambda) =
-            RZ(\phi - \pi/2) RX(\pi/2) RZ(\pi - \theta) RX(\pi/2) RZ(\lambda - \pi/2)
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.u` method.
 
     **Circuit symbol:**
 
@@ -44,9 +44,17 @@ class UGate(Gate):
 
         U(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
+                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
+                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
             \end{pmatrix}
+
+    .. note::
+
+        The matrix representation shown here is the same as in the `OpenQASM 3.0 specification
+        <https://openqasm.com/language/gates.html#built-in-gates>`_,
+        which differs from the `OpenQASM 2.0 specification
+        <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
+        :math:`e^{i(\phi+\lambda)/2}`.
 
     **Examples:**
 
@@ -59,7 +67,13 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
 
-    def __init__(self, theta, phi, lam, label=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+    ):
         """Create new U gate."""
         super().__init__("u", 1, [theta, phi, lam], label=label)
 
@@ -70,7 +84,12 @@ class UGate(Gate):
         """
         return UGate(-self.params[0], -self.params[2], -self.params[1])
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-U gate.
 
         Args:
@@ -95,16 +114,15 @@ class UGate(Gate):
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the U gate."""
         theta, phi, lam = (float(param) for param in self.params)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
         return numpy.array(
             [
-                [numpy.cos(theta / 2), -numpy.exp(1j * lam) * numpy.sin(theta / 2)],
-                [
-                    numpy.exp(1j * phi) * numpy.sin(theta / 2),
-                    numpy.exp(1j * (phi + lam)) * numpy.cos(theta / 2),
-                ],
+                [cos, -exp(1j * lam) * sin],
+                [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
             dtype=dtype,
         )
@@ -115,6 +133,9 @@ class CUGate(ControlledGate):
 
     This is a controlled version of the U gate (generic single qubit rotation),
     including a possible global phase :math:`e^{i\gamma}` of the U gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cu` method.
 
     **Circuit symbol:**
 
@@ -168,7 +189,15 @@ class CUGate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam, gamma, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        gamma: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CU gate."""
         super().__init__(
             "cu",
@@ -195,6 +224,11 @@ class CUGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
+        #          ┌──────┐    ┌──────────────┐
+        # q_0: ────┤ P(γ) ├────┤ P(λ/2 + φ/2) ├──■────────────────────────────■────────────────
+        #      ┌───┴──────┴───┐└──────────────┘┌─┴─┐┌──────────────────────┐┌─┴─┐┌────────────┐
+        # q_1: ┤ P(λ/2 - φ/2) ├────────────────┤ X ├┤ U(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U(0/2,φ,0) ├
+        #      └──────────────┘                └───┘└──────────────────────┘└───┘└────────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         qc.p(self.params[3], 0)
@@ -251,7 +285,7 @@ class CUGate(ControlledGate):
             # CU has one additional parameter to the U base gate
             return self.base_gate.params + self._params
         else:
-            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
+            raise CircuitError("Controlled gate does not define base gate for extracting params")
 
     @params.setter
     def params(self, parameters):
@@ -268,4 +302,4 @@ class CUGate(ControlledGate):
         if self.base_gate:
             self.base_gate.params = parameters[:-1]
         else:
-            raise CircuitError("Controlled gate does not define base gate " "for extracting params")
+            raise CircuitError("Controlled gate does not define base gate for extracting params")

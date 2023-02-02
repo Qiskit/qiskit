@@ -10,17 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test PauliSumOp """
+"""Test PauliSumOp."""
 
 import unittest
 from itertools import product
 from test.python.opflow import QiskitOpflowTestCase
+from ddt import ddt, data, unpack
 
 import numpy as np
 from scipy.sparse import csr_matrix
+from sympy import Symbol
 
 from qiskit import QuantumCircuit, transpile
-from qiskit.circuit import Parameter, ParameterVector
+from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
 from qiskit.opflow import (
     CX,
     CircuitStateFn,
@@ -35,10 +37,12 @@ from qiskit.opflow import (
     Y,
     Z,
     Zero,
+    OpflowError,
 )
 from qiskit.quantum_info import Pauli, PauliTable, SparsePauliOp
 
 
+@ddt
 class TestPauliSumOp(QiskitOpflowTestCase):
     """PauliSumOp tests."""
 
@@ -51,6 +55,25 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         self.assertEqual(pauli_sum.primitive, sparse_pauli)
         self.assertEqual(pauli_sum.coeff, coeff)
         self.assertEqual(pauli_sum.num_qubits, 4)
+
+    def test_coeffs(self):
+        """ListOp.coeffs test"""
+        sum1 = SummedOp(
+            [(0 + 1j) * X, (1 / np.sqrt(2) + 1j / np.sqrt(2)) * Z], 0.5
+        ).collapse_summands()
+        self.assertAlmostEqual(sum1.coeffs[0], 0.5j)
+        self.assertAlmostEqual(sum1.coeffs[1], (1 + 1j) / (2 * np.sqrt(2)))
+
+        a_param = Parameter("a")
+        b_param = Parameter("b")
+        param_exp = ParameterExpression({a_param: 1, b_param: 0}, Symbol("a") ** 2 + Symbol("b"))
+        sum2 = SummedOp([X, (1 / np.sqrt(2) - 1j / np.sqrt(2)) * Y], param_exp).collapse_summands()
+        self.assertIsInstance(sum2.coeffs[0], ParameterExpression)
+        self.assertIsInstance(sum2.coeffs[1], ParameterExpression)
+
+        # Nested ListOp
+        sum_nested = SummedOp([X, sum1])
+        self.assertRaises(TypeError, lambda: sum_nested.coeffs)
 
     def test_add(self):
         """add test"""
@@ -114,6 +137,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
         self.assertNotEqual((X ^ X) + (Y ^ Y), X + Y)
         self.assertEqual((X ^ X) + (Y ^ Y), (Y ^ Y) + (X ^ X))
+        self.assertEqual(0 * X + I, I)
+        self.assertEqual(I, 0 * X + I)
 
         theta = ParameterVector("theta", 2)
         pauli_sum0 = theta[0] * (X + Z)
@@ -142,12 +167,28 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             expected = (Z ^ Z) + (Z ^ I)
             self.assertEqual(pauli_sum, expected)
 
-    def test_permute(self):
-        """permute test"""
-        pauli_sum = PauliSumOp(SparsePauliOp((X ^ Y ^ Z).primitive))
-        expected = PauliSumOp(SparsePauliOp((X ^ I ^ Y ^ Z ^ I).primitive))
+    @data(([1, 2, 4], "XIYZI"), ([2, 1, 0], "ZYX"))
+    @unpack
+    def test_permute(self, permutation, expected_pauli):
+        """Test the permute method."""
+        pauli_sum = PauliSumOp(SparsePauliOp.from_list([("XYZ", 1)]))
+        expected = PauliSumOp(SparsePauliOp.from_list([(expected_pauli, 1)]))
+        permuted = pauli_sum.permute(permutation)
 
-        self.assertEqual(pauli_sum.permute([1, 2, 4]), expected)
+        with self.subTest(msg="test permutated object"):
+            self.assertEqual(permuted, expected)
+
+        with self.subTest(msg="test original object is unchanged"):
+            original = PauliSumOp(SparsePauliOp.from_list([("XYZ", 1)]))
+            self.assertEqual(pauli_sum, original)
+
+    @data([1, 2, 1], [1, 2, -1])
+    def test_permute_invalid(self, permutation):
+        """Test the permute method raises an error on invalid permutations."""
+        pauli_sum = PauliSumOp(SparsePauliOp((X ^ Y ^ Z).primitive))
+
+        with self.assertRaises(OpflowError):
+            pauli_sum.permute(permutation)
 
     def test_compose(self):
         """compose test"""
@@ -264,6 +305,13 @@ class TestPauliSumOp(QiskitOpflowTestCase):
         )
         self.assertEqual(target, expected)
 
+        a = Parameter("a")
+        target = PauliSumOp.from_list([("X", 0.5 * a), ("Y", -0.5j * a)], dtype=object)
+        expected = PauliSumOp(
+            SparsePauliOp.from_list([("X", 0.5 * a), ("Y", -0.5j * a)], dtype=object)
+        )
+        self.assertEqual(target.primitive, expected.primitive)
+
     def test_matrix_iter(self):
         """Test PauliSumOp dense matrix_iter method."""
         labels = ["III", "IXI", "IYY", "YIZ", "XYZ", "III"]
@@ -285,6 +333,32 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             self.assertTrue(
                 np.array_equal(i.toarray(), coeff * coeffs[idx] * Pauli(labels[idx]).to_matrix())
             )
+
+    def test_is_hermitian(self):
+        """Test is_hermitian method"""
+        with self.subTest("True test"):
+            target = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            self.assertTrue(target.is_hermitian())
+
+        with self.subTest("False test"):
+            target = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045j),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
+            self.assertFalse(target.is_hermitian())
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,13 +12,12 @@
 
 """Call instruction that represents calling a schedule as a subroutine."""
 
-from typing import Optional, Union, Dict, Tuple, Any, Set
+from typing import Optional, Union, Dict, Tuple, Set
 
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.instructions import instruction
-from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
 
 
 class Call(instruction.Instruction):
@@ -50,22 +49,21 @@ class Call(instruction.Instruction):
         Raises:
             PulseError: If subroutine is not valid data format.
         """
-        from qiskit.pulse.schedule import ScheduleBlock, Schedule
+        from qiskit.pulse.schedule import Schedule, ScheduleBlock
 
-        if not isinstance(subroutine, (ScheduleBlock, Schedule)):
+        if not isinstance(subroutine, (Schedule, ScheduleBlock)):
             raise PulseError(f"Subroutine type {subroutine.__class__.__name__} cannot be called.")
 
-        value_dict = value_dict or dict()
+        value_dict = value_dict or {}
 
         # initialize parameter template
-        # TODO remove self._parameter_table
         if subroutine.is_parameterized():
             self._arguments = {par: value_dict.get(par, par) for par in subroutine.parameters}
             assigned_subroutine = subroutine.assign_parameters(
                 value_dict=self.arguments, inplace=False
             )
         else:
-            self._arguments = dict()
+            self._arguments = {}
             assigned_subroutine = subroutine
 
         # create cache data of parameter-assigned subroutine
@@ -114,68 +112,13 @@ class Call(instruction.Instruction):
 
         return subroutine
 
-    def _initialize_parameter_table(self, operands: Tuple[Any]):
-        """A helper method to initialize parameter table.
-
-        The behavior of the parameter table of the ``Call`` instruction is slightly different from
-        other instructions. The actual parameter mapper object is defined only in the
-        subroutine, thus the call instruction doesn't have operand of ``ParameterExpression`` type.
-        The parameter table is defined as a mapping of parameter objects to assigned values,
-        whereas the standard instruction stores the mapping to the operand tuple index.
-
-        Note that this instruction doesn't immediately bind parameter values when the
-        :meth:`assign_parameters` method is called with the parameter dictionary.
-        Instead, this instruction separately keeps the parameter values from the subroutine.
-        This logic enables the compiler to reuse the subroutine with different parameters.
-
-        Args:
-            operands: List of operands associated with this instruction.
-        """
-        if operands[0].is_parameterized():
-            for value in operands[0].parameters:
-                self._parameter_table[value] = value
-
-    @deprecated_functionality
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "Call":
-        """Store parameters which will be later assigned to the subroutine.
-
-        Parameter values are not immediately assigned. The subroutine with parameters
-        assigned according to the populated parameter table will be generated only when
-        :func:`~qiskit.pulse.transforms.inline_subroutines` function is applied to this
-        instruction. Note that parameter assignment logic creates a copy of subroutine
-        to avoid the mutation problem. This function is usually applied by the Qiskit
-        compiler when the program is submitted to the backend.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            Self with updated parameters.
-        """
-        for param_obj, assigned_value in value_dict.items():
-            for key_obj, value in self._parameter_table.items():
-                # assign value to parameter expression (it can consist of multiple parameters)
-                if isinstance(value, ParameterExpression) and param_obj in value.parameters:
-                    new_value = format_parameter_value(value.assign(param_obj, assigned_value))
-                    self._parameter_table[key_obj] = new_value
-
-        return self
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return any(isinstance(value, ParameterExpression) for value in self.arguments.values())
-
     @property
     def parameters(self) -> Set:
         """Unassigned parameters which determine the instruction behavior."""
         params = set()
         for value in self._arguments.values():
             if isinstance(value, ParameterExpression):
-                for param in value.parameters:
-                    params.add(param)
+                params |= value.parameters
         return params
 
     @property
@@ -208,7 +151,7 @@ class Call(instruction.Instruction):
         """A helper function to generate hash of parameters."""
         return hash(tuple(self.arguments.items()))
 
-    def __eq__(self, other: "Instruction") -> bool:
+    def __eq__(self, other: instruction.Instruction) -> bool:
         """Check if this instruction is equal to the `other` instruction.
 
         Instructions are equal if they share the same type, operands, and channels.

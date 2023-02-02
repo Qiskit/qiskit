@@ -13,11 +13,13 @@
 """Cancel back-to-back `cx` gates in dag."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 
 
 class CXCancellation(TransformationPass):
     """Cancel back-to-back `cx` gates in dag."""
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the CXCancellation pass on `dag`.
 
@@ -29,26 +31,25 @@ class CXCancellation(TransformationPass):
         """
         cx_runs = dag.collect_runs(["cx"])
         for cx_run in cx_runs:
-            # Partition the cx_run into chunks with equal gate arguments
-            partition = []
+            # Although one `cx_run` will always have the same set of qubits,
+            # the order of these qubits matters (CXi_j != CXj_i).
+            # Therefore, we have to partition each run into chunks where the qargs
+            # are in the same order, and only cancel out CXs within each chunk.
+            partitions = []
             chunk = []
             for i in range(len(cx_run) - 1):
                 chunk.append(cx_run[i])
-
-                qargs0 = cx_run[i].qargs
-                qargs1 = cx_run[i + 1].qargs
-
-                if qargs0 != qargs1:
-                    partition.append(chunk)
+                if cx_run[i].qargs != cx_run[i + 1].qargs:
+                    partitions.append(chunk)
                     chunk = []
             chunk.append(cx_run[-1])
-            partition.append(chunk)
-            # Simplify each chunk in the partition
-            for chunk in partition:
+            partitions.append(chunk)
+
+            # Remove an even number of CX gates from each chunk
+            for chunk in partitions:
                 if len(chunk) % 2 == 0:
-                    for n in chunk:
-                        dag.remove_op_node(n)
-                else:
-                    for n in chunk[1:]:
-                        dag.remove_op_node(n)
+                    dag.remove_op_node(chunk[0])
+                for node in chunk[1:]:
+                    dag.remove_op_node(node)
+
         return dag

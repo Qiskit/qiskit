@@ -12,8 +12,6 @@
 
 """Node for an OPENQASM integer."""
 
-import warnings
-
 from .node import Node
 
 
@@ -34,31 +32,12 @@ class Int(Node):
         ind = indent * " "
         print(ind, "int", self.value)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'Int.qasm(..., prec)' is no longer used and is being " "deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return "%d" % self.value
 
-    def latex(self, prec=None, nested_scope=None):
+    def latex(self):
         """Return the corresponding math mode latex string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'Int.latex(..., prec)' is no longer used and is being " "deprecated.",
-                DeprecationWarning,
-                2,
-            )
-        if nested_scope is not None:
-            warnings.warn(
-                "Parameter 'Int.latex(..., nested_scope)' is no longer used and is "
-                "being deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return "%d" % self.value
 
     def sym(self, nested_scope=None):

@@ -102,9 +102,9 @@ class ElementaryData(ABC):
         self.xvals = np.array(xvals, dtype=object)
         self.yvals = np.array(yvals, dtype=object)
         self.channels = channels or []
-        self.meta = meta or dict()
+        self.meta = meta or {}
         self.ignore_scaling = ignore_scaling
-        self.styles = styles or dict()
+        self.styles = styles or {}
 
     @property
     def data_key(self):

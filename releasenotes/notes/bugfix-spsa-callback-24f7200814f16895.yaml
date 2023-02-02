@@ -1,6 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue in :class:`~qiskit.algorithms.optimisers.SPSA` where 
-    providing a callback function caused an error. Also updated callback
-    function parameter documentation to match code.

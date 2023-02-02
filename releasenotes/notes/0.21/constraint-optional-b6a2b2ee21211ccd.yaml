@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    The ``python-constraint`` dependency, which is used solely by the
+    :class:`~.CSPLayout` transpiler pass, is no longer in the requirements list
+    for the Qiskit Terra package. This is because the :class:`~.CSPLayout` pass
+    is no longer used by default in any of the preset pass managers for
+    :func:`~.transpile`. While the pass is still available, if you're using it
+    you will need to manually install ``python-contraint`` or when you
+    install ``qiskit-terra`` you can use the ``csp-layout`` extra, for example::
+
+        pip install "qiskit-terra[csp-layout]"

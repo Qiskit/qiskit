@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,22 +17,24 @@ import numpy as np
 import scipy as sp
 
 from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_system_matrix import LinearSystemMatrix
 
 
 class NumPyMatrix(LinearSystemMatrix):
-    """Class of matrices given as a numpy array.
+    """The deprecated class of matrices given as a numpy array.
 
-    Examples:
+    Examples::
 
-        .. jupyter-execute::
-
+            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.matrices.numpy_matrix import NumPyMatrix
 
-            matrix = NumPyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                matrix = NumPyMatrix(np.array([[1 / 2, 1 / 6, 0, 0], [1 / 6, 1 / 2, 1 / 6, 0],
                                [0, 1 / 6, 1 / 2, 1 / 6], [0, 0, 1 / 6, 1 / 2]]))
             power = 2
 
@@ -44,6 +46,10 @@ class NumPyMatrix(LinearSystemMatrix):
             qc.append(matrix.power(power).control(), list(range(circ_qubits)))
     """
 
+    @deprecate_function(
+        "The NumPyMatrix class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         matrix: np.ndarray,
@@ -65,17 +71,18 @@ class NumPyMatrix(LinearSystemMatrix):
         self._evolution_time = None  # makes sure the eigenvalues are contained in [0,1)
         self._matrix = None
 
-        # store parameters
-        self.num_state_qubits = int(np.log2(matrix.shape[0]))
-        self.tolerance = tolerance
-        self.evolution_time = evolution_time
-        self.matrix = matrix
         super().__init__(
             num_state_qubits=int(np.log2(matrix.shape[0])),
             tolerance=tolerance,
             evolution_time=evolution_time,
             name=name,
         )
+
+        # store parameters
+        self.num_state_qubits = int(np.log2(matrix.shape[0]))
+        self.tolerance = tolerance
+        self.evolution_time = evolution_time
+        self.matrix = matrix
 
     @property
     def num_state_qubits(self) -> int:
@@ -156,6 +163,7 @@ class NumPyMatrix(LinearSystemMatrix):
         return kappa, kappa
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.matrix.shape[0] != self.matrix.shape[1]:
@@ -181,18 +189,13 @@ class NumPyMatrix(LinearSystemMatrix):
         """
         qr_state = QuantumRegister(num_state_qubits, "state")
         self.qregs = [qr_state]
-        self._qubits = qr_state[:]
 
     def _build(self) -> None:
-        """Build the circuit"""
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """If not already built, build the circuit."""
+        if self._is_built:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         self.compose(self.power(1), inplace=True)
 

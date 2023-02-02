@@ -26,7 +26,6 @@ from qiskit.circuit.gate import Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 from qiskit.exceptions import QiskitError
-from qiskit.utils.deprecation import deprecate_arguments
 
 _EPS = 1e-10  # global variable used to chop very small numbers to zero
 
@@ -42,9 +41,7 @@ class SingleQubitUnitary(Gate):
                      gate d with u = d.dot(u').
     """
 
-    # pylint: disable=unused-argument
-    @deprecate_arguments({"u": "unitary_matrix"})
-    def __init__(self, unitary_matrix, mode="ZYZ", up_to_diagonal=False, u=None):
+    def __init__(self, unitary_matrix, mode="ZYZ", up_to_diagonal=False):
         """Create a new single qubit gate based on the unitary ``u``."""
         if mode not in ["ZYZ"]:
             raise QiskitError("The decomposition mode is not known.")
@@ -59,7 +56,7 @@ class SingleQubitUnitary(Gate):
         self._diag = None
 
         # Create new gate
-        super().__init__("unitary", 1, [unitary_matrix])
+        super().__init__("squ", 1, [unitary_matrix])
 
     def inverse(self):
         """Return the inverse.
@@ -70,11 +67,10 @@ class SingleQubitUnitary(Gate):
             name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
         )  # removing the params because arrays are deprecated
 
-        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
-        inverse_gate.definition._data = [
-            (inst.inverse(), qargs, []) for inst, qargs, _ in reversed(self._definition)
-        ]
-
+        definition = QuantumCircuit(*self.definition.qregs)
+        for inst in reversed(self._definition):
+            definition._append(inst.replace(operation=inst.operation.inverse()))
+        inverse_gate.definition = definition
         return inverse_gate
 
     @property
@@ -159,29 +155,30 @@ class SingleQubitUnitary(Gate):
         if isinstance(parameter, np.ndarray):
             return parameter
         else:
-            raise CircuitError(
-                "invalid param type {} in gate " "{}".format(type(parameter), self.name)
-            )
+            raise CircuitError(f"invalid param type {type(parameter)} in gate {self.name}")
 
 
-# pylint: disable=unused-argument, invalid-name, missing-type-doc, missing-param-doc
-@deprecate_arguments({"u": "unitary"})
-def squ(self, unitary_matrix, qubit, mode="ZYZ", up_to_diagonal=False, *, u=None):
+def squ(
+    self,
+    unitary_matrix,
+    qubit,
+    mode="ZYZ",
+    up_to_diagonal=False,
+):
     """Decompose an arbitrary 2*2 unitary into three rotation gates.
 
     Note that the decomposition is up to a global phase shift.
-    (This is a well known decomposition, which can be found for example in Nielsen and Chuang's book
+    (This is a well known decomposition which can be found for example in Nielsen and Chuang's book
     "Quantum computation and quantum information".)
 
     Args:
         unitary_matrix (ndarray): 2*2 unitary (given as a (complex) ndarray).
-        qubit (QuantumRegister | Qubit): The qubit which the gate is acting on.
+        qubit (QuantumRegister or Qubit): The qubit which the gate is acting on.
         mode (string): determines the used decomposition by providing the rotation axes.
             The allowed modes are: "ZYZ" (default)
         up_to_diagonal (bool):  if set to True, the single-qubit unitary is decomposed up to
             a diagonal matrix, i.e. a unitary u' is implemented such that there exists a 2*2
             diagonal gate d with u = d.dot(u')
-        u (ndarray): Deprecated, use ``unitary_matrix`` instead.
 
     Returns:
         InstructionSet: The single-qubit unitary instruction attached to the circuit.
@@ -196,7 +193,7 @@ def squ(self, unitary_matrix, qubit, mode="ZYZ", up_to_diagonal=False, *, u=None
             qubit = qubit[0]
         else:
             raise QiskitError(
-                "The target qubit is a QuantumRegister containing more than" " one qubits."
+                "The target qubit is a QuantumRegister containing more than one qubit."
             )
     # Check if there is one target qubit provided
     if not isinstance(qubit, Qubit):

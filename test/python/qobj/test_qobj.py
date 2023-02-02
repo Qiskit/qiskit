@@ -15,8 +15,6 @@
 
 import copy
 
-import jsonschema
-
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.compiler import assemble
 
@@ -35,7 +33,6 @@ from qiskit.qobj import (
     QasmExperimentCalibrations,
     GateCalibration,
 )
-from qiskit.qobj import validate_qobj_against_schema
 
 from qiskit.test import QiskitTestCase
 
@@ -48,7 +45,7 @@ class TestQASMQobj(QiskitTestCase):
         self.valid_qobj = QasmQobj(
             qobj_id="12345",
             header=QobjHeader(),
-            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            config=QasmQobjConfig(shots=1024, memory_slots=2),
             experiments=[
                 QasmQobjExperiment(
                     instructions=[
@@ -64,7 +61,7 @@ class TestQASMQobj(QiskitTestCase):
             "type": "QASM",
             "schema_version": "1.2.0",
             "header": {},
-            "config": {"max_credits": 10, "memory_slots": 2, "shots": 1024},
+            "config": {"memory_slots": 2, "shots": 1024},
             "experiments": [
                 {
                     "instructions": [
@@ -77,13 +74,6 @@ class TestQASMQobj(QiskitTestCase):
 
         self.bad_qobj = copy.deepcopy(self.valid_qobj)
         self.bad_qobj.experiments = []
-
-    def test_to_dict_against_schema(self):
-        """Test dictionary representation of Qobj against its schema."""
-        try:
-            validate_qobj_against_schema(self.valid_qobj)
-        except jsonschema.ValidationError as validation_error:
-            self.fail(str(validation_error))
 
     def test_from_dict_per_class(self):
         """Test Qobj and its subclass representations given a dictionary."""
@@ -114,7 +104,7 @@ class TestQASMQobj(QiskitTestCase):
         valid_qobj = QasmQobj(
             qobj_id="12345",
             header=QobjHeader(),
-            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            config=QasmQobjConfig(shots=1024, memory_slots=2),
             experiments=[
                 QasmQobjExperiment(
                     instructions=[
@@ -130,13 +120,13 @@ class TestQASMQobj(QiskitTestCase):
                 )
             ],
         )
-        res = valid_qobj.to_dict(validate=True)
+        res = valid_qobj.to_dict()
         expected_dict = {
             "qobj_id": "12345",
             "type": "QASM",
             "schema_version": "1.3.0",
             "header": {},
-            "config": {"max_credits": 10, "memory_slots": 2, "shots": 1024},
+            "config": {"memory_slots": 2, "shots": 1024},
             "experiments": [
                 {
                     "instructions": [
@@ -161,7 +151,7 @@ class TestQASMQobj(QiskitTestCase):
         expected_qobj = QasmQobj(
             qobj_id="12345",
             header=QobjHeader(),
-            config=QasmQobjConfig(shots=1024, memory_slots=2, max_credits=10),
+            config=QasmQobjConfig(shots=1024, memory_slots=2),
             experiments=[
                 QasmQobjExperiment(
                     instructions=[
@@ -182,7 +172,7 @@ class TestQASMQobj(QiskitTestCase):
             "type": "QASM",
             "schema_version": "1.2.0",
             "header": {},
-            "config": {"max_credits": 10, "memory_slots": 2, "shots": 1024},
+            "config": {"memory_slots": 2, "shots": 1024},
             "experiments": [
                 {
                     "instructions": [
@@ -227,9 +217,7 @@ class TestQASMQobj(QiskitTestCase):
         valid_qobj = QasmQobj(
             qobj_id="12345",
             header=QobjHeader(),
-            config=QasmQobjConfig(
-                shots=1024, memory_slots=2, max_credits=10, pulse_library=pulse_library
-            ),
+            config=QasmQobjConfig(shots=1024, memory_slots=2, pulse_library=pulse_library),
             experiments=[
                 QasmQobjExperiment(
                     instructions=[QasmQobjInstruction(name="u1", qubits=[1], params=[0.4])],
@@ -245,14 +233,13 @@ class TestQASMQobj(QiskitTestCase):
                 )
             ],
         )
-        res = valid_qobj.to_dict(validate=True)
+        res = valid_qobj.to_dict()
         expected_dict = {
             "qobj_id": "12345",
             "type": "QASM",
             "schema_version": "1.3.0",
             "header": {},
             "config": {
-                "max_credits": 10,
                 "memory_slots": 2,
                 "shots": 1024,
                 "pulse_library": [{"name": "test", "samples": [1j, 1j]}],
@@ -285,7 +272,6 @@ class TestPulseQobj(QiskitTestCase):
             config=PulseQobjConfig(
                 shots=1024,
                 memory_slots=2,
-                max_credits=10,
                 meas_level=1,
                 memory_slot_size=8192,
                 meas_return="avg",
@@ -328,7 +314,6 @@ class TestPulseQobj(QiskitTestCase):
             "schema_version": "1.2.0",
             "header": {},
             "config": {
-                "max_credits": 10,
                 "memory_slots": 2,
                 "shots": 1024,
                 "meas_level": 1,
@@ -363,13 +348,6 @@ class TestPulseQobj(QiskitTestCase):
                 }
             ],
         }
-
-    def test_to_dict_against_schema(self):
-        """Test dictionary representation of Qobj against its schema."""
-        try:
-            validate_qobj_against_schema(self.valid_qobj)
-        except jsonschema.ValidationError as validation_error:
-            self.fail(str(validation_error))
 
     def test_from_dict_per_class(self):
         """Test converting to Qobj and its subclass representations given a dictionary."""

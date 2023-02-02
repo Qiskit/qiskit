@@ -128,11 +128,12 @@ class Gate:
         Returns:
             Gate: The Nduv from the input dictionary.
         """
-        in_data = copy.copy(data)
-        nduvs = []
-        for nduv in in_data.pop("parameters"):
-            nduvs.append(Nduv.from_dict(nduv))
-        in_data["parameters"] = nduvs
+        in_data = {}
+        for key, value in data.items():
+            if key == "parameters":
+                in_data[key] = list(map(Nduv.from_dict, value))
+            else:
+                in_data[key] = value
         return cls(**in_data)
 
     def to_dict(self):
@@ -220,10 +221,10 @@ class BackendProperties:
 
     @classmethod
     def from_dict(cls, data):
-        """Create a new Gate object from a dictionary.
+        """Create a new BackendProperties object from a dictionary.
 
         Args:
-            data (dict): A dictionary representing the Gate to create.
+            data (dict): A dictionary representing the BackendProperties to create.
                          It will be in the same format as output by
                          :func:`to_dict`.
 

@@ -11,8 +11,6 @@
 # that they have been altered from the originals.
 
 """Node for an OPENQASM creg statement."""
-import warnings
-
 from .node import Node
 
 
@@ -42,12 +40,6 @@ class Creg(Node):
         print(ind, "creg")
         self.children[0].to_string(indent + 3)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'Creg.qasm(..., prec)' is no longer used and is being " "deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return "creg " + self.id.qasm() + ";"

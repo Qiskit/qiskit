@@ -1,8 +1,0 @@
----
-fixes:
-  - |
-    Fix the :meth:`qiskit.opflow.SparseVectorStateFn.to_dict_fn` method, which
-    previously had at most one entry for the all zero state due to an index error.
-  - |
-    Fix the :meth:`qiskit.opflow.SparseVectorStateFn.equals` method to return 
-    `True` or `False` instead of a sparse vector comparison of the single elements.

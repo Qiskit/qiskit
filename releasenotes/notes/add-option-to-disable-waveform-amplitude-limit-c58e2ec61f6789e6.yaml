@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Adds a global option `limit_amplitude` to the Pulse class to enable or disable the limit of 1. on the waveform
-    amplitude. Fixes #6012.
-    With the option enabled, the `Waveform` class does not allow amplitudes larger than 1. This is
-    enforced in several subclasses such as `Gaussian` and `Constant`.

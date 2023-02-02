@@ -1,0 +1,19 @@
+---
+upgrade:
+  - |
+    The :class:`~.AmplitudeEstimator` now inherits from the ``ABC`` class from
+    the Python standard library. This requires any subclass to implement the
+    :meth:`~.AmplitudeEstimator.estimate` method when previously it wasn't
+    required. This was done because the original intent of the class was to
+    always be a child class of ``ABC``, as the :meth:`~.AmplitudeEstimator.estimate`
+    is required for the operation of an :class:`~.AmplitudeEstimator` object.
+    However, if you were previously defining an :class:`~.AmplitudeEstimator`
+    subclass that didn't implement :meth:`~.AmplitudeEstimator.estimate` this
+    will now result in an error.
+fixes:
+  - |
+    The :class:`~.AmplitudeAmplifier` is now correctly available from the root
+    :mod:`qiskit.algorithms` module directly. Previously it was not included
+    in the re-exported classes off the root module and was only accessible
+    from ``qiskit.algorithms.amplitude_amplifiers``.
+    Fixed `#7751 <https://github.com/Qiskit/qiskit-terra/pull/7752>`__.

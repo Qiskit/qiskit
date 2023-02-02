@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed a bug in :meth:`.PauliSumOp.permute` causing the error::
+
+        QiskitError: 'Pauli string label "" is not valid.'
+
+    if the permutation had the same number of Pauli terms. Calling
+    ``permute([2, 1, 0])`` on ``X ^ Y ^ Z`` no longer raises an error, and now
+    returns ``Z ^ Y ^ X``.

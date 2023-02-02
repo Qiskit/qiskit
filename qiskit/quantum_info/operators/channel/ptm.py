@@ -98,7 +98,7 @@ class PTM(QuantumChannel):
                 output_dim = np.product(input_dims)
             else:
                 output_dim = int(np.sqrt(dout))
-            if output_dim ** 2 != dout or input_dim ** 2 != din or input_dim != output_dim:
+            if output_dim**2 != dout or input_dim**2 != din or input_dim != output_dim:
                 raise QiskitError("Invalid shape for PTM matrix.")
         else:
             # Otherwise we initialize by conversion from another Qiskit
@@ -121,7 +121,7 @@ class PTM(QuantumChannel):
                 output_dims = data.output_dims()
         # Check input is N-qubit channel
         num_qubits = int(np.log2(input_dim))
-        if 2 ** num_qubits != input_dim or input_dim != output_dim:
+        if 2**num_qubits != input_dim or input_dim != output_dim:
             raise QiskitError("Input is not an n-qubit Pauli transfer matrix.")
         super().__init__(ptm, num_qubits=num_qubits)
 

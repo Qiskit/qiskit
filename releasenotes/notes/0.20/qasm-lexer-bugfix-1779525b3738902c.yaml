@@ -1,0 +1,7 @@
+fixes:
+  - |
+    Stopped the parser in :meth:`.QuantumCircuit.from_qasm_str` and
+    :meth:`~.QuantumCircuit.from_qasm_file` from accepting OpenQASM programs
+    that identified themselves as being from a language version other than 2.0.
+    This parser is only for OpenQASM 2.0; support for imported circuits from
+    OpenQASM 3.0 will be added in an upcoming release.

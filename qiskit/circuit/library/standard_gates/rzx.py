@@ -11,9 +11,11 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZX-rotation gate."""
-
+import math
+from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RZXGate(Gate):
@@ -23,6 +25,9 @@ class RZXGate(Gate):
 
     The cross-resonance gate (CR) for superconducting qubits implements
     a ZX interaction (however other terms are also present in an experiment).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rzx` method.
 
     **Circuit Symbol:**
 
@@ -40,12 +45,12 @@ class RZXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{ZX}(\theta)\ q_0, q_1 = exp(-i \frac{\theta}{2} X{\otimes}Z) =
+        R_{ZX}(\theta)\ q_0, q_1 = \exp\left(-i \frac{\theta}{2} X{\otimes}Z\right) =
             \begin{pmatrix}
-                \cos(\th)   & 0          & -i\sin(\th)  & 0          \\
-                0           & \cos(\th)  & 0            & i\sin(\th) \\
-                -i\sin(\th) & 0          & \cos(\th)    & 0          \\
-                0           & i\sin(\th) & 0            & \cos(\th)
+                \cos\left(\th\right)   & 0          & -i\sin\left(\th\right)  & 0          \\
+                0           & \cos\left(\th\right)  & 0            & i\sin\left(\th\right) \\
+                -i\sin\left(\th\right) & 0          & \cos\left(\th\right)    & 0          \\
+                0           & i\sin\left(\th\right) & 0            & \cos\left(\th\right)
             \end{pmatrix}
 
     .. note::
@@ -112,9 +117,9 @@ class RZXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RZX gate."""
-        super().__init__("rzx", 2, [theta])
+        super().__init__("rzx", 2, [theta], label=label)
 
     def _define(self):
         """
@@ -126,6 +131,10 @@ class RZXGate(Gate):
         from .x import CXGate
         from .rz import RZGate
 
+        # q_0: ───────■─────────────■───────
+        #      ┌───┐┌─┴─┐┌───────┐┌─┴─┐┌───┐
+        # q_1: ┤ H ├┤ X ├┤ Rz(0) ├┤ X ├┤ H ├
+        #      └───┘└───┘└───────┘└───┘└───┘
         theta = self.params[0]
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
@@ -150,9 +159,14 @@ class RZXGate(Gate):
         import numpy
 
         half_theta = float(self.params[0]) / 2
-        cos = numpy.cos(half_theta)
-        isin = 1j * numpy.sin(half_theta)
+        cos = math.cos(half_theta)
+        isin = 1j * math.sin(half_theta)
         return numpy.array(
             [[cos, 0, -isin, 0], [0, cos, 0, isin], [-isin, 0, cos, 0], [0, isin, 0, cos]],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RZXGate(exponent * theta)

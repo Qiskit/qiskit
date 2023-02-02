@@ -12,6 +12,7 @@
 
 """Identity gate."""
 
+from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
 
@@ -21,6 +22,10 @@ class IGate(Gate):
 
     Identity gate corresponds to a single-qubit gate wait cycle,
     and should not be optimized or unrolled (it is an opaque gate).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.i` and
+    :meth:`~qiskit.circuit.QuantumCircuit.id` methods.
 
     **Matrix Representation:**
 
@@ -39,7 +44,7 @@ class IGate(Gate):
              └───┘
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Identity gate."""
         super().__init__("id", 1, [], label=label)
 
@@ -50,3 +55,7 @@ class IGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the identity gate."""
         return numpy.array([[1, 0], [0, 1]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return IGate()

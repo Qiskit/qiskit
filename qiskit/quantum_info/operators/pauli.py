@@ -10,76 +10,26 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-import
+
 
 """
 DEPRECATED Tools for working with Pauli Operators.
 """
 
-from warnings import warn
-import numpy as np
-from qiskit.exceptions import QiskitError
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
+import warnings
 
 
-def pauli_group(number_of_qubits, case="weight"):
-    """DEPRECATED: Return the Pauli group with 4^n elements.
+def __getattr__(name):
+    if name == "Pauli":
+        from qiskit.quantum_info import Pauli
 
-    This function is deprecated. Use :func:`~qiskit.quantum_info.pauli_basis`
-    for equivalent functionality.
+        warnings.warn(
+            f"Importing from '{__name__}' is deprecated since Qiskit Terra 0.21 and the module"
+            " will be removed in a future release.  Import directly from 'qiskit.quantum_info'.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
 
-    The phases have been removed.
-    case 'weight' is ordered by Pauli weights and
-    case 'tensor' is ordered by I,X,Y,Z counting lowest qubit fastest.
-
-    Args:
-        number_of_qubits (int): number of qubits
-        case (str): determines ordering of group elements ('weight' or 'tensor')
-
-    Returns:
-        list: list of Pauli objects
-
-    Raises:
-        QiskitError: case is not 'weight' or 'tensor'
-        QiskitError: number_of_qubits is larger than 4
-    """
-    warn(
-        "`insert_paulis` is deprecated and will be removed no earlier than "
-        "3 months after the release date. For equivalent functionality to"
-        "`qiskit.quantum_info.pauli_group` instead. "
-        "`pauli_group(n)` is equivalent to `pauli_basis(n, weight=True)`, "
-        '`pauli_group(n, case="tensor") is equivalent to `pauli_basis(n)`',
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if number_of_qubits < 5:
-        temp_set = []
-
-        if case == "weight":
-            tmp = pauli_group(number_of_qubits, case="tensor")
-            # sort on the weight of the Pauli operator
-            return sorted(tmp, key=lambda x: -np.count_nonzero(np.array(x.to_label(), "c") == b"I"))
-        elif case == "tensor":
-            # the Pauli set is in tensor order II IX IY IZ XI ...
-            for k in range(4 ** number_of_qubits):
-                z = np.zeros(number_of_qubits, dtype=bool)
-                x = np.zeros(number_of_qubits, dtype=bool)
-                # looping over all the qubits
-                for j in range(number_of_qubits):
-                    # making the Pauli for each j fill it in from the
-                    # end first
-                    element = (k // (4 ** j)) % 4
-                    if element == 1:
-                        x[j] = True
-                    elif element == 2:
-                        z[j] = True
-                        x[j] = True
-                    elif element == 3:
-                        z[j] = True
-                temp_set.append(Pauli(z, x))
-            return temp_set
-        else:
-            raise QiskitError(
-                "Only support 'weight' or 'tensor' cases " "but you have {}.".format(case)
-            )
-
-    raise QiskitError("Only support number of qubits is less than 5")
+        return Pauli
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

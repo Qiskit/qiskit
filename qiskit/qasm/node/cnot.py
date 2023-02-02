@@ -12,8 +12,6 @@
 
 """Node for an OPENQASM CNOT statement."""
 
-import warnings
-
 from .node import Node
 
 
@@ -28,12 +26,6 @@ class Cnot(Node):
         """Create the cnot node."""
         super().__init__("cnot", children, None)
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return the corresponding OPENQASM string."""
-        if prec is not None:
-            warnings.warn(
-                "Parameter 'Cnot.qasm(..., prec)' is no longer used and is being " "deprecated.",
-                DeprecationWarning,
-                2,
-            )
         return "CX " + self.children[0].qasm() + "," + self.children[1].qasm() + ";"

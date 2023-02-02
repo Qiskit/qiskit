@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Added a new :attr:`~qiskit.algorithms.optimizers.Optimizer.settings`
+    property to the :class:`~qiskit.algorithms.optimizers.Optimizer` abstract
+    base class that all the optimizer classes in the
+    :mod:`qiskit.algorithms.optimizers` module are based on. This property
+    will return a Python dictionary of the settings for the optimizer
+    that can be used to instantiate another instance of the same optimizer
+    class. For example::
+
+      from qiskit.algorithms.optimizers import GradientDescent
+
+      optimizer = GradientDescent(maxiter=10, learning_rate=0.01)
+      settings = optimizer.settings
+      new_optimizer = GradientDescent(**settings)
+
+    The ``settings`` dictionary is also potentially useful for serializing
+    optimizer objects using JSON or another serialization format.

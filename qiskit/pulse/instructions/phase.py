@@ -20,6 +20,7 @@ from typing import Optional, Union, Tuple
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.exceptions import PulseError
 
 
 class ShiftPhase(Instruction):
@@ -55,6 +56,15 @@ class ShiftPhase(Instruction):
         """
         super().__init__(operands=(phase, channel), name=name)
 
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
+
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
         """Return the rotation angle enacted by this instruction in radians."""
@@ -76,10 +86,6 @@ class ShiftPhase(Instruction):
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()
 
 
 class SetPhase(Instruction):
@@ -111,6 +117,15 @@ class SetPhase(Instruction):
         """
         super().__init__(operands=(phase, channel), name=name)
 
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
+
     @property
     def phase(self) -> Union[complex, ParameterExpression]:
         """Return the rotation angle enacted by this instruction in radians."""
@@ -132,7 +147,3 @@ class SetPhase(Instruction):
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.phase, ParameterExpression) or super().is_parameterized()

@@ -20,8 +20,10 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.library import PhaseOracle
 from qiskit.quantum_info import Statevector
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
 
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests")
 @ddt
 class TestPhaseOracle(QiskitTestCase):
     """Test phase oracle object."""
@@ -55,10 +57,10 @@ class TestPhaseOracle(QiskitTestCase):
         circuit.compose(oracle, inplace=True)
         statevector = Statevector.from_instruction(circuit)
 
-        valid_state = -1 / sqrt(2 ** num_qubits)
-        invalid_state = 1 / sqrt(2 ** num_qubits)
+        valid_state = -1 / sqrt(2**num_qubits)
+        invalid_state = 1 / sqrt(2**num_qubits)
 
-        states = list(range(2 ** num_qubits))
+        states = list(range(2**num_qubits))
         expected_valid = [state in good_states for state in states]
         result_valid = [isclose(statevector.data[state], valid_state) for state in states]
 

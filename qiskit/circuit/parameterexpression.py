@@ -20,22 +20,18 @@ import operator
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import optionals as _optionals
 
-try:
-    import symengine
-
-    HAS_SYMENGINE = True
-except ImportError:
-    HAS_SYMENGINE = False
-
-
+# This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
+# can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
+# handles the references by static analysis.
 ParameterValueType = Union["ParameterExpression", float]
 
 
 class ParameterExpression:
     """ParameterExpression class to enable creating expressions of Parameters."""
 
-    __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_names"]
+    __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_name_map"]
 
     def __init__(self, symbol_map: Dict, expr):
         """Create a new :class:`ParameterExpression`.
@@ -52,16 +48,25 @@ class ParameterExpression:
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
-        self._names = None
+        self._name_map = None
 
     @property
     def parameters(self) -> Set:
         """Returns a set of the unbound Parameters in the expression."""
         return self._parameters
 
+    @property
+    def _names(self) -> Dict:
+        """Returns a mapping of parameter names to Parameters in the expression."""
+        if self._name_map is None:
+            self._name_map = {p.name: p for p in self._parameters}
+        return self._name_map
+
     def conjugate(self) -> "ParameterExpression":
         """Return the conjugate."""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             conjugated = ParameterExpression(
                 self._parameter_symbols, symengine.conjugate(self._symbol_expr)
             )
@@ -85,12 +90,17 @@ class ParameterExpression:
             return self.subs({parameter: value})
         return self.bind({parameter: value})
 
-    def bind(self, parameter_values: Dict) -> "ParameterExpression":
+    def bind(
+        self, parameter_values: Dict, allow_unknown_parameters: bool = False
+    ) -> "ParameterExpression":
         """Binds the provided set of parameters to their corresponding values.
 
         Args:
             parameter_values: Mapping of Parameter instances to the numeric value to which
                               they will be bound.
+            allow_unknown_parameters: If ``False``, raises an error if ``parameter_values``
+                contains Parameters in the keys outside those present in the expression.
+                If ``True``, any such parameters are simply ignored.
 
         Raises:
             CircuitError:
@@ -103,18 +113,14 @@ class ParameterExpression:
             A new expression parameterized by any parameters which were not bound by
             parameter_values.
         """
-
-        self._raise_if_passed_unknown_parameters(parameter_values.keys())
+        if not allow_unknown_parameters:
+            self._raise_if_passed_unknown_parameters(parameter_values.keys())
         self._raise_if_passed_nan(parameter_values)
 
         symbol_values = {}
         for parameter, value in parameter_values.items():
-            param_expr = self._parameter_symbols[parameter]
-            # TODO: Remove after symengine supports single precision floats
-            # see symengine/symengine.py#351 for more details
-            if isinstance(value, numpy.floating):
-                symbol_values[param_expr] = float(value)
-            else:
+            if parameter in self._parameters:
+                param_expr = self._parameter_symbols[parameter]
                 symbol_values[param_expr] = value
 
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
@@ -140,12 +146,17 @@ class ParameterExpression:
 
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
-    def subs(self, parameter_map: Dict) -> "ParameterExpression":
+    def subs(
+        self, parameter_map: Dict, allow_unknown_parameters: bool = False
+    ) -> "ParameterExpression":
         """Returns a new Expression with replacement Parameters.
 
         Args:
             parameter_map: Mapping from Parameters in self to the ParameterExpression
                            instances with which they should be replaced.
+            allow_unknown_parameters: If ``False``, raises an error if ``parameter_map``
+                contains Parameters in the keys outside those present in the expression.
+                If ``True``, any such parameters are simply ignored.
 
         Raises:
             CircuitError:
@@ -156,32 +167,38 @@ class ParameterExpression:
         Returns:
             A new expression with the specified parameters replaced.
         """
+        if not allow_unknown_parameters:
+            self._raise_if_passed_unknown_parameters(parameter_map.keys())
 
-        inbound_parameters = {
-            p for replacement_expr in parameter_map.values() for p in replacement_expr.parameters
+        inbound_names = {
+            p.name: p
+            for replacement_expr in parameter_map.values()
+            for p in replacement_expr.parameters
+        }
+        self._raise_if_parameter_names_conflict(inbound_names, parameter_map.keys())
+
+        # Include existing parameters in self not set to be replaced.
+        new_parameter_symbols = {
+            p: s for p, s in self._parameter_symbols.items() if p not in parameter_map
         }
 
-        self._raise_if_passed_unknown_parameters(parameter_map.keys())
-        self._raise_if_parameter_names_conflict(inbound_parameters, parameter_map.keys())
-        if HAS_SYMENGINE:
-            new_parameter_symbols = {p: symengine.Symbol(p.name) for p in inbound_parameters}
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
+            symbol_type = symengine.Symbol
         else:
             from sympy import Symbol
 
-            new_parameter_symbols = {p: Symbol(p.name) for p in inbound_parameters}
-
-        # Include existing parameters in self not set to be replaced.
-        new_parameter_symbols.update(
-            {p: s for p, s in self._parameter_symbols.items() if p not in parameter_map}
-        )
+            symbol_type = Symbol
 
         # If new_param is an expr, we'll need to construct a matching sympy expr
         # but with our sympy symbols instead of theirs.
-
-        symbol_map = {
-            self._parameter_symbols[old_param]: new_param._symbol_expr
-            for old_param, new_param in parameter_map.items()
-        }
+        symbol_map = {}
+        for old_param, new_param in parameter_map.items():
+            if old_param in self._parameters:
+                symbol_map[self._parameter_symbols[old_param]] = new_param._symbol_expr
+                for p in new_param.parameters:
+                    new_parameter_symbols[p] = symbol_type(p.name)
 
         substituted_symbol_expr = self._symbol_expr.subs(symbol_map)
 
@@ -207,20 +224,19 @@ class ParameterExpression:
     def _raise_if_parameter_names_conflict(self, inbound_parameters, outbound_parameters=None):
         if outbound_parameters is None:
             outbound_parameters = set()
+            outbound_names = {}
+        else:
+            outbound_names = {p.name: p for p in outbound_parameters}
 
-        if self._names is None:
-            self._names = {p.name: p for p in self._parameters}
-
-        inbound_names = {p.name: p for p in inbound_parameters}
-        outbound_names = {p.name: p for p in outbound_parameters}
-
-        shared_names = (self._names.keys() - outbound_names.keys()) & inbound_names.keys()
-        conflicting_names = {
-            name for name in shared_names if self._names[name] != inbound_names[name]
-        }
+        inbound_names = inbound_parameters
+        conflicting_names = []
+        for name, param in inbound_names.items():
+            if name in self._names and name not in outbound_names:
+                if param != self._names[name]:
+                    conflicting_names.append(name)
         if conflicting_names:
             raise CircuitError(
-                "Name conflict applying operation for parameters: " "{}".format(conflicting_names)
+                f"Name conflict applying operation for parameters: {conflicting_names}"
             )
 
     def _apply_operation(
@@ -248,8 +264,7 @@ class ParameterExpression:
         self_expr = self._symbol_expr
 
         if isinstance(other, ParameterExpression):
-            self._raise_if_parameter_names_conflict(other._parameter_symbols.keys())
-
+            self._raise_if_parameter_names_conflict(other._names)
             parameter_symbols = {**self._parameter_symbols, **other._parameter_symbols}
             other_expr = other._symbol_expr
         elif isinstance(other, numbers.Number) and numpy.isfinite(other):
@@ -263,9 +278,14 @@ class ParameterExpression:
         else:
             expr = operation(self_expr, other_expr)
 
-        return ParameterExpression(parameter_symbols, expr)
+        out_expr = ParameterExpression(parameter_symbols, expr)
+        out_expr._name_map = self._names.copy()
+        if isinstance(other, ParameterExpression):
+            out_expr._names.update(other._names.copy())
 
-    def gradient(self, param) -> Union["ParameterExpression", float]:
+        return out_expr
+
+    def gradient(self, param) -> Union["ParameterExpression", complex]:
         """Get the derivative of a parameter expression w.r.t. a specified parameter expression.
 
         Args:
@@ -273,6 +293,7 @@ class ParameterExpression:
 
         Returns:
             ParameterExpression representing the gradient of param_expr w.r.t. param
+            or complex or float number
         """
         # Check if the parameter is contained in the parameter expression
         if param not in self._parameter_symbols.keys():
@@ -281,7 +302,9 @@ class ParameterExpression:
 
         # Compute the gradient of the parameter expression w.r.t. param
         key = self._parameter_symbols[param]
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             expr_grad = symengine.Derivative(self._symbol_expr, key)
         else:
             # TODO enable nth derivative
@@ -299,8 +322,12 @@ class ParameterExpression:
         # If the gradient corresponds to a parameter expression then return the new expression.
         if len(parameter_symbols) > 0:
             return ParameterExpression(parameter_symbols, expr=expr_grad)
-        # If no free symbols left, return a float corresponding to the gradient.
-        return float(expr_grad)
+        # If no free symbols left, return a complex or float gradient
+        expr_grad_cplx = complex(expr_grad)
+        if expr_grad_cplx.imag != 0:
+            return expr_grad_cplx
+        else:
+            return float(expr_grad)
 
     def __add__(self, other):
         return self._apply_operation(operator.add, other)
@@ -336,7 +363,9 @@ class ParameterExpression:
 
     def sin(self):
         """Sine of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             return self._call(symengine.sin)
         else:
             from sympy import sin as _sin
@@ -345,7 +374,9 @@ class ParameterExpression:
 
     def cos(self):
         """Cosine of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             return self._call(symengine.cos)
         else:
             from sympy import cos as _cos
@@ -354,7 +385,9 @@ class ParameterExpression:
 
     def tan(self):
         """Tangent of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             return self._call(symengine.tan)
         else:
             from sympy import tan as _tan
@@ -363,7 +396,9 @@ class ParameterExpression:
 
     def arcsin(self):
         """Arcsin of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             return self._call(symengine.asin)
         else:
             from sympy import asin as _asin
@@ -372,7 +407,9 @@ class ParameterExpression:
 
     def arccos(self):
         """Arccos of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             return self._call(symengine.acos)
         else:
             from sympy import acos as _acos
@@ -381,7 +418,9 @@ class ParameterExpression:
 
     def arctan(self):
         """Arctan of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             return self._call(symengine.atan)
         else:
             from sympy import atan as _atan
@@ -390,7 +429,9 @@ class ParameterExpression:
 
     def exp(self):
         """Exponential of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             return self._call(symengine.exp)
         else:
             from sympy import exp as _exp
@@ -399,7 +440,9 @@ class ParameterExpression:
 
     def log(self):
         """Logarithm of a ParameterExpression"""
-        if HAS_SYMENGINE:
+        if _optionals.HAS_SYMENGINE:
+            import symengine
+
             return self._call(symengine.log)
         else:
             from sympy import log as _log
@@ -410,33 +453,39 @@ class ParameterExpression:
         return f"{self.__class__.__name__}({str(self)})"
 
     def __str__(self):
-        from sympy import sympify
+        from sympy import sympify, sstr
 
-        return str(sympify(self._symbol_expr))
-
-    def __float__(self):
-        if self.parameters:
-            raise TypeError(
-                "ParameterExpression with unbound parameters ({}) "
-                "cannot be cast to a float.".format(self.parameters)
-            )
-        return float(self._symbol_expr)
+        return sstr(sympify(self._symbol_expr), full_prec=False)
 
     def __complex__(self):
-        if self.parameters:
+        try:
+            return complex(self._symbol_expr)
+        # TypeError is for sympy, RuntimeError for symengine
+        except (TypeError, RuntimeError) as exc:
             raise TypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to a complex.".format(self.parameters)
-            )
-        return complex(self._symbol_expr)
+            ) from exc
+
+    def __float__(self):
+        try:
+            return float(self._symbol_expr)
+        # TypeError is for sympy, RuntimeError for symengine
+        except (TypeError, RuntimeError) as exc:
+            raise TypeError(
+                "ParameterExpression with unbound parameters ({}) "
+                "cannot be cast to a float.".format(self.parameters)
+            ) from exc
 
     def __int__(self):
-        if self.parameters:
+        try:
+            return int(self._symbol_expr)
+        # TypeError is for sympy, RuntimeError for symengine
+        except (TypeError, RuntimeError) as exc:
             raise TypeError(
                 "ParameterExpression with unbound parameters ({}) "
                 "cannot be cast to an int.".format(self.parameters)
-            )
-        return int(self._symbol_expr)
+            ) from exc
 
     def __hash__(self):
         return hash((frozenset(self._parameter_symbols), self._symbol_expr))
@@ -459,7 +508,7 @@ class ParameterExpression:
         if isinstance(other, ParameterExpression):
             if self.parameters != other.parameters:
                 return False
-            if HAS_SYMENGINE:
+            if _optionals.HAS_SYMENGINE:
                 from sympy import sympify
 
                 return sympify(self._symbol_expr).equals(sympify(other._symbol_expr))
@@ -469,44 +518,44 @@ class ParameterExpression:
             return len(self.parameters) == 0 and complex(self._symbol_expr) == other
         return False
 
-    def __getstate__(self):
-        if HAS_SYMENGINE:
-            from sympy import sympify
-
-            symbols = {k: sympify(v) for k, v in self._parameter_symbols.items()}
-            expr = sympify(self._symbol_expr)
-            return {"type": "symengine", "symbols": symbols, "expr": expr, "names": self._names}
-        else:
-            return {
-                "type": "sympy",
-                "symbols": self._parameter_symbols,
-                "expr": self._symbol_expr,
-                "names": self._names,
-            }
-
-    def __setstate__(self, state):
-        if state["type"] == "symengine":
-            self._symbol_expr = symengine.sympify(state["expr"])
-            self._parameter_symbols = {k: symengine.sympify(v) for k, v in state["symbols"].items()}
-            self._parameters = set(self._parameter_symbols)
-        else:
-            self._symbol_expr = state["expr"]
-            self._parameter_symbols = state["symbols"]
-            self._parameters = set(self._parameter_symbols)
-        self._names = state["names"]
-
     def is_real(self):
         """Return whether the expression is real"""
 
-        if not self._symbol_expr.is_real and self._symbol_expr.is_real is not None:
+        # workaround for symengine behavior that const * (0 + 1 * I) is not real
+        # see https://github.com/symengine/symengine.py/issues/414
+        if _optionals.HAS_SYMENGINE and self._symbol_expr.is_real is None:
+            symbol_expr = self._symbol_expr.evalf()
+        else:
+            symbol_expr = self._symbol_expr
+
+        if not symbol_expr.is_real and symbol_expr.is_real is not None:
             # Symengine returns false for is_real on the expression if
             # there is a imaginary component (even if that component is 0),
             # but the parameter will evaluate as real. Check that if the
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
-            if HAS_SYMENGINE:
-                if self._symbol_expr.imag != 0.0:
+            if _optionals.HAS_SYMENGINE:
+                if symbol_expr.imag != 0.0:
                     return False
             else:
                 return False
         return True
+
+    def sympify(self):
+        """Return symbolic expression as a raw Sympy or Symengine object.
+
+        Symengine is used preferentially; if both are available, the result will always be a
+        ``symengine`` object.  Symengine is a separate library but has integration with Sympy.
+
+        .. note::
+
+            This is for interoperability only.  Qiskit will not accept or work with raw Sympy or
+            Symegine expressions in its parameters, because they do not contain the tracking
+            information used in circuit-parameter binding and assignment.
+        """
+        return self._symbol_expr
+
+
+# Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand
+# the type hints.
+ParameterValueType = Union[ParameterExpression, float]

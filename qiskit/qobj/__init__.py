@@ -77,8 +77,6 @@ from qiskit.qobj.qasm_qobj import QasmQobjExperiment
 from qiskit.qobj.qasm_qobj import QasmQobjConfig
 from qiskit.qobj.qasm_qobj import QasmQobjExperimentConfig
 
-from .utils import validate_qobj_against_schema
-
 
 class Qobj(QasmQobj):
     """A backwards compat alias for QasmQobj."""

@@ -19,7 +19,7 @@ from typing import Callable, Iterable, List, Optional, Tuple, Union
 import numpy as np
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
 
 from ..converters.converter_base import ConverterBase
 from ..expectations import ExpectationBase, PauliExpectation
@@ -83,7 +83,7 @@ class DerivativeBase(ConverterBase):
                 List[Tuple[ParameterExpression, ParameterExpression]],
             ]
         ] = None,
-        backend: Optional[Union[BaseBackend, Backend, QuantumInstance]] = None,
+        backend: Optional[Union[Backend, QuantumInstance]] = None,
         expectation: Optional[ExpectationBase] = None,
     ) -> Callable[[Iterable], np.ndarray]:
         """Get a callable function which provides the respective gradient, Hessian or QFI for given
@@ -105,7 +105,7 @@ class DerivativeBase(ConverterBase):
         """
         from ..converters import CircuitSampler
 
-        if not grad_params:
+        if grad_params is None:
             grad_params = bind_params
 
         grad = self.convert(operator, grad_params)
@@ -113,15 +113,18 @@ class DerivativeBase(ConverterBase):
             expectation = PauliExpectation()
         grad = expectation.convert(grad)
 
+        sampler = CircuitSampler(backend=backend) if backend is not None else None
+
         def gradient_fn(p_values):
             p_values_dict = dict(zip(bind_params, p_values))
             if not backend:
                 converter = grad.assign_parameters(p_values_dict)
                 return np.real(converter.eval())
             else:
-                p_values_dict = {k: [v] for k, v in p_values_dict.items()}
-                converter = CircuitSampler(backend=backend).convert(grad, p_values_dict)
-                return np.real(converter.eval()[0])
+                p_values_list = {k: [v] for k, v in p_values_dict.items()}
+                sampled = sampler.convert(grad, p_values_list)
+                fully_bound = sampled.bind_parameters(p_values_dict)
+                return np.real(fully_bound.eval()[0])
 
         return gradient_fn
 
@@ -158,6 +161,7 @@ class DerivativeBase(ConverterBase):
         Returns:
             An operator which is equal to the input operator but whose coefficients
             have all been set to 1.0
+
         Raises:
             TypeError: If unknown operator type is reached.
         """

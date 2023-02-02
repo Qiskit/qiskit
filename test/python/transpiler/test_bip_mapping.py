@@ -19,15 +19,16 @@ from qiskit.circuit import Barrier
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.transpiler import CouplingMap, Layout
+from qiskit.providers.fake_provider import FakeLima
+from qiskit.transpiler import CouplingMap, Layout, PassManager
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
-from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes.routing.algorithms.bip_model import HAS_CPLEX, HAS_DOCPLEX
+from qiskit.transpiler.passes import CheckMap, Collect2qBlocks, ConsolidateBlocks, UnitarySynthesis
+from qiskit.utils import optionals
 
 
-@unittest.skipUnless(HAS_CPLEX, "cplex is required to run the BIPMapping tests")
-@unittest.skipUnless(HAS_DOCPLEX, "docplex is required to run the BIPMapping tests")
+@unittest.skipUnless(optionals.HAS_CPLEX, "cplex is required to run the BIPMapping tests")
+@unittest.skipUnless(optionals.HAS_DOCPLEX, "docplex is required to run the BIPMapping tests")
 class TestBIPMapping(QiskitTestCase):
     """Tests the BIPMapping pass."""
 
@@ -178,6 +179,21 @@ class TestBIPMapping(QiskitTestCase):
 
     def test_multi_cregs(self):
         """Test for multiple ClassicalRegisters."""
+
+        #                      ┌───┐ ░ ┌─┐
+        # qr_0: ──■────────────┤ X ├─░─┤M├─────────
+        #       ┌─┴─┐     ┌───┐└─┬─┘ ░ └╥┘┌─┐
+        # qr_1: ┤ X ├──■──┤ H ├──■───░──╫─┤M├──────
+        #       └───┘┌─┴─┐└───┘      ░  ║ └╥┘┌─┐
+        # qr_2: ──■──┤ X ├───────────░──╫──╫─┤M├───
+        #       ┌─┴─┐└───┘           ░  ║  ║ └╥┘┌─┐
+        # qr_3: ┤ X ├────────────────░──╫──╫──╫─┤M├
+        #       └───┘                ░  ║  ║  ║ └╥┘
+        #  c: 2/════════════════════════╩══╬══╩══╬═
+        #                               0  ║  1  ║
+        #                                  ║     ║
+        #  d: 2/═══════════════════════════╩═════╩═
+        #                                  0     1
         qr = QuantumRegister(4, "qr")
         cr1 = ClassicalRegister(2, "c")
         cr2 = ClassicalRegister(2, "d")
@@ -203,6 +219,16 @@ class TestBIPMapping(QiskitTestCase):
 
     def test_swaps_in_dummy_steps(self):
         """Test the case when swaps are inserted in dummy steps."""
+
+        #           ┌───┐ ░            ░
+        # q_0: ──■──┤ H ├─░───■────────░───■───────
+        #      ┌─┴─┐├───┤ ░   │        ░   │
+        # q_1: ┤ X ├┤ H ├─░───┼────■───░───┼────■──
+        #      └───┘├───┤ ░   │  ┌─┴─┐ ░ ┌─┴─┐  │
+        # q_2: ──■──┤ H ├─░───┼──┤ X ├─░─┤ X ├──┼──
+        #      ┌─┴─┐├───┤ ░ ┌─┴─┐└───┘ ░ └───┘┌─┴─┐
+        # q_3: ┤ X ├┤ H ├─░─┤ X ├──────░──────┤ X ├
+        #      └───┘└───┘ ░ └───┘      ░      └───┘
         circuit = QuantumCircuit(4)
         circuit.cx(0, 1)
         circuit.cx(2, 3)
@@ -230,6 +256,15 @@ class TestBIPMapping(QiskitTestCase):
 
     def test_different_number_of_virtual_and_physical_qubits(self):
         """Test the case when number of virtual and physical qubits are different."""
+
+        # q_0: ──■────■───────
+        #      ┌─┴─┐  │
+        # q_1: ┤ X ├──┼────■──
+        #      └───┘  │  ┌─┴─┐
+        # q_2: ──■────┼──┤ X ├
+        #      ┌─┴─┐┌─┴─┐└───┘
+        # q_3: ┤ X ├┤ X ├─────
+        #      └───┘└───┘
         circuit = QuantumCircuit(4)
         circuit.cx(0, 1)
         circuit.cx(2, 3)
@@ -239,3 +274,68 @@ class TestBIPMapping(QiskitTestCase):
         coupling = CouplingMap.from_line(5)
         with self.assertRaises(TranspilerError):
             BIPMapping(coupling)(circuit)
+
+    def test_qubit_subset(self):
+        """Test if `qubit_subset` option works as expected."""
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 1)
+        circuit.cx(1, 2)
+        circuit.cx(0, 2)
+
+        coupling = CouplingMap([(0, 1), (1, 3), (3, 2)])
+        qubit_subset = [0, 1, 3]
+        actual = BIPMapping(coupling, qubit_subset=qubit_subset)(circuit)
+        # all used qubits are in qubit_subset
+        bit_indices = {bit: index for index, bit in enumerate(actual.qubits)}
+        for _, qargs, _ in actual.data:
+            for q in qargs:
+                self.assertTrue(bit_indices[q] in qubit_subset)
+        # ancilla qubits are set in the resulting qubit
+        idle = QuantumRegister(1, name="ancilla")
+        self.assertEqual(idle[0], actual._layout.initial_layout[2])
+
+    def test_unconnected_qubit_subset(self):
+        """Fails if qubits in `qubit_subset` are not connected."""
+        circuit = QuantumCircuit(3)
+        circuit.cx(0, 1)
+
+        coupling = CouplingMap([(0, 1), (1, 3), (3, 2)])
+        with self.assertRaises(TranspilerError):
+            BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)
+
+    def test_objective_function(self):
+        """Test if ``objective`` functions priorities metrics correctly."""
+
+        #      ┌──────┐┌──────┐     ┌──────┐
+        # q_0: ┤0     ├┤0     ├─────┤0     ├
+        #      │  Dcx ││      │     │  Dcx │
+        # q_1: ┤1     ├┤  Dcx ├──■──┤1     ├
+        #      └──────┘│      │  │  └──────┘
+        # q_2: ───■────┤1     ├──┼─────■────
+        #       ┌─┴─┐  └──────┘┌─┴─┐ ┌─┴─┐
+        # q_3: ─┤ X ├──────────┤ X ├─┤ X ├──
+        #       └───┘          └───┘ └───┘
+        qc = QuantumCircuit(4)
+        qc.dcx(0, 1)
+        qc.cx(2, 3)
+        qc.dcx(0, 2)
+        qc.cx(1, 3)
+        qc.dcx(0, 1)
+        qc.cx(2, 3)
+        coupling = CouplingMap(FakeLima().configuration().coupling_map)
+        dep_opt = BIPMapping(coupling, objective="depth", qubit_subset=[0, 1, 3, 4])(qc)
+        err_opt = BIPMapping(
+            coupling,
+            objective="gate_error",
+            qubit_subset=[0, 1, 3, 4],
+            backend_prop=FakeLima().properties(),
+        )(qc)
+        # depth = number of su4 layers (mirrored gates have to be consolidated as single su4 gates)
+        pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx"])])
+        dep_opt = pm_.run(dep_opt)
+        err_opt = pm_.run(err_opt)
+        self.assertLessEqual(dep_opt.depth(), err_opt.depth())
+        # count CNOTs after synthesized
+        dep_opt = UnitarySynthesis(basis_gates=["cx"])(dep_opt)
+        err_opt = UnitarySynthesis(basis_gates=["cx"])(err_opt)
+        self.assertGreater(dep_opt.count_ops()["cx"], err_opt.count_ops()["cx"])

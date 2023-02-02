@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue when using the :class:`qiskit.extensions.Initialize`
+    instruction which was not correctly setting the global phase of the
+    synthesized definition when constructed.
+    Fixed `#5320 <https://github.com/Qiskit/qiskit-terra/issues/5230>`__

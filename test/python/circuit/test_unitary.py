@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ,no-member
-
 """ UnitaryGate tests """
 
 import json
@@ -89,7 +87,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertTrue(len(dag_nodes) == 1)
         dnode = dag_nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        self.assertEqual(dnode.qargs, [qr[0]])
+        self.assertEqual(dnode.qargs, (qr[0],))
         assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_2q_unitary(self):
@@ -115,7 +113,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        self.assertEqual(dnode.qargs, [qr[0], qr[1]])
+        self.assertEqual(dnode.qargs, (qr[0], qr[1]))
         assert_allclose(dnode.op.to_matrix(), matrix)
         qc3 = dag_to_circuit(dag)
         self.assertEqual(qc2, qc3)
@@ -138,7 +136,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(len(nodes), 1)
         dnode = nodes[0]
         self.assertIsInstance(dnode.op, UnitaryGate)
-        self.assertEqual(dnode.qargs, [qr[0], qr[1], qr[3]])
+        self.assertEqual(dnode.qargs, (qr[0], qr[1], qr[3]))
         assert_allclose(dnode.op.to_matrix(), matrix)
 
     def test_1q_unitary_int_qargs(self):
@@ -174,12 +172,12 @@ class TestUnitaryCircuit(QiskitTestCase):
         self.assertEqual(instr.name, "unitary")
         assert_allclose(numpy.array(instr.params[0]).astype(numpy.complex64), matrix)
         # check conversion to dict
-        qobj_dict = qobj.to_dict(validate=True)
+        qobj_dict = qobj.to_dict()
 
         class NumpyEncoder(json.JSONEncoder):
             """Class for encoding json str with complex and numpy arrays."""
 
-            def default(self, obj):
+            def default(self, obj):  # pylint: disable=arguments-differ
                 if isinstance(obj, numpy.ndarray):
                     return obj.tolist()
                 if isinstance(obj, complex):
@@ -280,6 +278,20 @@ class TestUnitaryCircuit(QiskitTestCase):
             "x q0[0];\n"
             "custom_gate q0[0],q0[1];\n"
             "custom_gate q0[1],q0[0];\n"
+        )
+        self.assertEqual(expected_qasm, qc.qasm())
+
+    def test_qasm_unitary_noop(self):
+        """Test that an identifier unitary can be converted to OpenQASM 2"""
+        qc = QuantumCircuit(QuantumRegister(3, "q0"))
+        qc.unitary(numpy.eye(8), qc.qubits, label="unitary_identity")
+        expected_qasm = (
+            "OPENQASM 2.0;\n"
+            'include "qelib1.inc";\n'
+            "gate unitary_identity p0,p1,p2 {\n"
+            "}\n"
+            "qreg q0[3];\n"
+            "unitary_identity q0[0],q0[1],q0[2];\n"
         )
         self.assertEqual(expected_qasm, qc.qasm())
 

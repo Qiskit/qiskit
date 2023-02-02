@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The ``qiskit.test.mock`` module is now deprecated. The fake backend and fake provider classes
+    which were previously available in ``qiskit.test.mock`` have been accessible in
+    :mod:`qiskit.providers.fake_provider` since Terra 0.20.0. This change represents a proper
+    commitment to support the fake backend classes as part of Qiskit, whereas previously they were
+    just part of the internal testing suite, and were exposed to users as a side effect.

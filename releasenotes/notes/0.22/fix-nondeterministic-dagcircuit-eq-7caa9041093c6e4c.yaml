@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Comparing :class:`.QuantumCircuit` and :class:`.DAGCircuit`\ s for equality
+    was previously non-deterministic if the circuits contained more than one
+    register of the same type (*e.g.* two or more :class:`.QuantumRegister`\ s),
+    sometimes returning ``False`` even if the registers were identical.  It will
+    now correctly compare circuits with multiple registers.

@@ -63,7 +63,7 @@ class QiskitPulseStyle(dict):
     @property
     def formatter(self):
         """Return formatter field of style dictionary."""
-        sub_dict = dict()
+        sub_dict = {}
         for key, value in self.items():
             sub_keys = key.split(".")
             if sub_keys[0] == "formatter":
@@ -73,7 +73,7 @@ class QiskitPulseStyle(dict):
     @property
     def generator(self):
         """Return generator field of style dictionary."""
-        sub_dict = dict()
+        sub_dict = {}
         for key, value in self.items():
             sub_keys = key.split(".")
             if sub_keys[0] == "generator":
@@ -83,7 +83,7 @@ class QiskitPulseStyle(dict):
     @property
     def layout(self):
         """Return layout field of style dictionary."""
-        sub_dict = dict()
+        sub_dict = {}
         for key, value in self.items():
             sub_keys = key.split(".")
             if sub_keys[0] == "layout":
@@ -296,6 +296,7 @@ def default_style() -> Dict[str, Any]:
         "formatter.box_height.opaque_shape": 0.5,
         "formatter.axis_break.length": 3000,
         "formatter.axis_break.max_length": 1000,
+        "formatter.control.fill_waveform": True,
         "formatter.control.apply_phase_modulation": True,
         "formatter.control.show_snapshot_channel": True,
         "formatter.control.show_acquire_channel": True,

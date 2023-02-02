@@ -15,6 +15,7 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+from typing import Optional, List, Tuple
 from ddt import ddt, data, unpack
 import numpy as np
 from scipy.optimize import rosen, rosen_der
@@ -25,11 +26,15 @@ from qiskit.algorithms.optimizers import (
     BOBYQA,
     IMFIL,
     CG,
+    CRS,
     COBYLA,
+    DIRECT_L,
+    DIRECT_L_RAND,
     GSLS,
     GradientDescent,
     L_BFGS_B,
     NELDER_MEAD,
+    Optimizer,
     P_BFGS,
     POWELL,
     SLSQP,
@@ -39,16 +44,11 @@ from qiskit.algorithms.optimizers import (
     SciPyOptimizer,
 )
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.utils import algorithm_globals
-
-try:
-    import skquant.opt as skq  # pylint: disable=unused-import
-
-    _HAS_SKQUANT = True
-except ImportError:
-    _HAS_SKQUANT = False
+from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import algorithm_globals, optionals
 
 
+@ddt
 class TestOptimizers(QiskitAlgorithmsTestCase):
     """Test Optimizers"""
 
@@ -56,83 +56,86 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         super().setUp()
         algorithm_globals.random_seed = 52
 
-    def _optimize(self, optimizer, grad=False):
+    def run_optimizer(
+        self,
+        optimizer: Optimizer,
+        max_nfev: int,
+        grad: bool = False,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ):
+        """Test the optimizer.
+
+        Args:
+            optimizer: The optimizer instance to test.
+            max_nfev: The maximal allowed number of function evaluations.
+            grad: Whether to pass the gradient function as input.
+            bounds: Optimizer bounds.
+        """
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        if grad:
-            res = optimizer.optimize(
-                len(x_0), rosen, gradient_function=rosen_der, initial_point=x_0
-            )
-        else:
-            res = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
-        np.testing.assert_array_almost_equal(res[0], [1.0] * len(x_0), decimal=2)
-        return res
+        jac = rosen_der if grad else None
+
+        res = optimizer.minimize(rosen, x_0, jac, bounds)
+        x_opt = res.x
+        nfev = res.nfev
+
+        np.testing.assert_array_almost_equal(x_opt, [1.0] * len(x_0), decimal=2)
+        self.assertLessEqual(nfev, max_nfev)
 
     def test_adam(self):
         """adam test"""
         optimizer = ADAM(maxiter=10000, tol=1e-06)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     def test_cg(self):
         """cg test"""
         optimizer = CG(maxiter=1000, tol=1e-06)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     def test_gradient_descent(self):
         """cg test"""
         optimizer = GradientDescent(maxiter=100000, tol=1e-06, learning_rate=1e-3)
-        res = self._optimize(optimizer, grad=True)
-        self.assertLessEqual(res[2], 100000)
+        self.run_optimizer(optimizer, grad=True, max_nfev=100000)
 
     def test_cobyla(self):
         """cobyla test"""
         optimizer = COBYLA(maxiter=100000, tol=1e-06)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 100000)
+        self.run_optimizer(optimizer, max_nfev=100000)
 
     def test_l_bfgs_b(self):
         """l_bfgs_b test"""
         optimizer = L_BFGS_B(maxfun=1000)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     def test_p_bfgs(self):
         """parallel l_bfgs_b test"""
         optimizer = P_BFGS(maxfun=1000, max_processes=4)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     def test_nelder_mead(self):
         """nelder mead test"""
         optimizer = NELDER_MEAD(maxfev=10000, tol=1e-06)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     def test_powell(self):
         """powell test"""
         optimizer = POWELL(maxfev=10000, tol=1e-06)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     def test_slsqp(self):
         """slsqp test"""
         optimizer = SLSQP(maxiter=1000, tol=1e-06)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     @unittest.skip("Skipping SPSA as it does not do well on non-convex rozen")
     def test_spsa(self):
         """spsa test"""
         optimizer = SPSA(maxiter=10000)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 100000)
+        self.run_optimizer(optimizer, max_nfev=100000)
 
     def test_tnc(self):
         """tnc test"""
         optimizer = TNC(maxiter=1000, tol=1e-06)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     def test_gsls(self):
         """gsls test"""
@@ -144,7 +147,11 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             min_step_size=1.0e-12,
         )
         x_0 = [1.3, 0.7, 0.8, 1.9, 1.2]
-        _, x_value, n_evals = optimizer.optimize(len(x_0), rosen, initial_point=x_0)
+
+        algorithm_globals.random_seed = 1
+        res = optimizer.minimize(rosen, x_0)
+        x_value = res.fun
+        n_evals = res.nfev
 
         # Ensure value is near-optimal
         self.assertLessEqual(x_value, 0.01)
@@ -153,8 +160,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
     def test_scipy_optimizer(self):
         """scipy_optimizer test"""
         optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000})
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
 
     def test_scipy_optimizer_callback(self):
         """scipy_optimizer callback test"""
@@ -164,9 +170,28 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             values.append(x)
 
         optimizer = SciPyOptimizer("BFGS", options={"maxiter": 1000}, callback=callback)
-        res = self._optimize(optimizer)
-        self.assertLessEqual(res[2], 10000)
+        self.run_optimizer(optimizer, max_nfev=10000)
         self.assertTrue(values)  # Check the list is nonempty.
+
+    # ESCH and ISRES do not do well with rosen
+    @data(
+        (CRS, True),
+        (DIRECT_L, True),
+        (DIRECT_L_RAND, True),
+        (CRS, False),
+        (DIRECT_L, False),
+        (DIRECT_L_RAND, False),
+    )
+    @unpack
+    def test_nlopt(self, optimizer_cls, use_bound):
+        """NLopt test"""
+        bounds = [(-6, 6)] * 5 if use_bound else None
+        try:
+            optimizer = optimizer_cls()
+            optimizer.set_options(**{"max_evals": 50000})
+            self.run_optimizer(optimizer, max_nfev=50000, bounds=bounds)
+        except MissingOptionalLibraryError as ex:
+            self.skipTest(str(ex))
 
 
 @ddt
@@ -201,6 +226,31 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         self.assertEqual(from_dict._method, method.lower())
         self.assertEqual(from_dict._options, options)
 
+    def test_independent_reconstruction(self):
+        """Test the SciPyOptimizers don't reset all settings upon creating a new instance.
+
+        COBYLA is used as representative example here."""
+
+        kwargs = {"coffee": "without sugar"}
+        options = {"tea": "with milk"}
+        optimizer = COBYLA(maxiter=1, options=options, **kwargs)
+        serialized = optimizer.settings
+        from_dict = COBYLA(**serialized)
+
+        with self.subTest(msg="test attributes"):
+            self.assertEqual(from_dict.settings["maxiter"], 1)
+
+        with self.subTest(msg="test options"):
+            # options should only contain values that are *not* already in the initializer
+            # (e.g. should not contain maxiter)
+            self.assertEqual(from_dict.settings["options"], {"tea": "with milk"})
+
+        with self.subTest(msg="test kwargs"):
+            self.assertEqual(from_dict.settings["coffee"], "without sugar")
+
+        with self.subTest(msg="option ids differ"):
+            self.assertNotEqual(id(serialized["options"]), id(from_dict.settings["options"]))
+
     def test_adam(self):
         """Test ADAM is serializable."""
 
@@ -220,7 +270,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         self.assertListEqual(settings["eta"], [0.2, 0.1])
         self.assertListEqual(settings["momentum"], [0.25, 0.1])
 
-    @unittest.skipIf(not _HAS_SKQUANT, "Install scikit-quant to run this test.")
+    @unittest.skipIf(not optionals.HAS_SKQUANT, "Install scikit-quant to run this test.")
     def test_bobyqa(self):
         """Test BOBYQA is serializable."""
 
@@ -229,7 +279,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
 
         self.assertEqual(settings["maxiter"], 200)
 
-    @unittest.skipIf(not _HAS_SKQUANT, "Install scikit-quant to run this test.")
+    @unittest.skipIf(not optionals.HAS_SKQUANT, "Install scikit-quant to run this test.")
     def test_imfil(self):
         """Test IMFIL is serializable."""
 
@@ -273,6 +323,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
             "lse_solver": None,
             "hessian_delay": 0,
             "callback": None,
+            "termination_checker": None,
         }
         spsa = SPSA(**options)
 
@@ -285,7 +336,7 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
         def powerlaw():
             n = 0
             while True:
-                yield rate ** n
+                yield rate**n
                 n += 1
 
         def steps():
@@ -327,27 +378,18 @@ class TestOptimizerSerialization(QiskitAlgorithmsTestCase):
             "lse_solver": None,
             "initial_hessian": None,
             "callback": None,
+            "termination_checker": None,
             "hessian_delay": 0,
         }
         spsa = QNSPSA(**options)
 
         settings = spsa.settings
         expected = options.copy()
-        expected.pop("fidelity")  # fidelity cannot be serialized
 
         with self.subTest(msg="check constructed dictionary"):
             self.assertDictEqual(settings, expected)
 
-        # no idea why pylint complains about unexpected args (like "second_order") which are
-        # definitely not in the settings dict
-        # pylint: disable=unexpected-keyword-arg
-        with self.subTest(msg="fidelity missing"):
-            # fidelity cannot be serialized, so it must be added back in
-            with self.assertRaises(TypeError):
-                _ = QNSPSA(**settings)
-
-        settings["fidelity"] = fidelity
-        reconstructed = QNSPSA(**settings)
+        reconstructed = QNSPSA(**settings)  # pylint: disable=unexpected-keyword-arg
         with self.subTest(msg="test reconstructed optimizer"):
             self.assertDictEqual(reconstructed.settings, expected)
 

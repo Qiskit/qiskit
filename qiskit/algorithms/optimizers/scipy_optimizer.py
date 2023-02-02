@@ -12,15 +12,14 @@
 
 """Wrapper class of scipy.optimize.minimize."""
 
-from collections.abc import Sequence
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Union, List, Optional, Tuple
 
 import numpy as np
-from scipy.optimize import Bounds, minimize
+from scipy.optimize import minimize
 
 from qiskit.utils.validation import validate_min
 
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 
 class SciPyOptimizer(Optimizer):
@@ -87,66 +86,85 @@ class SciPyOptimizer(Optimizer):
 
     @property
     def settings(self) -> Dict[str, Any]:
-        settings = {
-            "max_evals_grouped": self._max_evals_grouped,
-            "options": self._options,
-            **self._kwargs,
-        }
+        options = self._options.copy()
+        if hasattr(self, "_OPTIONS"):
+            # all _OPTIONS should be keys in self._options, but add a failsafe here
+            attributes = [
+                option
+                for option in self._OPTIONS  # pylint: disable=no-member
+                if option in options.keys()
+            ]
+
+            settings = {attr: options.pop(attr) for attr in attributes}
+        else:
+            settings = {}
+
+        settings["max_evals_grouped"] = self._max_evals_grouped
+        settings["options"] = options
+        settings.update(self._kwargs)
+
         # the subclasses don't need the "method" key as the class type specifies the method
         if self.__class__ == SciPyOptimizer:
             settings["method"] = self._method
 
         return settings
 
-    def optimize(
+    def minimize(
         self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds: Optional[Union[Sequence, Bounds]] = None,
-        initial_point=None,
-    ):
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+    ) -> OptimizerResult:
         # Remove ignored parameters to supress the warning of scipy.optimize.minimize
         if self.is_bounds_ignored:
-            variable_bounds = None
+            bounds = None
         if self.is_gradient_ignored:
-            gradient_function = None
+            jac = None
 
-        if self.is_gradient_supported and gradient_function is None and self._max_evals_grouped > 1:
+        if self.is_gradient_supported and jac is None and self._max_evals_grouped > 1:
             if "eps" in self._options:
                 epsilon = self._options["eps"]
             else:
                 epsilon = (
                     1e-8 if self._method in {"l-bfgs-b", "tnc"} else np.sqrt(np.finfo(float).eps)
                 )
-            gradient_function = Optimizer.wrap_function(
-                Optimizer.gradient_num_diff, (objective_function, epsilon, self._max_evals_grouped)
+            jac = Optimizer.wrap_function(
+                Optimizer.gradient_num_diff, (fun, epsilon, self._max_evals_grouped)
             )
 
         # Workaround for L_BFGS_B because it does not accept np.ndarray.
         # See https://github.com/Qiskit/qiskit-terra/pull/6373.
-        if gradient_function is not None and self._method == "l-bfgs-b":
-            gradient_function = self._wrap_gradient(gradient_function)
+        if jac is not None and self._method == "l-bfgs-b":
+            jac = self._wrap_gradient(jac)
 
-        # Validate the input
-        super().optimize(
-            num_vars,
-            objective_function,
-            gradient_function=gradient_function,
-            variable_bounds=variable_bounds,
-            initial_point=initial_point,
-        )
+        # Starting in scipy 1.9.0 maxiter is deprecated and maxfun (added in 1.5.0)
+        # should be used instead
+        swapped_deprecated_args = False
+        if self._method == "tnc" and "maxiter" in self._options:
+            swapped_deprecated_args = True
+            self._options["maxfun"] = self._options.pop("maxiter")
 
-        res = minimize(
-            fun=objective_function,
-            x0=initial_point,
+        raw_result = minimize(
+            fun=fun,
+            x0=x0,
             method=self._method,
-            jac=gradient_function,
-            bounds=variable_bounds,
+            jac=jac,
+            bounds=bounds,
             options=self._options,
             **self._kwargs,
         )
-        return res.x, res.fun, res.nfev
+        if swapped_deprecated_args:
+            self._options["maxiter"] = self._options.pop("maxfun")
+
+        result = OptimizerResult()
+        result.x = raw_result.x
+        result.fun = raw_result.fun
+        result.nfev = raw_result.nfev
+        result.njev = raw_result.get("njev", None)
+        result.nit = raw_result.get("nit", None)
+
+        return result
 
     @staticmethod
     def _wrap_gradient(gradient_function):

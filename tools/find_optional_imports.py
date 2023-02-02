@@ -32,6 +32,7 @@ def _main():
         "qiskit.providers.ibmq",
         "qiskit.ignis",
         "qiskit.aqua",
+        "docplex",
     ]
 
     modules_imported = []

@@ -76,12 +76,10 @@ def ast_to_dag(ast):
         QiskitError: if the AST is malformed.
 
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.converters import ast_to_dag
             from qiskit import qasm, QuantumCircuit, ClassicalRegister, QuantumRegister
-            from qiskit.visualization import dag_drawer
-            %matplotlib inline
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
@@ -93,7 +91,6 @@ def ast_to_dag(ast):
             qasm_str = circ.qasm()
             ast = qasm.Qasm(data=qasm_str).parse()
             dag = ast_to_dag(ast)
-            dag_drawer(dag)
     """
     dag = DAGCircuit()
     AstInterpreter(dag)._process_node(ast)

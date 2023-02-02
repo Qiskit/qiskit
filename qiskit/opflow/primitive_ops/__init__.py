@@ -12,7 +12,7 @@
 
 """
 Primitive Operators (:mod:`qiskit.opflow.primitive_ops`)
-================================================================
+========================================================
 
 .. currentmodule:: qiskit.opflow.primitive_ops
 
@@ -32,11 +32,11 @@ Note:
      new object, but the underlying primitives are not copied.
 
 Primitive Operators
-===================
+-------------------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    PrimitiveOp
    CircuitOp
@@ -46,11 +46,11 @@ Primitive Operators
    TaperedPauliSumOp
 
 Symmetries
-===================
+----------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    Z2Symmetries
 """

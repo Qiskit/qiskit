@@ -10,12 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The S and Sdg gate."""
+"""The S, Sdg, CS and CSdg gates."""
+
+from typing import Optional, Union
 
 import numpy
-from qiskit.qasm import pi
+
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.qasm import pi
 
 
 class SGate(Gate):
@@ -24,6 +29,9 @@ class SGate(Gate):
     It induces a :math:`\pi/2` phase, and is sometimes called the P gate (phase).
 
     This is a Clifford gate and a square-root of Pauli-Z.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.s` method.
 
     **Matrix Representation:**
 
@@ -45,7 +53,7 @@ class SGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new S gate."""
         super().__init__("s", 1, [], label=label)
 
@@ -55,6 +63,7 @@ class SGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -73,6 +82,10 @@ class SGate(Gate):
         """Return a numpy.array for the S gate."""
         return numpy.array([[1, 0], [0, 1j]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(0.5 * numpy.pi * exponent)
+
 
 class SdgGate(Gate):
     r"""Single qubit S-adjoint gate (~Z**0.5).
@@ -80,6 +93,9 @@ class SdgGate(Gate):
     It induces a :math:`-\pi/2` phase.
 
     This is a Clifford gate and a square-root of Pauli-Z.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.sdg` method.
 
     **Matrix Representation:**
 
@@ -98,10 +114,10 @@ class SdgGate(Gate):
         q_0: ┤ Sdg ├
              └─────┘
 
-    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
         super().__init__("sdg", 1, [], label=label)
 
@@ -111,6 +127,7 @@ class SdgGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -128,3 +145,161 @@ class SdgGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the Sdg gate."""
         return numpy.array([[1, 0], [0, -1j]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(-0.5 * numpy.pi * exponent)
+
+
+class CSGate(ControlledGate):
+    r"""Controlled-S gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cs` method.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ──■──
+             ┌─┴─┐
+        q_1: ┤ S ├
+             └───┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        CS \ q_0, q_1 =
+        I \otimes |0 \rangle\langle 0| + S \otimes |1 \rangle\langle 1|  =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & i
+            \end{pmatrix}
+    """
+    # Define class constants. This saves future allocation time.
+    _matrix1 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1j],
+        ]
+    )
+    _matrix0 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1j, 0],
+            [0, 0, 0, 1],
+        ]
+    )
+
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+        """Create new CS gate."""
+        super().__init__(
+            "cs", 2, [], label=label, num_ctrl_qubits=1, ctrl_state=ctrl_state, base_gate=SGate()
+        )
+
+    def _define(self):
+        """
+        gate cs a,b { h b; cp(pi/2) a,b; h b; }
+        """
+        self.definition = CPhaseGate(theta=pi / 2).definition
+
+    def inverse(self):
+        """Return inverse of CSGate (CSdgGate)."""
+        return CSdgGate(ctrl_state=self.ctrl_state)
+
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the CS gate."""
+        mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
+        if dtype is not None:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return CPhaseGate(0.5 * numpy.pi * exponent)
+
+
+class CSdgGate(ControlledGate):
+    r"""Controlled-S^\dagger gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.csdg` method.
+
+    **Circuit symbol:**
+
+    .. parsed-literal::
+
+        q_0: ───■───
+             ┌──┴──┐
+        q_1: ┤ Sdg ├
+             └─────┘
+
+    **Matrix representation:**
+
+    .. math::
+
+        CS^\dagger \ q_0, q_1 =
+        I \otimes |0 \rangle\langle 0| + S^\dagger \otimes |1 \rangle\langle 1|  =
+            \begin{pmatrix}
+                1 & 0 & 0 & 0 \\
+                0 & 1 & 0 & 0 \\
+                0 & 0 & 1 & 0 \\
+                0 & 0 & 0 & -i
+            \end{pmatrix}
+    """
+    # Define class constants. This saves future allocation time.
+    _matrix1 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, 0],
+            [0, 0, 0, -1j],
+        ]
+    )
+    _matrix0 = numpy.array(
+        [
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, -1j, 0],
+            [0, 0, 0, 1],
+        ]
+    )
+
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+        """Create new CSdg gate."""
+        super().__init__(
+            "csdg",
+            2,
+            [],
+            label=label,
+            num_ctrl_qubits=1,
+            ctrl_state=ctrl_state,
+            base_gate=SdgGate(),
+        )
+
+    def _define(self):
+        """
+        gate csdg a,b { h b; cp(-pi/2) a,b; h b; }
+        """
+        self.definition = CPhaseGate(theta=-pi / 2).definition
+
+    def inverse(self):
+        """Return inverse of CSdgGate (CSGate)."""
+        return CSGate(ctrl_state=self.ctrl_state)
+
+    def __array__(self, dtype=None):
+        """Return a numpy.array for the CSdg gate."""
+        mat = self._matrix1 if self.ctrl_state == 1 else self._matrix0
+        if dtype is not None:
+            return numpy.asarray(mat, dtype=dtype)
+        return mat
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return CPhaseGate(-0.5 * numpy.pi * exponent)

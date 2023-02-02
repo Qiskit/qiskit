@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    A new kwarg, ``epsilon``, has been added to the constructor for the
+    :class:`~qiskit.extensions.Isometry` class and the corresponding
+    :class:`~qiskit.circuit.QuantumCircuit` method
+    :meth:`~qiskit.circuit.QuantumCircuit.isometry`. This kwarg enables
+    optionally setting the epsilon tolerance used by an
+    :class:`~qiskit.extensions.Isometry` gate. For example::
+
+        import numpy as np
+        from qiskit import QuantumRegister, QuantumCircuit
+
+        tolerance = 1e-8
+        iso = np.eye(2,2)
+        num_q_output = int(np.log2(iso.shape[0]))
+        num_q_input = int(np.log2(iso.shape[1]))
+        q = QuantumRegister(num_q_output)
+        qc = QuantumCircuit(q)
+
+        qc.isometry(iso, q[:num_q_input], q[num_q_input:], epsilon=tolerance)

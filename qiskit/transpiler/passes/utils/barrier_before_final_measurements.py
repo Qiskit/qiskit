@@ -15,7 +15,7 @@
 
 from qiskit.circuit.barrier import Barrier
 from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from .merge_adjacent_barriers import MergeAdjacentBarriers
 
 
@@ -38,7 +38,8 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
             for _, child_successors in dag.bfs_successors(candidate_node):
 
                 if any(
-                    suc.type == "op" and suc.name not in final_op_types for suc in child_successors
+                    isinstance(suc, DAGOpNode) and suc.name not in final_op_types
+                    for suc in child_successors
                 ):
                     is_final_op = False
                     break
@@ -49,10 +50,12 @@ class BarrierBeforeFinalMeasurements(TransformationPass):
         if not final_ops:
             return dag
 
-        # Create a layer with the barrier and add registers from the original dag.
+        # Create a layer with the barrier and add both bits and registers from the original dag.
         barrier_layer = DAGCircuit()
+        barrier_layer.add_qubits(dag.qubits)
         for qreg in dag.qregs.values():
             barrier_layer.add_qreg(qreg)
+        barrier_layer.add_clbits(dag.clbits)
         for creg in dag.cregs.values():
             barrier_layer.add_creg(creg)
 

@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Include an expectation converter in the :meth:`qiskit.opflow.Gradient.gradient_wrapper`
-    methods to fix gradient calculation, in particular when computed with a shot-based
-    simulator or backend. Without an expectation converter, as before, we measured only
-    in the computational basis which lead to wrong results if the operator was not diagonal.

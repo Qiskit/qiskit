@@ -10,30 +10,27 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Integer programming model for quantum circuit compilation."""
-
+import copy
 import logging
+from functools import lru_cache
 
-try:
-    from docplex.mp.model import Model
+import numpy as np
 
-    HAS_DOCPLEX = True
-except ImportError:
-    HAS_DOCPLEX = False
-
-try:
-    import cplex  # pylint: disable=unused-import
-
-    HAS_CPLEX = True
-except ImportError:
-    HAS_CPLEX = False
-
-from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.exceptions import TranspilerError, CouplingError
 from qiskit.transpiler.layout import Layout
+from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.providers.models import BackendProperties
+from qiskit.quantum_info import two_qubit_cnot_decompose
+from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+    TwoQubitWeylDecomposition,
+    trace_to_fid,
+)
+from qiskit.utils import optionals as _optionals
 
 logger = logging.getLogger(__name__)
 
 
+@_optionals.HAS_DOCPLEX.require_in_instance
 class BIPMappingModel:
     """Internal model to create and solve a BIP problem for mapping.
 
@@ -44,9 +41,12 @@ class BIPMappingModel:
             the solution will be stored in :attr:`solution`). None if it's not yet set.
     """
 
-    def __init__(self, dag, coupling_map, dummy_timesteps=None):
+    def __init__(self, dag, coupling_map, qubit_subset, dummy_timesteps=None):
         """
         Args:
+            dag (DAGCircuit): DAG circuit to be mapped
+            coupling_map (CouplingMap): Coupling map of the device on which the `dag` is mapped.
+            qubit_subset (list[int]): Sublist of physical qubits to be used in the mapping.
             dummy_timesteps (int):
                 Number of dummy time steps, after each real layer of gates, to
                 allow arbitrary swaps between neighbors.
@@ -56,24 +56,17 @@ class BIPMappingModel:
             TranspilerError: If size of virtual qubits and physical qubits differ, or
                 if coupling_map is not symmetric (bidirectional).
         """
-        if not HAS_DOCPLEX:
-            raise MissingOptionalLibraryError(
-                libname="DOcplex",
-                name="Decision Optimization CPLEX Modeling for Python",
-                pip_install="pip install docplex",
-            )
-
-        if len(dag.qubits) != coupling_map.size():
-            raise TranspilerError(
-                "BIPMappingModel assumes the same size of virtual and physical qubits."
-            )
-        if not coupling_map.is_symmetric:
-            raise TranspilerError(
-                "BIPMappingModel assumes the coupling_map is symmetric (bidirectional)."
-            )
 
         self._dag = dag
-        self._coupling = coupling_map
+        self._coupling = copy.deepcopy(coupling_map)  # reduced coupling map
+        try:
+            self._coupling = self._coupling.reduce(qubit_subset)
+        except CouplingError as err:
+            raise TranspilerError(
+                "The 'coupling_map' reduced by 'qubit_subset' must be connected."
+            ) from err
+        self._coupling.make_symmetric()
+        self.global_qubit = qubit_subset  # the map from reduced qubit index to global qubit index
 
         self.problem = None
         self.solution = None
@@ -81,10 +74,13 @@ class BIPMappingModel:
         self.num_pqubits = self._coupling.size()
         self._arcs = self._coupling.get_edges()
 
-        # pylint: disable=unnecessary-comprehension
-        initial_layout = Layout.generate_trivial_layout(*dag.qregs.values())
-        self._virtual_to_index = {v: i for i, v in enumerate(initial_layout.get_virtual_bits())}
-        self._index_to_virtual = {i: v for i, v in enumerate(initial_layout.get_virtual_bits())}
+        if self.num_vqubits != self.num_pqubits:
+            raise TranspilerError(
+                "BIPMappingModel assumes the same size of virtual and physical qubits."
+            )
+
+        self._index_to_virtual = dict(enumerate(dag.qubits))
+        self._virtual_to_index = {v: i for i, v in self._index_to_virtual.items()}
 
         # Construct internal circuit model
         # Extract layers with 2-qubit gates
@@ -92,11 +88,10 @@ class BIPMappingModel:
         self.su4layers = []
         for lay in dag.layers():
             laygates = []
-            subdag = lay["graph"]
-            for node in subdag.two_qubit_ops():
+            for node in lay["graph"].two_qubit_ops():
                 i1 = self._virtual_to_index[node.qargs[0]]
                 i2 = self._virtual_to_index[node.qargs[1]]
-                laygates.append((i1, i2))
+                laygates.append(((i1, i2), node))
             if laygates:
                 self._to_su4layer.append(len(self.su4layers))
                 self.su4layers.append(laygates)
@@ -109,6 +104,11 @@ class BIPMappingModel:
             if k == len(self.su4layers) - 1:  # do not add dummy steps after the last layer
                 break
             self.gates.extend([[]] * dummy_timesteps)
+
+        self.bprop = None  # Backend properties to compute cx fidelities (set later if necessary)
+        self.default_cx_error_rate = (
+            None  # Default cx error rate in case backend properties are not available
+        )
 
         logger.info("Num virtual qubits: %d", self.num_vqubits)
         logger.info("Num physical qubits: %d", self.num_pqubits)
@@ -147,24 +147,52 @@ class BIPMappingModel:
         """Check if the time-step t is a dummy step or not."""
         return len(self.gates[t]) == 0
 
-    def create_cpx_problem(self, objective: str, line_symm: bool = False):
+    @_optionals.HAS_DOCPLEX.require_in_call
+    def create_cpx_problem(
+        self,
+        objective: str,
+        backend_prop: BackendProperties = None,
+        line_symm: bool = False,
+        depth_obj_weight: float = 0.1,
+        default_cx_error_rate: float = 5e-3,
+    ):
         """Create integer programming model to compile a circuit.
 
         Args:
             objective:
-                Type of objective function:
+                Type of objective function to be minimized:
 
-                * ``'error_rate'``: [Not implemented] predicted error rate of the circuit
-                * ``'depth'``: depth (number of timesteps) of the circuit
-                * ``'balanced'``: [Not implemented] weighted sum of error_rate and depth
+                * ``'gate_error'``: Approximate gate error of the circuit, which is given as the sum of
+                    negative logarithm of CNOT gate fidelities in the circuit. It takes into account
+                    only the CNOT gate errors reported in ``backend_prop``.
+                * ``'depth'``: Depth (number of timesteps) of the circuit
+                * ``'balanced'``: Weighted sum of gate_error and depth
+
+            backend_prop:
+                Backend properties storing gate errors, which are required in computing certain
+                types of objective function such as ``'gate_error'`` or ``'balanced'``.
+                If this is not available, default_cx_error_rate is used instead.
 
             line_symm:
                 Use symmetry breaking constrainst for line topology. Should
                 only be True if the hardware graph is a chain/line/path.
 
+            depth_obj_weight:
+                Weight of depth objective in ``'balanced'`` objective function.
+
+            default_cx_error_rate:
+                Default CX error rate to be used if backend_prop is not available.
+
         Raises:
-            TranspilerError: if unknow objective type is specified.
+            TranspilerError: if unknown objective type is specified or invalid options are specified.
+            MissingOptionalLibraryError: If docplex is not installed
         """
+        self.bprop = backend_prop
+        self.default_cx_error_rate = default_cx_error_rate
+        if self.bprop is None and self.default_cx_error_rate is None:
+            raise TranspilerError("BackendProperties or default_cx_error_rate must be specified")
+        from docplex.mp.model import Model
+
         mdl = Model()
 
         # *** Define main variables ***
@@ -177,7 +205,7 @@ class BIPMappingModel:
         # Add y variables
         y = {}
         for t in range(self.depth):
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 for (i, j) in self._arcs:
                     y[t, p, q, i, j] = mdl.binary_var(name=f"y_{t}_{p}_{q}_{i}_{j}")
         # Add x variables
@@ -205,28 +233,48 @@ class BIPMappingModel:
                 )
         # Each gate must be implemented
         for t in range(self.depth):
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 mdl.add_constraint(
                     sum(y[t, p, q, i, j] for (i, j) in self._arcs) == 1,
                     ctname=f"implement_gate_{p}_{q}_at_{t}",
                 )
         # Gate can be implemented iff both of its qubits are located at the associated nodes
-        for t in range(self.depth):
-            for (p, q) in self.gates[t]:
+        for t in range(self.depth - 1):
+            for ((p, q), _) in self.gates[t]:
                 for (i, j) in self._arcs:
                     # Apply McCormick to y[t, p, q, i, j] == w[t, p, i] * w[t, q, j]
                     mdl.add_constraint(
                         y[t, p, q, i, j] >= w[t, p, i] + w[t, q, j] - 1,
                         ctname=f"McCormickLB_{p}_{q}_{i}_{j}_at_{t}",
                     )
+                    # Stronger version of McCormick: gate (p,q) is implemented at (i, j)
+                    # if i moves to i or j, and j moves to i or j
                     mdl.add_constraint(
-                        y[t, p, q, i, j] <= w[t, p, i],
+                        y[t, p, q, i, j] <= x[t, p, i, i] + x[t, p, i, j],
                         ctname=f"McCormickUB1_{p}_{q}_{i}_{j}_at_{t}",
                     )
                     mdl.add_constraint(
-                        y[t, p, q, i, j] <= w[t, q, j],
+                        y[t, p, q, i, j] <= x[t, q, j, i] + x[t, q, j, j],
                         ctname=f"McCormickUB2_{p}_{q}_{i}_{j}_at_{t}",
                     )
+        # For last time step, use regular McCormick
+        for ((p, q), _) in self.gates[self.depth - 1]:
+            for (i, j) in self._arcs:
+                # Apply McCormick to y[self.depth - 1, p, q, i, j]
+                # == w[self.depth - 1, p, i] * w[self.depth - 1, q, j]
+                mdl.add_constraint(
+                    y[self.depth - 1, p, q, i, j]
+                    >= w[self.depth - 1, p, i] + w[self.depth - 1, q, j] - 1,
+                    ctname=f"McCormickLB_{p}_{q}_{i}_{j}_at_last",
+                )
+                mdl.add_constraint(
+                    y[self.depth - 1, p, q, i, j] <= w[self.depth - 1, p, i],
+                    ctname=f"McCormickUB1_{p}_{q}_{i}_{j}_at_last",
+                )
+                mdl.add_constraint(
+                    y[self.depth - 1, p, q, i, j] <= w[self.depth - 1, q, j],
+                    ctname=f"McCormickUB2_{p}_{q}_{i}_{j}_at_last",
+                )
         # Logical qubit flow-out constraints
         for t in range(self.depth - 1):  # Flow out; skip last time step
             for q in range(self.num_vqubits):
@@ -248,7 +296,7 @@ class BIPMappingModel:
                     )
         # If a gate is implemented, involved qubits cannot swap with other positions
         for t in range(self.depth - 1):
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 for (i, j) in self._arcs:
                     mdl.add_constraint(
                         x[t, p, i, j] == x[t, q, j, i], ctname=f"swap_{p}_{q}_{i}_{j}_at_{t}"
@@ -256,7 +304,7 @@ class BIPMappingModel:
         # Qubit not in gates can flip with their neighbors
         for t in range(self.depth - 1):
             q_no_gate = list(range(self.num_vqubits))
-            for (p, q) in self.gates[t]:
+            for ((p, q), _) in self.gates[t]:
                 q_no_gate.remove(p)
                 q_no_gate.remove(q)
             for (i, j) in self._arcs:
@@ -292,7 +340,7 @@ class BIPMappingModel:
             for h in range(1, self.num_vqubits):
                 mdl.add_constraint(
                     sum(w[0, p, 0] for p in range(h))
-                    + sum([w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits)])
+                    + sum(w[0, q, self.num_pqubits - 1] for q in range(h, self.num_vqubits))
                     >= 1,
                     ctname=f"sym_break_line_{h}",
                 )
@@ -305,26 +353,79 @@ class BIPMappingModel:
                     for (i, j) in self._arcs:
                         objexr += 0.01 * x[t, q, i, j]
             mdl.minimize(objexr)
-        elif objective == "error_rate":
-            self._set_error_rate_obj(mdl)
-        elif objective == "balanced":
-            self._set_balanced_obj(mdl)
+        elif objective in ("gate_error", "balanced"):
+            # We add the depth objective with coefficient depth_obj_weight if balanced was selected.
+            objexr = 0
+            for t in range(self.depth - 1):
+                for (p, q), node in self.gates[t]:
+                    for (i, j) in self._arcs:
+                        # We pay the cost for gate implementation.
+                        pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
+                        objexr += y[t, p, q, i, j] * pbest_fid
+                        # If a gate is mirrored (followed by a swap on the same qubit pair),
+                        # its cost should be replaced with the cost of the combined (mirrored) gate.
+                        pbest_fidm = -np.log(self._max_expected_mirrored_fidelity(node, i, j))
+                        objexr += x[t, q, i, j] * (pbest_fidm - pbest_fid) / 2
+                # Cost of swaps on unused qubits
+                for q in range(self.num_vqubits):
+                    used_qubits = {q for (pair, _) in self.gates[t] for q in pair}
+                    if q not in used_qubits:
+                        for i in range(self.num_pqubits):
+                            for j in self._coupling.neighbors(i):
+                                objexr += x[t, q, i, j] * -3 / 2 * np.log(self._cx_fidelity(i, j))
+            # Cost for the last layer (x variables are not defined for depth-1)
+            for (p, q), node in self.gates[self.depth - 1]:
+                for (i, j) in self._arcs:
+                    pbest_fid = -np.log(self._max_expected_fidelity(node, i, j))
+                    objexr += y[self.depth - 1, p, q, i, j] * pbest_fid
+            if objective == "balanced":
+                objexr += depth_obj_weight * sum(
+                    z[t] for t in range(self.depth) if self._is_dummy_step(t)
+                )
+            mdl.minimize(objexr)
         else:
             raise TranspilerError(f"Unknown objective type: {objective}")
 
         self.problem = mdl
         logger.info("BIP problem stats: %s", self.problem.statistics)
 
-    @staticmethod
-    def _set_error_rate_obj(model):
-        """Set the minimum error rate objective function."""
-        raise NotImplementedError("objective: 'error_rate' is not implemented")
+    def _max_expected_fidelity(self, node, i, j):
+        return max(
+            gfid * self._cx_fidelity(i, j) ** k
+            for k, gfid in enumerate(self._gate_fidelities(node))
+        )
+
+    def _max_expected_mirrored_fidelity(self, node, i, j):
+        return max(
+            gfid * self._cx_fidelity(i, j) ** k
+            for k, gfid in enumerate(self._mirrored_gate_fidelities(node))
+        )
+
+    def _cx_fidelity(self, i, j) -> float:
+        # fidelity of cx on global physical qubits
+        if self.bprop is not None:
+            return 1.0 - self.bprop.gate_error("cx", [self.global_qubit[i], self.global_qubit[j]])
+        else:
+            return 1.0 - self.default_cx_error_rate
 
     @staticmethod
-    def _set_balanced_obj(model):
-        """Set the minimum balanced (weighted sum of error_rate and depth) objective function."""
-        raise NotImplementedError("objective: 'balanced' is not implemented")
+    @lru_cache()
+    def _gate_fidelities(node):
+        matrix = node.op.to_matrix()
+        target = TwoQubitWeylDecomposition(matrix)
+        traces = two_qubit_cnot_decompose.traces(target)
+        return [trace_to_fid(traces[i]) for i in range(4)]
 
+    @staticmethod
+    @lru_cache()
+    def _mirrored_gate_fidelities(node):
+        matrix = node.op.to_matrix()
+        swap = SwapGate().to_matrix()
+        targetm = TwoQubitWeylDecomposition(matrix @ swap)
+        tracesm = two_qubit_cnot_decompose.traces(targetm)
+        return [trace_to_fid(tracesm[i]) for i in range(4)]
+
+    @_optionals.HAS_CPLEX.require_in_call
     def solve_cpx_problem(self, time_limit: float = 60, threads: int = None) -> str:
         """Solve the BIP problem using CPLEX.
 
@@ -341,12 +442,6 @@ class BIPMappingModel:
         Raises:
             MissingOptionalLibraryError: If CPLEX is not installed
         """
-        if not HAS_CPLEX:
-            raise MissingOptionalLibraryError(
-                libname="CPLEX",
-                name="CplexOptimizer",
-                pip_install="pip install cplex",
-            )
         self.problem.set_time_limit(time_limit)
         if threads is not None:
             self.problem.context.cplex_parameters.threads = threads
@@ -371,7 +466,7 @@ class BIPMappingModel:
         for q in range(self.num_vqubits):
             for i in range(self.num_pqubits):
                 if self.solution.get_value(f"w_{t}_{q}_{i}") > 0.5:
-                    dic[self._index_to_virtual[q]] = i
+                    dic[self._index_to_virtual[q]] = self.global_qubit[i]
         layout = Layout(dic)
         for reg in self._dag.qregs.values():
             layout.add_register(reg)
@@ -392,5 +487,5 @@ class BIPMappingModel:
                 continue
             for q in range(self.num_vqubits):
                 if self.solution.get_value(f"x_{t}_{q}_{i}_{j}") > 0.5:
-                    swaps.append((i, j))
+                    swaps.append((self.global_qubit[i], self.global_qubit[j]))
         return swaps

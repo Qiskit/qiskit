@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Added the parameter  ``filename`` to
+    :func:`~qiskit.visualization.plot_gate_map` and
+    :func:`~qiskit.visualization.plot_coupling_map`, which allows saving the
+    resulting images to a file.

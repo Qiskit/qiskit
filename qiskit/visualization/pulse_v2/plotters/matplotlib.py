@@ -24,6 +24,7 @@ from matplotlib.patches import Rectangle
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import core, drawings, types
 from qiskit.visualization.pulse_v2.plotters.base_plotter import BasePlotter
+from qiskit.visualization.utils import matplotlib_close_if_inline
 
 
 class Mpl2DPlotter(BasePlotter):
@@ -50,6 +51,8 @@ class Mpl2DPlotter(BasePlotter):
             if not chart.is_active and not self.canvas.formatter["control.show_empty_channel"]:
                 continue
             canvas_height += chart.vmax - chart.vmin
+        # set min canvas_height size
+        canvas_height = max(canvas_height, 0.1)
 
         if axis is None:
             fig_h = canvas_height * self.canvas.formatter["general.fig_chart_height"]
@@ -106,7 +109,7 @@ class Mpl2DPlotter(BasePlotter):
                         self.ax.plot(x, y, **data.styles)
                 elif isinstance(data, drawings.TextData):
                     # text object
-                    text = fr"${data.latex}$" if data.latex else data.text
+                    text = rf"${data.latex}$" if data.latex else data.text
                     # replace dynamic text
                     text = text.replace(types.DynamicString.SCALE, f"{chart.scale:.1f}")
                     self.ax.text(x=x[0], y=y[0], s=text, **data.styles)
@@ -164,7 +167,10 @@ class Mpl2DPlotter(BasePlotter):
         )
 
         # boundary
-        self.ax.set_xlim(*axis_config.window)
+        if axis_config.window == (0, 0):
+            self.ax.set_xlim(0, 1)
+        else:
+            self.ax.set_xlim(*axis_config.window)
         self.ax.set_ylim(y_min, y_max)
 
         # title
@@ -190,8 +196,7 @@ class Mpl2DPlotter(BasePlotter):
         Returns:
             Matplotlib figure data.
         """
-        if matplotlib.get_backend() in ["module://ipykernel.pylab.backend_inline", "nbAgg"]:
-            plt.close(self.figure)
+        matplotlib_close_if_inline(self.figure)
 
         if self.figure and interactive:
             self.figure.show()

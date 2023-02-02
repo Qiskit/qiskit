@@ -13,7 +13,6 @@
 """ ListOp Operator Class """
 
 from functools import reduce
-from numbers import Number
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
 
 import numpy as np
@@ -174,6 +173,15 @@ class ListOp(OperatorBase):
             The coefficient.
         """
         return self._coeff
+
+    @property
+    def coeffs(self) -> List[Union[complex, ParameterExpression]]:
+        """Return a list of the coefficients of the operators listed.
+        Raises exception for nested Listops.
+        """
+        if any(isinstance(op, ListOp) for op in self.oplist):
+            raise TypeError("Coefficients are not returned for nested ListOps.")
+        return [self.coeff * op.coeff for op in self.oplist]
 
     def primitive_strings(self) -> Set[str]:
         return reduce(set.union, [op.primitive_strings() for op in self.oplist])
@@ -356,10 +364,6 @@ class ListOp(OperatorBase):
                 [op.to_matrix(massive=massive) * self.coeff for op in self.oplist], dtype=object
             )
         )
-        # Note: As ComposedOp has a combo function of inner product we can end up here not with
-        # a matrix (array) but a scalar. In which case we make a single element array of it.
-        if isinstance(mat, Number):
-            mat = [mat]
         return np.asarray(mat, dtype=complex)
 
     def to_spmatrix(self) -> Union[spmatrix, List[spmatrix]]:
@@ -418,7 +422,7 @@ class ListOp(OperatorBase):
         # The below code only works for distributive ListOps, e.g. ListOp and SummedOp
         if not self.distributive:
             raise NotImplementedError(
-                "ListOp's eval function is only defined for distributive " "ListOps."
+                "ListOp's eval function is only defined for distributive ListOps."
             )
 
         evals = [op.eval(front) for op in self.oplist]

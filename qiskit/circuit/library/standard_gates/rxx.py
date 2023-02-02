@@ -11,15 +11,21 @@
 # that they have been altered from the originals.
 
 """Two-qubit XX-rotation gate."""
-
+import math
+from typing import Optional
+import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
 class RXXGate(Gate):
     r"""A parametric 2-qubit :math:`X \otimes X` interaction (rotation about XX).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rxx` method.
 
     **Circuit Symbol:**
 
@@ -37,12 +43,12 @@ class RXXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{XX}(\theta) = exp(-i \th X{\otimes}X) =
+        R_{XX}(\theta) = \exp\left(-i \th X{\otimes}X\right) =
             \begin{pmatrix}
-                \cos(\th)   & 0           & 0           & -i\sin(\th) \\
-                0           & \cos(\th)   & -i\sin(\th) & 0 \\
-                0           & -i\sin(\th) & \cos(\th)   & 0 \\
-                -i\sin(\th) & 0           & 0           & \cos(\th)
+                \cos\left(\th\right)   & 0           & 0           & -i\sin\left(\th\right) \\
+                0           & \cos\left(\th\right)   & -i\sin\left(\th\right) & 0 \\
+                0           & -i\sin\left(\th\right) & \cos\left(\th\right)   & 0 \\
+                -i\sin\left(\th\right) & 0           & 0           & \cos\left(\th\right)
             \end{pmatrix}
 
     **Examples:**
@@ -57,7 +63,7 @@ class RXXGate(Gate):
 
         .. math::
 
-            R_{XX}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+            R_{XX}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
                                     \begin{pmatrix}
                                         1  & 0  & 0  & -i \\
                                         0  & 1  & -i & 0 \\
@@ -66,9 +72,9 @@ class RXXGate(Gate):
                                     \end{pmatrix}
     """
 
-    def __init__(self, theta):
+    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RXX gate."""
-        super().__init__("rxx", 2, [theta])
+        super().__init__("rxx", 2, [theta], label=label)
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
@@ -78,6 +84,11 @@ class RXXGate(Gate):
         from .h import HGate
         from .rz import RZGate
 
+        #      ┌───┐                   ┌───┐
+        # q_0: ┤ H ├──■─────────────■──┤ H ├
+        #      ├───┤┌─┴─┐┌───────┐┌─┴─┐├───┤
+        # q_1: ┤ H ├┤ X ├┤ Rz(0) ├┤ X ├┤ H ├
+        #      └───┘└───┘└───────┘└───┘└───┘
         theta = self.params[0]
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
@@ -101,12 +112,15 @@ class RXXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a Numpy.array for the RXX gate."""
-        import numpy
-
         theta2 = float(self.params[0]) / 2
-        cos = numpy.cos(theta2)
-        isin = 1j * numpy.sin(theta2)
+        cos = math.cos(theta2)
+        isin = 1j * math.sin(theta2)
         return numpy.array(
             [[cos, 0, 0, -isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [-isin, 0, 0, cos]],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RXXGate(exponent * theta)

@@ -32,28 +32,27 @@ import math
 import operator
 from itertools import chain, combinations
 
-try:
-    from z3 import Real, Bool, Sum, Implies, And, Or, Not, Optimize
-
-    HAS_Z3 = True
-except ImportError:
-    HAS_Z3 = False
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.target import target_to_backend_properties
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import U1Gate, U2Gate, U3Gate, CXGate
 from qiskit.circuit import Measure
 from qiskit.circuit.barrier import Barrier
-from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.dagcircuit import DAGOpNode
+from qiskit.utils import optionals as _optionals
 
 NUM_PREC = 10
 TWOQ_XTALK_THRESH = 3
 ONEQ_XTALK_THRESH = 2
 
 
+@_optionals.HAS_Z3.require_in_instance
 class CrosstalkAdaptiveSchedule(TransformationPass):
     """Crosstalk mitigation through adaptive instruction scheduling."""
 
-    def __init__(self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None):
+    def __init__(
+        self, backend_prop, crosstalk_prop, weight_factor=0.5, measured_qubits=None, target=None
+    ):
         """CrosstalkAdaptiveSchedule initializer.
 
         Args:
@@ -89,12 +88,19 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 The arg is useful when a subsequent module such as state_tomography_circuits
                 inserts the measure gates. If CrosstalkAdaptiveSchedule is made aware of those
                 measurements, it is included in the optimization.
+            target (Target): A target representing the target backend, if both
+                ``backend_prop`` and this are specified then this argument will take
+                precedence and ``coupling_map`` will be ignored.
         Raises:
             ImportError: if unable to import z3 solver
 
         """
+        import z3
+
         super().__init__()
         self.backend_prop = backend_prop
+        if target is not None:
+            self.backend_prop = target_to_backend_properties(target)
         self.crosstalk_prop = crosstalk_prop
         self.weight_factor = weight_factor
         if measured_qubits is None:
@@ -120,7 +126,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         self.qubit_lifetime = {}
         self.dag_overlap_set = {}
         self.xtalk_overlap_set = {}
-        self.opt = Optimize()
+        self.opt = z3.Optimize()
         self.measured_qubits = []
         self.measure_start = None
         self.last_gate_on_qubit = None
@@ -149,19 +155,19 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         backend_prop = self.backend_prop
         for qid in range(len(backend_prop.qubits)):
-            self.bp_t1_time[qid] = int(backend_prop.t1(qid) * 10 ** 9)
-            self.bp_t2_time[qid] = int(backend_prop.t2(qid) * 10 ** 9)
-            self.bp_u1_dur[qid] = int(backend_prop.gate_length("u1", qid)) * 10 ** 9
+            self.bp_t1_time[qid] = int(backend_prop.t1(qid) * 10**9)
+            self.bp_t2_time[qid] = int(backend_prop.t2(qid) * 10**9)
+            self.bp_u1_dur[qid] = int(backend_prop.gate_length("u1", qid)) * 10**9
             u1_err = backend_prop.gate_error("u1", qid)
             if u1_err == 1.0:
                 u1_err = 0.9999
             self.bp_u1_err = round(u1_err, NUM_PREC)
-            self.bp_u2_dur[qid] = int(backend_prop.gate_length("u2", qid)) * 10 ** 9
+            self.bp_u2_dur[qid] = int(backend_prop.gate_length("u2", qid)) * 10**9
             u2_err = backend_prop.gate_error("u2", qid)
             if u2_err == 1.0:
                 u2_err = 0.9999
             self.bp_u2_err = round(u2_err, NUM_PREC)
-            self.bp_u3_dur[qid] = int(backend_prop.gate_length("u3", qid)) * 10 ** 9
+            self.bp_u3_dur[qid] = int(backend_prop.gate_length("u3", qid)) * 10**9
             u3_err = backend_prop.gate_error("u3", qid)
             if u3_err == 1.0:
                 u3_err = 0.9999
@@ -171,7 +177,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 q_0 = ginfo.qubits[0]
                 q_1 = ginfo.qubits[1]
                 cx_tup = (min(q_0, q_1), max(q_0, q_1))
-                self.bp_cx_dur[cx_tup] = int(backend_prop.gate_length("cx", cx_tup)) * 10 ** 9
+                self.bp_cx_dur[cx_tup] = int(backend_prop.gate_length("cx", cx_tup)) * 10**9
                 cx_err = backend_prop.gate_error("cx", cx_tup)
                 if cx_err == 1.0:
                     cx_err = 0.9999
@@ -278,13 +284,15 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Setup the variables required for Z3 optimization
         """
+        import z3
+
         for gate in self.dag.gate_nodes():
             t_var_name = "t_" + str(self.gate_id[gate])
             d_var_name = "d_" + str(self.gate_id[gate])
             f_var_name = "f_" + str(self.gate_id[gate])
-            self.gate_start_time[gate] = Real(t_var_name)
-            self.gate_duration[gate] = Real(d_var_name)
-            self.gate_fidelity[gate] = Real(f_var_name)
+            self.gate_start_time[gate] = z3.Real(t_var_name)
+            self.gate_duration[gate] = z3.Real(d_var_name)
+            self.gate_fidelity[gate] = z3.Real(f_var_name)
         for gate in self.xtalk_overlap_set:
             self.overlap_indicator[gate] = {}
             self.overlap_amounts[gate] = {}
@@ -296,16 +304,16 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 else:
                     # Indicator variable for overlap of g_1 and g_2
                     var_name1 = "olp_ind_" + str(self.gate_id[g_1]) + "_" + str(self.gate_id[g_2])
-                    self.overlap_indicator[g_1][g_2] = Bool(var_name1)
+                    self.overlap_indicator[g_1][g_2] = z3.Bool(var_name1)
                     var_name2 = "olp_amnt_" + str(self.gate_id[g_1]) + "_" + str(self.gate_id[g_2])
-                    self.overlap_amounts[g_1][g_2] = Real(var_name2)
+                    self.overlap_amounts[g_1][g_2] = z3.Real(var_name2)
         active_qubits_list = []
         for gate in self.dag.gate_nodes():
             for q in gate.qargs:
                 active_qubits_list.append(self.qubit_indices[q])
         for active_qubit in list(set(active_qubits_list)):
             q_var_name = "l_" + str(active_qubit)
-            self.qubit_lifetime[active_qubit] = Real(q_var_name)
+            self.qubit_lifetime[active_qubit] = z3.Real(q_var_name)
 
         meas_q = []
         for node in self.dag.op_nodes():
@@ -313,7 +321,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 meas_q.append(self.qubit_indices[node.qargs[0]])
 
         self.measured_qubits = list(set(self.input_measured_qubits).union(set(meas_q)))
-        self.measure_start = Real("meas_start")
+        self.measure_start = z3.Real("meas_start")
 
     def basic_bounds(self):
         """
@@ -338,9 +346,11 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         DAG scheduling constraints optimization
         Sets overlap indicator variables
         """
+        import z3
+
         for gate in self.gate_start_time:
             for dep_gate in self.dag.successors(gate):
-                if not dep_gate.type == "op":
+                if not isinstance(dep_gate, DAGOpNode):
                     continue
                 if isinstance(dep_gate.op, Measure):
                     continue
@@ -361,16 +371,18 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                 # This constraint enforces full or zero overlap between two gates
                 before = f_1 < s_2
                 after = f_2 < s_1
-                overlap1 = And(s_2 <= s_1, f_1 <= f_2)
-                overlap2 = And(s_1 <= s_2, f_2 <= f_1)
-                self.opt.add(Or(before, after, overlap1, overlap2))
-                intervals_overlap = And(s_2 <= f_1, s_1 <= f_2)
+                overlap1 = z3.And(s_2 <= s_1, f_1 <= f_2)
+                overlap2 = z3.And(s_1 <= s_2, f_2 <= f_1)
+                self.opt.add(z3.Or(before, after, overlap1, overlap2))
+                intervals_overlap = z3.And(s_2 <= f_1, s_1 <= f_2)
                 self.opt.add(self.overlap_indicator[g_1][g_2] == intervals_overlap)
 
     def fidelity_constraints(self):
         """
         Set gate fidelity based on gate overlap conditions
         """
+        import z3
+
         for gate in self.gate_start_time:
             q_0 = self.qubit_indices[gate.qargs[0]]
             no_xtalk = False
@@ -398,7 +410,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                     for tmpg in on_set:
                         clauses.append(self.overlap_indicator[gate][tmpg])
                     for tmpg in off_set:
-                        clauses.append(Not(self.overlap_indicator[gate][tmpg]))
+                        clauses.append(z3.Not(self.overlap_indicator[gate][tmpg]))
                     err = 0
                     if not on_set:
                         err = self.bp_cx_err[self.cx_tuple(gate)]
@@ -414,7 +426,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
                     if err == 1.0:
                         err = 0.999999
                     val = round(math.log(1.0 - err), NUM_PREC)
-                    self.opt.add(Implies(And(*clauses), self.gate_fidelity[gate] == val))
+                    self.opt.add(z3.Implies(z3.And(*clauses), self.gate_fidelity[gate] == val))
 
     def coherence_constraints(self):
         """
@@ -466,6 +478,8 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Objective function is a weighted combination of gate errors and decoherence errors
         """
+        import z3
+
         self.fidelity_terms = [self.gate_fidelity[gate] for gate in self.gate_fidelity]
         self.coherence_terms = []
         for q in self.qubit_lifetime:
@@ -477,7 +491,7 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
             all_terms.append(self.weight_factor * item)
         for item in self.coherence_terms:
             all_terms.append((1 - self.weight_factor) * item)
-        self.opt.maximize(Sum(all_terms))
+        self.opt.maximize(z3.Sum(all_terms))
 
     def r2f(self, val):
         """
@@ -501,7 +515,9 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Setup and solve a Z3 optimization for finding the best schedule
         """
-        self.opt = Optimize()
+        import z3
+
+        self.opt = z3.Optimize()
         self.create_z3_vars()
         self.basic_bounds()
         self.scheduling_constraints()
@@ -701,12 +717,6 @@ class CrosstalkAdaptiveSchedule(TransformationPass):
         """
         Main scheduling function
         """
-        if not HAS_Z3:
-            raise TranspilerError(
-                "z3-solver is required to use CrosstalkAdaptiveSchedule. "
-                'To install, run "pip install z3-solver".'
-            )
-
         self.dag = dag
 
         # process input program

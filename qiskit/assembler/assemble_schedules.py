@@ -28,9 +28,9 @@ from qiskit.qobj.converters.pulse_instruction import ParametricPulseShapes
 def assemble_schedules(
     schedules: List[
         Union[
-            "schedule.ScheduleBlock",
-            "schedule.ScheduleComponent",
-            Tuple[int, "schedule.ScheduleComponent"],
+            schedule.ScheduleBlock,
+            schedule.ScheduleComponent,
+            Tuple[int, schedule.ScheduleComponent],
         ]
     ],
     qobj_id: int,
@@ -50,6 +50,43 @@ def assemble_schedules(
 
     Raises:
         QiskitError: when frequency settings are not supplied.
+
+    Examples:
+
+        .. code-block:: python
+
+            from qiskit import pulse
+            from qiskit.assembler import assemble_schedules
+            from qiskit.assembler.run_config import RunConfig
+            # Construct a Qobj header for the output Qobj
+            header = {"backend_name": "FakeOpenPulse2Q", "backend_version": "0.0.0"}
+            # Build a configuration object for the output Qobj
+            config = RunConfig(shots=1024,
+                               memory=False,
+                               meas_level=1,
+                               meas_return='avg',
+                               memory_slot_size=100,
+                               parametric_pulses=[],
+                               init_qubits=True,
+                               qubit_lo_freq=[4900000000.0, 5000000000.0],
+                               meas_lo_freq=[6500000000.0, 6600000000.0],
+                               schedule_los=[])
+            # Build a Pulse schedule to assemble into a Qobj
+            schedule = pulse.Schedule()
+            schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test0"),
+                                   pulse.DriveChannel(0),
+                                   name="test1")
+            schedule += pulse.Play(pulse.Waveform([0.1] * 16, name="test1"),
+                                   pulse.DriveChannel(0),
+                                   name="test2")
+            schedule += pulse.Play(pulse.Waveform([0.5] * 16, name="test0"),
+                                   pulse.DriveChannel(0),
+                                   name="test1")
+            # Assemble a Qobj from the schedule.
+            pulseQobj = assemble_schedules(schedules=[schedule],
+                                           qobj_id="custom-id",
+                                           qobj_header=header,
+                                           run_config=config)
     """
     if not hasattr(run_config, "qubit_lo_freq"):
         raise QiskitError("qubit_lo_freq must be supplied.")
@@ -68,7 +105,7 @@ def assemble_schedules(
 
 
 def _assemble_experiments(
-    schedules: List[Union["schedule.ScheduleComponent", Tuple[int, "schedule.ScheduleComponent"]]],
+    schedules: List[Union[schedule.ScheduleComponent, Tuple[int, schedule.ScheduleComponent]]],
     lo_converter: converters.LoConfigConverter,
     run_config: RunConfig,
 ) -> Tuple[List[qobj.PulseQobjExperiment], Dict[str, Any]]:
@@ -187,25 +224,30 @@ def _assemble_instructions(
     acquire_instruction_map = defaultdict(list)
     for time, instruction in sched.instructions:
 
-        if isinstance(instruction, instructions.Play) and isinstance(
-            instruction.pulse, library.ParametricPulse
-        ):
-            pulse_shape = ParametricPulseShapes(type(instruction.pulse)).name
-            if pulse_shape not in run_config.parametric_pulses:
-                instruction = instructions.Play(
-                    instruction.pulse.get_waveform(), instruction.channel, name=instruction.name
-                )
+        if isinstance(instruction, instructions.Play):
+            if isinstance(instruction.pulse, (library.ParametricPulse, library.SymbolicPulse)):
+                is_backend_supported = True
+                try:
+                    pulse_shape = ParametricPulseShapes.from_instance(instruction.pulse).name
+                    if pulse_shape not in run_config.parametric_pulses:
+                        is_backend_supported = False
+                except ValueError:
+                    # Custom pulse class, or bare SymbolicPulse object.
+                    is_backend_supported = False
 
-        if isinstance(instruction, instructions.Play) and isinstance(
-            instruction.pulse, library.Waveform
-        ):
-            name = hashlib.sha256(instruction.pulse.samples).hexdigest()
-            instruction = instructions.Play(
-                library.Waveform(name=name, samples=instruction.pulse.samples),
-                channel=instruction.channel,
-                name=name,
-            )
-            user_pulselib[name] = instruction.pulse.samples
+                if not is_backend_supported:
+                    instruction = instructions.Play(
+                        instruction.pulse.get_waveform(), instruction.channel, name=instruction.name
+                    )
+
+            if isinstance(instruction.pulse, library.Waveform):
+                name = hashlib.sha256(instruction.pulse.samples).hexdigest()
+                instruction = instructions.Play(
+                    library.Waveform(name=name, samples=instruction.pulse.samples),
+                    channel=instruction.channel,
+                    name=name,
+                )
+                user_pulselib[name] = instruction.pulse.samples
 
         # ignore explicit delay instrs on acq channels as they are invalid on IBMQ backends;
         # timing of other instrs will still be shifted appropriately
@@ -227,9 +269,9 @@ def _assemble_instructions(
     if acquire_instruction_map:
         if hasattr(run_config, "meas_map"):
             _validate_meas_map(acquire_instruction_map, run_config.meas_map)
-        for (time, _), instrs in acquire_instruction_map.items():
+        for (time, _), instruction_bundle in acquire_instruction_map.items():
             qobj_instructions.append(
-                instruction_converter.convert_bundled_acquires(time, instrs),
+                instruction_converter(time, instruction_bundle),
             )
 
     return qobj_instructions, max_memory_slot

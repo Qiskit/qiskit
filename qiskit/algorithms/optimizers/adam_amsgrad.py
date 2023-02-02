@@ -17,8 +17,8 @@ import os
 
 import csv
 import numpy as np
-from qiskit.utils import algorithm_globals
-from .optimizer import Optimizer, OptimizerSupportLevel
+from qiskit.utils.deprecation import deprecate_arguments
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 # pylint: disable=invalid-name
 
@@ -193,37 +193,60 @@ class ADAM(Optimizer):
         t = t[1:-1]
         self._t = np.fromstring(t, dtype=int, sep=" ")
 
+    @deprecate_arguments(
+        {
+            "objective_function": "fun",
+            "initial_point": "x0",
+            "gradient_function": "jac",
+        }
+    )
+    # pylint: disable=arguments-differ
     def minimize(
         self,
-        objective_function: Callable[[np.ndarray], float],
-        initial_point: np.ndarray,
-        gradient_function: Callable[[np.ndarray], float],
-    ) -> Tuple[np.ndarray, float, int]:
-        """Run the minimization.
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Optional[Callable[[POINT], POINT]] = None,
+        bounds: Optional[List[Tuple[float, float]]] = None,
+        # pylint:disable=unused-argument
+        objective_function: Optional[Callable[[np.ndarray], float]] = None,
+        initial_point: Optional[np.ndarray] = None,
+        gradient_function: Optional[Callable[[np.ndarray], float]] = None,
+        # ) -> Tuple[np.ndarray, float, int]:
+    ) -> OptimizerResult:  # TODO find proper way to deprecate return type
+        """Minimize the scalar function.
 
         Args:
-            objective_function: A function handle to the objective function.
-            initial_point: The initial iteration point.
-            gradient_function: A function handle to the gradient of the objective function.
+            fun: The scalar function to minimize.
+            x0: The initial point for the minimization.
+            jac: The gradient of the scalar function ``fun``.
+            bounds: Bounds for the variables of ``fun``. This argument might be ignored if the
+                optimizer does not support bounds.
+            objective_function: DEPRECATED. A function handle to the objective function.
+            initial_point: DEPRECATED. The initial iteration point.
+            gradient_function: DEPRECATED. A function handle to the gradient of the objective
+                function.
 
         Returns:
-            A tuple of (optimal parameters, optimal value, number of iterations).
+            The result of the optimization, containing e.g. the result as attribute ``x``.
         """
-        derivative = gradient_function(initial_point)
+        if jac is None:
+            jac = Optimizer.wrap_function(Optimizer.gradient_num_diff, (fun, self._eps))
+
+        derivative = jac(x0)
         self._t = 0
         self._m = np.zeros(np.shape(derivative))
         self._v = np.zeros(np.shape(derivative))
         if self._amsgrad:
             self._v_eff = np.zeros(np.shape(derivative))
 
-        params = params_new = initial_point
+        params = params_new = x0
         while self._t < self._maxiter:
             if self._t > 0:
-                derivative = gradient_function(params)
+                derivative = jac(params)
             self._t += 1
             self._m = self._beta_1 * self._m + (1 - self._beta_1) * derivative
             self._v = self._beta_2 * self._v + (1 - self._beta_2) * derivative * derivative
-            lr_eff = self._lr * np.sqrt(1 - self._beta_2 ** self._t) / (1 - self._beta_1 ** self._t)
+            lr_eff = self._lr * np.sqrt(1 - self._beta_2**self._t) / (1 - self._beta_1**self._t)
             if not self._amsgrad:
                 params_new = params - lr_eff * self._m.flatten() / (
                     np.sqrt(self._v.flatten()) + self._noise_factor
@@ -236,47 +259,15 @@ class ADAM(Optimizer):
 
             if self._snapshot_dir:
                 self.save_params(self._snapshot_dir)
+
+            # check termination
             if np.linalg.norm(params - params_new) < self._tol:
-                return params_new, objective_function(params_new), self._t
-            else:
-                params = params_new
+                break
 
-        return params_new, objective_function(params_new), self._t
+            params = params_new
 
-    def optimize(
-        self,
-        num_vars: int,
-        objective_function: Callable[[np.ndarray], float],
-        gradient_function: Optional[Callable[[np.ndarray], float]] = None,
-        variable_bounds: Optional[List[Tuple[float, float]]] = None,
-        initial_point: Optional[np.ndarray] = None,
-    ) -> Tuple[np.ndarray, float, int]:
-        """Perform optimization.
-
-        Args:
-            num_vars: Number of parameters to be optimized.
-            objective_function: Handle to a function that computes the objective function.
-            gradient_function: Handle to a function that computes the gradient of the objective
-                function.
-            variable_bounds: deprecated
-            initial_point: The initial point for the optimization.
-
-        Returns:
-            A tuple (point, value, nfev) where\n
-                point: is a 1D numpy.ndarray[float] containing the solution\n
-                value: is a float with the objective function value\n
-                nfev: is the number of objective function calls
-
-        """
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        if initial_point is None:
-            initial_point = algorithm_globals.random.random(num_vars)
-        if gradient_function is None:
-            gradient_function = Optimizer.wrap_function(
-                Optimizer.gradient_num_diff, (objective_function, self._eps)
-            )
-
-        point, value, nfev = self.minimize(objective_function, initial_point, gradient_function)
-        return point, value, nfev
+        result = OptimizerResult()
+        result.x = params_new
+        result.fun = fun(params_new)
+        result.nfev = self._t
+        return result

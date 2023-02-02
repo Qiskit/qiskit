@@ -11,21 +11,31 @@
 # that they have been altered from the originals.
 
 """Two-pulse single-qubit gate."""
-
+import math
+from cmath import exp
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
 class U3Gate(Gate):
     r"""Generic single-qubit rotation gate with 3 Euler angles.
 
-    Implemented using two X90 pulses on IBM Quantum systems:
+    .. warning::
 
-    .. math::
-        U3(\theta, \phi, \lambda) =
-            RZ(\phi) RX(-\pi/2) RZ(\theta) RX(\pi/2) RZ(\lambda)
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           U3(\theta, \phi, \lambda) =  U(\theta, \phi, \lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(1)
+          circuit.u(theta, phi, lambda)
 
     **Circuit symbol:**
 
@@ -43,22 +53,39 @@ class U3Gate(Gate):
 
         U3(\theta, \phi, \lambda) =
             \begin{pmatrix}
-                \cos(\th)          & -e^{i\lambda}\sin(\th) \\
-                e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
+                \cos\left(\th\right)          & -e^{i\lambda}\sin\left(\th\right) \\
+                e^{i\phi}\sin\left(\th\right) & e^{i(\phi+\lambda)}\cos\left(\th\right)
             \end{pmatrix}
+
+    .. note::
+
+        The matrix representation shown here differs from the `OpenQASM 2.0 specification
+        <https://doi.org/10.48550/arXiv.1707.03429>`_ by a global phase of
+        :math:`e^{i(\phi+\lambda)/2}`.
 
     **Examples:**
 
     .. math::
 
-        U3(\theta, -\frac{\pi}{2}, \frac{\pi}{2}) = RX(\theta)
+        U3(\theta, \phi, \lambda) = e^{-i \frac{\pi + \theta}{2}} P(\phi + \pi) \sqrt{X}
+        P(\theta + \pi) \sqrt{X} P(\lambda)
+
+    .. math::
+
+        U3\left(\theta, -\frac{\pi}{2}, \frac{\pi}{2}\right) = RX(\theta)
 
     .. math::
 
         U3(\theta, 0, 0) = RY(\theta)
     """
 
-    def __init__(self, theta, phi, lam, label=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+    ):
         """Create new U3 gate."""
         super().__init__("u3", 1, [theta, phi, lam], label=label)
 
@@ -69,7 +96,12 @@ class U3Gate(Gate):
         """
         return U3Gate(-self.params[0], -self.params[2], -self.params[1])
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-U3 gate.
 
         Args:
@@ -95,16 +127,16 @@ class U3Gate(Gate):
         qc.u(self.params[0], self.params[1], self.params[2], 0)
         self.definition = qc
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a Numpy.array for the U3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
         return numpy.array(
             [
-                [cos, -numpy.exp(1j * lam) * sin],
-                [numpy.exp(1j * phi) * sin, numpy.exp(1j * (phi + lam)) * cos],
+                [cos, -exp(1j * lam) * sin],
+                [exp(1j * phi) * sin, exp(1j * (phi + lam)) * cos],
             ],
             dtype=dtype,
         )
@@ -169,7 +201,14 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
 
-    def __init__(self, theta, phi, lam, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        phi: ParameterValueType,
+        lam: ParameterValueType,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Create new CU3 gate."""
         super().__init__(
             "cu3",
@@ -197,6 +236,11 @@ class CU3Gate(ControlledGate):
         from .u1 import U1Gate
         from .x import CXGate  # pylint: disable=cyclic-import
 
+        #      ┌───────────────┐
+        # q_0: ┤ U1(λ/2 + φ/2) ├──■─────────────────────────────■─────────────────
+        #      ├───────────────┤┌─┴─┐┌───────────────────────┐┌─┴─┐┌─────────────┐
+        # q_1: ┤ U1(λ/2 - φ/2) ├┤ X ├┤ U3(-0/2,0,-λ/2 - φ/2) ├┤ X ├┤ U3(0/2,φ,0) ├
+        #      └───────────────┘└───┘└───────────────────────┘└───┘└─────────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -221,28 +265,28 @@ class CU3Gate(ControlledGate):
             -self.params[0], -self.params[2], -self.params[1], ctrl_state=self.ctrl_state
         )
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the CU3 gate."""
         theta, phi, lam = self.params
         theta, phi, lam = float(theta), float(phi), float(lam)
-        cos = numpy.cos(theta / 2)
-        sin = numpy.sin(theta / 2)
+        cos = math.cos(theta / 2)
+        sin = math.sin(theta / 2)
         if self.ctrl_state:
             return numpy.array(
                 [
                     [1, 0, 0, 0],
-                    [0, cos, 0, -numpy.exp(1j * lam) * sin],
+                    [0, cos, 0, -exp(1j * lam) * sin],
                     [0, 0, 1, 0],
-                    [0, numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi + lam)) * cos],
+                    [0, exp(1j * phi) * sin, 0, exp(1j * (phi + lam)) * cos],
                 ],
                 dtype=dtype,
             )
         else:
             return numpy.array(
                 [
-                    [cos, 0, -numpy.exp(1j * lam) * sin, 0],
+                    [cos, 0, -exp(1j * lam) * sin, 0],
                     [0, 1, 0, 0],
-                    [numpy.exp(1j * phi) * sin, 0, numpy.exp(1j * (phi + lam)) * cos, 0],
+                    [exp(1j * phi) * sin, 0, exp(1j * (phi + lam)) * cos, 0],
                     [0, 0, 0, 1],
                 ],
                 dtype=dtype,
@@ -255,7 +299,7 @@ def _generate_gray_code(num_bits):
         raise ValueError("Cannot generate the gray code for less than 1 bit.")
     result = [0]
     for i in range(num_bits):
-        result += [x + 2 ** i for x in reversed(result)]
+        result += [x + 2**i for x in reversed(result)]
     return [format(x, "0%sb" % num_bits) for x in result]
 
 

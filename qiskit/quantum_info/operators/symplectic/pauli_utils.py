@@ -10,27 +10,34 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-PauliTable utility functions.
+PauliList utility functions.
 """
 
-import numpy as np
-from .pauli_table import PauliTable
+import warnings
+from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
 
 
-def pauli_basis(num_qubits, weight=False):
-    """Return the ordered PauliTable for the n-qubit Pauli basis.
+def pauli_basis(num_qubits, weight=False, pauli_list=None):
+    """Return the ordered PauliTable or PauliList for the n-qubit Pauli basis.
 
     Args:
         num_qubits (int): number of qubits
         weight (bool): if True optionally return the basis sorted by Pauli weight
                        rather than lexicographic order (Default: False)
+        pauli_list (bool): [Deprecated] This argument is deprecated and remains
+                           for backwards compatability. It has no effect.
 
     Returns:
-        PauliTable: the PauliTable for the basis
+        PauliList: the Paulis for the basis
     """
-    pauli_1q = PauliTable(
-        np.array([[False, False], [True, False], [True, True], [False, True]], dtype=bool)
-    )
+    if pauli_list is not None:
+        warnings.warn(
+            "The `pauli_list` kwarg is deprecated as of Qiskit Terra 0.22 and "
+            "no longer has an effect as `pauli_basis` always returns a PauliList.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    pauli_1q = PauliList(["I", "X", "Y", "Z"])
     if num_qubits == 1:
         return pauli_1q
     pauli = pauli_1q

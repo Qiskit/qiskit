@@ -1,0 +1,35 @@
+---
+features:
+  - |
+    The performance of the :meth:`.SparsePauliOp.simplify` method has
+    greatly improved by replacing the use of ``numpy.unique`` to compute unique
+    elements of an array by a new similar function implemented in Rust that
+    doesn't pre-sort the array.
+  - |
+    Added a new method :meth:`~qiskit.quantum_info.SparsePauliOp.equiv` to the
+    :class:`~.SparsePauliOp` class for testing the equivalence of a
+    :class:`~.SparsePauliOp` with another :class:`.SparsePauliOp` object.
+    Unlike the ``==`` operator which compares operators element-wise,
+    :meth:`~qiskit.quantum_info.SparsePauliOp.equiv` compares whether two
+    operators are equivalent or not. For example::
+
+        op = SparsePauliOp.from_list([("X", 1), ("Y", 1)])
+        op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
+        op3 = SparsePauliOp.from_list([("Y", 1), ("X", 1)])
+
+        print(op == op2)  # False
+        print(op == op3)  # False
+        print(op.equiv(op2))  # True
+        print(op.equiv(op3))  # True
+
+fixes:
+  - |
+    Fixed an issue where running the ``==`` operator between two
+    :class:`~.SparsePauliOp` objects would raise an error when the two operators
+    had different numbers of coefficients. For example::
+
+        op = SparsePauliOp.from_list([("X", 1), ("Y", 1)])
+        op2 = SparsePauliOp.from_list([("X", 1), ("Y", 1), ("Z", 0)])
+        print(op == op2)
+
+    This would previously raise a ``ValueError`` instead of returning ``False``.

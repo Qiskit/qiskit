@@ -64,6 +64,7 @@ class Results:
         diff_name = current.split(".")
         diff_name.insert(-1, "diff")
         diff_name = ".".join(diff_name)
+
         current = Image.open(current)
         expected = Image.open(expected)
 
@@ -146,16 +147,16 @@ class Results:
         ret = ""
 
         if len(self.mismatch) >= 2:
-            Results._zipfiles(self.mismatch, "mpl/mismatch.zip")
+            Results._zipfiles(self.mismatch, f"{self.directory}/mismatch.zip")
             ret += (
-                '<div><a href="mpl/mismatch.zip">'
+                f'<div><a href="{self.directory}/mismatch.zip">'
                 "Download %s mismatch results as a zip</a></div>" % len(self.mismatch)
             )
 
         if len(self.missing) >= 2:
-            Results._zipfiles(self.missing, "mpl/missing.zip")
+            Results._zipfiles(self.missing, f"{self.directory}/missing.zip")
             ret += (
-                '<div><a href="mpl/missing.zip">'
+                f'<div><a href="{self.directory}/missing.zip">'
                 "Download %s missing results as a zip</a></div>" % len(self.missing)
             )
 
@@ -193,9 +194,18 @@ class Results:
 
 
 if __name__ == "__main__":
-    RESULT_FILES = []
-    for file in os.listdir(os.path.join(SWD, "mpl")):
+    # collect results for circuit tests
+    RESULT_FILES_CIRCUIT = []
+    for file in os.listdir(os.path.join(SWD, "mpl/circuit")):
         if file.endswith(".png") and not file.endswith(".diff.png"):
-            RESULT_FILES.append(file)
-    RESULTS = Results(sorted(RESULT_FILES), "mpl")
-    RESULTS.diff_images()
+            RESULT_FILES_CIRCUIT.append(file)
+    RESULTS_CIRCUIT = Results(sorted(RESULT_FILES_CIRCUIT), "mpl/circuit")
+    RESULTS_CIRCUIT.diff_images()
+
+    # collect results for graph tests
+    RESULT_FILES_GRAPH = []
+    for file in os.listdir(os.path.join(SWD, "mpl/graph")):
+        if file.endswith(".png") and not file.endswith(".diff.png"):
+            RESULT_FILES_GRAPH.append(file)
+    RESULTS_GRAPH = Results(sorted(RESULT_FILES_GRAPH), "mpl/graph")
+    RESULTS_GRAPH.diff_images()

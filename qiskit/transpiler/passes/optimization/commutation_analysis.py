@@ -13,12 +13,10 @@
 """Analysis pass to find commutation relations between DAG nodes."""
 
 from collections import defaultdict
-import numpy as np
-from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.basepasses import AnalysisPass
-from qiskit.quantum_info.operators import Operator
 
-_CUTOFF_PRECISION = 1e-10
+from qiskit.dagcircuit import DAGOpNode
+from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.circuit.commutation_checker import CommutationChecker
 
 
 class CommutationAnalysis(AnalysisPass):
@@ -34,7 +32,7 @@ class CommutationAnalysis(AnalysisPass):
 
     def __init__(self):
         super().__init__()
-        self.cache = {}
+        self.comm_checker = CommutationChecker()
 
     def run(self, dag):
         """Run the CommutationAnalysis pass on `dag`.
@@ -72,56 +70,21 @@ class CommutationAnalysis(AnalysisPass):
                 if current_gate not in current_comm_set[-1]:
                     prev_gate = current_comm_set[-1][-1]
                     does_commute = False
-                    try:
-                        does_commute = _commute(current_gate, prev_gate, self.cache)
-                    except TranspilerError:
-                        pass
+
+                    if isinstance(current_gate, DAGOpNode) and isinstance(prev_gate, DAGOpNode):
+                        does_commute = self.comm_checker.commute(
+                            current_gate.op,
+                            current_gate.qargs,
+                            current_gate.cargs,
+                            prev_gate.op,
+                            prev_gate.qargs,
+                            prev_gate.cargs,
+                        )
+
                     if does_commute:
                         current_comm_set[-1].append(current_gate)
-
                     else:
                         current_comm_set.append([current_gate])
 
                 temp_len = len(current_comm_set)
                 self.property_set["commutation_set"][(current_gate, wire)] = temp_len - 1
-
-
-def _commute(node1, node2, cache):
-
-    if node1.type != "op" or node2.type != "op":
-        return False
-
-    for nd in [node1, node2]:
-        if nd.op._directive or nd.name in {"measure", "reset", "delay"}:
-            return False
-
-    if node1.op.condition or node2.op.condition:
-        return False
-
-    if node1.op.is_parameterized() or node2.op.is_parameterized():
-        return False
-
-    qarg = list(set(node1.qargs + node2.qargs))
-    qbit_num = len(qarg)
-
-    qarg1 = [qarg.index(q) for q in node1.qargs]
-    qarg2 = [qarg.index(q) for q in node2.qargs]
-
-    id_op = Operator(np.eye(2 ** qbit_num))
-
-    node1_key = (node1.op.name, str(node1.op.params), str(qarg1))
-    node2_key = (node2.op.name, str(node2.op.params), str(qarg2))
-    if (node1_key, node2_key) in cache:
-        op12 = cache[(node1_key, node2_key)]
-    else:
-        op12 = id_op.compose(node1.op, qargs=qarg1).compose(node2.op, qargs=qarg2)
-        cache[(node1_key, node2_key)] = op12
-    if (node2_key, node1_key) in cache:
-        op21 = cache[(node2_key, node1_key)]
-    else:
-        op21 = id_op.compose(node2.op, qargs=qarg2).compose(node1.op, qargs=qarg1)
-        cache[(node2_key, node1_key)] = op21
-
-    if_commute = op12 == op21
-
-    return if_commute

@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    The :obj:`.ListOp` class in :mod:`qiskit.opflow` now has a
+    :attr:`~.ListOp.coeffs` attribute, which returns a list of the coefficients
+    of the operator list, with the overall coefficient (:obj:`.ListOp.coeff`)
+    distributed multiplicatively into the list.  Note that :obj:`.ListOp`
+    objects may be nested (contained in ``oplist`` of a  :obj:`.ListOp` object),
+    and in these cases an exception is raised if the `coeffs` method is called.
+    The :obj:`.ListOp.coeffs` method conveniently duck-types against the
+    ``coeffs`` property method of the non-nesting :obj:`.PauliSumOp` class.

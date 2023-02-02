@@ -12,7 +12,7 @@
 
 """
 Converters (:mod:`qiskit.opflow.converters`)
-====================================================
+============================================
 
 .. currentmodule:: qiskit.opflow.converters
 
@@ -36,23 +36,23 @@ Note:
      and :mod:`~qiskit.opflow.evolutions` are also converters.
 
 Converter Base Class
-====================
+--------------------
 The converter base class simply enforces the presence of a :meth:`~ConverterBase.convert` method.
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    ConverterBase
 
 Converters
-==========
+----------
 In addition to the base class, directory holds a few miscellaneous converters which are used
 frequently around the Operator flow.
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    CircuitSampler
    AbelianGrouper

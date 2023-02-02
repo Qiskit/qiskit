@@ -79,7 +79,7 @@ class QiskitAlgorithmGlobals:
             parallel.CPU_COUNT = self.num_processes
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning(
-                "Failed to set qiskit.tools.parallel.CPU_COUNT " "to value: '%s': Error: '%s'",
+                "Failed to set qiskit.tools.parallel.CPU_COUNT to value: '%s': Error: '%s'",
                 self.num_processes,
                 str(ex),
             )

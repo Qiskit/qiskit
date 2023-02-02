@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Due to the definition of the measurements in the Opflow to be given as `~StateFn`, the phase
-    fix applied in the QFI :class:`~qiskit.opflow.gradients.circuit_qfis.LinCombFull` was not
-    evaluated for the correct observable. This was fixed by defining the observable via
-    `StateFn(..., is_measurement=True)`.

@@ -11,29 +11,38 @@
 # that they have been altered from the originals.
 
 """ALAP Scheduling."""
-from collections import defaultdict
-from typing import List
-from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
-from qiskit.circuit.delay import Delay
-from qiskit.circuit.parameterexpression import ParameterExpression
+
+import warnings
+
+from qiskit.circuit import Delay, Qubit, Measure
 from qiskit.dagcircuit import DAGCircuit
-from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
+from .base_scheduler import BaseSchedulerTransform
 
-class ALAPSchedule(TransformationPass):
-    """ALAP Scheduling."""
 
-    def __init__(self, durations):
-        """ALAPSchedule initializer.
+class ALAPSchedule(BaseSchedulerTransform):
+    """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
-        Args:
-            durations (InstructionDurations): Durations of instructions to be used in scheduling
-        """
-        super().__init__()
-        self.durations = durations
-        # ensure op node durations are attached and in consistent unit
-        self.requires.append(TimeUnitConversion(durations))
+    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
+    detailed behavior of the control flow operation, i.e. ``c_if``.
+
+    .. note::
+
+        This base class has been superseded by :class:`~.ALAPScheduleAnalysis` and
+        the new scheduling workflow. It will be deprecated and subsequently
+        removed in a future release.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warnings.warn(
+            "The ALAPSchedule class has been supersceded by the ALAPScheduleAnalysis class "
+            "which performs the as analysis pass that requires a padding pass to later modify "
+            "the circuit. This class will be deprecated in a future release and subsequently "
+            "removed after that.",
+            PendingDeprecationWarning,
+        )
 
     def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
@@ -46,6 +55,7 @@ class ALAPSchedule(TransformationPass):
 
         Raises:
             TranspilerError: if the circuit is not mapped on physical qubits.
+            TranspilerError: if conditional bit is added to non-supported instruction.
         """
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ALAP schedule runs on physical circuits only")
@@ -57,47 +67,95 @@ class ALAPSchedule(TransformationPass):
         for creg in dag.cregs.values():
             new_dag.add_creg(creg)
 
-        qubit_time_available = defaultdict(int)
-
-        def pad_with_delays(qubits: List[int], until, unit) -> None:
-            """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
-            for q in qubits:
-                if qubit_time_available[q] < until:
-                    idle_duration = until - qubit_time_available[q]
-                    new_dag.apply_operation_front(Delay(idle_duration, unit), [q], [])
-
+        idle_before = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
-            start_time = max(qubit_time_available[q] for q in node.qargs)
-            pad_with_delays(node.qargs, until=start_time, unit=time_unit)
+            op_duration = self._get_node_duration(node, bit_indices, dag)
+
+            # compute t0, t1: instruction interval, note that
+            # t0: start time of instruction
+            # t1: end time of instruction
+
+            # since this is alap scheduling, node is scheduled in reversed topological ordering
+            # and nodes are packed from the very end of the circuit.
+            # the physical meaning of t0 and t1 is flipped here.
+            if isinstance(node.op, self.CONDITIONAL_SUPPORTED):
+                t0q = max(idle_before[q] for q in node.qargs)
+                if node.op.condition_bits:
+                    # conditional is bit tricky due to conditional_latency
+                    t0c = max(idle_before[c] for c in node.op.condition_bits)
+                    # Assume following case (t0c > t0q):
+                    #
+                    #                |t0q
+                    # Q ░░░░░░░░░░░░░▒▒▒
+                    # C ░░░░░░░░▒▒▒▒▒▒▒▒
+                    #           |t0c
+                    #
+                    # In this case, there is no actual clbit read before gate.
+                    #
+                    #             |t0q' = t0c - conditional_latency
+                    # Q ░░░░░░░░▒▒▒░░▒▒▒
+                    # C ░░░░░░▒▒▒▒▒▒▒▒▒▒
+                    #         |t1c' = t0c + conditional_latency
+                    #
+                    # rather than naively doing
+                    #
+                    #        |t1q' = t0c + duration
+                    # Q ░░░░░▒▒▒░░░░░▒▒▒
+                    # C ░░▒▒░░░░▒▒▒▒▒▒▒▒
+                    #     |t1c' = t0c + duration + conditional_latency
+                    #
+                    t0 = max(t0q, t0c - op_duration)
+                    t1 = t0 + op_duration
+                    for clbit in node.op.condition_bits:
+                        idle_before[clbit] = t1 + self.conditional_latency
+                else:
+                    t0 = t0q
+                    t1 = t0 + op_duration
+            else:
+                if node.op.condition_bits:
+                    raise TranspilerError(
+                        f"Conditional instruction {node.op.name} is not supported in ALAP scheduler."
+                    )
+
+                if isinstance(node.op, Measure):
+                    # clbit time is always right (alap) justified
+                    t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
+                    t1 = t0 + op_duration
+                    #
+                    #        |t1 = t0 + duration
+                    # Q ░░░░░▒▒▒▒▒▒▒▒▒▒▒
+                    # C ░░░░░░░░░▒▒▒▒▒▒▒
+                    #            |t0 + (duration - clbit_write_latency)
+                    #
+                    for clbit in node.cargs:
+                        idle_before[clbit] = t0 + (op_duration - self.clbit_write_latency)
+                else:
+                    # It happens to be directives such as barrier
+                    t0 = max(idle_before[bit] for bit in node.qargs + node.cargs)
+                    t1 = t0 + op_duration
+
+            for bit in node.qargs:
+                delta = t0 - idle_before[bit]
+                if delta > 0:
+                    new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
+                idle_before[bit] = t1
 
             new_dag.apply_operation_front(node.op, node.qargs, node.cargs)
 
-            # validate node.op.duration
-            if node.op.duration is None:
-                indices = [bit_indices[qarg] for qarg in node.qargs]
-                raise TranspilerError(
-                    f"Duration of {node.op.name} on qubits " f"{indices} is not found."
-                )
-            if isinstance(node.op.duration, ParameterExpression):
-                indices = [bit_indices[qarg] for qarg in node.qargs]
-                raise TranspilerError(
-                    f"Parameterized duration ({node.op.duration}) "
-                    f"of {node.op.name} on qubits {indices} is not bounded."
-                )
-
-            stop_time = start_time + node.op.duration
-            # update time table
-            for q in node.qargs:
-                qubit_time_available[q] = stop_time
-
-        working_qubits = qubit_time_available.keys()
-        circuit_duration = max(qubit_time_available[q] for q in working_qubits)
-        pad_with_delays(new_dag.qubits, until=circuit_duration, unit=time_unit)
+        circuit_duration = max(idle_before.values())
+        for bit, before in idle_before.items():
+            delta = circuit_duration - before
+            if not (delta > 0 and isinstance(bit, Qubit)):
+                continue
+            new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
 
         new_dag.name = dag.name
         new_dag.metadata = dag.metadata
+        new_dag.calibrations = dag.calibrations
+
         # set circuit duration and unit to indicate it is scheduled
         new_dag.duration = circuit_duration
         new_dag.unit = time_unit
+
         return new_dag

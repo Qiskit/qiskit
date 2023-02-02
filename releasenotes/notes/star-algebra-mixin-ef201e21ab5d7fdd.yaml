@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    The internal API of the :class:`qiskit.opflow.OperatorBase` abstract class
-    has been changed to use :class:`~qiskit.opflow.mixins.StarAlgebraMixin` ported from
-    qiskit-nature and the newly added :class:`~qiskit.opflow.mixins.TensorMixin`.
-    By using a common mixin, we can unify the API and simplify the implementation.

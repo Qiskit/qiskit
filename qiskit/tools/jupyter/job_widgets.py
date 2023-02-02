@@ -140,16 +140,19 @@ def build_job_viewer():
     acc._dom_classes = ["job_widget"]
     display(
         Javascript(
-            """$('div.job_widget')
-        .detach()
-        .appendTo($('#header'))
-        .css({
-            'z-index': 999,
-             'position': 'fixed',
-            'box-shadow': '5px 5px 5px -3px black',
-            'opacity': 0.95,
-            'float': 'left,'
-        })
+            """
+        const isLab = window['Jupyter'] === undefined;
+        const notebook = document.querySelector( isLab ? 'div.jp-Notebook' : '#site');
+        const jobWidget = document.querySelector('div.job_widget');
+        notebook.prepend(jobWidget);
+        jobWidget.style.zIndex = '999';
+        jobWidget.style.position = isLab ? 'sticky' : 'fixed';
+        jobWidget.style.boxShadow = '5px 5px 5px -3px black';
+        jobWidget.style.opacity = '0.95';
+        if (isLab) {
+            jobWidget.style.top = '0';
+            jobWidget.style.left = '0';
+        }
         """
         )
     )
