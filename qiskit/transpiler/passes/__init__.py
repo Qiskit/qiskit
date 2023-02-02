@@ -89,6 +89,7 @@ Optimizations
    EchoRZXWeylDecomposition
    ResetAfterMeasureSimplification
    OptimizeCliffords
+   ElideSwaps
 
 Calibration
 =============
@@ -232,6 +233,7 @@ from .optimization import CollectLinearFunctions
 from .optimization import CollectCliffords
 from .optimization import ResetAfterMeasureSimplification
 from .optimization import OptimizeCliffords
+from .optimization import ElideSwaps
 
 # circuit analysis
 from .analysis import ResourceEstimation

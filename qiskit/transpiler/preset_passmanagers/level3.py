@@ -41,6 +41,7 @@ from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
+from qiskit.transpiler.passes import ElideSwaps
 from qiskit.transpiler.runningpassmanager import ConditionalController
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -193,6 +194,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     init.append(RemoveResetInZeroState())
     init.append(OptimizeSwapBeforeMeasure())
     init.append(RemoveDiagonalGatesBeforeMeasure())
+    init.append(ElideSwaps())
     if coupling_map or initial_layout:
         if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
             layout = plugin_manager.get_passmanager_stage(
