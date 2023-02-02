@@ -15,6 +15,7 @@
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.layout import Layout
 
 
 class ElideSwaps(TransformationPass):
@@ -58,4 +59,7 @@ class ElideSwaps(TransformationPass):
                     qubit_mapping[index_0],
                     qubit_mapping[index_1],
                 )
+        self.property_set["original_layout"] = Layout(input_qubit_mapping)
+        self.property_set["original_qubit_indices"] = input_qubit_mapping
+        self.property_set["final_layout"] = Layout(dict(zip(dag.qubits, qubit_mapping)))
         return new_dag

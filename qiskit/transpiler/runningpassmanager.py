@@ -129,9 +129,12 @@ class RunningPassManager:
             circuit.name = output_name
         else:
             circuit.name = name
-        if self.property_set["layout"] is not None:
+        layout = self.property_set["layout"]
+        if not layout and self.property_set["original_layout"]:
+            layout = self.property_set["original_layout"]
+        if layout is not None:
             circuit._layout = TranspileLayout(
-                initial_layout=self.property_set["layout"],
+                initial_layout=layout,
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
                 final_layout=self.property_set["final_layout"],
             )
