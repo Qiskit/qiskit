@@ -183,6 +183,8 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             "init", init_method, pass_manager_config, optimization_level=2
         )
     else:
+        if initial_layout is None:
+            init.append(ElideSwaps())
         init += common.generate_unroll_3q(
             target,
             basis_gates,
@@ -194,7 +196,6 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     init.append(RemoveResetInZeroState())
     init.append(OptimizeSwapBeforeMeasure())
     init.append(RemoveDiagonalGatesBeforeMeasure())
-    init.append(ElideSwaps())
     if coupling_map or initial_layout:
         if layout_method not in {"trivial", "dense", "noise_adaptive", "sabre"}:
             layout = plugin_manager.get_passmanager_stage(
