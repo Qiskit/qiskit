@@ -312,14 +312,12 @@ def _assign_unique_parameters(
         for parameter in gradient_circuit.global_phase.parameters:
             if parameter in parameter_map:
                 substitution_map[parameter] = parameter_map[parameter][0][0]
-                # print(f'global phase {parameter_map[parameter][0][0]}')
             else:
                 new_parameter = Parameter(f"__gθ{num_gradient_parameters}")
                 substitution_map[parameter] = new_parameter
                 parameter_map[parameter].append(new_parameter, 1)
                 num_gradient_parameters += 1
         gradient_circuit.global_phase = gradient_circuit.global_phase.subs(substitution_map)
-
     return GradientCircuit(gradient_circuit, parameter_map, gradient_parameter_map)
 
 
@@ -363,12 +361,14 @@ def _make_gradient_parameters(
     Returns:
         The parameters in the gradient circuit to calculate gradients.
     """
-
-    return [
+    g_parameters = [
         g_parameter
         for parameter in parameters
         for g_parameter, _ in gradient_circuit.parameter_map[parameter]
     ]
+    # make g_parameters unique and return it.
+    return list(dict.fromkeys(g_parameters))
+
 
 def _make_gradient_parameter_set(
     gradient_circuit: GradientCircuit,

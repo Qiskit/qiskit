@@ -119,7 +119,6 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
             # keep track of the parameter order of the circuit, as the circuit splitting might
             # produce a list of unitaries in a different order
             # original_parameter_order = [p for p in circuit.parameters if p in parameters_]
-            original_parameter_order = parameters_
 
             # split the circuit and generate lists of unitaries [U_1, U_2, ...] and
             # parameters [p_1, p_2, ...] in these unitaries
@@ -133,7 +132,7 @@ class ReverseEstimatorGradient(BaseEstimatorGradient):
             lam = _evolve_by_operator(observable, phi)
 
             # store gradients in a dictionary to return them in the correct order
-            grads = {param: 0j for param in original_parameter_order}
+            grads = {param: 0j for param in parameters_}
 
             num_parameters = len(unitaries)
             for j in reversed(range(num_parameters)):

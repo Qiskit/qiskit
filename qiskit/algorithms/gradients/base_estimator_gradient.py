@@ -234,22 +234,11 @@ class BaseEstimatorGradient(ABC):
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
             g_parameters = _make_gradient_parameters(gradient_circuit, parameters_)
             # Make a map from the gradient parameter to the respective index in the gradient.
-            # parameter_indices = [param for param in circuit.parameters if param in parameter_set]
-            # g_parameter_indices = [
-            #     param
-            #     for param in gradient_circuit.gradient_circuit.parameters
-            #     if param in g_parameter_set
-            # ]
             g_parameter_indices = {param: i for i, param in enumerate(g_parameters)}
-            # print(g_parameters)
-            # print(results.gradients[idx])
             # Compute the original gradient from the gradient of the gradient circuit
             # by using the chain rule.
             for i, parameter in enumerate(parameters_):
-                # print(i, parameter)
                 for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
-                    # print(g_parameter, coeff)
-                    # print(g_parameter_indices[g_parameter])
                     # Compute the coefficient
                     if isinstance(coeff, ParameterExpression):
                         local_map = {
