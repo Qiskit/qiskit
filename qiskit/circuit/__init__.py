@@ -256,6 +256,7 @@ Quantum Circuit Construction
    :toctree: ../stubs/
 
    QuantumCircuit
+   library
    QuantumRegister
    Qubit
    ClassicalRegister
