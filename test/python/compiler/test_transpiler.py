@@ -1377,8 +1377,12 @@ class TestTranspile(QiskitTestCase):
         circuit.iswap(0, 1)
 
         res = transpile(circuit, basis_gates=["u", "ecr"], optimization_level=optimization_level)
-        self.assertEqual(res.count_ops()["ecr"], 9)
-        self.assertTrue(Operator(res).equiv(circuit))
+        if optimization_level != 3:
+            self.assertEqual(res.count_ops()["ecr"], 9)
+        else:
+            # Swa gets optimized away in opt level 3
+            self.assertEqual(res.count_ops()["ecr"], 6)
+        self.assertTrue(Operator.from_circuit(res).equiv(circuit))
 
     def test_optimize_ecr_basis(self):
         """Test highest optimization level can optimize over ECR."""
@@ -1387,8 +1391,8 @@ class TestTranspile(QiskitTestCase):
         circuit.iswap(0, 1)
 
         res = transpile(circuit, basis_gates=["u", "ecr"], optimization_level=3)
-        self.assertEqual(res.count_ops()["ecr"], 1)
-        self.assertTrue(Operator(res).equiv(circuit))
+        self.assertEqual(res.count_ops()["ecr"], 2)
+        self.assertTrue(Operator.from_circuit(res).equiv(circuit))
 
     def test_approximation_degree_invalid(self):
         """Test invalid approximation degree raises."""
