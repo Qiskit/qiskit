@@ -14,9 +14,12 @@
 
 import unittest
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 from qiskit.transpiler.passes import ElideSwaps
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.controlflow import IfElseOp
+from qiskit.quantum_info import Operator
+from qiskit.transpiler.coupling import CouplingMap
 
 
 class TestElideSwaps(QiskitTestCase):
@@ -122,6 +125,61 @@ class TestElideSwaps(QiskitTestCase):
 
         res = self.swap_pass(qc)
         self.assertEqual(res, expected)
+
+    def test_swap_if_else_block(self):
+        """Test swap elision only happens outside control flow."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        with qc.if_test((0, 0)):
+            qc.swap(0, 1)
+        qc.cx(0, 1)
+        res = self.swap_pass(qc)
+        self.assertEqual(res, qc)
+
+    def test_swap_if_else_block_with_outside_swap(self):
+        """Test swap elision only happens outside control flow."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.swap(2, 0)
+        body = QuantumCircuit(2)
+        body.swap(0, 1)
+        if_else_op = IfElseOp((qc.clbits[0], 0), body)
+
+        qc.append(if_else_op, [0, 1])
+        qc.cx(0, 1)
+
+        expected = QuantumCircuit(3, 3)
+        expected.h(0)
+        expected.append(IfElseOp((expected.clbits[0], 0), body), [2, 1])
+        expected.cx(2, 1)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
+    def test_swap_condition(self):
+        """Test swap elision doesn't touch conditioned swap."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.swap(0, 1).c_if(qc.clbits[0], 0)
+        qc.cx(0, 1)
+        res = self.swap_pass(qc)
+        self.assertEqual(res, qc)
+
+    def test_unitary_equivalence_pass_manager(self):
+        """Test full transpile pipeline with pass preserves permutation for unitary equivalence."""
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.swap(0, 2)
+        qc.cx(0, 1)
+        qc.swap(1, 0)
+        qc.h(1)
+
+        # with no layout
+        res = transpile(qc, optimization_level=3)
+        self.assertTrue(Operator.from_circuit(res).equiv(qc))
+        # With layout
+        res = transpile(qc, coupling_map=CouplingMap.from_line(3), optimization_level=3)
+        self.assertTrue(Operator.from_circuit(res).equiv(qc))
 
 
 if __name__ == "__main__":
