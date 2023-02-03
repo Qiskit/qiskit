@@ -1,8 +1,7 @@
 ---
 features:
   - |
-    Add the ability for users to define the variable order when defining a
-    `PhaseOracle`.
+    Add the parameter `var_order` when defining a `PhaseOracle`. This allows for defining the order in which the variables in the logical expression are being considered.
 
     .. code-block::python
 

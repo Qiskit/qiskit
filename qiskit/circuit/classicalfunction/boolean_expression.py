@@ -29,13 +29,13 @@ class BooleanExpression(ClassicalElement):
         """
         Args:
             expression (str): The logical expression string.
-            var_order(list): A list with the order in which variables will be created.
-               (default: by appearance)
             name (str): Optional. Instruction gate name. Otherwise part of the expression is
                going to be used.
+            var_order(list): A list with the order in which variables will be created.
+               (default: by appearance)
         """
 
-        self._tweedledum_bool_expression = BoolFunction.from_expression(expression, var_order)
+        self._tweedledum_bool_expression = BoolFunction.from_expression(expression, var_order=var_order)
 
         short_expr_for_name = (expression[:10] + "...") if len(expression) > 13 else expression
         num_qubits = (

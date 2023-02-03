@@ -51,17 +51,17 @@ class PhaseOracle(QuantumCircuit):
     def __init__(
         self,
         expression: Union[str, ClassicalElement],
-        var_order: list = None,
         synthesizer: Optional[Callable[[BooleanExpression], QuantumCircuit]] = None,
+        var_order: list = None,
     ) -> None:
         """Creates a PhaseOracle object
 
         Args:
             expression: A Python-like boolean expression.
-            var_order(list): A list with the order in which variables will be created.
-               (default: by appearance)
             synthesizer: Optional. A function to convert a BooleanExpression into a QuantumCircuit
                If None is provided, Tweedledum's `pkrm_synth` with `phase_esop` will be used.
+            var_order(list): A list with the order in which variables will be created.
+               (default: by appearance)
         """
         from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
         from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
