@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    Allow callables as optimizers in :class:`~qiskit.algorithms.VQE` and
+    :class:`~qiskit.algorithms.QAOA`. Now, the optimizer can either be one of Qiskit's optimizers,
+    such as :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
+
+    .. code-block:: python
+
+        from qiskit.algorithms.optimizers import OptimizerResult
+
+        def my_optimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+            # Args:
+            #     fun (callable): the function to minimize
+            #     x0 (np.ndarray): the initial point for the optimization
+            #     jac (callable, optional): the gradient of the objective function
+            #     bounds (list, optional): a list of tuples specifying the parameter bounds
+
+            result = OptimizerResult()
+            result.x = # optimal parameters
+            result.fun = # optimal function value
+            return result
+
+    The above signature also allows to directly pass any SciPy minimizer, for instance as
+
+    .. code-block:: python
+
+        from functools import partial
+        from scipy.optimize import minimize
+
+        optimizer = partial(minimize, method="L-BFGS-B")

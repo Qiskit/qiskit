@@ -55,7 +55,7 @@ class BasicSwap(TransformationPass):
         if self.fake_run:
             return self.fake_run(dag)
 
-        new_dag = dag._copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Basic swap runs on physical circuits only")
@@ -102,6 +102,7 @@ class BasicSwap(TransformationPass):
             order = current_layout.reorder_bits(new_dag.qubits)
             new_dag.compose(subdag, qubits=order)
 
+        self.property_set["final_layout"] = current_layout
         return new_dag
 
     def _fake_run(self, dag):

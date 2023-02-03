@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    Qiskit Terra's compiled Rust extensions now have a minimum supported Rust
+    version (MSRV) of 1.56.1. This means when building Qiskit Terra from source
+    the oldest version of the Rust compiler supported is 1.56.1. If you are using
+    an older version of the Rust compiler you will need to update to a newer
+    version to continue to build Qiskit from source. This change was necessary
+    as a number of upstream dependencies have updated their minimum supported
+    versions too.

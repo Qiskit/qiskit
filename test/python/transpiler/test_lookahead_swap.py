@@ -20,7 +20,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit.converters import circuit_to_dag
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
+from qiskit.providers.fake_provider import FakeMelbourne
 
 
 class TestLookaheadSwap(QiskitTestCase):
@@ -158,7 +158,38 @@ class TestLookaheadSwap(QiskitTestCase):
         Increasing the tree width and depth is expected to yield a better (or same) quality
         circuit, in the form of fewer SWAPs.
         """
-
+        # q_0: ──■───────────────────■───────────────────────────────────────────────»
+        #      ┌─┴─┐                 │                 ┌───┐                         »
+        # q_1: ┤ X ├──■──────────────┼─────────────────┤ X ├─────────────────────────»
+        #      └───┘┌─┴─┐            │                 └─┬─┘┌───┐          ┌───┐     »
+        # q_2: ─────┤ X ├──■─────────┼───────────────────┼──┤ X ├──────────┤ X ├──■──»
+        #           └───┘┌─┴─┐     ┌─┴─┐                 │  └─┬─┘     ┌───┐└─┬─┘  │  »
+        # q_3: ──────────┤ X ├──■──┤ X ├─────────────────┼────┼────■──┤ X ├──┼────┼──»
+        #                └───┘┌─┴─┐└───┘          ┌───┐  │    │    │  └─┬─┘  │    │  »
+        # q_4: ───────────────┤ X ├──■────────────┤ X ├──┼────■────┼────┼────┼────┼──»
+        #                     └───┘┌─┴─┐          └─┬─┘  │         │    │    │    │  »
+        # q_5: ────────────────────┤ X ├──■─────────┼────┼─────────┼────■────┼────┼──»
+        #                          └───┘┌─┴─┐       │    │         │         │    │  »
+        # q_6: ─────────────────────────┤ X ├──■────■────┼─────────┼─────────■────┼──»
+        #                               └───┘┌─┴─┐       │       ┌─┴─┐          ┌─┴─┐»
+        # q_7: ──────────────────────────────┤ X ├───────■───────┤ X ├──────────┤ X ├»
+        #                                    └───┘               └───┘          └───┘»
+        # «q_0: ──■───────
+        # «       │
+        # «q_1: ──┼───────
+        # «       │
+        # «q_2: ──┼───────
+        # «       │
+        # «q_3: ──┼───────
+        # «       │
+        # «q_4: ──┼───────
+        # «       │
+        # «q_5: ──┼────■──
+        # «     ┌─┴─┐  │
+        # «q_6: ┤ X ├──┼──
+        # «     └───┘┌─┴─┐
+        # «q_7: ─────┤ X ├
+        # «          └───┘
         qr = QuantumRegister(8, name="q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])

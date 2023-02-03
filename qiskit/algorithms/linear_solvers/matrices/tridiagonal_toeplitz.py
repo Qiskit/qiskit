@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,12 +18,13 @@ from scipy.sparse import diags
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.circuit.library import UGate, MCMTVChain
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_system_matrix import LinearSystemMatrix
 
 
 class TridiagonalToeplitz(LinearSystemMatrix):
-    r"""Class of tridiagonal Toeplitz symmetric matrices.
+    r"""The deprecated class of tridiagonal Toeplitz symmetric matrices.
 
     Given the main entry, :math:`a`, and the off diagonal entry, :math:`b`, the :math:`4\times 4`
     dimensional tridiagonal Toeplitz symmetric matrix is
@@ -37,15 +38,16 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             0 & 0 & b & a
         \end{pmatrix}.
 
-    Examples:
+    Examples::
 
-        .. jupyter-execute::
-
+            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.matrices import TridiagonalToeplitz
 
-            matrix = TridiagonalToeplitz(2, 1, -1 / 3)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                matrix = TridiagonalToeplitz(2, 1, -1 / 3)
             power = 3
 
             # Controlled power (as within QPE)
@@ -56,6 +58,10 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             qc.append(matrix.power(power).control(), list(range(circ_qubits)))
     """
 
+    @deprecate_function(
+        "The TridiagonalToeplitz class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date. "
+    )
     def __init__(
         self,
         num_state_qubits: int,
@@ -197,18 +203,42 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         matrix = diags(
             [self.off_diag, self.main_diag, self.off_diag],
             [-1, 0, 1],
-            shape=(2 ** self.num_state_qubits, 2 ** self.num_state_qubits),
+            shape=(2**self.num_state_qubits, 2**self.num_state_qubits),
         ).toarray()
         return matrix
 
     def eigs_bounds(self) -> Tuple[float, float]:
-        """Return lower and upper bounds on the eigenvalues of the matrix."""
-        n_b = 2 ** self.num_state_qubits
-        # Calculate the eigenvalues according to the formula for Toeplitz matrices
-        eig_1 = np.abs(self.main_diag - 2 * self.off_diag * np.cos(n_b * np.pi / (n_b + 1)))
-        eig_2 = np.abs(self.main_diag - 2 * self.off_diag * np.cos(np.pi / (n_b + 1)))
-        lambda_min = min(eig_1, eig_2)
-        lambda_max = max(eig_1, eig_2)
+        """Return lower and upper bounds on the absolute eigenvalues of the matrix."""
+        n_b = 2**self.num_state_qubits
+
+        # Calculate minimum and maximum of absolute value of eigenvalues
+        # according to the formula for Toeplitz 3-diagonal matrices
+
+        # For maximum it's enough to check border points of segment [1, n_b]
+        candidate_eig_ids = [1, n_b]
+
+        # Trying to add candidates near the minimum value of absolute eigenvalues
+        # function abs(main_diag - 2 * off_diag * cos(i * pi / (nb + 1))
+        if abs(self.main_diag) < 2 * abs(self.off_diag):
+            optimal_index = int(np.arccos(self.main_diag / 2 / self.off_diag) / np.pi * (n_b + 1))
+
+            def add_candidate_index_if_valid(index_to_add: int) -> None:
+                if 1 <= index_to_add <= n_b:
+                    candidate_eig_ids.append(index_to_add)
+
+            add_candidate_index_if_valid(optimal_index - 1)
+            add_candidate_index_if_valid(optimal_index)
+            add_candidate_index_if_valid(optimal_index + 1)
+
+        candidate_abs_eigs = np.abs(
+            [
+                self.main_diag - 2 * self.off_diag * np.cos(eig_id * np.pi / (n_b + 1))
+                for eig_id in candidate_eig_ids
+            ]
+        )
+
+        lambda_min = np.min(candidate_abs_eigs)
+        lambda_max = np.max(candidate_abs_eigs)
         return lambda_min, lambda_max
 
     def condition_bounds(self) -> Tuple[float, float]:
@@ -218,6 +248,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
         return kappa, kappa
 
     def _check_configuration(self, raise_on_failure: bool = True) -> bool:
+        """Check if the current configuration is valid."""
         valid = True
 
         if self.trotter_steps < 1:
@@ -244,15 +275,11 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             self.add_register(qr_ancilla)
 
     def _build(self) -> None:
-        """Build the circuit"""
-        # do not build the circuit if _data is already populated
-        if self._data is not None:
+        """If not already built, build the circuit."""
+        if self._is_built:
             return
 
-        self._data = []
-
-        # check whether the configuration is valid
-        self._check_configuration()
+        super()._build()
 
         self.compose(self.power(1), inplace=True)
 

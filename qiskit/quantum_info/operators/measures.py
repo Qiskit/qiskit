@@ -17,7 +17,6 @@ A collection of useful quantum information functions for operators.
 import logging
 import warnings
 import numpy as np
-from scipy import sparse
 
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.circuit.gate import Gate
@@ -27,13 +26,7 @@ from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel import Choi, SuperOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
 from qiskit.quantum_info.states.measures import state_fidelity
-
-try:
-    import cvxpy
-
-    _HAS_CVX = True
-except ImportError:
-    _HAS_CVX = False
+from qiskit.utils import optionals as _optionals
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +126,7 @@ def process_fidelity(channel, target=None, require_cp=True, require_tp=True):
             fid = np.abs(np.trace(channel.data) / input_dim) ** 2
         else:
             # Tr[S] / (dim ** 2)
-            fid = np.trace(SuperOp(channel).data) / (input_dim ** 2)
+            fid = np.trace(SuperOp(channel).data) / (input_dim**2)
         return float(np.real(fid))
 
     # For comparing two non-unitary channels we compute the state fidelity of
@@ -277,7 +270,9 @@ def diamond_norm(choi, **kwargs):
         function. See the CVXPY documentation for information on available
         SDP solvers.
     """
-    _cvxpy_check("`diamond_norm`")  # Check CVXPY is installed
+    from scipy import sparse
+
+    cvxpy = _cvxpy_check("`diamond_norm`")  # Check CVXPY is installed
 
     choi = Choi(_input_formatter(choi, Choi, "diamond_norm", "choi"))
 
@@ -341,11 +336,9 @@ def diamond_norm(choi, **kwargs):
 def _cvxpy_check(name):
     """Check that a supported CVXPY version is installed"""
     # Check if CVXPY package is installed
-    if not _HAS_CVX:
-        raise QiskitError(
-            "CVXPY backage is requried for {}. Install"
-            " with `pip install cvxpy` to use.".format(name)
-        )
+    _optionals.HAS_CVXPY.require_now(name)
+    import cvxpy
+
     # Check CVXPY version
     version = cvxpy.__version__
     if version[0] != "1":
@@ -354,6 +347,7 @@ def _cvxpy_check(name):
             "diamond_norm",
             msg=f"Incompatible CVXPY version {version} found.",
         )
+    return cvxpy
 
 
 # pylint: disable=too-many-return-statements

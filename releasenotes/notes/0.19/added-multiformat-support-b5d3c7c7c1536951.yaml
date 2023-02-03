@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    Using :meth:`.QuantumCircuit.draw` or :func:`.circuit_drawer` with the
+    ``latex`` drawer will now generate a file in an image format inferred from the
+    filename extension, for example::
+
+      import qiskit
+
+      circuit = qiskit.QuantumCircuit(2)
+      circuit.h(0)
+      circuit.cx(0, 1)
+      circuit.draw('latex', filename='./file.jpg')
+    
+    This will save the circuit drawing in the JPEG format.  Previously, the
+    image always be in PNG format.  Refer to `#6448
+    <https://github.com/Qiskit/qiskit-terra/issues/6448>`__ for more details.
+
+    Now, if it encounters a filename extension which is not supported, for example::
+      
+      circuit.draw('latex', filename='./file.spooky')
+
+    it will raise a ``ValueError`` to change the filename extension to a supported image format.
+upgrade:
+  - |
+    The circuit drawers :meth:`.QuantumCircuit.draw` and
+    :func:`.circuit_drawer` with the ``latex`` option will now save their images
+    in a format determined the file extension (if a file name is provided).
+    Previously, they would always save in PNG format.  They now raise
+    ``ValueError`` if the image format is not known.  This was done to make it
+    easier to save the image in different formats.

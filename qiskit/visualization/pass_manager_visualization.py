@@ -18,27 +18,21 @@ import os
 import inspect
 import tempfile
 
-try:
-    from PIL import Image
-
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-from qiskit.visualization import utils
-from qiskit.visualization.exceptions import VisualizationError
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from qiskit.transpiler.basepasses import AnalysisPass, TransformationPass
+from .exceptions import VisualizationError
 
 DEFAULT_STYLE = {AnalysisPass: "red", TransformationPass: "blue"}
 
 
+@_optionals.HAS_GRAPHVIZ.require_in_call
+@_optionals.HAS_PYDOT.require_in_call
 def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     Draws the pass manager.
 
-    This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-    Graphviz <https://www.graphviz.org/>` to be installed.
+    This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
+    `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
     Args:
         pass_manager (PassManager): the pass manager to be drawn
@@ -78,37 +72,7 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
 
             pass_manager_drawer(pm, "passmanager.jpg")
     """
-
-    try:
-        import subprocess
-
-        with subprocess.Popen(
-            ["dot", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        ) as _proc:
-            _proc.communicate()
-            if _proc.returncode != 0:
-                has_graphviz = False
-            else:
-                has_graphviz = True
-    except Exception:  # pylint: disable=broad-except
-        # this is raised when the dot command cannot be found, which means GraphViz
-        # isn't installed
-        has_graphviz = False
-
-    HAS_GRAPHVIZ = has_graphviz  # pylint: disable=invalid-name
-
-    if not HAS_GRAPHVIZ:
-        raise MissingOptionalLibraryError(
-            libname="graphviz",
-            name="pass_manager_drawer",
-            pip_install="'brew install graphviz' on Mac or by downloading it from the website.",
-        )
-    try:
-        import pydot
-    except ImportError as ex:
-        raise MissingOptionalLibraryError(
-            libname="pydot", name="pass_manager_drawer", pip_install="pip install pydot"
-        ) from ex
+    import pydot
 
     passes = pass_manager.passes()
 
@@ -126,90 +90,13 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     prev_node = None
 
     for index, controller_group in enumerate(passes):
-
-        # label is the name of the flow controller parameter
-        label = "[{}] {}".format(index, ", ".join(controller_group["flow_controllers"]))
-
-        # create the subgraph for this controller
-        subgraph = pydot.Cluster(
-            str(component_id), label=label, fontname="helvetica", labeljust="l"
+        subgraph, component_id, prev_node = draw_subgraph(
+            controller_group, component_id, style, prev_node, index
         )
-        component_id += 1
-
-        for pass_ in controller_group["passes"]:
-
-            # label is the name of the pass
-            node = pydot.Node(
-                str(component_id),
-                label=str(type(pass_).__name__),
-                color=_get_node_color(pass_, style),
-                shape="rectangle",
-                fontname="helvetica",
-            )
-
-            subgraph.add_node(node)
-            component_id += 1
-
-            # the arguments that were provided to the pass when it was created
-            arg_spec = inspect.getfullargspec(pass_.__init__)
-            # 0 is the args, 1: to remove the self arg
-            args = arg_spec[0][1:]
-
-            num_optional = len(arg_spec[3]) if arg_spec[3] else 0
-
-            # add in the inputs to the pass
-            for arg_index, arg in enumerate(args):
-                nd_style = "solid"
-                # any optional args are dashed
-                # the num of optional counts from the end towards the start of the list
-                if arg_index >= (len(args) - num_optional):
-                    nd_style = "dashed"
-
-                input_node = pydot.Node(
-                    component_id,
-                    label=arg,
-                    color="black",
-                    shape="ellipse",
-                    fontsize=10,
-                    style=nd_style,
-                    fontname="helvetica",
-                )
-                subgraph.add_node(input_node)
-                component_id += 1
-                subgraph.add_edge(pydot.Edge(input_node, node))
-
-            # if there is a previous node, add an edge between them
-            if prev_node:
-                subgraph.add_edge(pydot.Edge(prev_node, node))
-
-            prev_node = node
-
         graph.add_subgraph(subgraph)
 
-    if raw:
-        if filename:
-            graph.write(filename, format="raw")
-            return None
-        else:
-            raise VisualizationError("if format=raw, then a filename is required.")
-
-    if not HAS_PIL and filename:
-        # pylint says this isn't a method - it is
-        graph.write_png(filename)  # pylint: disable=no-member
-        return None
-
-    with tempfile.TemporaryDirectory() as tmpdirname:
-        tmppath = os.path.join(tmpdirname, "pass_manager.png")
-
-        # pylint says this isn't a method - it is
-        graph.write_png(tmppath)  # pylint: disable=no-member
-
-        image = Image.open(tmppath)
-        image = utils._trim(image)
-        os.remove(tmppath)
-        if filename:
-            image.save(filename, "PNG")
-        return image
+    output = make_output(graph, raw, filename)
+    return output
 
 
 def _get_node_color(pss, style):
@@ -224,3 +111,171 @@ def _get_node_color(pss, style):
             return color
 
     return "black"
+
+
+@_optionals.HAS_GRAPHVIZ.require_in_call
+@_optionals.HAS_PYDOT.require_in_call
+def staged_pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
+    """
+    Draws the staged pass manager.
+
+        This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
+    `Graphviz <https://www.graphviz.org/>`__ to be installed.
+
+    Args:
+        pass_manager (StagedPassManager): the staged pass manager to be drawn
+        filename (str): file path to save image to
+        style (dict or OrderedDict): keys are the pass classes and the values are
+            the colors to make them. An example can be seen in the DEFAULT_STYLE. An ordered
+            dict can be used to ensure a priority coloring when pass falls into multiple
+            categories. Any values not included in the provided dict will be filled in from
+            the default dict
+        raw (Bool) : True if you want to save the raw Dot output not an image. The
+            default is False.
+    Returns:
+        PIL.Image or None: an in-memory representation of the pass manager. Or None if
+        no image was generated or PIL is not installed.
+    Raises:
+        MissingOptionalLibraryError: when nxpd or pydot not installed.
+        VisualizationError: If raw=True and filename=None.
+
+    Example:
+        .. code-block::
+
+            %matplotlib inline
+            from qiskit.providers.fake_provider import FakeLagosV2
+            from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
+
+            pass_manager = generate_preset_pass_manager(3, FakeLagosV2())
+            pass_manager.draw()
+    """
+    import pydot
+
+    # only include stages that have passes
+    stages = list(filter(lambda s: s is not None, pass_manager.expanded_stages))
+
+    if not style:
+        style = DEFAULT_STYLE
+
+    # create the overall graph
+    graph = pydot.Dot()
+
+    # identifiers for nodes need to be unique, so assign an id
+    # can't just use python's id in case the exact same pass was
+    # appended more than once
+    component_id = 0
+
+    # keep a running count of indexes across stages
+    idx = 0
+
+    prev_node = None
+
+    for st in stages:
+        stage = getattr(pass_manager, st)
+
+        if stage is not None:
+            passes = stage.passes()
+            stagegraph = pydot.Cluster(str(st), label=str(st), fontname="helvetica", labeljust="l")
+            for controller_group in passes:
+                subgraph, component_id, prev_node = draw_subgraph(
+                    controller_group, component_id, style, prev_node, idx
+                )
+                stagegraph.add_subgraph(subgraph)
+                idx += 1
+            graph.add_subgraph(stagegraph)
+
+    output = make_output(graph, raw, filename)
+    return output
+
+
+def draw_subgraph(controller_group, component_id, style, prev_node, idx):
+    """Draw subgraph."""
+    import pydot
+
+    # label is the name of the flow controller parameter
+    label = "[{}] {}".format(idx, ", ".join(controller_group["flow_controllers"]))
+
+    # create the subgraph for this controller
+    subgraph = pydot.Cluster(str(component_id), label=label, fontname="helvetica", labeljust="l")
+    component_id += 1
+
+    for pass_ in controller_group["passes"]:
+
+        # label is the name of the pass
+        node = pydot.Node(
+            str(component_id),
+            label=str(type(pass_).__name__),
+            color=_get_node_color(pass_, style),
+            shape="rectangle",
+            fontname="helvetica",
+        )
+
+        subgraph.add_node(node)
+        component_id += 1
+
+        # the arguments that were provided to the pass when it was created
+        arg_spec = inspect.getfullargspec(pass_.__init__)
+        # 0 is the args, 1: to remove the self arg
+        args = arg_spec[0][1:]
+
+        num_optional = len(arg_spec[3]) if arg_spec[3] else 0
+
+        # add in the inputs to the pass
+        for arg_index, arg in enumerate(args):
+            nd_style = "solid"
+            # any optional args are dashed
+            # the num of optional counts from the end towards the start of the list
+            if arg_index >= (len(args) - num_optional):
+                nd_style = "dashed"
+
+            input_node = pydot.Node(
+                component_id,
+                label=arg,
+                color="black",
+                shape="ellipse",
+                fontsize=10,
+                style=nd_style,
+                fontname="helvetica",
+            )
+            subgraph.add_node(input_node)
+            component_id += 1
+            subgraph.add_edge(pydot.Edge(input_node, node))
+
+        # if there is a previous node, add an edge between them
+        if prev_node:
+            subgraph.add_edge(pydot.Edge(prev_node, node))
+
+        prev_node = node
+
+    return subgraph, component_id, prev_node
+
+
+def make_output(graph, raw, filename):
+    """Produce output for pass_manager."""
+    if raw:
+        if filename:
+            graph.write(filename, format="raw")
+            return None
+        else:
+            raise VisualizationError("if format=raw, then a filename is required.")
+
+    if not _optionals.HAS_PIL and filename:
+        # pylint says this isn't a method - it is
+        graph.write_png(filename)  # pylint: disable=no-member
+        return None
+
+    _optionals.HAS_PIL.require_now("pass manager drawer")
+
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        from PIL import Image
+
+        tmppath = os.path.join(tmpdirname, "pass_manager.png")
+
+        # pylint says this isn't a method - it is
+        graph.write_png(tmppath)  # pylint: disable=no-member
+
+        image = Image.open(tmppath)
+        os.remove(tmppath)
+        if filename:
+            image.save(filename, "PNG")
+        return image

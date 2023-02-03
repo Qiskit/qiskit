@@ -25,6 +25,7 @@ Unitary Extensions
 
    UnitaryGate
    HamiltonianGate
+   SingleQubitUnitary
 
 Simulator Extensions
 ====================
@@ -41,13 +42,31 @@ Initialization
    :toctree: ../stubs/
 
    Initialize
+
+Uniformly Controlled Rotations
+==============================
+
+.. autosummary::
+   :toctree: ../stubs
+
+   UCPauliRotGate
+   UCRXGate
+   UCRYGate
+   UCRZGate
 """
 
 # import all standard gates
 from qiskit.circuit.library.standard_gates import *
 from qiskit.circuit.barrier import Barrier
 
-from .quantum_initializer.initializer import Initialize
+from .quantum_initializer import (
+    Initialize,
+    SingleQubitUnitary,
+    UCPauliRotGate,
+    UCRXGate,
+    UCRYGate,
+    UCRZGate,
+)
 from .unitary import UnitaryGate
 from .hamiltonian_gate import HamiltonianGate
 from .simulator import Snapshot

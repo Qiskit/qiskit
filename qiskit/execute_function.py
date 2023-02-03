@@ -21,10 +21,9 @@ Executing Experiments (:mod:`qiskit.execute_function`)
 """
 import logging
 from time import time
-from qiskit.compiler import transpile, assemble, schedule
-from qiskit.providers import BaseBackend
+import warnings
+from qiskit.compiler import transpile, schedule
 from qiskit.providers.backend import Backend
-from qiskit.qobj.utils import MeasLevel, MeasReturnType
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
 
@@ -80,7 +79,7 @@ def execute(
         experiments (QuantumCircuit or list[QuantumCircuit] or Schedule or list[Schedule]):
             Circuit(s) or pulse schedule(s) to execute
 
-        backend (BaseBackend or Backend):
+        backend (Backend):
             Backend to execute circuits on.
             Transpiler options are automatically grabbed from
             backend.configuration() and backend.properties().
@@ -154,11 +153,15 @@ def execute(
             arg is present, auto-selection of pass manager based on the transpile options
             will be turned off and this pass manager will be used directly.
 
-        qobj_id (str): String identifier to annotate the Qobj
+        qobj_id (str): DEPRECATED: String identifier to annotate the Qobj.  This has no effect
+            and the :attr:`~.QuantumCircuit.name` attribute of the input circuit(s) should be used
+            instead.
 
-        qobj_header (QobjHeader or dict): User input that will be inserted in Qobj header,
-            and will also be copied to the corresponding :class:`qiskit.result.Result`
-            header. Headers do not affect the run.
+        qobj_header (QobjHeader or dict): DEPRECATED: User input that will be inserted in Qobj
+            header, and will also be copied to the corresponding :class:`qiskit.result.Result`
+            header. Headers do not affect the run. Headers do not affect the run. This kwarg
+            has no effect anymore and the :attr:`~.QuantumCircuit.metadata` attribute of the
+            input circuit(s) should be used instead.
 
         shots (int): Number of repetitions of each circuit, for sampling. Default: 1024
 
@@ -166,7 +169,9 @@ def execute(
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
 
-        max_credits (int): Maximum credits to spend on job. Default: 10
+        max_credits (int): DEPRECATED This parameter is deprecated as of Qiskit Terra 0.20.0
+            and will be removed in a future release. This parameter has no effect on modern
+            IBM Quantum systems, no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -224,7 +229,7 @@ def execute(
             experiments will be executed. Each list element (bind) should be of the form
             ``{Parameter1: value1, Parameter2: value2, ...}``. All binds will be
             executed across all experiments, e.g. if parameter_binds is a
-            length-n list, and there are m experiments, a total of :math:`m x n`
+            length-:math:`n` list, and there are :math:`m` experiments, a total of :math:`m \\times n`
             experiments will be run (one for each experiment/bind pair).
 
         schedule_circuit (bool): If ``True``, ``experiments`` will be converted to
@@ -251,7 +256,7 @@ def execute(
             Qobj config, and passed to backend.run()
 
     Returns:
-        BaseJob: returns job instance derived from BaseJob
+        Job: returns job instance derived from Job
 
     Raises:
         QiskitError: if the execution cannot be interpreted as either circuits or schedules
@@ -259,7 +264,7 @@ def execute(
     Example:
         Construct a 5-qubit GHZ circuit and execute 4321 shots on a backend.
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumCircuit, execute, BasicAer
 
@@ -310,53 +315,30 @@ def execute(
             meas_map=meas_map,
             method=scheduling_method,
         )
-
-    if isinstance(backend, BaseBackend):
-        # assembling the circuits into a qobj to be run on the backend
-        if shots is None:
-            shots = 1024
-        if memory is None:
-            memory = False
-        if max_credits is None:
-            max_credits = 10
-        if meas_level is None:
-            meas_level = MeasLevel.CLASSIFIED
-        if meas_return is None:
-            meas_return = MeasReturnType.AVERAGE
-        if memory_slot_size is None:
-            memory_slot_size = 100
-
-        qobj = assemble(
-            experiments,
-            qobj_id=qobj_id,
-            qobj_header=qobj_header,
-            shots=shots,
-            memory=memory,
-            max_credits=max_credits,
-            seed_simulator=seed_simulator,
-            qubit_lo_freq=default_qubit_los,
-            meas_lo_freq=default_meas_los,
-            qubit_lo_range=qubit_lo_range,
-            meas_lo_range=meas_lo_range,
-            schedule_los=schedule_los,
-            meas_level=meas_level,
-            meas_return=meas_return,
-            memory_slots=memory_slots,
-            memory_slot_size=memory_slot_size,
-            rep_time=rep_time,
-            rep_delay=rep_delay,
-            parameter_binds=parameter_binds,
-            backend=backend,
-            init_qubits=init_qubits,
-            **run_config,
+    if max_credits is not None:
+        warnings.warn(
+            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+            "and will be removed in a future release. This parameter has no effect on "
+            "modern IBM Quantum systems, and no alternative is necessary.",
+            DeprecationWarning,
+            stacklevel=2,
         )
 
-        # executing the circuits on the backend and returning the job
-        start_time = time()
-        job = backend.run(qobj, **run_config)
-        end_time = time()
-        _log_submission_time(start_time, end_time)
-    elif isinstance(backend, Backend):
+    if qobj_id is not None:
+        warnings.warn(
+            "The qobj_id argument is deprecated as of the Qiskit Terra 0.21.0, "
+            "and will be remvoed in a future release. This argument has no effect and "
+            "is not used by any backends."
+        )
+
+    if qobj_header is not None:
+        warnings.warn(
+            "The qobj_header argument is deprecated as of the Qiskit Terra 0.21.0, "
+            "and will be remvoed in a future release. This argument has no effect and "
+            "is not used by any backends."
+        )
+
+    if isinstance(backend, Backend):
         start_time = time()
         run_kwargs = {
             "shots": shots,
@@ -379,8 +361,7 @@ def execute(
             if not hasattr(backend.options, key):
                 if run_kwargs[key] is not None:
                     logger.info(
-                        "%s backend doesn't support option %s so not "
-                        "passing that kwarg to run()",
+                        "%s backend doesn't support option %s so not passing that kwarg to run()",
                         backend.name,
                         key,
                     )

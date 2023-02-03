@@ -33,17 +33,17 @@ class TestQuadraticForm(QiskitTestCase):
             x = np.array([int(val) for val in reversed(x)])
             res = x.T.dot(quadratic).dot(x) + x.T.dot(linear) + offset
             # compute 2s complement
-            res = (2 ** num_bits + int(res)) % 2 ** num_bits
+            res = (2**num_bits + int(res)) % 2**num_bits
             twos = bin(res)[2:].zfill(num_bits)
             return twos
 
         n = len(quadratic)  # number of value qubits
         ref = np.zeros(2 ** (n + m), dtype=complex)
-        for x in range(2 ** n):
+        for x in range(2**n):
             x_bin = bin(x)[2:].zfill(n)
             index = q_form(x_bin, m) + x_bin
             index = int(index, 2)
-            ref[index] = 1 / np.sqrt(2 ** n)
+            ref[index] = 1 / np.sqrt(2**n)
 
         actual = QuantumCircuit(circuit.num_qubits)
         actual.h(list(range(n)))
@@ -63,7 +63,7 @@ class TestQuadraticForm(QiskitTestCase):
 
         # the state is encoded as |q(x)>|x>, |x> = |x_1 x_0> = |10>
         index = (result if little_endian else result[::-1]) + "10"
-        ref = np.zeros(2 ** 4, dtype=complex)
+        ref = np.zeros(2**4, dtype=complex)
         ref[int(index, 2)] = 1
 
         self.assertTrue(Statevector.from_instruction(circuit).equiv(ref))

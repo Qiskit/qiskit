@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    A new analysis transpiler pass,
+    :class:`~qiskit.transpiler.passes.GatesInBasis`, was added to
+    :mod:`qiskit.transpiler.passes`. This pass is used to check if the
+    :class:`~qiskit.dagcircuit.DAGCircuit` being transpiled has all the gates
+    in the configured basis set or not. It will set the attribute
+    ``"all_gates_in_basis"`` in the property set to ``True`` if all the gates
+    in the :class:`~qiskit.dagcircuit.DAGCircuit` are in the configured basis
+    set or ``False`` if they are not. For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.transpiler.passes import GatesInBasis
+
+      # Instatiate Pass
+      basis_gates = ["cx", "h"]
+      basis_check_pass = GatesInBasis(basis_gates)
+      # Build circuit
+      circuit = QuantumCircuit(2)
+      circuit.h(0)
+      circuit.cx(0, 1)
+      circuit.measure_all()
+      # Run pass on circuit
+      property_set = {}
+      basis_check_pass(circuit, property_set=property_set)
+      assert property_set["all_gates_in_basis"]

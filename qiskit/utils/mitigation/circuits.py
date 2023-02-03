@@ -32,7 +32,7 @@ def count_keys(num_qubits: int) -> List[str]:
         >>> count_keys(3)
         ['000', '001', '010', '011', '100', '101', '110', '111']
     """
-    return [bin(j)[2:].zfill(num_qubits) for j in range(2 ** num_qubits)]
+    return [bin(j)[2:].zfill(num_qubits) for j in range(2**num_qubits)]
 
 
 def complete_meas_cal(
@@ -207,7 +207,7 @@ def tensored_meas_cal(
 
     cal_circuits = []
     for basis_state in state_labels:
-        qc_circuit = QuantumCircuit(qr, cr, name="%scal_%s" % (circlabel, basis_state))
+        qc_circuit = QuantumCircuit(qr, cr, name=f"{circlabel}cal_{basis_state}")
 
         end_index = nqubits
         for qubit_list, list_size in zip(mit_pattern, qubits_list_sizes):

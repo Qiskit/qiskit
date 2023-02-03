@@ -10,14 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ
-
 """Module providing definitions of QASM Qobj classes."""
 
 import copy
 import pprint
 from types import SimpleNamespace
-
+import warnings
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.qobj.common import QobjDictField, QobjHeader
@@ -303,7 +301,9 @@ class QasmQobjConfig(SimpleNamespace):
 
         Args:
             shots (int): the number of shots.
-            max_credits (int): the max_credits to use on the IBMQ public devices.
+            max_credits (int): DEPRECATED This parameter is deprecated as of
+                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+                no effect on modern IBM Quantum systems, and no alternative is necessary.
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend (per-shot readouts)
             parameter_binds (list[dict]): List of parameter bindings
@@ -328,7 +328,13 @@ class QasmQobjConfig(SimpleNamespace):
 
         if max_credits is not None:
             self.max_credits = int(max_credits)
-
+            warnings.warn(
+                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
+                "and will be removed in a future release. This parameter has no effect on "
+                "modern IBM Quantum systems, and no alternative is necessary.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if seed_simulator is not None:
             self.seed_simulator = int(seed_simulator)
 

@@ -35,6 +35,12 @@ class TestDepthPass(QiskitTestCase):
 
     def test_just_qubits(self):
         """A dag with 8 operations and no classic bits"""
+
+        #       ┌───┐                    ┌───┐┌───┐
+        # q0_0: ┤ H ├──■────■────■────■──┤ X ├┤ X ├
+        #       ├───┤┌─┴─┐┌─┴─┐┌─┴─┐┌─┴─┐└─┬─┘└─┬─┘
+        # q0_1: ┤ H ├┤ X ├┤ X ├┤ X ├┤ X ├──■────■──
+        #       └───┘└───┘└───┘└───┘└───┘
         qr = QuantumRegister(2)
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
@@ -64,6 +70,27 @@ class TestDepthPass(QiskitTestCase):
         _ = pass_.run(dag)
 
         self.assertEqual(pass_.property_set["depth"], 1)
+
+    def test_depth_control_flow(self):
+        """A DAG with control flow still gives an estimate."""
+        qc = QuantumCircuit(5, 1)
+        qc.h(0)
+        qc.measure(0, 0)
+        with qc.if_test((qc.clbits[0], True)) as else_:
+            qc.x(1)
+            qc.cx(2, 3)
+        with else_:
+            qc.x(1)
+            with qc.for_loop(range(3)):
+                qc.z(2)
+                with qc.for_loop((4, 0, 1)):
+                    qc.z(2)
+        with qc.while_loop((qc.clbits[0], True)):
+            qc.h(0)
+            qc.measure(0, 0)
+        pass_ = Depth(recurse=True)
+        pass_(qc)
+        self.assertEqual(pass_.property_set["depth"], 16)
 
 
 if __name__ == "__main__":

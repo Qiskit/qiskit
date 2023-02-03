@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added a new transpiler pass,
+    :class:`~qiskit.transpiler.passes.CollectMultiQBlocks`, to the
+    :mod:`qiskit.transpiler.passes` module. This pass is used to collect
+    sequences of uninterrupted gates acting on groups of qubits. It provides
+    a similar function to the existing
+    :class:`~qiskit.transpiler.passes.Collect2qBlocks` pass, but while that
+    pass is designed and optimized to find 2 qubit blocks this new pass will
+    work to find blocks of any size.

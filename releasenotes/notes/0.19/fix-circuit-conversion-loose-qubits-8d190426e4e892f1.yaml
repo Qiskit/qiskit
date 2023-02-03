@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an error in the circuit conversion functions
+    :func:`.circuit_to_gate` and :func:`.circuit_to_instruction` (and their
+    associated circuit methods :meth:`.QuantumCircuit.to_gate` and
+    :meth:`.QuantumCircuit.to_instruction`) when acting on a circuit with
+    registerless bits, or bits in more than one register.

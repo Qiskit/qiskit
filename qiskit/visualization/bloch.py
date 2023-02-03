@@ -50,23 +50,43 @@ __all__ = ["Bloch"]
 
 import os
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import Axes3D, proj3d
+from mpl_toolkits.mplot3d.art3d import Patch3D
 
 from .utils import matplotlib_close_if_inline
 
 
-class Arrow3D(FancyArrowPatch):
+class Arrow3D(Patch3D, FancyArrowPatch):
     """Makes a fancy arrow"""
 
-    def __init__(self, xs, ys, zs, *args, **kwargs):
-        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
-        self._verts3d = xs, ys, zs
+    # Nasty hack around a poorly implemented deprecation warning in Matplotlib 3.5 that issues two
+    # deprecation warnings if an artist's module does not claim to be part of the below module.
+    # This revolves around the method `Patch3D.do_3d_projection(self, renderer=None)`.  The
+    # `renderer` argument has been deprecated since Matplotlib 3.4, but in 3.5 some internal calls
+    # during `Axes3D` display started calling the method.  If an artist does not have this module,
+    # then it issues a deprecation warning, and calls it by passing the `renderer` parameter as
+    # well, which consequently triggers another deprecation warning.  We should be able to remove
+    # this once 3.6 is the minimum supported version, because the deprecation period ends then.
+    __module__ = "mpl_toolkits.mplot3d.art3d"
+
+    def __init__(self, xs, ys, zs, zdir="z", **kwargs):
+        # The Patch3D.__init__() method just calls its own super() method and then
+        # self.set_3d_properties, but its __init__ signature is actually pretty incompatible with
+        # how it goes on to call set_3d_properties, so we just have to do things ourselves.  The
+        # parent of Patch3D is Patch, which is also a parent of FancyArrowPatch, so its __init__ is
+        # still getting suitably called.
+        # pylint: disable=super-init-not-called
+        FancyArrowPatch.__init__(self, (0, 0), (0, 0), **kwargs)
+        self.set_3d_properties(tuple(zip(xs, ys)), zs, zdir)
+        self._path2d = None
 
     def draw(self, renderer):
-        xs3d, ys3d, zs3d = self._verts3d
-        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        xs3d, ys3d, zs3d = zip(*self._segment3d)
+        x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
+        self._path2d = matplotlib.path.Path(np.column_stack([x_s, y_s]))
         self.set_positions((x_s[0], y_s[0]), (x_s[1], y_s[1]))
         FancyArrowPatch.draw(self, renderer)
 
@@ -394,7 +414,17 @@ class Bloch:
             self.fig = plt.figure(figsize=self.figsize)
 
         if not self._ext_axes:
-            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+            if tuple(int(x) for x in matplotlib.__version__.split(".")) >= (3, 4, 0):
+                self.axes = Axes3D(
+                    self.fig, azim=self.view[0], elev=self.view[1], auto_add_to_figure=False
+                )
+                self.fig.add_axes(self.axes)
+            else:
+                self.axes = Axes3D(
+                    self.fig,
+                    azim=self.view[0],
+                    elev=self.view[1],
+                )
 
         if self.background:
             self.axes.clear()
@@ -542,11 +572,11 @@ class Bloch:
         self.axes.text(0, 0, self.zlpos[0], self.zlabel[0], **opts)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1], **opts)
 
-        for item in self.axes.w_xaxis.get_ticklines() + self.axes.w_xaxis.get_ticklabels():
+        for item in self.axes.xaxis.get_ticklines() + self.axes.xaxis.get_ticklabels():
             item.set_visible(False)
-        for item in self.axes.w_yaxis.get_ticklines() + self.axes.w_yaxis.get_ticklabels():
+        for item in self.axes.yaxis.get_ticklines() + self.axes.yaxis.get_ticklabels():
             item.set_visible(False)
-        for item in self.axes.w_zaxis.get_ticklines() + self.axes.w_zaxis.get_ticklabels():
+        for item in self.axes.zaxis.get_ticklines() + self.axes.zaxis.get_ticklabels():
             item.set_visible(False)
 
     def plot_vectors(self):

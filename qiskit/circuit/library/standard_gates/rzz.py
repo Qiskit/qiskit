@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZZ-rotation gate."""
-
+from cmath import exp
 from typing import Optional
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -22,6 +22,9 @@ class RZZGate(Gate):
     r"""A parametric 2-qubit :math:`Z \otimes Z` interaction (rotation about ZZ).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rzz` method.
 
     **Circuit Symbol:**
 
@@ -37,7 +40,7 @@ class RZZGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{ZZ}(\theta) = exp(-i \th Z{\otimes}Z) =
+        R_{ZZ}(\theta) = \exp\left(-i \th Z{\otimes}Z\right) =
             \begin{pmatrix}
                 e^{-i \th} & 0 & 0 & 0 \\
                 0 & e^{i \th} & 0 & 0 \\
@@ -72,7 +75,7 @@ class RZZGate(Gate):
 
         .. math::
 
-            R_{ZZ}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+            R_{ZZ}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
                                     \begin{pmatrix}
                                         1-i & 0 & 0 & 0 \\
                                         0 & 1+i & 0 & 0 \\
@@ -96,6 +99,10 @@ class RZZGate(Gate):
         from .x import CXGate
         from .rz import RZGate
 
+        # q_0: ──■─────────────■──
+        #      ┌─┴─┐┌───────┐┌─┴─┐
+        # q_1: ┤ X ├┤ Rz(0) ├┤ X ├
+        #      └───┘└───────┘└───┘
         q = QuantumRegister(2, "q")
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name)
@@ -120,10 +127,15 @@ class RZZGate(Gate):
         itheta2 = 1j * float(self.params[0]) / 2
         return numpy.array(
             [
-                [numpy.exp(-itheta2), 0, 0, 0],
-                [0, numpy.exp(itheta2), 0, 0],
-                [0, 0, numpy.exp(itheta2), 0],
-                [0, 0, 0, numpy.exp(-itheta2)],
+                [exp(-itheta2), 0, 0, 0],
+                [0, exp(itheta2), 0, 0],
+                [0, 0, exp(itheta2), 0],
+                [0, 0, 0, exp(-itheta2)],
             ],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RZZGate(exponent * theta)

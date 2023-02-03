@@ -24,7 +24,7 @@ from qiskit.converters import circuit_to_dagdependency
 from qiskit.test import QiskitTestCase
 
 try:
-    import retworkx as rx
+    import rustworkx as rx
 except ImportError:
     pass
 
@@ -145,11 +145,15 @@ class TestDagNodeEdge(QiskitTestCase):
         circuit = QuantumCircuit(self.qreg, self.creg)
 
         circuit.h(self.qreg[0])
-        self.dag.add_op_node(circuit.data[0][0], circuit.data[0][1], circuit.data[0][2])
+        self.dag.add_op_node(
+            circuit.data[0].operation, circuit.data[0].qubits, circuit.data[0].clbits
+        )
         self.assertIsInstance(self.dag.get_node(0).op, HGate)
 
         circuit.measure(self.qreg[0], self.creg[0])
-        self.dag.add_op_node(circuit.data[1][0], circuit.data[1][1], circuit.data[1][2])
+        self.dag.add_op_node(
+            circuit.data[1].operation, circuit.data[1].qubits, circuit.data[1].clbits
+        )
         self.assertIsInstance(self.dag.get_node(1).op, Measure)
 
         nodes = list(self.dag.get_nodes())
@@ -239,11 +243,53 @@ class TestDagNodeSelection(QiskitTestCase):
         predecessors_fourth = self.dag.predecessors(3)
         self.assertEqual(predecessors_fourth, [])
 
+    def test_option_create_preds_and_succs_is_false(self):
+        """Test that when the option ``create_preds_and_succs`` is False,
+        direct successors and predecessors still get constructed, but
+        transitive successors and predecessors do not."""
+
+        circuit = QuantumCircuit(self.qreg, self.creg)
+        circuit.h(self.qreg[0])
+        circuit.x(self.qreg[0])
+        circuit.h(self.qreg[0])
+        circuit.x(self.qreg[1])
+        circuit.h(self.qreg[0])
+        circuit.measure(self.qreg[0], self.creg[0])
+
+        self.dag = circuit_to_dagdependency(circuit, create_preds_and_succs=False)
+
+        self.assertEqual(self.dag.direct_predecessors(1), [0])
+        self.assertEqual(self.dag.direct_successors(1), [2, 4])
+        self.assertEqual(self.dag.predecessors(1), [])
+        self.assertEqual(self.dag.successors(1), [])
+
+        self.assertEqual(self.dag.direct_predecessors(3), [])
+        self.assertEqual(self.dag.direct_successors(3), [])
+        self.assertEqual(self.dag.predecessors(3), [])
+        self.assertEqual(self.dag.successors(3), [])
+
+        self.assertEqual(self.dag.direct_predecessors(5), [2, 4])
+        self.assertEqual(self.dag.direct_successors(5), [])
+        self.assertEqual(self.dag.predecessors(5), [])
+        self.assertEqual(self.dag.successors(5), [])
+
 
 class TestDagProperties(QiskitTestCase):
     """Test the DAG properties."""
 
     def setUp(self):
+        #       ┌───┐                ┌───┐
+        # q0_0: ┤ H ├────────────────┤ X ├──────────
+        #       └───┘                └─┬─┘     ┌───┐
+        # q0_1: ───────────────────────┼───────┤ H ├
+        #                 ┌───┐        │  ┌───┐└─┬─┘
+        # q0_2: ──■───────┤ H ├────────┼──┤ T ├──■──
+        #       ┌─┴─┐┌────┴───┴─────┐  │  └───┘
+        # q0_3: ┤ X ├┤ U(0,0.1,0.2) ├──┼────────────
+        #       └───┘└──────────────┘  │
+        # q1_0: ───────────────────────■────────────
+        #                              │
+        # q1_1: ───────────────────────■────────────
         super().setUp()
         qr1 = QuantumRegister(4)
         qr2 = QuantumRegister(2)

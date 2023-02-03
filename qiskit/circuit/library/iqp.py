@@ -35,25 +35,22 @@ class IQP(QuantumCircuit):
 
     **Reference Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import IQP
-        import qiskit.tools.jupyter
-        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-        circuit = IQP(A)
-        circuit.draw('mpl')
+       from qiskit.circuit.library import IQP
+       A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+       circuit = IQP(A)
+       circuit.draw('mpl')
 
     **Expanded Circuit:**
 
-        .. jupyter-execute::
-            :hide-code:
+        .. plot::
 
-            from qiskit.circuit.library import IQP
-            import qiskit.tools.jupyter
-            A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-            circuit = IQP(A)
-            %circuit_library_info circuit.decompose()
+           from qiskit.circuit.library import IQP
+           from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+           A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+           circuit = IQP(A)
+           _generate_circuit_library_visualization(circuit.decompose())
 
     **References:**
 

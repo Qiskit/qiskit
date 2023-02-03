@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,21 +12,26 @@
 
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
-from typing import Optional, List, Union, Tuple, Dict, Callable
+from __future__ import annotations
+import typing
+import warnings
 import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
 
-from qiskit.providers import BaseBackend
 from qiskit.providers import Backend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import QuantumInstance
+from qiskit.primitives import BaseSampler
+from qiskit.utils.deprecation import deprecate_function
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
 from ..exceptions import AlgorithmError
 
-MINIMIZER = Callable[[Callable[[float], float], List[Tuple[float, float]]], float]
+MINIMIZER = typing.Callable[
+    [typing.Callable[[float], float], typing.List[typing.Tuple[float, float]]], float
+]
 
 
 class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
@@ -50,9 +55,10 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     def __init__(
         self,
-        evaluation_schedule: Union[List[int], int],
-        minimizer: Optional[MINIMIZER] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        evaluation_schedule: list[int] | int,
+        minimizer: MINIMIZER | None = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         Args:
@@ -65,7 +71,8 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                 according to ``evaluation_schedule``. The minimizer takes a function as first
                 argument and a list of (float, float) tuples (as bounds) as second argument and
                 returns a single float which is the found minimum.
-            quantum_instance: Quantum Instance or Backend
+            quantum_instance: Pending deprecation\: Quantum Instance or Backend
+            sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
             ValueError: If the number of oracle circuits is smaller than 1.
@@ -74,14 +81,23 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         super().__init__()
 
         # set quantum instance
-        self.quantum_instance = quantum_instance
+        if quantum_instance is not None:
+            warnings.warn(
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
+            )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.quantum_instance = quantum_instance
 
         # get parameters
         if isinstance(evaluation_schedule, int):
             if evaluation_schedule < 0:
                 raise ValueError("The evaluation schedule cannot be < 0.")
 
-            self._evaluation_schedule = [0] + [2 ** j for j in range(evaluation_schedule)]
+            self._evaluation_schedule = [0] + [2**j for j in range(evaluation_schedule)]
         else:
             if any(value < 0 for value in evaluation_schedule):
                 raise ValueError("The elements of the evaluation schedule cannot be < 0.")
@@ -99,9 +115,35 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         else:
             self._minimizer = minimizer
 
+        self._sampler = sampler
+
     @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Get the quantum instance.
+    def sampler(self) -> BaseSampler | None:
+        """Get the sampler primitive.
+
+        Returns:
+            The sampler primitive to evaluate the circuits.
+        """
+        return self._sampler
+
+    @sampler.setter
+    def sampler(self, sampler: BaseSampler) -> None:
+        """Set sampler primitive.
+
+        Args:
+            sampler: A sampler primitive to evaluate the circuits.
+        """
+        self._sampler = sampler
+
+    @property
+    @deprecate_function(
+        "The MaximumLikelihoodAmplitudeEstimation.quantum_instance getter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def quantum_instance(self) -> QuantumInstance | None:
+        """Pending deprecation; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -109,21 +151,25 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
-        """Set quantum instance.
+    @deprecate_function(
+        "The MaximumLikelihoodAmplitudeEstimation.quantum_instance setter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
+        """Pending deprecation; Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
     def construct_circuits(
         self, estimation_problem: EstimationProblem, measurement: bool = False
-    ) -> List[QuantumCircuit]:
+    ) -> list[QuantumCircuit]:
         """Construct the Amplitude Estimation w/o QPE quantum circuits.
 
         Args:
@@ -151,7 +197,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         qc_0.compose(estimation_problem.state_preparation, inplace=True)
 
         for k in self._evaluation_schedule:
-            qc_k = qc_0.copy(name="qc_a_q_%s" % k)
+            qc_k = qc_0.copy(name=f"qc_a_q_{k}")
 
             if k != 0:
                 qc_k.compose(estimation_problem.grover_operator.power(k), inplace=True)
@@ -173,7 +219,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         alpha: float,
         kind: str = "fisher",
         apply_post_processing: bool = False,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """Compute the `alpha` confidence interval using the method `kind`.
 
         The confidence level is (1 - `alpha`) and supported kinds are 'fisher',
@@ -219,11 +265,11 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     def compute_mle(
         self,
-        circuit_results: Union[List[Dict[str, int]], List[np.ndarray]],
+        circuit_results: list[dict[str, int]] | list[np.ndarray],
         estimation_problem: EstimationProblem,
-        num_state_qubits: Optional[int] = None,
+        num_state_qubits: int | None = None,
         return_counts: bool = False,
-    ) -> Union[float, Tuple[float, List[float]]]:
+    ) -> float | tuple[float, list[float]]:
         """Compute the MLE via a grid-search.
 
         This is a stable approach if sufficient gridpoints are used.
@@ -262,10 +308,25 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
     def estimate(
         self, estimation_problem: EstimationProblem
     ) -> "MaximumLikelihoodAmplitudeEstimationResult":
+        """Run the amplitude estimation algorithm on provided estimation problem.
+
+        Args:
+            estimation_problem: The estimation problem.
+
+        Returns:
+            An amplitude estimation results object.
+
+        Raises:
+            ValueError: A quantum instance or Sampler must be provided.
+            AlgorithmError: If `state_preparation` is not set in
+                `estimation_problem`.
+            AlgorithmError: Sampler job run error
+        """
+        if self._quantum_instance is None and self._sampler is None:
+            raise ValueError("A quantum instance or sampler must be provided.")
         if estimation_problem.state_preparation is None:
             raise AlgorithmError(
-                "Either the state_preparation variable or the a_factory "
-                "(deprecated) must be set to run the algorithm."
+                "The state_preparation property of the estimation problem must be set."
             )
 
         result = MaximumLikelihoodAmplitudeEstimationResult()
@@ -273,7 +334,8 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         result.minimizer = self._minimizer
         result.post_processing = estimation_problem.post_processing
 
-        if self._quantum_instance.is_statevector:
+        shots = 0
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
             # run circuit on statevector simulator
             circuits = self.construct_circuits(estimation_problem, measurement=False)
             ret = self._quantum_instance.execute(circuits)
@@ -284,17 +346,38 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
             # to count the number of Q-oracle calls (don't count shots)
             result.shots = 1
-
         else:
-            # run circuit on QASM simulator
             circuits = self.construct_circuits(estimation_problem, measurement=True)
-            ret = self._quantum_instance.execute(circuits)
+            if self._quantum_instance is not None:
+                # run circuit on QASM simulator
+                ret = self._quantum_instance.execute(circuits)
+                # get counts and construct MLE input
+                result.circuit_results = [ret.get_counts(circuit) for circuit in circuits]
+                shots = self._quantum_instance._run_config.shots
+            else:
+                try:
+                    job = self._sampler.run(circuits)
+                    ret = job.result()
+                except Exception as exc:
+                    raise AlgorithmError("The job was not completed successfully. ") from exc
 
-            # get counts and construct MLE input
-            result.circuit_results = [ret.get_counts(circuit) for circuit in circuits]
+                result.circuit_results = []
+                shots = ret.metadata[0].get("shots")
+                if shots is None:
+                    for quasi_dist in ret.quasi_dists:
+                        circuit_result = quasi_dist.binary_probabilities()
+                        result.circuit_results.append(circuit_result)
+                    shots = 1
+                else:
+                    # get counts and construct MLE input
+                    for quasi_dist in ret.quasi_dists:
+                        counts = {
+                            k: round(v * shots)
+                            for k, v in quasi_dist.binary_probabilities().items()
+                        }
+                        result.circuit_results.append(counts)
 
-            # to count the number of Q-oracle calls
-            result.shots = self._quantum_instance._run_config.shots
+        result.shots = shots
 
         # run maximum likelihood estimation
         num_state_qubits = circuits[0].num_qubits - circuits[0].num_ancillas
@@ -356,22 +439,22 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._minimizer = value
 
     @property
-    def good_counts(self) -> List[float]:
+    def good_counts(self) -> list[float]:
         """Return the percentage of good counts per circuit power."""
         return self._good_counts
 
     @good_counts.setter
-    def good_counts(self, counts: List[float]) -> None:
+    def good_counts(self, counts: list[float]) -> None:
         """Set the percentage of good counts per circuit power."""
         self._good_counts = counts
 
     @property
-    def evaluation_schedule(self) -> List[int]:
+    def evaluation_schedule(self) -> list[int]:
         """Return the evaluation schedule for the powers of the Grover operator."""
         return self._evaluation_schedule
 
     @evaluation_schedule.setter
-    def evaluation_schedule(self, evaluation_schedule: List[int]) -> None:
+    def evaluation_schedule(self, evaluation_schedule: list[int]) -> None:
         """Set the evaluation schedule for the powers of the Grover operator."""
         self._evaluation_schedule = evaluation_schedule
 
@@ -400,7 +483,7 @@ def _safe_max(array, default=(np.pi / 2)):
 
 def _compute_fisher_information(
     result: "MaximumLikelihoodAmplitudeEstimationResult",
-    num_sum_terms: Optional[int] = None,
+    num_sum_terms: int | None = None,
     observed: bool = False,
 ) -> float:
     """Compute the Fisher information.
@@ -445,7 +528,7 @@ def _compute_fisher_information(
             d_loglik += (2 * m_k + 1) * (h_k / tan + (shots_k - h_k) * tan)
 
         d_loglik /= np.sqrt(a * (1 - a))
-        fisher_information = d_loglik ** 2 / len(all_hits)
+        fisher_information = d_loglik**2 / len(all_hits)
 
     else:
         fisher_information = sum(
@@ -458,7 +541,7 @@ def _compute_fisher_information(
 
 def _fisher_confint(
     result: MaximumLikelihoodAmplitudeEstimationResult, alpha: float = 0.05, observed: bool = False
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Compute the `alpha` confidence interval based on the Fisher information.
 
     Args:
@@ -492,8 +575,8 @@ def _fisher_confint(
 def _likelihood_ratio_confint(
     result: MaximumLikelihoodAmplitudeEstimationResult,
     alpha: float = 0.05,
-    nevals: Optional[int] = None,
-) -> List[float]:
+    nevals: int | None = None,
+) -> list[float]:
     """Compute the likelihood-ratio confidence interval.
 
     Args:
@@ -541,10 +624,10 @@ def _likelihood_ratio_confint(
 
 
 def _get_counts(
-    circuit_results: List[Union[np.ndarray, List[float], Dict[str, int]]],
+    circuit_results: list[np.ndarray | list[float], dict[str, int]],
     estimation_problem: EstimationProblem,
     num_state_qubits: int,
-) -> Tuple[List[float], List[int]]:
+) -> tuple[list[float], list[int]]:
     """Get the good and total counts.
 
     Returns:

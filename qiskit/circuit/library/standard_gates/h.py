@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Hadamard gate."""
-
+from math import sqrt
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
@@ -28,6 +28,9 @@ class HGate(Gate):
     This gate is a \pi rotation about the X+Z axis, and has the effect of
     changing computation basis from :math:`|0\rangle,|1\rangle` to
     :math:`|+\rangle,|-\rangle` and vice-versa.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.h` method.
 
     **Circuit symbol:**
 
@@ -110,6 +113,9 @@ class CHGate(ControlledGate):
     Applies a Hadamard on the target qubit if the control is
     in the :math:`|1\rangle` state.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ch` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -158,7 +164,7 @@ class CHGate(ControlledGate):
                 \end{pmatrix}
     """
     # Define class constants. This saves future allocation time.
-    _sqrt2o2 = 1 / numpy.sqrt(2)
+    _sqrt2o2 = 1 / sqrt(2)
     _matrix1 = numpy.array(
         [[1, 0, 0, 0], [0, _sqrt2o2, 0, _sqrt2o2], [0, 0, 1, 0], [0, _sqrt2o2, 0, -_sqrt2o2]],
         dtype=complex,

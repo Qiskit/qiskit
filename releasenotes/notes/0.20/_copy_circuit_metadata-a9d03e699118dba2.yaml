@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added a new method :meth:`.DAGCircuit.copy_empty_like`
+    to the :class:`~.DAGCircuit` class. This method is used to create a new
+    copy of an existing :class:`.DAGCircuit` object with the
+    same structure but empty of any instructions. This method is the same as
+    the private method ``_copy_circuit_metadata()``, but instead is now
+    part of the public API of the class.

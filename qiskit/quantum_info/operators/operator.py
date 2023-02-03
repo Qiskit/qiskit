@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.operation import Operation
 from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate, TGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.predicates import is_unitary_matrix, matrix_equal
@@ -52,10 +53,8 @@ class Operator(LinearOp):
         """Initialize an operator object.
 
         Args:
-            data (QuantumCircuit or
-                  Instruction or
-                  BaseOperator or
-                  matrix): data to initialize operator.
+            data (QuantumCircuit or Operation or BaseOperator or matrix):
+                                data to initialize operator.
             input_dims (tuple): the input subsystem dimensions.
                                 [Default: None]
             output_dims (tuple): the output subsystem dimensions.
@@ -75,8 +74,8 @@ class Operator(LinearOp):
         if isinstance(data, (list, np.ndarray)):
             # Default initialization from list or numpy array matrix
             self._data = np.asarray(data, dtype=complex)
-        elif isinstance(data, (QuantumCircuit, Instruction)):
-            # If the input is a Terra QuantumCircuit or Instruction we
+        elif isinstance(data, (QuantumCircuit, Operation)):
+            # If the input is a Terra QuantumCircuit or Operation we
             # perform a simulation to construct the unitary operator.
             # This will only work if the circuit or instruction can be
             # defined in terms of unitary gate instructions which have a
@@ -193,10 +192,83 @@ class Operator(LinearOp):
             raise QiskitError("Label contains invalid characters.")
         # Initialize an identity matrix and apply each gate
         num_qubits = len(label)
-        op = Operator(np.eye(2 ** num_qubits, dtype=complex))
+        op = Operator(np.eye(2**num_qubits, dtype=complex))
         for qubit, char in enumerate(reversed(label)):
             if char != "I":
                 op = op.compose(label_mats[char], qargs=[qubit])
+        return op
+
+    @classmethod
+    def from_circuit(cls, circuit, ignore_set_layout=False, layout=None, final_layout=None):
+        """Create a new Operator object from a :class:`.QuantumCircuit`
+
+        While a :class:`~.QuantumCircuit` object can passed directly as ``data``
+        to the class constructor this provides no options on how the circuit
+        is used to create an :class:`.Operator`. This constructor method lets
+        you control how the :class:`.Operator` is created so it can be adjusted
+        for a particular use case.
+
+        By default this constructor method will permute the qubits based on a
+        configured initial layout (i.e. after it was transpiled). It also
+        provides an option to manually provide a :class:`.Layout` object
+        directly.
+
+        Args:
+            circuit (QuantumCircuit): The :class:`.QuantumCircuit` to create an Operator
+                object from.
+            ignore_set_layout (bool): When set to ``True`` if the input ``circuit``
+                has a layout set it will be ignored
+            layout (Layout): If specified this kwarg can be used to specify a
+                particular layout to use to permute the qubits in the created
+                :class:`.Operator`. If this is specified it will be used instead
+                of a layout contained in the ``circuit`` input. If specified
+                the virtual bits in the :class:`~.Layout` must be present in the
+                ``circuit`` input.
+            final_layout (Layout): If specified this kwarg can be used to represent the
+                output permutation caused by swap insertions during the routing stage
+                of the transpiler.
+        Returns:
+            Operator: An operator representing the input circuit
+        """
+        dimension = 2**circuit.num_qubits
+        op = cls(np.eye(dimension))
+        if layout is None:
+            if not ignore_set_layout:
+                layout = getattr(circuit, "_layout", None)
+        else:
+            from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
+
+            layout = TranspileLayout(
+                initial_layout=layout,
+                input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+            )
+        if final_layout is None:
+            if not ignore_set_layout and layout is not None:
+                final_layout = getattr(layout, "final_layout", None)
+
+        qargs = None
+        # If there was a layout specified (either from the circuit
+        # or via user input) use that to set qargs to permute qubits
+        # based on that layout
+        if layout is not None:
+            physical_to_virtual = layout.initial_layout.get_physical_bits()
+            qargs = [
+                layout.input_qubit_mapping[physical_to_virtual[physical_bit]]
+                for physical_bit in range(len(physical_to_virtual))
+            ]
+        # Convert circuit to an instruction
+        instruction = circuit.to_instruction()
+        op._append_instruction(instruction, qargs=qargs)
+        # If final layout is set permute output indices based on layout
+        if final_layout is not None:
+            # TODO: Do this without the intermediate Permutation object by just
+            # operating directly on the array directly
+            from qiskit.circuit.library import Permutation  # pylint: disable=cyclic-import
+
+            final_physical_to_virtual = final_layout.get_physical_bits()
+            perm_pattern = [final_layout._v2p[v] for v in circuit.qubits]
+            perm_op = Operator(Permutation(len(final_physical_to_virtual), perm_pattern))
+            op &= perm_op
         return op
 
     def is_unitary(self, atol=None, rtol=None):
@@ -415,6 +487,10 @@ class Operator(LinearOp):
         ret._op_shape = self._op_shape.reverse()
         return ret
 
+    def to_matrix(self):
+        """Convert operator to NumPy matrix."""
+        return self.data
+
     @classmethod
     def _einsum_matmul(cls, tensor, mat, indices, shift=0, right_mul=False):
         """Perform a contraction using Numpy.einsum
@@ -452,12 +528,12 @@ class Operator(LinearOp):
 
     @classmethod
     def _init_instruction(cls, instruction):
-        """Convert a QuantumCircuit or Instruction to an Operator."""
+        """Convert a QuantumCircuit or Operation to an Operator."""
         # Initialize an identity operator of the correct size of the circuit
         if hasattr(instruction, "__array__"):
             return Operator(np.array(instruction, dtype=complex))
 
-        dimension = 2 ** instruction.num_qubits
+        dimension = 2**instruction.num_qubits
         op = Operator(np.eye(dimension))
         # Convert circuit to an instruction
         if isinstance(instruction, QuantumCircuit):
@@ -468,8 +544,16 @@ class Operator(LinearOp):
     @classmethod
     def _instruction_to_matrix(cls, obj):
         """Return Operator for instruction if defined or None otherwise."""
-        if not isinstance(obj, Instruction):
-            raise QiskitError("Input is not an instruction.")
+        # Note: to_matrix() is not a required method for Operations, so for now
+        # we do not allow constructing matrices for general Operations.
+        # However, for backward compatibility we need to support constructing matrices
+        # for Cliffords, which happen to have a to_matrix() method.
+
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info import Clifford
+
+        if not isinstance(obj, (Instruction, Clifford)):
+            raise QiskitError("Input is neither an Instruction nor Clifford.")
         mat = None
         if hasattr(obj, "to_matrix"):
             # If instruction is a gate first we see if it has a
@@ -498,16 +582,16 @@ class Operator(LinearOp):
             # circuit decomposition definition if it exists, otherwise we
             # cannot compose this gate and raise an error.
             if obj.definition is None:
-                raise QiskitError(f"Cannot apply Instruction: {obj.name}")
+                raise QiskitError(f"Cannot apply Operation: {obj.name}")
             if not isinstance(obj.definition, QuantumCircuit):
                 raise QiskitError(
-                    'Instruction "{}" '
+                    'Operation "{}" '
                     "definition is {} but expected QuantumCircuit.".format(
                         obj.name, type(obj.definition)
                     )
                 )
             if obj.definition.global_phase:
-                dimension = 2 ** obj.num_qubits
+                dimension = 2**obj.num_qubits
                 op = self.compose(
                     ScalarOp(dimension, np.exp(1j * float(obj.definition.global_phase))),
                     qargs=qargs,
@@ -520,17 +604,18 @@ class Operator(LinearOp):
                 for index, bit in enumerate(bits)
             }
 
-            for instr, qregs, cregs in flat_instr:
-                if cregs:
+            for instruction in flat_instr:
+                if instruction.clbits:
                     raise QiskitError(
-                        f"Cannot apply instruction with classical registers: {instr.name}"
+                        "Cannot apply operation with classical bits:"
+                        f" {instruction.operation.name}"
                     )
                 # Get the integer position of the flat register
                 if qargs is None:
-                    new_qargs = [bit_indices[tup] for tup in qregs]
+                    new_qargs = [bit_indices[tup] for tup in instruction.qubits]
                 else:
-                    new_qargs = [qargs[bit_indices[tup]] for tup in qregs]
-                self._append_instruction(instr, qargs=new_qargs)
+                    new_qargs = [qargs[bit_indices[tup]] for tup in instruction.qubits]
+                self._append_instruction(instruction.operation, qargs=new_qargs)
 
 
 # Update docstrings for API docs

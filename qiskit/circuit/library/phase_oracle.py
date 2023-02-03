@@ -12,13 +12,20 @@
 
 """Phase Oracle object."""
 
-from typing import Union, Callable, Optional
+# Needed to avoid type hints from erroring when `classicalfunction` might not be available.
+from __future__ import annotations
+
+from typing import Union, Callable, Optional, TYPE_CHECKING
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
-from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
+from qiskit.utils import optionals as _optionals
+
+if TYPE_CHECKING:
+    from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+    from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
 
 
+@_optionals.HAS_TWEEDLEDUM.require_in_instance
 class PhaseOracle(QuantumCircuit):
     r"""Phase Oracle.
 
@@ -53,6 +60,9 @@ class PhaseOracle(QuantumCircuit):
             synthesizer: Optional. A function to convert a BooleanExpression into a QuantumCircuit
                If None is provided, Tweedledum's `pkrm_synth` with `phase_esop` will be used.
         """
+        from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+        from qiskit.circuit.classicalfunction.classical_element import ClassicalElement
+
         if not isinstance(expression, ClassicalElement):
             expression = BooleanExpression(expression)
 
@@ -61,7 +71,7 @@ class PhaseOracle(QuantumCircuit):
         if synthesizer is None:
 
             def synthesizer(boolean_expression):
-                from tweedledum.synthesis import pkrm_synth  # pylint: disable=no-name-in-module
+                from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
                 from qiskit.circuit.classicalfunction.utils import tweedledum2qiskit
 
                 truth_table = boolean_expression._tweedledum_bool_expression.truth_table(
@@ -134,5 +144,7 @@ class PhaseOracle(QuantumCircuit):
         Returns:
             PhaseOracle: A quantum circuit with a phase oracle.
         """
+        from qiskit.circuit.classicalfunction.boolean_expression import BooleanExpression
+
         expr = BooleanExpression.from_dimacs_file(filename)
         return cls(expr)
