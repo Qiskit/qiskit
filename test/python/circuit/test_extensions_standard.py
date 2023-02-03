@@ -867,21 +867,29 @@ class TestStandard1Q(QiskitTestCase):
         """Test global_phase matrix."""
         theta = 0.1
         np.testing.assert_allclose(
-            GlobalPhaseGate(theta).__array__(),
+            np.array(GlobalPhaseGate(theta)),
             np.array([[np.exp(1j * theta)]], dtype=complex),
             atol=1e-7,
         )
 
-    def test_global_phase_consist(self):
+    def test_global_phase_consistency(self):
         """Tests compatibility of GlobalPhaseGate with QuantumCircuit.global_phase"""
         theta = 0.1
-        qc = QuantumCircuit(0, global_phase=theta)
-        result_qc = Statevector(qc)
+        qc1 = QuantumCircuit(0, global_phase=theta)
+        result_qc1 = Statevector(qc1)
+        qc2 = QuantumCircuite(0)
+        qc2.append(GlobalPhaseGate(theta))
+        result_qc2 = Statevector(qc2)
+        # np.testing.assert_allclose(
+        #     np.array([[result_qc1[0]]]),
+        #     GlobalPhaseGate(theta).__array__(),
+        #     atol=1e-7,
+        # )
         np.testing.assert_allclose(
-            np.array([[result_qc[0]]]),
-            GlobalPhaseGate(theta).__array__(),
+            np.array([[result_qc1[0]]]),
+            np.array([[result_qc2[0]]]),
             atol=1e-7,
-        )
+        )        
 
 
 @ddt

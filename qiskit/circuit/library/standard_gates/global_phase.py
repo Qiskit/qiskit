@@ -49,23 +49,18 @@ class GlobalPhaseGate(Gate):
 
     def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
         """Create new globalphase gate.
-        Args:
-<<<<<<< HEAD
-            phase: The value of phase it takes.
-=======
-            phase: The value of phase it takes. 
->>>>>>> 1d405bc0f49ce634929349ce9e191f596e15c2ff
-            label: An optional label for the gate.
+                Args:
+                    phase: The value of phase it takes.
+                    label: An optional label for the gate.
         """
         super().__init__("global_phase", 0, [phase], label=label)
 
     def _define(self):
-        # pylint: disable=cyclic-import
 
         q = QuantumRegister(0, "q")
         qc = QuantumCircuit(
             q, name=self.name, global_phase=self.params[0]
-        )  # pylint: disable=no-member
+        )  
 
         self.definition = qc
 
