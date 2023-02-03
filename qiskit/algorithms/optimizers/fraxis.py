@@ -29,6 +29,9 @@ class FraxisOptimizer(SciPyOptimizer):
 
     More precisely, this class implements π-Fraxis algorithm in Algorithm 1 of [1].
 
+    This optimizer can optimize circuits with only U (or U3) gates as parametrized gates.
+    Recommended to use :class:`~qiskit.circuit.library.FraxisCircuit` as ansatz.
+
     References
       [1] "Optimizing Parameterized Quantum Circuits with Free-Axis Selection,"
           HC. Watanabe, R. Raymond, Y. Ohnishi, E. Kaminishi, M. Sugawara
@@ -49,6 +52,8 @@ class FraxisOptimizer(SciPyOptimizer):
         """
         Args:
             maxiter: Maximum number of iterations to perform.
+                Will default to N*10, where N is the number of U gates
+                in the input circuit.
             disp: Set to True to print convergence messages.
             options: A dictionary of solver options.
             initialize: Set to True to initialize ``x0`` randomly.
@@ -96,7 +101,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
             Extra arguments passed to the objective function.
         maxiter (int):
             Maximum number of iterations to perform.
-            Default: None.
+            Will default to N*10, where N is the number of U gates in the input circuit.
         initialize (bool): initialize ``x0`` randomly if True. Otherwise, use ``x0`` directly.
         **_ : additional options
         callback (callable, optional):
@@ -113,6 +118,9 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
     x0 = np.asarray(x0)
     if x0.size % 3 != 0:
         raise ValueError(f"The size of x0 should be multiple of 3. actual size: {x0.size}")
+    if maxiter is None:
+        maxiter = x0.size // 3 * 10
+
     niter = 0
     funcalls = 0
 
@@ -122,8 +130,17 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
             vec /= np.linalg.norm(vec)
             x0[idx : idx + 3] = _vec2angles(vec)
 
+    idxs = []
     while True:
-        idx = (niter * 3) % x0.size
+        if False:
+            idx = (niter * 3) % x0.size
+        elif False:
+            idx = x0.size - 3 - (niter * 3) % x0.size
+        else:
+            if len(idxs) == 0:
+                idxs = list(range(0, x0.size, 3))
+                algorithm_globals.random.shuffle(idxs)
+            idx = idxs.pop()
 
         xs = []
         for angles in ANGLES:
