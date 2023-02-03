@@ -12,7 +12,7 @@
 
 """Free-Axis Selection (Fraxis) algorithm."""
 
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 from scipy.optimize import OptimizeResult
@@ -79,7 +79,7 @@ DECOMPOSER = OneQubitEulerDecomposer()
 ANGLES = [DECOMPOSER.angles(mat) for mat in MATRICES]
 
 
-def _vec2angles(vec: np.ndarray) -> tuple[float, float, float]:
+def _vec2angles(vec: np.ndarray) -> Tuple[float, float, float]:
     r_d = X_mat * vec[0] + Y_mat * vec[1] + Z_mat * vec[2]
     return DECOMPOSER.angles(r_d)
 

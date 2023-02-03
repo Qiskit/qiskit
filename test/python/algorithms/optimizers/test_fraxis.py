@@ -14,12 +14,13 @@
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from qiskit.circuit.library import FraxisCircuit
-from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.quantum_info import SparsePauliOp
-from qiskit.algorithms.optimizers import FraxisOptimizer
+
 from qiskit.algorithms.minimum_eigensolvers import VQE
+from qiskit.algorithms.optimizers import FraxisOptimizer
+from qiskit.circuit.library import FraxisCircuit
 from qiskit.primitives import Estimator
+from qiskit.quantum_info import SparsePauliOp
+from qiskit.utils import algorithm_globals
 
 
 class TestOptimizerNFT(QiskitAlgorithmsTestCase):
