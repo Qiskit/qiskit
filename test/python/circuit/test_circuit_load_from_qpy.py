@@ -52,6 +52,7 @@ class TestLoadFromQPY(QiskitTestCase):
     """Test circuit.from_qasm_* set of methods."""
 
     def assertDeprecatedBitProperties(self, original, roundtripped):
+        """Test that deprecated bit attributes are equal if they are set in the original circuit."""
         owned_qubits = [
             (a, b) for a, b in zip(original.qubits, roundtripped.qubits) if a._register is not None
         ]
