@@ -40,7 +40,7 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
         )
 
     def test_nft(self):
-        """Test NFT optimizer by using it"""
+        """Test Fraxis optimizer by using it"""
 
         vqe = VQE(
             estimator=Estimator(),
