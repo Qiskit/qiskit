@@ -328,6 +328,7 @@ from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
+from . import library
 from .commutation_checker import CommutationChecker
 
 from .controlflow import (
