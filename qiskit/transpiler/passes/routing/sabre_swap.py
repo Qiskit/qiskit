@@ -62,7 +62,7 @@ class SabreSwap(TransformationPass):
 
     This transpiler pass adds onto the SABRE algorithm in that it will run
     multiple trials of the algorithm with different seeds. The best output,
-    deteremined by the trial with the least amount of SWAPed inserted, will
+    determined by the trial with the least amount of SWAPed inserted, will
     be selected from the random trials.
 
     **References:**
