@@ -10,6 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+// The syntax this rule wants isn't compatible with MSRV 1.56.1.
+#![allow(clippy::uninlined_format_args)]
+
 use std::env;
 
 use pyo3::prelude::*;
