@@ -509,7 +509,8 @@ from .generalized_gates import (
     PauliGate,
     LinearFunction,
 )
-from .pauli_evolution import PauliEvolutionGate
+
+# from .evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,
