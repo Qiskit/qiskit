@@ -843,29 +843,55 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
     out_registers = {"q": {}, "c": {}}
-    circ = QuantumCircuit(
-        [Qubit() for _ in [None] * num_qubits],
-        [Clbit() for _ in [None] * num_clbits],
-        name=name,
-        global_phase=global_phase,
-        metadata=metadata,
-    )
+    flat_registers = []
+    out_bits = {"q": [None] * num_qubits, "c": [None] * num_clbits}
     if num_registers > 0:
         if version < 4:
             registers = _read_registers(file_obj, num_registers)
         else:
             registers = _read_registers_v4(file_obj, num_registers)
-
-        for bit_type_label, reg_type in [("q", QuantumRegister), ("c", ClassicalRegister)]:
-            # Add quantum registers and bits
-            circuit_bits = {"q": circ.qubits, "c": circ.clbits}[bit_type_label]
-            for register_name, (_, indices, in_circuit) in registers[bit_type_label].items():
-                register = reg_type(
-                    name=register_name, bits=[circuit_bits[x] for x in indices if x >= 0]
-                )
+        for bit_type_label, bit_type, reg_type in [
+            ("q", Qubit, QuantumRegister),
+            ("c", Clbit, ClassicalRegister),
+        ]:
+            # First create the instances for any bits that are owned in the old style.  This won't
+            # fully reconstruct the deprecated properties for bits that are owned by a register
+            # that's not in the circuit, but we don't have enough information in the QPY format to
+            # fully reconstruct that. It's deprecated functionality, so we're not going to add a new
+            # QPY version to try and collate it.
+            typed_bits = out_bits[bit_type_label]
+            typed_registers = registers[bit_type_label]
+            for register_name, (owns_all_bits, indices, _) in typed_registers.items():
+                if not owns_all_bits:
+                    continue
+                register = reg_type(len(indices), register_name)
+                for owned, index in zip(register, indices):
+                    typed_bits[index] = owned
+            # Now create any bits that didn't have an owner we could infer.
+            typed_bits = [bit if bit is not None else bit_type() for bit in typed_bits]
+            # Finally _properly_ construct all the registers.
+            for register_name, (owns_all_bits, indices, in_circuit) in typed_registers.items():
+                if owns_all_bits and indices:
+                    # Retrieve the previously created register to ensure anybody doing `Bit.register
+                    # is ...` gets the right answers.
+                    register = typed_bits[indices[0]]._register
+                else:
+                    register = reg_type(name=register_name, bits=[typed_bits[x] for x in indices])
                 if in_circuit:
-                    circ.add_register(register)
+                    flat_registers.append(register)
                 out_registers[bit_type_label][register_name] = register
+            out_bits[bit_type_label] = typed_bits
+    else:
+        out_bits["q"] = [Qubit() for _ in out_bits["q"]]
+        out_bits["c"] = [Clbit() for _ in out_bits["c"]]
+    circ = QuantumCircuit(
+        out_bits["q"],
+        out_bits["c"],
+        *flat_registers,
+        name=name,
+        global_phase=global_phase,
+        metadata=metadata,
+    )
     custom_operations = _read_custom_operations(file_obj, version, vectors)
     for _instruction in range(num_instructions):
         _read_instruction(file_obj, circ, out_registers, custom_operations, version, vectors)
