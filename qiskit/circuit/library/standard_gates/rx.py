@@ -172,7 +172,7 @@ class CRXGate(ControlledGate):
                     0 & 0 & -i\sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
-    gate = "crx"
+    name = "crx"
     num_params = 1
     num_qubits = 2
 

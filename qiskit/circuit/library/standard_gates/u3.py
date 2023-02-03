@@ -205,6 +205,7 @@ class CU3Gate(ControlledGate):
     """
     name = "cu3"
     num_params = 3
+    num_qubits = 2
 
     def __init__(
         self,

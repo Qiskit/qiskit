@@ -176,6 +176,7 @@ class CHGate(ControlledGate):
     )
     name = "ch"
     num_params = 0
+    num_qubits = 2
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[int, str]] = None):
         """Create new CH gate."""

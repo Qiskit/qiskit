@@ -244,7 +244,7 @@ class CCZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
-    name = "czz"
+    name = "ccz"
     num_params = 0
     num_qubits = 3
 

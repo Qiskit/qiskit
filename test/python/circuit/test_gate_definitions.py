@@ -378,3 +378,63 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
 
         self.assertTrue(any(equiv == param_qc.decompose() for equiv in param_entry))
         self.assertTrue(any(equiv == float_qc.decompose() for equiv in float_entry))
+
+@ddt
+class TestStandardGateAttributes(QiskitTestCase):
+    """Standard gate static attributes test"""
+
+    @data(
+        HGate,
+        CHGate,
+        IGate,
+        RGate,
+        RXGate,
+        CRXGate,
+        RYGate,
+        CRYGate,
+        RZGate,
+        CRZGate,
+        SGate,
+        SdgGate,
+        CSwapGate,
+        TGate,
+        TdgGate,
+        U1Gate,
+        CU1Gate,
+        U2Gate,
+        U3Gate,
+        CU3Gate,
+        XGate,
+        CXGate,
+        ECRGate,
+        CCXGate,
+        YGate,
+        CYGate,
+        ZGate,
+        CZGate,
+        RYYGate,
+        PhaseGate,
+        CPhaseGate,
+        UGate,
+        CUGate,
+        SXGate,
+        SXdgGate,
+        CSXGate,
+    )
+    def test_static_attributes(self, gate_class):
+        """Verify name, num_qubits and num_params static attributes."""
+        n_params = len(_get_free_params(gate_class))
+        param_vector = ParameterVector("th", n_params)
+        float_vector = [0.1 * i for i in range(n_params)]
+
+        param_gate_instance = gate_class(*param_vector)
+        float_gate_instance = gate_class(*float_vector)
+
+        self.assertEqual(gate_class.num_params, n_params)
+        self.assertEqual(gate_class.num_qubits, param_gate_instance._num_qubits)
+        self.assertEqual(gate_class.name, param_gate_instance._name)
+        self.assertEqual(gate_class.num_qubits, float_gate_instance._num_qubits)
+        self.assertEqual(gate_class.name, float_gate_instance._name)
+
+
+        
