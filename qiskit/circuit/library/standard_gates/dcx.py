@@ -48,6 +48,7 @@ class DCXGate(Gate):
     """
     name = "dcx"
     num_params = 0
+    num_qubits = 2
 
     def __init__(self):
         """Create new DCX gate."""

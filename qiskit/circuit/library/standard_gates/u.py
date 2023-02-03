@@ -68,6 +68,7 @@ class UGate(Gate):
     """
     name = "u"
     num_params = 3
+    num_qubits = 1
 
     def __init__(
         self,
@@ -192,6 +193,7 @@ class CUGate(ControlledGate):
     """
     name = "cu"
     num_params = 4
+    num_qubits = 2
 
     def __init__(
         self,

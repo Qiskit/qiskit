@@ -59,6 +59,7 @@ class SXGate(Gate):
     """
     name = "sx"
     num_params = 0
+    num_qubits = 1
 
     def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
@@ -144,6 +145,7 @@ class SXdgGate(Gate):
     """
     name = "sxdg"
     num_params = 0
+    num_qubits = 1
 
     def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
@@ -248,6 +250,7 @@ class CSXGate(ControlledGate):
     )
     name = "csx"
     num_params = 0
+    num_qubits = 2
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSX gate."""

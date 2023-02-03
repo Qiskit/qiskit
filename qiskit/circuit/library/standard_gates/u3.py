@@ -80,6 +80,7 @@ class U3Gate(Gate):
     """
     name = "u3"
     num_params = 3
+    num_qubits = 1
 
     def __init__(
         self,

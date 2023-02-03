@@ -55,6 +55,7 @@ class SwapGate(Gate):
     """
     name = "swap"
     num_params = 0
+    num_qubits = 2
 
     def __init__(self, label: Optional[str] = None):
         """Create new SWAP gate."""
@@ -217,6 +218,7 @@ class CSwapGate(ControlledGate):
     )
     name = "cswap"
     num_params = 0
+    num_qubits = 3
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSWAP gate."""

@@ -75,6 +75,7 @@ class PhaseGate(Gate):
     """
     name = "p"
     num_params = 1
+    num_qubits = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new Phase gate."""
@@ -174,6 +175,7 @@ class CPhaseGate(ControlledGate):
     """
     name = "cp"
     num_params = 1
+    num_qubits = 2
 
     def __init__(
         self,

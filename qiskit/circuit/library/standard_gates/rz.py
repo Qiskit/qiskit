@@ -60,6 +60,7 @@ class RZGate(Gate):
     """
     name = "rz"
     num_params = 1
+    num_qubits = 1
 
     def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new RZ gate."""
@@ -190,6 +191,7 @@ class CRZGate(ControlledGate):
     """
     name = "crz"
     num_params = 1
+    num_qubits = 2
 
     def __init__(
         self,

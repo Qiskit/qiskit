@@ -74,6 +74,7 @@ class XGate(Gate):
     """
     name = "x"
     num_params = 0
+    num_qubits = 1
 
     def __init__(self, label: Optional[str] = None):
         """Create new X gate."""
@@ -191,6 +192,7 @@ class CXGate(ControlledGate):
     """
     name = "cx"
     num_params = 0
+    num_qubits = 2
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CX gate."""
@@ -331,6 +333,7 @@ class CCXGate(ControlledGate):
     """
     name = "ccx"
     num_params = 0
+    num_qubits = 3
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CCX gate."""
@@ -436,6 +439,7 @@ class RCCXGate(Gate):
 
     name = "rccx"
     num_params = 0
+    num_qubits = 3
 
     def __init__(self, label: Optional[str] = None):
         """Create a new simplified CCX gate."""
@@ -504,6 +508,7 @@ class C3SXGate(ControlledGate):
 
     name = "c3sx"
     num_params = 0
+    num_qubits = 4
 
     def __init__(
         self,
@@ -590,6 +595,7 @@ class C3XGate(ControlledGate):
     """
     name = "mcx"
     num_params = 0
+    num_qubits = 4
 
     def __init__(
         self,
@@ -727,6 +733,7 @@ class RC3XGate(Gate):
 
     name = "rcccx"
     num_params = 0
+    num_qubits = 4
 
     def __init__(self, label: Optional[str] = None):
         """Create a new RC3X gate."""
@@ -823,6 +830,7 @@ class C4XGate(ControlledGate):
 
     name = "mcx"
     num_params = 0
+    num_qubits = 5
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create a new 4-qubit controlled X gate."""

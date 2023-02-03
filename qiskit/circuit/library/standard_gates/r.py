@@ -50,6 +50,7 @@ class RGate(Gate):
     """
     name = "r"
     num_params = 2
+    num_qubits = 1
 
     def __init__(
         self, theta: ParameterValueType, phi: ParameterValueType, label: Optional[str] = None

@@ -84,6 +84,7 @@ class iSwapGate(Gate):
     """
     name = "iswap"
     num_params = 0
+    num_qubits = 1
 
     def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""

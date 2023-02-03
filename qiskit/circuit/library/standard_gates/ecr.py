@@ -81,6 +81,7 @@ class ECRGate(Gate):
     """
     name = "ecr"
     num_params = 0
+    num_qubits = 2
 
     def __init__(self):
         """Create new ECR gate."""

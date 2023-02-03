@@ -54,6 +54,7 @@ class TGate(Gate):
     """
     name = "t"
     num_params = 0
+    num_qubits = 1
 
     def __init__(self, label: Optional[str] = None):
         """Create new T gate."""
@@ -120,6 +121,7 @@ class TdgGate(Gate):
     """
     name = "tdg"
     num_params = 0
+    num_qubits = 1
 
     def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""

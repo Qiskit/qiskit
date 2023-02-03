@@ -93,6 +93,7 @@ class U1Gate(Gate):
     """
     name = "u1"
     num_params = 1
+    num_qubits = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new U1 gate."""
@@ -187,6 +188,7 @@ class CU1Gate(ControlledGate):
     """
     name = "cu1"
     num_params = 1
+    num_qubits = 2
 
     def __init__(
         self,

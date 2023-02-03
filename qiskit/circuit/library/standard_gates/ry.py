@@ -50,6 +50,7 @@ class RYGate(Gate):
     """
     name = "ry"
     num_params = 1
+    num_qubits = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RY gate."""
@@ -172,6 +173,7 @@ class CRYGate(ControlledGate):
     """
     name = "cry"
     num_params = 1
+    num_qubits = 2
 
     def __init__(
         self,

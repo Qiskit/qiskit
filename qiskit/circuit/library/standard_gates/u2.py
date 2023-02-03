@@ -88,6 +88,7 @@ class U2Gate(Gate):
     """
     name = "u2"
     num_params = 2
+    num_qubits = 1
 
     def __init__(
         self, phi: ParameterValueType, lam: ParameterValueType, label: Optional[str] = None
