@@ -58,7 +58,7 @@ class SQiSWGate(Gate):
 
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [(RXXGate(-np.pi / 4), [q[0], q[1]], []), (RYYGate(-np.pi / 4), [q[1], q[0]], [])]
+        rules = [(RXXGate(-np.pi / 4), [q[0], q[1]], []), (RYYGate(-np.pi / 4), [q[0], q[1]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
