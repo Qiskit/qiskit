@@ -35,7 +35,9 @@ class BooleanExpression(ClassicalElement):
                (default: by appearance)
         """
 
-        self._tweedledum_bool_expression = BoolFunction.from_expression(expression, var_order=var_order)
+        self._tweedledum_bool_expression = BoolFunction.from_expression(
+            expression, var_order=var_order
+        )
 
         short_expr_for_name = (expression[:10] + "...") if len(expression) > 13 else expression
         num_qubits = (
