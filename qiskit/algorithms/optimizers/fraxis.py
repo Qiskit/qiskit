@@ -130,17 +130,8 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
             vec /= np.linalg.norm(vec)
             x0[idx : idx + 3] = _vec2angles(vec)
 
-    idxs = []
     while True:
-        if False:
-            idx = (niter * 3) % x0.size
-        elif False:
-            idx = x0.size - 3 - (niter * 3) % x0.size
-        else:
-            if len(idxs) == 0:
-                idxs = list(range(0, x0.size, 3))
-                algorithm_globals.random.shuffle(idxs)
-            idx = idxs.pop()
+        idx = (niter * 3) % x0.size
 
         xs = []
         for angles in ANGLES:
@@ -174,6 +165,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
         niter += 1
 
         if callback is not None:
+            # pass x0 values and the estimated energy value fun(x0) to the callback
             callback(np.copy(x0), eigvals[0] / 2)
 
         if maxiter is not None:
