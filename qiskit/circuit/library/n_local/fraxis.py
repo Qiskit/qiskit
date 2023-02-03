@@ -56,7 +56,7 @@ class FraxisCircuit(NLocal):
     such as Ry and Rz gates are not allowed.
 
     Note 2: Only entanglement gates without parameters are allowed for entanglement layers.
-    Entanglement gates with parameters such as CRx and Rxx gates are not allowed.
+    Entanglement gates with parameters such as CRX and RXX gates are not allowed.
 
     A set of default entanglement strategies is provided:
 
@@ -139,7 +139,7 @@ class FraxisCircuit(NLocal):
         entanglement_blocks: Union[
             str, List[str], type, List[type], QuantumCircuit, List[QuantumCircuit]
         ] = "cx",
-        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "pairwise",
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "reverse_linear",
         reps: int = 3,
         skip_unentangled_qubits: bool = False,
         skip_final_rotation_layer: bool = False,
@@ -165,7 +165,7 @@ class FraxisCircuit(NLocal):
                 a list of integer-pairs specifying the indices
                 of qubits entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
-                Default to ``'pairwise'`` entanglement.
+                Default to ``'reverse_linear'`` entanglement.
                 Note that if ``entanglement_blocks = 'cx'``, then ``'full'`` entanglement provides the
                 same unitary as ``'reverse_linear'`` but the latter option has fewer entangling gates.
                 See the Examples section for more detail.
