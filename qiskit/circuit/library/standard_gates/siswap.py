@@ -16,14 +16,14 @@ import numpy as np
 from qiskit.circuit.gate import Gate
 
 
-class SQiSWGate(Gate):
+class SiSwapGate(Gate):
     r"""sqrt(iSWAP) gate.
 
     A 2-qubit symmetric gate from the iSWAP (or XY) family.
     It has Weyl chamber coordinates (π/8, π/8, 0).
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
-    with the :meth:`~qiskit.circuit.QuantumCircuit.sqisw` method.
+    with the :meth:`~qiskit.circuit.QuantumCircuit.SiSwap` method.
 
     .. parsed-literal::
 
@@ -36,20 +36,20 @@ class SQiSWGate(Gate):
     .. math::
         B\ q_0, q_1 =
             \begin{pmatrix}
-                1       & 0                 & 0                     & 0     \\
+                1       & 0                  & 0                     & 0     \\
                 0       & \frac{1}{\sqrt(2)} & \frac{i}{\sqrt(2)}     & 0     \\
                 0       & \frac{i}{\sqrt(2)} & \frac{1}{\sqrt(2)}     & 0     \\
-                0       & 0                 & 0                     & 1
+                0       & 0                  & 0                     & 1
             \end{pmatrix}
     """
 
     def __init__(self):
-        """Create new SQiSW gate."""
-        super().__init__("sqisw", 2, [])
+        """Create new SiSwap gate."""
+        super().__init__("siswap", 2, [])
 
     def _define(self):
         """
-        gate SQiSW a, b { rxx(-pi/4) a, b; ryy(-pi/4) a, b; }
+        gate siswap a, b { rxx(-pi/4) a, b; ryy(-pi/4) a, b; }
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumRegister, QuantumCircuit

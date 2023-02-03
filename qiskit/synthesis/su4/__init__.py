@@ -12,4 +12,4 @@
 
 """Two-qubit unitary synthesis methods."""
 
-from .sqisw_decompose import SQiSWDecomposer
+from .siswap_decompose import SiSwapDecomposer
