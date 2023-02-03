@@ -79,7 +79,7 @@ Discrete Basis Synthesis
    SolovayKitaevDecomposition
 
 Two Qubit Synthesis
-========================
+===================
 
 .. autosummary::
    :toctree: ../stubs/
