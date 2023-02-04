@@ -1,4 +1,4 @@
 ---
 upgrade:
   - |
-    For the class :class:`~DagDepNode`, thew previously deprecated ``condition`` attribute have been removed. It was deprecated in 0.18 release.
+    For the class :class:`~DagDepNode`, the previously deprecated ``condition`` attribute has been removed. It was deprecated in 0.18 release.
