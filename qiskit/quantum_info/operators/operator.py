@@ -241,6 +241,7 @@ class Operator(LinearOp):
             layout = TranspileLayout(
                 initial_layout=layout,
                 input_qubit_mapping={qubit: index for index, qubit in enumerate(circuit.qubits)},
+                output_qubit_mapping={qubit: layout[qubit] for qubit in circuit.qubits},
             )
         if final_layout is None:
             if not ignore_set_layout and layout is not None:

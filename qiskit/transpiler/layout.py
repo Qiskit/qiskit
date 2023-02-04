@@ -374,4 +374,36 @@ class TranspileLayout:
 
     initial_layout: Layout
     input_qubit_mapping: Dict[Qubit, int]
+    output_qubit_mapping: Dict[Qubit, int]
     final_layout: Optional[Layout] = None
+
+    @property
+    def num_qubits(self) -> int:
+        """Number of qubits in the represented Layout."""
+        return len(self.input_qubit_mapping)
+
+    def get_initial_permutation(self) -> list[int]:
+        """Get initial permutation from initial layout."""
+        inverted_input_mapping = {i: q for q, i in self.input_qubit_mapping.items()}
+        input_qubits = tuple(inverted_input_mapping[i] for i in range(self.num_qubits))
+        return [self.initial_layout[q] for q in input_qubits]
+
+    def get_final_permutation(self) -> list[int]:
+        """Get final permutation from final layout."""
+        inverted_output_mapping = {i: q for q, i in self.output_qubit_mapping.items()}
+        output_qubits = tuple(inverted_output_mapping[i] for i in range(self.num_qubits))
+        final_layout = self.final_layout or Layout(self.output_qubit_mapping)
+        return [final_layout[q] for q in output_qubits]
+
+    def get_complete_permutation(self) -> list[int]:
+        """Get complete permutation by composing initial and final permutations."""
+        initial_permutation = self.get_initial_permutation(self)
+        final_permutation = self.get_final_permutation(self)
+        return [final_permutation[initial_permutation[i]] for i in range(self.num_qubits)]
+
+    def get_complete_layout(self) -> Layout:
+        """Get complete layout by composing initial and final layouts."""
+        permutation = self.get_complete_permutation(self)
+        inverted_input_mapping = {i: q for q, i in self.input_qubit_mapping.items()}
+        layout_dict = {inverted_input_mapping[i]: p for i, p in enumerate(permutation)}
+        return Layout(layout_dict)
