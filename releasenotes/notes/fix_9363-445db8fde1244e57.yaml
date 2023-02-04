@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed `#9363 <https://github.com/Qiskit/qiskit-terra/issues/9363>`__.
+    by labeling the non-registerless synthesis in the order that Tweedledum expects.
