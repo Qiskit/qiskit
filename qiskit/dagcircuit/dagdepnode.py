@@ -121,8 +121,12 @@ class DAGDepNode:
                 if node1.name == node2.name:
                     if node1._qargs == node2._qargs:
                         if node1.cargs == node2.cargs:
-                            if node1._op.condition == node2._op.condition:
-                                return True
+                            if node1.type == "op":
+                                if getattr(node1._op, "condition", None) != getattr(
+                                    node2._op, "condition", None
+                                ):
+                                    return False
+                            return True
         return False
 
     def copy(self):
