@@ -2,7 +2,7 @@
 name = "qiskit-terra"
 version = "0.23.1"
 edition = "2021"
-rust-version = "1.61"
+rust-version = "1.56.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
