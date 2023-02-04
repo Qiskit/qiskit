@@ -49,10 +49,10 @@ class TestSynthesis(QiskitTestCase):
         qr_c = QuantumRegister(1, "c")
         qr_d = QuantumRegister(1, "d")
         qr_return = QuantumRegister(1, "return")
-        expected = QuantumCircuit(qr_d, qr_c, qr_b, qr_a, qr_return)
+        expected = QuantumCircuit(qr_a, qr_b, qr_c, qr_d, qr_return)
         expected.append(
             XGate().control(4, ctrl_state="1010"),
-            [qr_d[0], qr_c[0], qr_b[0], qr_a[0], qr_return[0]],
+            [qr_a[0], qr_b[0], qr_c[0], qr_d[0], qr_return[0]],
         )
 
         self.assertEqual(quantum_circuit.name, "grover_oracle")
