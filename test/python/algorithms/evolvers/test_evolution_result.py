@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,7 +11,6 @@
 # that they have been altered from the originals.
 """Class for testing evolution result."""
 import unittest
-import warnings
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit.algorithms.evolvers.evolution_result import EvolutionResult
@@ -24,13 +23,8 @@ class TestEvolutionResult(QiskitAlgorithmsTestCase):
     def test_init_state(self):
         """Tests that a class is initialized correctly with an evolved_state."""
         evolved_state = Zero
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo_result = EvolutionResult(evolved_state=evolved_state)
-        self.assertTrue(len(caught_warnings) > 0)
+        evo_result = EvolutionResult(evolved_state=evolved_state)
+
         expected_state = Zero
         expected_aux_ops_evaluated = None
 
@@ -41,13 +35,8 @@ class TestEvolutionResult(QiskitAlgorithmsTestCase):
         """Tests that a class is initialized correctly with an evolved_observable."""
         evolved_state = Zero
         evolved_aux_ops_evaluated = [(5j, 5j), (1.0, 8j), (5 + 1j, 6 + 1j)]
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo_result = EvolutionResult(evolved_state, evolved_aux_ops_evaluated)
-        self.assertTrue(len(caught_warnings) > 0)
+        evo_result = EvolutionResult(evolved_state, evolved_aux_ops_evaluated)
+
         expected_state = Zero
         expected_aux_ops_evaluated = [(5j, 5j), (1.0, 8j), (5 + 1j, 6 + 1j)]
 

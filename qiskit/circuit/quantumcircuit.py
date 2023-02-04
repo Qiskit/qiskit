@@ -15,6 +15,7 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
+import collections.abc
 import copy
 import itertools
 import functools
@@ -107,6 +108,20 @@ BitType = TypeVar("BitType", Qubit, Clbit)
 
 # Regex pattern to match valid OpenQASM identifiers
 VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
+QASM2_RESERVED = {
+    "OPENQASM",
+    "qreg",
+    "creg",
+    "include",
+    "gate",
+    "opaque",
+    "U",
+    "CX",
+    "measure",
+    "reset",
+    "if",
+    "barrier",
+}
 
 
 class QuantumCircuit:
@@ -1552,23 +1567,6 @@ class QuantumCircuit:
             dag = pass_.run(dag)
         return dag_to_circuit(dag)
 
-    def _unique_register_name(self, prefix: str = "") -> str:
-        """Generate a register name with the given prefix, which is unique within this circuit."""
-        used = {
-            reg.name[len(prefix) :]
-            for reg in itertools.chain(self.qregs, self.cregs)
-            if reg.name.startswith(prefix)
-        }
-        characters = (string.digits + string.ascii_letters) if prefix else string.ascii_letters
-        for parts in itertools.chain.from_iterable(
-            itertools.product(characters, repeat=n) for n in itertools.count(1)
-        ):
-            name = "".join(parts)
-            if name not in used:
-                return prefix + name
-        # This isn't actually reachable because the above loop is infinite.
-        return prefix
-
     def qasm(
         self,
         formatted: bool = False,
@@ -1654,31 +1652,28 @@ class QuantumCircuit:
 
         string_temp = self.header + "\n"
         string_temp += self.extension_lib + "\n"
-        for register in self.qregs:
-            string_temp += register.qasm() + "\n"
-        for register in self.cregs:
-            string_temp += register.qasm() + "\n"
 
-        bit_labels = {
-            bit: "%s[%d]" % (reg.name, idx)
-            for reg in self.qregs + self.cregs
-            for (idx, bit) in enumerate(reg)
-        }
-
-        regless_qubits = set(self.qubits) - {bit for reg in self.qregs for bit in reg}
-        regless_clbits = set(self.clbits) - {bit for reg in self.cregs for bit in reg}
-
+        regless_qubits = [bit for bit in self.qubits if not self.find_bit(bit).registers]
+        regless_clbits = [bit for bit in self.clbits if not self.find_bit(bit).registers]
+        dummy_registers = []
         if regless_qubits:
-            register_name = self._unique_register_name("qregless_")
-            string_temp += f"qreg {register_name}[{len(regless_qubits)}];\n"
-            bit_labels.update(
-                {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_qubits)}
-            )
+            dummy_registers.append(QuantumRegister(name="qregless", bits=regless_qubits))
         if regless_clbits:
-            register_name = self._unique_register_name("cregless_")
-            string_temp += f"creg {register_name}[{len(regless_clbits)}];\n"
-            bit_labels.update(
-                {bit: f"{register_name}[{idx}]" for idx, bit in enumerate(regless_clbits)}
+            dummy_registers.append(ClassicalRegister(name="cregless", bits=regless_clbits))
+        register_escaped_names = {}
+        for regs in (self.qregs, self.cregs, dummy_registers):
+            for reg in regs:
+                register_escaped_names[
+                    _make_unique(_qasm_escape_name(reg.name, "reg_"), register_escaped_names)
+                ] = reg
+        bit_labels = {
+            bit: "%s[%d]" % (name, idx)
+            for name, register in register_escaped_names.items()
+            for (idx, bit) in enumerate(register)
+        }
+        for name, reg in register_escaped_names.items():
+            string_temp += (
+                f"{'qreg' if isinstance(reg, QuantumRegister) else 'creg'} {name}[{reg.size}];\n"
             )
 
         for instruction in self._data:
@@ -1691,26 +1686,41 @@ class QuantumCircuit:
                     bit_labels[qubit],
                     bit_labels[clbit],
                 )
+            elif operation.name == "reset":
+                string_temp += f"reset {bit_labels[instruction.qubits[0]]}\n"
+            elif operation.name == "barrier":
+                qargs = ",".join(bit_labels[q] for q in instruction.qubits)
+                string_temp += "barrier;\n" if not qargs else f"barrier {qargs};\n"
             else:
                 # Check instructions names or label are valid
-                if not VALID_QASM2_IDENTIFIER.fullmatch(operation.name):
-                    operation = operation.copy(name=_qasm_escape_gate_name(operation.name))
+                escaped = _qasm_escape_name(operation.name, "gate_")
+                if escaped != operation.name:
+                    operation = operation.copy(name=escaped)
 
                 # decompose gate using definitions if they are not defined in OpenQASM2
-                if (
-                    operation.name not in existing_gate_names
-                    and operation not in existing_composite_circuits
-                ):
-                    if operation.name in [
-                        operation.name for operation in existing_composite_circuits
-                    ]:
-                        # append operation id to name of operation copy to make it unique
-                        operation = operation.copy(name=f"{operation.name}_{id(operation)}")
+                if operation.name not in existing_gate_names:
+                    op_qasm_name = None
+                    if operation.name == "permutation":
+                        op_qasm_name = getattr(operation, "_qasm_name", None)
+                    if op_qasm_name:
+                        operation = operation.copy(name=op_qasm_name)
 
-                    existing_composite_circuits.append(operation)
-                    _add_sub_instruction_to_existing_composite_circuits(
-                        operation, existing_gate_names, existing_composite_circuits
-                    )
+                    if operation not in existing_composite_circuits:
+                        if operation.name in [
+                            operation.name for operation in existing_composite_circuits
+                        ]:
+                            # append operation id to name of operation copy to make it unique
+                            operation = operation.copy(name=f"{operation.name}_{id(operation)}")
+
+                        existing_composite_circuits.append(operation)
+
+                        # Strictly speaking, the code below does not work for operations that
+                        # do not have the "definition" method but require a complex (recursive)
+                        # "_qasm_definition". Fortunately, right now we do not have any such operations.
+                        if getattr(operation, "definition", None) is not None:
+                            _add_sub_instruction_to_existing_composite_circuits(
+                                operation, existing_gate_names, existing_composite_circuits
+                            )
 
                 # Insert qasm representation of the original instruction
                 string_temp += "{} {};\n".format(
@@ -1751,7 +1761,7 @@ class QuantumCircuit:
         style: Optional[Union[dict, str]] = None,
         interactive: bool = False,
         plot_barriers: bool = True,
-        reverse_bits: bool = False,
+        reverse_bits: bool = None,
         justify: Optional[str] = None,
         vertical_compression: Optional[str] = "medium",
         idle_wires: bool = True,
@@ -1812,7 +1822,9 @@ class QuantumCircuit:
                 `latex_source` output type this has no effect and will be silently
                 ignored. Defaults to False.
             reverse_bits (bool): when set to True, reverse the bit order inside
-                registers for the output visualization. Defaults to False.
+                registers for the output visualization. Defaults to False unless the
+                user config file (usually ``~/.qiskit/settings.conf``) has an
+                alternative value set. For example, ``circuit_reverse_bits = True``.
             plot_barriers (bool): enable/disable drawing barriers in the output
                 circuit. Defaults to True.
             justify (string): options are ``left``, ``right`` or ``none``. If
@@ -4606,10 +4618,33 @@ class QuantumCircuit:
         Raises:
             Exception: if the gate is of type string and params is None.
         """
+
+        def _format(operand):
+            try:
+                # Using float/complex value as a dict key is not good idea.
+                # This makes the mapping quite sensitive to the rounding error.
+                # However, the mechanism is already tied to the execution model (i.e. pulse gate)
+                # and we cannot easily update this rule.
+                # The same logic exists in DAGCircuit.add_calibration.
+                evaluated = complex(operand)
+                if np.isreal(evaluated):
+                    evaluated = float(evaluated.real)
+                    if evaluated.is_integer():
+                        evaluated = int(evaluated)
+                return evaluated
+            except TypeError:
+                # Unassigned parameter
+                return operand
+
         if isinstance(gate, Gate):
-            self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
+            params = gate.params
+            gate = gate.name
+        if params is not None:
+            params = tuple(map(_format, params))
         else:
-            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+            params = tuple()
+
+        self._calibrations[gate][(tuple(qubits), params)] = schedule
 
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:
@@ -4748,8 +4783,9 @@ def _add_sub_instruction_to_existing_composite_circuits(
     for sub_instruction in instruction.definition:
         sub_operation = sub_instruction.operation
         # Check instructions names are valid
-        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_operation.name):
-            sub_operation = sub_operation.copy(name=_qasm_escape_gate_name(sub_operation.name))
+        escaped = _qasm_escape_name(sub_operation.name, "gate_")
+        if escaped != sub_operation.name:
+            sub_operation = sub_operation.copy(name=escaped)
         if (
             sub_operation.name not in existing_gate_names
             and sub_operation not in existing_composite_circuits
@@ -4760,15 +4796,34 @@ def _add_sub_instruction_to_existing_composite_circuits(
             )
 
 
-def _qasm_escape_gate_name(name: str) -> str:
-    """Returns a valid OpenQASM gate identifier"""
-    # Replace all non-ASCII-word characters with the underscore.
+def _qasm_escape_name(name: str, prefix: str) -> str:
+    """Returns a valid OpenQASM identifier, using `prefix` as a prefix if necessary.  `prefix` must
+    itself be a valid identifier."""
+    # Replace all non-ASCII-word characters (letters, digits, underscore) with the underscore.
     escaped_name = re.sub(r"\W", "_", name, flags=re.ASCII)
-    if not escaped_name or escaped_name[0] not in string.ascii_lowercase:
-        # Add an arbitrary, guaranteed-to-be-valid prefix.
-        escaped_name = "gate_" + escaped_name
-
+    if (
+        not escaped_name
+        or escaped_name[0] not in string.ascii_lowercase
+        or escaped_name in QASM2_RESERVED
+    ):
+        escaped_name = prefix + escaped_name
     return escaped_name
+
+
+def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
+    """Generate a name by suffixing the given stem that is unique within the defined set."""
+    if name not in already_defined:
+        return name
+    used = {in_use[len(name) :] for in_use in already_defined if in_use.startswith(name)}
+    characters = (string.digits + string.ascii_letters) if name else string.ascii_letters
+    for parts in itertools.chain.from_iterable(
+        itertools.product(characters, repeat=n) for n in itertools.count(1)
+    ):
+        suffix = "".join(parts)
+        if suffix not in used:
+            return name + suffix
+    # This isn't actually reachable because the above loop is infinite.
+    return name
 
 
 def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> str:
@@ -4788,8 +4843,9 @@ def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> st
     }
     for sub_instruction in definition:
         sub_operation = sub_instruction.operation
-        if not VALID_QASM2_IDENTIFIER.fullmatch(sub_operation.name):
-            sub_operation = sub_operation.copy(name=_qasm_escape_gate_name(sub_operation.name))
+        escaped = _qasm_escape_name(sub_operation.name, "gate_")
+        if escaped != sub_operation.name:
+            sub_operation = sub_operation.copy(name=escaped)
 
         gate_qargs = ",".join(
             "q%i" % index
