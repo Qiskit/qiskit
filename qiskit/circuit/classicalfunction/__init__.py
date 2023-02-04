@@ -36,14 +36,14 @@ QuantumCircuit:
 
       quantum_circuit = grover_oracle.synth(registerless=False)
       quantum_circuit.draw('text')
-      
-           d: ──o──
-                │  
-           c: ──■──
-                │  
-           b: ──o──
-                │  
-           a: ──■──
+
+           a: ──o──
+                │
+           b: ──■──
+                │
+           c: ──o──
+                │
+           d: ──■──
               ┌─┴─┐
       return: ┤ X ├
               └───┘
