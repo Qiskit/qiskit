@@ -117,6 +117,11 @@ class RZGate(Gate):
         ilam2 = 0.5j * float(self.params[0])
         return np.array([[exp(-ilam2), 0], [0, exp(ilam2)]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RZGate(exponent * theta)
+
 
 class CRZGate(ControlledGate):
     r"""Controlled-RZ gate.
