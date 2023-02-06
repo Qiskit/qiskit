@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -366,20 +366,26 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
 
+            # handle broadcasting: ensure parameters is of shape [array, array, ...]
+            if len(parameters.shape) == 1:
+                parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
+            batch_size = len(parameters)
+
             estimator_job = self.estimator.run(
-                circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
+                batch_size * [self.ansatz], batch_size * [operator], parameters
             )
 
-            total_cost = 0
+            total_cost = np.zeros(batch_size)
             if step > 1:
                 # compute overlap cost
                 fidelity_job = self.fidelity.run(
-                    [self.ansatz] * (step - 1),
-                    prev_states,
-                    [parameters] * (step - 1),
+                    batch_size * [self.ansatz] * (step - 1),
+                    batch_size * prev_states,
+                    parameters * (step - 1),
                 )
 
                 costs = fidelity_job.result().fidelities
+                costs = np.reshape(costs, (batch_size, -1)).T
 
                 for state, cost in enumerate(costs):
                     total_cost += np.real(betas[state] * cost)
@@ -398,7 +404,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     self._eval_count += 1
                     self.callback(self._eval_count, params, value, meta, step)
             else:
-                self._eval_count += len(values)
+                self._eval_count += len(values) / batch_size
 
             return values if len(values) > 1 else values[0]
 
