@@ -19,7 +19,6 @@ from numpy.testing import assert_allclose
 
 import qiskit
 from qiskit.extensions import UnitaryGate
-from qiskit.extensions.exceptions import ExtensionError
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
@@ -38,12 +37,12 @@ class TestHamiltonianGate(QiskitTestCase):
 
     def test_set_matrix_raises(self):
         """test non-unitary"""
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(ValueError):
             HamiltonianGate([[1, 0], [1, 1]], 1)
 
     def test_complex_time_raises(self):
         """test non-unitary"""
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(ValueError):
             HamiltonianGate([[1, 0], [1, 1]], 1j)
 
     def test_conjugate(self):
@@ -98,7 +97,7 @@ class TestHamiltonianCircuit(QiskitTestCase):
         matrix = np.zeros((2, 2))
         qc.hamiltonian(operator=matrix, time=1, qubits=qr[0])
 
-        with self.assertRaises(ExtensionError):
+        with self.assertRaises(ValueError):
             qc.qasm()
 
     def test_2q_hamiltonian(self):
