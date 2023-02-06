@@ -308,3 +308,9 @@ class TestEvolutionGate(QiskitTestCase):
                 evo = PauliEvolutionGate(op)
                 self.assertEqual(evo.name, "PauliEvolution")
                 self.assertEqual(evo.label, f"exp(-it {label})")
+
+    def test_old_import_location(self):
+        """Test import from the to-be deprecated path works."""
+        with self.assertWarns(PendingDeprecationWarning):
+            # pylint: disable=unused-import
+            from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
