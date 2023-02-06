@@ -510,7 +510,7 @@ from .generalized_gates import (
     LinearFunction,
 )
 
-# from .evolution import PauliEvolutionGate
+from .evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,

@@ -13,7 +13,7 @@
 """The evolved operator ansatz."""
 
 from __future__ import annotations
-from collections.abc import Sequence, Callable
+from collections.abc import Sequence
 import warnings
 
 import numpy as np
@@ -24,7 +24,6 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 
 from qiskit.exceptions import QiskitError
 
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info import Operator
 
 from qiskit.synthesis.evolution import EvolutionSynthesis, LieTrotter
@@ -110,7 +109,7 @@ class EvolvedOperatorAnsatz(NLocal):
         """The evolution converter used to compute the evolution.
 
         Returns:
-            EvolutionBase | EvolutionSynthesis: The evolution converter used to compute the evolution.
+            EvolutionBase or EvolutionSynthesis: The evolution converter used to compute the evolution.
         """
         if self._evolution is None:
             # pylint: disable=cyclic-import
