@@ -256,6 +256,10 @@ If you'd like to use an editable install with an optimized binary you can
 run `python setup.py build_rust --release --inplace` after you install in
 editable mode to recompile the rust extensions in release mode.
 
+Note that in order to run `python setup.py ...` commands you need have build
+dependency packages installed in your environment, which are listed in the
+`pyproject.toml` file under the `[build-system]` section.
+
 
 ## Test
 
