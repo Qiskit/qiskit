@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Moved the import of the :class:`~.evolution.HamiltonianGate` to 
+    :mod:`qiskit.circuit.library` from the previous location in :mod:`qiskit.extensions`.
+    The import from the latter is still supported but is pending deprecation.
