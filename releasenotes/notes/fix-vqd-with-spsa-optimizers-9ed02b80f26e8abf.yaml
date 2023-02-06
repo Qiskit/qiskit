@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed a bug in the VQD algorithm (:class:`algorithms.eigensolvers.VQD`) where
+    the energy evaluation function could not process batches of parameters, making it
+    incompatible with :class:`qiskit.algorithms.optimizer.SPSA` -type optimizers.
+    See `#9500 <https://github.com/Qiskit/qiskit-terra/issues/9500>`__.
