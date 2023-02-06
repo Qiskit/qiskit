@@ -18,11 +18,12 @@ from numpy.testing import assert_allclose
 
 
 import qiskit
-from qiskit.extensions.hamiltonian_gate import HamiltonianGate, UnitaryGate
+from qiskit.extensions import UnitaryGate
 from qiskit.extensions.exceptions import ExtensionError
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Parameter
+from qiskit.circuit.library import HamiltonianGate
 from qiskit.quantum_info import Operator
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 

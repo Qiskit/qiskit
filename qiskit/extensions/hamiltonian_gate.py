@@ -13,7 +13,7 @@
 """Gate described by the time evolution of a Hermitian Hamiltonian operator."""
 
 import warnings
-from .evolution import HamiltonianGate as NewHamiltonianGate
+from qiskit.circuit.library.evolution.hamiltonian_gate import HamiltonianGate as NewHamiltonianGate
 
 
 class HamiltonianGate(NewHamiltonianGate):
