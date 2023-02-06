@@ -313,4 +313,4 @@ class TestEvolutionGate(QiskitTestCase):
         """Test import from the to-be deprecated path works."""
         with self.assertWarns(PendingDeprecationWarning):
             # pylint: disable=unused-import
-            from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
+            from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate as _

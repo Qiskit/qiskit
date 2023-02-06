@@ -13,3 +13,6 @@
 """The circuit library module on evolution gates."""
 
 from .pauli_evolution import PauliEvolutionGate
+from .hamiltonian_gate import HamiltonianGate
+
+__all__ = ["PauliEvolutionGate", "HamiltonianGate"]

@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""The Pauli Evolution Gate."""
+
 import warnings
 from .evolution import PauliEvolutionGate  # pylint: disable=unused-import
 
