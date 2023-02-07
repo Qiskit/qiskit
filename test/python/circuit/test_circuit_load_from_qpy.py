@@ -363,9 +363,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qc, new_circ)
-        # No deprecated-bit-properties assertion here because it's got registers containing bits
-        # that are owned by another register, but not all of the owning register is in the circuit;
-        # we don't have enough information in QPY in the general case to roundtrip this.
+        self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_mixed_registers(self):
         """Test circuit with mix of standalone and shared registers."""
@@ -1031,9 +1029,7 @@ class TestLoadFromQPY(QiskitTestCase):
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
         self.assertEqual(qc, new_circuit)
-        # No deprecated-bit-properties assertion here because it's got a bit that's owned by a
-        # register, but not all of the owning register is in the circuit; we don't have enough
-        # information in QPY in the general case to roundtrip this.
+        self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_nested_tuple_param(self):
         """Test qpy with an instruction that contains nested tuples."""
@@ -1269,6 +1265,19 @@ class TestLoadFromQPY(QiskitTestCase):
         self.assertEqual(qc, new_circuit)
         self.assertEqual(qc.qregs, new_circuit.qregs)
         self.assertEqual(qc.cregs, new_circuit.cregs)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_incomplete_owned_bits(self):
+        """Test that a circuit that contains only some bits that are owned by a register are
+        correctly roundtripped."""
+        reg = QuantumRegister(5, "q")
+        qc = QuantumCircuit(reg[:3])
+        qc.ccx(0, 1, 2)
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+        self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 
     def test_qpy_deprecation(self):

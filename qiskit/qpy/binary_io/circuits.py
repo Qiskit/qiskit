@@ -701,7 +701,6 @@ def _write_calibrations(file_obj, calibrations, metadata_serializer):
 
 def _write_registers(file_obj, in_circ_regs, full_bits):
     bitmap = {bit: index for index, bit in enumerate(full_bits)}
-    processed_indices = set()
 
     out_circ_regs = set()
     for bit in full_bits:
@@ -727,12 +726,7 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
             REGISTER_ARRAY_PACK = "!%sq" % reg.size
             bit_indices = []
             for bit in reg:
-                bit_index = bitmap.get(bit, -1)
-                if bit_index in processed_indices:
-                    bit_index = -1
-                if bit_index >= 0:
-                    processed_indices.add(bit_index)
-                bit_indices.append(bit_index)
+                bit_indices.append(bitmap.get(bit, -1))
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *bit_indices))
 
     return len(in_circ_regs) + len(out_circ_regs)
@@ -854,36 +848,37 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
             ("q", Qubit, QuantumRegister),
             ("c", Clbit, ClassicalRegister),
         ]:
-            # First create the instances for any bits that are owned in the old style.  This won't
-            # fully reconstruct the deprecated properties for bits that are owned by a register
-            # that's not in the circuit, but we don't have enough information in the QPY format to
-            # fully reconstruct that. It's deprecated functionality, so we're not going to add a new
-            # QPY version to try and collate it.
             typed_bits = out_bits[bit_type_label]
             typed_registers = registers[bit_type_label]
-            for register_name, (owns_all_bits, indices, _) in typed_registers.items():
-                if not owns_all_bits:
+            for register_name, (standalone, indices, in_circuit) in typed_registers.items():
+                if not standalone:
                     continue
                 register = reg_type(len(indices), register_name)
+                out_registers[bit_type_label][register_name] = register
                 for owned, index in zip(register, indices):
-                    typed_bits[index] = owned
+                    # Negative indices are for bits that aren't in the circuit.
+                    if index >= 0:
+                        typed_bits[index] = owned
             # Now create any bits that didn't have an owner we could infer.
             typed_bits = [bit if bit is not None else bit_type() for bit in typed_bits]
             # Finally _properly_ construct all the registers.
-            for register_name, (owns_all_bits, indices, in_circuit) in typed_registers.items():
-                if owns_all_bits and indices:
-                    # Retrieve the previously created register to ensure anybody doing `Bit.register
-                    # is ...` gets the right answers.
-                    register = typed_bits[indices[0]]._register
+            for register_name, (standalone, indices, in_circuit) in typed_registers.items():
+                if standalone:
+                    register = out_registers[bit_type_label][register_name]
                 else:
-                    register = reg_type(name=register_name, bits=[typed_bits[x] for x in indices])
+                    register = reg_type(
+                        name=register_name,
+                        bits=[typed_bits[x] if x >= 0 else bit_type() for x in indices],
+                    )
+                    out_registers[bit_type_label][register_name] = register
                 if in_circuit:
                     flat_registers.append(register)
-                out_registers[bit_type_label][register_name] = register
             out_bits[bit_type_label] = typed_bits
     else:
-        out_bits["q"] = [Qubit() for _ in out_bits["q"]]
-        out_bits["c"] = [Clbit() for _ in out_bits["c"]]
+        out_bits = {
+            "q": [Qubit() for _ in out_bits["q"]],
+            "c": [Clbit() for _ in out_bits["c"]],
+        }
     circ = QuantumCircuit(
         out_bits["q"],
         out_bits["c"],
