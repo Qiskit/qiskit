@@ -12,6 +12,7 @@
 
 """Test the evolution gate."""
 
+import unittest
 import numpy as np
 import scipy
 from ddt import ddt, data, unpack
@@ -309,8 +310,6 @@ class TestEvolutionGate(QiskitTestCase):
                 self.assertEqual(evo.name, "PauliEvolution")
                 self.assertEqual(evo.label, f"exp(-it {label})")
 
-    def test_old_import_location(self):
-        """Test import from the to-be deprecated path works."""
-        with self.assertWarns(PendingDeprecationWarning):
-            # pylint: disable=unused-import
-            from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate as _
+
+if __name__ == "__main__":
+    unittest.main()
