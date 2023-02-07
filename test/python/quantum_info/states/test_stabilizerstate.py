@@ -969,11 +969,11 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
         cliff3 = StabilizerState(qc3)  # ['+XX', '+ZZ']
         cliff4 = StabilizerState(qc4)  # ['-YY', '+XX']
 
-        # cliff1 and cliff2 generate the stabilizer group {II, XX, YY, -ZZ}
+        # [XX, -ZZ] and [XX, YY] both generate the stabilizer group {II, XX, YY, -ZZ}
         self.assertTrue(cliff1.equiv(cliff2))
         self.assertEqual(cliff1.probabilities_dict(), cliff2.probabilities_dict())
 
-        # cliff3 and cliff4 generate the stabilizer group {II, XX, -YY, ZZ}
+        # [XX, ZZ] and [XX, -YY] both generate the stabilizer group {II, XX, -YY, ZZ}
         self.assertTrue(cliff3.equiv(cliff4))
         self.assertEqual(cliff3.probabilities_dict(), cliff4.probabilities_dict())
 
