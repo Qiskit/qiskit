@@ -486,7 +486,9 @@ class DAGDependency:
         be used when the DAGDependency() object is complete (i.e. converters).
         """
         for node_id in range(len(self._multi_graph) - 1, -1, -1):
-            self._multi_graph.get_node_data(node_id).successors = list(rx.descendants(self._multi_graph, node_id))
+            self._multi_graph.get_node_data(node_id).successors = list(
+                rx.descendants(self._multi_graph, node_id)
+            )
 
     def _add_predecessors(self):
         """
@@ -495,7 +497,9 @@ class DAGDependency:
         be used when the DAGDependency() object is complete (i.e. converters).
         """
         for node_id in range(0, len(self._multi_graph)):
-            self._multi_graph.get_node_data(node_id).predecessors = list(rx.ancestors(self._multi_graph, node_id))
+            self._multi_graph.get_node_data(node_id).predecessors = list(
+                rx.ancestors(self._multi_graph, node_id)
+            )
 
     def copy(self):
         """

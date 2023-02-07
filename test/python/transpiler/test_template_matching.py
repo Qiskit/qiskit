@@ -18,7 +18,14 @@ import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
-from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
+from qiskit.circuit.library.templates.nct import template_nct_2a_2, template_nct_5a_3
+from qiskit.circuit.library.templates.clifford import (
+    clifford_2_1,
+    clifford_2_2,
+    clifford_2_3,
+    clifford_2_4,
+    clifford_3_1,
+)
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
@@ -26,6 +33,7 @@ from qiskit.transpiler.passes import TemplateOptimization
 from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.exceptions import TranspilerError
+from test.python.quantum_info.operators.symplectic.test_clifford import random_clifford_circuit
 
 
 def _ry_to_rz_template_pass(parameter: Parameter = None, extra_costs=None):
@@ -646,6 +654,26 @@ class TestTemplateMatching(QiskitTestCase):
         expected.rz(a_circuit + b_circuit, 0)
 
         self.assertEqual(circuit_out, expected)
+
+    def test_clifford_templates(self):
+        """Tests TemplateOptimization pass on several larger examples."""
+        template_list = [
+            clifford_2_1(),
+            clifford_2_2(),
+            clifford_2_3(),
+            clifford_2_4(),
+            clifford_3_1(),
+        ]
+        pm = PassManager(TemplateOptimization(template_list=template_list))
+        for seed in range(10):
+            qc = random_clifford_circuit(
+                num_qubits=5,
+                num_gates=100,
+                gates=["x", "y", "z", "h", "s", "sdg", "cx", "cz", "swap"],
+                seed=0,
+            )
+            qc_opt = pm.run(qc)
+            self.assertTrue(Operator(qc) == Operator(qc_opt))
 
 
 if __name__ == "__main__":
