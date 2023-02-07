@@ -285,7 +285,7 @@ are:
 
 This release also deprecates support for running with Python 3.7. A ``DeprecationWarning``
 will now be emitted if you run Qiskit with Python 3.7. Support for Python 3.7 will be removed
-as part of the 0.25.0 release (currently planned for release in July 2022), at which point
+as part of the 0.25.0 release (currently planned for release in July 2023), at which point
 you will need Python 3.8 or newer to use Qiskit.
 
 New Features
