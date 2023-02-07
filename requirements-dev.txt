@@ -1,4 +1,4 @@
-coverage>=4.4.0
+coverage>=4.4.0,<7.0
 hypothesis>=4.24.3
 python-constraint>=1.4
 ipython<7.22.0
@@ -18,12 +18,13 @@ seaborn>=0.9.0
 reno>=3.4.0
 Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
-sphinx-autodoc-typehints~=1.18,!=1.19.3
-jupyter-sphinx
+sphinx-autodoc-typehints==1.21.1  # revert to >=1.18 once the incompatibilities are fixed
 sphinx-design>=0.2.0
 pygments>=2.4
 scikit-learn>=0.20.0
 scikit-quant<=0.7;platform_system != 'Windows'
 jax;platform_system != 'Windows'
 jaxlib;platform_system != 'Windows'
+tweedledum;platform_system != 'Darwin' and python_version<'3.11'
 docplex
+qiskit-qasm3-import; python_version>='3.8'

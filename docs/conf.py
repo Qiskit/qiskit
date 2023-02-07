@@ -15,15 +15,16 @@
 """Sphinx documentation builder."""
 
 # -- General configuration ---------------------------------------------------
+import datetime
 
 project = "Qiskit"
-copyright = "2019, Qiskit Development Team"  # pylint: disable=redefined-builtin
+copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.23"
+version = "0.24"
 # The full version, including alpha/beta/rc tags
-release = "0.23.0"
+release = "0.24.0"
 
 extensions = [
     "sphinx.ext.napoleon",
@@ -33,10 +34,10 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
-    "jupyter_sphinx",
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
-    "sphinx_design"
+    "sphinx_design",
+    "matplotlib.sphinxext.plot_directive",
 ]
 templates_path = ["_templates"]
 

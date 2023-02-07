@@ -171,19 +171,10 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     params = []
     condition_tuple = None
     if instruction.has_condition:
-        # If an invalid register name is used assume it's a single bit
-        # condition and treat the register name as a string of the clbit index
-        if ClassicalRegister.name_format.match(condition_register) is None:
-            # If invalid register prefixed with null character it's a clbit
-            # index for single bit condition
-            if condition_register[0] == "\x00":
-                conditional_bit = int(condition_register[1:])
-                condition_tuple = (circuit.clbits[conditional_bit], instruction.condition_value)
-            else:
-                raise ValueError(
-                    f"Invalid register name: {condition_register} for condition register of "
-                    f"instruction: {gate_name}"
-                )
+        # If register name prefixed with null character it's a clbit index for single bit condition.
+        if condition_register[0] == "\x00":
+            conditional_bit = int(condition_register[1:])
+            condition_tuple = (circuit.clbits[conditional_bit], instruction.condition_value)
         else:
             condition_tuple = (registers["c"][condition_register], instruction.condition_value)
     if circuit is not None:
@@ -261,7 +252,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
         gate = gate_class(condition_tuple, *params)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
-        if gate_name in {"MCPhaseGate", "MCU1Gate"}:
+        if gate_name in {
+            "MCPhaseGate",
+            "MCU1Gate",
+            "MCXGrayCode",
+            "MCXGate",
+            "MCXRecursive",
+            "MCXVChain",
+        }:
             gate = gate_class(*params, instruction.num_ctrl_qubits)
         else:
             gate = gate_class(*params)

@@ -16,7 +16,8 @@
 A target object represents the minimum set of information the transpiler needs
 from a backend
 """
-
+import warnings
+from typing import Union
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
@@ -28,10 +29,13 @@ import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.calibration_entries import CalibrationEntry
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.utils.deprecation import deprecate_arguments
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
@@ -51,13 +55,13 @@ class InstructionProperties:
     custom attributes for those custom/additional properties by the backend.
     """
 
-    __slots__ = ("duration", "error", "calibration")
+    __slots__ = ("duration", "error", "_calibration")
 
     def __init__(
         self,
         duration: float = None,
         error: float = None,
-        calibration=None,
+        calibration: Union[Schedule, ScheduleBlock, CalibrationEntry] = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -66,17 +70,27 @@ class InstructionProperties:
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
-            calibration (Union["qiskit.pulse.Schedule", "qiskit.pulse.ScheduleBlock"]): The pulse
-                representation of the instruction
+            calibration: The pulse representation of the instruction.
         """
         self.duration = duration
         self.error = error
-        self.calibration = calibration
+        self._calibration = calibration
+
+    @property
+    def calibration(self):
+        """The pulse representation of the instruction."""
+        if isinstance(self._calibration, CalibrationEntry):
+            return self._calibration.get_schedule()
+        return self._calibration
+
+    @calibration.setter
+    def calibration(self, calibration: Union[Schedule, ScheduleBlock, CalibrationEntry]):
+        self._calibration = calibration
 
     def __repr__(self):
         return (
             f"InstructionProperties(duration={self.duration}, error={self.error}"
-            f", calibration={self.calibration})"
+            f", calibration={self._calibration})"
         )
 
 
@@ -177,13 +191,14 @@ class Target(Mapping):
         "granularity",
         "min_length",
         "pulse_alignment",
-        "aquire_alignment",
+        "acquire_alignment",
         "_non_global_basis",
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
     )
 
+    @deprecate_arguments({"aquire_alignment": "acquire_alignment"})
     def __init__(
         self,
         description=None,
@@ -192,7 +207,7 @@ class Target(Mapping):
         granularity=1,
         min_length=1,
         pulse_alignment=1,
-        aquire_alignment=1,
+        acquire_alignment=1,
         qubit_properties=None,
     ):
         """
@@ -251,7 +266,7 @@ class Target(Mapping):
         self.granularity = granularity
         self.min_length = min_length
         self.pulse_alignment = pulse_alignment
-        self.aquire_alignment = aquire_alignment
+        self.acquire_alignment = acquire_alignment
         self._non_global_basis = None
         self._non_global_strict_basis = None
         if qubit_properties is not None:
@@ -501,7 +516,7 @@ class Target(Mapping):
             TimingConstraints: The timing constraints represented in the Target
         """
         return TimingConstraints(
-            self.granularity, self.min_length, self.pulse_alignment, self.aquire_alignment
+            self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
         )
 
     def instruction_schedule_map(self):
@@ -950,6 +965,22 @@ class Target(Mapping):
         else:
             self._non_global_basis = incomplete_basis_gates
         return incomplete_basis_gates
+
+    @property
+    def aquire_alignment(self):
+        """Alias of deprecated name. This will be removed."""
+        warnings.warn(
+            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
+        )
+        return self.acquire_alignment
+
+    @aquire_alignment.setter
+    def aquire_alignment(self, new_value: int):
+        """Alias of deprecated name. This will be removed."""
+        warnings.warn(
+            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
+        )
+        self.acquire_alignment = new_value
 
     def __iter__(self):
         return iter(self._gate_map)
