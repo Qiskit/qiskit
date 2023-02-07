@@ -2,13 +2,12 @@
 fixes:
   - |
     The deprecated :class:`.Qubit` and :class:`.Clbit` properties :attr:`~.Qubit.register` and
-    :attr:`~.Qubit.index` will now be correctly round-tripped by QPY (:mod:`qiskit.qpy`) in most
-    standard usage patterns of :class:`.QuantumRegister` and :class:`.ClassicalRegister` uses.  In
-    earlier releases in the Terra 0.23 series, this information could be lost.  The correct way to
-    retrieve the index of a bit within a circuit, and any registers in that circuit the bit is
-    contained within is to call :meth:`.QuantumCircuit.find_bit`.  This method will return the
-    correct information in all versions of Terra in the 0.23 series.
+    :attr:`~.Qubit.index` will now be correctly round-tripped by QPY (:mod:`qiskit.qpy`) in all
+    valid usages of :class:`.QuantumRegister` and :class:`.ClassicalRegister`.  In earlier releases
+    in the Terra 0.23 series, this information would be lost.  In versions before 0.23.0, this
+    information was partially reconstructed but could be incorrect or produce invalid circuits for
+    certain register configurations.
 
-    QPY cannot completely round-trip the deprecated bit information in complex cases where some, but
-    not all, bits created by the construction of a register are put into a circuit, and that owning
-    register isn't.  This is unlikely to cause any practical problems.
+    The correct way to retrieve the index of a bit within a circuit, and any registers in that
+    circuit the bit is contained within is to call :meth:`.QuantumCircuit.find_bit`.  This method
+    will return the correct information in all versions of Terra since its addition in version 0.19.
