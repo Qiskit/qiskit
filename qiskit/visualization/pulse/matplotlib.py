@@ -598,7 +598,7 @@ class ScheduleDrawer:
                 # pylint: enable=unbalanced-tuple-unpacking
                 time, ch_name, data_str = data
                 # item
-                cell_value[r][3 * c + 0] = "t = %s" % time * dt
+                cell_value[r][3 * c + 0] = "t = %s" % (time * dt)
                 cell_value[r][3 * c + 1] = "ch %s" % ch_name
                 cell_value[r][3 * c + 2] = data_str
             table = tb.table(
