@@ -670,7 +670,7 @@ class TestTemplateMatching(QiskitTestCase):
                 num_qubits=5,
                 num_gates=100,
                 gates=["x", "y", "z", "h", "s", "sdg", "cx", "cz", "swap"],
-                seed=0,
+                seed=seed,
             )
             qc_opt = pm.run(qc)
             self.assertTrue(Operator(qc) == Operator(qc_opt))
