@@ -35,7 +35,7 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 #    should investigate the possibility of using rx.descendants() instead of caching).
 #  - We should rethink the API of DAGDependency:
 #    Currently, most of the functions (such as "add_op_node", "_update_edges", etc.)
-#    are only used when creating a new DAGDependency from another representation of a circuit.
+#    are only used when creating a new DAGDependency.
 #    On the other hand, replace_block_with_op is only used at the very end,
 #    just before DAGDependency is converted into QuantumCircuit or DAGCircuit.
 #    A part of the reason is that doing local changes to DAGDependency is tricky:
@@ -481,8 +481,7 @@ class DAGDependency:
 
     def _add_successors(self):
         """
-        Use _gather_succ and merge_no_duplicates to create the list of successors
-        for each node. Update DAGDependency 'successors' attribute. It has to
+        Create the list of successors. Update DAGDependency 'successors' attribute. It has to
         be used when the DAGDependency() object is complete (i.e. converters).
         """
         for node_id in range(len(self._multi_graph) - 1, -1, -1):
@@ -492,9 +491,9 @@ class DAGDependency:
 
     def _add_predecessors(self):
         """
-        Use _gather_pred and merge_no_duplicates to create the list of predecessors
-        for each node. Update DAGDependency 'predecessors' attribute. It has to
-        be used when the DAGDependency() object is complete (i.e. converters).
+        Create the list of predecessors for each node. Update DAGDependency
+        'predecessors' attribute. It has to be used when the DAGDependency() object
+        is complete (i.e. converters).
         """
         for node_id in range(0, len(self._multi_graph)):
             self._multi_graph.get_node_data(node_id).predecessors = list(
