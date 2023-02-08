@@ -22,7 +22,7 @@ num-bigint = "0.4"
 rustworkx-core = "0.12"
 
 [dependencies.pyo3]
-version = "0.18.0"
+version = "0.18.1"
 features = ["extension-module", "hashbrown", "num-complex", "num-bigint", "indexmap"]
 
 [dependencies.ndarray]
