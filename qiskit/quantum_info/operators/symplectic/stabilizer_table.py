@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,7 +24,7 @@ from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
 
 
 class StabilizerTable(PauliTable, AdjointMixin):
-    r"""Symplectic representation of a list Stabilizer matrices.
+    r"""DEPRECATED: Symplectic representation of a list Stabilizer matrices.
 
     **Symplectic Representation**
 
@@ -186,9 +186,10 @@ class StabilizerTable(PauliTable, AdjointMixin):
             can share the same underlying array.
         """
         warn(
-            "The StabilizerTable class has been superseded by PauliList and is pending deprecation. "
-            "This class will be deprecated in the future release and subsequently removed after that.",
-            PendingDeprecationWarning,
+            "The StabilizerTable class is deprecated as of Qiskit Terra 0.24.0 "
+            "and will be removed no sooner than 3 months after the release date. "
+            "Use PauliList class instead.",
+            DeprecationWarning,
             stacklevel=2,
         )
         if isinstance(data, str) and phase is None:

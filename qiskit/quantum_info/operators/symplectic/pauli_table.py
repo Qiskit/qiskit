@@ -28,7 +28,7 @@ from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 
 
 class PauliTable(BaseOperator, AdjointMixin):
-    r"""Symplectic representation of a list Pauli matrices.
+    r"""DEPRECATED: Symplectic representation of a list Pauli matrices.
 
     **Symplectic Representation**
 
@@ -141,9 +141,10 @@ class PauliTable(BaseOperator, AdjointMixin):
             can share the same underlying array.
         """
         warn(
-            "The PauliTable class has been superseded by PauliList and is pending deprecation. "
-            "This class will be deprecated in the future release and subsequently removed after that.",
-            PendingDeprecationWarning,
+            "The PauliTable class is deprecated as of Qiskit Terra 0.24.0 "
+            "and will be removed no sooner than 3 months after the releasedate. "
+            "Use PauliList class instead.",
+            DeprecationWarning,
             stacklevel=2,
         )
         if isinstance(data, (np.ndarray, list)):
