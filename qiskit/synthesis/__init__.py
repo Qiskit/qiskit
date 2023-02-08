@@ -28,6 +28,7 @@ Evolution Synthesis
    LieTrotter
    SuzukiTrotter
    MatrixExponential
+   QDrift
 
 Linear Function and Linear-Phase Synthesis
 ==========================================
