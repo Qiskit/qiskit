@@ -115,7 +115,7 @@ Interested in quantum hardware design?
 .. toctree::
    :hidden:
 
-   Overview <self>
+   Documentation Home <self>
    qc_intro
    getting_started
    intro_tutorial1
