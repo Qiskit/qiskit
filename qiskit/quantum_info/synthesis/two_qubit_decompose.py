@@ -34,7 +34,7 @@ import logging
 
 import numpy as np
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
@@ -1092,17 +1092,17 @@ class TwoQubitBasisDecomposer:
         basis_fidelity: Optional[float] = None,
         approximate: bool = True,
         *,
-        _num_basis_uses: int = None,
+        _num_basis_uses: Optional[int] = None,
     ) -> QuantumCircuit:
         """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
         that each basis application has a finite `basis_fidelity`.
 
         Args:
-            unitary (Operator or ndarray): 4x4 unitary to synthesize.
-            basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
+            unitary: 4x4 unitary to synthesize.
+            basis_fidelity: Fidelity to be assumed for applications of KAK Gate.
                 If given, overrides basis_fidelity given at init.
-            approximate (bool): Approximates if basis fidelities are less than 1.0.
-            _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
+            approximate: Approximates if basis fidelities are less than 1.0.
+            _num_basis_uses: force a particular approximation by passing a number in [0, 3].
         Returns:
             QuantumCircuit: Synthesized circuit.
         Raises:
@@ -1135,18 +1135,19 @@ class TwoQubitBasisDecomposer:
                 raise
 
         # do default decomposition
+        q = QuantumRegister(2)
         decomposition_euler = [self._decomposer1q._decompose(x) for x in decomposition]
-        return_circuit = QuantumCircuit(2)
+        return_circuit = QuantumCircuit(q)
         return_circuit.global_phase = target_decomposed.global_phase
         return_circuit.global_phase -= best_nbasis * self.basis.global_phase
         if best_nbasis == 2:
             return_circuit.global_phase += np.pi
         for i in range(best_nbasis):
-            return_circuit.compose(decomposition_euler[2 * i], [0], inplace=True)
-            return_circuit.compose(decomposition_euler[2 * i + 1], [1], inplace=True)
-            return_circuit.append(self.gate, [0, 1])
-        return_circuit.compose(decomposition_euler[2 * best_nbasis], [0], inplace=True)
-        return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [1], inplace=True)
+            return_circuit.compose(decomposition_euler[2 * i], [q[0]], inplace=True)
+            return_circuit.compose(decomposition_euler[2 * i + 1], [q[1]], inplace=True)
+            return_circuit.append(self.gate, [q[0], q[1]])
+        return_circuit.compose(decomposition_euler[2 * best_nbasis], [q[0]], inplace=True)
+        return_circuit.compose(decomposition_euler[2 * best_nbasis + 1], [q[1]], inplace=True)
         return return_circuit
 
     def _pulse_optimal_chooser(self, best_nbasis, decomposition, target_decomposed):

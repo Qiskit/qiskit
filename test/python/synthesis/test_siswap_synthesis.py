@@ -17,11 +17,12 @@
 import unittest
 from test import combine
 from ddt import ddt
+import numpy as np
 
 from qiskit.synthesis.su4 import SiSwapDecomposer
 from qiskit.quantum_info import random_unitary, Operator
-from qiskit.circuit.library import SwapGate, iSwapGate, CXGate, IGate
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.library import SwapGate, iSwapGate, CXGate, IGate, SGate, XGate, RXXGate, RYYGate, RZZGate
 
 
 @ddt
@@ -34,7 +35,7 @@ class TestSiSwapSynth(QiskitTestCase):
         u = random_unitary(4, seed=seed)
         decomposer = SiSwapDecomposer(euler_basis=["rz", "ry"])
         circuit = decomposer(u)
-        self.assertLessEqual(circuit.count_ops().get("siswap", None), 3)
+        self.assertLessEqual(circuit.count_ops().get("siswap", 0), 3)
         self.assertEqual(Operator(circuit), Operator(u))
 
     @combine(corner=[SwapGate(), SwapGate().power(1 / 2), SwapGate().power(1 / 32)])
@@ -43,24 +44,41 @@ class TestSiSwapSynth(QiskitTestCase):
         u = Operator(corner)
         decomposer = SiSwapDecomposer(euler_basis=["rz", "ry"])
         circuit = decomposer(u)
-        self.assertEqual(circuit.count_ops().get("siswap", None), 3)
+        self.assertEqual(circuit.count_ops().get("siswap", 0), 3)
         self.assertEqual(Operator(circuit), Operator(u))
 
-    @combine(
-        corner=[
-            iSwapGate(),
-            iSwapGate().power(1 / 2),
-            CXGate(),
-            CXGate().power(-1 / 2),
-            Operator(IGate()) ^ Operator(IGate()),
-        ]
-    )
-    def test_siswap_corners_red(self, corner):
+    @combine(corner=[iSwapGate(), CXGate(), CXGate().power(-1 / 2),
+                     Operator(RXXGate(-2*np.pi/4)) @ Operator(RYYGate(-2*np.pi/8)) @ Operator(RZZGate(2*np.pi/8))]
+             )
+    def test_siswap_corners_2_uses(self, corner):
         """Test synthesis of some special corner cases."""
         u = Operator(corner)
         decomposer = SiSwapDecomposer(euler_basis=["u"])
         circuit = decomposer(u)
-        self.assertEqual(circuit.count_ops().get("siswap", None), 2)
+        self.assertEqual(circuit.count_ops().get("siswap", 0), 2)
+        self.assertEqual(Operator(circuit), Operator(u))
+
+    @combine(
+        corner=[
+            iSwapGate().power(1 / 2),
+            iSwapGate().power(-1 / 2),
+        ]
+    )
+    def test_siswap_corners_1_use(self, corner):
+        """Test synthesis of some special corner cases."""
+        u = Operator(corner)
+        decomposer = SiSwapDecomposer(euler_basis=["u"])
+        circuit = decomposer(u)
+        self.assertEqual(circuit.count_ops().get("siswap", 0), 1)
+        self.assertEqual(Operator(circuit), Operator(u))
+
+    @combine(corner=[Operator(IGate()) ^ Operator(IGate()), Operator(IGate()) ^ Operator(XGate())])
+    def test_siswap_corners_0_use(self, corner):
+        """Test synthesis of some special corner cases."""
+        u = Operator(corner)
+        decomposer = SiSwapDecomposer(euler_basis=["u"])
+        circuit = decomposer(u)
+        self.assertEqual(circuit.count_ops().get("siswap", 0), 0)
         self.assertEqual(Operator(circuit), Operator(u))
 
 

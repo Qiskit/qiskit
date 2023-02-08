@@ -15,21 +15,27 @@
 """Synthesis of two-qubit unitaries using at most 3 applications of the sqrt(iSWAP) gate."""
 
 import cmath
-from typing import Optional, List
+from typing import Optional, List, Union
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
-from qiskit.circuit.library import (
-    SiSwapGate,
-    XGate,
-    YGate,
-    ZGate,
-)
+from qiskit.circuit.library import SiSwapGate, XGate, YGate, ZGate, SGate, SdgGate
+from qiskit.synthesis.su4.utils import find_min_point, average_infidelity
 
 
-_EPS = 1e-10
+_EPS = 1e-12
+
+# the polytope accessible by two applications of the SiSwapGate
+# (red region in paper)
+_ID = np.array([0, 0, 0])
+_CNOT = np.array([np.pi / 4, 0, 0])
+_ISWAP = np.array([np.pi / 4, np.pi / 4, 0])
+_MID = np.array([np.pi / 4, np.pi / 8, np.pi / 8])
+_MIDDG = np.array([np.pi / 4, np.pi / 8, -np.pi / 8])
+_SISWAP = np.array([np.pi / 8, np.pi / 8, 0])
+_POLYTOPE = np.array([_ID, _CNOT, _ISWAP, _MID, _MIDDG])
 
 
 class SiSwapDecomposer:
@@ -55,17 +61,28 @@ class SiSwapDecomposer:
         euler_basis = euler_basis or ["u"]
         self._decomposer1q = Optimize1qGatesDecomposition(euler_basis)
 
-    def __call__(self, unitary, basis_fidelity=1.0, approximate=True):
+    def __call__(
+        self,
+        unitary: Union[Operator, np.ndarray],
+        basis_fidelity: Optional[float] = 1.0,
+        approximate: bool = True,
+        *,
+        _num_basis_uses: Optional[int] = None,
+    ) -> QuantumCircuit:
         """Decompose a two-qubit unitary into using the sqrt(iSWAP) gate.
 
         Args:
-            unitary (Operator or ndarray): a 4x4 unitary to synthesize.
-            basis_fidelity (float): Fidelity of the B gate.
-            approximate (bool): Approximates if basis fidelities are less than 1.0.
+            unitary: a 4x4 unitary to synthesize.
+            basis_fidelity: Fidelity of the iSWAP gate.
+            approximate: Approximates if basis fidelities are less than 1.0.
+            _num_basis_uses: force a particular approximation by passing a number in [0, 3].
 
         Returns:
             QuantumCircuit: Synthesized circuit.
         """
+        if not approximate:
+            basis_fidelity = 1.0
+
         u_decomp = TwoQubitWeylDecomposition(Operator(unitary))
 
         x = u_decomp.a
@@ -77,11 +94,69 @@ class SiSwapDecomposer:
         B1 = Operator(u_decomp.K2r)
         B2 = Operator(u_decomp.K2l)
 
-        # in the case that 2 x SiSwap gates are needed
-        if abs(z) <= x - y + _EPS:  # red region
-            V = _interleaving_single_qubit_gates(x, y, z)
+        p = np.array([x, y, z])
 
+        print('p: ', p)
+
+        if abs(z) <= x - y + _EPS:
+            polytope_projection = p
+        else:
+            polytope_projection = find_min_point([v - p for v in _POLYTOPE]) + p
+
+        print('q: ', polytope_projection)
+
+        candidate_points = [
+            _ID,  # 0 applications
+            _SISWAP,  # 1 application
+            polytope_projection,  # 2 applications
+            p,  # 3 applications
+        ]
+
+        if _num_basis_uses is None:
+            expected_fidelities = [
+                (1 - average_infidelity(p, q)) * basis_fidelity**i
+                for i, q in enumerate(candidate_points)
+            ]
+            best_nbasis = int(np.argmax(expected_fidelities))  # tiebreaks with smallest
+        else:
+            best_nbasis = _num_basis_uses
+
+        p = candidate_points[best_nbasis]
+
+        x = p[0]
+        y = p[1]
+        z = p[2]
+
+        # in the case that 0 SiSwap gate is needed
+        if best_nbasis == 0:
+            circuit = QuantumCircuit(2)
+            circuit.append(B1, [0])
+            circuit.append(B2, [1])
+            circuit.append(A1, [0])
+            circuit.append(A2, [1])
+
+        # in the case that 1 SiSwap gate is needed
+        elif best_nbasis == 1:
+            circuit = QuantumCircuit(2)
+            circuit.append(B1, [0])
+            circuit.append(B2, [1])
+            circuit.append(SGate(), [0])
+            circuit.append(SGate(), [1])
+            circuit.append(SiSwapGate(), [0, 1])
+            circuit.append(SdgGate(), [0])
+            circuit.append(SdgGate(), [1])
+            circuit.append(A1, [0])
+            circuit.append(A2, [1])
+
+        # in the case that 2 SiSwap gates are needed
+        elif best_nbasis == 2:  # red region
+            V = _interleaving_single_qubit_gates(x, y, z)
             v_decomp = TwoQubitWeylDecomposition(Operator(V))
+            if not all(np.isclose([x, y, z], [v_decomp.a, v_decomp.b, v_decomp.c])):
+                print(" ** deviant sandwich ** ")
+                print('original: ', [x, y, z])
+                print('V: ', [v_decomp.a, v_decomp.b, v_decomp.c])
+                print(V)
 
             D1 = Operator(v_decomp.K1r)
             D2 = Operator(v_decomp.K1l)
@@ -107,7 +182,9 @@ class SiSwapDecomposer:
                 # CAN(x, y, z) ~ CAN(x, y, -z)†
                 # so we decompose the adjoint, replace SiSwap with a template in
                 # terms of SiSwap†, then invert the whole thing
-                inverse_decomposition = self.__call__(Operator(unitary).adjoint())
+                inverse_decomposition = self.__call__(
+                    Operator(unitary).adjoint()
+                )
                 inverse_decomposition_with_siswap_dg = QuantumCircuit(2)
                 for instruction in inverse_decomposition:
                     if isinstance(instruction.operation, SiSwapGate):
@@ -174,7 +251,9 @@ class SiSwapDecomposer:
                 circuit.append(A1, [0])
                 circuit.append(A2, [1])
 
-        phase_diff = cmath.phase(Operator(unitary).data[0][0] / Operator(circuit).data[0][0])
+        # FIXME: there must be a cleaner way to track global phase
+        i = np.where(~np.isclose(np.ravel(Operator(circuit).data), 0.0))[0][0]
+        phase_diff = cmath.phase(Operator(unitary).data.flat[i] / Operator(circuit).data.flat[i])
         circuit.global_phase += phase_diff
 
         return self._decomposer1q(circuit)
@@ -186,8 +265,10 @@ def _interleaving_single_qubit_gates(x, y, z):
     (x, y, z) ∈ W′ when sandwiched by two SiSwap gates.
     Return the SiSwap sandwich.
     """
+    assert abs(z) <= x - y + _EPS and np.pi/4 >= x and x >= y and y >= abs(z)
     C = np.sin(x + y - z) * np.sin(x - y + z) * np.sin(-x - y - z) * np.sin(-x + y + z)
-    C = max(C, 0)
+    if abs(C) < _EPS:
+        C = 0.
 
     α = np.arccos(np.cos(2 * x) - np.cos(2 * y) + np.cos(2 * z) + 2 * np.sqrt(C))
 
