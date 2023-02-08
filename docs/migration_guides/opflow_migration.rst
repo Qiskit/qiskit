@@ -98,12 +98,20 @@ in some of the :class:`~quantum_info.BaseOperator` subclasses.
 
 Operator Globals
 ----------------
-Opflow provided shortcuts to define common single qubit states, operators, and common non-parametrized gates in the
-:mod:`~qiskit.opflow.operator_globals` module. These were mainly used for didactic purposes and can easily be replaced by their corresponding
+Opflow provided shortcuts to define common single qubit states, operators, and non-parametrized gates in the
+:mod:`~qiskit.opflow.operator_globals` module.
+
+These were mainly used for didactic purposes and can easily be replaced by their corresponding
 :mod:`~qiskit.quantum_info` class: :class:`~qiskit.quantum_info.Pauli`, :class:`~qiskit.quantum_info.Clifford` or :class:`~qiskit.quantum_info.Statevector`.
+
 
 1-Qubit Paulis
 ~~~~~~~~~~~~~~
+The 1-qubit paulis were commonly used for quick testing of algorithms, as they could be combined to create more complex operators
+(for example, ``0.39 * (I ^ Z) + 0.5 * (X ^ X)``).
+These operations implicitly created operators of type  :class:`~qiskit.opflow.PauliSumOp`, and can be replaced by
+directly creating a corresponding :class:`~qiskit.quantum_info.SparsePauliOp`, as shown in the example below.
+
 
 .. list-table:: Migration of ``qiskit.opflow.operator_globals`` (1/3)
    :header-rows: 1
@@ -238,10 +246,10 @@ PrimitiveOps
      - notes
 
    * - :class:`~qiskit.opflow.PrimitiveOp`
-     - No replacement needed
+     - No direct replacement
      - Can directly use :class:`~qiskit.quantum_info.Operator``
    * - :class:`~qiskit.opflow.CircuitOp`
-     - No replacement needed
+     - No direct replacement
      - Can directly use :class:`~qiskit.QuantumCircuit`
    * - :class:`~qiskit.opflow.MatrixOp`
      - :class:`~qiskit.quantum_info.Operator``
@@ -336,19 +344,19 @@ ListOps
      - notes
 
    * - :class:`~qiskit.opflow.ListOp`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
 
    * - :class:`~qiskit.opflow.ComposedOp`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
 
    * - :class:`~qiskit.opflow.SummedOp`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
 
    * - :class:`~qiskit.opflow.TensoredOp`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
 
 State Functions
@@ -368,15 +376,15 @@ This module can be generally replaced by :class:`~qiskit.quantum_info.QuantumSta
      - notes
 
    * - :class:`~qiskit.opflow.StateFn`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
 
    * - :class:`~qiskit.opflow.CircuitStateFn`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
 
    * - :class:`~qiskit.opflow.DictStateFn`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
 
    * - :class:`~qiskit.opflow.VectorStateFn`
@@ -384,11 +392,11 @@ This module can be generally replaced by :class:`~qiskit.quantum_info.QuantumSta
      -
 
    * - :class:`~qiskit.opflow.SparseVectorStateFn`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      - See :class:`~qiskit.opflow.VectorStateFn`
 
    * - :class:`~qiskit.opflow.OperatorStateFn`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
    * - :class:`~qiskit.opflow.CVaRMeasurement`
      - Used in :class:`~qiskit.opflow.CVaRExpectation`. Functionality now covered by :class:`~SamplingEstimator`. See example in expectations.
@@ -491,8 +499,10 @@ Two Qubit Reduction
      - notes
 
    * -  :class:`~qiskit.opflow.TwoQubitReduction`
-     -  This class used to implement a chemistry-specific reduction. It has been directly integrated in to the parity mapper class in ``qiskit-nature`` and has no replacement in ``qiskit``.
-     -
+     -  No direct replacement.
+     -  This class implements a chemistry-specific reduction for the ``ParityMapper`` class in ``qiskit-nature``.
+        The general symmetry logic this mapper depends on has been refactored to other classes in :mod:`~qiskit.quantum_info`,
+        so this specific :mod:`~qiskit.opflow` implementation is no longer necessary.
 
 Other Converters
 ~~~~~~~~~~~~~~~~~
@@ -505,13 +515,13 @@ Other Converters
      - notes
 
    * - :class:`~qiskit.opflow.AbelianGrouper`
-     - No replacement needed. This class was used internally within opflow.
-     -
+     - No direct replacement.
+     - This class allowed a sum a of Pauli operators to be grouped. These type of groupings are now left to the primitives to handle (??).
    * - :class:`~qiskit.opflow.DictToCircuitSum`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
    * - :class:`~qiskit.opflow.PauliBasisChange`
-     - No replacement needed. This class was used internally within opflow.
+     - No direct replacement. This class was used internally within opflow.
      -
 
 Evolutions
@@ -654,7 +664,7 @@ Algorithm-Agnostic Expectations
      - alternative
      - notes
    * - :class:`~qiskit.opflow.ExpectationFactory`
-     - No replacement needed.
+     - No direct replacement.
      -
    * - :class:`~qiskit.opflow.AerPauliExpectation`
      - Use :class:`~Estimator` primitive from ``qiskit_aer`` instead.
