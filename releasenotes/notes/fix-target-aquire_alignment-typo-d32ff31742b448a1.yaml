@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    Misspelled `aquire_alignment` in the class :class:`.Target` has been replaced by
+    correct spelling `acquire_alignment`.
+    The old constructor argument `aquire_alignment` and :attr:`.Target.aquire_alignment`
+    are deprecated and will be removed.
+    Use :attr:`.Target.acquire_alignment` instead to get and set the alignment constraint value.
