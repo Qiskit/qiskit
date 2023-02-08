@@ -101,7 +101,7 @@ Operator Globals
 Opflow provided shortcuts to define common single qubit states, operators, and non-parametrized gates in the
 :mod:`~qiskit.opflow.operator_globals` module.
 
-These were mainly used for didactic purposes and can easily be replaced by their corresponding
+These were mainly used for didactic purposes or quick prototyping, and can easily be replaced by their corresponding
 :mod:`~qiskit.quantum_info` class: :class:`~qiskit.quantum_info.Pauli`, :class:`~qiskit.quantum_info.Clifford` or :class:`~qiskit.quantum_info.Statevector`.
 
 
