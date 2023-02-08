@@ -37,3 +37,7 @@ primitives/           @Qiskit/terra-core @ikkoham @t-imamichi
 # Override the release notes directories to have _no_ code owners, so any review
 # from somebody with write access is acceptable.
 /releasenotes/notes
+
+# Documentation
+README                @Qiskit/terra-core @HuangJunye @javabster @Eric-Arellano
+docs/                @Qiskit/terra-core @HuangJunye @javabster @Eric-Arellano
