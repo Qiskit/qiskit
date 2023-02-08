@@ -19,8 +19,7 @@ from ddt import ddt, data, unpack
 import numpy as np
 from numpy.testing import assert_raises
 
-from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
-from qiskit.algorithms.time_evolvers.trotterization.trotter_qrte import TrotterQRTE
+from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, TrotterQRTE
 from qiskit.primitives import Estimator
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import ZGate

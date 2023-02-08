@@ -14,7 +14,7 @@
 
 from qiskit import pulse, circuit, transpile
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeAthens
+from qiskit.providers.fake_provider import FakeAthens, FakeAthensV2
 
 
 class TestPulseGate(QiskitTestCase):
@@ -63,6 +63,23 @@ class TestPulseGate(QiskitTestCase):
         ref_calibration = {}
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
+    def test_transpile_with_backend_target(self):
+        """Test transpile without custom calibrations from target."""
+        backend = FakeAthensV2()
+        target = backend.target
+
+        qc = circuit.QuantumCircuit(2)
+        qc.sx(0)
+        qc.x(0)
+        qc.rz(0, 0)
+        qc.sx(1)
+        qc.measure_all()
+
+        transpiled_qc = transpile(qc, initial_layout=[0, 1], target=target)
+
+        ref_calibration = {}
+        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+
     def test_transpile_with_custom_basis_gate(self):
         """Test transpile with custom calibrations."""
         backend = FakeAthens()
@@ -77,6 +94,30 @@ class TestPulseGate(QiskitTestCase):
         qc.measure_all()
 
         transpiled_qc = transpile(qc, backend, initial_layout=[0, 1])
+
+        ref_calibration = {
+            "sx": {
+                ((0,), ()): self.custom_sx_q0,
+                ((1,), ()): self.custom_sx_q1,
+            }
+        }
+        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+
+    def test_transpile_with_custom_basis_gate_in_target(self):
+        """Test transpile with custom calibrations."""
+        backend = FakeAthensV2()
+        target = backend.target
+        target["sx"][(0,)].calibration = self.custom_sx_q0
+        target["sx"][(1,)].calibration = self.custom_sx_q1
+
+        qc = circuit.QuantumCircuit(2)
+        qc.sx(0)
+        qc.x(0)
+        qc.rz(0, 0)
+        qc.sx(1)
+        qc.measure_all()
+
+        transpiled_qc = transpile(qc, initial_layout=[0, 1], target=target)
 
         ref_calibration = {
             "sx": {
@@ -135,6 +176,28 @@ class TestPulseGate(QiskitTestCase):
             "my_gate": {
                 ((0,), (1.0,)): my_gate_q0_1_0,
                 ((1,), (2.0,)): my_gate_q1_2_0,
+            }
+        }
+        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+
+    def test_transpile_with_parameterized_custom_gate(self):
+        """Test providing non-basis gate, which is kept parameterized throughout transpile."""
+        backend = FakeAthens()
+        backend.defaults().instruction_schedule_map.add(
+            "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
+        )
+
+        param = circuit.Parameter("new_P0")
+        qc = circuit.QuantumCircuit(1)
+        qc.append(circuit.Gate("my_gate", 1, [param]), [0])
+
+        transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0])
+
+        my_gate_q0_p = self.my_gate_q0.assign_parameters({self.sched_param: param}, inplace=False)
+
+        ref_calibration = {
+            "my_gate": {
+                ((0,), (param,)): my_gate_q0_p,
             }
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)

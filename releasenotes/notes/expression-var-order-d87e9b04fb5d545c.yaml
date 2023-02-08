@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Add the parameter `var_order` when defining a `PhaseOracle`. This allows for defining the order in which the variables in the logical expression are being considered.
+
+    .. code-block::python
+
+        from qiskit import *
+        from qiskit.tools.visualization import plot_histogram
+        from qiskit.circuit.library import PhaseOracle
+        from qiskit.algorithms import Grover, AmplificationProblem
+
+        oracle = PhaseOracle('((A & C) | (B & D)) & ~(C & D)', var_order=['A', 'B', 'C', 'D'])
+        problem = AmplificationProblem(oracle=oracle, is_good_state=oracle.evaluate_bitstring)
+        backend = Aer.get_backend('qasm_simulator')
+        grover = Grover(quantum_instance=backend)
+        result = grover.amplify(problem)
+        print(result.circuit_results[0])
