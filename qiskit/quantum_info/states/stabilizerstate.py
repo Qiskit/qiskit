@@ -300,10 +300,8 @@ class StabilizerState(QuantumState):
         # Compute the expected value of each stabilizer from the original set on the stabilizer state
         # determined by the other set. The two stabilizer states coincide if and only if the
         # expected value is +1 for each stabilizer
-        stab_gen = other._data.to_labels(mode="S")
         for i in range(num_qubits):
-            op = Pauli(stab_gen[i])
-            exp_val = self.expectation_value(op)
+            exp_val = self.expectation_value(pauli_other[i])
             if exp_val != 1:
                 return False
 
