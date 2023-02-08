@@ -274,12 +274,12 @@ class StabilizerState(QuantumState):
 
         Returns:
             bool: True if other has a generating set that generates the same StabilizerState.
-
-        Raises:
-            QiskitError: if other is not a StabilizerState.
         """
         if not isinstance(other, StabilizerState):
-            raise QiskitError("Other is not a StabilizerState.")
+            try:
+                other = StabilizerState(other)
+            except QiskitError:
+                return False
 
         num_qubits = self.num_qubits
         if other.num_qubits != num_qubits:
@@ -294,7 +294,7 @@ class StabilizerState(QuantumState):
 
         #  Check that each stabilizer from the original set commutes with each stabilizer
         #  from the other set
-        if not (pauli_orig.commutes(pauli_other)).all():
+        if not np.all([pauli.commutes(pauli_other) for pauli in pauli_orig]):
             return False
 
         # Compute the expected value of each stabilizer from the original set on the stabilizer state
