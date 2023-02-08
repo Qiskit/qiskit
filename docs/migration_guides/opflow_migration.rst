@@ -17,7 +17,7 @@ observables into operator classes that could be algebraically manipulated, so th
 values could be easily computed following different methods.
 
 This basic opflow functionality is covered by  its core submodules: the ``operators`` submodule
-(including :mod:`~qiskit.opflow.operator_globals`, :mod:`~qiskit.opflow.list_ops`, :mod:`~qiskit.opflow.primitive_ops`, and :mod:`~qiskit.opflow.state_fns`), 
+(including :mod:`~qiskit.opflow.operator_globals`, :mod:`~qiskit.opflow.list_ops`, :mod:`~qiskit.opflow.primitive_ops`, and :mod:`~qiskit.opflow.state_fns`),
 the :mod:`~qiskit.opflow.converters` submodule, and the :mod:`~qiskit.opflow.expectations` submodule.
 Following this reference framework of ``operators``, :mod:`~qiskit.opflow.converters` and :mod:`~qiskit.opflow.expectations`, opflow includes more
 algorithm-specific functionality, which can be found in the :mod:`~qiskit.opflow.evolutions` submodule (specific for hamiltonian
@@ -134,8 +134,8 @@ Opflow provided shortcuts to define common single qubit states, operators, and c
         .. code-block:: python
 
             from qiskit.quantum_info import Pauli, SparsePauliOp
-            op = Pauli('X') ^ Pauli('X') 
-            
+            op = Pauli('X') ^ Pauli('X')
+
             # equivalent to:
             op = SparsePauliOp('XX')
 
@@ -188,8 +188,8 @@ Common non-parametrized gates (Clifford)
      - notes
 
    * - :class:`~qiskit.opflow.Zero`, :class:`~qiskit.opflow.One`, :class:`~qiskit.opflow.Plus`, :class:`~qiskit.opflow.Minus`
-     - :class:`~qiskit.quantum_info.Statevector` or :class:`~qiskit.QuantumCircuit` directly
-     -
+     - :class:`~qiskit.quantum_info.StabilizerState` or :class:`~qiskit.quantum_info.Statevector` or :class:`~qiskit.QuantumCircuit`, depending on the use case
+     - In principle, :class:`~qiskit.quantum_info.StabilizerState` is the most efficient replacement for :class:`~qiskit.opflow` states, but the functionality is not identical. See API ref. for more info.
 
    * -
 
@@ -205,18 +205,18 @@ Common non-parametrized gates (Clifford)
         .. code-block:: python
 
             from qiskit import QuantumCircuit
-            from qiskit.quantum_info import Statevector
+            from qiskit.quantum_info import StabilizerState
 
             qc_zero = QuantumCircuit(1)
             qc_one = copy(qc_zero)
             qc_one.x(0)
-            state1 = Statevector(qc_zero) ^ Statevector(qc_one)
+            state1 = StabilizerState(qc_zero) ^ StabilizerState(qc_one)
 
             qc_plus = copy(qc_zero)
             qc_plus.h(0)
             qc_minus = copy(qc_one)
             qc_minus.h(0)
-            state2 = Statevector(qc_plus) ^ Statevector(qc_minus)
+            state2 = StabilizerState(qc_plus) ^ StabilizerState(qc_minus)
      -
 
 
@@ -360,8 +360,6 @@ This module can be generally replaced by :class:`~qiskit.quantum_info.QuantumSta
 2. The equivalence is, once again, not 1-1.
 3. Algorithm-specific functionality has been migrated to the respective algorithm's module
 
-TODO: ADD EXAMPLE!
-
 .. list-table:: Migration of ``qiskit.opflow.state_fns``
    :header-rows: 1
 
@@ -395,6 +393,36 @@ TODO: ADD EXAMPLE!
    * - :class:`~qiskit.opflow.CVaRMeasurement`
      - Used in :class:`~qiskit.opflow.CVaRExpectation`. Functionality now covered by :class:`~SamplingEstimator`. See example in expectations.
      -
+
+StateFn Examples
+~~~~~~~~~~~~~~~~~
+
+.. list-table::
+   :header-rows: 1
+
+   * - opflow
+     - alternative
+     - notes
+
+   * -  ``StateFn`` **Example:**
+
+        .. code-block:: python
+
+            from qiskit.opflow import PuliSumOp
+            from qiskit.quantum_info import SparsePauliOp, Pauli
+
+            qubit_op = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=-3j)
+
+     -
+
+        .. code-block:: python
+
+            from qiskit.quantum_info import SparsePauliOp, Pauli
+
+            qubit_op = SparsePauliOp(Pauli("XYZY")), coeff=-6j)
+
+     -
+
 
 Converters
 ----------
