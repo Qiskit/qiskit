@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.library import RZGate, RXGate, RYGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -38,9 +38,11 @@ class OverlapDiag(CircuitQFI):
     See also :class:`~qiskit.opflow.QFI`.
     """
 
-    @deprecate_function(
-        "The OverlapDiag opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="OverlapDiag",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         super().__init__()

@@ -18,16 +18,18 @@ from qiskit.opflow.expectations.expectation_base import ExpectationBase
 from qiskit.opflow.list_ops import ComposedOp, ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class MatrixExpectation(ExpectationBase):
     """Deprecation: An Expectation converter which converts Operator measurements to
     be matrix-based so they can be evaluated by matrix multiplication."""
 
-    @deprecate_function(
-        "The MatrixExpectation opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="MatrixExpectation",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         super().__init__()

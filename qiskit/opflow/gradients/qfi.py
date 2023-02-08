@@ -17,7 +17,7 @@ import functools
 
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from ..list_ops.list_op import ListOp
 from ..expectations.pauli_expectation import PauliExpectation
 from ..state_fns.circuit_state_fn import CircuitStateFn
@@ -37,9 +37,11 @@ class QFI(QFIBase):
 
     """
 
-    @deprecate_function(
-        "The QFI opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="QFI",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
         super().__init__(qfi_method=qfi_method)

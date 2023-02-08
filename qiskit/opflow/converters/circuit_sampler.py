@@ -33,7 +33,7 @@ from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.providers import Backend
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +53,11 @@ class CircuitSampler(ConverterBase):
     you are better off using a different CircuitSampler for each Operator to avoid cache thrashing.
     """
 
-    @deprecate_function(
-        "The CircuitSampler opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="CircuitSampler",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self,

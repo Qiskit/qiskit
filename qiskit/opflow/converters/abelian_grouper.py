@@ -27,7 +27,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class AbelianGrouper(ConverterBase):
@@ -42,9 +42,11 @@ class AbelianGrouper(ConverterBase):
     diagonalized together.
     """
 
-    @deprecate_function(
-        "The AbelianGrouper opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="AbelianGrouper",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, traverse: bool = True) -> None:
         """

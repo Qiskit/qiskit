@@ -50,7 +50,7 @@ from qiskit.circuit.library.standard_gates import (
     ZGate,
 )
 from qiskit.quantum_info import partial_trace
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
@@ -101,9 +101,11 @@ class LinComb(CircuitGradient):
     }
 
     # pylint: disable=signature-differs, arguments-differ
-    @deprecate_function(
-        "The LinComb opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="LinComb",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, aux_meas_op: OperatorBase = Z):
         """

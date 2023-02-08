@@ -20,7 +20,7 @@ from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +31,11 @@ class MatrixEvolution(EvolutionBase):
     ``UnitaryGates`` or ``HamiltonianGates`` containing the exponentiation of the Operator.
     """
 
-    @deprecate_function(
-        "The MatrixEvolution opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="MatrixEvolution",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         super().__init__()

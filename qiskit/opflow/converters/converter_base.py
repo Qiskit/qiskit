@@ -15,7 +15,7 @@
 from abc import ABC, abstractmethod
 
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class ConverterBase(ABC):
@@ -30,9 +30,11 @@ class ConverterBase(ABC):
     in the number of qubits unless a clever trick is known (such as the use of sparse
     matrices)."""
 
-    @deprecate_function(
-        "The ConverterBase opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="ConverterBase",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         pass

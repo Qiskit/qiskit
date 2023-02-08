@@ -22,7 +22,7 @@ from qiskit import QuantumCircuit
 from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Operator, Pauli, SparsePauliOp, Statevector
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class PrimitiveOp(OperatorBase):
@@ -93,9 +93,11 @@ class PrimitiveOp(OperatorBase):
             "factory constructor".format(type(primitive))
         )
 
-    @deprecate_function(
-        "The PrimitiveOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="PrimitiveOp",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self,

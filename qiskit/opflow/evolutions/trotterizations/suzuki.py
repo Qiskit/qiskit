@@ -23,7 +23,7 @@ from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class Suzuki(TrotterizationBase):
@@ -35,9 +35,11 @@ class Suzuki(TrotterizationBase):
     Detailed in https://arxiv.org/pdf/quant-ph/0508139.pdf.
     """
 
-    @deprecate_function(
-        "The Suzuki opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="Suzuki",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, reps: int = 1, order: int = 2) -> None:
         """

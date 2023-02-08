@@ -20,7 +20,7 @@ from qiskit.opflow.expectations.pauli_expectation import PauliExpectation
 from qiskit.opflow.list_ops import ComposedOp, ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns import CVaRMeasurement, OperatorStateFn
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class CVaRExpectation(ExpectationBase):
@@ -55,9 +55,11 @@ class CVaRExpectation(ExpectationBase):
 
     """
 
-    @deprecate_function(
-        "The CVaRExpectation opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="CVaRExpectation",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, alpha: float, expectation: Optional[ExpectationBase] = None) -> None:
         """

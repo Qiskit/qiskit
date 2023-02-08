@@ -27,7 +27,7 @@ from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class PauliOp(PrimitiveOp):
@@ -35,9 +35,11 @@ class PauliOp(PrimitiveOp):
 
     primitive: Pauli
 
-    @deprecate_function(
-        "The PauliOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="PauliOp",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, primitive: Pauli, coeff: Union[complex, ParameterExpression] = 1.0) -> None:
         """

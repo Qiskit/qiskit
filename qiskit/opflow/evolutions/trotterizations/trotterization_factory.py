@@ -16,16 +16,19 @@ from qiskit.opflow.evolutions.trotterizations.qdrift import QDrift
 from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
 from qiskit.opflow.evolutions.trotterizations.trotter import Trotter
 from qiskit.opflow.evolutions.trotterizations.trotterization_base import TrotterizationBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class TrotterizationFactory:
     """Deprecation: A factory for conveniently creating TrotterizationBase instances."""
 
     @staticmethod
-    @deprecate_function(
-        "The TrotterizationFactory.build opflow method is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="TrotterizationFactory.build",
+        old_type="method",
+        url="https://qisk.it/opflow_migration",
     )
     def build(mode: str = "trotter", reps: int = 1) -> TrotterizationBase:
         """A factory for conveniently creating TrotterizationBase instances.

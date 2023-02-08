@@ -26,7 +26,7 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class PauliSumOp(PrimitiveOp):
@@ -34,9 +34,11 @@ class PauliSumOp(PrimitiveOp):
 
     primitive: SparsePauliOp
 
-    @deprecate_function(
-        "The PauliSumOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="PauliSumOp",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self,

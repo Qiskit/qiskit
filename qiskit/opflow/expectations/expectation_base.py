@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.opflow.converters import ConverterBase
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class ExpectationBase(ConverterBase):
@@ -38,9 +38,11 @@ class ExpectationBase(ConverterBase):
 
     """
 
-    @deprecate_function(
-        "The ExpectationBase opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="ExpectationBase",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         super().__init__()

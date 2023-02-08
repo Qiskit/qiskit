@@ -23,7 +23,7 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
 from qiskit.utils import arithmetic
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class ListOp(OperatorBase):
@@ -53,9 +53,11 @@ class ListOp(OperatorBase):
     multiple dimensional lists.
     """
 
-    @deprecate_function(
-        "The ListOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="ListOp",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self,

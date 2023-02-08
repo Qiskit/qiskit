@@ -13,12 +13,15 @@
 """ Utility functions for OperatorFlow """
 
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
-@deprecate_function(
-    "The commutator opflow function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="opflow",
+    old_name="commutator",
+    old_type="function",
+    url="https://qisk.it/opflow_migration",
 )
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
@@ -37,9 +40,12 @@ def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     return (op_a @ op_b - op_b @ op_a).reduce()
 
 
-@deprecate_function(
-    "The anti_commutator opflow function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="opflow",
+    old_name="anti_commutator",
+    old_type="function",
+    url="https://qisk.it/opflow_migration",
 )
 def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
@@ -58,9 +64,12 @@ def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     return (op_a @ op_b + op_b @ op_a).reduce()
 
 
-@deprecate_function(
-    "The double_commutator opflow function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="opflow",
+    old_name="double_commutator",
+    old_type="function",
+    url="https://qisk.it/opflow_migration",
 )
 def double_commutator(
     op_a: OperatorBase,

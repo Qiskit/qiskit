@@ -25,7 +25,7 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.mixins import StarAlgebraMixin, TensorMixin
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
@@ -45,9 +45,11 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     _count = itertools.count()
 
-    @deprecate_function(
-        "The OperatorBase opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="OperatorBase",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         super().__init__()

@@ -21,7 +21,7 @@ from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
 from qiskit.result import Result
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class StateFn(OperatorBase):
@@ -113,9 +113,11 @@ class StateFn(OperatorBase):
         )
 
     # TODO allow normalization somehow?
-    @deprecate_function(
-        "The StateFn opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="StateFn",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self,

@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import Backend, JobStatus, JobError, Job
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.result import Result
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from ..exceptions import QiskitError, MissingOptionalLibraryError
 from .backend_utils import (
     is_aer_provider,
@@ -40,9 +40,12 @@ MAX_GATES_PER_JOB = os.environ.get("QISKIT_AQUA_MAX_GATES_PER_JOB", None)
 logger = logging.getLogger(__name__)
 
 
-@deprecate_function(
-    "The find_regs_by_name function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="utils",
+    old_name="find_regs_by_name",
+    old_type="function",
+    url="https://qisk.it/qi_migration",
 )
 def find_regs_by_name(
     circuit: QuantumCircuit, name: str, qreg: bool = True
@@ -106,9 +109,12 @@ def _safe_get_job_status(job: Job, job_id: str, max_job_retries: int, wait: floa
     return job_status
 
 
-@deprecate_function(
-    "The run_circuits function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="utils",
+    old_name="run_circuits",
+    old_type="function",
+    url="https://qisk.it/qi_migration",
 )
 def run_circuits(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],

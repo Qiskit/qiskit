@@ -26,7 +26,7 @@ from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.quantum_info import Statevector
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class OperatorStateFn(StateFn):
@@ -37,9 +37,11 @@ class OperatorStateFn(StateFn):
     primitive: OperatorBase
 
     # TODO allow normalization somehow?
-    @deprecate_function(
-        "The OperatorStateFn opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="OperatorStateFn",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self,

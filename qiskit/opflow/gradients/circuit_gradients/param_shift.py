@@ -22,7 +22,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from .circuit_gradient import CircuitGradient
 from ...operator_base import OperatorBase
 from ...state_fns.state_fn import StateFn
@@ -47,9 +47,11 @@ class ParamShift(CircuitGradient):
 
     SUPPORTED_GATES = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"}
 
-    @deprecate_function(
-        "The ParamShift opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="ParamShift",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, analytic: bool = True, epsilon: float = 1e-6):
         r"""

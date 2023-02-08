@@ -18,7 +18,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class DictToCircuitSum(ConverterBase):
@@ -29,9 +29,11 @@ class DictToCircuitSum(ConverterBase):
     or ``VectorStateFns``, rather than both.
     """
 
-    @deprecate_function(
-        "The DictToCircuitSum opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="DictToCircuitSum",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self, traverse: bool = True, convert_dicts: bool = True, convert_vectors: bool = True

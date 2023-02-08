@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 from numbers import Integral
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class TensorMixin(ABC):
@@ -28,9 +28,11 @@ class TensorMixin(ABC):
         - :meth:``tensorpower(self, other: int)``
     """
 
-    @deprecate_function(
-        "The TensorMixin opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="TensorMixin",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         pass

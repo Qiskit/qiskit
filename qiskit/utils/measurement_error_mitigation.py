@@ -27,14 +27,17 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 # pylint: disable=invalid-name
 
 
-@deprecate_function(
-    "The get_measured_qubits function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="utils",
+    old_name="get_measured_qubits",
+    old_type="function",
+    url="https://qisk.it/qi_migration",
 )
 def get_measured_qubits(
     transpiled_circuits: List[QuantumCircuit],
@@ -80,9 +83,12 @@ def get_measured_qubits(
     return sorted(qubit_index), qubit_mappings
 
 
-@deprecate_function(
-    "The get_measured_qubits_from_qobj function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="utils",
+    old_name="get_measured_qubits_from_qobj",
+    old_type="function",
+    url="https://qisk.it/qi_migration",
 )
 def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, List[int]]]:
     """
@@ -125,9 +131,12 @@ def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, 
     return sorted(qubit_index), qubit_mappings
 
 
-@deprecate_function(
-    "The build_measurement_error_mitigation_circuits function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="utils",
+    old_name="build_measurement_error_mitigation_circuits",
+    old_type="function",
+    url="https://qisk.it/qi_migration",
 )
 def build_measurement_error_mitigation_circuits(
     qubit_list: List[int],
@@ -204,9 +213,12 @@ def build_measurement_error_mitigation_circuits(
     return t_meas_calibs_circuits, state_labels, circlabel
 
 
-@deprecate_function(
-    "The build_measurement_error_mitigation_qobj function is deprecated as of Qiskit Terra 0.24.0 "
-    "and will be removed no sooner than 3 months after the release date. "
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="utils",
+    old_name="build_measurement_error_mitigation_qobj",
+    old_type="function",
+    url="https://qisk.it/qi_migration",
 )
 def build_measurement_error_mitigation_qobj(
     qubit_list: List[int],

@@ -20,7 +20,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.tapered_pauli_sum_op import Z2Symmetries
 from qiskit.quantum_info import Pauli
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 logger = logging.getLogger(__name__)
 
@@ -36,9 +36,11 @@ class TwoQubitReduction(ConverterBase):
     sectors, (block spin order) according to the number of particles in the system.
     """
 
-    @deprecate_function(
-        "The TwoQubitReduction opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="TwoQubitReduction",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, num_particles: Union[int, List[int], Tuple[int, int]]):
         """

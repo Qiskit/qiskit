@@ -17,7 +17,7 @@ from typing import List, Union, Optional, Tuple, Set
 
 from qiskit import QuantumCircuit, QiskitError, transpile
 from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 
@@ -36,9 +36,11 @@ class CircuitGradient(ConverterBase):
     DerivativeBase - uses classical techniques to differentiate operator flow data structures
     """
 
-    @deprecate_function(
-        "The CircuitGradient opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="CircuitGradient",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         super().__init__()

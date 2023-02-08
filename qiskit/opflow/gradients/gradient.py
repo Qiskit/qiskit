@@ -19,7 +19,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from .circuit_gradients.circuit_gradient import CircuitGradient
 from ..expectations.pauli_expectation import PauliExpectation
 from .gradient_base import GradientBase
@@ -37,9 +37,11 @@ from ..exceptions import OpflowError
 class Gradient(GradientBase):
     """Deprecation: Convert an operator expression to the first-order gradient."""
 
-    @deprecate_function(
-        "The Gradient opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="Gradient",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self, grad_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
         super().__init__(grad_method=grad_method, **kwargs)

@@ -10,3 +10,5 @@ deprecations:
     have been deprecated and will be removed in a future release.
     Using :class:`~qiskit.utils.QuantumInstance` is superseded by
     :class:`~qiskit.primitives.BaseSampler`.
+    See `Opflow Migration <https://qisk.it/opflow_migration>`__.
+    See `QuantumInstance Migration <https://qisk.it/qi_migration>`__.

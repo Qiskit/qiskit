@@ -27,7 +27,7 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.utils import commutator
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +35,11 @@ logger = logging.getLogger(__name__)
 class TaperedPauliSumOp(PauliSumOp):
     """Deprecation: Class for PauliSumOp after tapering"""
 
-    @deprecate_function(
-        "The TaperedPauliSumOp opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="TaperedPauliSumOp",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self,

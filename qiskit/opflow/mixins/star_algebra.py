@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from numbers import Integral
 
 from qiskit.quantum_info.operators.mixins import MultiplyMixin
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class StarAlgebraMixin(MultiplyMixin, ABC):
@@ -40,9 +40,11 @@ class StarAlgebraMixin(MultiplyMixin, ABC):
         - :meth:`adjoint(self)`
     """
 
-    @deprecate_function(
-        "The StarAlgebraMixin opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="StarAlgebraMixin",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         pass

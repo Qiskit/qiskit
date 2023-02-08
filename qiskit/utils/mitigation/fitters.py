@@ -27,7 +27,7 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.utils.mitigation.circuits import count_keys
 from qiskit.utils.mitigation._filters import MeasurementFilter, TensoredFilter
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class CompleteMeasFitter:
@@ -35,9 +35,11 @@ class CompleteMeasFitter:
     Deprecation: Measurement correction fitter for a full calibration
     """
 
-    @deprecate_function(
-        "The CompleteMeasFitter class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="utils",
+        old_name="CompleteMeasFitter",
+        url="https://qisk.it/qi_migration",
     )
     def __init__(
         self,
@@ -219,9 +221,11 @@ class TensoredMeasFitter:
     Deprecation: Measurement correction fitter for a tensored calibration.
     """
 
-    @deprecate_function(
-        "The TensoredMeasFitter class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="utils",
+        old_name="TensoredMeasFitter",
+        url="https://qisk.it/qi_migration",
     )
     def __init__(
         self,

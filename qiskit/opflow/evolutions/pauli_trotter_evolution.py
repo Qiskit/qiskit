@@ -32,7 +32,7 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 # TODO uncomment when we implement Abelian grouped evolution.
 # from qiskit.opflow.converters.abelian_grouper import AbelianGrouper
@@ -51,9 +51,11 @@ class PauliTrotterEvolution(EvolutionBase):
     evolution circuits are composed together by Trotterization scheme.
     """
 
-    @deprecate_function(
-        "The PauliTrotterEvolution opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="PauliTrotterEvolution",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(
         self,

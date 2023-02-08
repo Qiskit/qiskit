@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.converters.converter_base import ConverterBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class EvolutionBase(ConverterBase, ABC):
@@ -30,9 +30,11 @@ class EvolutionBase(ConverterBase, ABC):
 
     """
 
-    @deprecate_function(
-        "The EvolutionBase opflow class is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="opflow",
+        old_name="EvolutionBase",
+        url="https://qisk.it/opflow_migration",
     )
     def __init__(self) -> None:
         super().__init__()
