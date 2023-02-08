@@ -8,7 +8,7 @@ features:
     :class:`~qiskit.quantum_info.DensityMatrix` object from that circuit,
     assuming that the qubits are initialized in :math:`|0\rangle`. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit import QuantumCircuit
       from qiskit.quantum_info import Statevector

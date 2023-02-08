@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed two bugs in the :class:`.ComposedOp` where the :meth:`.ComposedOp.to_matrix`
+    method did not provide the correct results for compositions with :class:`.StateFn`
+    and for compositions with a global coefficients.
+    See also `#9283 <https://github.com/Qiskit/qiskit-terra/issues/9283>_`.

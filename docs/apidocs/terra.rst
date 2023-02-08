@@ -8,6 +8,7 @@ Qiskit Terra API Reference
    :maxdepth: 1
 
    circuit
+   circuit_library
    compiler
    execute
    visualization

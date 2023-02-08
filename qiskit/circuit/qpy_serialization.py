@@ -10,18 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=wrong-import-position, unused-import
-
 """Alias for Qiskit QPY import."""
 
-# TODO deprecate this in 0.21.0
-from qiskit.qpy import dump, load
 
-# For backward compatibility. Provide, Runtime, Experiment call these private functions.
-from qiskit.qpy import (
-    _write_instruction,
-    _read_instruction,
-    _write_parameter_expression,
-    _read_parameter_expression,
-    _read_parameter_expression_v3,
-)
+def __getattr__(name):
+    import warnings
+    from qiskit import qpy
+
+    # Skip warning on special Python dunders, which Python occasionally queries on its own accord.
+    if f"__{name[2:-2]}__" != name:
+        warnings.warn(
+            f"Module '{__name__}' is deprecated since Qiskit Terra 0.23,"
+            " and will be removed in a future release. Please import from 'qiskit.qpy' instead.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+    return getattr(qpy, name)

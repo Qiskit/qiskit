@@ -51,11 +51,12 @@ class PauliTwoDesign(TwoLocal):
 
     Examples:
 
-        .. jupyter-execute:
+        .. plot::
+           :include-source:
 
-            from qiskit.circuit.library import PauliTwoDesign
-            circuit = PauliTwoDesign(4, reps=2, seed=5, insert_barriers=True)
-            print(circuit.draw())
+           from qiskit.circuit.library import PauliTwoDesign
+           circuit = PauliTwoDesign(4, reps=2, seed=5, insert_barriers=True)
+           circuit.draw('mpl')
 
     References:
 
