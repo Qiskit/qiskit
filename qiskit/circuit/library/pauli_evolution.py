@@ -12,13 +12,17 @@
 
 """A gate to implement time-evolution of operators."""
 
+from __future__ import annotations
+
 from typing import Union, Optional
 import numpy as np
 
+from qiskit.circuit import Parameter
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.synthesis import EvolutionSynthesis, LieTrotter
 from qiskit.quantum_info import Pauli, SparsePauliOp
+
 
 
 class PauliEvolutionGate(Gate):
@@ -79,6 +83,7 @@ class PauliEvolutionGate(Gate):
         self,
         operator,
         time: Union[int, float, ParameterExpression] = 1.0,
+        t_param: Parameter | None = None,
         label: Optional[str] = None,
         synthesis: Optional[EvolutionSynthesis] = None,
     ) -> None:
@@ -111,6 +116,7 @@ class PauliEvolutionGate(Gate):
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
 
         self.operator = operator
+        self.t_param = t_param
         self.synthesis = synthesis
 
     @property

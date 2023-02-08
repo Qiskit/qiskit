@@ -12,12 +12,39 @@
 
 """The Lie-Trotter product formula."""
 
+import copy
 from typing import Callable, Optional, Union, Dict, Any
 import numpy as np
+from collections.abc import Sequence
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.circuit.parametertable import ParameterView
+from qiskit.circuit import ParameterExpression
 
 from .product_formula import ProductFormula
+
+
+def _get_parameters(array: np.ndarray) -> ParameterView:
+    """Retrieves parameters from a numpy array as a ``ParameterView``."""
+    ret = set()
+    for a in array:
+        if isinstance(a, ParameterExpression):
+            ret |= a.parameters
+    return ParameterView(ret)
+
+
+def _assign_parameters(array: np.ndarray, parameter_values: Sequence[float]) -> np.ndarray:
+    """Binds ``ParameterExpression``s in a numpy array to provided values."""
+    parameter_dict = dict(zip(_get_parameters(array), parameter_values))
+    for i, a in enumerate(array):
+        if isinstance(a, ParameterExpression):
+            for key in a.parameters & parameter_dict.keys():
+                a = a.assign(key, parameter_dict[key])
+            if not a.parameters:
+                a = complex(a)
+            array[i] = a
+    return array
+
 
 
 class LieTrotter(ProductFormula):
@@ -73,6 +100,7 @@ class LieTrotter(ProductFormula):
         # get operators and time to evolve
         operators = evolution.operator
         time = evolution.time
+        t_param = evolution.t_param
 
         # construct the evolution circuit
         evolution_circuit = QuantumCircuit(operators[0].num_qubits)
@@ -86,14 +114,23 @@ class LieTrotter(ProductFormula):
         # if we only evolve a single Pauli we don't need to additionally wrap it
         wrap = not (len(pauli_list) == 1 and self.reps == 1)
 
-        for _ in range(self.reps):
-            for op, coeff in pauli_list:
+        for n in range(self.reps):
+            if t_param is not None:
+                time_value = (n + 1)*time/self.reps
+                parametrized_coeff = copy.deepcopy(operators.coeffs)
+                # has to be real to use as parameter for gate, therefore cast to float
+                bound_params_array = np.real(_assign_parameters(parametrized_coeff, [time_value]).astype(complex))
+                # TODO: replace pauli_list with loop over operators.paulis, operators.coeffs
+            for i, (op, coeff) in enumerate(pauli_list):
                 # add barriers
                 if first_barrier:
                     if self.insert_barriers:
                         evolution_circuit.barrier()
                 else:
                     first_barrier = True
+
+                if t_param is not None:
+                    coeff = bound_params_array[i]
 
                 evolution_circuit.compose(
                     self.atomic_evolution(op, coeff * time / self.reps), wrap=wrap, inplace=True

@@ -22,7 +22,7 @@ from qiskit.algorithms.observables_evaluator import estimate_observables
 from qiskit.opflow import PauliSumOp
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.primitives import BaseEstimator
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.synthesis import ProductFormula, LieTrotter
 
 
@@ -132,11 +132,11 @@ class TrotterQRTE(RealTimeEvolver):
             ValueError: If an unsupported Hamiltonian type is provided.
         """
         evolution_problem.validate_params()
-        if evolution_problem.t_param is not None:
-            raise ValueError(
-                "TrotterQRTE does not accept a time dependent Hamiltonian,"
-                "``t_param`` from the ``TimeEvolutionProblem`` should be set to ``None``."
-            )
+        # if evolution_problem.t_param is not None:
+        #     raise ValueError(
+        #         "TrotterQRTE does not accept a time dependent Hamiltonian,"
+        #         "``t_param`` from the ``TimeEvolutionProblem`` should be set to ``None``."
+        #     )
 
         if evolution_problem.aux_operators is not None and self.estimator is None:
             raise ValueError(
@@ -144,13 +144,16 @@ class TrotterQRTE(RealTimeEvolver):
                 "provided. The algorithm continues without calculating these quantities. "
             )
         hamiltonian = evolution_problem.hamiltonian
-        if not isinstance(hamiltonian, (Pauli, PauliSumOp)):
+        if not isinstance(hamiltonian, (Pauli, PauliSumOp, SparsePauliOp)):
             raise ValueError(
                 f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
         # the evolution gate
         evolution_gate = PauliEvolutionGate(
-            hamiltonian, evolution_problem.time, synthesis=self.product_formula
+            hamiltonian,
+            evolution_problem.time,
+            evolution_problem.t_param,
+            synthesis=self.product_formula
         )
 
         if evolution_problem.initial_state is not None:
