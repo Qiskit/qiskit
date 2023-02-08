@@ -13,7 +13,7 @@
 """Interface for Quantum Real Time Evolution."""
 
 from abc import ABC, abstractmethod
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 from .evolution_problem import EvolutionProblem
 from .evolution_result import EvolutionResult
@@ -29,11 +29,13 @@ class RealEvolver(ABC):
 
     """
 
-    @deprecate_function(
-        "The RealEvolver interface is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.time_evolvers.RealEvolver interface.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="RealEvolver",
+        old_type="interface",
+        new_name="qiskit.algorithms.time_evolvers.RealEvolver",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(self) -> None:
         pass

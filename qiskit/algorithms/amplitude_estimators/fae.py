@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg, deprecate_string_msg
 from qiskit.algorithms.exceptions import AlgorithmError
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
@@ -75,10 +75,16 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         # set quantum instance
         if quantum_instance is not None:
             warnings.warn(
-                "The quantum_instance argument is deprecated as of Qiskit Terra 0.24.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, use "
-                "the sampler argument as a replacement.",
+                message=deprecate_string_msg(
+                    version="0.24.0",
+                    old_module="algorithms",
+                    old_name="quantum_instance",
+                    old_type="argument",
+                    new_name="sampler",
+                    url="http://qisk.it/algo_migration",
+                ),
                 category=DeprecationWarning,
+                stacklevel=2,
             )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -109,11 +115,12 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_function(
-        "The FasterAmplitudeEstimation.quantum_instance getter is deprecated "
-        "as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="FasterAmplitudeEstimation.quantum_instance",
+        old_type="getter",
+        url="http://qisk.it/algo_migration",
     )
     def quantum_instance(self) -> QuantumInstance | None:
         """Deprecated; Get the quantum instance.
@@ -124,11 +131,12 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The FasterAmplitudeEstimation.quantum_instance setter is deprecated "
-        "as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="FasterAmplitudeEstimation.quantum_instance",
+        old_type="setter",
+        url="http://qisk.it/algo_migration",
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Deprecated; Set quantum instance.

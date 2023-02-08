@@ -20,7 +20,7 @@ from scipy import sparse as scisparse
 
 from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from ..exceptions import AlgorithmError
 from .eigen_solver import Eigensolver, EigensolverResult
 from ..list_or_dict import ListOrDict
@@ -49,11 +49,12 @@ class NumPyEigensolver(Eigensolver):
         operator size, mostly in terms of number of qubits it represents, gets larger.
     """
 
-    @deprecate_function(
-        "The NumPyEigensolver class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.eigensolvers.NumPyEigensolver class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="NumPyEigensolver",
+        new_name="qiskit.algorithms.eigensolvers.NumPyEigensolver",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(
         self,

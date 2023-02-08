@@ -33,7 +33,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 
 class TrotterQRTE(RealEvolver):
@@ -64,11 +64,12 @@ class TrotterQRTE(RealEvolver):
             evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
     """
 
-    @deprecate_function(
-        "The TrotterQRTE class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="TrotterQRTE",
+        new_name="qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(
         self,

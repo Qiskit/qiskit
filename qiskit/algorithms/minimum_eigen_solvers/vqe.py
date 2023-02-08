@@ -41,7 +41,7 @@ from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.validation import validate_min
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
@@ -127,11 +127,12 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     """
 
-    @deprecate_function(
-        "The VQE class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.minimum_eigensolvers.VQE class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="VQE",
+        new_name="qiskit.algorithms.minimum_eigensolvers.VQE",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(
         self,
@@ -665,11 +666,12 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     """
 
-    @deprecate_function(
-        "The VQEResult class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.minimum_eigensolvers.VQEResult class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="VQEResult",
+        new_name="qiskit.algorithms.minimum_eigensolvers.VQEResult",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(self) -> None:
         with warnings.catch_warnings():

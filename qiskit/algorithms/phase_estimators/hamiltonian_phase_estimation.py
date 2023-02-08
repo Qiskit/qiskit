@@ -29,6 +29,7 @@ from qiskit.opflow import (
     I,
 )
 from qiskit.providers import Backend
+from qiskit.utils.deprecation import deprecate_string_msg
 from .phase_estimation import PhaseEstimation
 from .hamiltonian_phase_estimation_result import HamiltonianPhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale
@@ -108,10 +109,16 @@ class HamiltonianPhaseEstimation:
         """
         if quantum_instance is not None:
             warnings.warn(
-                "The quantum_instance argument is deprecated as of Qiskit Terra 0.24.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, use "
-                "the sampler argument as a replacement.",
+                message=deprecate_string_msg(
+                    version="0.24.0",
+                    old_module="algorithms",
+                    old_name="quantum_instance",
+                    old_type="argument",
+                    new_name="sampler",
+                    url="http://qisk.it/algo_migration",
+                ),
                 category=DeprecationWarning,
+                stacklevel=2,
             )
         self._phase_estimation = PhaseEstimation(
             num_evaluation_qubits=num_evaluation_qubits,

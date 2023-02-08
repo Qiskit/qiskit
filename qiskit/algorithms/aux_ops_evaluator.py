@@ -26,16 +26,18 @@ from qiskit.opflow import (
 from qiskit.providers import Backend
 from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 
 from .list_or_dict import ListOrDict
 
 
-@deprecate_function(
-    "The eval_observables function is deprecated as of Qiskit Terra 0.24.0 and "
-    "will be removed no sooner than 3 months after the release date. Instead, use "
-    "qiskit.algorithms.observables_evaluator.estimate_observables function as a replacement.",
-    category=DeprecationWarning,
+@deprecate_function_msg(
+    version="0.24.0",
+    old_module="algorithms",
+    old_name="eval_observables",
+    old_type="function",
+    new_name="qiskit.algorithms.observables_evaluator.estimate_observables",
+    url="http://qisk.it/algo_migration",
 )
 def eval_observables(
     quantum_instance: Union[QuantumInstance, Backend],

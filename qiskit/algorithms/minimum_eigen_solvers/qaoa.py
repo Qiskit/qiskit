@@ -23,7 +23,7 @@ from qiskit.opflow.gradients import GradientBase
 from qiskit.providers import Backend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
@@ -59,11 +59,12 @@ class QAOA(VQE):
     the evolution to a feasible subspace of the full Hilbert space.
     """
 
-    @deprecate_function(
-        "The QAOA class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.minimum_eigensolvers.QAOA class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="QAOA",
+        new_name="qiskit.algorithms.minimum_eigensolvers.QAOA",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(
         self,

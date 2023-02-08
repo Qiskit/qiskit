@@ -18,7 +18,7 @@ import warnings
 import numpy as np
 
 from qiskit.opflow import OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..list_or_dict import ListOrDict
@@ -37,11 +37,12 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
 
     """
 
-    @deprecate_function(
-        "The NumPyMinimumEigensolver class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="NumPyMinimumEigensolver",
+        new_name="qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(
         self,

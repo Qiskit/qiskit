@@ -24,6 +24,7 @@ from qiskit.utils import QuantumInstance
 
 from qiskit.primitives import BaseSampler, Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
+from qiskit.utils.deprecation import deprecate_string_msg
 
 from .spsa import SPSA, CALLBACK, TERMINATIONCHECKER, _batch_evaluate
 
@@ -302,12 +303,16 @@ class QNSPSA(SPSA):
 
         if expectation is not None or backend is not None:
             warnings.warn(
-                "Passing a backend and expectation converter to QNSPSA.get_fidelity "
-                "is deprecated as of Qiskit Terra 0.24.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, pass a "
-                "sampler primitive.",
-                stacklevel=2,
+                message=deprecate_string_msg(
+                    version="0.24.0",
+                    old_module="algorithms",
+                    old_name="backend and expectation",
+                    old_type="argument",
+                    new_name="sampler",
+                    url="http://qisk.it/algo_migration",
+                ),
                 category=DeprecationWarning,
+                stacklevel=2,
             )
             return QNSPSA._legacy_get_fidelity(circuit, backend, expectation)
 

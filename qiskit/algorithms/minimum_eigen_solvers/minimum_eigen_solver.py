@@ -18,7 +18,7 @@ from typing import Optional, Tuple
 import numpy as np
 
 from qiskit.opflow import OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
@@ -36,11 +36,13 @@ class MinimumEigensolver(ABC):
     used interchangeably.
     """
 
-    @deprecate_function(
-        "The Minimum Eigensolver interface is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver interface.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="MinimumEigensolver",
+        old_type="interface",
+        new_name="qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(self) -> None:
         pass
@@ -91,11 +93,12 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     """
 
-    @deprecate_function(
-        "The MinimumEigensolverResult class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="MinimumEigensolverResult",
+        new_name="qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(self) -> None:
         super().__init__()

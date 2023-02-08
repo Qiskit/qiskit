@@ -14,7 +14,7 @@
 
 from abc import ABC, abstractmethod
 
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from .evolution_problem import EvolutionProblem
 from .evolution_result import EvolutionResult
 
@@ -29,11 +29,13 @@ class ImaginaryEvolver(ABC):
 
     """
 
-    @deprecate_function(
-        "The ImaginaryEvolver interface is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver interface.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="ImaginaryEvolver",
+        old_type="interface",
+        new_name="qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(self) -> None:
         pass

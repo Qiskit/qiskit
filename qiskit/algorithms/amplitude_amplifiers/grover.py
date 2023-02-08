@@ -25,7 +25,7 @@ from qiskit.primitives import BaseSampler
 from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg, deprecate_string_msg
 
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
@@ -175,9 +175,14 @@ class Grover(AmplitudeAmplifier):
         self._quantum_instance = None
         if quantum_instance is not None:
             warnings.warn(
-                "The quantum_instance argument is deprecated as of Qiskit Terra 0.24.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, use "
-                "the sampler argument as a replacement.",
+                message=deprecate_string_msg(
+                    version="0.24.0",
+                    old_module="algorithms",
+                    old_name="quantum_instance",
+                    old_type="argument",
+                    new_name="sampler",
+                    url="http://qisk.it/algo_migration",
+                ),
                 category=DeprecationWarning,
                 stacklevel=2,
             )
@@ -191,10 +196,12 @@ class Grover(AmplitudeAmplifier):
         self._iterations_arg = iterations
 
     @property
-    @deprecate_function(
-        "The Grover.quantum_instance getter is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="Grover.quantum_instance",
+        old_type="getter",
+        url="http://qisk.it/algo_migration",
     )
     def quantum_instance(self) -> Optional[QuantumInstance]:
         r"""Deprecated\; Get the quantum instance.
@@ -205,10 +212,12 @@ class Grover(AmplitudeAmplifier):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The Grover.quantum_instance setter is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="Grover.quantum_instance",
+        old_type="setter",
+        url="http://qisk.it/algo_migration",
     )
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         r"""Deprecated\; Set quantum instance.

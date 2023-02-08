@@ -38,7 +38,7 @@ from qiskit.opflow import (
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_function_msg
 from qiskit.utils import QuantumInstance
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, Minimizer
@@ -96,11 +96,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     """
 
-    @deprecate_function(
-        "The VQD class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.eigensolvers.VQD class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="VQD",
+        new_name="qiskit.algorithms.eigensolvers.VQD",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(
         self,
@@ -765,11 +766,12 @@ class VQDResult(VariationalResult, EigensolverResult):
 
     """
 
-    @deprecate_function(
-        "The VQDResult class is deprecated as of Qiskit Terra 0.24.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.eigensolvers.VQDResult class.",
-        category=DeprecationWarning,
+    @deprecate_function_msg(
+        version="0.24.0",
+        old_module="algorithms",
+        old_name="VQDResult",
+        new_name="qiskit.algorithms.eigensolvers.VQDResult",
+        url="http://qisk.it/algo_migration",
     )
     def __init__(self) -> None:
         super().__init__()
