@@ -158,7 +158,7 @@ Common non-parametrized gates (Clifford)
 
    * - :class:`~qiskit.opflow.CX`, :class:`~qiskit.opflow.S`, :class:`~qiskit.opflow.H`, :class:`~qiskit.opflow.T`, :class:`~qiskit.opflow.CZ`, :class:`~qiskit.opflow.Swap`
      - Append corresponding gate to :class:`~qiskit.QuantumCircuit` + :class:`~qiskit.quantum_info.Clifford` + ``.to_operator()``
-     -
+     - This alternative is not too efficient, as ``.to_operator()`` is dense and scales exponentially with the size of the circuit.
 
    * -
 
@@ -667,7 +667,7 @@ Algorithm-Agnostic Expectations
      - No direct replacement.
      -
    * - :class:`~qiskit.opflow.AerPauliExpectation`
-     - Use :class:`~Estimator` primitive from ``qiskit_aer`` instead.
+     - Use :class:`~Estimator` primitive from ``qiskit_aer`` with ``approximation=True``
      -
    * - :class:`~qiskit.opflow.MatrixExpectation`
      - Use :class:`~Estimator` primitive from ``qiskit`` instead (uses Statevector).
@@ -676,7 +676,7 @@ Algorithm-Agnostic Expectations
      - Use any :class:`~Estimator` primitive.
      -
 
-TODO: ADD EXAMPLE!
+TODO: ADD EXAMPLES!
 
 CVarExpectation
 ~~~~~~~~~~~~~~~
