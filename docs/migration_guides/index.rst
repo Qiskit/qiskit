@@ -1,5 +1,3 @@
-.. module:: qiskit
-
 =======================
 Qiskit Migration Guides
 =======================
