@@ -4,6 +4,8 @@
 Getting started
 ###############
 
+.. _installation:
+
 Installation
 ============
 
@@ -486,6 +488,8 @@ going to run and install the packages.  There are three main ways to do this:
        .. code:: text
 
           pip install -e .
+
+.. _platform_support:
 
 Platform Support
 ----------------

@@ -11,21 +11,17 @@ Frequently Asked Questions
 
 |
 
-**Q: Why do I receive the error message** ``Error: Instance of QuantumCircuit has no
-member`` **when adding gates to a circuit?**
+**Q: Why do I receive the error message** ``AttributeError: QuantumCircuit object has no attribute save_state``
+**when using ``save_*``method on a circuit?**
 
-**A:** This is a pylint error, which is a Linter for Python. Linters analyze
-code for potential errors, and they throw errors when they find
-potentially erroneous code. However, this error should not prevent your
-code from compiling or running, so there is no need to worry. The error
-message can be disabled by adding the following line above the code that
-is causing the error:
-
-.. code:: python
-
-  #pylint: disable=no-member
-
-|
+**A:** The ``save_*`` instructions are part of Qiskit Aer project,
+a high performance simulator for quantum circuits. These instructions do not
+exist outside of Qiskit Aer and are added dynamically to the
+:class:`~.QuantumCircuit` class by Qiskit Aer on import. If you would like to
+use these instructions you must first ensure that you have imported
+``qiskit_aer`` in your program before trying to call these methods. You
+can refer to :mod:`qiskit_aer.library` for the details of these custom
+instructions included with Qiskit Aer.
 
 **Q: Why do my results from real devices differ from my results from the simulator?**
 
@@ -41,8 +37,7 @@ to behave differently than what is intended.
 **A:** If you used ``pip install qiskit`` and set up your virtual environment in
 Anaconda, then you may experience this error when you run a tutorial
 in Jupyter Notebook. If you have not installed Qiskit or set up your
-virtual environment, you can follow the
-`installation steps <https://qiskit.org/documentation/install.html#install>`__.
+virtual environment, you can follow the :ref:`installation` steps.
 
 The error is caused when trying to import the Qiskit package in an
 environment where Qiskit is not installed. If you launched Jupyter Notebook
@@ -61,9 +56,12 @@ Notebook.
 **A:** Qiskit depends on a number of other open source Python packages, which
 are automatically installed when doing ``pip install qiskit``. Depending on
 your system's platform and Python version, is it possible that a particular
-package does not provide a pre-built binary wheel for your system, and in those
-cases ``pip`` will attempt to compile the package from source, which in turn
-might require some extra dependencies that need to be installed manually.
+package does not provide pre-built binaries for your system. You can refer
+to :ref:`platform_support` for a list of platforms supported by Qiskit, some
+of which may need an extra compiler. In cases where there are
+no precompiled binaries available ``pip`` will attempt to compile the package
+from source, which in turn might require some extra dependencies that need to
+be installed manually.
 
 If the output of ``pip install qiskit`` contains similar lines to:
 
@@ -77,6 +75,4 @@ If the output of ``pip install qiskit`` contains similar lines to:
 
 please check the documentation of the package that failed to install (in the
 example code, ``SOME_PACKAGE``) for information on how to install the libraries
-needed for compiling from source. For example:
-
-* ``cryptography``: https://cryptography.io/en/latest/installation/#building-cryptography-on-linux
+needed for compiling from source.

@@ -113,20 +113,31 @@ Interested in quantum hardware design?
 
 
 .. toctree::
-  :hidden:
+   :hidden:
 
-  Overview <self>
-  qc_intro
-  getting_started
-  intro_tutorial1
-  tutorials
-  API Reference <apidoc/terra>
-  release_notes
-  configuration
-  GitHub <https://github.com/Qiskit/qiskit>
-  faq
+   Overview <self>
+   qc_intro
+   getting_started
+   intro_tutorial1
+   tutorials
+   API Reference <apidoc/terra>
+   Circuit Library <apidoc/circuit_library>
+   release_notes
+   configuration
+   GitHub <https://github.com/Qiskit/qiskit-terra>
+   faq
 
-.. Hiding - Indices and tables
-   :ref:`genindex`
-   :ref:`modindex`
-   :ref:`search`
+.. toctree::
+   :caption: Contributing
+   :hidden:
+
+   contributing_to_qiskit
+   deprecation_policy
+   maintainers_guide
+
+.. toctree::
+   :caption: Other API References
+   :hidden:
+
+   Qiskit Aer <apidoc/aer>
+   Qiskit IBM Quantum Provider <apidoc/ibmq-provider>
