@@ -390,11 +390,11 @@ def _calc_pauli_diff(cliff, cliff_target):
     return pauli_circ
 
 
-def synth_clifford_layers_lnn(cliff):
+def synth_clifford_depth_lnn(cliff):
     """Synthesis of a Clifford into layers for linear-nearest neighbour connectivity.
 
     The depth of the synthesized n-qubit circuit is bounded by 9*n+4, which is not optimal.
-    It should be replaced by a better algorithm that provides a depth bounded by 7*n+2.
+    It should be replaced by a better algorithm that provides a depth bounded by 7*n-4 [3].
 
     Args:
         cliff (Clifford): a clifford operator.
@@ -409,6 +409,10 @@ def synth_clifford_layers_lnn(cliff):
         2. Dmitri Maslov, Martin Roetteler,
            Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations,
            `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
+        3. Dmitri Maslov, Willers Yang,
+           CNOT circuits need little help to implement arbitrary Hadamard-free Clifford
+           transformations they generate
+           `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
     """
     circ = synth_clifford_layers(
         cliff,
