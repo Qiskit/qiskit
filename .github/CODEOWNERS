@@ -40,4 +40,4 @@ primitives/           @Qiskit/terra-core @ikkoham @t-imamichi
 
 # Documentation
 README                @Qiskit/terra-core @HuangJunye @javabster @Eric-Arellano
-docs/                @Qiskit/terra-core @HuangJunye @javabster @Eric-Arellano
+docs/                 @Qiskit/terra-core @HuangJunye @javabster @Eric-Arellano
