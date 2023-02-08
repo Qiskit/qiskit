@@ -6,3 +6,4 @@ Qiskit Migration Guides
    :maxdepth: 1
 
    opflow_migration
+   qi_migration
