@@ -102,29 +102,6 @@ def optimize_cx_4_options(function: Callable, mat: np.ndarray, optimize_count: b
     return best_qc
 
 
-def get_circ_cx_depth(qc: QuantumCircuit) -> int:
-    """Calculate the circuit depth only for CX gates, removing single qubit gates.
-
-    Args:
-        qc: a QuantumCircuit containing only CX and single qubit gates.
-
-    Returns:
-        int: the circuit depth only for CX gates.
-
-    Raises:
-        CircuitError: if qc has a non-CX two-qubit gate.
-    """
-    num_qubits = qc.num_qubits
-    qc2 = QuantumCircuit(num_qubits)
-    for instruction in reversed(qc.data):
-        if instruction.operation.num_qubits > 1:
-            if instruction.operation.name == "cx":
-                qc2._append(instruction)
-            else:
-                raise CircuitError("The circuit has two-qubits gates different than CX.")
-    return qc2.depth()
-
-
 def check_lnn_connectivity(qc: QuantumCircuit) -> bool:
     """Check that the synthesized circuit qc fits linear nearest neighbor connectivity.
 

@@ -19,7 +19,7 @@ from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import Permutation
 from qiskit.synthesis.linear import synth_cz_depth_line_mr
-from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity, get_circ_cx_depth
+from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
 from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase
 
@@ -52,7 +52,8 @@ class TestCZSynth(QiskitTestCase):
 
             qc = synth_cz_depth_line_mr(mat)
             # Check that the output circuit 2-qubit depth equals to 2*n+2
-            self.assertTrue(get_circ_cx_depth(qc) == 2 * num_qubits + 2)
+            depth2q = qc.depth(filter_function=lambda x: x.operation.num_qubits == 2)
+            self.assertTrue(depth2q == 2 * num_qubits + 2)
             # Check that the output circuit has LNN connectivity
             self.assertTrue(check_lnn_connectivity(qc))
             # Assert that we get the same element, up to reverse order of qubits
