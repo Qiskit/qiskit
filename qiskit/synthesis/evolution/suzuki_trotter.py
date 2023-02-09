@@ -91,7 +91,6 @@ class SuzukiTrotter(ProductFormula):
         # get operators and time to evolve
         operators = evolution.operator
         time = evolution.time
-        t_param = evolution.t_param
 
         if not isinstance(operators, list):
             pauli_list = [(Pauli(op), np.real(coeff)) for op, coeff in operators.to_list()]
@@ -99,9 +98,6 @@ class SuzukiTrotter(ProductFormula):
             pauli_list = [(op, 1) for op in operators]
 
         ops_to_evolve = self._recurse(self.order, time / self.reps, pauli_list)
-
-        if t_param:
-            coeffs = [coeff for _, coeff in ops_to_evolve]
 
         # construct the evolution circuit
         single_rep = QuantumCircuit(operators[0].num_qubits)
