@@ -12,49 +12,53 @@
 
 """Manager for a set of Passes and their scheduling during transpilation."""
 
-import sys
 from abc import ABC, abstractmethod
-from typing import Union, List, Callable, Dict, Any
+from typing import List, Callable, Dict, Any
 
 import dill
 from qiskit.tools.parallel import parallel_map
+from qiskit.utils.deprecation import deprecate_exception
 
 from .base_pass import BasePass
 from .base_pass_runner import BasePassRunner
 from .exceptions import PassManagerError
-from .flow_controller import FlowController
-
-if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
-else:
-    from singledispatchmethod import singledispatchmethod
+from .flow_controller import FlowController, PassSequence
+from .propertyset import get_property_set
 
 
 class BasePassManager(ABC):
     """Base class of pass manager.
 
-    This base class must be aware of input code, output code and base pass type,
-    and it must be responsible for the type check to guarantee that the all passes
-    work with the targeting pass manager IR,
-    and the IR is generatable from the input code.
-
-    This also does thread management for the multiple input programs for performance,
-    and thus a suclass only need to generate proper pass runner depending on the
-    expected pass manager IR, which must be supplied by :meth:`._create_running_passmanager`.
+    The pass manager instance initializes flow controllers from user input,
+    and create :class:`.BasePassRunner` subclass to optimize/transform input program.
+    The subclass of BasePassManager is defined for each combination of the
+    input program and pass runner type which are tied to the expected pass manager IR.
     """
 
-    PASS_TYPE = BasePass
-    """Expected pass base class of this pass manager."""
+    def __init_subclass__(cls, passmanager_error=None, **kwargs):
+        # Temp fix for backward compatibility.
+        # This method will be removed once we migrate to new exception PassManagerError.
+        super().__init_subclass__(**kwargs)
 
-    INPUT_TYPE = object
-    """Expected input program type."""
+        if passmanager_error is not None:
+            import inspect
 
-    TARGET_TYPE = object
-    """Expected output program type."""
+            deprecator = deprecate_exception(
+                old_exception=passmanager_error,
+                new_exception=PassManagerError,
+                msg=f"{passmanager_error.__name__} exception is deprecated and will in future "
+                "be replaced with PassManagerError exception.",
+                category=PendingDeprecationWarning,
+            )
+            for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+                if name.startswith("_"):
+                    continue
+                wrapped_method = deprecator(method)
+                setattr(cls, name, wrapped_method)
 
     def __init__(
         self,
-        passes: Union[PASS_TYPE, List[PASS_TYPE]] = None,
+        passes: PassSequence = None,
         max_iteration: int = 1000,
     ):
         """Initialize an empty `PassManager` object (with no passes scheduled).
@@ -68,15 +72,20 @@ class BasePassManager(ABC):
         # the pass manager's schedule of passes, including any control-flow.
         # Populated via PassManager.append().
 
-        self._pass_sets = []
-        if passes is not None:
-            self.append(passes)
+        self._flow_controllers = []
         self.max_iteration = max_iteration
         self.property_set = None
 
+        # For backward compatibility. In principle this is no longer necessary.
+        # This can be dropped with self.passes method.
+        self._pass_sets = []
+
+        if passes is not None:
+            self.append(passes)
+
     def append(
         self,
-        passes: Union[FlowController, List[BasePass]],
+        passes: PassSequence,
         max_iteration: int = None,
         **flow_controller_conditions: Callable,
     ) -> None:
@@ -90,17 +99,28 @@ class BasePassManager(ABC):
                     :class:`~qiskit.transpiler.runningpassmanager.FlowController` instance and the
                     rest of the parameter will be ignored.
             max_iteration: max number of iterations of passes.
-            flow_controller_conditions: control flow plugins.
+            flow_controller_conditions: Dictionary of control flow plugins. Default:
+
+                * do_while (callable property_set -> boolean): The passes repeat until the
+                  callable returns False.
+                  Default: `lambda x: False # i.e. passes run once`
+
+                * condition (callable property_set -> boolean): The passes run only if the
+                  callable returns True.
+                  Default: `lambda x: True # i.e. passes run`
         """
         if max_iteration:
             # TODO remove this argument from append
             self.max_iteration = max_iteration
 
-        if isinstance(passes, self.PASS_TYPE):
-            passes = [passes]
-        else:
-            passes = self._normalize_passes(passes)
+        normalized_flow_controller = FlowController.controller_factory(
+            passes=passes,
+            options={"max_iteration": self.max_iteration},
+            **flow_controller_conditions,
+        )
+        self._flow_controllers.append(normalized_flow_controller)
 
+        # Backward compatibility. This will be removed.
         self._pass_sets.append(
             {
                 "passes": passes,
@@ -111,7 +131,7 @@ class BasePassManager(ABC):
     def replace(
         self,
         index: int,
-        passes: Any,
+        passes: PassSequence,
         max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
@@ -131,38 +151,22 @@ class BasePassManager(ABC):
             # TODO remove this argument from append
             self.max_iteration = max_iteration
 
-        if isinstance(passes, self.PASS_TYPE):
-            passes = [passes]
-        else:
-            passes = self._normalize_passes(passes)
+        normalized_flow_controller = FlowController.controller_factory(
+            passes=passes,
+            options={"max_iteration": self.max_iteration},
+            **flow_controller_conditions,
+        )
 
         try:
+            self._flow_controllers[index] = normalized_flow_controller
+
+            # Backward compatibility. This will be removed.
             self._pass_sets[index] = {
                 "passes": passes,
                 "flow_controllers": flow_controller_conditions,
             }
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
-
-    @singledispatchmethod
-    def _normalize_passes(self, passes):
-        if not isinstance(passes, self.PASS_TYPE):
-            raise PassManagerError(
-                f"The pass type {type(passes)} is not supported by {self.__class__.__name__}."
-            )
-        return passes
-
-    @_normalize_passes.register(list)
-    def _(self, passes):
-        out_passes = []
-        for pass_ in passes:
-            out_passes.append(self._normalize_passes(pass_))
-        return out_passes
-
-    @_normalize_passes.register(FlowController)
-    def _(self, passes):
-        passes.passes = self._normalize_passes(passes.passes)
-        return passes
 
     def remove(self, index: int) -> None:
         """Removes a particular pass in the scheduler.
@@ -174,13 +178,12 @@ class BasePassManager(ABC):
             PassManagerError: if the index is not found.
         """
         try:
+            del self._flow_controllers[index]
+
+            # Backward compatibility. This will be removed.
             del self._pass_sets[index]
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
-
-    def _new_instance(self):
-        """Get new instance of subclass."""
-        return self.__class__(max_iteration=self.max_iteration)
 
     def __setitem__(self, index, item):
         self.replace(index, item)
@@ -189,73 +192,69 @@ class BasePassManager(ABC):
         return len(self._pass_sets)
 
     def __getitem__(self, index):
-        new_passmanager = self._new_instance()
+        new_passmanager = self.__class__(max_iteration=self.max_iteration)
+        new_passmanager._flow_controllers = [self._flow_controllers[index]]
+
+        # Backward compatibility. This will be removed.
         _pass_sets = self._pass_sets[index]
         if isinstance(_pass_sets, dict):
             _pass_sets = [_pass_sets]
         new_passmanager._pass_sets = _pass_sets
+
         return new_passmanager
 
     def __add__(self, other):
+        new_passmanager = self.__class__(max_iteration=self.max_iteration)
+        new_passmanager._flow_controllers = self._flow_controllers
+        # Backward compatibility. This will be removed.
+        new_passmanager._pass_sets = self._pass_sets
+
         if isinstance(other, self.__class__):
-            new_passmanager = self._new_instance()
-            new_passmanager._pass_sets = self._pass_sets + other._pass_sets
-            return new_passmanager
+            new_passmanager._flow_controllers += other._flow_controllers
+            # Backward compatibility. This will be removed.
+            new_passmanager._pass_sets += other._pass_sets
         else:
             try:
-                new_passmanager = self._new_instance()
-                new_passmanager._pass_sets += self._pass_sets
                 new_passmanager.append(other)
-                return new_passmanager
             except PassManagerError as ex:
                 raise TypeError(
                     f"unsupported operand type + for {self.__class__} and {other.__class__}"
                 ) from ex
 
+        return new_passmanager
+
     def run(
         self,
-        in_programs: Union[INPUT_TYPE, List[INPUT_TYPE]],
+        in_programs: Any,
         **run_options: Any,
-    ) -> Union[TARGET_TYPE, List[TARGET_TYPE]]:
+    ) -> Any:
         """Run all the passes on the specified ``circuits``.
 
         Args:
-            in_programs: Input program(s) to transform via all the registered passes.
+            in_programs: Input programs to transform via all the registered passes.
             run_options: Arbitrary run options supported by the pass runner.
 
         Returns:
             The transformed program(s).
-
-        Raises:
-            PassManagerError: When the type of input programs is not consistent and
-                not supported by the pass manager.
         """
-        try:
-            iter(in_programs)
-        except TypeError:
-            in_programs = [in_programs]
-
-        # Validate input programs. Mixed input is not allowd.
-        for in_program in in_programs:
-            if not isinstance(in_program, self.INPUT_TYPE):
-                raise PassManagerError(f"Invalid input program type {type(in_program)}.")
-
         pass_runner = self._create_running_passmanager()
 
         if len(in_programs) == 1:
             result = pass_runner.run(in_programs[0], **run_options)
-            self.property_set = pass_runner.property_set
+            self.property_set = get_property_set()
             return result
 
         # Pass runner may contain callable and we need to serialize through dill rather than pickle.
         # See https://github.com/Qiskit/qiskit-terra/pull/3290
         # Note that serialized object is deserialized as a different object.
-        # Thus we can resue the same runner without state collision, without building it per thread.
+        # Thus, we can resue the same runner without state collision, without building it per thread.
         serialized_runner = dill.dumps(pass_runner)
 
         # TODO support for List(output_name) and List(callback)
         del run_options
 
+        # TODO convert pass instance variables to context var and switch to asyncio.
+        # In principle we can avoid inefficient copies with proper multi worker design.
         return parallel_map(
             BasePassManager._in_parallel,
             in_programs,
@@ -268,9 +267,9 @@ class BasePassManager(ABC):
 
     @staticmethod
     def _in_parallel(
-        in_program: INPUT_TYPE,
+        in_program: Any,
         serialized_pass_runner: bytes = None,
-    ) -> TARGET_TYPE:
+    ) -> Any:
         """Task used by the parallel map tools from ``_run_several_circuits``."""
         pass_runner = dill.loads(serialized_pass_runner)
         return pass_runner.run(in_program)
@@ -301,15 +300,19 @@ class BasePassManager(ABC):
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
 
-    def passes(self) -> List[Dict[str, PASS_TYPE]]:
+    def passes(self) -> List[Dict[str, PassSequence]]:
         """Return a list structure of the appended passes and its options.
 
         Returns:
             A list of pass sets, as defined in ``append()``.
         """
+        # Backward compatibility. This will be removed.
         ret = []
         for pass_set in self._pass_sets:
-            item = {"passes": pass_set["passes"]}
+            passes = pass_set["passes"]
+            if isinstance(passes, BasePass):
+                passes = [passes]
+            item = {"passes": passes}
             if pass_set["flow_controllers"]:
                 item["flow_controllers"] = set(pass_set["flow_controllers"].keys())
             else:
@@ -317,15 +320,12 @@ class BasePassManager(ABC):
             ret.append(item)
         return ret
 
+    @property
+    def flow_controllers(self) -> List[FlowController]:
+        """Return a list of flow controllers."""
+        return self._flow_controllers
+
     def to_flow_controller(self) -> FlowController:
         """Linearize this manager into a single :class:`.FlowController`, so that it can be nested
         inside another :class:`.PassManager`."""
-        return FlowController.controller_factory(
-            [
-                FlowController.controller_factory(
-                    pass_set["passes"], None, **pass_set["flow_controllers"]
-                )
-                for pass_set in self._pass_sets
-            ],
-            None,
-        )
+        return FlowController.controller_factory(self._flow_controllers, {})

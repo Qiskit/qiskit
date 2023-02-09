@@ -24,12 +24,8 @@ from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager
 
 
-class PassManager(BasePassManager):
+class PassManager(BasePassManager, passmanager_error=TranspilerError):
     """Manager for a set of Passes and their scheduling during transpilation."""
-
-    PASS_TYPE = BasePass
-    INPUT_TYPE = QuantumCircuit
-    TARGET_TYPE = QuantumCircuit
 
     # pylint: disable=arguments-differ
     def run(
@@ -73,6 +69,9 @@ class PassManager(BasePassManager):
         Returns:
             The transformed circuit(s).
         """
+        if isinstance(circuits, QuantumCircuit):
+            circuits = [circuits]
+
         return super().run(
             in_programs=circuits,
             output_name=output_name,
@@ -81,8 +80,8 @@ class PassManager(BasePassManager):
 
     def _create_running_passmanager(self) -> RunningPassManager:
         running_passmanager = RunningPassManager(self.max_iteration)
-        for pass_set in self._pass_sets:
-            running_passmanager.append(pass_set["passes"], **pass_set["flow_controllers"])
+        for flow_controller in self._flow_controllers:
+            running_passmanager.append(flow_controller)
         return running_passmanager
 
 
@@ -208,10 +207,14 @@ class StagedPassManager(PassManager):
             yield "post_" + stage
 
     def _update_passmanager(self) -> None:
+        self._flow_controllers = []
         self._pass_sets = []
         for stage in self.expanded_stages:
             pm = getattr(self, stage, None)
             if pm is not None:
+                self._flow_controllers.extend(pm._flow_controllers)
+
+                # For backward compatibility. This will be removed.
                 self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
@@ -244,7 +247,19 @@ class StagedPassManager(PassManager):
 
     def __getitem__(self, index):
         self._update_passmanager()
-        return super().__getitem__(index)
+
+        # Do not inherit from the PassManager.
+        # It returns instance of self.__class__ which is StagetPassManager.
+        new_passmanager = PassManager()
+        new_passmanager._flow_controllers = [self._flow_controllers[index]]
+
+        # Backward compatibility. This will be removed.
+        _pass_sets = self._pass_sets[index]
+        if isinstance(_pass_sets, dict):
+            _pass_sets = [_pass_sets]
+        new_passmanager._pass_sets = _pass_sets
+
+        return new_passmanager
 
     def __len__(self):
         self._update_passmanager()

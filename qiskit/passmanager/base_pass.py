@@ -63,6 +63,16 @@ class BasePass(metaclass=MetaPass):
     def __eq__(self, other):
         return hash(self) == hash(other)
 
+    def __iter__(self):
+        # To avoid normalization overhead.
+        # Flow controller and base pass are treated equally in the pass manager.
+        # Without iterator, we always need to wrap base pass with a list.
+        # This drastically simplifies the implementation of flow controller.
+        yield self
+
+    def __len__(self):
+        return 1
+
     def name(self):
         """Return the name of the pass."""
         return self.__class__.__name__

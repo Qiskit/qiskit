@@ -18,19 +18,22 @@ from time import time
 from typing import Dict
 
 from qiskit.converters import circuit_to_dag, dag_to_circuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.base_pass_runner import BasePassRunner
-from qiskit.passmanager.exceptions import PassManagerError
-from qiskit.passmanager.fencedobjs import FencedObject
+from qiskit.passmanager.propertyset import get_property_set
 from qiskit.transpiler.basepasses import BasePass
+from qiskit.transpiler.fencedobjs import FencedDAGCircuit
+from qiskit.utils.deprecation import deprecate_function
 
+from .fencedobjs import FencedPropertySet
 from .exceptions import TranspilerError
 from .layout import TranspileLayout
 
 logger = logging.getLogger(__name__)
 
 
-class RunningPassManager(BasePassRunner):
+class RunningPassManager(BasePassRunner, passmanager_error=TranspilerError):
     """A RunningPassManager is a running pass manager."""
 
     def __init__(self, max_iteration: int):
@@ -40,35 +43,65 @@ class RunningPassManager(BasePassRunner):
         self.count = 0
         self.output_name = None
 
-    def append(self, passes, **flow_controller_conditions):
-        try:
-            super().append(passes, **flow_controller_conditions)
-        except PassManagerError as ex:
-            # Override error for backward compatibility.
-            raise TranspilerError(ex.message) from ex
+    @property
+    @deprecate_function(
+        "Property set as an instance variable of the pass runner is deprecated and will be removed. "
+        "Use context variable through get_property_set function.",
+        stacklevel=2,
+        category=PendingDeprecationWarning,
+    )
+    def property_set(self):
+        """Return a thread local property set."""
+        return get_property_set()
+
+    @property
+    @deprecate_function(
+        "Property set as an instance variable of the pass runner is deprecated and will be removed. "
+        "Use context variable through get_property_set function.",
+        stacklevel=2,
+        category=PendingDeprecationWarning,
+    )
+    def fenced_property_set(self):
+        """Return a thread local fenced property set."""
+        # TODO Remove. We no longer need FencedPropertySet and indeed this is not used.
+        #   Now we can get property set at any time through the contextvar.
+        #   LazyPropertySet provides the same behavior with simpler merchinary.
+
+        # global property set is the context of the circuit held by the pass manager
+        # as it runs through its scheduled passes. The flow controller
+        # have read-only access (via the fenced_property_set).
+        property_set = get_property_set()
+        return FencedPropertySet(property_set)
 
     def _to_passmanager_ir(self, in_program):
+        if not isinstance(in_program, QuantumCircuit):
+            raise TranspilerError(f"Input {in_program.__class__} is not QuantumCircuit.")
         return circuit_to_dag(in_program)
 
     def _to_target(self, passmanager_ir):
+        if not isinstance(passmanager_ir, DAGCircuit):
+            raise TranspilerError(f"Input {passmanager_ir.__class__} is not DAGCircuit.")
         target = dag_to_circuit(passmanager_ir)
         target.name = self.output_name
 
-        if self.property_set["layout"] is not None:
-            target._layout = TranspileLayout(
-                initial_layout=self.property_set["layout"],
-                input_qubit_mapping=self.property_set["original_qubit_indices"],
-                final_layout=self.property_set["final_layout"],
-            )
-        target._clbit_write_latency = self.property_set["clbit_write_latency"]
-        target._conditional_latency = self.property_set["conditional_latency"]
+        # Get property set from the current context or thread.
+        property_set = get_property_set()
 
-        if self.property_set["node_start_time"]:
+        if property_set["layout"] is not None:
+            target._layout = TranspileLayout(
+                initial_layout=property_set["layout"],
+                input_qubit_mapping=property_set["original_qubit_indices"],
+                final_layout=property_set["final_layout"],
+            )
+        target._clbit_write_latency = property_set["clbit_write_latency"]
+        target._conditional_latency = property_set["conditional_latency"]
+
+        if property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
             # dag is converted into circuit. So this schedule information is
             # also converted into list with the same ordering with circuit.data.
             topological_start_times = []
-            start_times = self.property_set["node_start_time"]
+            start_times = property_set["node_start_time"]
             for dag_node in passmanager_ir.topological_op_nodes():
                 topological_start_times.append(start_times[dag_node])
             target._op_start_times = topological_start_times
@@ -98,16 +131,16 @@ class RunningPassManager(BasePassRunner):
 
         return super().run(in_program=circuit)
 
-    def _do_atomic_pass(
+    def _run_base_pass(
         self,
         pass_: BasePass,
         passmanager_ir: DAGCircuit,
         options: Dict,
     ) -> DAGCircuit:
-        """Do an atomic pass.
+        """Do a single base pass.
 
         Args:
-            pass_ : Pass to do.
+            pass_: A base pass to run.
             passmanager_ir: The dag on which the pass is ran.
             options: PassManager options.
 
@@ -116,23 +149,29 @@ class RunningPassManager(BasePassRunner):
             The same input dag in case of an analysis pass.
 
         Raises:
-            TranspilerError: If the pass is not a proper pass instance.
+            TypeError: When pass_ it not a valid pass type.
         """
+        if not isinstance(pass_, BasePass):
+            raise TypeError(f"A pass {pass_} is not a valid BasePass for circuit transpiler.")
+
         # First, do the requires of pass_
         for required_pass in pass_.requires:
-            passmanager_ir = self._do_atomic_pass(required_pass, passmanager_ir, options)
+            passmanager_ir = self._run_pass_generic(
+                pass_sequence=required_pass,
+                passmanager_ir=passmanager_ir,
+                options=options,
+            )
 
         # Run the pass itself, if not already run
         if pass_ not in self.valid_passes:
-            passmanager_ir = self._run_this_pass(pass_, passmanager_ir)
+            passmanager_ir = self._run_current_pass(pass_, passmanager_ir)
 
             # update the valid_passes property
             self._update_valid_passes(pass_)
 
         return passmanager_ir
 
-    def _run_this_pass(self, pass_, dag):
-        pass_.property_set = self.property_set
+    def _run_current_pass(self, pass_, dag):
         if pass_.is_transformation_pass:
             # Measure time if we have a callback or logging set
             start_time = time()
@@ -145,7 +184,7 @@ class RunningPassManager(BasePassRunner):
                     pass_=pass_,
                     dag=new_dag,
                     time=run_time,
-                    property_set=self.property_set,
+                    property_set=get_property_set(),
                     count=self.count,
                 )
                 self.count += 1
@@ -170,7 +209,7 @@ class RunningPassManager(BasePassRunner):
                     pass_=pass_,
                     dag=dag,
                     time=run_time,
-                    property_set=self.property_set,
+                    property_set=get_property_set(),
                     count=self.count,
                 )
                 self.count += 1

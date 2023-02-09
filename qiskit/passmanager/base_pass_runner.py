@@ -13,21 +13,15 @@
 """Qiskit pass manager for compilation and code optimization."""
 
 # pylint: disable=ungrouped-imports, no-name-in-module
-import sys
 from abc import ABC, abstractmethod
-from functools import partial
-from typing import Callable, Union, Sequence
+from typing import Callable, Dict, Any, Union, Optional
+
+from qiskit.utils.deprecation import deprecate_exception
 
 from .base_pass import BasePass
 from .exceptions import PassManagerError
-from .fencedobjs import FencedPropertySet
-from .flow_controller import FlowController, ConditionalController, DoWhileController
-from .propertyset import PropertySet
-
-if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod
-else:
-    from singledispatchmethod import singledispatchmethod
+from .flow_controller import FlowController, PassSequence
+from .propertyset import init_property_set, get_property_set
 
 
 class BasePassRunner(ABC):
@@ -38,19 +32,43 @@ class BasePassRunner(ABC):
     as long as the passes are defined based upon the MetaPass metaclass.
     This "vail of ignorance" allows us to complete the flow control within
     the base pass runner, and each runner subclass only need to implement
-    a mechanism to run an atomic pass and the data conversion logic across IR.
+    a mechanism to run an atomic pass and the data conversion logic across IRs/codes.
 
-    Note that actual flow control logic is implemented by a generic method :meth:`_manage_flow`
-    and it dispatches the algorithm based on the controller types.
-    This allows not only conditional iteration but also more complicated flow control.
-
-    A runner subclass must be implemented for each combination of
+    A BasePassRunner subclass must be implemented for each combination of
     the pass manager IR, input code and target code.
 
+    A flow controller provides custom interator to loop over the
+    underlying passes, and the pass runner instance receives normalized controllers
+    from the pass manager instance when created.
+    All passes and controllers under the pass runner share
+    the same thread local variable "property_set" implemented by the python contextvar,
+    which is updated through the pass execution.
+
     The runner only takes a single input program and returns a single program.
-    The pass manager IR must be consistent through the registered passes.
+    The pass manager IR must be consistent through the execution of registered passes.
     Note that input code and output code don't need to be identical type.
     """
+
+    def __init_subclass__(cls, passmanager_error=None, **kwargs):
+        # Temp fix for backward compatibility.
+        # This method will be removed once we migrate to new exception PassManagerError.
+        super().__init_subclass__(**kwargs)
+
+        if passmanager_error is not None:
+            import inspect
+
+            deprecator = deprecate_exception(
+                old_exception=passmanager_error,
+                new_exception=PassManagerError,
+                msg=f"{passmanager_error.__name__} exception is deprecated and will in future "
+                "be replaced with PassManagerError exception.",
+                category=PendingDeprecationWarning,
+            )
+            for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+                if name.startswith("_"):
+                    continue
+                wrapped_method = deprecator(method)
+                setattr(cls, name, wrapped_method)
 
     def __init__(self, max_iteration: int):
         """Initialize an empty PassManager object (with no passes scheduled).
@@ -63,61 +81,37 @@ class BasePassRunner(ABC):
         # Populated via PassManager.append().
         self.working_list = []
 
-        # global property set is the context of the circuit held by the pass manager
-        # as it runs through its scheduled passes. The flow controller
-        # have read-only access (via the fenced_property_set).
-        self.property_set = PropertySet()
-        self.fenced_property_set = FencedPropertySet(self.property_set)
-
         # passes already run that have not been invalidated
         self.valid_passes = set()
 
         # pass manager's overriding options for the passes it runs (for debugging)
+        # This is no longer used -- Naoki Kanazawa (Qiskit/qiskit-terra/#9163)
         self.passmanager_options = {"max_iteration": max_iteration}
 
     def append(
         self,
-        passes: Union[Sequence[BasePass], FlowController],
+        passes: PassSequence,
         **flow_controller_conditions: Callable,
     ):
         """Append a passes to the schedule of passes.
 
         Args:
             passes: A list of passes to be added to schedule.
-            flow_controller_conditions: See add_flow_controller(): Dictionary of
-            control flow plugins. Default:
-
-                * do_while (callable property_set -> boolean): The passes repeat until the
-                  callable returns False.
-                  Default: `lambda x: False # i.e. passes run once`
-
-                * condition (callable property_set -> boolean): The passes run only if the
-                  callable returns True.
-                  Default: `lambda x: True # i.e. passes run`
+            flow_controller_conditions: Dictionary of control flow plugins.
+                This is going to be deprecated. Provide flow controller rather than
+                a pass list with flow_controller_conditions.
 
         Raises:
             PassManagerError: When invalid flow condition is provided.
         """
-        if isinstance(passes, ConditionalController) and not isinstance(passes.condition, partial):
-            passes.condition = partial(passes.condition, self.fenced_property_set)
-
-        if isinstance(passes, DoWhileController) and not isinstance(passes.do_while, partial):
-            passes.do_while = partial(passes.do_while, self.fenced_property_set)
-
-        if not isinstance(passes, FlowController):
-            partial_controllers = {}
-            for name, condition in flow_controller_conditions.items():
-                if callable(condition):
-                    partial_controllers[name] = partial(condition, self.fenced_property_set)
-                else:
-                    raise PassManagerError(f"The flow controller parameter {name} is not callable.")
-            passes = FlowController.controller_factory(
-                passes=passes,
-                options=self.passmanager_options,
-                **partial_controllers,
-            )
-
-        self.working_list.append(passes)
+        # TODO Remove this. Now standard input is only normalized flow controller.
+        #  This lives only for unittest where it can take un-formatted pass list input.
+        normalized_flow_controller = FlowController.controller_factory(
+            passes=passes,
+            options=self.passmanager_options,
+            **flow_controller_conditions,
+        )
+        self.working_list.append(normalized_flow_controller)
 
     @abstractmethod
     def _to_passmanager_ir(self, in_program):
@@ -144,11 +138,16 @@ class BasePassRunner(ABC):
         pass
 
     @abstractmethod
-    def _do_atomic_pass(self, pass_, passmanager_ir, options):
-        """Do an atomic pass.
+    def _run_base_pass(
+        self,
+        pass_: BasePass,
+        passmanager_ir: Any,
+        options: Dict,
+    ) -> Any:
+        """Do a single base pass.
 
         Args:
-            pass_: Pass to run.
+            pass_: A base pass to run.
             passmanager_ir: Pass manager IR.
             options: PassManager options.
 
@@ -157,51 +156,47 @@ class BasePassRunner(ABC):
         """
         pass
 
-    @singledispatchmethod
-    def _manage_flow(self, controller, passmanager_ir):
-        # Do sinple iteration over passes. No conditional control.
-        for sub_pass in controller:
-            passmanager_ir = self._do_atomic_pass(
-                pass_=sub_pass,
+    def _run_pass_generic(
+        self,
+        pass_sequence: Union[BasePass, FlowController],
+        passmanager_ir: Any,
+        options: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        """Do either base pass or single flow controller.
+
+        Args:
+            pass_sequence: Base pass or flow controller to run.
+            passmanager_ir: Pass manager IR.
+            options: PassManager options.
+
+        Returns:
+            Pass manager IR with optimization.
+
+        Raises:
+            PassManagerError: When pass_sequence is not a valid class.
+        """
+        if isinstance(pass_sequence, BasePass):
+            # Allow mutation of property set by pass execution.
+            pass_sequence.property_set = get_property_set()
+            passmanager_ir = self._run_base_pass(
+                pass_=pass_sequence,
                 passmanager_ir=passmanager_ir,
-                options=controller.options,
+                options=options,
             )
-        return passmanager_ir
-
-    @_manage_flow.register(ConditionalController)
-    def _(self, controller, passmanager_ir):
-        if not isinstance(controller.condition, partial):
-            controller.condition = partial(controller.condition, self.fenced_property_set)
-
-        # Run pass only when condition is satisfied.
-        if controller.condition():
-            for sub_pass in controller:
-                passmanager_ir = self._do_atomic_pass(
-                    pass_=sub_pass,
+            return passmanager_ir
+        if isinstance(pass_sequence, FlowController):
+            for pass_ in pass_sequence:
+                passmanager_ir = self._run_pass_generic(
+                    pass_sequence=pass_,
                     passmanager_ir=passmanager_ir,
-                    options=controller.options,
+                    options=pass_sequence.options,
                 )
-        return passmanager_ir
+            return passmanager_ir
+        raise PassManagerError(
+            f"{pass_sequence.__class__} is not a valid base pass nor flow controller."
+        )
 
-    @_manage_flow.register(DoWhileController)
-    def _(self, controller, passmanager_ir):
-        if not isinstance(controller.do_while, partial):
-            controller.do_while = partial(controller.do_while, self.fenced_property_set)
-
-        # Run pass until max iteration is reached or terminated by condition
-        for _ in range(controller.max_iteration):
-            for sub_pass in controller:
-                passmanager_ir = self._do_atomic_pass(
-                    pass_=sub_pass,
-                    passmanager_ir=passmanager_ir,
-                    options=controller.options,
-                )
-            if not controller.do_while():
-                break
-        return passmanager_ir
-
-    # pylint: disable=missing-type-doc, missing-return-type-doc
-    def run(self, in_program):
+    def run(self, in_program: Any) -> Any:
         """Run all the passes on an input program.
 
         Args:
@@ -210,11 +205,18 @@ class BasePassRunner(ABC):
         Returns:
             Compiled or optimized program.
         """
+        # Create thread local propety set.
+        init_property_set()
+
         passmanager_ir = self._to_passmanager_ir(in_program)
         del in_program
 
         for controller in self.working_list:
-            passmanager_ir = self._manage_flow(controller, passmanager_ir)
+            passmanager_ir = self._run_pass_generic(
+                pass_sequence=controller,
+                passmanager_ir=passmanager_ir,
+                options=self.passmanager_options,
+            )
 
         return self._to_target(passmanager_ir)
 

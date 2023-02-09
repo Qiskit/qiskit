@@ -55,6 +55,40 @@ def deprecate_function(msg: str, stacklevel: int = 2, category: Type[Warning] = 
     return decorator
 
 
+def deprecate_exception(
+    old_exception: Type[Exception],
+    new_exception: Type[Exception],
+    msg: str,
+    stacklevel: int = 2,
+    category: Type[Warning] = DeprecationWarning,
+):
+    """Decorator to raise legacy exception with deprecation message.
+
+    Args:
+        old_exception: A class of exception to be replaced.
+        new_exception: A class of exception to replace.
+        msg: Warning message to emit.
+        stacklevel: The warning stackevel to use, defaults to 2.
+        category: warning category, defaults to DeprecationWarning
+
+    Returns:
+        Callable: The decorated, deprecated callable.
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except new_exception as ex:
+                warnings.warn(msg, category=category, stacklevel=stacklevel)
+                raise old_exception(ex.message) from ex
+
+        return wrapper
+
+    return decorator
+
+
 def _rename_kwargs(func_name, kwargs, kwarg_map, category: Type[Warning] = DeprecationWarning):
     for old_arg, new_arg in kwarg_map.items():
         if old_arg in kwargs:

@@ -13,10 +13,12 @@
 """Qiskit pass manager for compilation and code optimization."""
 
 from collections import OrderedDict
-from typing import Callable, Sequence, Dict
+from functools import partial
+from typing import Callable, Sequence, List, Dict, Union
 
 from .base_pass import BasePass
 from .exceptions import PassManagerError
+from .propertyset import FuturePropertySet
 
 
 class FlowController:
@@ -30,10 +32,11 @@ class FlowController:
 
     def __init__(
         self,
-        passes: Sequence[BasePass],
+        passes: Sequence[Union[BasePass, "FlowController"]],
         options: Dict,
         **partial_controller: Callable,
     ):
+        # Usage of this protected member is not clear. Can be removed?
         self._passes = passes
         self.passes = FlowController.controller_factory(passes, options, **partial_controller)
         self.options = options
@@ -83,7 +86,7 @@ class FlowController:
     @classmethod
     def controller_factory(
         cls,
-        passes: Sequence[BasePass],
+        passes: Sequence[Union[BasePass, "FlowController"]],
         options: Dict,
         **partial_controller: Callable,
     ) -> "FlowController":
@@ -102,17 +105,20 @@ class FlowController:
         Returns:
             FlowController: A FlowController instance.
         """
+        passes = _normalize_passes_generic(passes)
+
         if None in partial_controller.values():
             raise PassManagerError("The controller needs a condition.")
 
         if partial_controller:
-            for registered_controller in cls.registered_controllers.keys():
-                if registered_controller in partial_controller:
-                    return cls.registered_controllers[registered_controller](
-                        passes, options, **partial_controller
-                    )
-            raise PassManagerError("The controllers for %s are not registered" % partial_controller)
-
+            # Validate controllers. Make sure context property set is tied to callables.
+            for key, value in partial_controller.items():
+                if callable(value) and not isinstance(value, partial):
+                    partial_controller[key] = partial(value, FuturePropertySet())
+            for tag, controller_cls in cls.registered_controllers.items():
+                if tag in partial_controller:
+                    return controller_cls(passes, options, **partial_controller)
+            raise PassManagerError(f"The controllers for {partial_controller} are not registered")
         return FlowControllerLinear(passes, options)
 
 
@@ -128,17 +134,94 @@ class DoWhileController(FlowController):
     """Implements a set of passes in a do-while loop."""
 
     def __init__(self, passes, options=None, do_while=None, **partial_controller):
+        if not callable(do_while):
+            raise PassManagerError("The flow controller parameter 'do_while' is not callable.")
         self.do_while = do_while
         self.max_iteration = options["max_iteration"] if options else 1000
         super().__init__(passes, options, **partial_controller)
+
+    def __iter__(self):
+        for _ in range(self.max_iteration):
+            yield from self.passes
+
+            if not self.do_while():
+                return
+        raise PassManagerError(f"Maximum iteration reached. max_iteration={self.max_iteration}")
 
 
 class ConditionalController(FlowController):
     """Implements a set of passes under a certain condition."""
 
     def __init__(self, passes, options=None, condition=None, **partial_controller):
+        if not callable(condition):
+            raise PassManagerError("The flow controller parameter 'condition' is not callable.")
         self.condition = condition
         super().__init__(passes, options, **partial_controller)
+
+    def __iter__(self):
+        if self.condition():
+            yield from self.passes
+
+
+# Alias to the union of base pass and flow controller
+PassSequence = Union[Union[BasePass, FlowController], List[Union[BasePass, FlowController]]]
+
+
+def _bind_context_property(controller: FlowController) -> FlowController:
+    """A helper function to make sure all callables take a property set.
+
+    Args:
+        controller: Flow controller instance to investigate.
+
+    Returns:
+        A flow controller tied to the property set.
+    """
+    excludes = ["_passes", "passes", "options"]
+
+    # Hard-code built-in controllers since callable attribute name is known.
+    if isinstance(controller, FlowControllerLinear):
+        return controller
+    if isinstance(controller, ConditionalController):
+        if not isinstance(controller.condition, partial):
+            controller.condition = partial(controller.condition, FuturePropertySet())
+        return controller
+    if isinstance(controller, DoWhileController):
+        if not isinstance(controller.do_while, partial):
+            controller.do_while = partial(controller.do_while, FuturePropertySet())
+        return controller
+    # Investigate all members when controller is not built-in.
+    for attr_name, value in vars(controller).items():
+        if attr_name in excludes:
+            continue
+        if callable(value) and not isinstance(value, partial):
+            setattr(controller, attr_name, partial(value, FuturePropertySet()))
+    return controller
+
+
+def _normalize_passes_generic(passes: PassSequence) -> PassSequence:
+    """A helper function to normalize passes.
+
+    Args:
+        passes: Passes to normalize.
+
+    Returns:
+        Normalized pass.
+
+    Raises:
+        TypeError: When invalid pass is provided.
+    """
+    if isinstance(passes, BasePass):
+        # Base pass can go as-is.
+        return passes
+    if isinstance(passes, FlowController):
+        # Controller that may take a callable requiring property set.
+        normalized_inset_passes = _normalize_passes_generic(passes.passes)
+        passes.passes = normalized_inset_passes
+        return _bind_context_property(passes)
+    if isinstance(passes, (list, tuple)):
+        # Sequence of base passes or flow controllers.
+        return list(map(_normalize_passes_generic, passes))
+    raise TypeError(f"{passes.__class__} is not a valid BasePass of FlowController instance.")
 
 
 # Default controllers

@@ -14,7 +14,6 @@
 
 from .base_pass_runner import BasePassRunner
 from .base_passmanager import BasePassManager
-from .fencedobjs import FencedObject, FencedPropertySet
 from .flow_controller import FlowController, ConditionalController, DoWhileController
 from .base_pass import BasePass
-from .propertyset import PropertySet
+from .propertyset import PropertySet, FuturePropertySet
