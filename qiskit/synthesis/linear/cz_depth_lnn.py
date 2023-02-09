@@ -148,8 +148,8 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
             mat[i][j]=1 for i<j represents a CZ(i,j) gate
 
     Return:
-        QuantumCircuit: a circuit implementation of the CZ circuit of depth 2*n+2 for LNL connectivity.
-            The circuit contains CX and phase (S, Sdg or Z) gates.
+        QuantumCircuit: a circuit implementation of the CZ circuit of depth 2*n+2 for LNN connectivity.
+            The circuit *reverts* the order of qubits, and contains CX and phase (S, Sdg or Z) gates.
 
     Reference:
         1. Dmitri Maslov, Martin Roetteler,
