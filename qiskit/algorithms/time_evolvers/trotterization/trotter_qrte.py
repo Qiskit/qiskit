@@ -117,9 +117,6 @@ class TrotterQRTE(RealTimeEvolver):
         circuit. If auxiliary operators are included in the ``evolution_problem``, they are
         evaluated on an evolved state using an estimator primitive provided.
 
-        .. note::
-            Time-dependent Hamiltonians are not supported.
-
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
                 ``Pauli`` or ``PauliSumOp`` are supported by TrotterQRTE.
