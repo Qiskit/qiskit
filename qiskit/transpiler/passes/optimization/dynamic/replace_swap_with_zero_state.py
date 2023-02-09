@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Remove reset gate when the qubit is in zero state."""
+"""Replace Swap gate in case of qubit in zero state with dynamic protocol."""
 
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, Reset
 from qiskit.circuit.library import CXGate, HGate, Measure, SwapGate
@@ -20,10 +20,11 @@ from qiskit.transpiler.basepasses import TransformationPass
 
 
 class ReplaceSwapWithZeroState(TransformationPass):
-    """Remove reset gate when the qubit is in zero state."""
+    """Replace Swap gate in case of qubit in zero state with
+    dynamic protocol."""
 
     def run(self, dag):
-        """Run the RemoveResetInZeroState pass on `dag`.
+        """Run the ReplaceSwapWithZeroState pass on `dag`.
 
         Args:
             dag (DAGCircuit): the DAG to be optimized.
