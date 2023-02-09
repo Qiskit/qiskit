@@ -30,6 +30,7 @@ from qiskit.circuit.library.standard_gates import (
     RYYGate,
     RZZGate,
     RZXGate,
+    SwapGate,
 )
 
 
@@ -93,7 +94,17 @@ class GateDirection(TransformationPass):
         self._cz_dag.add_qreg(qr)
         self._cz_dag.apply_operation_back(CZGate(), [qr[1], qr[0]], [])
 
-        self._static_replacements = {"cx": self._cx_dag, "cz": self._cz_dag, "ecr": self._ecr_dag}
+        self._swap_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        self._swap_dag.add_qreg(qr)
+        self._swap_dag.apply_operation_back(SwapGate(), [qr[1], qr[0]], [])
+
+        self._static_replacements = {
+            "cx": self._cx_dag,
+            "cz": self._cz_dag,
+            "ecr": self._ecr_dag,
+            "swap": self._swap_dag,
+        }
 
     @staticmethod
     def _rzx_dag(parameter):
