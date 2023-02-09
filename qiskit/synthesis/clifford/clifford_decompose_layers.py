@@ -407,11 +407,10 @@ def synth_clifford_depth_lnn(cliff):
            structure of the Clifford group*,
            `arXiv:2003.09412 [quant-ph] <https://arxiv.org/abs/2003.09412>`_
         2. Dmitri Maslov, Martin Roetteler,
-           Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations,
+           *Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations*,
            `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
-        3. Dmitri Maslov, Willers Yang,
-           CNOT circuits need little help to implement arbitrary Hadamard-free Clifford
-           transformations they generate
+        3. Dmitri Maslov, Willers Yang, *CNOT circuits need little help to implement arbitrary
+           Hadamard-free Clifford transformations they generate*,
            `arXiv:2210.16195 <https://arxiv.org/abs/2210.16195>`_.
     """
     circ = synth_clifford_layers(

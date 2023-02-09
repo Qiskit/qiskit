@@ -153,7 +153,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
 
     Reference:
         1. Dmitri Maslov, Martin Roetteler,
-           Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations,
+           *Shorter stabilizer circuits via Bruhat decomposition and quantum circuit transformations*,
            `arXiv:1705.09176 <https://arxiv.org/abs/1705.09176>`_.
     """
     num_qubits = mat.shape[0]
