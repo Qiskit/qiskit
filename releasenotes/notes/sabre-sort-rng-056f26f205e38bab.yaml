@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Internal tweaks to the routing algorithm in :class:`.SabreSwap`, used in
+    transpilation of non-dynamic circuits at all non-zero optimization levels,
+    have sped up routing for very large circuits.  As an example, the time to
+    route a depth-5 :class:`.QuantumVolume` circuit for a 1081-qubit heavy-hex
+    coupling map is approximately halved.
