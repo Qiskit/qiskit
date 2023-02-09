@@ -14,20 +14,22 @@
 
 import unittest
 
-from qiskit import QuantumCircuit, transpile
-from qiskit.transpiler.passes import ElideSwaps
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.compiler.transpiler import transpile
+from qiskit.circuit.library.generalized_gates import PermutationGate
+from qiskit.transpiler.passes.optimization.elide_permutations import ElidePermutations
 from qiskit.test import QiskitTestCase
 from qiskit.circuit.controlflow import IfElseOp
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.coupling import CouplingMap
 
 
-class TestElideSwaps(QiskitTestCase):
+class TestElidePermutations(QiskitTestCase):
     """Test swap elision logical optimization pass."""
 
     def setUp(self):
         super().setUp()
-        self.swap_pass = ElideSwaps()
+        self.swap_pass = ElidePermutations()
 
     def test_no_swap(self):
         """Test no swap means no transform."""
@@ -175,11 +177,121 @@ class TestElideSwaps(QiskitTestCase):
         qc.h(1)
 
         # with no layout
-        res = transpile(qc, optimization_level=3)
+        res = transpile(qc, optimization_level=3, seed_transpiler=42)
         self.assertTrue(Operator.from_circuit(res).equiv(qc))
         # With layout
         res = transpile(qc, coupling_map=CouplingMap.from_line(3), optimization_level=3)
         self.assertTrue(Operator.from_circuit(res).equiv(qc))
+
+    def test_permutation_in_middle(self):
+        """Test swap in middle of bell is elided."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
+        qc.cx(1, 2)
+        qc.barrier(0, 1, 2)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        qc.measure(2, 2)
+
+        expected = QuantumCircuit(3, 3)
+        expected.h(0)
+        expected.cx(2, 0)
+        expected.barrier(0, 1, 2)
+        expected.measure(2, 0)
+        expected.measure(1, 1)
+        expected.measure(0, 2)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
+    def test_permutation_at_beginning(self):
+        """Test swap in beginning of bell is elided."""
+        qc = QuantumCircuit(3, 3)
+        qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
+        qc.h(0)
+        qc.cx(1, 2)
+        qc.barrier(0, 1, 2)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        qc.measure(2, 2)
+
+        expected = QuantumCircuit(3, 3)
+        expected.h(2)
+        expected.cx(2, 0)
+        expected.barrier(0, 1, 2)
+        expected.measure(2, 0)
+        expected.measure(1, 1)
+        expected.measure(0, 2)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
+    def test_permutation_at_end(self):
+        """Test swap in beginning of bell is elided."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.cx(1, 2)
+        qc.barrier(0, 1, 2)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        qc.measure(2, 2)
+        qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
+
+        expected = QuantumCircuit(3, 3)
+        expected.h(0)
+        expected.cx(1, 2)
+        expected.barrier(0, 1, 2)
+        expected.measure(0, 0)
+        expected.measure(1, 1)
+        expected.measure(2, 2)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
+    def test_swap_and_permutation(self):
+        """Test a combination of swap and permutation gates."""
+        qc = QuantumCircuit(3, 3)
+        qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
+        qc.swap(0, 2)
+        qc.h(0)
+        qc.cx(1, 2)
+        qc.barrier(0, 1, 2)
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        qc.measure(2, 2)
+        expected = QuantumCircuit(3, 3)
+        expected.h(0)
+        expected.cx(1, 2)
+        expected.barrier(0, 1, 2)
+        expected.measure(0, 0)
+        expected.measure(1, 1)
+        expected.measure(2, 2)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
+
+    def test_permutation_before_measure(self):
+        """Test swap in beginning of bell is elided."""
+        qc = QuantumCircuit(3, 3)
+        qc.h(0)
+        qc.cx(1, 2)
+        qc.barrier(0, 1, 2)
+        qc.append(PermutationGate([1, 2, 0]), [0, 1, 2])
+        qc.measure(0, 0)
+        qc.measure(1, 1)
+        qc.measure(2, 2)
+
+        expected = QuantumCircuit(3, 3)
+        expected.h(0)
+        expected.cx(1, 2)
+        expected.barrier(0, 1, 2)
+        expected.measure(1, 0)
+        expected.measure(2, 1)
+        expected.measure(0, 2)
+
+        res = self.swap_pass(qc)
+        self.assertEqual(res, expected)
 
 
 if __name__ == "__main__":

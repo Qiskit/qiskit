@@ -41,7 +41,7 @@ from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.passes import ElideSwaps
+from qiskit.transpiler.passes import ElidePermutations
 from qiskit.transpiler.runningpassmanager import ConditionalController
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
@@ -184,7 +184,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     else:
         if initial_layout is None:
-            init.append(ElideSwaps())
+            init.append(ElidePermutations())
         init += common.generate_unroll_3q(
             target,
             basis_gates,

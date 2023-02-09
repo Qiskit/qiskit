@@ -14,12 +14,13 @@
 """Remove any swap gates in the circuit by pushing it through into a qubit permutation."""
 
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.circuit.library.generalized_gates import PermutationGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.layout import Layout
 
 
-class ElideSwaps(TransformationPass):
-    r"""Remove :class:`~SwapGate`\s from a pre-layout circuit
+class ElidePermutations(TransformationPass):
+    r"""Remove permutation operations from a pre-layout circuit
 
     This pass is intended to be run before a layout (mapping virtual qubits
     to physical qubits) is set during the transpilation pipeline. This
@@ -38,7 +39,8 @@ class ElideSwaps(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        if dag.count_ops().get("swap", 0) == 0:
+        if dag.count_ops().get("swap", 0) == 0 and dag.count_ops().get("permutation", 0) == 0:
+
             return dag
         new_dag = dag.copy_empty_like()
         qubit_mapping = list(range(len(dag.qubits)))
@@ -48,17 +50,27 @@ class ElideSwaps(TransformationPass):
             return tuple(dag.qubits[qubit_mapping[input_qubit_mapping[qubit]]] for qubit in qargs)
 
         for node in dag.topological_op_nodes():
-            if not isinstance(node.op, SwapGate):
+            if not isinstance(node.op, (SwapGate, PermutationGate)):
                 new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs)
             elif getattr(node.op, "condition", None) is not None:
                 new_dag.apply_operation_back(node.op, _apply_mapping(node.qargs), node.cargs)
-            else:
+            elif isinstance(node.op, SwapGate):
                 index_0 = input_qubit_mapping[node.qargs[0]]
                 index_1 = input_qubit_mapping[node.qargs[1]]
                 qubit_mapping[index_1], qubit_mapping[index_0] = (
                     qubit_mapping[index_0],
                     qubit_mapping[index_1],
                 )
+            elif isinstance(node.op, PermutationGate):
+                indices = []
+                pattern = node.op.params[0]
+                for qarg in node.qargs:
+                    indices.append(input_qubit_mapping[qarg])
+                for index_0, index_1 in zip(indices, pattern):
+                    qubit_mapping[index_1], qubit_mapping[index_0] = (
+                        qubit_mapping[index_0],
+                        qubit_mapping[index_1],
+                    )
         self.property_set["original_layout"] = Layout(input_qubit_mapping)
         self.property_set["original_qubit_indices"] = input_qubit_mapping
         self.property_set["elision_final_layout"] = Layout(dict(zip(dag.qubits, qubit_mapping)))
