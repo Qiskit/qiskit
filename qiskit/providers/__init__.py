@@ -43,19 +43,19 @@ the interface changes for that release on that interface.
 Version Support Policy
 ----------------------
 
-To enable providers to have time to adjust to changes in this interface
-Terra will support support multiple versions of each class at once. Given the
-nature of one version per release the version deprecation policy is a bit
-more conservative than the standard deprecation policy. Terra will support a
-provider interface version for a minimum of 3 minor releases or the first
-release after 6 months from the release that introduced a version, whichever is
-longer, prior to a potential deprecation. After that the standard deprecation
-policy will apply to that interface version. This will give providers and users
-sufficient time to adapt to potential breaking changes in the interface. So for
-example lets say in 0.19.0 ``BackendV2`` is introduced and in the 3 months after
-the release of 0.19.0 we release 0.20.0, 0.21.0, and 0.22.0, then 7 months after
-0.19.0 we release 0.23.0. In 0.23.0 we can deprecate BackendV2, and it needs to
-still be supported and can't be removed until the deprecation policy completes.
+To enable providers to have time to adjust to changes in this interface Terra
+will support multiple versions of each class at once. Given the nature of one
+version per release the version deprecation policy is a bit more conservative
+than the standard deprecation policy. Terra will support a provider interface
+version for a minimum of 3 minor releases or the first release after 6 months
+from the release that introduced a version, whichever is longer, prior to a
+potential deprecation. After that the standard deprecation policy will apply to
+that interface version. This will give providers and users sufficient time to
+adapt to potential breaking changes in the interface. So for example lets say
+in 0.19.0 ``BackendV2`` is introduced and in the 3 months after the release of
+0.19.0 we release 0.20.0, 0.21.0, and 0.22.0, then 7 months after 0.19.0 we
+release 0.23.0. In 0.23.0 we can deprecate BackendV2, and it needs to still be
+supported and can't be removed until the deprecation policy completes.
 
 It's worth pointing out that Terra's version support policy doesn't mean
 providers themselves will have the same support story, they can (and arguably
@@ -154,7 +154,7 @@ steps for writing a provider are:
  * Implement a :class:`~qiskit.providers.ProviderV1` subclass that handles
    access to the backend(s).
  * Implement a :class:`~qiskit.providers.BackendV2` subclass and its
-   :meth:`~~qiskit.providers.BackendV2.run` method.
+   :meth:`~qiskit.providers.BackendV2.run` method.
 
    * Add any custom gates for the backend's basis to the session
      :class:`~qiskit.circuit.EquivalenceLibrary` instance.
@@ -335,10 +335,11 @@ Custom Basis Gates
        }
        self.target.add_instruction(SYGate(), sy_props)
 
-   The keys in ``sy_props`` define the qubits on the backend ``SYGate`` can be
-   used on, and the values define the properties of ``SYGate`` on that qubit.
-   For multiqubit gates the tuple keys contain all qubit combinations the gate
-   works on (order is significant, i.e. ``(0, 1)`` is different from ``(1, 0)``).
+   The keys in ``sy_props`` define the qubits where the backend ``SYGate`` can
+   be used on, and the values define the properties of ``SYGate`` on that
+   qubit. For multiqubit gates the tuple keys contain all qubit combinations
+   the gate works on (order is significant, i.e. ``(0, 1)`` is different from
+   ``(1, 0)``).
 
 3. After you've defined the custom gates to use for the backend's basis set
    then you need to add equivalence rules to the standard equivalence library
@@ -655,13 +656,13 @@ from :obj:`~BackendV1` to :obj:`~BackendV2` existing access patterns will need
 to be adjusted. It is expected for existing providers to deprecate the old
 access where possible to provide a graceful migration, but eventually users
 will need to adjust code. The biggest change to adapt to in :obj:`~BackendV2` is
-that most of the information accesible about a backend is contained in its
+that most of the information accessible about a backend is contained in its
 :class:`~qiskit.transpiler.Target` object and the backend's attributes often query
 its :attr:`~qiskit.providers.BackendV2.target`
 attribute to return information, however in many cases the attributes only provide
 a subset of information the target can contain. For example, ``backend.coupling_map``
 returns a :class:`~qiskit.transpiler.CouplingMap` constructed from the
-:class:`~qiskit.transpiler.Target` accesible in the
+:class:`~qiskit.transpiler.Target` accessible in the
 :attr:`~qiskit.providers.BackendV2.target` attribute, however the target may contain
 instructions that operate on more than two qubits (which can't be represented in a
 :class:`~qiskit.transpiler.CouplingMap`) or has instructions that only operate on
