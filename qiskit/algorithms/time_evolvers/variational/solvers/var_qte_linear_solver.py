@@ -24,7 +24,7 @@ from qiskit.circuit import Parameter
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .ode.assign_params import _assign_parameters
+from qiskit.algorithms.utils.assign_params import _assign_parameters
 
 from ..variational_principles import VariationalPrinciple
 

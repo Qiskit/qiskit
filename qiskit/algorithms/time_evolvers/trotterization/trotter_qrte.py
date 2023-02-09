@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import copy
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
@@ -23,7 +24,9 @@ from qiskit.opflow import PauliSumOp
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.synthesis import ProductFormula, LieTrotter
+from qiskit.synthesis import ProductFormula, LieTrotter, SuzukiTrotter
+
+from qiskit.algorithms.utils.assign_params import _assign_parameters, _get_parameters
 
 
 class TrotterQRTE(RealTimeEvolver):
@@ -54,6 +57,7 @@ class TrotterQRTE(RealTimeEvolver):
     def __init__(
         self,
         product_formula: ProductFormula | None = None,
+        num_timesteps: int = 1,
         estimator: BaseEstimator | None = None,
     ) -> None:
         """
@@ -65,6 +69,7 @@ class TrotterQRTE(RealTimeEvolver):
         """
 
         self.product_formula = product_formula
+        self.num_timesteps = num_timesteps
         self.estimator = estimator
 
     @property
@@ -132,11 +137,6 @@ class TrotterQRTE(RealTimeEvolver):
             ValueError: If an unsupported Hamiltonian type is provided.
         """
         evolution_problem.validate_params()
-        # if evolution_problem.t_param is not None:
-        #     raise ValueError(
-        #         "TrotterQRTE does not accept a time dependent Hamiltonian,"
-        #         "``t_param`` from the ``TimeEvolutionProblem`` should be set to ``None``."
-        #     )
 
         if evolution_problem.aux_operators is not None and self.estimator is None:
             raise ValueError(
@@ -148,31 +148,71 @@ class TrotterQRTE(RealTimeEvolver):
             raise ValueError(
                 f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
-        # the evolution gate
-        evolution_gate = PauliEvolutionGate(
-            hamiltonian,
-            evolution_problem.time,
-            evolution_problem.t_param,
-            synthesis=self.product_formula
-        )
+        if evolution_problem.t_param is not None and len(_get_parameters(hamiltonian.coeffs)) > 1:
+            raise ValueError("Time-dependent Hamiltonian cannot contain multiple parameters")
+
+        # make sure PauliEvolutionGate does not implement more than one Trotter step
+        dt = evolution_problem.time / self.num_timesteps
+        if self.product_formula.settings["reps"] != 1 and self.product_formula.settings["order"] == 1:
+            self.product_formula = LieTrotter(
+                order=self.product_formula.settings["order"],
+                reps=1,
+                insert_barriers=self.product_formula.settings["insert_barriers"],
+                cx_structure=self.product_formula.settings["cx_structure"]
+            )
+        elif self.product_formula.settings["reps"] != 1 and self.product_formula.settings["order"] > 1:
+            self.product_formula = SuzukiTrotter(
+                order=self.product_formula.settings["order"],
+                reps=1,
+                insert_barriers=self.product_formula.settings["insert_barriers"],
+                cx_structure=self.product_formula.settings["cx_structure"]
+            )
 
         if evolution_problem.initial_state is not None:
             initial_state = evolution_problem.initial_state
-            evolved_state = QuantumCircuit(initial_state.num_qubits)
-            evolved_state.append(initial_state, evolved_state.qubits)
-            evolved_state.append(evolution_gate, evolved_state.qubits)
-
         else:
             raise ValueError("``initial_state`` must be provided in the ``TimeEvolutionProblem``.")
 
-        evaluated_aux_ops = None
+        evolved_state = QuantumCircuit(initial_state.num_qubits)
+        evolved_state.append(initial_state, evolved_state.qubits)
+
+        evaluated_aux_ops = []
         if evolution_problem.aux_operators is not None:
-            evaluated_aux_ops = estimate_observables(
-                self.estimator,
-                evolved_state,
-                evolution_problem.aux_operators,
-                None,
-                evolution_problem.truncation_threshold,
+            evaluated_aux_ops.append(
+                estimate_observables(
+                    self.estimator,
+                    evolved_state,
+                    evolution_problem.aux_operators,
+                    None,
+                    evolution_problem.truncation_threshold,
+                )
             )
+
+        if evolution_problem.t_param is None:
+            # the evolution gate
+            single_step_evolution_gate = PauliEvolutionGate(
+                hamiltonian, dt, synthesis=self.product_formula
+            )
+
+        for n in range(self.num_timesteps):
+            if evolution_problem.t_param is not None:
+                time_value = (n + 1)*dt
+                parametrized_coeffs = copy.deepcopy(hamiltonian.coeffs)
+                bound_coeffs = _assign_parameters(parametrized_coeffs, [time_value])
+                single_step_evolution_gate = PauliEvolutionGate(
+                    SparsePauliOp(hamiltonian.paulis, bound_coeffs), dt, synthesis=self.product_formula
+                )
+            evolved_state.append(single_step_evolution_gate, evolved_state.qubits)
+
+            if evolution_problem.aux_operators is not None:
+                evaluated_aux_ops.append(
+                    estimate_observables(
+                        self.estimator,
+                        evolved_state,
+                        evolution_problem.aux_operators,
+                        None,
+                        evolution_problem.truncation_threshold,
+                    )
+                )            
 
         return TimeEvolutionResult(evolved_state, evaluated_aux_ops)

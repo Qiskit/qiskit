@@ -83,7 +83,6 @@ class PauliEvolutionGate(Gate):
         self,
         operator,
         time: Union[int, float, ParameterExpression] = 1.0,
-        t_param: Parameter | None = None,
         label: Optional[str] = None,
         synthesis: Optional[EvolutionSynthesis] = None,
     ) -> None:
@@ -114,9 +113,7 @@ class PauliEvolutionGate(Gate):
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
-
         self.operator = operator
-        self.t_param = t_param
         self.synthesis = synthesis
 
     @property
@@ -176,6 +173,8 @@ def _to_sparse_pauli_op(operator):
 
     if any(np.iscomplex(sparse_pauli.coeffs)):
         raise ValueError("Operator contains complex coefficients, which are not supported.")
+    if any(isinstance(coeff, ParameterExpression) for coeff in sparse_pauli.coeffs):
+        raise ValueError("Operator contains ParameterExpression, which are not supported.")
 
     return sparse_pauli
 
