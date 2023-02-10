@@ -13,11 +13,11 @@
 """
 Driver for a synthesis routine which emits optimal XX-based circuits.
 """
-
+from __future__ import annotations
 import heapq
 import math
 from operator import itemgetter
-from typing import Callable, Optional, Union
+from typing import Callable
 
 import numpy as np
 
@@ -78,10 +78,10 @@ class XXDecomposer:
 
     def __init__(
         self,
-        basis_fidelity: Union[dict, float] = 1.0,
+        basis_fidelity: dict | float = 1.0,
         euler_basis: str = "U",
-        embodiments: Optional[dict] = None,
-        backup_optimizer: Optional[Callable] = None,
+        embodiments: dict[float, QuantumCircuit] | None = None,
+        backup_optimizer: Callable[..., QuantumCircuit] | None = None,
     ):
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
             Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
@@ -93,7 +93,7 @@ class XXDecomposer:
         self.basis_fidelity = basis_fidelity
 
         # expose one of the basis gates so others can know what this decomposer targets
-        embodiment_circuit = next(iter(self.embodiments.items()), ([], []))[1]
+        embodiment_circuit = next(iter(self.embodiments.values()), QuantumCircuit())
         for instruction in embodiment_circuit:
             if len(instruction.qubits) == 2:
                 self.gate = instruction.operation
@@ -217,10 +217,10 @@ class XXDecomposer:
 
     def __call__(
         self,
-        unitary: Union[Operator, np.ndarray],
-        basis_fidelity: Optional[Union[dict, float]] = None,
+        unitary: Operator | np.ndarray,
+        basis_fidelity: dict | float | None = None,
         approximate: bool = True,
-    ):
+    ) -> QuantumCircuit:
         """
         Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation
         `unitary`, using the circuit templates supplied at initialization as `embodiments`.  The
