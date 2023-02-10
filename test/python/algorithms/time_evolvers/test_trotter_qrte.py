@@ -88,16 +88,70 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         aux_ops_result = evolution_result.aux_ops_evaluated
         expected_aux_ops_result = [
-            (0.078073, {"variance": 0, "shots": 0}),
-            (0.268286, {"variance": 0, "shots": 0}),
+            [
+                (0, {"variance": 0, "shots": 0}),
+                (0, {"variance": 0, "shots": 0}),
+            ],
+            [
+                (0.078073, {"variance": 0, "shots": 0}),
+                (0.268286, {"variance": 0, "shots": 0}),
+            ]
         ]
 
-        means = [element[0] for element in aux_ops_result]
-        expected_means = [element[0] for element in expected_aux_ops_result]
+        means = [element[0][0] for element in aux_ops_result]
+        expected_means = [element[0][0] for element in expected_aux_ops_result]
         np.testing.assert_array_almost_equal(means, expected_means)
 
-        vars_and_shots = [element[1] for element in aux_ops_result]
-        expected_vars_and_shots = [element[1] for element in expected_aux_ops_result]
+        vars_and_shots = [element[1][1] for element in aux_ops_result]
+        expected_vars_and_shots = [element[1][1] for element in expected_aux_ops_result]
+
+        for computed, expected in zip(vars_and_shots, expected_vars_and_shots):
+            self.assertAlmostEqual(computed.pop("variance", 0), expected["variance"], 2)
+            self.assertEqual(computed.pop("shots", 0), expected["shots"])
+
+    def test_trotter_qrte_trotter_time_dependent_hamiltonian(self):
+        """Test for default TrotterQRTE on a single qubit time dependent Hamiltonian."""
+        t_param = Parameter("t")
+        operator = SparsePauliOp([Pauli("X"), Pauli("Z")], np.array([t_param, 1]))
+        # LieTrotter with 1 rep
+        aux_ops = [Pauli("X"), Pauli("Y")]
+
+        initial_state = QuantumCircuit(1)
+        time = 3
+        evolution_problem = TimeEvolutionProblem(
+            operator, time, initial_state, aux_ops, t_param=t_param
+        )
+        estimator = Estimator()
+
+        expected_evolved_state = Statevector([0.90201212+0.12857871j, 0.05815816+0.40799421j])
+
+        algorithm_globals.random_seed = 0
+        trotter_qrte = TrotterQRTE(estimator=estimator)
+        evolution_result = trotter_qrte.evolve(evolution_problem)
+
+        np.testing.assert_array_almost_equal(
+            Statevector.from_instruction(evolution_result.evolved_state).data,
+            expected_evolved_state.data,
+        )
+
+        aux_ops_result = evolution_result.aux_ops_evaluated
+        expected_aux_ops_result = [
+            [
+                (0, {"variance": 0, "shots": 0}),
+                (0, {"variance": 0, "shots": 0}),
+            ],
+            [
+                (0.209838, {"variance": 0, "shots": 0}),
+                (0.721076, {"variance": 0, "shots": 0}),
+            ]
+        ]
+
+        means = [element[0][0] for element in aux_ops_result]
+        expected_means = [element[0][0] for element in expected_aux_ops_result]
+        np.testing.assert_array_almost_equal(means, expected_means)
+
+        vars_and_shots = [element[1][1] for element in aux_ops_result]
+        expected_vars_and_shots = [element[1][1] for element in expected_aux_ops_result]
 
         for computed, expected in zip(vars_and_shots, expected_vars_and_shots):
             self.assertAlmostEqual(computed.pop("variance", 0), expected["variance"], 2)
@@ -172,10 +226,10 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         self._run_error_test(initial_state, operator, aux_ops, estimator, None, None)
 
     @data(
-        (SparsePauliOp([Pauli("X"), Pauli("Z")]), QuantumCircuit(1)),
         (X, QuantumCircuit(1)),
         (MatrixOp([[1, 1], [0, 1]]), QuantumCircuit(1)),
         (PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(SparsePauliOp([Pauli("Z")])), None),
+        (SparsePauliOp([Pauli("X"), Pauli("Z")], np.array([Parameter("a"), Parameter("b")])), QuantumCircuit(1))
     )
     @unpack
     def test_trotter_qrte_trotter_hamiltonian_errors(self, operator, initial_state):
