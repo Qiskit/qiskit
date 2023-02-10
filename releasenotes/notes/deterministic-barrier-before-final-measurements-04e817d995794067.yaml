@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The :class:`.BarrierBeforeFinalMeasurements` transpiler pass previously had a non-deterministic
+    order of its emitted :class:`.Barrier` instructions.  This did not change the semantics of
+    circuits but could, in limited cases where there were non-full-width barriers, cause later
+    stochastic transpiler passes to see a different topological ordering of the circuit and
+    consequently have different outputs for fixed seeds.  The pass has been made deterministic to
+    avoid this.
