@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import Statevector, DensityMatrix
-from qiskit.quantum_info.states import partial_trace, shannon_entropy
+from qiskit.quantum_info.states import partial_trace, shannon_entropy, partial_transpose
 
 
 class TestStateUtils(QiskitTestCase):
@@ -54,7 +54,27 @@ class TestStateUtils(QiskitTestCase):
         self.assertAlmostEqual(1.229368880382052, shannon_entropy(input_pvec, np.e))
         # Base 10
         self.assertAlmostEqual(0.533908120973504, shannon_entropy(input_pvec, 10))
-
+        
+    def test_statevector_partial_transpose(self):
+        psi = Statevector.from_label("10+")
+        rho1=[[0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
+                0. +0.j, 0. +0.j],
+               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
+                0. +0.j, 0. +0.j],
+               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
+                0. +0.j, 0. +0.j],
+               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
+                0. +0.j, 0. +0.j],
+               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j,
+                0. +0.j, 0. +0.j],
+               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j,
+                0. +0.j, 0. +0.j],
+               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
+                0. +0.j, 0. +0.j],
+               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
+                0. +0.j, 0. +0.j]]
+	    self.assertEqual(partial_transpose(rho, [0, 1]), rho1)
+    	
 
 if __name__ == "__main__":
     unittest.main()
