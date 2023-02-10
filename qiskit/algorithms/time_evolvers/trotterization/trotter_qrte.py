@@ -66,7 +66,7 @@ class TrotterQRTE(RealTimeEvolver):
             product_formula: A Lie-Trotter-Suzuki product formula. If ``None`` provided, the
                 Lie-Trotter first order product formula with a single repetition is used. ``reps``
                 should be 1 to obtain a number of time-steps equal to ``num_timesteps`` and an
-                evaluation of ``TimeEvolutionProblem.aux_operators`` at every time-step. If ``reps``
+                evaluation of :attr:`.TimeEvolutionProblem.aux_operators` at every time-step. If ``reps``
                 is larger than 1, the true number of time-steps will be `num_timesteps * reps`.
             num_timesteps: The number of time-steps the full evolution time is devided into
                 (repetitions of ``product_formula``)
