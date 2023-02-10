@@ -27,18 +27,18 @@ from qiskit.circuit import QuantumCircuit
 
 def _append_cx_stage1(qc, n):
     """A single layer of CX gates."""
-    for i in range(int(n / 2)):
+    for i in range(n // 2):
         qc.cx(2 * i, 2 * i + 1)
-    for i in range(int((n + 1) / 2) - 1):
+    for i in range((n + 1) // 2 - 1):
         qc.cx(2 * i + 2, 2 * i + 1)
     return qc
 
 
 def _append_cx_stage2(qc, n):
     """A single layer of CX gates."""
-    for i in range(int(n / 2)):
+    for i in range(n // 2):
         qc.cx(2 * i + 1, 2 * i)
-    for i in range(int((n + 1) / 2) - 1):
+    for i in range((n + 1) // 2 - 1):
         qc.cx(2 * i + 1, 2 * i + 2)
     return qc
 
@@ -56,10 +56,10 @@ def _odd_pattern1(n):
     """
     pat = []
     pat.append(n - 2)
-    for i in range(int((n - 3) / 2)):
+    for i in range((n - 3) // 2):
         pat.append(n - 2 * i - 4)
         pat.append(n - 2 * i - 4)
-    for i in range(int((n - 1) / 2)):
+    for i in range((n - 1) // 2):
         pat.append(2 * i)
         pat.append(2 * i)
     return pat
@@ -70,10 +70,10 @@ def _odd_pattern2(n):
     [2, 2, 4, 4, ..., n-1, n-1, n-2, n-2, n-4, n-4, ..., 5, 5, 3, 3, 1]
     """
     pat = []
-    for i in range(int((n - 1) / 2)):
+    for i in range((n - 1) // 2):
         pat.append(2 * i + 2)
         pat.append(2 * i + 2)
-    for i in range(int((n - 3) / 2)):
+    for i in range((n - 3) // 2):
         pat.append(n - 2 * i - 2)
         pat.append(n - 2 * i - 2)
     pat.append(1)
@@ -86,10 +86,10 @@ def _even_pattern1(n):
     """
     pat = []
     pat.append(n - 1)
-    for i in range(int((n - 2) / 2)):
+    for i in range((n - 2) // 2):
         pat.append(n - 2 * i - 3)
         pat.append(n - 2 * i - 3)
-    for i in range(int((n - 2) / 2)):
+    for i in range((n - 2) // 2):
         pat.append(2 * i)
         pat.append(2 * i)
     pat.append(n - 2)
@@ -101,10 +101,10 @@ def _even_pattern2(n):
     [2, 2, 4, 4, ..., n-2, n-2, n-1, n-1, ..., 3, 3, 1, 1]
     """
     pat = []
-    for i in range(int((n - 2) / 2)):
+    for i in range((n - 2) // 2):
         pat.append(2 * (i + 1))
         pat.append(2 * (i + 1))
-    for i in range(int(n / 2)):
+    for i in range(n // 2):
         pat.append(n - 2 * i - 1)
         pat.append(n - 2 * i - 1)
     return pat
@@ -125,11 +125,11 @@ def _create_patterns(n):
         pats[(0, i)] = (i, i)
 
     if (n % 2) == 0:
-        ind1 = int((2 * n - 4) / 2)
+        ind1 = (2 * n - 4) // 2
     else:
-        ind1 = int((2 * n - 4) / 2 - 1)
+        ind1 = (2 * n - 4) // 2 - 1
     ind2 = 0
-    while layer < int(n / 2):
+    while layer < (n // 2):
         for i in range(n):
             pats[(layer + 1, i)] = (pat1[ind1 + i], pat2[ind2 + i])
         layer += 1
@@ -171,7 +171,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
                 patlist.append((i + 1, j - 1))
                 patlist.append((i + 1, j))
 
-    for i in range(int((num_qubits + 1) / 2)):
+    for i in range((num_qubits + 1) // 2):
         for j in range(num_qubits):
             if pats[(i, j)] in patlist:
                 patcnt = patlist.count(pats[(i, j)])
@@ -180,7 +180,7 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
         qc = _append_cx_stage(qc, num_qubits)
 
     if (num_qubits % 2) == 0:
-        i = int(num_qubits / 2)
+        i = num_qubits // 2
         for j in range(num_qubits):
             if pats[(i, j)] in patlist and pats[(i, j)][0] != pats[(i, j)][1]:
                 patcnt = patlist.count(pats[(i, j)])
