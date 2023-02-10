@@ -68,8 +68,8 @@ class TestStateUtils(QiskitTestCase):
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(partial_transpose(psi, [0, 1]), rho1)
-        self.assertEqual(partial_transpose(psi, [0, 2]), rho1)
+        self.assertEqual(partial_transpose(psi, [0, 1]), DensityMatrix(rho1))
+        self.assertEqual(partial_transpose(psi, [0, 2]), DensityMatrix(rho1))
 
     def test_density_matrix_partial_transpose(self):
         """Test partial_transpose function on density matrices"""
@@ -84,8 +84,8 @@ class TestStateUtils(QiskitTestCase):
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0, 0, 0],
         ]
-        self.assertEqual(partial_transpose(rho, [0, 1]), rho1)
-        self.assertEqual(partial_transpose(rho, [0, 2]), rho1)
+        self.assertEqual(partial_transpose(rho, [0, 1]), DensityMatrix(rho1))
+        self.assertEqual(partial_transpose(rho, [0, 2]), DensityMatrix(rho1))
 
 
 if __name__ == "__main__":
