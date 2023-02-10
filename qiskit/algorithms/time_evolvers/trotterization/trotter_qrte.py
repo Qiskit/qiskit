@@ -172,7 +172,7 @@ class TrotterQRTE(RealTimeEvolver):
         t_param = evolution_problem.t_param
         if t_param is not None and not _get_parameters(hamiltonian.coeffs)==ParameterView([t_param]):
             raise ValueError(
-                "Hamiltonian time parameter does not match ``evolution_problem.t_param`` "
+                "Hamiltonian time parameter does not match evolution_problem.t_param "
                 "or contains multiple parameters"
             )
         
