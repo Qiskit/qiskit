@@ -316,17 +316,17 @@ _DEPRECATED_NAMES = {
 
 
 def __getattr__(name):
-   if name in _DEPRECATED_NAMES:
-      import importlib
-      import warnings
+    if name in _DEPRECATED_NAMES:
+        import importlib
+        import warnings
 
-      module_name = _DEPRECATED_NAMES[name]
-      warnings.warn(
-         f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.22 "
-         f"and will be removed in 0.23.  Import from '{module_name}' instead. "
-         "This will require installing 'tweedledum' as an optional dependency from Terra 0.23.",
-         DeprecationWarning,
-         stacklevel=2,
+        module_name = _DEPRECATED_NAMES[name]
+        warnings.warn(
+            f"Accessing '{name}' from '{__name__}' is deprecated since Qiskit Terra 0.22 "
+            f"and will be removed in 0.23.  Import from '{module_name}' instead. "
+            "This will require installing 'tweedledum' as an optional dependency from Terra 0.23.",
+            DeprecationWarning,
+            stacklevel=2,
         )
-      return getattr(importlib.import_module(module_name), name)
-   raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+        return getattr(importlib.import_module(module_name), name)
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
