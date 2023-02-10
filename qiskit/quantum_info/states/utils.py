@@ -13,9 +13,8 @@
 """
 Quantum information utility functions for states.
 """
-
-import numpy as np
 import math
+import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
@@ -174,13 +173,13 @@ def partial_transpose(state, qargs):
     """
     state = _format_state(state, validate=False)
     n = len(state.dims())
-    l = np.zeros(2**n, int)
+    lst = np.zeros(2**n, int)
     for i in range(2**n):
         x = 0
         for k in qargs:
             x = x + (((i >> (k)) % 2) * 2**k)
         l[i] = x
-    if not (set(qargs).issubset(set(np.arange(n)))):
+    if not set(qargs).issubset(set(np.arange(n))):
         raise QiskitError("Indices of subsystems to be transposed are invalid")
     ptden = np.empty((2**n, 2**n), complex)
     ptden[:] = np.nan
@@ -189,8 +188,8 @@ def partial_transpose(state, qargs):
         for i in range(2**n):
             for j in range(2**n):
                 if math.isnan(ptden[i, j]):
-                    x = i - l[i] + l[j]
-                    y = j - l[j] + l[i]
+                    x = i - lst[i] + lst[j]
+                    y = j - lst[j] + lst[i]
                     ptden[i, j] = state[x] * np.conjugate(state[y])
                     ptden[x, y] = state[i] * np.conjugate(state[j])
     else:
@@ -198,8 +197,8 @@ def partial_transpose(state, qargs):
         for i in range(2**n):
             for j in range(2**n):
                 if math.isnan(ptden[i, j]):
-                    x = i - l[i] + l[j]
-                    y = j - l[j] + l[i]
+                    x = i - lst[i] + lst[j]
+                    y = j - lst[j] + lst[i]
                     ptden[i, j] = state[x, y]
                     ptden[x, y] = state[i, j]
 
