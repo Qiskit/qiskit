@@ -107,9 +107,7 @@ class TrotterQRTE(RealTimeEvolver):
     
     @property
     def num_timesteps(self) -> int:
-        """
-        Returns an num_timesteps.
-        """
+        """Returns the number of timesteps."""
         return self._num_timesteps
 
     @num_timesteps.setter
