@@ -178,7 +178,7 @@ def partial_transpose(state, qargs):
         x = 0
         for k in qargs:
             x = x + (((i >> (k)) % 2) * 2**k)
-        l[i] = x
+        lst[i] = x
     if not set(qargs).issubset(set(np.arange(n))):
         raise QiskitError("Indices of subsystems to be transposed are invalid")
     ptden = np.empty((2**n, 2**n), complex)
