@@ -15,7 +15,7 @@
 from .statevector import Statevector
 from .stabilizerstate import StabilizerState
 from .densitymatrix import DensityMatrix
-from .utils import partial_trace, shannon_entropy
+from .utils import partial_trace, shannon_entropy,partial_transpose
 from .measures import (
     state_fidelity,
     purity,
