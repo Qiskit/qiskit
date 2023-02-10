@@ -421,10 +421,10 @@ class TestDagApplyOperation(QiskitTestCase):
         x_gate.condition = self.condition
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
         self.dag.apply_operation_back(x_gate, [self.qubit1], [])
-        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0], [self.clbit0])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
         self.assertEqual(len(list(self.dag.nodes())), 16)
         self.assertEqual(len(list(self.dag.edges())), 17)
 
@@ -434,10 +434,10 @@ class TestDagApplyOperation(QiskitTestCase):
         x_gate.condition = self.condition
         self.dag.apply_operation_back(HGate(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
         self.dag.apply_operation_back(x_gate, [self.qubit1], [])
-        self.dag.apply_operation_back(Measure(), [self.qubit0, self.clbit0], [])
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit0], [self.clbit0])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
         out_edges = self.dag.edges(self.dag.output_map.values())
         self.assertEqual(list(out_edges), [])
         in_edges = self.dag.edges(self.dag.input_map.values())
@@ -664,7 +664,7 @@ class TestDagNodeSelection(QiskitTestCase):
         #          ║
         #  c_1: 0 ═╩═══════════
 
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
@@ -690,7 +690,7 @@ class TestDagNodeSelection(QiskitTestCase):
 
     def test_is_successor(self):
         """The method dag.is_successor(A, B) checks if node B is a successor of A"""
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
@@ -715,7 +715,7 @@ class TestDagNodeSelection(QiskitTestCase):
 
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
 
         predecessor_measure = self.dag.quantum_predecessors(self.dag.named_nodes("measure").pop())
         cnot_node = next(predecessor_measure)
@@ -740,7 +740,7 @@ class TestDagNodeSelection(QiskitTestCase):
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
 
-        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+        self.dag.apply_operation_back(Measure(), [self.qubit1], [self.clbit1])
         self.dag.apply_operation_back(CXGate(), [self.qubit0, self.qubit1], [])
         self.dag.apply_operation_back(Reset(), [self.qubit0], [])
 
@@ -1123,10 +1123,10 @@ class TestDagLayers(QiskitTestCase):
         dag.add_creg(creg)
         dag.apply_operation_back(HGate(), [qubit0], [])
         dag.apply_operation_back(CXGate(), [qubit0, qubit1], [])
-        dag.apply_operation_back(Measure(), [qubit1, clbit1], [])
+        dag.apply_operation_back(Measure(), [qubit1], [clbit1])
         dag.apply_operation_back(x_gate, [qubit1], [])
-        dag.apply_operation_back(Measure(), [qubit0, clbit0], [])
-        dag.apply_operation_back(Measure(), [qubit1, clbit1], [])
+        dag.apply_operation_back(Measure(), [qubit0], [clbit0])
+        dag.apply_operation_back(Measure(), [qubit1], [clbit1])
 
         layers = list(dag.layers())
         self.assertEqual(5, len(layers))

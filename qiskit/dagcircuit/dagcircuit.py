@@ -520,7 +520,7 @@ class DAGCircuit:
             int: The integer node index for the new op node on the DAG
         """
         # Add a new operation node to the graph
-        new_node = DAGOpNode(op=op, qargs=qargs, cargs=cargs)
+        new_node = DAGOpNode(op=op, qargs=qargs, cargs=cargs, qubits=self.qubits)
         node_index = self._multi_graph.add_node(new_node)
         new_node._node_id = node_index
         self._increment_op(op)
@@ -1142,6 +1142,7 @@ class DAGCircuit:
             op,
             sorted(block_qargs, key=lambda x: wire_pos_map[x]),
             sorted(block_cargs, key=lambda x: wire_pos_map[x]),
+            qubits=self.qubits,
         )
 
         try:
@@ -1330,7 +1331,7 @@ class DAGCircuit:
             m_op = self._map_condition_with_import(old_node.op, wire_map, creg_map)
             m_qargs = [wire_map[x] for x in old_node.qargs]
             m_cargs = [wire_map[x] for x in old_node.cargs]
-            new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs)
+            new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs, qubits=self.qubits)
             new_node._node_id = new_node_index
             self._multi_graph[new_node_index] = new_node
             self._increment_op(new_node.op)

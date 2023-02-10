@@ -111,13 +111,17 @@ class DAGOpNode(DAGNode):
 
     __slots__ = ["op", "qargs", "cargs", "sort_key"]
 
-    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = ()):
+    def __init__(self, op, qargs: Iterable[Qubit] = (), cargs: Iterable[Clbit] = (), qubits=None):
         """Create an Instruction node"""
         super().__init__()
         self.op = op
         self.qargs = tuple(qargs)
         self.cargs = tuple(cargs)
-        self.sort_key = str(self.qargs)
+        if qubits is not None:
+            qubit_mapping = {bit: index for index, bit in enumerate(qubits)}
+            self.sort_key = str([qubit_mapping[q] for q in self.qargs])
+        else:
+            self.sort_key = str(self.qargs)
 
     @property
     def name(self):
