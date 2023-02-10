@@ -57,23 +57,30 @@ class TestStateUtils(QiskitTestCase):
         
     def test_statevector_partial_transpose(self):
         psi = Statevector.from_label("10+")
-        rho1=[[0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
-                0. +0.j, 0. +0.j],
-               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
-                0. +0.j, 0. +0.j],
-               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
-                0. +0.j, 0. +0.j],
-               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
-                0. +0.j, 0. +0.j],
-               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j,
-                0. +0.j, 0. +0.j],
-               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0.5+0.j, 0.5+0.j,
-                0. +0.j, 0. +0.j],
-               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
-                0. +0.j, 0. +0.j],
-               [0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j, 0. +0.j,
-                0. +0.j, 0. +0.j]]
-	    self.assertEqual(partial_transpose(rho, [0, 1]), rho1)
+        rho1=  [[0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0.5, 0.5, 0, 0],
+                [0, 0, 0, 0, 0.5, 0.5, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0]]
+        self.assertEqual(partial_transpose(psi, [0, 1]), rho1)
+        self.assertEqual(partial_transpose(psi, [0, 2]), rho1)
+    
+
+    def test_density_matrix_partial_transpose(self):
+        rho = DensityMatrix.from_label("10+")
+        rho1=  [[0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0.5, 0.5, 0, 0],
+                [0, 0, 0, 0, 0.5, 0.5, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0]]
+        self.assertEqual(partial_transpose(rho, [0, 1]), rho1)
+        self.assertEqual(partial_transpose(rho, [0, 2]), rho1)
     	
 
 if __name__ == "__main__":
