@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,6 +22,7 @@ from qiskit.algorithms.time_evolvers.real_time_evolver import RealTimeEvolver
 from qiskit.algorithms.observables_evaluator import estimate_observables
 from qiskit.opflow import PauliSumOp
 from qiskit.circuit.library import PauliEvolutionGate
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.synthesis import ProductFormula, LieTrotter, SuzukiTrotter
@@ -57,14 +58,18 @@ class TrotterQRTE(RealTimeEvolver):
     def __init__(
         self,
         product_formula: ProductFormula | None = None,
-        num_timesteps: int = 1,
         estimator: BaseEstimator | None = None,
+        num_timesteps: int = 1,
     ) -> None:
         """
         Args:
             product_formula: A Lie-Trotter-Suzuki product formula. If ``None`` provided, the
-                Lie-Trotter first order product formula with a single repetition is used.
-            num_timesteps: number of time-steps, i.e., repetitions of `product_formula`
+                Lie-Trotter first order product formula with a single repetition is used. ``reps``
+                should be 1 to obtain a number of time-steps equal to ``num_timesteps`` and an
+                evaluation of ``TimeEvolutionProblem.aux_operators`` at every time-step. If ``reps``
+                is larger than 1, the true number of time-steps will be `num_timesteps * reps`.
+            num_timesteps: The number of time-steps the full evolution time is devided into
+                (repetitions of ``product_formula``)
             estimator: An estimator primitive used for calculating expectation values of
                 ``TimeEvolutionProblem.aux_operators``.
         """
@@ -99,6 +104,25 @@ class TrotterQRTE(RealTimeEvolver):
         Sets an estimator.
         """
         self._estimator = estimator
+    
+    @property
+    def num_timesteps(self) -> int:
+        """
+        Returns an num_timesteps.
+        """
+        return self._num_timesteps
+
+    @num_timesteps.setter
+    def num_timesteps(self, num_timesteps: int) -> None:
+        """
+        Sets the number of time-steps.
+
+        Raises:
+            ValueError: If num_timesteps is not positive.
+        """
+        if num_timesteps <= 0:
+            raise ValueError(f"Number of time steps must be positive integer, {num_timesteps} provided")
+        self._num_timesteps = num_timesteps
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -116,7 +140,7 @@ class TrotterQRTE(RealTimeEvolver):
         Evolves a quantum state for a given time using the Trotterization method
         based on a product formula provided. The result is provided in the form of a quantum
         circuit. If auxiliary operators are included in the ``evolution_problem``, they are
-        evaluated on the `init_state` and on the evolved state at every step (`num_timesteps`
+        evaluated on the ``init_state`` and on the evolved state at every step (``num_timesteps``
         times) using an estimator primitive provided.
 
         Args:
@@ -147,25 +171,16 @@ class TrotterQRTE(RealTimeEvolver):
             raise ValueError(
                 f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
-        if evolution_problem.t_param is not None and len(_get_parameters(hamiltonian.coeffs)) > 1:
-            raise ValueError("Time-dependent Hamiltonian cannot contain multiple parameters")
+        t_param = evolution_problem.t_param
+        if t_param is not None and not _get_parameters(hamiltonian.coeffs)==ParameterView([t_param]):
+            raise ValueError(
+                "Hamiltonian time parameter does not match ``evolution_problem.t_param`` "
+                "or contains multiple parameters"
+            )
+        
 
         # make sure PauliEvolutionGate does not implement more than one Trotter step
         dt = evolution_problem.time / self.num_timesteps
-        if self.product_formula.settings["reps"] != 1 and self.product_formula.settings["order"] == 1:
-            self.product_formula = LieTrotter(
-                order=self.product_formula.settings["order"],
-                reps=1,
-                insert_barriers=self.product_formula.settings["insert_barriers"],
-                cx_structure=self.product_formula.settings["cx_structure"]
-            )
-        elif self.product_formula.settings["reps"] != 1 and self.product_formula.settings["order"] > 1:
-            self.product_formula = SuzukiTrotter(
-                order=self.product_formula.settings["order"],
-                reps=1,
-                insert_barriers=self.product_formula.settings["insert_barriers"],
-                cx_structure=self.product_formula.settings["cx_structure"]
-            )
 
         if evolution_problem.initial_state is not None:
             initial_state = evolution_problem.initial_state
@@ -174,10 +189,10 @@ class TrotterQRTE(RealTimeEvolver):
 
         evolved_state = QuantumCircuit(initial_state.num_qubits)
         evolved_state.append(initial_state, evolved_state.qubits)
-
-        evaluated_aux_ops = []
+        
         if evolution_problem.aux_operators is not None:
-            evaluated_aux_ops.append(
+            observables = []
+            observables.append(
                 estimate_observables(
                     self.estimator,
                     evolved_state,
@@ -186,8 +201,10 @@ class TrotterQRTE(RealTimeEvolver):
                     evolution_problem.truncation_threshold,
                 )
             )
+        else:
+            observables = None
 
-        if evolution_problem.t_param is None:
+        if t_param is None:
             # the evolution gate
             single_step_evolution_gate = PauliEvolutionGate(
                 hamiltonian, dt, synthesis=self.product_formula
@@ -196,7 +213,7 @@ class TrotterQRTE(RealTimeEvolver):
         for n in range(self.num_timesteps):
             # if hamiltonian is time-dependent, bind new time-value at every step to construct
             # evolution for next step
-            if evolution_problem.t_param is not None:
+            if t_param is not None:
                 time_value = (n + 1)*dt
                 parametrized_coeffs = copy.deepcopy(hamiltonian.coeffs)
                 bound_coeffs = _assign_parameters(parametrized_coeffs, [time_value])
@@ -206,7 +223,7 @@ class TrotterQRTE(RealTimeEvolver):
             evolved_state.append(single_step_evolution_gate, evolved_state.qubits)
 
             if evolution_problem.aux_operators is not None:
-                evaluated_aux_ops.append(
+                observables.append(
                     estimate_observables(
                         self.estimator,
                         evolved_state,
@@ -214,6 +231,10 @@ class TrotterQRTE(RealTimeEvolver):
                         None,
                         evolution_problem.truncation_threshold,
                     )
-                )            
+                )
 
-        return TimeEvolutionResult(evolved_state, evaluated_aux_ops)
+        evaluated_aux_ops = None
+        if evolution_problem.aux_operators is not None:
+            evaluated_aux_ops = observables[-1]
+
+        return TimeEvolutionResult(evolved_state, evaluated_aux_ops, observables)

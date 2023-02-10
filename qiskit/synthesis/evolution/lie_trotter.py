@@ -12,7 +12,6 @@
 
 """The Lie-Trotter product formula."""
 
-import copy
 from typing import Callable, Optional, Union, Dict, Any
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
