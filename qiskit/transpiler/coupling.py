@@ -240,7 +240,7 @@ class CouplingMap:
         edge_set = set(edges)
         for src, dest in edges:
             if (dest, src) not in edge_set:
-                self.add_edge(dest, src)
+                self.graph.add_edge(dest, src, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
