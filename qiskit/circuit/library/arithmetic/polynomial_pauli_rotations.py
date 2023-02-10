@@ -135,7 +135,7 @@ def _multinomial_coefficients(m, n):
 class PolynomialPauliRotations(FunctionalPauliRotations):
     r"""A circuit implementing polynomial Pauli rotations.
 
-    For a polynomial :math`p(x)`, a basis state :math:`|i\rangle` and a target qubit
+    For a polynomial :math:`p(x)`, a basis state :math:`|i\rangle` and a target qubit
     :math:`|0\rangle` this operator acts as:
 
     .. math::

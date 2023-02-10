@@ -569,6 +569,20 @@ class C3SXGate(ControlledGate):
 
         self.definition = qc
 
+    def qasm(self):
+        # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
+        # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the
+        # mapping itself, but right now that's not possible without a complete rewrite of the OQ2
+        # exporter code (low priority), or we would need to modify 'qelib1.inc' which would be
+        # needlessly disruptive this late in OQ2's lifecycle.  The current OQ2 exporter _always_
+        # outputs the `include 'qelib1.inc' line.  ---Jake, 2022-11-21.
+        try:
+            old_name = self.name
+            self.name = "c3sqrtx"
+            return super().qasm()
+        finally:
+            self.name = old_name
+
 
 class C3XGate(ControlledGate):
     r"""The X gate controlled on 3 qubits.
