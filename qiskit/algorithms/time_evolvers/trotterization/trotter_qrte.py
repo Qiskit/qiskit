@@ -64,6 +64,7 @@ class TrotterQRTE(RealTimeEvolver):
         Args:
             product_formula: A Lie-Trotter-Suzuki product formula. If ``None`` provided, the
                 Lie-Trotter first order product formula with a single repetition is used.
+            num_timesteps: number of time-steps, i.e., repetitions of `product_formula`
             estimator: An estimator primitive used for calculating expectation values of
                 ``TimeEvolutionProblem.aux_operators``.
         """
@@ -115,7 +116,8 @@ class TrotterQRTE(RealTimeEvolver):
         Evolves a quantum state for a given time using the Trotterization method
         based on a product formula provided. The result is provided in the form of a quantum
         circuit. If auxiliary operators are included in the ``evolution_problem``, they are
-        evaluated on an evolved state using an estimator primitive provided.
+        evaluated on the `init_state` and on the evolved state at every step (`num_timesteps`
+        times) using an estimator primitive provided.
 
         Args:
             evolution_problem: Instance defining evolution problem. For the included Hamiltonian,
@@ -192,6 +194,8 @@ class TrotterQRTE(RealTimeEvolver):
             )
 
         for n in range(self.num_timesteps):
+            # if hamiltonian is time-dependent, bind new time-value at every step to construct
+            # evolution for next step
             if evolution_problem.t_param is not None:
                 time_value = (n + 1)*dt
                 parametrized_coeffs = copy.deepcopy(hamiltonian.coeffs)
