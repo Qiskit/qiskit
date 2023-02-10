@@ -15,7 +15,7 @@ Quantum information utility functions for states.
 """
 
 import numpy as np
-
+import math
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
@@ -155,3 +155,51 @@ def _funm_svd(matrix, func):
     unitary1, singular_values, unitary2 = la.svd(matrix)
     diag_func_singular = np.diag(func(singular_values))
     return unitary1.dot(diag_func_singular).dot(unitary2)
+
+def partial_transpose(state,qargs):
+    """Return partially transposed density matrix. 
+
+    Args:
+        state (DensityMatrix): the input state.
+        qargs (list): The subsystems to be transposed.
+
+    Returns:
+        DensityMatrix: The partially transposed density matrix.
+
+    Raises:
+        QiskitError: if input state is invalid.
+        QiskitError: if indices of subsystems are invalid
+        
+    """
+    state = _format_state(state, validate=False)
+    n = len(state.dims())
+    l = np.zeros(2**n,int)
+    for i in range(2**n):
+        x = 0
+        for k in qargs:
+            x = x + (((i >> (k)) % 2)*2**k)
+        l[i] = x
+    if not(set(qargs).issubset(set(np.arange(n)))):
+            raise QiskitError("Indices of subsystems to be transposed are invalid")
+    ptden = np.empty((2**n, 2**n),complex)
+    ptden[:] = np.nan
+    if isinstance(state, Statevector):
+        state = np.array(state)
+        for i in range(2**n):
+            for j in range(2**n):
+                if math.isnan(ptden[i,j]):
+                    x = i - l[i] + l[j]
+                    y = j - l[j] + l[i]
+                    ptden[i,j] = state[x]*np.conjugate(state[y])
+                    ptden[x,y] = state[i]*np.conjugate(state[j])
+    else:
+        state = np.array(state)
+        for i in range(2**n):
+            for j in range(2**n):
+                if math.isnan(ptden[i,j]):
+                    x = i - l[i] + l[j]
+                    y = j - l[j] + l[i]
+                    ptden[i,j] = state[x,y]
+                    ptden[x,y] = state[i,j]
+        
+    return(DensityMatrix(ptden))
