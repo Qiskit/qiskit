@@ -54,34 +54,37 @@ class TestStateUtils(QiskitTestCase):
         self.assertAlmostEqual(1.229368880382052, shannon_entropy(input_pvec, np.e))
         # Base 10
         self.assertAlmostEqual(0.533908120973504, shannon_entropy(input_pvec, 10))
-        
+
     def test_statevector_partial_transpose(self):
         psi = Statevector.from_label("10+")
-        rho1=  [[0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0.5, 0.5, 0, 0],
-                [0, 0, 0, 0, 0.5, 0.5, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0]]
+        rho1 = [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0.5, 0.5, 0, 0],
+            [0, 0, 0, 0, 0.5, 0.5, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+        ]
         self.assertEqual(partial_transpose(psi, [0, 1]), rho1)
         self.assertEqual(partial_transpose(psi, [0, 2]), rho1)
-    
 
     def test_density_matrix_partial_transpose(self):
         rho = DensityMatrix.from_label("10+")
-        rho1=  [[0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0.5, 0.5, 0, 0],
-                [0, 0, 0, 0, 0.5, 0.5, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0]]
+        rho1 = [
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0.5, 0.5, 0, 0],
+            [0, 0, 0, 0, 0.5, 0.5, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0],
+        ]
         self.assertEqual(partial_transpose(rho, [0, 1]), rho1)
         self.assertEqual(partial_transpose(rho, [0, 2]), rho1)
-    	
+
 
 if __name__ == "__main__":
     unittest.main()
