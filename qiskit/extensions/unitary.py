@@ -218,8 +218,13 @@ def unitary(self, obj, qubits, label=None):
     """Apply unitary gate specified by ``obj`` to ``qubits``.
 
     Args:
-        data (matrix or Operator): unitary operator.
+        obj (matrix or Operator): unitary operator.
+        qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
+            transformation to.
         label (str): unitary name for backend [Default: None].
+
+    Returns:
+        QuantumCircuit: The quantum circuit.
 
     Raises:
         ExtensionError: if input data is not an N-qubit unitary operator.

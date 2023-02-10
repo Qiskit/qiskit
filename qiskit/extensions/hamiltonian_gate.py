@@ -137,9 +137,14 @@ def hamiltonian(self, operator, time, qubits, label=None):
     if it is 2 qubits or less, or simulated directly in Aer for more qubits.
 
     Args:
-        data (matrix or Operator): a hermitian operator.
+        operator (matrix or Operator): a hermitian operator.
         time (float): time evolution parameter.
+        qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
+            transformation to.
         label (str): unitary name for backend [Default: None].
+
+    Returns:
+        QuantumCircuit: The quantum circuit.
 
     Raises:
         ExtensionError: if input data is not an N-qubit unitary operator.
