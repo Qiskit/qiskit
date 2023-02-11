@@ -40,7 +40,7 @@ class UnitaryGate(Gate):
 
         We can create a unitary gate from a unitary matrix then add it to a
         quantum circuit. The matrix can also be directly applied to the quantum
-        circuit, see :meth:`~qiskit.circuit.QuantumCircuit.unitary`.
+        circuit, see :meth:`.QuantumCircuit.unitary`.
 
         .. code-block:: python
 
