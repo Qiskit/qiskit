@@ -43,19 +43,19 @@ the interface changes for that release on that interface.
 Version Support Policy
 ----------------------
 
-To enable providers to have time to adjust to changes in this interface Terra
-will support multiple versions of each class at once. Given the nature of one
-version per release the version deprecation policy is a bit more conservative
-than the standard deprecation policy. Terra will support a provider interface
-version for a minimum of 3 minor releases or the first release after 6 months
-from the release that introduced a version, whichever is longer, prior to a
-potential deprecation. After that the standard deprecation policy will apply to
-that interface version. This will give providers and users sufficient time to
-adapt to potential breaking changes in the interface. So for example lets say
-in 0.19.0 ``BackendV2`` is introduced and in the 3 months after the release of
-0.19.0 we release 0.20.0, 0.21.0, and 0.22.0, then 7 months after 0.19.0 we
-release 0.23.0. In 0.23.0 we can deprecate BackendV2, and it needs to still be
-supported and can't be removed until the deprecation policy completes.
+To enable providers to have time to adjust to changes in this interface
+Terra will support multiple versions of each class at once. Given the
+nature of one version per release the version deprecation policy is a bit
+more conservative than the standard deprecation policy. Terra will support a
+provider interface version for a minimum of 3 minor releases or the first
+release after 6 months from the release that introduced a version, whichever is
+longer, prior to a potential deprecation. After that the standard deprecation
+policy will apply to that interface version. This will give providers and users
+sufficient time to adapt to potential breaking changes in the interface. So for
+example lets say in 0.19.0 ``BackendV2`` is introduced and in the 3 months after
+the release of 0.19.0 we release 0.20.0, 0.21.0, and 0.22.0, then 7 months after
+0.19.0 we release 0.23.0. In 0.23.0 we can deprecate BackendV2, and it needs to
+still be supported and can't be removed until the deprecation policy completes.
 
 It's worth pointing out that Terra's version support policy doesn't mean
 providers themselves will have the same support story, they can (and arguably
