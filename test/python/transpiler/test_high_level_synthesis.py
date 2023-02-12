@@ -308,7 +308,46 @@ class TestHighLeverSynthesisInterface(QiskitTestCase):
             self.assertEqual(ops["id"], 2)
             self.assertIn("op_b", ops.keys())
 
+    def test_multiple_methods_short_form(self):
+        """Check that when there are two synthesis methods specified,
+        and the first returns None, then the second method gets used.
+        In this example, the list of methods is specified without
+        explicitly listing empty argument lists.
+        """
+
+        qc = self.create_circ()
+        mock_plugin_manager = MockPluginManager
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            hls_config = HLSConfig(op_a=["repeat", "default"])
+            pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
+            tqc = pm.run(qc)
+            ops = tqc.count_ops()
+            # The repeat method for OpA without "n" specified returns None.
+            self.assertNotIn("op_a", ops.keys())
+            self.assertEqual(ops["id"], 2)
+            self.assertIn("op_b", ops.keys())
+
     def test_synthesis_using_alternate_form(self):
+        """Test alternative form of specifying synthesis methods."""
+
+        qc = self.create_circ()
+        mock_plugin_manager = MockPluginManager
+        with unittest.mock.patch(
+            "qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesisPluginManager",
+            wraps=mock_plugin_manager,
+        ):
+            # synthesis using raw class, without extension manager
+            plugin = OpBAnotherSynthesisPlugin(num_swaps=6)
+            hls_config = HLSConfig(op_b=[(plugin, {})])
+            pm = PassManager([HighLevelSynthesis(hls_config=hls_config)])
+            tqc = pm.run(qc)
+            ops = tqc.count_ops()
+            self.assertEqual(ops["swap"], 6)
+
+    def test_synthesis_using_alternate_short_form(self):
         """Test alternative form of specifying synthesis methods."""
 
         qc = self.create_circ()
