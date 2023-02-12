@@ -657,7 +657,7 @@ class TestTemplateMatching(QiskitTestCase):
 
         self.assertEqual(circuit_out, expected)
 
-    def test_consecutive_templates(self):
+    def test_consecutive_templates_apply(self):
         """Test the scenario where one template optimization creates an opportunity for
         another template optimization.
 
@@ -709,6 +709,25 @@ class TestTemplateMatching(QiskitTestCase):
         # Also check that applying the second template by itself does not do anything.
         qc_non_opt = TemplateOptimization(template_list=[clifford_4_2()], user_cost_dict=costs)(qc)
         self.assertEqual(qc, qc_non_opt)
+
+    def test_consecutive_templates_do_not_apply(self):
+        """Test that applying one template optimization does not allow incorrectly
+        applying other templates (which could happen if the DagDependency graph is
+        not constructed correctly after the optimization).
+        """
+        template_list = [
+            clifford_2_2(),
+            clifford_2_3(),
+        ]
+        pm = PassManager(TemplateOptimization(template_list=template_list))
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.swap(0, 1)
+        qc.h(0)
+        qc_opt = pm.run(qc)
+        self.assertTrue(Operator(qc) == Operator(qc_opt))
 
     def test_clifford_templates(self):
         """Tests TemplateOptimization pass on several larger examples."""
