@@ -15,3 +15,4 @@ Submodule symbol exports for XX decomposition.
 """
 
 from .decomposer import XXDecomposer
+from .embodiments import XXEmbodiments

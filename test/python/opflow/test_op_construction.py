@@ -1288,6 +1288,10 @@ class TestPauliOp(QiskitOpflowTestCase):
         expected = PauliOp(Pauli("XYZX"), coeff=2 - 3j)
         self.assertEqual(~pauli_op, expected)
 
+        pauli_op = PauliOp(Pauli("iXYZX"), coeff=2 + 3j)
+        expected = PauliOp(Pauli("-iXYZX"), coeff=2 - 3j)
+        self.assertEqual(~pauli_op, expected)
+
     @data(*itertools.product(pauli_group_labels(2, full_group=True), repeat=2))
     @unpack
     def test_compose(self, label1, label2):
