@@ -48,7 +48,7 @@ parameters:
   - name: "minimumRustVersion"
     displayName: "Minimum supported version of Rust"
     type: string
-    default: "1.56.1"
+    default: "1.61.0"
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
