@@ -1644,7 +1644,7 @@ class QuantumCircuit:
             "rccx",
             "rc3x",
             "c3x",
-            "c3sx",
+            "c3sx",  # This is the Qiskit gate name, but the qelib1.inc name is 'c3sqrtx'.
             "c4x",
         ]
 
@@ -4618,10 +4618,33 @@ class QuantumCircuit:
         Raises:
             Exception: if the gate is of type string and params is None.
         """
+
+        def _format(operand):
+            try:
+                # Using float/complex value as a dict key is not good idea.
+                # This makes the mapping quite sensitive to the rounding error.
+                # However, the mechanism is already tied to the execution model (i.e. pulse gate)
+                # and we cannot easily update this rule.
+                # The same logic exists in DAGCircuit.add_calibration.
+                evaluated = complex(operand)
+                if np.isreal(evaluated):
+                    evaluated = float(evaluated.real)
+                    if evaluated.is_integer():
+                        evaluated = int(evaluated)
+                return evaluated
+            except TypeError:
+                # Unassigned parameter
+                return operand
+
         if isinstance(gate, Gate):
-            self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
+            params = gate.params
+            gate = gate.name
+        if params is not None:
+            params = tuple(map(_format, params))
         else:
-            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+            params = tuple()
+
+        self._calibrations[gate][(tuple(qubits), params)] = schedule
 
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:

@@ -36,8 +36,7 @@ impl SwapMap {
         match self.map.get(&object) {
             Some(val) => Ok(val.clone()),
             None => Err(PyIndexError::new_err(format!(
-                "Node index {} not in swap mapping",
-                object
+                "Node index {object} not in swap mapping",
             ))),
         }
     }

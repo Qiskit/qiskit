@@ -113,7 +113,7 @@ def convert_to_target(
         target.granularity = configuration.timing_constraints.get("granularity")
         target.min_length = configuration.timing_constraints.get("min_length")
         target.pulse_alignment = configuration.timing_constraints.get("pulse_alignment")
-        target.aquire_alignment = configuration.timing_constraints.get("acquire_alignment")
+        target.acquire_alignment = configuration.timing_constraints.get("acquire_alignment")
     # If a pulse defaults exists use that as the source of truth
     if defaults is not None:
         inst_map = defaults.instruction_schedule_map
@@ -266,19 +266,19 @@ class BackendV2Converter(BackendV2):
 
     @property
     def meas_map(self) -> List[List[int]]:
-        return self._config.dt
+        return self._config.meas_map
 
     def drive_channel(self, qubit: int):
-        self._config.drive(qubit)
+        return self._config.drive(qubit)
 
     def measure_channel(self, qubit: int):
-        self._config.measure(qubit)
+        return self._config.measure(qubit)
 
     def acquire_channel(self, qubit: int):
-        self._config.acquire(qubit)
+        return self._config.acquire(qubit)
 
     def control_channel(self, qubits: Iterable[int]):
-        self._config.control(qubits)
+        return self._config.control(qubits)
 
     def run(self, run_input, **options):
         return self._backend.run(run_input, **options)
