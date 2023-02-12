@@ -127,17 +127,18 @@ class HighLevelSynthesis(TransformationPass):
                 # the operation's name does not appear in the user-specified config,
                 # we use the "default" method when instructed to do so and the "default"
                 # method is available
-                methods = [("default", {})]
+                methods = ["default"]
             else:
                 methods = []
 
             for method in methods:
-                # A method is a tuple consisting of a synthesis algorithm and a
+                # There are two ways to specify a synthesis method. The more explicit
+                # way is to specify it as a tuple consisting of a synthesis algorithm and a
                 # list of additional arguments, e.g.,
                 #   ("kms", {"all_mats": 1, "max_paths": 100, "orig_circuit": 0}), or
                 #   ("pmh", {}).
-                # When the list of additional arguments is empty, for convenience we
-                # also allow to specify the algorithm using a single argument, e.g.,
+                # When the list of additional arguments is empty, one can also specify
+                # just the synthesis algorithm, e.g.,
                 #   "pmh".
                 if isinstance(method, tuple):
                     plugin_specifier, plugin_args = method
@@ -147,7 +148,7 @@ class HighLevelSynthesis(TransformationPass):
 
                 # There are two ways to specify a synthesis algorithm being run,
                 # either by name, e.g. "kms" (which then should be specified in entry_points),
-                # or as a class inherited from HighLevelSynthesisPlugin (which then
+                # or directly as a class inherited from HighLevelSynthesisPlugin (which then
                 # does not need to be specified in entry_points).
                 if isinstance(plugin_specifier, str):
                     if plugin_specifier not in hls_plugin_manager.method_names(node.name):
@@ -157,7 +158,7 @@ class HighLevelSynthesis(TransformationPass):
                         )
                     plugin_method = hls_plugin_manager.method(node.name, plugin_specifier)
                 else:
-                    plugin_method = method
+                    plugin_method = plugin_specifier
 
                 # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
                 #       e.g. coupling_map to the synthesis algorithm.
