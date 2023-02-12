@@ -1,11 +1,13 @@
 ---
 features:
   - |
-    Added an alternative way to specify the synthesis methods used for a given
-    high-level-object in :class:`.HighLevelSynthesis` transpiler pass. As before,
-    a synthesis method can be specified as a tuple consisting of the name of the method
-    and additional arguments. Additionally, a synthesis method can be specified as an
-    instance of :class:`.HighLevelSynthesisPlugin`.
+    Added an alternative way to specify in :class:`~.HLSConfig` the list of
+    synthesis methods used for a given high-level-object.
+    As before, a synthesis method can be specified as a tuple consisting of
+    the name of the method and additional arguments. Additionally, a synthesis method
+    can be specified as a tuple consisting of an instance of :class:`.HighLevelSynthesisPlugin`
+    and additional arguments. Moreover, when there are no additional arguments, a synthesis
+    method can be specified simply by name or by an instance of :class:`.HighLevelSynthesisPlugin`.
     The following example illustrates the new functionality::
 
         from qiskit import QuantumCircuit
@@ -17,6 +19,12 @@ features:
         qc = QuantumCircuit(6)
         qc.append(PermutationGate([1, 2, 3, 0]), [1, 2, 3, 4])
 
+        # All of the ways to specify hls_config are equivalent
+        hls_config = HLSConfig(permutation=[("acg", {})])
+        hls_config = HLSConfig(permutation=["acg"])
+        hls_config = HLSConfig(permutation=[(ACGSynthesisPermutation(), {})])
         hls_config = HLSConfig(permutation=[ACGSynthesisPermutation()])
+
+        # The hls_config can then be passed as an argument to HighLevelSynthesis
         pm = PassManager(HighLevelSynthesis(hls_config=hls_config))
         qc_synthesized = pm.run(qc)
