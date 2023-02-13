@@ -45,8 +45,8 @@ def _append_cx_stage2(qc, n):
 
 def _append_cx_stage(qc, n):
     """Append a depth 2 layer of CX gates."""
-    qc.compose(_append_cx_stage1(qc, n))
-    qc.compose(_append_cx_stage2(qc, n))
+    qc = _append_cx_stage1(qc, n)
+    qc = _append_cx_stage2(qc, n)
     return qc
 
 
@@ -159,13 +159,15 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
     num_qubits = mat.shape[0]
     pats = _create_patterns(num_qubits)
     patlist = []
+    # s_gates[i] = 0, 1, 2 or 3 for a gate id, sdg, z or s on qubit i respectively
+    s_gates = np.zeros(num_qubits)
 
     qc = QuantumCircuit(num_qubits)
     for i in range(num_qubits):
         for j in range(i + 1, num_qubits):
             if mat[i][j]:  # CZ(i,j) gate
-                qc.z(i)
-                qc.z(j)
+                s_gates[i] += 2  # qc.z[i]
+                s_gates[j] += 2  # qc.z[j]
                 patlist.append((i, j - 1))
                 patlist.append((i, j))
                 patlist.append((i + 1, j - 1))
@@ -176,8 +178,17 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
             if pats[(i, j)] in patlist:
                 patcnt = patlist.count(pats[(i, j)])
                 for _ in range(patcnt):
-                    qc.sdg(j)
+                    s_gates[j] += 1  # qc.sdg[j]
+        # Add phase gates: s, sdg or z
+        for j in range(num_qubits):
+            if s_gates[j] % 4 == 1:
+                qc.sdg(j)
+            elif s_gates[j] % 4 == 2:
+                qc.z(j)
+            elif s_gates[j] % 4 == 3:
+                qc.s(j)
         qc = _append_cx_stage(qc, num_qubits)
+        s_gates = np.zeros(num_qubits)
 
     if (num_qubits % 2) == 0:
         i = num_qubits // 2
@@ -185,7 +196,15 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
             if pats[(i, j)] in patlist and pats[(i, j)][0] != pats[(i, j)][1]:
                 patcnt = patlist.count(pats[(i, j)])
                 for _ in range(patcnt):
-                    qc.sdg(j)
+                    s_gates[j] += 1  # qc.sdg[j]
+        # Add phase gates: s, sdg or z
+        for j in range(num_qubits):
+            if s_gates[j] % 4 == 1:
+                qc.sdg(j)
+            elif s_gates[j] % 4 == 2:
+                qc.z(j)
+            elif s_gates[j] % 4 == 3:
+                qc.s(j)
         qc = _append_cx_stage1(qc, num_qubits)
 
     return qc
