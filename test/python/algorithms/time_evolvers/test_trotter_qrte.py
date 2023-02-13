@@ -13,7 +13,6 @@
 """ Test TrotterQRTE. """
 
 import unittest
-import copy
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np

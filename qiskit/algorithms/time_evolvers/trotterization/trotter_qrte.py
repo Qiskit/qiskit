@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 
-import copy
 from qiskit import QuantumCircuit
 from qiskit.algorithms.time_evolvers.time_evolution_problem import TimeEvolutionProblem
 from qiskit.algorithms.time_evolvers.time_evolution_result import TimeEvolutionResult
@@ -25,7 +24,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info import Pauli, SparsePauliOp
-from qiskit.synthesis import ProductFormula, LieTrotter, SuzukiTrotter
+from qiskit.synthesis import ProductFormula, LieTrotter
 
 from qiskit.algorithms.utils.assign_params import _assign_parameters, _get_parameters
 
@@ -172,9 +171,7 @@ class TrotterQRTE(RealTimeEvolver):
                 f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
         t_param = evolution_problem.t_param
-        if t_param is not None and not _get_parameters(hamiltonian.coeffs) == ParameterView(
-            [t_param]
-        ):
+        if t_param is not None and _get_parameters(hamiltonian.coeffs) != ParameterView([t_param]):
             raise ValueError(
                 "Hamiltonian time parameter does not match evolution_problem.t_param "
                 "or contains multiple parameters"

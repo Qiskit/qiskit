@@ -13,7 +13,7 @@
 """Test evolver problem class."""
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import data, ddt, unpack
+from ddt import data, ddt
 from numpy.testing import assert_raises
 from qiskit import QuantumCircuit
 from qiskit.algorithms import TimeEvolutionProblem
