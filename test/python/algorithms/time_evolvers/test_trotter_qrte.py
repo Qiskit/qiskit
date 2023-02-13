@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,13 +13,14 @@
 """ Test TrotterQRTE. """
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
+from scipy.linalg import expm
 from numpy.testing import assert_raises
 
 from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, TrotterQRTE
+from qiskit.algorithms.utils.assign_params import _assign_parameters
 from qiskit.primitives import Estimator
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import ZGate
@@ -64,21 +65,37 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
             Statevector.from_instruction(evolution_result_state_circuit).data, expected_state.data
         )
 
-    def test_trotter_qrte_trotter_single_qubit_aux_ops(self):
+    @data((SparsePauliOp(["X", "Z"]), None), (SparsePauliOp(["X", "Z"]), Parameter("t")))
+    @unpack
+    def test_trotter_qrte_trotter(self, operator, t_param):
         """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
-        operator = PauliSumOp(SparsePauliOp([Pauli("X"), Pauli("Z")]))
+        if not t_param is None:
+            operator = SparsePauliOp(operator.paulis, np.array([t_param, 1]))
+
         # LieTrotter with 1 rep
         aux_ops = [Pauli("X"), Pauli("Y")]
 
         initial_state = QuantumCircuit(1)
         time = 3
-        evolution_problem = TimeEvolutionProblem(operator, time, initial_state, aux_ops)
+        num_timesteps = 2
+        evolution_problem = TimeEvolutionProblem(
+            operator, time, initial_state, aux_ops, t_param=t_param
+        )
         estimator = Estimator()
 
-        expected_evolved_state = Statevector([0.98008514 + 0.13970775j, 0.01991486 + 0.13970775j])
+        expected_psi, expected_observables_result = self._get_expected_trotter_qrte(
+            operator,
+            time,
+            num_timesteps,
+            initial_state,
+            aux_ops,
+            t_param,
+        )
+
+        expected_evolved_state = Statevector(expected_psi)
 
         algorithm_globals.random_seed = 0
-        trotter_qrte = TrotterQRTE(estimator=estimator)
+        trotter_qrte = TrotterQRTE(estimator=estimator, num_timesteps=num_timesteps)
         evolution_result = trotter_qrte.evolve(evolution_problem)
 
         np.testing.assert_array_almost_equal(
@@ -88,8 +105,8 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         aux_ops_result = evolution_result.aux_ops_evaluated
         expected_aux_ops_result = [
-            (0.078073, {"variance": 0, "shots": 0}),
-            (0.268286, {"variance": 0, "shots": 0}),
+            (expected_observables_result[-1][0], {"variance": 0, "shots": 0}),
+            (expected_observables_result[-1][1], {"variance": 0, "shots": 0}),
         ]
 
         means = [element[0] for element in aux_ops_result]
@@ -98,6 +115,17 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
 
         vars_and_shots = [element[1] for element in aux_ops_result]
         expected_vars_and_shots = [element[1] for element in expected_aux_ops_result]
+
+        observables_result = evolution_result.observables
+        expected_observables_result = [
+            [(o, {"variance": 0, "shots": 0}) for o in eor] for eor in expected_observables_result
+        ]
+
+        means = [sub_element[0] for element in observables_result for sub_element in element]
+        expected_means = [
+            sub_element[0] for element in expected_observables_result for sub_element in element
+        ]
+        np.testing.assert_array_almost_equal(means, expected_means)
 
         for computed, expected in zip(vars_and_shots, expected_vars_and_shots):
             self.assertAlmostEqual(computed.pop("variance", 0), expected["variance"], 2)
@@ -172,10 +200,13 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         self._run_error_test(initial_state, operator, aux_ops, estimator, None, None)
 
     @data(
-        (SparsePauliOp([Pauli("X"), Pauli("Z")]), QuantumCircuit(1)),
         (X, QuantumCircuit(1)),
         (MatrixOp([[1, 1], [0, 1]]), QuantumCircuit(1)),
         (PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(SparsePauliOp([Pauli("Z")])), None),
+        (
+            SparsePauliOp([Pauli("X"), Pauli("Z")], np.array([Parameter("a"), Parameter("b")])),
+            QuantumCircuit(1),
+        ),
     )
     @unpack
     def test_trotter_qrte_trotter_hamiltonian_errors(self, operator, initial_state):
@@ -197,6 +228,35 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
                 param_value_map=param_value_dict,
             )
             _ = trotter_qrte.evolve(evolution_problem)
+
+    @staticmethod
+    def _get_expected_trotter_qrte(operator, time, num_timesteps, init_state, observables, t_param):
+        """Compute reference values for Trotter evolution via exact matrix exponentiation."""
+        dt = time / num_timesteps
+        observables = [obs.to_matrix() for obs in observables]
+
+        psi = Statevector(init_state).data
+        if t_param is None:
+            ops = [Pauli(op).to_matrix() * np.real(coeff) for op, coeff in operator.to_list()]
+
+        observable_results = []
+        observable_results.append([np.real(np.conj(psi).dot(obs).dot(psi)) for obs in observables])
+
+        for n in range(num_timesteps):
+            if t_param is not None:
+                time_value = (n + 1) * dt
+                bound_coeffs = _assign_parameters(operator.coeffs, [time_value])
+                ops = [
+                    Pauli(op).to_matrix() * np.real(coeff)
+                    for op, coeff in SparsePauliOp(operator.paulis, bound_coeffs).to_list()
+                ]
+            for op in ops:
+                psi = expm(-1j * op * dt).dot(psi)
+            observable_results.append(
+                [np.real(np.conj(psi).dot(obs).dot(psi)) for obs in observables]
+            )
+
+        return psi, observable_results
 
 
 if __name__ == "__main__":
