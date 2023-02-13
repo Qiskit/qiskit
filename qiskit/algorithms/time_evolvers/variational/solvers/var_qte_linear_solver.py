@@ -116,8 +116,7 @@ class VarQTELinearSolver:
 
         if self._time_param is not None:
             if time_value is not None:
-                parametrized_coeffs = copy.deepcopy(self._hamiltonian.coeffs)
-                bound_params_array = _assign_parameters(parametrized_coeffs, [time_value])
+                bound_params_array = _assign_parameters(self._hamiltonian.coeffs, [time_value])
                 hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
             else:
                 raise ValueError(

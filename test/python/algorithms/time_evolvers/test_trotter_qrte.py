@@ -203,7 +203,8 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         (X, QuantumCircuit(1)),
         (MatrixOp([[1, 1], [0, 1]]), QuantumCircuit(1)),
         (PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(SparsePauliOp([Pauli("Z")])), None),
-        (SparsePauliOp([Pauli("X"), Pauli("Z")], np.array([Parameter("a"), Parameter("b")])), QuantumCircuit(1))
+        (SparsePauliOp([Pauli("X"), Pauli("Z")], np.array([Parameter("a"), Parameter("b")])),
+         QuantumCircuit(1))
     )
     @unpack
     def test_trotter_qrte_trotter_hamiltonian_errors(self, operator, initial_state):
@@ -228,6 +229,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         
     @staticmethod
     def _get_expected_trotter_qrte(operator, time, num_timesteps, init_state, observables, t_param):
+        """Compute reference values for Trotter evolution via exact matrix exponentiation."""
         dt = time/num_timesteps
         observables = [obs.to_matrix() for obs in observables]
 
@@ -241,8 +243,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         for n in range(num_timesteps):
             if t_param is not None:
                 time_value = (n + 1)*dt
-                parametrized_coeffs = copy.deepcopy(operator.coeffs)
-                bound_coeffs = _assign_parameters(parametrized_coeffs, [time_value])
+                bound_coeffs = _assign_parameters(operator.coeffs, [time_value])
                 ops = [
                     Pauli(op).to_matrix()*np.real(coeff)
                     for op, coeff in SparsePauliOp(operator.paulis, bound_coeffs).to_list()

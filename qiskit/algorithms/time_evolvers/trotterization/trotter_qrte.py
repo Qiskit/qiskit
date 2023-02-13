@@ -213,8 +213,7 @@ class TrotterQRTE(RealTimeEvolver):
             # evolution for next step
             if t_param is not None:
                 time_value = (n + 1)*dt
-                parametrized_coeffs = copy.deepcopy(hamiltonian.coeffs)
-                bound_coeffs = _assign_parameters(parametrized_coeffs, [time_value])
+                bound_coeffs = _assign_parameters(hamiltonian.coeffs, [time_value])
                 single_step_evolution_gate = PauliEvolutionGate(
                     SparsePauliOp(hamiltonian.paulis, bound_coeffs), dt, synthesis=self.product_formula
                 )

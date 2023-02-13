@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+import copy
 import numpy as np
 
 from qiskit.circuit import ParameterExpression
@@ -30,14 +31,34 @@ def _get_parameters(array: np.ndarray) -> ParameterView:
     return ParameterView(ret)
 
 
-def _assign_parameters(array: np.ndarray, parameter_values: Sequence[float]) -> np.ndarray:
-    """Binds ``ParameterExpression``s in a numpy array to provided values."""
-    parameter_dict = dict(zip(_get_parameters(array), parameter_values))
-    for i, a in enumerate(array):
+def _assign_parameters(
+    array: np.ndarray,
+    parameter_values: Sequence[float],
+    inplace: bool=False
+) -> np.ndarray:
+    """Binds ``ParameterExpression``s in a numpy array to provided values.
+    
+    Args:
+        array: array of ``ParameterExpression``
+        parameter_values: array of values to bind to parameters
+        inplace: If ``False``, a copy of the array with the bound parameters is returned.
+            If True the array itself is modified.
+
+    Returns:
+        A copy of the array with bound parameters, if ``inplace`` is False, otherwise None.
+    """
+    if inplace:
+        bound_array = array
+    else:
+        bound_array = copy.deepcopy(array)
+        
+    parameter_dict = dict(zip(_get_parameters(bound_array), parameter_values))
+    for i, a in enumerate(bound_array):
         if isinstance(a, ParameterExpression):
             for key in a.parameters & parameter_dict.keys():
                 a = a.assign(key, parameter_dict[key])
             if not a.parameters:
                 a = complex(a)
-            array[i] = a
-    return array
+            bound_array[i] = a
+
+    return None if inplace else bound_array
