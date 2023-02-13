@@ -85,7 +85,8 @@ Opflow provided shortcuts to define common single qubit states, operators, and n
 :mod:`~qiskit.opflow.operator_globals` module.
 
 These were mainly used for didactic purposes or quick prototyping, and can easily be replaced by their corresponding
-:mod:`~qiskit.quantum_info` class: :class:`~qiskit.quantum_info.Pauli`, :class:`~qiskit.quantum_info.Clifford` or :class:`~qiskit.quantum_info.Statevector`.
+:mod:`~qiskit.quantum_info` class: :class:`~qiskit.quantum_info.Pauli`, :class:`~qiskit.quantum_info.Clifford` or
+:class:`~qiskit.quantum_info.Statevector`.
 
 
 1-Qubit Paulis
@@ -180,10 +181,13 @@ Common non-parametrized gates (Clifford)
    * - Opflow
      - Alternative
 
-   * - :class:`~qiskit.opflow.CX`, :class:`~qiskit.opflow.S`, :class:`~qiskit.opflow.H`, :class:`~qiskit.opflow.T`, :class:`~qiskit.opflow.CZ`, :class:`~qiskit.opflow.Swap`
-     - Append corresponding gate to :class:`~qiskit.QuantumCircuit` and wrap in :class:`~qiskit.quantum_info.Clifford`.
-       To operate in a similar way to Opflow, you can then call ``Clifford.to_operator()``, but please note that
-       this alternative is not efficient, as ``.to_operator()`` is dense and scales exponentially with the size of the circuit.
+   * - :class:`~qiskit.opflow.CX`, :class:`~qiskit.opflow.S`, :class:`~qiskit.opflow.H`, :class:`~qiskit.opflow.T`,
+       :class:`~qiskit.opflow.CZ`, :class:`~qiskit.opflow.Swap`
+     - Append corresponding gate to :class:`~qiskit.QuantumCircuit`. ``quantum_info``
+       :class:`~qiskit.quantum_info.Operator`\s can be also directly constructed from quantum circuits.
+       Another alternative is to wrap the circuit in :class:`~qiskit.quantum_info.Clifford` and call
+       ``Clifford.to_operator()``. Please note that constructing ``quantum_info`` operators from circuits is not
+       efficient, as it is a dense operation and scales exponentially with the size of the circuit.
 
 
 Example 1: Defining the HH operator
@@ -211,7 +215,7 @@ Example 1: Defining the HH operator
 .. code-block:: python
 
     from qiskit import QuantumCircuit
-    from qiskit.quantum_info import Clifford
+    from qiskit.quantum_info import Clifford, Operator
 
     qc = QuantumCircuit(2)
     qc.h(0)
@@ -223,6 +227,12 @@ Example 1: Defining the HH operator
     qc.h(0)
     H = Clifford(qc).to_operator()
     op = H ^ H
+
+    # or, directly
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.h(1)
+    op = Operator(qc)
 
 .. raw:: html
 
@@ -237,11 +247,12 @@ Example 1: Defining the HH operator
      - Alternative
 
    * - :class:`~qiskit.opflow.Zero`, :class:`~qiskit.opflow.One`, :class:`~qiskit.opflow.Plus`, :class:`~qiskit.opflow.Minus`
-     - :class:`~qiskit.quantum_info.StabilizerState` or :class:`~qiskit.quantum_info.Statevector` or :class:`~qiskit.QuantumCircuit`, depending on the use case.
-       In principle, :class:`~qiskit.quantum_info.StabilizerState` is the most efficient replacement for :class:`~qiskit.opflow` states, but the functionality is not identical. See API ref. for more info.
+     - :class:`~qiskit.quantum_info.Statevector` or simply :class:`~qiskit.QuantumCircuit`, depending on the use case.
+       For efficient simulation of stabilizer states, ``quantum_info`` includes a :class:`~qiskit.quantum_info.StabilizerState`
+       class. See API ref. for more info.
 
-Example 1: Operating with 1-qubit states
-########################################
+Example 1
+##########
 .. raw:: html
 
     <details>
@@ -251,6 +262,7 @@ Example 1: Operating with 1-qubit states
 
     from qiskit.opflow import Zero, One, Plus, Minus
 
+    # Zero, One, Plus, Minus are all stabilizer states
     state1 = Zero ^ One
     state2 = Plus ^ Minus
 
@@ -271,16 +283,15 @@ Example 1: Operating with 1-qubit states
     qc_zero = QuantumCircuit(1)
     qc_one = qc_zero.copy()
     qc_one.x(0)
-    state1 = StabilizerState(qc_zero) ^ StabilizerState(qc_one)
+    state1 = Statevector(qc_zero) ^ Statevector(qc_one)
 
     qc_plus = qc_zero.copy()
     qc_plus.h(0)
     qc_minus = qc_one.copy()
     qc_minus.h(0)
+
     state2 = StabilizerState(qc_plus) ^ StabilizerState(qc_minus)
 
-    # or...
-    state2 = Statevector(qc_plus) ^ Statevector(qc_minus)
 
 .. raw:: html
 
@@ -324,11 +335,11 @@ might have been used "under the hood" in the original code:
      - Alternative
 
    * - :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`
-     - No direct replacement. In most use-cases (representing generic operators),
+     - No alternative provided. In most use-cases (representing generic operators),
        the alternative is :class:`~qiskit.quantum_info.Operator`.
 
    * - :class:`~qiskit.opflow.primitive_ops.CircuitOp`
-     - No direct replacement. :class:`~qiskit.QuantumCircuit` could be used as an alternative in some workflows.
+     - No alternative provided. :class:`~qiskit.QuantumCircuit` could be used as an alternative in some workflows.
 
    * - :class:`~qiskit.opflow.primitive_ops.MatrixOp`
      - :class:`~qiskit.quantum_info.Operator`
@@ -443,9 +454,7 @@ ListOps
 
 The :mod:`~qiskit.opflow.list_ops` module contained classes for manipulating lists of :mod:`~qiskit.opflow.primitive_ops`
 or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives for this functionality are the
-:class:`~qiskit.quantum_info.PauliList`, :class:`~qiskit.quantum_info.SparsePauliOp` (for sums of ``Pauli``\s),
-:class:`~qiskit.quantum_info.PauliTable` (symplectic representation of lists of Pauli operators) and
-:class:`~qiskit.quantum_info.StabilizerTable` (symplectic representation of lists of state functions).
+:class:`~qiskit.quantum_info.PauliList`, :class:`~qiskit.quantum_info.SparsePauliOp` (for sums of ``Pauli``\s).
 
 .. list-table::
    :header-rows: 1
@@ -454,13 +463,13 @@ or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives
      - Alternative
 
    * - :class:`~qiskit.opflow.list_ops.ListOp`
-     - No direct replacement. This is the base class for operator lists. For ``Pauli`` operators, the
-       alternative is :class:`~qiskit.quantum_info.PauliList`. For lists of state representations, an
-       option is :class:`~qiskit.quantum_info.StabilizerTable`
+     - No direct replacement. This is the base class for operator lists. In general, these could be replaced with
+       Python ``list``\s. For ``Pauli`` operators, there are a few alternatives, depending on the use-case.
+       One alternative is :class:`~qiskit.quantum_info.PauliList`.
 
    * - :class:`~qiskit.opflow.list_ops.ComposedOp`
      - No direct replacement. Current workflows do not require composition of states and operators within
-       one object.
+       one object (no lazy evaluation).
 
    * - :class:`~qiskit.opflow.list_ops.SummedOp`
      - No direct replacement. For ``Pauli`` operators, use :class:`~qiskit.quantum_info.SparsePauliOp`.
@@ -469,8 +478,11 @@ or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives
      - No direct replacement. For ``Pauli`` operators, use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
 
-Example 1: ``ListOp``
-#####################
+Example 1: ``SummedOp``
+########################
+
+See application in MatrixExpectation example.
+
 .. raw:: html
 
     <details>
@@ -478,10 +490,8 @@ Example 1: ``ListOp``
 
 .. code-block:: python
 
-    from qiskit.opflow import Zero, One, ListOp
+    from qiskit.opflow import
 
-    op1 = # list op with operators
-    op2 = ~ListOp([One, Zero]) @ ListOp([One, Zero])
 
 .. raw:: html
 
@@ -494,7 +504,8 @@ Example 1: ``ListOp``
 
 .. code-block:: python
 
-    from qiskit.quantum_info import StabilizerTable
+    from qiskit import QuantumCircuit
+
 
 .. raw:: html
 
@@ -540,29 +551,32 @@ identify the sub-class that is being used, to then look for an alternative.
      - Alternative
 
    * - :class:`~qiskit.opflow.state_fns.StateFn`
-     - No direct replacement
+     - No direct replacement. This class was used to create instances of the classes listed below.
 
    * - :class:`~qiskit.opflow.state_fns.CircuitStateFn`
-     - No direct replacement
+     - No direct replacement. :class:`~qiskit.circuit.QuantumCircuit` can be used directly instead.
 
    * - :class:`~qiskit.opflow.state_fns.DictStateFn`
-     - No direct replacement
+     - No direct replacement. ??
 
    * - :class:`~qiskit.opflow.state_fns.VectorStateFn`
-     - There's the :class:`~qiskit.quantum_info.Statevector` class and the :class:`~qiskit.quantum_info.StabilizerState` (Clifford based vector).
+     - This class can be replaced with :class:`~qiskit.quantum_info.Statevector` or
+       :class:`~qiskit.quantum_info.StabilizerState` (for Clifford-based vectors).
 
    * - :class:`~qiskit.opflow.state_fns.SparseVectorStateFn`
-     - No direct replacement. See :class:`~qiskit.opflow.state_fns.VectorStateFn`
+     - :class:`~qiskit.quantum_info.Statevector` is not sparse, but for stabilizer states,
+       :class:`~qiskit.quantum_info.StabilizerState` can simulate them efficiently.
 
    * - :class:`~qiskit.opflow.state_fns.OperatorStateFn`
-     - No direct replacement
+     - No direct replacement.
 
    * - :class:`~qiskit.opflow.state_fns.CVaRMeasurement`
-     - Used in :class:`~qiskit.opflow.expectations.CVaRExpectation`. Functionality now covered by :class:`~SamplingEstimator`. See example in expectations.
+     - Used in :class:`~qiskit.opflow.expectations.CVaRExpectation`.
+       Functionality now covered by :class:`~SamplingEstimator`. See example in expectations.
 
 
-Example 1: ``StateFn``
-~~~~~~~~~~~~~~~~~~~~~~
+Example 1: Applying an operator to a state
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 
@@ -571,7 +585,17 @@ Example 1: ``StateFn``
 
 .. code-block:: python
 
-    from opflow import StateFn
+    from qiskit.opflow import StateFn, X, Y
+
+    qc = QuantumCircuit(2)
+    op = X ^ Y
+    state = StateFn(qc)
+
+    comp = ~state @ op
+    # returns a CircuitStateFn
+
+    eval = comp.eval()
+    # returns a VectorStateFn (Statevector)
 
 .. raw:: html
 
@@ -584,11 +608,23 @@ Example 1: ``StateFn``
 
 .. code-block:: python
 
-    from opflow import StateFn
+    from qiskit import QuantumCircuit
+    from qiskit.quantum_info import SparsePauliOp, Statevector
+
+    qc = QuantumCircuit(2)
+    op = SparsePauliOp("XY")
+    state = Statevector(qc)
+
+    eval = state.evolve(operator)
+    # returns a Statevector
 
 .. raw:: html
 
    </details>
+
+
+See more applied examples in expectations and converters.
+
 
 Converters
 ----------
@@ -707,13 +743,13 @@ Trotterizations
      - Alternative
 
    * - :class:`~qiskit.opflow.evolutions.TrotterizationFactory`
-     -
+     - No direct replacement. This class was used to create instances of one of the classes listed below.
 
    * - :class:`~qiskit.opflow.evolutions.Trotter`
      - :class:`~synthesis.SuzukiTrotter` or :class:`~synthesis.LieTrotter`
 
    * - :class:`~qiskit.opflow.evolutions.Suzuki`
-     - :class:~synthesis.SuzukiTrotter`
+     - :class:`~synthesis.SuzukiTrotter`
 
    * - :class:`~qiskit.opflow.evolutions.QDrift`
      - :class:`~synthesis.QDrift`
@@ -728,10 +764,10 @@ Other Evolution Classes
      - Alternative
 
    * - :class:`~qiskit.opflow.evolutions.EvolutionFactory`
-     -
+     - No direct replacement. This class was used to create instances of one of the classes listed below.
 
    * - :class:`~qiskit.opflow.evolutions.EvolvedOp`
-     - :class:`~synthesis.SuzukiTrotter`
+     - No direct replacement. The workflow no longer requires a specific operator for evolutions.
 
    * - :class:`~qiskit.opflow.evolutions.MatrixEvolution`
      - :class:`~HamiltonianGate`
@@ -838,24 +874,133 @@ Algorithm-Agnostic Expectations
      - Alternative
 
    * - :class:`~qiskit.opflow.expectations.ExpectationFactory`
-     - No direct replacement
+     - No direct replacement. This class was used to create instances of one of the classes listed below.
 
    * - :class:`~qiskit.opflow.expectations.AerPauliExpectation`
-     - Use :class:`~Estimator` primitive from ``qiskit_aer`` with ``approximation=True`` and ``shots=None``
+     - Use :class:`~Estimator` primitive from ``qiskit_aer`` with ``approximation=True`` and ``shots=None`` as ``run_options``.
+       See example below.
 
    * - :class:`~qiskit.opflow.expectations.MatrixExpectation`
-     - Use :class:`~Estimator` primitive from ``qiskit`` instead (uses Statevector).
+     - Use :class:`~Estimator` primitive from ``qiskit`` (if no shots are set, it performs an exact Statevector calculation). See example below.
 
    * - :class:`~qiskit.opflow.expectations.PauliExpectation`
-     - Use any :class:`~Estimator` primitive.
+     - Use any :class:`~Estimator` primitive from ``qiskit``.
 
 
-TODO: ADD EXAMPLES!
+Example 1: Aer Pauli Expectation
+#################################
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.opflow import Z, CX, H, I, Zero, StateFn, AerPauliExpectation, CircuitSampler
+    from qiskit.utils import QuantumInstance
+    from qiskit_aer import Aer
+
+    backend = Aer.get_backend("aer_simulator")
+    q_instance = QuantumInstance(backend)
+
+    sampler = CircuitSampler(q_instance, attach_results=True)
+    expect = AerPauliExpectation()
+
+    op = Z ^ Z
+    wvf = CX @ (H ^ I) @ Zero
+
+    converted_meas = expect.convert(~StateFn(op) @ wvf)
+    expect_values = sampler.convert(converted_meas).eval()
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.quantum_info import SparsePauliOp
+    from qiskit import QuantumCircuit
+    from qiskit_aer.primitives import Estimator as AerEstimator
+
+    estimator = AerEstimator(run_options={"approximation": True, "shots": None})
+
+    op = SparsePauliOp.from_list([("ZZ", 1)])
+    wvf = QuantumCircuit(2)
+    wvf.h(1)
+    wvf.cx(0,1)
+
+    expect_values = estimator.run(wvf,op).result().values
+
+.. raw:: html
+
+    </details>
+
+Example 2: Matrix Expectation
+#################################
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit_aer import Aer
+    from qiskit.opflow import X, H, I, MatrixExpectation, ListOp, StateFn
+    from qiskit.utils import QuantumInstance
+
+    backend = Aer.get_backend("statevector_simulator")
+    q_instance = QuantumInstance(backend)
+    sampler = CircuitSampler(q_instance, attach_results=True)
+    expect = MatrixExpectation()
+
+    mixed_ops = ListOp([X.to_matrix_op(), H])
+    converted_meas = expect.convert(~StateFn(mixed_ops))
+
+    plus_mean = converted_meas @ Plus
+    values_plus = sampler.convert(plus_mean).eval()
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.primitives import Estimator
+    from qiskit.quantum_info import SparsePauliOp
+    from qiskit.quantum_info import Clifford
+
+    X = SparsePauliOp("X")
+
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    H = Clifford(qc).to_operator()
+
+    plus = QuantumCircuit(1)
+    plus.h(0)
+
+    estimator = Estimator()
+    values_plus = estimator.run([plus, plus], [X, H]).result().values
+
+.. raw:: html
+
+    </details>
 
 CVaRExpectation
 ~~~~~~~~~~~~~~~
 
-.. list-table:: Migration of ``qiskit.opflow.expectations.CVaRExpectation``
+.. list-table::
    :header-rows: 1
 
    * - Opflow
