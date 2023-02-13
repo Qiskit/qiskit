@@ -73,8 +73,8 @@ in some of the :class:`~quantum_info.BaseOperator` subclasses.
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
    * - :class:`~opflow.OperatorBase`
      - :class:`~quantum_info.BaseOperator`.
        For more information, check out the :class:`~quantum_info.BaseOperator` source code.
@@ -95,103 +95,196 @@ The 1-qubit paulis were commonly used for quick testing of algorithms, as they c
 These operations implicitly created operators of type  :class:`~qiskit.opflow.PauliSumOp`, and can be replaced by
 directly creating a corresponding :class:`~qiskit.quantum_info.SparsePauliOp`, as shown in the example below.
 
-
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
    * - :class:`~qiskit.opflow.X`, :class:`~qiskit.opflow.Y`, :class:`~qiskit.opflow.Z`, :class:`~qiskit.opflow.I`
      - :class:`~qiskit.quantum_info.Pauli`.
        For direct compatibility with classes in :mod:`~qiskit.algorithms`, wrap in :class:`~qiskit.quantum_info.SparsePauliOp`.
-   * -
-        .. code-block:: python
 
-            from qiskit.opflow import X
-            operator = X ^ X
+Example 1: Defining the XX operator
+###################################
+.. raw:: html
 
-     -
-        .. code-block:: python
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
 
-            from qiskit.quantum_info import Pauli, SparsePauliOp
-            X = Pauli('X')
-            op = X ^ X
+.. code-block:: python
 
-            # equivalent to:
-            op = SparsePauliOp('XX')
+    from qiskit.opflow import X
+
+    operator = X ^ X
+
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.quantum_info import Pauli, SparsePauliOp
+
+    X = Pauli('X')
+    op = X ^ X
+
+    # equivalent to:
+    op = SparsePauliOp('XX')
+
+.. raw:: html
+
+   </details>
+
+Example 2: Defining a more complex operator
+###########################################
+.. raw:: html
+
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.opflow import I, X, Z
+
+    op = 0.39 * (I ^ Z ^ I) + 0.5 * (I ^ X ^ X)
+
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.quantum_info import SparsePauliOp
+
+    op = SparsePauliOp.from_list([("IZI", 0.39), ("IXX", 0.5)])
+
+    # or...
+    op = SparsePauliOp.from_sparse_list([("Z", [1], 0.39), ("XX", [0,1], 0.5)], num_qubits = 3)
+
 
 Common non-parametrized gates (Clifford)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.CX`, :class:`~qiskit.opflow.S`, :class:`~qiskit.opflow.H`, :class:`~qiskit.opflow.T`, :class:`~qiskit.opflow.CZ`, :class:`~qiskit.opflow.Swap`
-     - Append corresponding gate to :class:`~qiskit.QuantumCircuit` + :class:`~qiskit.quantum_info.Clifford` + ``.to_operator()``.
-       This alternative is not too efficient, as ``.to_operator()`` is dense and scales exponentially with the size of the circuit.
+     - Append corresponding gate to :class:`~qiskit.QuantumCircuit` and wrap in :class:`~qiskit.quantum_info.Clifford`.
+       To operate in a similar way to Opflow, you can then call ``Clifford.to_operator()``, but please note that
+       this alternative is not efficient, as ``.to_operator()`` is dense and scales exponentially with the size of the circuit.
 
-   * -
-        .. code-block:: python
 
-            from qiskit.opflow import H
-            op = H ^ H
+Example 1: Defining the HH operator
+###################################
+.. raw:: html
 
-     -
-        .. code-block:: python
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
 
-            from qiskit import QuantumCircuit
-            from qiskit.quantum_info import Clifford
-            qc = QuantumCircuit(2)
-            qc.h(0)
-            qc.h(1)
-            op = Clifford(qc).to_operator()
+.. code-block:: python
 
-            # or...
-            qc = QuantumCircuit(1)
-            qc.h(0)
-            H = Clifford(qc).to_operator()
-            op = H ^ H
+    from qiskit.opflow import H
+
+    op = H ^ H
+
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit import QuantumCircuit
+    from qiskit.quantum_info import Clifford
+
+    qc = QuantumCircuit(2)
+    qc.h(0)
+    qc.h(1)
+    op = Clifford(qc).to_operator()
+
+    # or...
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    H = Clifford(qc).to_operator()
+    op = H ^ H
+
+.. raw:: html
+
+   </details>
 
 1-Qubit States
 ~~~~~~~~~~~~~~
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.Zero`, :class:`~qiskit.opflow.One`, :class:`~qiskit.opflow.Plus`, :class:`~qiskit.opflow.Minus`
      - :class:`~qiskit.quantum_info.StabilizerState` or :class:`~qiskit.quantum_info.Statevector` or :class:`~qiskit.QuantumCircuit`, depending on the use case.
        In principle, :class:`~qiskit.quantum_info.StabilizerState` is the most efficient replacement for :class:`~qiskit.opflow` states, but the functionality is not identical. See API ref. for more info.
 
-   * -
+Example 1: Operating with 1-qubit states
+########################################
+.. raw:: html
 
-        .. code-block:: python
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
 
-            from qiskit.opflow import Zero, One, Plus, Minus
+.. code-block:: python
 
-            state1 = Zero ^ One
-            state2 = Plus ^ Minus
+    from qiskit.opflow import Zero, One, Plus, Minus
 
-     -
+    state1 = Zero ^ One
+    state2 = Plus ^ Minus
 
-        .. code-block:: python
+.. raw:: html
 
-            from qiskit import QuantumCircuit
-            from qiskit.quantum_info import StabilizerState
+   </details>
 
-            qc_zero = QuantumCircuit(1)
-            qc_one = copy(qc_zero)
-            qc_one.x(0)
-            state1 = StabilizerState(qc_zero) ^ StabilizerState(qc_one)
+.. raw:: html
 
-            qc_plus = copy(qc_zero)
-            qc_plus.h(0)
-            qc_minus = copy(qc_one)
-            qc_minus.h(0)
-            state2 = StabilizerState(qc_plus) ^ StabilizerState(qc_minus)
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit import QuantumCircuit
+    from qiskit.quantum_info import StabilizerState, Statevector
+
+    qc_zero = QuantumCircuit(1)
+    qc_one = qc_zero.copy()
+    qc_one.x(0)
+    state1 = StabilizerState(qc_zero) ^ StabilizerState(qc_one)
+
+    qc_plus = qc_zero.copy()
+    qc_plus.h(0)
+    qc_minus = qc_one.copy()
+    qc_minus.h(0)
+    state2 = StabilizerState(qc_plus) ^ StabilizerState(qc_minus)
+
+    # or...
+    state2 = Statevector(qc_plus) ^ Statevector(qc_minus)
+
+.. raw:: html
+
+   </details>
 
 Primitive and List Ops
 ----------------------
@@ -209,8 +302,8 @@ to initialize it:
 .. list-table::
    :header-rows: 1
 
-   * - class passed to constructor
-     - sub-class returned
+   * - Class passed to constructor
+     - Sub-class returned
 
    * - :class:`~qiskit.quantum_info.Pauli`
      - :class:`~qiskit.opflow.primitive_ops.PauliOp`
@@ -227,8 +320,8 @@ might have been used "under the hood" in the original code:
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`
      - No direct replacement. In most use-cases (representing generic operators),
@@ -256,75 +349,94 @@ might have been used "under the hood" in the original code:
      - :class:`~qiskit.quantum_info.Z2Symmetries`. See example below.
 
 
-Primitive Ops Examples
-~~~~~~~~~~~~~~~~~~~~~~
+Example 1: ``PauliSumOp``
+##############################
 
-``PauliSumOp`` Example
-#######################
+.. raw:: html
 
-.. list-table::
-   :header-rows: 1
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
 
-   * - opflow
-     - alternative
+.. code-block:: python
 
-   * -
-        .. code-block:: python
+    from qiskit.opflow import PauliSumOp
+    from qiskit.quantum_info import SparsePauliOp, Pauli
 
-            from qiskit.opflow import PauliSumOp
-            from qiskit.quantum_info import SparsePauliOp, Pauli
+    qubit_op = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=-3j)
 
-            qubit_op = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=-3j)
+.. raw:: html
 
-     -
-        .. code-block:: python
+   </details>
 
-            from qiskit.quantum_info import SparsePauliOp, Pauli
+.. raw:: html
 
-            qubit_op = SparsePauliOp(Pauli("XYZY")), coeff=-6j)
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
 
-``Z2Symmetries`` and ``TaperedPauliSumOp`` Example
-##################################################
-.. list-table::
-   :header-rows: 1
+.. code-block:: python
 
-   * - opflow
-     - alternative
+    from qiskit.quantum_info import SparsePauliOp, Pauli
 
-   * -
-        .. code-block:: python
+    qubit_op = SparsePauliOp(Pauli("XYZY")), coeff=-6j)
 
-            from qiskit.opflow import PuliSumOp, Z2Symmetries, TaperedPauliSumOp
+.. raw:: html
 
-            qubit_op = PauliSumOp.from_list(
-                [
-                ("II", -1.0537076071291125),
-                ("IZ", 0.393983679438514),
-                ("ZI", -0.39398367943851387),
-                ("ZZ", -0.01123658523318205),
-                ("XX", 0.1812888082114961),
-                ]
-            )
-            z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
-            tapered_op = z2_symmetries.taper(qubit_op)
-            # can be represented as:
-            tapered_op = TaperedPauliSumOp(primitive, z2_symmetries)
-     -
-        .. code-block:: python
+   </details>
 
-            from qiskit.quantum_info import SparsePauliOp, Z2Symmetries
+Example 2: ``Z2Symmetries`` and ``TaperedPauliSumOp``
+#####################################################
 
-            qubit_op = SparsePauliOp.from_list(
-                [
-                    ("II", -1.0537076071291125),
-                    ("IZ", 0.393983679438514),
-                    ("ZI", -0.39398367943851387),
-                    ("ZZ", -0.01123658523318205),
-                    ("XX", 0.1812888082114961),
-                ]
-            )
-            z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
-            tapered_op = z2_symmetries.taper(qubit_op)
+.. raw:: html
+
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.opflow import PuliSumOp, Z2Symmetries, TaperedPauliSumOp
+
+    qubit_op = PauliSumOp.from_list(
+        [
+        ("II", -1.0537076071291125),
+        ("IZ", 0.393983679438514),
+        ("ZI", -0.39398367943851387),
+        ("ZZ", -0.01123658523318205),
+        ("XX", 0.1812888082114961),
+        ]
+    )
+    z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
+    tapered_op = z2_symmetries.taper(qubit_op)
+    # can be represented as:
+    tapered_op = TaperedPauliSumOp(primitive, z2_symmetries)
+
+.. raw:: html
+
+   </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.quantum_info import SparsePauliOp, Z2Symmetries
+
+    qubit_op = SparsePauliOp.from_list(
+        [
+            ("II", -1.0537076071291125),
+            ("IZ", 0.393983679438514),
+            ("ZI", -0.39398367943851387),
+            ("ZZ", -0.01123658523318205),
+            ("XX", 0.1812888082114961),
+        ]
+    )
+    z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
+    tapered_op = z2_symmetries.taper(qubit_op)
+
+.. raw:: html
+
+   </details>
 
 ListOps
 ~~~~~~~
@@ -338,8 +450,8 @@ or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.list_ops.ListOp`
      - No direct replacement. This is the base class for operator lists. For ``Pauli`` operators, the
@@ -356,29 +468,37 @@ or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives
    * - :class:`~qiskit.opflow.list_ops.TensoredOp`
      - No direct replacement. For ``Pauli`` operators, use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
-ListOp Examples
-~~~~~~~~~~~~~~~
 
-``ListOp`` Example:
-####################
-.. list-table::
-   :header-rows: 1
+Example 1: ``ListOp``
+#####################
+.. raw:: html
 
-   * - opflow
-     - alternative
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
 
-   * -
-        .. code-block:: python
+.. code-block:: python
 
-            from qiskit.opflow import Zero, One, ListOp
+    from qiskit.opflow import Zero, One, ListOp
 
-            op1 = # list op with operators
-            op2 = ~ListOp([One, Zero]) @ ListOp([One, Zero])
-     -
-        .. code-block:: python
+    op1 = # list op with operators
+    op2 = ~ListOp([One, Zero]) @ ListOp([One, Zero])
 
-            from qiskit.quantum_info import StabilizerTable
+.. raw:: html
 
+   </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.quantum_info import StabilizerTable
+
+.. raw:: html
+
+   </details>
 
 State Functions
 ---------------
@@ -395,8 +515,8 @@ acts as a factory to create the corresponding sub-class depending on the computa
 .. list-table::
    :header-rows: 1
 
-   * - class passed to constructor
-     - sub-class returned
+   * - Class passed to constructor
+     - Sub-class returned
 
    * - ``str``, ``dict``, :class:`~qiskit.result.Result`
      - :class:`~qiskit.opflow.state_fns.DictStateFn`
@@ -416,8 +536,8 @@ identify the sub-class that is being used, to then look for an alternative.
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.state_fns.StateFn`
      - No direct replacement
@@ -440,32 +560,35 @@ identify the sub-class that is being used, to then look for an alternative.
    * - :class:`~qiskit.opflow.state_fns.CVaRMeasurement`
      - Used in :class:`~qiskit.opflow.expectations.CVaRExpectation`. Functionality now covered by :class:`~SamplingEstimator`. See example in expectations.
 
-StateFn Examples
-~~~~~~~~~~~~~~~~~
 
-``StateFn`` Example:
-####################
+Example 1: ``StateFn``
+~~~~~~~~~~~~~~~~~~~~~~
 
-.. list-table::
-   :header-rows: 1
+.. raw:: html
 
-   * - opflow
-     - alternative
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
 
-   * -
-        .. code-block:: python
+.. code-block:: python
 
-            from qiskit.opflow import PuliSumOp
-            from qiskit.quantum_info import SparsePauliOp, Pauli
+    from opflow import StateFn
 
-            qubit_op = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=-3j)
+.. raw:: html
 
-     -
-        .. code-block:: python
+   </details>
 
-            from qiskit.quantum_info import SparsePauliOp, Pauli
+.. raw:: html
 
-            qubit_op = SparsePauliOp(Pauli("XYZY")), coeff=-6j)
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from opflow import StateFn
+
+.. raw:: html
+
+   </details>
 
 Converters
 ----------
@@ -476,79 +599,76 @@ In the case of the :class:`~qiskit.opflow.converters.CircuitSampler`, it travers
 approximations of its state functions using a quantum backend.
 Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
-Circuit Sampler
-~~~~~~~~~~~~~~~
-
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.converters.CircuitSampler`
      - :class:`~primitives.Estimator`
-
-   * -
-        .. code-block:: python
-
-            from qiskit import QuantumCircuit
-            from qiskit.opflow import X, Z, StateFn, CircuitStateFn, CircuitSampler
-            from qiskit.providers.aer import AerSimulator
-
-            qc = QuantumCircuit(1)
-            qc.h(0)
-            state = CircuitStateFn(qc)
-            hamiltonian = X + Z
-
-            expr = StateFn(hamiltonian, is_measurement=True).compose(state)
-            backend = AerSimulator()
-            sampler = CircuitSampler(backend)
-            expectation = sampler.convert(expr)
-            expectation_value = expectation.eval().real
-
-     -
-        .. code-block:: python
-
-            from qiskit import QuantumCircuit
-            from qiskit.primitives import Estimator
-            from qiskit.quantum_info import SparsePauliOp
-
-            state = QuantumCircuit(1)
-            state.h(0)
-            hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
-
-            estimator = Estimator()
-            expectation_value = estimator.run(state, hamiltonian).result().values
-
-
-Two Qubit Reduction
-~~~~~~~~~~~~~~~~~~~~
-.. list-table::
-   :header-rows: 1
-
-   * - opflow
-     - alternative
-
-   * -  :class:`~qiskit.opflow.converters.TwoQubitReduction`
-     -  No direct replacement. This class implements a chemistry-specific reduction for the ``ParityMapper`` class in ``qiskit-nature``.
-        The general symmetry logic this mapper depends on has been refactored to other classes in :mod:`~qiskit.quantum_info`,
-        so this specific :mod:`~qiskit.opflow` implementation is no longer necessary.
-
-Other Converters
-~~~~~~~~~~~~~~~~~
-
-.. list-table::
-   :header-rows: 1
-
-   * - opflow
-     - alternative
-
    * - :class:`~qiskit.opflow.converters.AbelianGrouper`
      - No direct replacement. This class allowed a sum a of Pauli operators to be grouped. These type of groupings are now left to the primitives to handle.
    * - :class:`~qiskit.opflow.converters.DictToCircuitSum`
      - No direct replacement
    * - :class:`~qiskit.opflow.converters.PauliBasisChange`
      - No direct replacement
+   * -  :class:`~qiskit.opflow.converters.TwoQubitReduction`
+     -  No direct replacement. This class implements a chemistry-specific reduction for the ``ParityMapper`` class in ``qiskit-nature``.
+        The general symmetry logic this mapper depends on has been refactored to other classes in :mod:`~qiskit.quantum_info`,
+        so this specific :mod:`~qiskit.opflow` implementation is no longer necessary.
+
+
+Example 1: ``CircuitSampler``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit import QuantumCircuit
+    from qiskit.opflow import X, Z, StateFn, CircuitStateFn, CircuitSampler
+    from qiskit.providers.aer import AerSimulator
+
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    state = CircuitStateFn(qc)
+    hamiltonian = X + Z
+
+    expr = StateFn(hamiltonian, is_measurement=True).compose(state)
+    backend = AerSimulator()
+    sampler = CircuitSampler(backend)
+    expectation = sampler.convert(expr)
+    expectation_value = expectation.eval().real
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit import QuantumCircuit
+    from qiskit.primitives import Estimator
+    from qiskit.quantum_info import SparsePauliOp
+
+    state = QuantumCircuit(1)
+    state.h(0)
+    hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
+
+    estimator = Estimator()
+    expectation_value = estimator.run(state, hamiltonian).result().values
+
+.. raw:: html
+
+    </details>
 
 Evolutions
 ----------
@@ -569,73 +689,22 @@ The different trotterization methods that extend :class:`~qiskit.opflow.evolutio
 and now extend the :class:`~qiskit.synthesis.evolution.ProductFormula` base class. They no longer contain a ``.convert()`` method for
 standalone use, but now are designed to be plugged into the :class:`~qiskit.synthesis.PauliEvolutionGate` and called via ``.synthesize()``.
 In this context, the job of the :class:`~qiskit.opflow.evolutions.PauliTrotterEvolution` class can now be handled directly by the algorithms
-(for example, :class:`~qiskit.algorithms.time_evolvers.TrotterQRTE`\), as shown in the following example:
-
-.. list-table::
-   :header-rows: 1
-
-   * - opflow
-     - alternative
-
-   * -
-        .. code-block:: python
-
-            from qiskit.opflow import Trotter, PauliTrotterEvolution, PauliSumOp
-
-            hamiltonian = PauliSumOp.from_list([('X', 1), ('Z',1)])
-            evolution = PauliTrotterEvolution(trotter_mode=Trotter(), reps=1)
-            evol_result = evolution.convert(hamiltonian.exp_i())
-            evolved_state = evol_result.to_circuit()
-     -
-        .. code-block:: python
-
-            from qiskit.quantum_info import SparsePauliOp
-            from qiskit.synthesis import SuzukiTrotter
-            from qiskit.circuit.library import PauliEvolutionGate
-            from qiskit import QuantumCircuit
-
-            hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
-            evol_gate = PauliEvolutionGate(hamiltonian, 1, synthesis=SuzukiTrotter())
-            evolved_state = QuantumCircuit(1)
-            evolved_state.append(evol_gate, [0])
+(for example, :class:`~qiskit.algorithms.time_evolvers.TrotterQRTE`\).
 
 In a similar manner, the :class:`~qiskit.opflow.evolutions.MatrixEvolution` class performs evolution by classical matrix exponentiation,
 constructing a circuit with :class:`~UnitaryGate`\s or :class:`~HamiltonianGate`\s containing the exponentiation of the operator.
 This class is no longer necessary, as the :class:`~HamiltonianGate`\s can be directly handled by the algorithms.
 
-.. list-table::
-   :header-rows: 1
-
-   * - opflow
-     - alternative
-
-   * -
-        .. code-block:: python
-
-            from qiskit.opflow import MatrixEvolution, MatrixOp
-
-            hamiltonian = MatrixOp([[0, 1], [1, 0]])
-            evolution = MatrixEvolution()
-            evol_result = evolution.convert(hamiltonian.exp_i())
-            evolved_state = evol_result.to_circuit()
-     -
-        .. code-block:: python
-
-            from qiskit.quantum_info import SparsePauliOp
-            from qiskit.extensions import HamiltonianGate
-            from qiskit import QuantumCircuit
-
-            evol_gate = HamiltonianGate([[0, 1], [1, 0]], 1)
-            evolved_state = QuantumCircuit(1)
-            evolved_state.append(evol_gate, [0])
-
 To summarize:
 
+Trotterizations
+~~~~~~~~~~~~~~~
+
 .. list-table::
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.evolutions.TrotterizationFactory`
      -
@@ -649,12 +718,14 @@ To summarize:
    * - :class:`~qiskit.opflow.evolutions.QDrift`
      - :class:`~synthesis.QDrift`
 
+Other Evolution Classes
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. list-table:: Migration of ``qiskit.opflow.evolutions.evolutions``
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.evolutions.EvolutionFactory`
      -
@@ -668,6 +739,90 @@ To summarize:
    * - :class:`~qiskit.opflow.evolutions.PauliTrotterEvolution`
      - :class:`~PauliEvolutionGate`
 
+
+Example 1: Trotter evolution
+############################
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.opflow import Trotter, PauliTrotterEvolution, PauliSumOp
+
+    hamiltonian = PauliSumOp.from_list([('X', 1), ('Z',1)])
+    evolution = PauliTrotterEvolution(trotter_mode=Trotter(), reps=1)
+    evol_result = evolution.convert(hamiltonian.exp_i())
+    evolved_state = evol_result.to_circuit()
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+            from qiskit.quantum_info import SparsePauliOp
+            from qiskit.synthesis import SuzukiTrotter
+            from qiskit.circuit.library import PauliEvolutionGate
+            from qiskit import QuantumCircuit
+
+            hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
+            evol_gate = PauliEvolutionGate(hamiltonian, 1, synthesis=SuzukiTrotter())
+            evolved_state = QuantumCircuit(1)
+            evolved_state.append(evol_gate, [0])
+
+.. raw:: html
+
+    </details>
+
+
+Example 2: Matrix evolution
+############################
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.opflow import MatrixEvolution, MatrixOp
+
+    hamiltonian = MatrixOp([[0, 1], [1, 0]])
+    evolution = MatrixEvolution()
+    evol_result = evolution.convert(hamiltonian.exp_i())
+    evolved_state = evol_result.to_circuit()
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.quantum_info import SparsePauliOp
+    from qiskit.extensions import HamiltonianGate
+    from qiskit import QuantumCircuit
+
+    evol_gate = HamiltonianGate([[0, 1], [1, 0]], 1)
+    evolved_state = QuantumCircuit(1)
+    evolved_state.append(evol_gate, [0])
+
+.. raw:: html
+
+    </details>
+
+
 Expectations
 ------------
 Expectations are converters which enable the computation of the expectation value of an observable with respect to some state function.
@@ -679,8 +834,8 @@ Algorithm-Agnostic Expectations
 .. list-table:: Migration of ``qiskit.opflow.expectations``
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.expectations.ExpectationFactory`
      - No direct replacement
@@ -697,53 +852,71 @@ Algorithm-Agnostic Expectations
 
 TODO: ADD EXAMPLES!
 
-CVarExpectation
+CVaRExpectation
 ~~~~~~~~~~~~~~~
 
 .. list-table:: Migration of ``qiskit.opflow.expectations.CVaRExpectation``
    :header-rows: 1
 
-   * - opflow
-     - alternative
+   * - Opflow
+     - Alternative
 
    * - :class:`~qiskit.opflow.expectations.CVaRExpectation`
-     - Functionality absorbed into corresponding VQE algorithm: :class:`~qiskit.algorithms.minimum_eigensolvers.SamplingVQE`
+     - Functionality migrated into new VQE algorithm: :class:`~qiskit.algorithms.minimum_eigensolvers.SamplingVQE`
 
-   * -
 
-        .. code-block:: python
+Example 1: VQE with CVaR
+########################
 
-            from qiskit.opflow import CVaRExpectation, PauliSumOp
+.. raw:: html
 
-            from qiskit.algorithms import VQE
-            from qiskit.algorithms.optimizers import SLSQP
-            from qiskit.circuit.library import TwoLocal
-            from qiskit_aer import AerSimulator
-            backend = AerSimulator()
-            ansatz = TwoLocal(2, 'ry', 'cz')
-            op = PauliSumOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
-            alpha=0.2
-            cvar_expectation = CVaRExpectation(alpha=alpha)
-            opt = SLSQP(maxiter=1000)
-            vqe = VQE(ansatz, expectation=cvar_expectation, optimizer=opt, quantum_instance=backend)
-            result = vqe.compute_minimum_eigenvalue(op)
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
 
-     -
+.. code-block:: python
 
-        .. code-block:: python
+    from qiskit.opflow import CVaRExpectation, PauliSumOp
 
-            from qiskit.quantum_info import SparsePauliOp
+    from qiskit.algorithms import VQE
+    from qiskit.algorithms.optimizers import SLSQP
+    from qiskit.circuit.library import TwoLocal
+    from qiskit_aer import AerSimulator
+    backend = AerSimulator()
+    ansatz = TwoLocal(2, 'ry', 'cz')
+    op = PauliSumOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
+    alpha=0.2
+    cvar_expectation = CVaRExpectation(alpha=alpha)
+    opt = SLSQP(maxiter=1000)
+    vqe = VQE(ansatz, expectation=cvar_expectation, optimizer=opt, quantum_instance=backend)
+    result = vqe.compute_minimum_eigenvalue(op)
 
-            from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
-            from qiskit.algorithms.optimizers import SLSQP
-            from qiskit.circuit.library import TwoLocal
-            from qiskit.primitives import Sampler
-            ansatz = TwoLocal(2, 'ry', 'cz')
-            op = SparsePauliOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
-            opt = SLSQP(maxiter=1000)
-            alpha=0.2
-            vqe = SamplingVQE(Sampler(), ansatz, optm, aggregation=alpha)
-            result = vqe.compute_minimum_eigenvalue(op)
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.quantum_info import SparsePauliOp
+
+    from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
+    from qiskit.algorithms.optimizers import SLSQP
+    from qiskit.circuit.library import TwoLocal
+    from qiskit.primitives import Sampler
+    ansatz = TwoLocal(2, 'ry', 'cz')
+    op = SparsePauliOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
+    opt = SLSQP(maxiter=1000)
+    alpha=0.2
+    vqe = SamplingVQE(Sampler(), ansatz, optm, aggregation=alpha)
+    result = vqe.compute_minimum_eigenvalue(op)
+
+.. raw:: html
+
+    </details>
 
 Gradients
 ---------
