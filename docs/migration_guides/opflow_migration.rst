@@ -10,24 +10,12 @@ Background
 The :mod:`~qiskit.opflow` module was originally introduced as a layer between circuits and algorithms, a series of building blocks
 for quantum algorithms research and development.
 
-The recent introduction of the :mod:`~qiskit.primitives` provided a new interface for interacting with backends that disrupted
-the "opflow way of doing things". Now, instead of
+The recent release of the :mod:`~qiskit.primitives` introduced a new interface for interacting with backends. Now, instead of
 preparing a circuit to execute with a ``backend.run()`` type of method, the algorithms can leverage the :class:`~Sampler` and
 :class:`~Estimator` primitives, send parametrized circuits and observables, and directly receive quasi-probability distributions or
 expectation values (respectively). This workflow simplifies considerably the pre-processing and post-processing steps
-that previously relied on opflow. For example, the :class:`~Estimator` primitive returns expectation values from a series of
-circuit-observable pairs, superseding most of the functionality of the :mod:`~qiskit.opflow.expectations` submodule. Without the need for
-building opflow expectations, most of the components in ``operators`` also became redundant, as they commonly wrapped
-elements from :mod:`~qiskit.quantum_info`.
-
-Higher-level opflow sub-modules, such as the :mod:`~qiskit.opflow.gradients` sub-module, were refactored to take full advantage
-of the primitives interface. They can now be accessed as part of the :mod:`~qiskit.algorithms` module,
-together with other primitive-based subroutines. Similarly, the :mod:`~qiskit.opflow.evolutions` sub-module got refactored, and now
-can be easily integrated into a primitives-based workflow (as seen in the new :mod:`~qiskit.algorithms.time_evolvers` algorithms).
-
-All of these reasons have encouraged us to move away from opflow, and find new paths of developing algorithms based on
-the :mod:`~qiskit.primitives` interface and the :mod:`~qiskit.quantum_info` module, which is a powerful tool for representing
-and manipulating quantum operators.
+that previously relied on opflow; encouraging us to move away from opflow, and find new paths of developing algorithms based on
+the :mod:`~qiskit.primitives` interface and the :mod:`~qiskit.quantum_info` module. 
 
 This guide traverses the opflow submodules and provides either a direct alternative
 (i.e. using :mod:`~qiskit.quantum_info`), or an explanation of how to replace their functionality in algorithms.
@@ -513,39 +501,6 @@ or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives
      - No direct replacement. For ``Pauli`` operators, use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
 
-Example 1: ``SummedOp``
-########################
-
-See application in MatrixExpectation example.
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Opflow</b></a></summary>
-
-.. code-block:: python
-
-    from qiskit.opflow import
-
-
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
-
-.. code-block:: python
-
-    from qiskit import QuantumCircuit
-
-
-.. raw:: html
-
-   </details>
-
 State Functions
 ---------------
 Back to `Index`_
@@ -593,7 +548,7 @@ identify the sub-class that is being used, to then look for an alternative.
      - No direct replacement. :class:`~qiskit.circuit.QuantumCircuit` can be used directly instead.
 
    * - :class:`~qiskit.opflow.state_fns.DictStateFn`
-     - No direct replacement. ??
+     - No direct replacement.
 
    * - :class:`~qiskit.opflow.state_fns.VectorStateFn`
      - This class can be replaced with :class:`~qiskit.quantum_info.Statevector` or
