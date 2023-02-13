@@ -11,7 +11,7 @@ The :mod:`~qiskit.opflow` module was originally introduced as a layer between ci
 for quantum algorithms research and development.
 
 The recent introduction of the :mod:`~qiskit.primitives` provided a new interface for interacting with backends that disrupted
-the "opflow way" of doing things. Now, instead of
+the "opflow way of doing things". Now, instead of
 preparing a circuit to execute with a ``backend.run()`` type of method, the algorithms can leverage the :class:`~Sampler` and
 :class:`~Estimator` primitives, send parametrized circuits and observables, and directly receive quasi-probability distributions or
 expectation values (respectively). This workflow simplifies considerably the pre-processing and post-processing steps
@@ -34,7 +34,9 @@ This guide traverses the opflow submodules and provides either a direct alternat
 
 TL;DR
 -----
-The new :mod:`~qiskit.primitives` have superseded most of the :mod:`~qiskit.opflow` functionality. Thus, the latter is being deprecated.
+.. note::
+
+    The new :mod:`~qiskit.primitives` have superseded most of the :mod:`~qiskit.opflow` functionality. Thus, the latter is being deprecated.
 
 Index
 -----
@@ -60,15 +62,10 @@ This guide covers the migration from these opflow sub-modules:
 
 Operator Base Class
 -------------------
+Back to `Index`_
 
 The :class:`~opflow.OperatorBase` abstract class can generally be replaced with :class:`~quantum_info.BaseOperator`, keeping in
-mind that :class:`~quantum_info.BaseOperator` is more generic than its opflow counterpart. In particular, you should consider that:
-
-1. :class:`~opflow.OperatorBase` implements a broader algebra mixin. Some operator overloads are not available in
-:class:`~quantum_info.BaseOperator`.
-
-2. :class:`~opflow.OperatorBase` also implements methods such as ``.to_matrix()`` or ``.to_spmatrix()``, which are only found
-in some of the :class:`~quantum_info.BaseOperator` subclasses.
+mind that :class:`~quantum_info.BaseOperator` is more generic than its opflow counterpart.
 
 .. list-table::
    :header-rows: 1
@@ -76,11 +73,25 @@ in some of the :class:`~quantum_info.BaseOperator` subclasses.
    * - Opflow
      - Alternative
    * - :class:`~opflow.OperatorBase`
-     - :class:`~quantum_info.BaseOperator`.
-       For more information, check out the :class:`~quantum_info.BaseOperator` source code.
+     - :class:`~quantum_info.BaseOperator`
+
+..  tip::
+
+    Please note that:
+
+    1. :class:`~opflow.OperatorBase` implements a broader algebra mixin. Some operator overloads are not available in
+    :class:`~quantum_info.BaseOperator`.
+
+    2. :class:`~opflow.OperatorBase` also implements methods such as ``.to_matrix()`` or ``.to_spmatrix()``, which are only found
+    in some of the :class:`~quantum_info.BaseOperator` subclasses.
+
+    See API reference for more information.
+
 
 Operator Globals
 ----------------
+Back to `Index`_
+
 Opflow provided shortcuts to define common single qubit states, operators, and non-parametrized gates in the
 :mod:`~qiskit.opflow.operator_globals` module.
 
@@ -91,6 +102,8 @@ These were mainly used for didactic purposes or quick prototyping, and can easil
 
 1-Qubit Paulis
 ~~~~~~~~~~~~~~
+Back to `Index`_
+
 The 1-qubit paulis were commonly used for quick testing of algorithms, as they could be combined to create more complex operators
 (for example, ``0.39 * (I ^ Z) + 0.5 * (X ^ X)``).
 These operations implicitly created operators of type  :class:`~qiskit.opflow.PauliSumOp`, and can be replaced by
@@ -102,8 +115,11 @@ directly creating a corresponding :class:`~qiskit.quantum_info.SparsePauliOp`, a
    * - Opflow
      - Alternative
    * - :class:`~qiskit.opflow.X`, :class:`~qiskit.opflow.Y`, :class:`~qiskit.opflow.Z`, :class:`~qiskit.opflow.I`
-     - :class:`~qiskit.quantum_info.Pauli`.
-       For direct compatibility with classes in :mod:`~qiskit.algorithms`, wrap in :class:`~qiskit.quantum_info.SparsePauliOp`.
+     - :class:`~qiskit.quantum_info.Pauli`
+
+       ..  note::
+
+           For direct compatibility with classes in :mod:`~qiskit.algorithms`, wrap in :class:`~qiskit.quantum_info.SparsePauliOp`.
 
 Example 1: Defining the XX operator
 ###################################
@@ -172,9 +188,14 @@ Example 2: Defining a more complex operator
     # or...
     op = SparsePauliOp.from_sparse_list([("Z", [1], 0.39), ("XX", [0,1], 0.5)], num_qubits = 3)
 
+.. raw:: html
+
+   </details>
 
 Common non-parametrized gates (Clifford)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Back to `Index`_
+
 .. list-table::
    :header-rows: 1
 
@@ -186,8 +207,12 @@ Common non-parametrized gates (Clifford)
      - Append corresponding gate to :class:`~qiskit.QuantumCircuit`. ``quantum_info``
        :class:`~qiskit.quantum_info.Operator`\s can be also directly constructed from quantum circuits.
        Another alternative is to wrap the circuit in :class:`~qiskit.quantum_info.Clifford` and call
-       ``Clifford.to_operator()``. Please note that constructing ``quantum_info`` operators from circuits is not
-       efficient, as it is a dense operation and scales exponentially with the size of the circuit.
+       ``Clifford.to_operator()``.
+
+       ..  note::
+
+            Constructing ``quantum_info`` operators from circuits is not efficient, as it is a dense operation and
+            scales exponentially with the size of the circuit, use with care.
 
 
 Example 1: Defining the HH operator
@@ -240,6 +265,8 @@ Example 1: Defining the HH operator
 
 1-Qubit States
 ~~~~~~~~~~~~~~
+Back to `Index`_
+
 .. list-table::
    :header-rows: 1
 
@@ -248,8 +275,10 @@ Example 1: Defining the HH operator
 
    * - :class:`~qiskit.opflow.Zero`, :class:`~qiskit.opflow.One`, :class:`~qiskit.opflow.Plus`, :class:`~qiskit.opflow.Minus`
      - :class:`~qiskit.quantum_info.Statevector` or simply :class:`~qiskit.QuantumCircuit`, depending on the use case.
-       For efficient simulation of stabilizer states, ``quantum_info`` includes a :class:`~qiskit.quantum_info.StabilizerState`
-       class. See API ref. for more info.
+
+       ..  note::
+
+           For efficient simulation of stabilizer states, ``quantum_info`` includes a :class:`~qiskit.quantum_info.StabilizerState` class. See API ref. for more info.
 
 Example 1
 ##########
@@ -297,8 +326,11 @@ Example 1
 
    </details>
 
+
 Primitive and List Ops
 ----------------------
+Back to `Index`_
+
 Most of the workflows that previously relied in components from :mod:`~qiskit.opflow.primitive_ops` and
 :mod:`~qiskit.opflow.list_ops` can now leverage elements from ``quantum_info``\'s :mod:`~qiskit.quantum_info.operators` instead.
 Some of these classes do not require a 1-1 replacement because they were created to interface with other
@@ -306,6 +338,8 @@ opflow components.
 
 Primitive Ops
 ~~~~~~~~~~~~~~
+Back to `Index`_
+
 :class:`~qiskit.opflow.primitive_ops.PrimitiveOp` is the :mod:`~qiskit.opflow.primitive_ops` module's base class.
 It also acts as a factory to instantiate a corresponding sub-class depending on the computational primitive used
 to initialize it:
@@ -451,6 +485,7 @@ Example 2: ``Z2Symmetries`` and ``TaperedPauliSumOp``
 
 ListOps
 ~~~~~~~
+Back to `Index`_
 
 The :mod:`~qiskit.opflow.list_ops` module contained classes for manipulating lists of :mod:`~qiskit.opflow.primitive_ops`
 or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives for this functionality are the
@@ -513,6 +548,7 @@ See application in MatrixExpectation example.
 
 State Functions
 ---------------
+Back to `Index`_
 
 The :mod:`~qiskit.opflow.state_fns` module can be generally replaced by :class:`~qiskit.quantum_info.QuantumState`,
 with some differences to keep in mind:
@@ -628,6 +664,7 @@ See more applied examples in expectations and converters.
 
 Converters
 ----------
+Back to `Index`_
 
 The role of this sub-module was to convert the operators into other opflow operator classes
 (:class:`~qiskit.opflow.converters.TwoQubitReduction`, :class:`~qiskit.opflow.converters.PauliBasisChange`...).
@@ -708,6 +745,7 @@ Example 1: ``CircuitSampler``
 
 Evolutions
 ----------
+Back to `Index`_
 
 The :mod:`~qiskit.opflow.evolutions` sub-module was created to provide building blocks for hamiltonian simulation algorithms,
 including various methods for trotterization. The original opflow workflow for hamiltonian simulation did not allow for
@@ -735,6 +773,7 @@ To summarize:
 
 Trotterizations
 ~~~~~~~~~~~~~~~
+Back to `Index`_
 
 .. list-table::
    :header-rows: 1
@@ -756,8 +795,9 @@ Trotterizations
 
 Other Evolution Classes
 ~~~~~~~~~~~~~~~~~~~~~~~~
+Back to `Index`_
 
-.. list-table:: Migration of ``qiskit.opflow.evolutions.evolutions``
+.. list-table::
    :header-rows: 1
 
    * - Opflow
@@ -858,16 +898,18 @@ Example 2: Matrix evolution
 
     </details>
 
-
 Expectations
 ------------
+Back to `Index`_
+
 Expectations are converters which enable the computation of the expectation value of an observable with respect to some state function.
 This functionality can now be found in the estimator primitive.
 
 Algorithm-Agnostic Expectations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Back to `Index`_
 
-.. list-table:: Migration of ``qiskit.opflow.expectations``
+.. list-table::
    :header-rows: 1
 
    * - Opflow
@@ -999,6 +1041,7 @@ Example 2: Matrix Expectation
 
 CVaRExpectation
 ~~~~~~~~~~~~~~~
+Back to `Index`_
 
 .. list-table::
    :header-rows: 1
@@ -1065,6 +1108,8 @@ Example 1: VQE with CVaR
 
 Gradients
 ---------
+Back to `Index`_
+
 Replaced by the new :mod:`~qiskit.algorithms.gradients` module. You can see further details in the
 algorithms migration guide.
 
