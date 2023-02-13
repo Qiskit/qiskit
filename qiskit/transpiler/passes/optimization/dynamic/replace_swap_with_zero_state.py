@@ -15,7 +15,7 @@
 from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister, Reset
 from qiskit.circuit.library import CXGate, HGate, Measure, SwapGate
 from qiskit.circuit.controlflow.if_else import IfElseOp
-from qiskit.dagcircuit import DAGCircuit, DAGInNode
+from qiskit.dagcircuit import DAGCircuit, DAGInNode, DAGNode, DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -34,30 +34,43 @@ class ReplaceSwapWithZeroState(TransformationPass):
         """
         swaps = dag.op_nodes(SwapGate)
         for swap in swaps:
-            predecessor = next(dag.predecessors(swap))
-            if isinstance(predecessor, DAGInNode) or isinstance(predecessor, Reset):
-                zero_qubit = predecessor.wire.index
-                for qarg in swap.qargs:
-                    if qarg.index != zero_qubit:
-                        data_qubit = qarg.index
+            for node in dag.predecessors(swap):
+                if isinstance(node, DAGInNode):
+                    zero_qubit = node.wire.index
+                    for qarg in swap.qargs:
+                        if qarg.index != zero_qubit:
+                            data_qubit = qarg.index
 
-                mini_dag = DAGCircuit()
-                qreg = QuantumRegister(2)
-                creg = ClassicalRegister(1)
-                mini_dag.add_qreg(qreg)
-                mini_dag.add_creg(creg)
+                    self._replace_circuit(dag, node, zero_qubit, data_qubit)
 
-                mini_dag.apply_operation_back(CXGate(), [qreg[1], qreg[0]])
-                mini_dag.apply_operation_back(HGate(), [qreg[1]])
-                mini_dag.apply_operation_back(Measure(), [qreg[1]], [creg[0]])
+                elif isinstance(node, DAGOpNode):
+                    if isinstance(node.op, Reset):
+                        zero_qubit = node.qargs[0].index
+                        for qarg in swap.qargs:
+                            if qarg.index != zero_qubit:
+                                data_qubit = qarg.index
 
-                true_body = QuantumCircuit(qreg)
-                true_body.z(0)
-                true_body.x(1)
-
-                mini_dag.apply_operation_back(
-                    IfElseOp((creg[0], 1), true_body), [qreg[0], qreg[1]], [creg[0]]
-                )
-                dag.substitute_node_with_dag(swap, mini_dag, wires=[qreg[0], qreg[1], creg[0]])
+                        self._replace_circuit(dag, node, zero_qubit, data_qubit)
 
         return dag
+
+    @staticmethod
+    def _replace_circuit(node: DAGNode, dag: DAGCircuit, zero_qubit, data_qubit):
+        mini_dag = DAGCircuit()
+        qreg = QuantumRegister(2)
+        creg = ClassicalRegister(1)
+        mini_dag.add_qreg(qreg)
+        mini_dag.add_creg(creg)
+
+        mini_dag.apply_operation_back(CXGate(), [qreg[data_qubit], qreg[zero_qubit]])
+        mini_dag.apply_operation_back(HGate(), [qreg[data_qubit]])
+        mini_dag.apply_operation_back(Measure(), [qreg[data_qubit]], [creg[0]])
+
+        true_body = QuantumCircuit(qreg)
+        true_body.z(0)
+        true_body.x(1)
+
+        mini_dag.apply_operation_back(
+            IfElseOp((creg[0], 1), true_body), [qreg[zero_qubit], qreg[data_qubit]], [creg[0]]
+        )
+        dag.substitute_node_with_dag(swap, mini_dag, wires=[qreg[zero_qubit], qreg[data_qubit], creg[0]])
