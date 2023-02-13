@@ -1,3 +1,17 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2020.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""multicontrol single qubit unitary gate."""
+
 from typing import List
 from numpy import array, pi, allclose, eye
 from scipy.linalg import fractional_matrix_power
@@ -21,55 +35,55 @@ def multiconrol_single_qubit_gate(
     """
     assert target_q not in control_list, f"target qubit: {target_q} in control list"
 
-    N_qubits = max(*control_list, target_q) + 1
-    circuit = QuantumCircuit(N_qubits)
-    CnU_gate = _CnU(len(control_list), single_q_unitary).to_gate()
-    circuit.append(CnU_gate, [*control_list, target_q])
+    n_qubits = max(*control_list, target_q) + 1
+    circuit = QuantumCircuit(n_qubits)
+    cnu_gate = cn_u(len(control_list), single_q_unitary).to_gate()
+    circuit.append(cnu_gate, [*control_list, target_q])
     return circuit
 
 
-def _CnU(n_controls: int, U_array: array) -> QuantumCircuit:
+def cn_u(n_controls: int, single_q_unitary: array) -> QuantumCircuit:
     """
     Implement a multicontrol U gate according to https://doi.org/10.1103/PhysRevA.106.042602
 
     Args:
         n_controls(int): number of control qubits
-        U_array (array): two by two unitary matrix to implement as a control operation
+        single_q_unitary (array): two by two unitary matrix to implement as a control operation
     Returns:
-        circuit (QuantumCircuit): Quantum circuit implementing multicontrol U_array
+        circuit (QuantumCircuit): Quantum circuit implementing multicontrol unitary
     """
-    assert U_array.shape == (2, 2), "input U_array is not a single qubit gate"
-    assert allclose(U_array @ U_array.conj().T, eye(2)), "input U_array is not unitary"
+    assert single_q_unitary.shape == (2, 2), "input unitary is not a single qubit gate"
+    assert allclose(single_q_unitary @ single_q_unitary.conj().T, eye(2)), "input unitary is not unitary"
 
     targ = n_controls + 1
     circuit = QuantumCircuit(targ)
     if n_controls == 1:
-        U_circ = QuantumCircuit(1)
-        U_circ.unitary(U_array, 0)
-        U_circ.name = "U"
-        U_circ_gate = U_circ.to_gate().control(1)
-        circuit.append(U_circ_gate, [0, n_controls])
+        ucirc = QuantumCircuit(1)
+        ucirc.unitary(single_q_unitary, 0)
+        ucirc.name = "U"
+        ucircgate = ucirc.to_gate().control(1)
+        circuit.append(ucircgate, [0, n_controls])
     else:
-        PnU = _Pn_U_gate(n_controls, U_array)
-        circuit = circuit.compose(PnU)
+        pnu = pnu_gate(n_controls, single_q_unitary)
+        circuit = circuit.compose(pnu)
 
         power = n_controls - 1
-        root_U = fractional_matrix_power(U_array, 1 / 2 ** (n_controls - 1))
-        root_U_circ = QuantumCircuit(1)
-        root_U_circ.unitary(root_U, 0)
-        root_U_circ.name = f"U^1/{2 ** power}"
-        control_root_U_gate = root_U_circ.to_gate().control(1)
-        circuit.append(control_root_U_gate, [0, n_controls])
+        rootu = fractional_matrix_power(single_q_unitary, 1 / 2 ** (n_controls - 1))
+        rootucirc = QuantumCircuit(1)
+        rootucirc.unitary(rootu, 0)
+        rootucirc.name = f"U^1/{2 ** power}"
+        controlrootugate = rootucirc.to_gate().control(1)
+        circuit.append(controlrootugate, [0, n_controls])
 
-        Qn = _Qn_gate(n_controls)
-        circuit = circuit.compose(Qn)
-        circuit = circuit.compose(PnU.inverse())
-        circuit = circuit.compose(Qn.inverse())
+        qn = qn_gate(n_controls)
+        circuit = circuit.compose(qn)
+        circuit = circuit.compose(pnu.inverse())
+        circuit = circuit.compose(qn.inverse())
 
     return circuit
 
 
-def _Pn_gate(n_controls: int) -> QuantumCircuit:
+def pn_gate(n_controls: int) -> QuantumCircuit:
     """
     Pn gate defined in equation 1 of https://doi.org/10.1103/PhysRevA.106.042602
 
@@ -89,12 +103,13 @@ def _Pn_gate(n_controls: int) -> QuantumCircuit:
     return circuit
 
 
-def _Pn_U_gate(n_controls: int, U_gate: array) -> QuantumCircuit:
+def pnu_gate(n_controls: int, single_q_unitary: array) -> QuantumCircuit:
     """
     Pn(U) gate defined in equation 2 of https://doi.org/10.1103/PhysRevA.106.042602
 
     Args:
         n_controls (int): number of controls
+        single_q_unitary (array): two by two unitary matrix to implement as a control operation
     Returns:
         circuit (QuantumCircuit): quantum circuit of Pn(U) gate
     """
@@ -105,19 +120,19 @@ def _Pn_U_gate(n_controls: int, U_gate: array) -> QuantumCircuit:
 
     for k in reversed(range(2, n_controls + 1)):
         power = n_controls - k + 1
-        root_U = fractional_matrix_power(U_gate, 1 / 2 ** (power))
+        root_u = fractional_matrix_power(single_q_unitary, 1 / 2 ** (power))
 
-        root_U_circ = QuantumCircuit(1)
-        root_U_circ.unitary(root_U, 0)
-        root_U_circ.name = f"U^1/{2 ** (power)}"
-        control_root_U_gate = root_U_circ.to_gate().control(1)
+        root_u_circ = QuantumCircuit(1)
+        root_u_circ.unitary(root_u, 0)
+        root_u_circ.name = f"U^1/{2 ** (power)}"
+        root_u_circ_gate = root_u_circ.to_gate().control(1)
 
-        circuit.append(control_root_U_gate, [k - 1, n_controls])
+        circuit.append(root_u_circ_gate, [k - 1, n_controls])
 
     return circuit
 
 
-def _Qn_gate(n_controls: int) -> QuantumCircuit:
+def qn_gate(n_controls: int) -> QuantumCircuit:
     """
     Qn gate defined in equation 5 of https://doi.org/10.1103/PhysRevA.106.042602
 
@@ -136,12 +151,12 @@ def _Qn_gate(n_controls: int) -> QuantumCircuit:
     circuit = QuantumCircuit(n_controls + 1)
 
     for j in reversed(range(2, n_controls)):
-        circuit = circuit.compose(_Pn_gate(j))
+        circuit = circuit.compose(pn_gate(j))
         circuit.crx(pi / (2 ** (j - 1)), 0, j)
 
     # Q2 gate in paper
     circuit.crx(pi, 0, 1)
     for k in range(2, n_controls):
-        circuit = circuit.compose(_Pn_gate(k).inverse())
+        circuit = circuit.compose(pn_gate(k).inverse())
 
     return circuit

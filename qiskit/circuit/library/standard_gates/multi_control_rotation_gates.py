@@ -1,10 +1,24 @@
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2017, 2019
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""multicontrol rotation gates around an axis in x,y and z planes."""
+
 from typing import Optional, Union, Tuple, List
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
-from numpy import array, eye, cos, sin
 from qiskit.circuit.library.generalized_gates import multiconrol_single_qubit_gate
 from qiskit.circuit.library.standard_gates import XGate, YGate, ZGate
+from numpy import eye, cos, sin
 
 I = eye(2)
 Z = ZGate().__array__()  # array([[1, 0], [0, -1]])
@@ -37,25 +51,23 @@ def mcrx(
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     all_qubits = control_qubits + target_qubit
-    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     contrl_qubits = list(range(len(control_qubits)))
     targ_qubit = contrl_qubits[-1] + 1
     n_c = len(control_qubits)
 
-    qbits = self.qbit_argument_conversion(list(range(1 + max(targ_qubit, *contrl_qubits))))
     if n_c <= 6:
-        ncRx = custom_mcrtl_rot(theta, contrl_qubits, targ_qubit, axis="x")
+        ncrx = custom_mcrtl_rot(theta, contrl_qubits, targ_qubit, axis="x")
     else:
-        Rx_gate = cos(theta / 2) * I - 1j * sin(theta / 2) * X
-        ncRx = multiconrol_single_qubit_gate(Rx_gate, contrl_qubits, targ_qubit)
+        rxgate = cos(theta / 2) * I - 1j * sin(theta / 2) * X
+        ncrx = multiconrol_single_qubit_gate(rxgate, contrl_qubits, targ_qubit)
 
     # if use_basis_gates:
-    #     ncRx = transpile(ncRx, basis_gates=['cx','u', 'p'])
+    #     ncrx = transpile(ncrx, basis_gates=['cx','u', 'p'])
 
-    ncRx.name = f"MC-Rx({theta:0.3f})"
-    self.append(ncRx, [*control_qubits, q_target])
+    ncrx.name = f"MC-Rx({theta:0.3f})"
+    self.append(ncrx, [*control_qubits, q_target])
 
 
 def mcry(
@@ -88,7 +100,6 @@ def mcry(
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     ancillary_qubits = [] if q_ancillae is None else self.qbit_argument_conversion(q_ancillae)
     all_qubits = control_qubits + target_qubit + ancillary_qubits
-    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     contrl_qubits = list(range(len(control_qubits)))
@@ -96,16 +107,16 @@ def mcry(
     n_c = len(control_qubits)
 
     if n_c <= 6:
-        ncRy = custom_mcrtl_rot(theta, contrl_qubits, targ_qubit, axis="y")
+        ncry = custom_mcrtl_rot(theta, contrl_qubits, targ_qubit, axis="y")
     else:
-        Ry_gate = cos(theta / 2) * I - 1j * sin(theta / 2) * Y
-        ncRy = multiconrol_single_qubit_gate(Ry_gate, contrl_qubits, targ_qubit)
+        rygate = cos(theta / 2) * I - 1j * sin(theta / 2) * Y
+        ncry = multiconrol_single_qubit_gate(rygate, contrl_qubits, targ_qubit)
 
     # if use_basis_gates:
-    #     ncRy = transpile(ncRy, basis_gates=['cx','u', 'p'])
+    #     ncry = transpile(ncry, basis_gates=['cx','u', 'p'])
 
-    ncRy.name = f"MC-Ry({theta:0.3f})"
-    self.append(ncRy, [*control_qubits, q_target])
+    ncry.name = f"MC-Ry({theta:0.3f})"
+    self.append(ncry, [*control_qubits, q_target])
 
 
 def mcrz(
@@ -134,7 +145,6 @@ def mcrz(
     if len(target_qubit) != 1:
         raise QiskitError("The mcrz gate needs a single qubit as target.")
     all_qubits = control_qubits + target_qubit
-    target_qubit = target_qubit[0]
     self._check_dups(all_qubits)
 
     contrl_qubits = list(range(len(control_qubits)))
@@ -142,16 +152,16 @@ def mcrz(
     n_c = len(control_qubits)
 
     if n_c <= 6:
-        ncRz = custom_mcrtl_rot(lam, contrl_qubits, targ_qubit, axis="z")
+        ncrz = custom_mcrtl_rot(lam, contrl_qubits, targ_qubit, axis="z")
     else:
-        Rz_gate = cos(lam / 2) * I - 1j * sin(lam / 2) * Z
-        ncRz = multiconrol_single_qubit_gate(Rz_gate, contrl_qubits, targ_qubit)
+        rzgate = cos(lam / 2) * I - 1j * sin(lam / 2) * Z
+        ncrz = multiconrol_single_qubit_gate(rzgate, contrl_qubits, targ_qubit)
 
     # if use_basis_gates:
-    #     ncRz = transpile(ncRz, basis_gates=['cx','u', 'p'])
+    #     ncrz = transpile(ncrz, basis_gates=['cx','u', 'p'])
 
-    ncRz.name = f"MC-Rz({lam:0.3f})"
-    self.append(ncRz, [*control_qubits, q_target])
+    ncrz.name = f"MC-Rz({lam:0.3f})"
+    self.append(ncrz, [*control_qubits, q_target])
 
 
 QuantumCircuit.mcrx = mcrx
