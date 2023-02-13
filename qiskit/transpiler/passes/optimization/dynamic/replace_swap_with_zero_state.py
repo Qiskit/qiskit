@@ -73,4 +73,6 @@ class ReplaceSwapWithZeroState(TransformationPass):
         mini_dag.apply_operation_back(
             IfElseOp((creg[0], 1), true_body), [qreg[zero_qubit], qreg[data_qubit]], [creg[0]]
         )
-        dag.substitute_node_with_dag(swap, mini_dag, wires=[qreg[zero_qubit], qreg[data_qubit], creg[0]])
+        dag.substitute_node_with_dag(
+            swap, mini_dag, wires=[qreg[zero_qubit], qreg[data_qubit], creg[0]]
+        )
