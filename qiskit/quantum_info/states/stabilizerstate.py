@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.op_shape import OpShape
-from qiskit.quantum_info.operators.symplectic import Clifford, Pauli
+from qiskit.quantum_info.operators.symplectic import Clifford, Pauli, PauliList
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_x
 from qiskit.quantum_info.states.quantum_state import QuantumState
 
@@ -265,6 +265,47 @@ class StabilizerState(QuantumState):
             return -pauli_phase
 
         return pauli_phase
+
+    def equiv(self, other):
+        """Return True if the two generating sets generate the same stabilizer group.
+
+        Args:
+            other (StabilizerState): another StabilizerState.
+
+        Returns:
+            bool: True if other has a generating set that generates the same StabilizerState.
+        """
+        if not isinstance(other, StabilizerState):
+            try:
+                other = StabilizerState(other)
+            except QiskitError:
+                return False
+
+        num_qubits = self.num_qubits
+        if other.num_qubits != num_qubits:
+            return False
+
+        pauli_orig = PauliList.from_symplectic(
+            self._data.stab_z, self._data.stab_x, 2 * self._data.stab_phase
+        )
+        pauli_other = PauliList.from_symplectic(
+            other._data.stab_z, other._data.stab_x, 2 * other._data.stab_phase
+        )
+
+        #  Check that each stabilizer from the original set commutes with each stabilizer
+        #  from the other set
+        if not np.all([pauli.commutes(pauli_other) for pauli in pauli_orig]):
+            return False
+
+        # Compute the expected value of each stabilizer from the original set on the stabilizer state
+        # determined by the other set. The two stabilizer states coincide if and only if the
+        # expected value is +1 for each stabilizer
+        for i in range(num_qubits):
+            exp_val = self.expectation_value(pauli_other[i])
+            if exp_val != 1:
+                return False
+
+        return True
 
     def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.

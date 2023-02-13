@@ -1091,7 +1091,7 @@ class TestPulseTarget(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.pulse_target = Target(
-            dt=3e-7, granularity=2, min_length=4, pulse_alignment=8, aquire_alignment=8
+            dt=3e-7, granularity=2, min_length=4, pulse_alignment=8, acquire_alignment=8
         )
         with pulse.build(name="sx_q0") as self.custom_sx_q0:
             pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
