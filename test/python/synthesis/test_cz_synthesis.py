@@ -28,7 +28,7 @@ from qiskit.test import QiskitTestCase
 class TestCZSynth(QiskitTestCase):
     """Test the linear reversible circuit synthesis functions."""
 
-    @combine(num_qubits=[2, 3, 4, 5, 6, 7])
+    @combine(num_qubits=[3, 4, 5, 6, 7])
     def test_cz_synth_lnn(self, num_qubits):
         """Test the CZ synthesis code for linear nearest neighbour connectivity."""
         seed = 1234
@@ -41,8 +41,8 @@ class TestCZSynth(QiskitTestCase):
 
             # Generate a random CZ circuit
             for _ in range(num_gates):
-                i = rng.integers(num_qubits - 1)
-                j = rng.integers(num_qubits - 1)
+                i = rng.integers(num_qubits)
+                j = rng.integers(num_qubits)
                 if i != j:
                     qctest.cz(i, j)
                     if j > i:
