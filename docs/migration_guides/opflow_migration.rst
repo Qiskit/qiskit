@@ -663,8 +663,72 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
 .. _convert_state:
 
-Example 1: ``CircuitSampler``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Example 1: ``CircuitSampler`` for sampling Parametrized Circuits
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Opflow</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit_aer import Aer
+    from qiskit.circuit import QuantumCircuit, Parameter
+    from qiskit.opflow import ListOp, StateFn, CircuitSampler
+
+    x, y = Parameter("x"), Parameter("y")
+
+    circuit1 = QuantumCircuit(1)
+    circuit1.p(0.2, 0)
+    circuit2 = QuantumCircuit(1)
+    circuit2.p(x, 0)
+    circuit3 = QuantumCircuit(1)
+    circuit3.p(y, 0)
+
+    bindings = {x: -0.4, y: 0.4}
+    listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
+
+    sampler = CircuitSampler(Aer.get_backend("aer_simulator"))
+    sampled = sampler.convert(listop, params=bindings).eval()
+    # returns list of SparseVectorStateFn
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><b>Alternative</b></a></summary>
+
+.. code-block:: python
+
+    from qiskit.circuit import QuantumCircuit, Parameter
+    from qiskit.primitives import Sampler
+
+    x, y = Parameter("x"), Parameter("y")
+
+    circuit1 = QuantumCircuit(1)
+    circuit1.p(0.2, 0)
+    circuit2 = QuantumCircuit(1)
+    circuit2.p(x, 0)
+    circuit3 = QuantumCircuit(1)
+    circuit3.p(y, 0)
+
+    circuits = [circuit1, circuit2, circuit3]
+    param_values = [[-0.4, 0.4] for _ in circuits]
+
+    sampler = Sampler()
+    sampled = sampler.run(circuits, param_values).result().quasi_dists
+
+.. raw:: html
+
+    </details>
+
+Example 2: ``CircuitSampler`` for computing Expectation Values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 
