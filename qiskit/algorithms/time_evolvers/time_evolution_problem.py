@@ -97,9 +97,6 @@ class TimeEvolutionProblem:
     def time(self, time: float) -> None:
         """
         Sets time and validates it.
-
-        Raises:
-            ValueError: If time is not positive.
         """
         self._time = time
 

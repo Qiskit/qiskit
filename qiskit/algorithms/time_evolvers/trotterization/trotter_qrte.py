@@ -104,7 +104,7 @@ class TrotterQRTE(RealTimeEvolver):
         Sets an estimator.
         """
         self._estimator = estimator
-    
+
     @property
     def num_timesteps(self) -> int:
         """Returns the number of timesteps."""
@@ -119,7 +119,9 @@ class TrotterQRTE(RealTimeEvolver):
             ValueError: If num_timesteps is not positive.
         """
         if num_timesteps <= 0:
-            raise ValueError(f"Number of time steps must be positive integer, {num_timesteps} provided")
+            raise ValueError(
+                f"Number of time steps must be positive integer, {num_timesteps} provided"
+            )
         self._num_timesteps = num_timesteps
 
     @classmethod
@@ -170,12 +172,13 @@ class TrotterQRTE(RealTimeEvolver):
                 f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
         t_param = evolution_problem.t_param
-        if t_param is not None and not _get_parameters(hamiltonian.coeffs)==ParameterView([t_param]):
+        if t_param is not None and not _get_parameters(hamiltonian.coeffs) == ParameterView(
+            [t_param]
+        ):
             raise ValueError(
                 "Hamiltonian time parameter does not match evolution_problem.t_param "
                 "or contains multiple parameters"
             )
-        
 
         # make sure PauliEvolutionGate does not implement more than one Trotter step
         dt = evolution_problem.time / self.num_timesteps
@@ -187,7 +190,7 @@ class TrotterQRTE(RealTimeEvolver):
 
         evolved_state = QuantumCircuit(initial_state.num_qubits)
         evolved_state.append(initial_state, evolved_state.qubits)
-        
+
         if evolution_problem.aux_operators is not None:
             observables = []
             observables.append(
@@ -212,10 +215,12 @@ class TrotterQRTE(RealTimeEvolver):
             # if hamiltonian is time-dependent, bind new time-value at every step to construct
             # evolution for next step
             if t_param is not None:
-                time_value = (n + 1)*dt
+                time_value = (n + 1) * dt
                 bound_coeffs = _assign_parameters(hamiltonian.coeffs, [time_value])
                 single_step_evolution_gate = PauliEvolutionGate(
-                    SparsePauliOp(hamiltonian.paulis, bound_coeffs), dt, synthesis=self.product_formula
+                    SparsePauliOp(hamiltonian.paulis, bound_coeffs),
+                    dt,
+                    synthesis=self.product_formula,
                 )
             evolved_state.append(single_step_evolution_gate, evolved_state.qubits)
 

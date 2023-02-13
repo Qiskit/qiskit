@@ -32,12 +32,10 @@ def _get_parameters(array: np.ndarray) -> ParameterView:
 
 
 def _assign_parameters(
-    array: np.ndarray,
-    parameter_values: Sequence[float],
-    inplace: bool=False
+    array: np.ndarray, parameter_values: Sequence[float], inplace: bool = False
 ) -> np.ndarray:
     """Binds ``ParameterExpression``s in a numpy array to provided values.
-    
+
     Args:
         array: array of ``ParameterExpression``
         parameter_values: array of values to bind to parameters
@@ -51,7 +49,7 @@ def _assign_parameters(
         bound_array = array
     else:
         bound_array = copy.deepcopy(array)
-        
+
     parameter_dict = dict(zip(_get_parameters(bound_array), parameter_values))
     for i, a in enumerate(bound_array):
         if isinstance(a, ParameterExpression):

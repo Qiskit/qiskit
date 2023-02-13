@@ -32,7 +32,6 @@ from qiskit.opflow import PauliSumOp, X, MatrixOp
 from qiskit.synthesis import SuzukiTrotter, QDrift
 
 
-
 @ddt
 class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     """TrotterQRTE tests."""
@@ -67,10 +66,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
             Statevector.from_instruction(evolution_result_state_circuit).data, expected_state.data
         )
 
-    @data(
-        (SparsePauliOp(["X", "Z"]), None),
-        (SparsePauliOp(["X", "Z"]), Parameter("t"))
-    )
+    @data((SparsePauliOp(["X", "Z"]), None), (SparsePauliOp(["X", "Z"]), Parameter("t")))
     @unpack
     def test_trotter_qrte_trotter(self, operator, t_param):
         """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
@@ -89,7 +85,12 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         estimator = Estimator()
 
         expected_psi, expected_observables_result = self._get_expected_trotter_qrte(
-            operator, time, num_timesteps, initial_state, aux_ops, t_param,
+            operator,
+            time,
+            num_timesteps,
+            initial_state,
+            aux_ops,
+            t_param,
         )
 
         expected_evolved_state = Statevector(expected_psi)
@@ -203,8 +204,10 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         (X, QuantumCircuit(1)),
         (MatrixOp([[1, 1], [0, 1]]), QuantumCircuit(1)),
         (PauliSumOp(SparsePauliOp([Pauli("X")])) + PauliSumOp(SparsePauliOp([Pauli("Z")])), None),
-        (SparsePauliOp([Pauli("X"), Pauli("Z")], np.array([Parameter("a"), Parameter("b")])),
-         QuantumCircuit(1))
+        (
+            SparsePauliOp([Pauli("X"), Pauli("Z")], np.array([Parameter("a"), Parameter("b")])),
+            QuantumCircuit(1),
+        ),
     )
     @unpack
     def test_trotter_qrte_trotter_hamiltonian_errors(self, operator, initial_state):
@@ -226,31 +229,33 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
                 param_value_map=param_value_dict,
             )
             _ = trotter_qrte.evolve(evolution_problem)
-        
+
     @staticmethod
     def _get_expected_trotter_qrte(operator, time, num_timesteps, init_state, observables, t_param):
         """Compute reference values for Trotter evolution via exact matrix exponentiation."""
-        dt = time/num_timesteps
+        dt = time / num_timesteps
         observables = [obs.to_matrix() for obs in observables]
 
         psi = Statevector(init_state).data
         if t_param is None:
-            ops = [Pauli(op).to_matrix()*np.real(coeff) for op, coeff in operator.to_list()]
+            ops = [Pauli(op).to_matrix() * np.real(coeff) for op, coeff in operator.to_list()]
 
         observable_results = []
         observable_results.append([np.real(np.conj(psi).dot(obs).dot(psi)) for obs in observables])
 
         for n in range(num_timesteps):
             if t_param is not None:
-                time_value = (n + 1)*dt
+                time_value = (n + 1) * dt
                 bound_coeffs = _assign_parameters(operator.coeffs, [time_value])
                 ops = [
-                    Pauli(op).to_matrix()*np.real(coeff)
+                    Pauli(op).to_matrix() * np.real(coeff)
                     for op, coeff in SparsePauliOp(operator.paulis, bound_coeffs).to_list()
                 ]
             for op in ops:
-                psi = expm(-1j*op*dt).dot(psi)
-            observable_results.append([np.real(np.conj(psi).dot(obs).dot(psi)) for obs in observables])
+                psi = expm(-1j * op * dt).dot(psi)
+            observable_results.append(
+                [np.real(np.conj(psi).dot(obs).dot(psi)) for obs in observables]
+            )
 
         return psi, observable_results
 
