@@ -19,7 +19,16 @@ import ddt
 
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
-from qiskit.circuit.library import CXGate, CZGate, ECRGate, RXXGate, RYYGate, RZXGate, RZZGate
+from qiskit.circuit.library import (
+    CXGate,
+    CZGate,
+    ECRGate,
+    RXXGate,
+    RYYGate,
+    RZXGate,
+    RZZGate,
+    SwapGate,
+)
 from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes import GateDirection
@@ -295,7 +304,7 @@ class TestGateDirection(QiskitTestCase):
 
         self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
 
-    @ddt.data(CZGate(), RXXGate(pi / 3), RYYGate(pi / 3), RZZGate(pi / 3))
+    @ddt.data(CZGate(), SwapGate(), RXXGate(pi / 3), RYYGate(pi / 3), RZZGate(pi / 3))
     def test_symmetric_gates(self, gate):
         """Test symmetric gates on single direction coupling map."""
         circuit = QuantumCircuit(2)
