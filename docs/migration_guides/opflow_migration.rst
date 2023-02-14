@@ -775,7 +775,7 @@ Example 2: ``CircuitSampler`` for computing Expectation Values
     hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
 
     estimator = Estimator()
-    expectation_value = estimator.run(state, hamiltonian).result().values
+    expectation_value = estimator.run(state, hamiltonian).result().values.real
 
 .. raw:: html
 
