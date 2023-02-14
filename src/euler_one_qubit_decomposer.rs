@@ -319,7 +319,7 @@ where
         return circuit;
     }
     // General double SX decomposition
-    if (theta - PI) < atol {
+    if (theta - PI).abs() < atol {
         circuit.global_phase += lam;
         phi -= lam;
         lam = 0.;
