@@ -651,7 +651,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
      - Alternative
 
    * - :class:`~qiskit.opflow.converters.CircuitSampler`
-     - :class:`~primitives.Estimator`
+     - :class:`~qiskit.primitives.Estimator`
    * - :class:`~qiskit.opflow.converters.AbelianGrouper`
      - No direct replacement. This class allowed a sum a of Pauli operators to be grouped. These type of groupings are now left to the primitives to handle.
    * - :class:`~qiskit.opflow.converters.DictToCircuitSum`
