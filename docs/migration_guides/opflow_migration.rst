@@ -10,7 +10,7 @@ Background
 The :mod:`~qiskit.opflow` module was originally introduced as a layer between circuits and algorithms, a series of building blocks
 for quantum algorithms research and development.
 
-The recent release of the :mod:`~qiskit.primitives` introduced a new interface for interacting with backends. Now, instead of
+The recent release of the :mod:`~qiskit.primitives` introduced a new paradigm for interacting with backends. Now, instead of
 preparing a circuit to execute with a ``backend.run()`` type of method, the algorithms can leverage the :class:`~Sampler` and
 :class:`~Estimator` primitives, send parametrized circuits and observables, and directly receive quasi-probability distributions or
 expectation values (respectively). This workflow simplifies considerably the pre-processing and post-processing steps
