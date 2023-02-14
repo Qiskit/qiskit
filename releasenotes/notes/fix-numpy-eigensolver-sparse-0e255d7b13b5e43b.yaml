@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug in :class:`~.minimum_eigensolvers.NumPyMinimumEigensolver` and 
+    :class:`~.eigensolvers.NumPyEigensolver` where operators that support conversion
+    to sparse matrices, such as :class:`.SparsePauliOp`, were converted to dense matrices anyways.
