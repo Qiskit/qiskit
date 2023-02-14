@@ -97,8 +97,8 @@ class NLoptOptimizer(Optimizer):
             bounds = [(None, None)] * x0.size
 
         threshold = 3 * np.pi
-        low = [(l if l is not None else -threshold) for (l, u) in bounds]
-        high = [(u if u is not None else threshold) for (l, u) in bounds]
+        low = [(lower if lower is not None else -threshold) for (lower, u) in bounds]
+        high = [(u if u is not None else threshold) for (lower, u) in bounds]
 
         name = self._optimizer_names[self.get_nlopt_optimizer()]
         opt = nlopt.opt(name, len(low))

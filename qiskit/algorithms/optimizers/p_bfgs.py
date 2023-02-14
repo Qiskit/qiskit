@@ -128,8 +128,8 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         threshold = 2 * np.pi
         if bounds is None:
             bounds = [(-threshold, threshold)] * x0.size
-        low = [(l if l is not None else -threshold) for (l, u) in bounds]
-        high = [(u if u is not None else threshold) for (l, u) in bounds]
+        low = [(lower if lower is not None else -threshold) for (lower, u) in bounds]
+        high = [(u if u is not None else threshold) for (lower, u) in bounds]
 
         def optimize_runner(_queue, _i_pt):  # Multi-process sampling
             _sol, _opt, _nfev = self._optimize(fun, _i_pt, jac, bounds)
