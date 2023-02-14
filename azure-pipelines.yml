@@ -45,12 +45,6 @@ parameters:
     type: string
     default: "3.11"
 
-  - name: "minimumRustVersion"
-    displayName: "Minimum supported version of Rust"
-    type: string
-    # Keep in sync with Cargo.toml's `rust-version`.
-    default: "1.61.0"
-
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
   # supported versions.
@@ -154,7 +148,6 @@ stages:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
             testQPY: true
             testImages: false
-            rustVersion: ${{ parameters.minimumRustVersion }}
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
