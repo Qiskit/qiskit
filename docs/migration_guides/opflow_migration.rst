@@ -580,7 +580,7 @@ identify the sub-class that is being used, to then look for an alternative.
 
    * - :class:`~qiskit.opflow.state_fns.CVaRMeasurement`
      - Used in :class:`~qiskit.opflow.expectations.CVaRExpectation`.
-       Functionality now covered by :class:`~SamplingEstimator`. See :ref:`example <cvar>` in expectations.
+       Functionality now covered by :class:`.SamplingVQE`. See :ref:`example <cvar>` in expectations.
 
 
 Example 1: Applying an operator to a state
