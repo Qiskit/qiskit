@@ -11,8 +11,8 @@ The :mod:`~qiskit.opflow` module was originally introduced as a layer between ci
 for quantum algorithms research and development.
 
 The recent release of the :mod:`~qiskit.primitives` introduced a new paradigm for interacting with backends. Now, instead of
-preparing a circuit to execute with a ``backend.run()`` type of method, the algorithms can leverage the :class:`~Sampler` and
-:class:`~Estimator` primitives, send parametrized circuits and observables, and directly receive quasi-probability distributions or
+preparing a circuit to execute with a ``backend.run()`` type of method, the algorithms can leverage the :class:`.Sampler` and
+:class:`.Estimator` primitives, send parametrized circuits and observables, and directly receive quasi-probability distributions or
 expectation values (respectively). This workflow simplifies considerably the pre-processing and post-processing steps
 that previously relied on opflow; encouraging us to move away from opflow, and find new paths of developing algorithms based on
 the :mod:`~qiskit.primitives` interface and the :mod:`~qiskit.quantum_info` module.
@@ -721,7 +721,7 @@ Example 1: ``CircuitSampler`` for sampling Parametrized Circuits
     circuit3.p(y, 0)
 
     circuits = [circuit1, circuit2, circuit3]
-    param_values = [[-0.4, 0.4] for _ in circuits]
+    param_values = [None, [-0.4], [0.4]]
 
     sampler = Sampler()
     sampled = sampler.run(circuits, param_values).result().quasi_dists
@@ -785,7 +785,7 @@ Evolutions
 ----------
 *Back to* `Index`_
 
-The :mod:`~qiskit.opflow.evolutions` sub-module was created to provide building blocks for hamiltonian simulation algorithms,
+The :mod:`~qiskit.opflow.evolutions` sub-module was created to provide building blocks for Hamiltonian simulation algorithms,
 including various methods for trotterization. The original opflow workflow for hamiltonian simulation did not allow for
 delayed synthesis of the gates or efficient transpilation of the circuits, so this functionality was migrated to the
 :mod:`~qiskit.synthesis.evolution` module.
@@ -806,8 +806,8 @@ delayed synthesis of the gates or efficient transpilation of the circuits, so th
     (for example, :class:`~qiskit.algorithms.time_evolvers.TrotterQRTE`\).
 
     In a similar manner, the :class:`~qiskit.opflow.evolutions.MatrixEvolution` class performs evolution by classical matrix exponentiation,
-    constructing a circuit with :class:`~UnitaryGate`\s or :class:`~HamiltonianGate`\s containing the exponentiation of the operator.
-    This class is no longer necessary, as the :class:`~HamiltonianGate`\s can be directly handled by the algorithms.
+    constructing a circuit with :class:`.UnitaryGate`\s or :class:`.HamiltonianGate`\s containing the exponentiation of the operator.
+    This class is no longer necessary, as the :class:`.HamiltonianGate`\s can be directly handled by the algorithms.
 
 Trotterizations
 ~~~~~~~~~~~~~~~
