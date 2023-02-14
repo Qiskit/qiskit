@@ -49,18 +49,16 @@ class GlobalPhaseGate(Gate):
 
     def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
         """Create new globalphase gate.
-                Args:
-                    phase: The value of phase it takes.
-                    label: An optional label for the gate.
+        Args:
+            phase: The value of phase it takes.
+            label: An optional label for the gate.
         """
         super().__init__("global_phase", 0, [phase], label=label)
 
     def _define(self):
 
         q = QuantumRegister(0, "q")
-        qc = QuantumCircuit(
-            q, name=self.name, global_phase=self.params[0]
-        )  
+        qc = QuantumCircuit(q, name=self.name, global_phase=self.params[0])
 
         self.definition = qc
 
