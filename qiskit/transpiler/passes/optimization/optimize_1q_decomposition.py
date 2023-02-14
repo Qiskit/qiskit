@@ -14,7 +14,6 @@
 
 import logging
 import math
-import os
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
@@ -106,7 +105,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         else:
             return None
 
-    def _resynthesize_run(self, matrix, qubit=None, run_in_parallel=True):
+    def _resynthesize_run(self, matrix, qubit=None):
         """
         Resynthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
 
@@ -130,7 +129,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         else:
             decomposers = self._global_decomposers
         best_synth_circuit = euler_one_qubit_decomposer.unitary_to_gate_sequence(
-            matrix, decomposers, qubit, self.error_map, run_in_parallel and len(decomposers) > 1
+            matrix,
+            decomposers,
+            qubit,
+            self.error_map,
         )
         return best_synth_circuit
 
@@ -184,11 +186,6 @@ class Optimize1qGatesDecomposition(TransformationPass):
         Returns:
             DAGCircuit: the optimized DAG.
         """
-        run_in_parallel = (
-            os.getenv("QISKIT_IN_PARALLEL", "FALSE").upper() != "TRUE"
-            or os.getenv("QISKIT_FORCE_THREADS", "FALSE").upper() == "TRUE"
-        )
-
         runs = dag.collect_1q_runs()
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for run in runs:
@@ -196,7 +193,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
             operator = run[0].op.to_matrix()
             for node in run[1:]:
                 operator = node.op.to_matrix().dot(operator)
-            new_dag = self._resynthesize_run(operator, qubit, run_in_parallel)
+            new_dag = self._resynthesize_run(operator, qubit)
 
             if self._target is None:
                 basis = self._basis_gates

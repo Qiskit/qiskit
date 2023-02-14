@@ -26,7 +26,6 @@ use pyo3::Python;
 
 use ndarray::prelude::*;
 use numpy::PyReadonlyArray2;
-use rayon::prelude::*;
 
 const DEFAULT_ATOL: f64 = 1e-12;
 
@@ -613,13 +612,11 @@ pub fn compute_error_list(
 }
 
 #[pyfunction]
-#[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, run_in_parallel=true))]
 pub fn unitary_to_gate_sequence(
     unitary: PyReadonlyArray2<Complex64>,
     target_basis_list: Vec<&str>,
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
-    run_in_parallel: bool,
 ) -> PyResult<Option<OneQubitGateSequence>> {
     for basis in &target_basis_list {
         if !VALID_BASIS.contains(basis) {
@@ -629,40 +626,17 @@ pub fn unitary_to_gate_sequence(
         }
     }
     let unitary_mat = unitary.as_array();
-    let best_result = if run_in_parallel {
-        target_basis_list
-            .par_iter()
-            .enumerate()
-            .map(|(index, target_basis)| {
-                let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, target_basis);
-                (
-                    generate_circuit(target_basis, theta, phi, lam, phase, true, None).unwrap(),
-                    index,
-                )
-            })
-            .min_by(|a, b| {
-                let error_a = compare_error_fn(&a.0, &error_map, qubit);
-                let error_b = compare_error_fn(&b.0, &error_map, qubit);
-
-                (error_a, a.1)
-                    .partial_cmp(&(error_b, b.1))
-                    .unwrap_or(Ordering::Equal)
-            })
-            .map(|x| x.0)
-    } else {
-        target_basis_list
-            .iter()
-            .map(|target_basis| {
-                let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, target_basis);
-                generate_circuit(target_basis, theta, phi, lam, phase, true, None).unwrap()
-            })
-            .min_by(|a, b| {
-                let error_a = compare_error_fn(a, &error_map, qubit);
-                let error_b = compare_error_fn(b, &error_map, qubit);
-                error_a.partial_cmp(&error_b).unwrap_or(Ordering::Equal)
-            })
-    };
-
+    let best_result = target_basis_list
+        .iter()
+        .map(|target_basis| {
+            let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, target_basis);
+            generate_circuit(target_basis, theta, phi, lam, phase, true, None).unwrap()
+        })
+        .min_by(|a, b| {
+            let error_a = compare_error_fn(a, &error_map, qubit);
+            let error_b = compare_error_fn(b, &error_map, qubit);
+            error_a.partial_cmp(&error_b).unwrap_or(Ordering::Equal)
+        });
     Ok(best_result)
 }
 
