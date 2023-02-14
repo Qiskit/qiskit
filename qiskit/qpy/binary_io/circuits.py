@@ -836,8 +836,10 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     num_clbits = header["num_clbits"]
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
+    # `out_registers` is two "name: registter" maps segregated by type for the rest of QPY, and
+    # `all_registers` is the complete ordered list used to construct the `QuantumCircuit`.
     out_registers = {"q": {}, "c": {}}
-    flat_registers = []
+    all_registers = []
     out_bits = {"q": [None] * num_qubits, "c": [None] * num_clbits}
     if num_registers > 0:
         if version < 4:
@@ -848,9 +850,19 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
             ("q", Qubit, QuantumRegister),
             ("c", Clbit, ClassicalRegister),
         ]:
+            # This does two passes through the registers. In the first, we're actually just
+            # constructing the `Bit` instances: any register that is `standalone` "owns" all its
+            # bits in the old Qiskit data model, so we have to construct those by creating the
+            # register and taking the bits from them.  That's the case even if that register isn't
+            # actually in the circuit, which is why we stored them (with `in_circuit=False`) in QPY.
+            #
+            # Since there's no guarantees in QPY about the ordering of registers, we have to pass
+            # through all registers to create the bits first, because we can't reliably know if a
+            # non-standalone register contains bits from a standalone one until we've seen all
+            # standalone registers.
             typed_bits = out_bits[bit_type_label]
             typed_registers = registers[bit_type_label]
-            for register_name, (standalone, indices, in_circuit) in typed_registers.items():
+            for register_name, (standalone, indices, _incircuit) in typed_registers.items():
                 if not standalone:
                     continue
                 register = reg_type(len(indices), register_name)
@@ -859,9 +871,10 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
                     # Negative indices are for bits that aren't in the circuit.
                     if index >= 0:
                         typed_bits[index] = owned
-            # Now create any bits that didn't have an owner we could infer.
+            # Any remaining unset bits aren't owned, so we can construct them in the standard way.
             typed_bits = [bit if bit is not None else bit_type() for bit in typed_bits]
-            # Finally _properly_ construct all the registers.
+            # Finally _properly_ construct all the registers.  Bits can be in more than one
+            # register, including bits that are old-style "owned" by a register.
             for register_name, (standalone, indices, in_circuit) in typed_registers.items():
                 if standalone:
                     register = out_registers[bit_type_label][register_name]
@@ -872,7 +885,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
                     )
                     out_registers[bit_type_label][register_name] = register
                 if in_circuit:
-                    flat_registers.append(register)
+                    all_registers.append(register)
             out_bits[bit_type_label] = typed_bits
     else:
         out_bits = {
@@ -882,7 +895,7 @@ def read_circuit(file_obj, version, metadata_deserializer=None):
     circ = QuantumCircuit(
         out_bits["q"],
         out_bits["c"],
-        *flat_registers,
+        *all_registers,
         name=name,
         global_phase=global_phase,
         metadata=metadata,
