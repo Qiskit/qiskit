@@ -408,7 +408,7 @@ might have been used "under the hood" in the original code:
      - As mentioned above, this class is used to generate an instance of one of the classes below, so no
 
    * - :class:`~qiskit.opflow.primitive_ops.CircuitOp`
-     - :class:`~qiskit.quantum_info.Operator`
+     - :class:`~qiskit.QuantumCircuit`
 
    * - :class:`~qiskit.opflow.primitive_ops.MatrixOp`
      - :class:`~qiskit.quantum_info.Operator`
