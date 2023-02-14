@@ -143,6 +143,9 @@ Example 1: Defining the XX operator
     op = X ^ X
 
     # equivalent to:
+    op = Pauli('XX')
+
+    # equivalent to:
     op = SparsePauliOp('XX')
 
 .. raw:: html
