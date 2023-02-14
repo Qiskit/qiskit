@@ -608,11 +608,14 @@ pub fn compute_error_list(
 }
 
 #[pyfunction]
+#[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, simplify=true, atol=None))]
 pub fn unitary_to_gate_sequence(
     unitary: PyReadonlyArray2<Complex64>,
     target_basis_list: Vec<&str>,
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
+    simplify: bool,
+    atol: Option<f64>,
 ) -> PyResult<Option<OneQubitGateSequence>> {
     const VALID_BASES: [&str; 12] = [
         "U321", "U3", "U", "PSX", "ZSX", "ZSXX", "U1X", "RR", "ZYZ", "ZXZ", "XYX", "XZX",
@@ -629,7 +632,7 @@ pub fn unitary_to_gate_sequence(
         .iter()
         .map(|target_basis| {
             let [theta, phi, lam, phase] = angles_from_unitary(unitary_mat, target_basis);
-            generate_circuit(target_basis, theta, phi, lam, phase, true, None).unwrap()
+            generate_circuit(target_basis, theta, phi, lam, phase, simplify, atol).unwrap()
         })
         .min_by(|a, b| {
             let error_a = compare_error_fn(a, &error_map, qubit);
