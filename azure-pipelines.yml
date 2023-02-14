@@ -48,6 +48,7 @@ parameters:
   - name: "minimumRustVersion"
     displayName: "Minimum supported version of Rust"
     type: string
+    # Keep in sync with Cargo.toml's `rust-version`.
     default: "1.61.0"
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get

@@ -1,0 +1,3 @@
+[toolchain]
+# Keep in sync with Cargo.toml's `rust-version`.
+channel = "1.61.0"
