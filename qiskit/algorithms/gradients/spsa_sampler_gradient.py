@@ -127,7 +127,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
             gradient = []
             indices = [circuits[i].parameters.data.index(p) for p in metadata[i]["parameters"]]
             for j in range(circuits[i].num_parameters):
-                if not j in indices:
+                if j not in indices:
                     continue
                 # the gradient for jth parameter is the average of the gradients of the jth parameter
                 # for each batch.
