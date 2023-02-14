@@ -27,7 +27,6 @@ This guide traverses the opflow submodules and provides either a direct alternat
 
 The function equivalency can be roughly summarized as follows:
 
-
 .. list-table::
    :header-rows: 1
 
@@ -41,16 +40,26 @@ The function equivalency can be roughly summarized as follows:
      - :mod:`qiskit.quantum_info` *States*
 
    * - :mod:`qiskit.opflow.converters`
-     - :mod:`qiskit.primitives` or :mod:`qiskit_aer.primitives` or :mod:`qiskit_ibm_runtime` *Sampler / Estimator*
+     - :mod:`qiskit.primitives`
 
    * - :mod:`qiskit.opflow.evolutions`
      - :mod:`qiskit.quantum_info` *Synthesis*
 
    * - :mod:`qiskit.opflow.expectations`
-     - :mod:`qiskit.primitives` or :mod:`qiskit_aer.primitives` or :mod:`qiskit_ibm_runtime` *Estimator*
+     - :class:`qiskit.primitives.Estimator`
 
    * - :mod:`qiskit.opflow.gradients`
      - :mod:`qiskit.algorithms.gradients`
+
+..  attention::
+
+    Most references to the :class:`qiskit.primitives.Sampler` or :class:`qiskit.primitives.Estimator` in this guide
+    can be replaced with instances of the Aer primitives (:mod:`qiskit_aer.primitives`), Runtime primitives
+    (:mod:`qiskit_ibm_runtime`) or Terra backend primitives (:class:`qiskit.primitives.BackendSampler`,
+    :class:`qiskit.primitives.BackendEstimator`). Certain classes, such as the
+    :class:`~qiskit.opflow.expectations.AerPauliExpectation`, are only replaced by a specific primitive instance
+    (in this case, :class:`qiskit_aer.primitives.Estimator`), or require a specific option configuration.
+    This will be explicitly indicated in the corresponding section.
 
 Contents
 --------
@@ -126,7 +135,7 @@ These were mainly used for didactic purposes or quick prototyping, and can easil
 The 1-qubit paulis were commonly used for quick testing of algorithms, as they could be combined to create more complex operators
 (for example, ``0.39 * (I ^ Z) + 0.5 * (X ^ X)``).
 These operations implicitly created operators of type  :class:`~qiskit.opflow.PauliSumOp`, and can be replaced by
-directly creating a corresponding :class:`~qiskit.quantum_info.SparsePauliOp`, as shown in the example :ref:`below <1_q_pauli>`.
+directly creating a corresponding :class:`~qiskit.quantum_info.SparsePauliOp`, as shown in the examples below.
 
 .. list-table::
    :header-rows: 1
@@ -141,14 +150,15 @@ directly creating a corresponding :class:`~qiskit.quantum_info.SparsePauliOp`, a
            For direct compatibility with classes in :mod:`~qiskit.algorithms`, wrap in :class:`~qiskit.quantum_info.SparsePauliOp`.
 
 
-..  _1_q_pauli:
+.. _1_q_pauli:
 
-Example 1: Defining the XX operator
-###################################
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: Defining the XX operator</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -156,14 +166,8 @@ Example 1: Defining the XX operator
 
     operator = X ^ X
 
-.. raw:: html
 
-   </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -182,12 +186,13 @@ Example 1: Defining the XX operator
 
    </details>
 
-Example 2: Defining a more complex operator
-###########################################
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 2: Defining a more complex operator</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -199,14 +204,7 @@ Example 2: Defining a more complex operator
     op = PauliSumOp.from_list([("IZI", 0.39), ("IXX", 0.5)])
 
 
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -247,12 +245,13 @@ Common non-parametrized gates (Clifford)
             scales exponentially with the size of the circuit, use with care.
 
 
-Example 1: Defining the HH operator
-###################################
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: Defining the HH operator</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -260,14 +259,7 @@ Example 1: Defining the HH operator
 
     op = H ^ H
 
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -312,12 +304,13 @@ Example 1: Defining the HH operator
 
            For efficient simulation of stabilizer states, ``quantum_info`` includes a :class:`~qiskit.quantum_info.StabilizerState` class. See API ref. for more info.
 
-Example 1
-##########
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: Working with stabilizer states</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -327,14 +320,7 @@ Example 1
     state1 = Zero ^ One
     state2 = Plus ^ Minus
 
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -405,7 +391,8 @@ might have been used "under the hood" in the original code:
      - Alternative
 
    * - :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`
-     - As mentioned above, this class is used to generate an instance of one of the classes below, so no
+     - As mentioned above, this class is used to generate an instance of one of the classes below, so there is
+       no direct replacement.
 
    * - :class:`~qiskit.opflow.primitive_ops.CircuitOp`
      - :class:`~qiskit.QuantumCircuit`
@@ -414,29 +401,29 @@ might have been used "under the hood" in the original code:
      - :class:`~qiskit.quantum_info.Operator`
 
    * - :class:`~qiskit.opflow.primitive_ops.PauliOp`
-     - :class:`~qiskit.quantum_info.Pauli`. For direct compatibility with classes in :mod:`~qiskit.algorithms`,
+     - :class:`~qiskit.quantum_info.Pauli`. For direct compatibility with classes in :mod:`qiskit.algorithms`,
        wrap in :class:`~qiskit.quantum_info.SparsePauliOp`
 
    * - :class:`~qiskit.opflow.primitive_ops.PauliSumOp`
-     - :class:`~qiskit.quantum_info.SparsePauliOp`. See example :ref:`below <pauli_sum_op>`..
+     - :class:`~qiskit.quantum_info.SparsePauliOp`. See example below
 
    * - :class:`~qiskit.opflow.primitive_ops.TaperedPauliSumOp`
-     - This class was used to combine a :class:`~PauliSumOp` with its identified symmetries in one object.
+     - This class was used to combine a :class:`.PauliSumOp` with its identified symmetries in one object.
        This functionality is not currently used in any workflow, and has been deprecated without replacement.
-       See ``Z2Symmetries`` :ref:`example <z2_sym>` for updated workflow.
+       See ``Z2Symmetries`` example for updated workflow.
 
    * - :class:`~qiskit.opflow.primitive_ops.Z2Symmetries`
-     - :class:`~qiskit.quantum_info.Z2Symmetries`. See example :ref:`below <z2_sym>`.
+     - :class:`~qiskit.quantum_info.Z2Symmetries`. See example below.
 
 .. _pauli_sum_op:
-
-Example 1: ``PauliSumOp``
-##############################
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: <code>PauliSumOp</code></font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -445,14 +432,7 @@ Example 1: ``PauliSumOp``
 
     qubit_op = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=-3j)
 
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -466,13 +446,13 @@ Example 1: ``PauliSumOp``
 
 .. _z2_sym:
 
-Example 2: ``Z2Symmetries`` and ``TaperedPauliSumOp``
-#####################################################
-
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 2: <code>Z2Symmetries</code> and <code>TaperedPauliSumOp</code></font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -492,14 +472,7 @@ Example 2: ``Z2Symmetries`` and ``TaperedPauliSumOp``
     # can be represented as:
     tapered_op = TaperedPauliSumOp(primitive, z2_symmetries)
 
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -555,8 +528,8 @@ State Functions
 ---------------
 *Back to* `Contents`_
 
-The :mod:`~qiskit.opflow.state_fns` module can be generally replaced by :class:`~qiskit.quantum_info.QuantumState`,
-with some differences to keep in mind:
+The :mod:`~qiskit.opflow.state_fns` module can be generally replaced by subclasses of :mod:`~qiskit.quantum_info`\'s
+:class:`~qiskit.quantum_info.states.quantum_state.QuantumState`, with some differences to keep in mind:
 
 1. The primitives-based workflow does not rely on constructing state functions as opflow did
 2. Algorithm-specific functionality has been migrated to the respective algorithm's module
@@ -605,7 +578,7 @@ identify the sub-class that is being used, to then look for an alternative.
    * - :class:`~qiskit.opflow.state_fns.DictStateFn`
      - This class was used to store efficient representations of sparse measurement results. The
        :class:`~qiskit.primitives.Sampler` now returns the measurements as an instance of
-       :class:`~qiskit.result.QuasiDist` (see example in :ref:`converters <convert_state>`).
+       :class:`~qiskit.result.QuasiDist` (see example in `Converters`_).
 
    * - :class:`~qiskit.opflow.state_fns.VectorStateFn`
      - This class can be replaced with :class:`~qiskit.quantum_info.Statevector` or
@@ -619,16 +592,17 @@ identify the sub-class that is being used, to then look for an alternative.
 
    * - :class:`~qiskit.opflow.state_fns.CVaRMeasurement`
      - Used in :class:`~qiskit.opflow.expectations.CVaRExpectation`.
-       Functionality now covered by :class:`.SamplingVQE`. See :ref:`example <cvar>` in expectations.
+       Functionality now covered by :class:`.SamplingVQE`. See example in `Expectations`_.
 
 
-Example 1: Applying an operator to a state
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: Applying an operator to a state</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -644,14 +618,7 @@ Example 1: Applying an operator to a state
     eval = comp.eval()
     # returns a VectorStateFn (Statevector)
 
-.. raw:: html
-
-   </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -668,9 +635,9 @@ Example 1: Applying an operator to a state
 .. raw:: html
 
    </details>
+   <br>
 
-
-See more applied examples in :ref:`expectations <expect_state>`  and :ref:`converters <convert_state>`.
+See more applied examples in `Expectations`_  and `Converters`_.
 
 
 Converters
@@ -691,13 +658,14 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
    * - :class:`~qiskit.opflow.converters.CircuitSampler`
      - :class:`~qiskit.primitives.Sampler` or :class:`~qiskit.primitives.Estimator` if used with
-       :class:`~qiskit.oflow.expectations`. See examples :ref:`below <convert_state>`.
+       :class:`~qiskit.oflow.expectations`. See examples below.
    * - :class:`~qiskit.opflow.converters.AbelianGrouper`
      - No direct replacement. This class allowed a sum a of Pauli operators to be grouped. These type of groupings are now left to the primitives to handle.
    * - :class:`~qiskit.opflow.converters.DictToCircuitSum`
-     - No direct replacement
+     - No direct replacement. This class was used to convert from ``DictStateFns`` or ``VectorStateFns``
+       to equivalent ``CircuitStateFns``.
    * - :class:`~qiskit.opflow.converters.PauliBasisChange`
-     - No direct replacement
+     - No direct replacement. This class was used for changing Paulis into other bases.
    * -  :class:`~qiskit.opflow.converters.TwoQubitReduction`
      -  No direct replacement. This class implements a chemistry-specific reduction for the ``ParityMapper`` class in ``qiskit-nature``.
         The general symmetry logic this mapper depends on has been refactored to other classes in :mod:`~qiskit.quantum_info`,
@@ -706,14 +674,13 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
 .. _convert_state:
 
-Example 1: ``CircuitSampler`` for sampling Parametrized Circuits
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: <code>CircuitSampler</code> for sampling parametrized circuits</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -737,14 +704,7 @@ Example 1: ``CircuitSampler`` for sampling Parametrized Circuits
     sampled = sampler.convert(listop, params=bindings).eval()
     # returns list of SparseVectorStateFn
 
-.. raw:: html
-
-    </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -775,13 +735,14 @@ Example 1: ``CircuitSampler`` for sampling Parametrized Circuits
 
     </details>
 
-Example 2: ``CircuitSampler`` for computing Expectation Values
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 2: <code>CircuitSampler</code> for computing expectation values</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -800,14 +761,7 @@ Example 2: ``CircuitSampler`` for computing Expectation Values
     expectation = sampler.convert(expr)
     expectation_value = expectation.eval().real
 
-.. raw:: html
-
-    </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -830,27 +784,27 @@ Evolutions
 ----------
 *Back to* `Contents`_
 
-The :mod:`~qiskit.opflow.evolutions` sub-module was created to provide building blocks for Hamiltonian simulation algorithms,
+The :mod:`qiskit.opflow.evolutions` sub-module was created to provide building blocks for Hamiltonian simulation algorithms,
 including various methods for trotterization. The original opflow workflow for hamiltonian simulation did not allow for
 delayed synthesis of the gates or efficient transpilation of the circuits, so this functionality was migrated to the
-:mod:`~qiskit.synthesis.evolution` module.
+:mod:`qiskit.synthesis.evolution` module.
 
 .. note::
 
-    The :class:`~qiskit.opflow.evolutions.PauliTrotterEvolution` class computes evolutions for exponentiated sums of Paulis by changing them each to the
+    The :class:`qiskit.opflow.evolutions.PauliTrotterEvolution` class computes evolutions for exponentiated sums of Paulis by changing them each to the
     Z basis, rotating with an RZ, changing back, and trotterizing following the desired scheme. Within its ``.convert`` method,
-    the class follows a recursive strategy that involves creating :class:`~qiskit.opflow.evolutions.EvolvedOp` placeholders for the operators,
-    constructing :class:`~PauliEvolutionGate`\s out of the operator primitives and supplying one of the desired synthesis methods to
-    perform the trotterization (either via a ``string``\, which is then inputted into a :class:`~qiskit.opflow.evolutions.TrotterizationFactory`,
-    or by supplying a method instance of :class:`~qiskit.opflow.evolutions.Trotter`, :class:`~qiskit.opflow.evolutions.Suzuki` or :class:`~qiskit.opflow.evolutions.QDrift`).
+    the class follows a recursive strategy that involves creating :class:`qiskit.opflow.evolutions.EvolvedOp` placeholders for the operators,
+    constructing :class:`.PauliEvolutionGate`\s out of the operator primitives and supplying one of the desired synthesis methods to
+    perform the trotterization (either via a ``string``\, which is then inputted into a :class:`qiskit.opflow.evolutions.TrotterizationFactory`,
+    or by supplying a method instance of :class:`qiskit.opflow.evolutions.Trotter`, :class:`qiskit.opflow.evolutions.Suzuki` or :class:`qiskit.opflow.evolutions.QDrift`).
 
-    The different trotterization methods that extend :class:`~qiskit.opflow.evolutions.TrotterizationBase` were migrated to :mod:`~qiskit.synthesis`,
-    and now extend the :class:`~qiskit.synthesis.evolution.ProductFormula` base class. They no longer contain a ``.convert()`` method for
-    standalone use, but now are designed to be plugged into the :class:`~qiskit.synthesis.PauliEvolutionGate` and called via ``.synthesize()``.
-    In this context, the job of the :class:`~qiskit.opflow.evolutions.PauliTrotterEvolution` class can now be handled directly by the algorithms
-    (for example, :class:`~qiskit.algorithms.time_evolvers.TrotterQRTE`\).
+    The different trotterization methods that extend :class:`qiskit.opflow.evolutions.TrotterizationBase` were migrated to :mod:`qiskit.synthesis`,
+    and now extend the :class:`qiskit.synthesis.evolution.ProductFormula` base class. They no longer contain a ``.convert()`` method for
+    standalone use, but now are designed to be plugged into the :class:`qiskit.synthesis.PauliEvolutionGate` and called via ``.synthesize()``.
+    In this context, the job of the :class:`qiskit.opflow.evolutions.PauliTrotterEvolution` class can now be handled directly by the algorithms
+    (for example, :class:`qiskit.algorithms.time_evolvers.TrotterQRTE`\).
 
-    In a similar manner, the :class:`~qiskit.opflow.evolutions.MatrixEvolution` class performs evolution by classical matrix exponentiation,
+    In a similar manner, the :class:`qiskit.opflow.evolutions.MatrixEvolution` class performs evolution by classical matrix exponentiation,
     constructing a circuit with :class:`.UnitaryGate`\s or :class:`.HamiltonianGate`\s containing the exponentiation of the operator.
     This class is no longer necessary, as the :class:`.HamiltonianGate`\s can be directly handled by the algorithms.
 
@@ -868,13 +822,13 @@ Trotterizations
      - No direct replacement. This class was used to create instances of one of the classes listed below.
 
    * - :class:`~qiskit.opflow.evolutions.Trotter`
-     - :class:`~synthesis.SuzukiTrotter` or :class:`~synthesis.LieTrotter`
+     - :class:`qiskit.synthesis.SuzukiTrotter` or :class:`qiskit.synthesis.LieTrotter`
 
    * - :class:`~qiskit.opflow.evolutions.Suzuki`
-     - :class:`~synthesis.SuzukiTrotter`
+     - :class:`qiskit.synthesis.SuzukiTrotter`
 
    * - :class:`~qiskit.opflow.evolutions.QDrift`
-     - :class:`~synthesis.QDrift`
+     - :class:`qiskit.synthesis.QDrift`
 
 Other Evolution Classes
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -893,19 +847,20 @@ Other Evolution Classes
      - No direct replacement. The workflow no longer requires a specific operator for evolutions.
 
    * - :class:`~qiskit.opflow.evolutions.MatrixEvolution`
-     - :class:`~HamiltonianGate`
+     - :class:`.HamiltonianGate`
 
    * - :class:`~qiskit.opflow.evolutions.PauliTrotterEvolution`
-     - :class:`~PauliEvolutionGate`
+     - :class:`.PauliEvolutionGate`
 
 
-Example 1: Trotter evolution
-############################
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: Trotter evolution</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -916,14 +871,7 @@ Example 1: Trotter evolution
     evol_result = evolution.convert(hamiltonian.exp_i())
     evolved_state = evol_result.to_circuit()
 
-.. raw:: html
-
-    </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -941,13 +889,14 @@ Example 1: Trotter evolution
 
     </details>
 
-Example 2: Evolution with time-dependent Hamiltonian
-#####################################################
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 2: Evolution with time-dependent Hamiltonian</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -960,14 +909,7 @@ Example 2: Evolution with time-dependent Hamiltonian
     evol_result = evolution.convert((time * hamiltonian).exp_i())
     evolved_state = evol_result.to_circuit()
 
-.. raw:: html
-
-    </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -987,13 +929,15 @@ Example 2: Evolution with time-dependent Hamiltonian
 
     </details>
 
-Example 3: Matrix evolution
-############################
+
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 3: Matrix evolution</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -1004,14 +948,7 @@ Example 3: Matrix evolution
     evol_result = evolution.convert(hamiltonian.exp_i())
     evolved_state = evol_result.to_circuit()
 
-.. raw:: html
-
-    </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -1048,27 +985,28 @@ Algorithm-Agnostic Expectations
      - No direct replacement. This class was used to create instances of one of the classes listed below.
 
    * - :class:`~qiskit.opflow.expectations.AerPauliExpectation`
-     - Use :class:`~Estimator` primitive from ``qiskit_aer`` with ``approximation=True`` and ``shots=None`` as ``run_options``.
-       See example :ref:`below <expect_state>`.
+     - Use ``Estimator`` primitive from ``qiskit_aer`` with ``approximation=True`` and ``shots=None`` as ``run_options``.
+       See example below.
 
    * - :class:`~qiskit.opflow.expectations.MatrixExpectation`
-     - Use :class:`~Estimator` primitive from ``qiskit`` (if no shots are set, it performs an exact Statevector calculation).
-       See example :ref:`below <matrix_state>`.
+     - Use ``Estimator`` primitive from ``qiskit`` (if no shots are set, it performs an exact Statevector calculation).
+       See example below.
 
    * - :class:`~qiskit.opflow.expectations.PauliExpectation`
-     - Use any ``Estimator`` primitive (for :class:`qiskit.primitives.Estimator`, set ``shots != None`` for a shot-based
+     - Use any ``Estimator`` primitive (for :class:`qiskit.primitives.Estimator`, set ``shots!=None`` for a shot-based
        simulation, for :class:`qiskit_aer.primitives.Estimator`, this is the default).
 
 
 .. _expect_state:
 
-Example 1: Aer Pauli Expectation
-#################################
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: Aer Pauli expectation</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -1088,14 +1026,7 @@ Example 1: Aer Pauli Expectation
     converted_meas = expect.convert(~StateFn(op) @ wvf)
     expect_values = sampler.convert(converted_meas).eval()
 
-.. raw:: html
-
-    </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -1118,13 +1049,14 @@ Example 1: Aer Pauli Expectation
 
 .. _matrix_state:
 
-Example 2: Matrix Expectation
-#################################
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 2: Matrix expectation</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -1143,14 +1075,7 @@ Example 2: Matrix Expectation
     plus_mean = converted_meas @ Plus
     values_plus = sampler.convert(plus_mean).eval()
 
-.. raw:: html
-
-    </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -1189,13 +1114,14 @@ CVaRExpectation
 
 ..  _cvar:
 
-Example 1: VQE with CVaR
-########################
 
 .. raw:: html
 
     <details>
-    <summary><a><b>Opflow</b></a></summary>
+    <summary><a><font size="+1">Example 1: VQE with CVaR</font></a></summary>
+    <br>
+
+**Opflow**
 
 .. code-block:: python
 
@@ -1208,20 +1134,13 @@ Example 1: VQE with CVaR
     backend = AerSimulator()
     ansatz = TwoLocal(2, 'ry', 'cz')
     op = PauliSumOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
-    alpha=0.2
+    alpha = 0.2
     cvar_expectation = CVaRExpectation(alpha=alpha)
     opt = SLSQP(maxiter=1000)
     vqe = VQE(ansatz, expectation=cvar_expectation, optimizer=opt, quantum_instance=backend)
     result = vqe.compute_minimum_eigenvalue(op)
 
-.. raw:: html
-
-    </details>
-
-.. raw:: html
-
-    <details>
-    <summary><a><b>Alternative</b></a></summary>
+**Alternative**
 
 .. code-block:: python
 
@@ -1234,8 +1153,8 @@ Example 1: VQE with CVaR
     ansatz = TwoLocal(2, 'ry', 'cz')
     op = SparsePauliOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
     opt = SLSQP(maxiter=1000)
-    alpha=0.2
-    vqe = SamplingVQE(Sampler(), ansatz, optm, aggregation=alpha)
+    alpha = 0.2
+    vqe = SamplingVQE(Sampler(), ansatz, opt, aggregation=alpha)
     result = vqe.compute_minimum_eigenvalue(op)
 
 .. raw:: html
@@ -1246,6 +1165,6 @@ Gradients
 ---------
 *Back to* `Contents`_
 
-Replaced by the new :mod:`~qiskit.algorithms.gradients` module. You can see further details in the
-algorithms migration guide.
+Replaced by the new :mod:`qiskit.algorithms.gradients` module. You can see further details in the
+`algorithms migration guide <http://>`_.
 
