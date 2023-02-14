@@ -16,8 +16,6 @@ import logging
 import math
 import os
 
-import numpy as np
-
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.quantum_info.synthesis import one_qubit_decompose
@@ -95,15 +93,15 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
     def _build_error_map(self):
         if self._target is not None:
-            error_map = {qubit[0]: {} for qubit in self._target.qargs if len(qubit) == 1}
-            for qubit in error_map:
+            error_map = euler_one_qubit_decomposer.OneQubitGateErrorMap(self._target.num_qubits)
+            for qubit in range(self._target.num_qubits):
                 gate_error = {}
                 for gate in self._target:
                     if self._target[gate] is not None:
                         props = self._target[gate].get((qubit,), None)
                         if props is not None and props.error is not None:
                             gate_error[gate] = props.error
-                error_map[qubit] = gate_error
+                error_map.add_qubit(gate_error)
             return error_map
         else:
             return None
@@ -131,12 +129,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
                 self._local_decomposers_cache[qubits_tuple] = decomposers
         else:
             decomposers = self._global_decomposers
-        if self.error_map is None:
-            error_map = None
-        else:
-            error_map = self.error_map.get(qubit, None)
         best_synth_circuit = euler_one_qubit_decomposer.unitary_to_gate_sequence(
-            matrix, decomposers, error_map, run_in_parallel and len(decomposers) > 1
+            matrix, decomposers, qubit, self.error_map, run_in_parallel and len(decomposers) > 1
         )
         return best_synth_circuit
 
@@ -176,11 +170,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
         #    then we _try_ to decompose, using the results if we see improvement.
         return (
             uncalibrated_and_not_basis_p
-            or (
-                uncalibrated_p
-                and _error(new_circ, self._target, qubit) < _error(old_run, self._target, qubit)
-            )
-            or math.isclose(_error(new_circ, self._target, qubit), 0)
+            or (uncalibrated_p and self._error(new_circ, qubit) < self._error(old_run, qubit))
+            or math.isclose(self._error(new_circ, qubit)[0], 0)
         )
 
     @control_flow.trivial_recurse
@@ -221,6 +212,24 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         return dag
 
+    def _error(self, circuit, qubit):
+        """
+        Calculate a rough error for a `circuit` that runs on a specific
+        `qubit` of `target` (circuit could also be a list of DAGNodes)
+
+        Use basis errors from target if available, otherwise use length
+        of circuit as a weak proxy for error.
+        """
+        if isinstance(circuit, euler_one_qubit_decomposer.OneQubitGateSequence):
+            return euler_one_qubit_decomposer.compute_error_one_qubit_sequence(
+                circuit, qubit, self.error_map
+            )
+        else:
+            circuit_list = [(x.op.name, []) for x in circuit]
+            return euler_one_qubit_decomposer.compute_error_list(
+                circuit_list, qubit, self.error_map
+            )
+
 
 def _possible_decomposers(basis_set):
     decomposers = []
@@ -234,42 +243,3 @@ def _possible_decomposers(basis_set):
         if "U3" in basis_set and "U321" in basis_set:
             decomposers.remove("U3")
     return decomposers
-
-
-def _error(circuit, target=None, qubit=None):
-    """
-    Calculate a rough error for a `circuit` that runs on a specific
-    `qubit` of `target` (circuit could also be a list of DAGNodes)
-
-    Use basis errors from target if available, otherwise use length
-    of circuit as a weak proxy for error.
-    """
-    if target is None:
-        if isinstance(circuit, (list, euler_one_qubit_decomposer.OneQubitGateSequence)):
-            return len(circuit)
-        else:
-            return len(circuit._multi_graph) - 2
-    else:
-        if isinstance(circuit, euler_one_qubit_decomposer.OneQubitGateSequence):
-            gate_fidelities = [
-                1 - getattr(target[node[0]].get((qubit,)), "error", 0.0) for node in circuit
-            ]
-        elif isinstance(circuit, list):
-            gate_fidelities = [
-                1 - getattr(target[node.name].get((qubit,)), "error", 0.0) for node in circuit
-            ]
-        else:
-            gate_fidelities = [
-                1 - getattr(target[inst.op.name].get((qubit,)), "error", 0.0)
-                for inst in circuit.op_nodes()
-            ]
-        gate_error = 1 - np.product(gate_fidelities)
-        if gate_error == 0.0:
-            if isinstance(circuit, (list, euler_one_qubit_decomposer.OneQubitGateSequence)):
-                return -100 + len(circuit)
-            else:
-                return -100 + len(
-                    circuit._multi_graph
-                )  # prefer shorter circuits among those with zero error
-        else:
-            return gate_error

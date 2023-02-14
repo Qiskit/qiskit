@@ -36,6 +36,27 @@ enum SliceOrInt<'a> {
     Int(isize),
 }
 
+#[pyclass]
+pub struct OneQubitGateErrorMap {
+    error_map: Vec<HashMap<String, f64>>,
+}
+
+#[pymethods]
+impl OneQubitGateErrorMap {
+    #[new]
+    fn new(num_qubits: Option<usize>) -> Self {
+        OneQubitGateErrorMap {
+            error_map: match num_qubits {
+                Some(n) => Vec::with_capacity(n),
+                None => Vec::new(),
+            },
+        }
+    }
+    fn add_qubit(&mut self, error_map: HashMap<String, f64>) {
+        self.error_map.push(error_map);
+    }
+}
+
 #[pyclass(sequence)]
 pub struct OneQubitGateSequence {
     gates: Vec<(String, Vec<f64>)>,
@@ -97,12 +118,10 @@ impl OneQubitGateSequence {
             SliceOrInt::Int(idx) => {
                 let len = self.gates.len() as isize;
                 if idx >= len || idx < -len {
-                    Err(PyIndexError::new_err(format!("Invalid index, {}", idx)))
+                    Err(PyIndexError::new_err(format!("Invalid index, {idx}")))
                 } else if idx < 0 {
                     let len = self.gates.len();
-                    Ok(self.gates[len - idx.unsigned_abs() as usize]
-                        .clone()
-                        .into_py(py))
+                    Ok(self.gates[len - idx.unsigned_abs()].clone().into_py(py))
                 } else {
                     Ok(self.gates[idx as usize].clone().into_py(py))
                 }
@@ -507,8 +526,7 @@ pub fn generate_circuit(
         "RR" => circuit_rr(theta, phi, lam, phase, simplify, atol),
         other => {
             return Err(PyTypeError::new_err(format!(
-                "Invalid target basis: {}",
-                other
+                "Invalid target basis: {other}"
             )))
         }
     };
@@ -537,13 +555,16 @@ fn angles_from_unitary(unitary: ArrayView2<Complex64>, target_basis: &str) -> [f
         &_ => unreachable!(),
     }
 }
+
 #[inline]
-fn error_fn(
+fn compare_error_fn(
     circuit: &OneQubitGateSequence,
-    error_map: &Option<HashMap<String, f64>>,
+    error_map: &Option<&OneQubitGateErrorMap>,
+    qubit: usize,
 ) -> (f64, usize) {
     match error_map {
-        Some(err_map) => {
+        Some(global_err_map) => {
+            let err_map = &global_err_map.error_map[qubit];
             let fidelity_product: f64 = circuit
                 .gates
                 .iter()
@@ -555,19 +576,55 @@ fn error_fn(
     }
 }
 
+fn compute_error(
+    gates: &[(String, Vec<f64>)],
+    error_map: Option<&OneQubitGateErrorMap>,
+    qubit: usize,
+) -> (f64, usize) {
+    match error_map {
+        Some(err_map) => {
+            let num_gates = gates.len();
+            let gate_fidelities: f64 = gates
+                .iter()
+                .map(|x| 1. - err_map.error_map[qubit].get(&x.0).unwrap_or(&0.))
+                .product();
+            (1. - gate_fidelities, num_gates)
+        }
+        None => (gates.len() as f64, gates.len()),
+    }
+}
+
 #[pyfunction]
-#[pyo3(signature = (unitary, target_basis_list, error_map=None, run_in_parallel=true))]
+pub fn compute_error_one_qubit_sequence(
+    circuit: &OneQubitGateSequence,
+    qubit: usize,
+    error_map: Option<&OneQubitGateErrorMap>,
+) -> (f64, usize) {
+    compute_error(&circuit.gates, error_map, qubit)
+}
+
+#[pyfunction]
+pub fn compute_error_list(
+    circuit: Vec<(String, Vec<f64>)>,
+    qubit: usize,
+    error_map: Option<&OneQubitGateErrorMap>,
+) -> (f64, usize) {
+    compute_error(&circuit, error_map, qubit)
+}
+
+#[pyfunction]
+#[pyo3(signature = (unitary, target_basis_list, qubit, error_map=None, run_in_parallel=true))]
 pub fn unitary_to_gate_sequence(
     unitary: PyReadonlyArray2<Complex64>,
     target_basis_list: Vec<&str>,
-    error_map: Option<HashMap<String, f64>>,
+    qubit: usize,
+    error_map: Option<&OneQubitGateErrorMap>,
     run_in_parallel: bool,
 ) -> PyResult<Option<OneQubitGateSequence>> {
     for basis in &target_basis_list {
         if !VALID_BASIS.contains(basis) {
             return Err(PyTypeError::new_err(format!(
-                "Invalid target basis {}",
-                basis
+                "Invalid target basis {basis}"
             )));
         }
     }
@@ -584,8 +641,8 @@ pub fn unitary_to_gate_sequence(
                 )
             })
             .min_by(|a, b| {
-                let error_a = error_fn(&a.0, &error_map);
-                let error_b = error_fn(&b.0, &error_map);
+                let error_a = compare_error_fn(&a.0, &error_map, qubit);
+                let error_b = compare_error_fn(&b.0, &error_map, qubit);
 
                 (error_a, a.1)
                     .partial_cmp(&(error_b, b.1))
@@ -600,8 +657,8 @@ pub fn unitary_to_gate_sequence(
                 generate_circuit(target_basis, theta, phi, lam, phase, true, None).unwrap()
             })
             .min_by(|a, b| {
-                let error_a = error_fn(a, &error_map);
-                let error_b = error_fn(b, &error_map);
+                let error_a = compare_error_fn(a, &error_map, qubit);
+                let error_b = compare_error_fn(b, &error_map, qubit);
                 error_a.partial_cmp(&error_b).unwrap_or(Ordering::Equal)
             })
     };
@@ -745,6 +802,9 @@ pub fn euler_one_qubit_decomposer(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_wrapped(wrap_pyfunction!(params_u1x))?;
     m.add_wrapped(wrap_pyfunction!(generate_circuit))?;
     m.add_wrapped(wrap_pyfunction!(unitary_to_gate_sequence))?;
+    m.add_wrapped(wrap_pyfunction!(compute_error_one_qubit_sequence))?;
+    m.add_wrapped(wrap_pyfunction!(compute_error_list))?;
     m.add_class::<OneQubitGateSequence>()?;
+    m.add_class::<OneQubitGateErrorMap>()?;
     Ok(())
 }
