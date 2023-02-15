@@ -232,7 +232,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             run_check()
 
         with self.subTest("SPSA replace"):
-            vqd.optimizer = SPSA()
+            vqd.optimizer = SPSA(max_evals_grouped=4)
             run_check()
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
