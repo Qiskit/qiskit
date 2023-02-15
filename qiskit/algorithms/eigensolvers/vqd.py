@@ -381,7 +381,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 fidelity_job = self.fidelity.run(
                     batch_size * [self.ansatz] * (step - 1),
                     batch_size * prev_states,
-                    parameters * (step - 1),
+                    np.tile(parameters, (step - 1, 1)),
                 )
 
                 costs = fidelity_job.result().fidelities
