@@ -15,12 +15,10 @@
 from typing import List, Union
 
 from qiskit.circuit import Instruction as CircuitInst
-from qiskit.pulse import (
-    Schedule,
-    ScheduleBlock,
-)
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
+from qiskit.transpiler.exceptions import TranspilerError
 
 from .base_builder import CalibrationBuilder
 
@@ -59,13 +57,16 @@ class PulseGates(CalibrationBuilder):
         Args:
             inst_map: Instruction schedule map that user may override.
             target: The :class:`~.Target` representing the target backend, if both
-                ``inst_map`` and this are specified then this argument will take
-                precedence and ``inst_map`` will be ignored.
+                ``inst_map`` and this are specified then it updates instructions
+                in the ``target`` with ``inst_map``.
         """
         super().__init__()
-        self.inst_map = inst_map
-        if target:
-            self.inst_map = target.instruction_schedule_map()
+
+        if target is None:
+            target = Target()
+        if inst_map is not None:
+            target.update_from_instruction_schedule_map(inst_map)
+        self.target = target
 
     def supported(self, node_op: CircuitInst, qubits: List) -> bool:
         """Determine if a given node supports the calibration.
@@ -77,7 +78,7 @@ class PulseGates(CalibrationBuilder):
         Returns:
             Return ``True`` is calibration can be provided.
         """
-        return self.inst_map.has(instruction=node_op.name, qubits=qubits)
+        return self.target.instruction_supported(operation_name=node_op.name, qargs=qubits)
 
     def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
         """Gets the calibrated schedule for the given instruction and qubits.
@@ -88,5 +89,22 @@ class PulseGates(CalibrationBuilder):
 
         Returns:
             Return Schedule of target gate instruction.
+
+        Raises:
+            TranspilerError: When node is parameterized and calibration is raw schedule object.
         """
-        return self.inst_map.get(node_op.name, qubits, *node_op.params)
+        inst_property = self.target[node_op.name][tuple(qubits)]
+        if not node_op.params:
+            return inst_property.calibration
+        try:
+            # CircuitInstruction doesn't preserve parameter name after parameter binding.
+            # Thus schedule cannot generate bind dictionary.
+            # Use CalibraionEntry to utilize inspected signature object.
+            calibration_entry = inst_property._calibration
+            return calibration_entry.get_schedule(*node_op.params)
+        except AttributeError as ex:
+            raise TranspilerError(
+                f"Calibraton for {node_op.name} of {qubits} is not a CalibraryEntry instance. "
+                f"Mapping from parameter values {node_op.params} to parameter objects "
+                f"in the schedule cannot be identified."
+            ) from ex

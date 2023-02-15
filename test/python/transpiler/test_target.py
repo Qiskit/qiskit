@@ -1177,16 +1177,17 @@ Instructions:
         inst_map = InstructionScheduleMap()
         inst_map.add("sx", 0, self.custom_sx_q0)
         inst_map.add("sx", 1, self.custom_sx_q1)
-        with self.assertRaises(ValueError):
-            target.update_from_instruction_schedule_map(inst_map)
+        target.update_from_instruction_schedule_map(inst_map)
+        self.assertEqual(target["sx"][(0,)].calibration, self.custom_sx_q0)
+        self.assertEqual(target["sx"][(1,)].calibration, self.custom_sx_q1)
 
     def test_update_from_instruction_schedule_map_new_qarg_raises(self):
         inst_map = InstructionScheduleMap()
         inst_map.add("sx", 0, self.custom_sx_q0)
         inst_map.add("sx", 1, self.custom_sx_q1)
         inst_map.add("sx", 2, self.custom_sx_q1)
-        with self.assertRaises(KeyError):
-            self.pulse_target.update_from_instruction_schedule_map(inst_map)
+        self.pulse_target.update_from_instruction_schedule_map(inst_map)
+        self.assertFalse(self.pulse_target.instruction_supported("sx", (2,)))
 
     def test_update_from_instruction_schedule_map_with_dt_set(self):
         inst_map = InstructionScheduleMap()

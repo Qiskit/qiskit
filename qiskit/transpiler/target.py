@@ -28,6 +28,8 @@ import inspect
 import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
@@ -423,7 +425,9 @@ class Target(Mapping):
         Args:
             inst_map (InstructionScheduleMap): The instruction
             inst_name_map (dict): An optional dictionary that maps any
-                instruction name in ``inst_map`` to an instruction object
+                instruction name in ``inst_map`` to an instruction object.
+                If not provided, instruction is pulled from the standard Qiskit gates,
+                and finally custom gate instnace is created with schedule name.
             error_dict (dict): A dictionary of errors of the form::
 
                 {gate_name: {qarg: error}}
@@ -436,48 +440,53 @@ class Target(Mapping):
             a when updating the ``Target`` the error value will be pulled from
             this dictionary. If one is not found in ``error_dict`` then
             ``None`` will be used.
-
-        Raises:
-            ValueError: If ``inst_map`` contains new instructions and
-                ``inst_name_map`` isn't specified
-            KeyError: If a ``inst_map`` contains a qarg for an instruction
-                that's not in the target
         """
-        for inst in inst_map.instructions:
+        for inst_name in inst_map.instructions:
             out_props = {}
-            for qarg in inst_map.qubits_with_instruction(inst):
-                sched = inst_map.get(inst, qarg)
-                val = InstructionProperties(calibration=sched)
+            for qarg in inst_map.qubits_with_instruction(inst_name):
                 try:
                     qarg = tuple(qarg)
                 except TypeError:
                     qarg = (qarg,)
-                if inst in self._gate_map:
-                    if self.dt is not None:
-                        val.duration = sched.duration * self.dt
-                    else:
-                        val.duration = None
-                    if error_dict is not None:
-                        error_inst = error_dict.get(inst)
-                        if error_inst:
-                            error = error_inst.get(qarg)
-                            val.error = error
-                        else:
-                            val.error = None
+                entry = inst_map._get_calibration_entry(inst_name, qarg)
+                val = InstructionProperties(calibration=entry)
+                if self.dt is not None:
+                    val.duration = entry.get_duration() * self.dt
+                else:
+                    val.duration = None
+                if inst_name in self._gate_map and error_dict is not None:
+                    error_inst = error_dict.get(inst_name)
+                    if error_inst:
+                        error = error_inst.get(qarg)
+                        val.error = error
                     else:
                         val.error = None
-                out_props[qarg] = val
-            if inst not in self._gate_map:
-                if inst_name_map is not None:
-                    self.add_instruction(inst_name_map[inst], out_props, name=inst)
                 else:
-                    raise ValueError(
-                        "An inst_name_map kwarg must be specified to add new "
-                        "instructions from an InstructionScheduleMap"
+                    val.error = None
+                out_props[qarg] = val
+            if inst_name not in self._gate_map:
+                if inst_name_map is None:
+                    inst_name_map = get_standard_gate_name_mapping()
+                if inst_name in inst_name_map:
+                    inst_obj = inst_name_map[inst_name]
+                else:
+                    # Custom gate object, which doesn't belong to standard Qiskit gates.
+                    inst_obj = Gate(
+                        name=inst_name,
+                        num_qubits=len(qarg),
+                        params=list(map(Parameter, entry.get_signature().parameters.keys())),
                     )
+                normalized_props = {}
+                for qargs, prop in out_props.items():
+                    if len(qargs) != inst_obj.num_qubits:
+                        continue
+                    normalized_props[qargs] = prop
+                self.add_instruction(inst_obj, normalized_props, name=inst_name)
             else:
                 for qarg, prop in out_props.items():
-                    self.update_instruction_properties(inst, qarg, prop)
+                    if qarg not in self._gate_map[inst_name]:
+                        continue
+                    self.update_instruction_properties(inst_name, qarg, prop)
 
     @property
     def qargs(self):

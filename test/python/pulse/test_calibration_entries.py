@@ -40,10 +40,12 @@ class TestSchedule(QiskitTestCase):
 
     def test_add_schedule(self):
         """Basic test pulse Schedule format."""
+        ref_duration = 10
+
         program = Schedule()
         program.insert(
             0,
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=ref_duration, amp=0.1, angle=0.0), DriveChannel(0)),
             inplace=True,
         )
 
@@ -57,12 +59,16 @@ class TestSchedule(QiskitTestCase):
         schedule_to_test = entry.get_schedule()
         schedule_ref = program
         self.assertEqual(schedule_to_test, schedule_ref)
+
+        self.assertEqual(entry.get_duration(), ref_duration)
 
     def test_add_block(self):
         """Basic test pulse Schedule format."""
+        ref_duration = 10
+
         program = ScheduleBlock()
         program.append(
-            Play(Constant(duration=10, amp=0.1, angle=0.0), DriveChannel(0)),
+            Play(Constant(duration=ref_duration, amp=0.1, angle=0.0), DriveChannel(0)),
             inplace=True,
         )
 
@@ -76,6 +82,8 @@ class TestSchedule(QiskitTestCase):
         schedule_to_test = entry.get_schedule()
         schedule_ref = program
         self.assertEqual(schedule_to_test, schedule_ref)
+
+        self.assertEqual(entry.get_duration(), ref_duration)
 
     def test_parameterized_schedule(self):
         """Test adding and managing parameterized schedule."""
@@ -98,6 +106,9 @@ class TestSchedule(QiskitTestCase):
         schedule_to_test = entry.get_schedule(P1=10, P2=0.1)
         schedule_ref = program.assign_parameters({param1: 10, param2: 0.1}, inplace=False)
         self.assertEqual(schedule_to_test, schedule_ref)
+
+        # Undetermined
+        self.assertEqual(entry.get_duration(), None)
 
     def test_parameterized_schedule_with_user_args(self):
         """Test adding schedule with user signature.
@@ -207,6 +218,8 @@ class TestCallable(QiskitTestCase):
         schedule_ref = program
         self.assertEqual(schedule_to_test, schedule_ref)
 
+        self.assertEqual(entry.get_duration(), None)
+
     def test_add_callable_with_argument(self):
         """Basic test callable format."""
 
@@ -307,6 +320,9 @@ class TestPulseQobj(QiskitTestCase):
 
         entry = PulseQobjDef(converter=self.converter, name="my_gate")
         entry.define(serialized_program)
+
+        self.assertEqual(entry.get_duration(), 25)
+        self.assertIsNone(entry._definition)  # Check if schedule is not parsed
 
         signature_to_test = list(entry.get_signature().parameters.keys())
         signature_ref = []

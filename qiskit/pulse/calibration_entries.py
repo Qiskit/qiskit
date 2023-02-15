@@ -16,7 +16,7 @@ from abc import ABCMeta, abstractmethod
 from enum import IntEnum
 from typing import Callable, List, Union, Optional, Sequence, Any
 
-from qiskit.pulse.exceptions import PulseError
+from qiskit.pulse.exceptions import PulseError, UnassignedDurationError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.qobj.converters import QobjToInstructionConverter
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction
@@ -61,6 +61,15 @@ class CalibrationEntry(metaclass=ABCMeta):
 
         Returns:
             Pulse schedule with assigned parameters.
+        """
+        pass
+
+    @abstractmethod
+    def get_duration(self) -> int:
+        """Get duration of schedule.
+
+        Returns:
+            Integer value representing a duration of schedule in units of dt.
         """
         pass
 
@@ -146,6 +155,12 @@ class ScheduleDef(CalibrationEntry):
                 pass
         return self._definition.assign_parameters(value_dict, inplace=False)
 
+    def get_duration(self) -> int:
+        try:
+            return self._definition.duration
+        except UnassignedDurationError:
+            return None
+
     def __eq__(self, other):
         # This delegates equality check to Schedule or ScheduleBlock.
         return self._definition == other._definition
@@ -192,6 +207,10 @@ class CallableDef(CalibrationEntry):
         if "publisher" not in schedule.metadata:
             schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
         return schedule
+
+    def get_duration(self) -> int:
+        # Duration is undetermined until funciton is called with full arguments.
+        return None
 
     def __eq__(self, other):
         # We cannot evaluate function equality without parsing python AST.
@@ -255,6 +274,29 @@ class PulseQobjDef(ScheduleDef):
         if self._definition is None:
             self._build_schedule()
         return super().get_schedule(*args, **kwargs)
+
+    def get_duration(self) -> int:
+        if self._definition:
+            return self._definition.duration
+
+        # Parse Qobj instruction and find max instruction end time
+        t_max = 0
+        for inst in self._source:
+            if inst.name == "parametric_pulse":
+                # Play instruction
+                duration = inst.parameters.get("duration", 0)
+            elif inst.name not in self._converter.get_supported_instructions():
+                # Play instruction with Waveform
+                try:
+                    # Get samples from the pulse library dictionary
+                    duration = len(self._converter._pulse_library[inst.name])
+                except KeyError:
+                    continue
+            else:
+                # Acquire, Delay instruction
+                duration = getattr(inst, "duration", 0)
+            t_max = max(t_max, inst.t0 + duration)
+        return t_max
 
     def __eq__(self, other):
         if isinstance(other, PulseQobjDef):
