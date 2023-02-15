@@ -40,7 +40,8 @@ class HamiltonianGate(Gate):
 
         Args:
             data (matrix or Operator): a hermitian operator.
-            time (float): time evolution parameter.
+            time (float, ndarray or ParameterExpression): time evolution
+                parameter.
             label (str): unitary name for backend [Default: None].
 
         Raises:
@@ -139,7 +140,7 @@ def hamiltonian(self, operator, time, qubits, label=None):
 
     Args:
         operator (matrix or Operator): a hermitian operator.
-        time (float): time evolution parameter.
+        time (float, ndarray or ParameterExpression): time evolution parameter.
         qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
             transformation to.
         label (str): unitary name for backend [Default: None].
