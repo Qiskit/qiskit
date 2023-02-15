@@ -40,6 +40,7 @@ from qiskit.circuit.library import (
     RZXGate,
     SdgGate,
     SGate,
+    SXGate,
     SwapGate,
     XGate,
     XXMinusYYGate,
@@ -510,6 +511,39 @@ class TestCliffordGates(QiskitTestCase):
         }
         expected_clifford = Clifford.from_dict(expected_clifford_dict)
         self.assertEqual(combined_clifford, expected_clifford)
+
+    def test_from_gate_with_cyclic_definition(self):
+        """Test if a Clifford can be created from gate with cyclic definition"""
+
+        class MyHGate(HGate):
+            """Custom HGate class for test"""
+
+            def __init__(self):
+                super().__init__()
+                self.name = "my_h"
+
+            def _define(self):
+                qc = QuantumCircuit(1, name=self.name)
+                qc.s(0)
+                qc.append(MySXGate(), [0])
+                qc.s(0)
+                self.definition = qc
+
+        class MySXGate(SXGate):
+            """Custom SXGate class for test"""
+
+            def __init__(self):
+                super().__init__()
+                self.name = "my_sx"
+
+            def _define(self):
+                qc = QuantumCircuit(1, name=self.name)
+                qc.sdg(0)
+                qc.append(MyHGate(), [0])
+                qc.sdg(0)
+                self.definition = qc
+
+        Clifford(MyHGate())
 
 
 @ddt
