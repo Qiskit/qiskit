@@ -14,4 +14,4 @@
 
 # Temporary import from 0.22.0 to be deprecated in future
 # pylint: disable=unused-wildcard-import,wildcard-import
-from .circuit.qcstyle import *
+from .circuit.qcstyle import * # noqa: F403

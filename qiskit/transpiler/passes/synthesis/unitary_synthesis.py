@@ -153,7 +153,7 @@ def _error(circuit, target=None, qubits=None):
             for key in keys:
                 target_op = target.operation_from_name(key)
                 # pylint: disable=unidiomatic-typecheck
-                if type(target_op) == type(inst.operation) and (
+                if type(target_op) == type(inst.operation) and ( # noqa: E721 Do not compare types
                     target_op.is_parameterized()
                     or all(
                         isclose(float(p1), float(p2))

@@ -35,3 +35,12 @@ line-length=105
 "qiskit/opflow/operator_globals.py" = ["E741"] # Ambiguous variable name `I`
 "qiskit/quantum_info/operators/random.py" = ["F401"] # Should be fixed.
 "qiskit/quantum_info/random.py" = ["F401"] # Should be fixed.
+"qiskit/synthesis/discrete_basis/solovay_kitaev.py" = ["F821"] # Undefined name
+"qiskit/test/decorators.py" = ["F401"] # `qiskit.providers.aer` imported but unused
+"qiskit/tools/visualization.py"  = ["F403"]
+"qiskit/transpiler/passes/calibration/builders.py" = ["F401"]
+"qiskit/transpiler/passes/optimization/hoare_opt.py" = ["F401"]
+"qiskit/transpiler/passes/scheduling/calibration_creators.py" = ["F401"]
+"qiskit/transpiler/passes/scheduling/rzx_templates.py" = ["F401"]
+
+

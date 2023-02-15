@@ -37,10 +37,10 @@ def count_keys(num_qubits: int) -> List[str]:
 
 def complete_meas_cal(
     qubit_list: List[int] = None,
-    qr: Union[int, List["QuantumRegister"]] = None,
-    cr: Union[int, List["ClassicalRegister"]] = None,
+    qr: Union[int, List["QuantumRegister"]] = None, # noqa: F821
+    cr: Union[int, List["ClassicalRegister"]] = None, # noqa: F821
     circlabel: str = "",
-) -> Tuple[List["QuantumCircuit"], List[str]]:
+) -> Tuple[List["QuantumCircuit"], List[str]]: # noqa: F821
     """
     Return a list of measurement calibration circuits for the full
     Hilbert space.
@@ -114,10 +114,10 @@ def complete_meas_cal(
 
 def tensored_meas_cal(
     mit_pattern: List[List[int]] = None,
-    qr: Union[int, List["QuantumRegister"]] = None,
-    cr: Union[int, List["ClassicalRegister"]] = None,
+    qr: Union[int, List["QuantumRegister"]] = None, # noqa: F821
+    cr: Union[int, List["ClassicalRegister"]] = None, # noqa: F821
     circlabel: str = "",
-) -> Tuple[List["QuantumCircuit"], List[List[int]]]:
+) -> Tuple[List["QuantumCircuit"], List[List[int]]]: # noqa: F821
     """
     Return a list of calibration circuits
 

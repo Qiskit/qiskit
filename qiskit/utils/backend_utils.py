@@ -53,8 +53,8 @@ def has_ibmq():
     """Check if IBMQ is installed"""
     if not _PROVIDER_CHECK.checked_ibmq:
         try:
-            from qiskit.providers.ibmq import IBMQFactory
-            from qiskit.providers.ibmq.accountprovider import AccountProvider
+            from qiskit.providers.ibmq import IBMQFactory # noqa: F401
+            from qiskit.providers.ibmq.accountprovider import AccountProvider # noqa: F401
 
             _PROVIDER_CHECK.has_ibmq = True
         except Exception as ex:  # pylint: disable=broad-except
@@ -70,7 +70,7 @@ def has_aer():
     """check if Aer is installed"""
     if not _PROVIDER_CHECK.checked_aer:
         try:
-            from qiskit.providers.aer import AerProvider
+            from qiskit.providers.aer import AerProvider # noqa: F401
 
             _PROVIDER_CHECK.has_aer = True
         except Exception as ex:  # pylint: disable=broad-except
