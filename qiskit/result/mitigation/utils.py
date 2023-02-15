@@ -115,8 +115,8 @@ def marganalize_counts(
 ) -> np.ndarray:
     """Marginalization of the Counts. Verify that number of clbits equals to the number of qubits."""
     if clbits is not None:
-        qubits_len = len(qubits) if not qubits is None else 0
-        clbits_len = len(clbits) if not clbits is None else 0
+        qubits_len = len(qubits) if qubits is not None else 0
+        clbits_len = len(clbits) if clbits is not None else 0
         if clbits_len not in (0, qubits_len):
             raise QiskitError(
                 "Num qubits ({}) does not match number of clbits ({}).".format(
