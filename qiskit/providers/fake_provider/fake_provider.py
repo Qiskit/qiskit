@@ -47,8 +47,6 @@ from .backends import (
             FakeMontreal,
             FakeMumbai,
             FakeNairobi,
-            FakeOpenPulse2Q,
-            FakeOpenPulse3Q,
             FakeOurense,
             FakeParis,
             FakePoughkeepsie,
