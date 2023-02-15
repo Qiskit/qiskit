@@ -404,7 +404,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     self._eval_count += 1
                     self.callback(self._eval_count, params, value, meta, step)
             else:
-                self._eval_count += len(values) / batch_size
+                self._eval_count += len(values)
 
             return values if len(values) > 1 else values[0]
 
