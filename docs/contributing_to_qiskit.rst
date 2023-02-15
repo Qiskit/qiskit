@@ -62,7 +62,7 @@ Qiskit Textbook (legacy)    https://github.com/qiskit-community/qiskit-textbook/
 Qiskit Textbook (beta)      https://github.com/Qiskit/platypus/blob/main/CONTRIBUTING.md
 Qiskit Tutorials            https://github.com/Qiskit/qiskit-tutorials/blob/master/CONTRIBUTING.md
 
-Retworkx                    https://github.com/Qiskit/retworkx/blob/main/CONTRIBUTING.md
+Rustworkx                   https://github.com/Qiskit/rustworkx/blob/main/CONTRIBUTING.md
 Qiskit (meta-package)       https://github.com/Qiskit/qiskit/blob/master/CONTRIBUTING.md
 =========================== =============================================
 
