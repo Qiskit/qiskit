@@ -275,7 +275,8 @@ class TestStandard1Q(QiskitTestCase):
         self.assertRaises(CircuitError, qc.cx, self.cr[1], self.cr[2])
         self.assertRaises(CircuitError, qc.cx, self.qr[0], self.qr[0])
         self.assertRaises(CircuitError, qc.cx, 0.0, self.qr[0])
-        self.assertRaises(CircuitError, qc.cx, (self.qr, 3), self.qr[0])
+        with self.assertRaises(CircuitError), self.assertWarns(PendingDeprecationWarning):
+            qc.cx((self.qr, 3), self.qr[0])
         self.assertRaises(CircuitError, qc.cx, self.cr, self.qr)
         self.assertRaises(CircuitError, qc.cx, "a", self.qr[1])
 
@@ -870,19 +871,22 @@ class TestStandard2Q(QiskitTestCase):
         self.assertEqual(self.circuit[0].qubits, (self.qr[0], self.qr[1], self.qr[2], self.qr2[0]))
 
     def test_ch_reg_reg(self):
-        instruction_set = self.circuit.ch(self.qr, self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.ch(self.qr, self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "ch")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_ch_reg_reg_inv(self):
-        instruction_set = self.circuit.ch(self.qr, self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.ch(self.qr, self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "ch")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_ch_reg_bit(self):
-        instruction_set = self.circuit.ch(self.qr, self.qr2[1])
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.ch(self.qr, self.qr2[1])
         self.assertEqual(instruction_set[0].operation.name, "ch")
         self.assertEqual(
             instruction_set[1].qubits,
@@ -894,7 +898,8 @@ class TestStandard2Q(QiskitTestCase):
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_ch_reg_bit_inv(self):
-        instruction_set = self.circuit.ch(self.qr, self.qr2[1]).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.ch(self.qr, self.qr2[1]).inverse()
         self.assertEqual(instruction_set[0].operation.name, "ch")
         self.assertEqual(
             instruction_set[1].qubits,
@@ -906,115 +911,134 @@ class TestStandard2Q(QiskitTestCase):
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_ch_bit_reg(self):
-        instruction_set = self.circuit.ch(self.qr[1], self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.ch(self.qr[1], self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "ch")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_crz_reg_reg(self):
-        instruction_set = self.circuit.crz(1, self.qr, self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crz(1, self.qr, self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "crz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_crz_reg_reg_inv(self):
-        instruction_set = self.circuit.crz(1, self.qr, self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crz(1, self.qr, self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "crz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
 
     def test_crz_reg_bit(self):
-        instruction_set = self.circuit.crz(1, self.qr, self.qr2[1])
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crz(1, self.qr, self.qr2[1])
         self.assertEqual(instruction_set[0].operation.name, "crz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_crz_reg_bit_inv(self):
-        instruction_set = self.circuit.crz(1, self.qr, self.qr2[1]).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crz(1, self.qr, self.qr2[1]).inverse()
         self.assertEqual(instruction_set[0].operation.name, "crz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
 
     def test_crz_bit_reg(self):
-        instruction_set = self.circuit.crz(1, self.qr[1], self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crz(1, self.qr[1], self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "crz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_crz_bit_reg_inv(self):
-        instruction_set = self.circuit.crz(1, self.qr[1], self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crz(1, self.qr[1], self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "crz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
 
     def test_cry_reg_reg(self):
-        instruction_set = self.circuit.cry(1, self.qr, self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cry(1, self.qr, self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "cry")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_cry_reg_reg_inv(self):
-        instruction_set = self.circuit.cry(1, self.qr, self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cry(1, self.qr, self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cry")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
 
     def test_cry_reg_bit(self):
-        instruction_set = self.circuit.cry(1, self.qr, self.qr2[1])
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cry(1, self.qr, self.qr2[1])
         self.assertEqual(instruction_set[0].operation.name, "cry")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_cry_reg_bit_inv(self):
-        instruction_set = self.circuit.cry(1, self.qr, self.qr2[1]).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cry(1, self.qr, self.qr2[1]).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cry")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
 
     def test_cry_bit_reg(self):
-        instruction_set = self.circuit.cry(1, self.qr[1], self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cry(1, self.qr[1], self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "cry")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_cry_bit_reg_inv(self):
-        instruction_set = self.circuit.cry(1, self.qr[1], self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cry(1, self.qr[1], self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cry")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
 
     def test_crx_reg_reg(self):
-        instruction_set = self.circuit.crx(1, self.qr, self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crx(1, self.qr, self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "crx")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_crx_reg_reg_inv(self):
-        instruction_set = self.circuit.crx(1, self.qr, self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crx(1, self.qr, self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "crx")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
 
     def test_crx_reg_bit(self):
-        instruction_set = self.circuit.crx(1, self.qr, self.qr2[1])
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crx(1, self.qr, self.qr2[1])
         self.assertEqual(instruction_set[0].operation.name, "crx")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_crx_reg_bit_inv(self):
-        instruction_set = self.circuit.crx(1, self.qr, self.qr2[1]).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crx(1, self.qr, self.qr2[1]).inverse()
         self.assertEqual(instruction_set[0].operation.name, "crx")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
 
     def test_crx_bit_reg(self):
-        instruction_set = self.circuit.crx(1, self.qr[1], self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crx(1, self.qr[1], self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "crx")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [1])
 
     def test_crx_bit_reg_inv(self):
-        instruction_set = self.circuit.crx(1, self.qr[1], self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.crx(1, self.qr[1], self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "crx")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [-1])
@@ -1128,73 +1152,85 @@ class TestStandard2Q(QiskitTestCase):
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cy_reg_reg(self):
-        instruction_set = self.circuit.cy(self.qr, self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cy(self.qr, self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "cy")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cy_reg_reg_inv(self):
-        instruction_set = self.circuit.cy(self.qr, self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cy(self.qr, self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cy")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cy_reg_bit(self):
-        instruction_set = self.circuit.cy(self.qr, self.qr2[1])
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cy(self.qr, self.qr2[1])
         self.assertEqual(instruction_set[0].operation.name, "cy")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cy_reg_bit_inv(self):
-        instruction_set = self.circuit.cy(self.qr, self.qr2[1]).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cy(self.qr, self.qr2[1]).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cy")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cy_bit_reg(self):
-        instruction_set = self.circuit.cy(self.qr[1], self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cy(self.qr[1], self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "cy")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cy_bit_reg_inv(self):
-        instruction_set = self.circuit.cy(self.qr[1], self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cy(self.qr[1], self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cy")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cz_reg_reg(self):
-        instruction_set = self.circuit.cz(self.qr, self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cz(self.qr, self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "cz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cz_reg_reg_inv(self):
-        instruction_set = self.circuit.cz(self.qr, self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cz(self.qr, self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cz_reg_bit(self):
-        instruction_set = self.circuit.cz(self.qr, self.qr2[1])
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cz(self.qr, self.qr2[1])
         self.assertEqual(instruction_set[0].operation.name, "cz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cz_reg_bit_inv(self):
-        instruction_set = self.circuit.cz(self.qr, self.qr2[1]).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cz(self.qr, self.qr2[1]).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cz_bit_reg(self):
-        instruction_set = self.circuit.cz(self.qr[1], self.qr2)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cz(self.qr[1], self.qr2)
         self.assertEqual(instruction_set[0].operation.name, "cz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cz_bit_reg_inv(self):
-        instruction_set = self.circuit.cz(self.qr[1], self.qr2).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cz(self.qr[1], self.qr2).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cz")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
@@ -1310,13 +1346,15 @@ class TestStandard3Q(QiskitTestCase):
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cswap_reg_reg_reg(self):
-        instruction_set = self.circuit.cswap(self.qr, self.qr2, self.qr3)
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cswap(self.qr, self.qr2, self.qr3)
         self.assertEqual(instruction_set[0].operation.name, "cswap")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1], self.qr3[1]))
         self.assertEqual(instruction_set[2].operation.params, [])
 
     def test_cswap_reg_reg_inv(self):
-        instruction_set = self.circuit.cswap(self.qr, self.qr2, self.qr3).inverse()
+        with self.assertWarns(PendingDeprecationWarning):
+            instruction_set = self.circuit.cswap(self.qr, self.qr2, self.qr3).inverse()
         self.assertEqual(instruction_set[0].operation.name, "cswap")
         self.assertEqual(instruction_set[1].qubits, (self.qr[1], self.qr2[1], self.qr3[1]))
         self.assertEqual(instruction_set[2].operation.params, [])

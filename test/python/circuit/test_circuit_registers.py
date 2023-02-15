@@ -299,7 +299,8 @@ class TestCircuitRegisters(QiskitTestCase):
         qtarget2 = QuantumRegister(10)
         qc = QuantumCircuit(qcontrol, qtarget)
         # test slice with skip and full register target
-        qc.ccx(qcontrol[1::2], qcontrol[0::2], qtarget)
+        with self.assertWarns(PendingDeprecationWarning):
+            qc.ccx(qcontrol[1::2], qcontrol[0::2], qtarget)
         self.assertEqual(len(qc.data), 5)
         for i, ictl, instruction in zip(range(len(qc.data)), range(0, 10, 2), qc.data):
             self.assertEqual(instruction.operation.name, "ccx")
@@ -310,7 +311,8 @@ class TestCircuitRegisters(QiskitTestCase):
             self.assertEqual(instruction.qubits[2], qtarget[i])
         # test decrementing slice
         qc = QuantumCircuit(qcontrol, qtarget)
-        qc.ccx(qcontrol[2:0:-1], qcontrol[4:6], qtarget[0:2])
+        with self.assertWarns(PendingDeprecationWarning):
+            qc.ccx(qcontrol[2:0:-1], qcontrol[4:6], qtarget[0:2])
         self.assertEqual(len(qc.data), 2)
         for instruction, ictl1, ictl2, itgt in zip(
             qc.data, range(2, 0, -1), range(4, 6), range(0, 2)
@@ -335,17 +337,20 @@ class TestCircuitRegisters(QiskitTestCase):
         qr1 = QuantumRegister(10)
         qr2 = QuantumRegister(5)
         qc = QuantumCircuit(qr1, qr2)
-        qc.cswap(qr2[3::-1], qr1[1:9:2], qr1[2:9:2])
+        with self.assertWarns(PendingDeprecationWarning):
+            qc.cswap(qr2[3::-1], qr1[1:9:2], qr1[2:9:2])
         qc.cswap(qr2[0], qr1[1], qr1[2])
         qc.cswap([qr2[0]], [qr1[1]], [qr1[2]])
-        self.assertRaises(CircuitError, qc.cswap, qr2[4::-1], qr1[1:9:2], qr1[2:9:2])
+        with self.assertRaises(CircuitError), self.assertWarns(PendingDeprecationWarning):
+            qc.cswap(qr2[4::-1], qr1[1:9:2], qr1[2:9:2])
 
     def test_apply_ccx_to_empty_slice(self):
         """test applying ccx to non-register raises"""
         qr = QuantumRegister(10)
         cr = ClassicalRegister(10)
         qc = QuantumCircuit(qr, cr)
-        self.assertRaises(CircuitError, qc.ccx, qr[2:0], qr[4:2], qr[7:5])
+        with self.assertRaises(CircuitError), self.assertWarns(PendingDeprecationWarning):
+            qc.ccx(qr[2:0], qr[4:2], qr[7:5])
 
     def test_apply_cx_to_non_register(self):
         """test applying cx to non-register raises"""
