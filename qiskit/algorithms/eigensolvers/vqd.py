@@ -396,7 +396,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             if self.callback is not None:
                 metadata = estimator_result.metadata
-                for params, value, meta in zip([parameters], values, metadata):
+                for params, value, meta in zip(parameters, values, metadata):
                     self._eval_count += 1
                     self.callback(self._eval_count, params, value, meta, step)
             else:
