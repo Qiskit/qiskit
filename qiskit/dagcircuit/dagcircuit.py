@@ -1394,7 +1394,7 @@ class DAGCircuit:
         return new_node
 
     def separable_circuits(self) -> List["DAGCircuit"]:
-        """Separate the dag circuit into its weakly connected components.
+        """Decompose the circuit into sets of qubits with no gates connecting them.
 
         The global phase information in `self` will not be maintained in the
         subcircuits returned by this method.
@@ -1415,6 +1415,7 @@ class DAGCircuit:
         decomposed_dags = []
         for subgraph in disconnected_subgraphs:
             new_dag = self.copy_empty_like()
+            new_dag.global_phase = 0
             for node in rx.lexicographical_topological_sort(subgraph, key=_key):
                 if not isinstance(node, DAGOpNode):
                     continue

@@ -1,13 +1,15 @@
 ---
 features:
   - |
-    This feature introduces a new `DAGCircuit` class method,
-    `separable_circuits`, which returns a list of `DAGCircuit` objects,
-    one for each mutually disconnected set of qubits in the `DAGCircuit` object.
+    Introduced a new :class:`.DAGCircuit` class method,
+    :meth:`~.separable_circuits`, which returns a list of :class:`.DAGCircuit` objects,
+    one for each set of connected qubits which have no gates connecting them to another
+    set.
 
     This method  will not return a DAG for idle wires.
 
 issues:
   - |
-    The subgraphs returned from `DAGCircuit.separable_circuits` will not
-    contain the global phase information of the parent `DAGCircuit`.
+    The subcircuits returned from `DAGCircuit.separable_circuits` will not
+    retain the global phase information of the parent :class:`.DAGCircuit`.
+    All subcircuit global phases will be zero.
