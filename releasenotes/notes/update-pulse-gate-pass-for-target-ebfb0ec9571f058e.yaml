@@ -12,12 +12,3 @@ upgrade:
     In the former case, it just ignores the inst map definition for undefined qubits.
     In the latter case, gate mapping is pulled from the standard Qiskit gates
     and finally custom :class:`.Gate` object is defined from the schedule name.
-  - |
-    :class:`PulseGates` transpiler pass has been upgraded to respect
-    ``inst_map`` when ``target`` is also provided, rather than ignoring it.
-    The pass now uses the target data to find custom calibration, but it
-    copies instruction schedule map into it before transforming the DAG circuit.
-fixes:
-  - |
-    A bug that custom gates in the instruction schedule map is ignored
-    when transpiling a circuit with V2 backend has been fixed.
