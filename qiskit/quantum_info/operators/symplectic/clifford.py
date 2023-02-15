@@ -12,6 +12,7 @@
 """
 Clifford operator class.
 """
+import functools
 import itertools
 import re
 
@@ -564,6 +565,8 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             QiskitError: if the input instruction is non-Clifford matrix.
         """
         tableau = cls._unitary_matrix_to_tableau(matrix)
+        if tableau is None:
+            raise QiskitError("Non-Clifford matrix is not convertible")
         return cls(tableau)
 
     def to_operator(self):
@@ -864,67 +867,90 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return symp
 
     @staticmethod
+    def _pauli_matrix_to_row(mat, num_qubits):
+        """Generate a binary vector (a row of tableau representation) from a Pauli matrix.
+        Return None if the non-Pauli matrix is supplied."""
+        # pylint: disable=too-many-return-statements
+
+        def find_one_index(x, decimals=6):
+            indices = np.where(np.round(np.abs(x), decimals) == 1)
+            return indices[0][0] if len(indices[0]) == 1 else None
+
+        def bitvector(n, num_bits):
+            return np.array([int(digit) for digit in format(n, f"0{num_bits}b")], dtype=bool)[::-1]
+
+        # compute x-bits
+        xint = find_one_index(mat[0, :])
+        if xint is None:
+            return None
+        xbits = bitvector(xint, num_qubits)
+
+        # extract non-zero elements from matrix (rounded to 1, -1, 1j or -1j)
+        entries = np.empty(len(mat), dtype=complex)
+        for i, row in enumerate(mat):
+            index = find_one_index(row)
+            if index is None:
+                return None
+            expected = xint ^ i
+            if index != expected:
+                return None
+            entries[i] = np.round(mat[i, index])
+
+        # compute z-bits
+        zbits = np.empty(num_qubits, dtype=bool)
+        for k in range(num_qubits):
+            sign = np.round(entries[2**k] / entries[0])
+            if sign == 1:
+                zbits[k] = False
+            elif sign == -1:
+                zbits[k] = True
+            else:
+                return None
+
+        # compute phase
+        phase = None
+        num_y = sum(xbits & zbits)
+        positive_phase = (-1j) ** num_y
+        if entries[0] == positive_phase:
+            phase = False
+        elif entries[0] == -1 * positive_phase:
+            phase = True
+        if phase is None:
+            return None
+
+        # validate all non-zero elements
+        coef = ((-1) ** phase) * positive_phase
+        ivec, zvec = np.ones(2), np.array([1, -1])
+        expected = coef * functools.reduce(np.kron, [zvec if z else ivec for z in zbits[::-1]])
+        if not np.allclose(entries, expected):
+            return None
+
+        return np.hstack([xbits, zbits, phase])
+
+    @staticmethod
     def _unitary_matrix_to_tableau(matrix):
         # pylint: disable=invalid-name
-        U = Operator(matrix)
-        Udg = U.adjoint()
-        num_qubits = U.num_qubits
-        # Create full table for a n-qubit Pauli matrix to a row of the tableau
-        x_table = {
-            "I": False,
-            "X": True,
-            "Z": False,
-            "Y": True,
-        }
-        z_table = {
-            "I": False,
-            "X": False,
-            "Z": True,
-            "Y": True,
-        }
-        matrix_row_pairs = []
-        for paulis in itertools.product(["I", "X", "Y", "Z"], repeat=num_qubits):
-            # positive phase Pauli case
-            row_p = np.empty(2 * num_qubits + 1, dtype=bool)
-            phase = False
-            for i, pauli in enumerate(paulis):
-                row_p[i] = x_table[pauli]
-                row_p[i + num_qubits] = z_table[pauli]
-                phase ^= pauli == "Y"
-            row_p[-1] = phase
-            pauli_str = "".join(reversed(paulis))
-            pauli_op = Operator.from_label(pauli_str)
-            matrix_p = ((-1) ** phase) * pauli_op.to_matrix()
-            matrix_row_pairs.append((matrix_p, row_p))
-            # negative phase Pauli case
-            row_n = np.copy(row_p)
-            row_n[-1] ^= True
-            matrix_row_pairs.append(((-1) * matrix_p, row_n))
+        num_qubits = int(np.log2(len(matrix)))
 
-        # Construct stabilizer/destabilizer tables
         stab = np.empty((num_qubits, 2 * num_qubits + 1), dtype=bool)
         for i in range(num_qubits):
             label = "I" * (num_qubits - i - 1) + "X" + "I" * i
             Xi = Operator.from_label(label).to_matrix()
-            target = U @ Xi @ Udg
-            for mat, row in matrix_row_pairs:
-                if np.allclose(mat, target):
-                    stab[i] = row
-                    break
-            else:
-                raise QiskitError("Non-Clifford matrix is not convertible")
+            target = matrix @ Xi @ np.conj(matrix).T
+            row = Clifford._pauli_matrix_to_row(target, num_qubits)
+            if row is None:
+                return None
+            stab[i] = row
 
         destab = np.empty((num_qubits, 2 * num_qubits + 1), dtype=bool)
         for i in range(num_qubits):
             label = "I" * (num_qubits - i - 1) + "Z" + "I" * i
             Zi = Operator.from_label(label).to_matrix()
-            target = U @ Zi @ Udg
-            for mat, row in matrix_row_pairs:
-                if np.allclose(mat, target):
-                    destab[i] = row
-                    break
-            else:
-                raise QiskitError("Non-Clifford matrix is not convertible")
+            target = matrix @ Zi @ np.conj(matrix).T
+            row = Clifford._pauli_matrix_to_row(target, num_qubits)
+            if row is None:
+                return None
+            destab[i] = row
 
         tableau = np.vstack([stab, destab])
         return tableau
