@@ -387,5 +387,5 @@ def _check_gates(qc, allowed_gates):
     allowed_gates - list of strings
     """
     for inst, _, _ in qc.data:
-        if not inst.name in allowed_gates:
+        if inst.name not in allowed_gates:
             raise QiskitError("The gate name is not in the allowed_gates list.")
