@@ -5049,7 +5049,7 @@ def _warn_on_broadcasting_controlled_gate(qargs, name):
         warnings.warn(
             "Creating multiple single-controlled gates with a single call, "
             "as QuantumCircuit.cx([0, 1], 2) is pending deprecation as of Qiskit "
-            "Terra 0.23.0 and will be deprecated no sooner than 6 months after its "
+            "Terra 0.24.0 and will be deprecated no sooner than 6 months after its "
             "release date. In future, this will construct a multi-controlled gate, where the "
             "first argument determines the control qubits and the second the target qubit(s). "
             f"To construct multiple gates, you can call the {name} method multiple times with a "
