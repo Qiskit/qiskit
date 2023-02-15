@@ -27,4 +27,9 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 line-length=105
 
 [tool.ruff.per-file-ignores]
-"__init__.py" = ["F401", "E402"]
+"__init__.py" = ["F401", "E402"] # imported but unused, Module level import not at top of file
+"qiskit/circuit/library/__init__.py" = ["F403"] # import * used
+"qiskit/extensions/__init__.py" = ["F403"]
+"qiskit/providers/fake_provider/__init__.py" = ["F403"]
+"qiskit/visualization/pulse/__init__.py" = ["F403"]
+"qiskit/opflow/operator_globals.py" = ["E741"] # Ambiguous variable name `I`

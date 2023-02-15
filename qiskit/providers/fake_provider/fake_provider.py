@@ -52,7 +52,6 @@ from .backends import (
             FakeOurense,
             FakeParis,
             FakePoughkeepsie,
-            FakeQasmSimulator,
             FakeQuito,
             FakeRochester,
             FakeRome,
