@@ -55,15 +55,11 @@ class TestSabreLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
 
         dag = circuit_to_dag(circuit)
-        pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0, swap_trials=32)
+        pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0, swap_trials=32, layout_trials=32)
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr[0]], 10)
-        self.assertEqual(layout[qr[1]], 12)
-        self.assertEqual(layout[qr[2]], 7)
-        self.assertEqual(layout[qr[3]], 11)
-        self.assertEqual(layout[qr[4]], 13)
+        self.assertEqual([layout[q] for q in circuit.qubits], [18, 11, 13, 12, 14])
 
     def test_6q_circuit_20q_coupling(self):
         """Test finds layout for 6q circuit on 20q device."""
@@ -91,16 +87,11 @@ class TestSabreLayout(QiskitTestCase):
         circuit.cx(qr1[1], qr0[0])
 
         dag = circuit_to_dag(circuit)
-        pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0)
+        pass_ = SabreLayout(CouplingMap(self.cmap20), seed=0, swap_trials=32, layout_trials=32)
         pass_.run(dag)
 
         layout = pass_.property_set["layout"]
-        self.assertEqual(layout[qr0[0]], 2)
-        self.assertEqual(layout[qr0[1]], 3)
-        self.assertEqual(layout[qr0[2]], 10)
-        self.assertEqual(layout[qr1[0]], 1)
-        self.assertEqual(layout[qr1[1]], 7)
-        self.assertEqual(layout[qr1[2]], 5)
+        self.assertEqual([layout[q] for q in circuit.qubits], [7, 8, 12, 6, 11, 13])
 
     def test_layout_with_classical_bits(self):
         """Test sabre layout with classical bits recreate from issue #8635."""
@@ -131,15 +122,10 @@ rz(0) q4835[1];
         )
         res = transpile(qc, FakeKolkata(), layout_method="sabre", seed_transpiler=1234)
         self.assertIsInstance(res, QuantumCircuit)
-        layout = res._layout
-        self.assertEqual(layout[qc.qubits[0]], 14)
-        self.assertEqual(layout[qc.qubits[1]], 19)
-        self.assertEqual(layout[qc.qubits[2]], 7)
-        self.assertEqual(layout[qc.qubits[3]], 13)
-        self.assertEqual(layout[qc.qubits[4]], 6)
-        self.assertEqual(layout[qc.qubits[5]], 16)
-        self.assertEqual(layout[qc.qubits[6]], 18)
-        self.assertEqual(layout[qc.qubits[7]], 26)
+        layout = res._layout.initial_layout
+        self.assertEqual(
+            [layout[q] for q in qc.qubits], [13, 10, 11, 12, 17, 14, 22, 26, 5, 16, 25, 19, 7, 8]
+        )
 
     # pylint: disable=line-too-long
     def test_layout_many_search_trials(self):
@@ -192,21 +178,10 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
             seed_transpiler=12345,
         )
         self.assertIsInstance(res, QuantumCircuit)
-        layout = res._layout
-        self.assertEqual(layout[qc.qubits[0]], 19)
-        self.assertEqual(layout[qc.qubits[1]], 22)
-        self.assertEqual(layout[qc.qubits[2]], 17)
-        self.assertEqual(layout[qc.qubits[3]], 14)
-        self.assertEqual(layout[qc.qubits[4]], 18)
-        self.assertEqual(layout[qc.qubits[5]], 9)
-        self.assertEqual(layout[qc.qubits[6]], 11)
-        self.assertEqual(layout[qc.qubits[7]], 25)
-        self.assertEqual(layout[qc.qubits[8]], 16)
-        self.assertEqual(layout[qc.qubits[9]], 3)
-        self.assertEqual(layout[qc.qubits[10]], 12)
-        self.assertEqual(layout[qc.qubits[11]], 13)
-        self.assertEqual(layout[qc.qubits[12]], 20)
-        self.assertEqual(layout[qc.qubits[13]], 8)
+        layout = res._layout.initial_layout
+        self.assertEqual(
+            [layout[q] for q in qc.qubits], [22, 21, 4, 12, 1, 23, 16, 18, 19, 25, 14, 13, 10, 7]
+        )
 
 
 if __name__ == "__main__":

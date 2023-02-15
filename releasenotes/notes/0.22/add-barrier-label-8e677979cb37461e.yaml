@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Added a ``label`` parameter to the :class:`.Barrier` class's constructor
+    and the :meth:`~.QuantumCircuit.barrier` method which allows a user to
+    assign a label to an instance of the :class:`~.Barrier` directive. For
+    visualizations generated with :func:`~.circuit_drawer` or
+    :meth:`.QuantumCircuit.draw` this label will be printed at the top of the
+    ``barrier``.
+
+    .. code-block::
+
+        from qiskit import QuantumCircuit
+
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.h(1)
+        circuit.barrier(label="After H")
+        circuit.draw('mpl')

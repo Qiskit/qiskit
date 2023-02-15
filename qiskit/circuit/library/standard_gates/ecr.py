@@ -21,11 +21,12 @@ from .x import XGate
 
 
 class ECRGate(Gate):
-    r"""An echoed RZX(pi/2) gate implemented using RZX(pi/4) and RZX(-pi/4).
+    r"""An echoed cross-resonance gate.
 
     This gate is maximally entangling and is equivalent to a CNOT up to
     single-qubit pre-rotations. The echoing procedure mitigates some
     unwanted terms (terms other than ZX) to cancel in an experiment.
+    More specifically, this gate implements :math:`\frac{1}{\sqrt{2}}(IX-XY)`.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.ecr` method.

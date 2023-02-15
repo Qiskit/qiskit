@@ -20,11 +20,12 @@ import numpy as np
 from scipy import sparse as scisparse
 
 from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.quantum_info import Statevector
 from qiskit.utils.validation import validate_min
 
 from .eigensolver import Eigensolver, EigensolverResult
+from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
@@ -53,12 +54,12 @@ class NumPyEigensolver(Eigensolver):
     ) -> None:
         """
         Args:
-            k: number of eigenvalues are to be computed, with a min. value of 1.
-            filter_criterion: callable that allows to filter eigenvalues/eigenstates. Only feasible
+            k: Number of eigenvalues are to be computed, with a minimum value of 1.
+            filter_criterion: Callable that allows to filter eigenvalues/eigenstates. Only feasible
                 eigenstates are returned in the results. The callable has the signature
                 ``filter(eigenstate, eigenvalue, aux_values)`` and must return a boolean to indicate
                 whether to keep this value in the final returned result or not. If the number of
-                elements that satisfies the criterion is smaller than `k`, then the returned list will
+                elements that satisfies the criterion is smaller than ``k``, then the returned list will
                 have fewer elements and can even be empty.
         """
         validate_min("k", k, 1)
@@ -68,8 +69,6 @@ class NumPyEigensolver(Eigensolver):
         self._k = k
 
         self._filter_criterion = filter_criterion
-
-        self._ret = NumPyEigensolverResult()
 
     @property
     def k(self) -> int:
@@ -109,15 +108,30 @@ class NumPyEigensolver(Eigensolver):
             else:
                 self._k = self._in_k
 
-    def _solve(self, operator: BaseOperator | PauliSumOp) -> None:
+    def _solve(self, operator: BaseOperator | PauliSumOp) -> tuple[np.ndarray, np.ndarray]:
         if isinstance(operator, PauliSumOp):
-            sp_mat = operator.to_spmatrix()
+            op_matrix = operator.to_spmatrix()
+        else:
+            try:
+                op_matrix = operator.to_matrix(sparse=True)
+            except TypeError:
+                logger.debug(
+                    "WARNING: operator of type `%s` does not support sparse matrices. "
+                    "Trying dense computation",
+                    type(operator),
+                )
+                try:
+                    op_matrix = operator.to_matrix()
+                except AttributeError as ex:
+                    raise AlgorithmError(f"Unsupported operator type `{type(operator)}`.") from ex
+
+        if isinstance(op_matrix, scisparse.csr_matrix):
             # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.
-            if scisparse.csr_matrix(sp_mat.diagonal()).nnz == sp_mat.nnz:
-                diag = sp_mat.diagonal()
+            if scisparse.csr_matrix(op_matrix.diagonal()).nnz == op_matrix.nnz:
+                diag = op_matrix.diagonal()
                 indices = np.argsort(diag)[: self._k]
                 eigval = diag[indices]
-                eigvec = np.zeros((sp_mat.shape[0], self._k))
+                eigvec = np.zeros((op_matrix.shape[0], self._k))
                 for i, idx in enumerate(indices):
                     eigvec[idx, i] = 1.0
             else:
@@ -125,53 +139,33 @@ class NumPyEigensolver(Eigensolver):
                     logger.debug(
                         "SciPy doesn't support to get all eigenvalues, using NumPy instead."
                     )
-                    if operator.is_hermitian():
-                        eigval, eigvec = np.linalg.eigh(operator.to_matrix())
-                    else:
-                        eigval, eigvec = np.linalg.eig(operator.to_matrix())
+                    eigval, eigvec = self._solve_dense(operator.to_matrix())
                 else:
-                    if operator.is_hermitian():
-                        eigval, eigvec = scisparse.linalg.eigsh(sp_mat, k=self._k, which="SA")
-                    else:
-                        eigval, eigvec = scisparse.linalg.eigs(sp_mat, k=self._k, which="SR")
-
-                indices = np.argsort(eigval)[: self._k]
-                eigval = eigval[indices]
-                eigvec = eigvec[:, indices]
+                    eigval, eigvec = self._solve_sparse(op_matrix, self._k)
         else:
-            logger.debug("SciPy not supported, using NumPy instead.")
+            # Sparse SciPy matrix not supported, use dense NumPy computation.
+            eigval, eigvec = self._solve_dense(operator.to_matrix())
 
-            if operator.data.all() == operator.data.conj().T.all():
-                eigval, eigvec = np.linalg.eigh(operator.data)
-            else:
-                eigval, eigvec = np.linalg.eig(operator.data)
+        indices = np.argsort(eigval)[: self._k]
+        eigval = eigval[indices]
+        eigvec = eigvec[:, indices]
+        return eigval, eigvec.T
 
-            indices = np.argsort(eigval)[: self._k]
-            eigval = eigval[indices]
-            eigvec = eigvec[:, indices]
+    @staticmethod
+    def _solve_sparse(op_matrix: scisparse.csr_matrix, k: int) -> tuple[np.ndarray, np.ndarray]:
+        if (op_matrix != op_matrix.H).nnz == 0:
+            # Operator is Hermitian
+            return scisparse.linalg.eigsh(op_matrix, k=k, which="SA")
+        else:
+            return scisparse.linalg.eigs(op_matrix, k=k, which="SR")
 
-        self._ret.eigenvalues = eigval
-        self._ret.eigenstates = eigvec.T
-
-    def _get_ground_state_energy(self, operator: BaseOperator | PauliSumOp) -> None:
-        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
-            self._solve(operator)
-
-    def _get_energies(
-        self,
-        operator: BaseOperator | PauliSumOp,
-        aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None,
-    ) -> None:
-        if self._ret.eigenvalues is None or self._ret.eigenstates is None:
-            self._solve(operator)
-
-        if aux_operators is not None:
-            aux_op_vals = []
-            for i in range(self._k):
-                aux_op_vals.append(
-                    self._eval_aux_operators(aux_operators, self._ret.eigenstates[i])
-                )
-            self._ret.aux_operators_evaluated = aux_op_vals
+    @staticmethod
+    def _solve_dense(op_matrix: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        if op_matrix.all() == op_matrix.conj().T.all():
+            # Operator is Hermitian
+            return np.linalg.eigh(op_matrix)
+        else:
+            return np.linalg.eig(op_matrix)
 
     @staticmethod
     def _eval_aux_operators(
@@ -190,25 +184,42 @@ class NumPyEigensolver(Eigensolver):
         else:
             values = {}
             key_op_iterator = aux_operators.items()
+
         for key, operator in key_op_iterator:
             if operator is None:
                 continue
-            value = 0.0
+
+            if operator.num_qubits is None or operator.num_qubits < 1:
+                logger.info(
+                    "The number of qubits of the %s operator must be greater than zero.", key
+                )
+                continue
+
+            op_matrix = None
             if isinstance(operator, PauliSumOp):
                 if operator.coeff != 0:
-                    mat = operator.to_spmatrix()
-                    # Terra doesn't support sparse yet, so do the matmul directly if so
-                    # This is necessary for the particle_hole and other chemistry tests because the
-                    # pauli conversions are 2^12th large and will OOM error if not sparse.
-                    if isinstance(mat, scisparse.spmatrix):
-                        value = mat.dot(wavefn).dot(np.conj(wavefn))
-                    else:
-                        value = (
-                            Statevector(wavefn).expectation_value(operator.primitive)
-                            * operator.coeff
-                        )
+                    op_matrix = operator.to_spmatrix()
             else:
+                try:
+                    op_matrix = operator.to_matrix(sparse=True)
+                except TypeError:
+                    logger.debug(
+                        "WARNING: operator of type `%s` does not support sparse matrices. "
+                        "Trying dense computation",
+                        type(operator),
+                    )
+                try:
+                    op_matrix = operator.to_matrix()
+                except AttributeError as ex:
+                    raise AlgorithmError(f"Unsupported operator type {type(operator)}.") from ex
+
+            if isinstance(op_matrix, scisparse.csr_matrix):
+                value = op_matrix.dot(wavefn).dot(np.conj(wavefn))
+            elif isinstance(op_matrix, np.ndarray):
                 value = Statevector(wavefn).expectation_value(operator)
+            else:
+                value = 0.0
+
             value = value if np.abs(value) > threshold else 0.0
             # The value gets wrapped into a tuple: (mean, metadata).
             # The metadata includes variance (and, for other eigensolvers, shots).
@@ -225,8 +236,12 @@ class NumPyEigensolver(Eigensolver):
 
         super().compute_eigenvalues(operator, aux_operators)
 
+        if operator.num_qubits is None or operator.num_qubits < 1:
+            raise AlgorithmError("The number of qubits of the operator must be greater than zero.")
+
         self._check_set_k(operator)
-        zero_op = PauliSumOp.from_list([("I", 1)]).tensorpower(operator.num_qubits) * 0.0
+
+        zero_op = SparsePauliOp(["I" * operator.num_qubits], coeffs=[0.0])
         if isinstance(aux_operators, list) and len(aux_operators) > 0:
             # For some reason Chemistry passes aux_ops with 0 qubits and paulis sometimes.
             aux_operators = [zero_op if op == 0 else op for op in aux_operators]
@@ -244,49 +259,51 @@ class NumPyEigensolver(Eigensolver):
             # need to consider all elements if a filter is set
             self._k = 2**operator.num_qubits
 
-        self._ret = NumPyEigensolverResult()
-        self._solve(operator)
+        eigvals, eigvecs = self._solve(operator)
 
         # compute energies before filtering, as this also evaluates the aux operators
-        self._get_energies(operator, aux_operators)
+        if aux_operators is not None:
+            aux_op_vals = [
+                self._eval_aux_operators(aux_operators, eigvecs[i]) for i in range(self._k)
+            ]
+        else:
+            aux_op_vals = None
 
         # if a filter is set, loop over the given values and only keep
         if self._filter_criterion:
-
-            eigvecs = []
-            eigvals = []
-            aux_ops = []
-            cnt = 0
-            for i in range(len(self._ret.eigenvalues)):
-                eigvec = self._ret.eigenstates[i]
-                eigval = self._ret.eigenvalues[i]
-                if self._ret.aux_operators_evaluated is not None:
-                    aux_op = self._ret.aux_operators_evaluated[i]
+            filt_eigvals = []
+            filt_eigvecs = []
+            filt_aux_op_vals = []
+            count = 0
+            for i, (eigval, eigvec) in enumerate(zip(eigvals, eigvecs)):
+                if aux_op_vals is not None:
+                    aux_op_val = aux_op_vals[i]
                 else:
-                    aux_op = None
-                if self._filter_criterion(eigvec, eigval, aux_op):
-                    cnt += 1
-                    eigvecs += [eigvec]
-                    eigvals += [eigval]
-                    if self._ret.aux_operators_evaluated is not None:
-                        aux_ops += [aux_op]
-                if cnt == k_orig:
+                    aux_op_val = None
+
+                if self._filter_criterion(eigvec, eigval, aux_op_val):
+                    count += 1
+                    filt_eigvecs.append(eigvec)
+                    filt_eigvals.append(eigval)
+                    if aux_op_vals is not None:
+                        filt_aux_op_vals.append(aux_op_val)
+
+                if count == k_orig:
                     break
 
-            self._ret.eigenstates = np.array(eigvecs)
-            self._ret.eigenvalues = np.array(eigvals)
-            # conversion to np.array breaks in case of aux_ops
-            self._ret.aux_operators_evaluated = aux_ops
+            eigvals = np.array(filt_eigvals)
+            eigvecs = np.array(filt_eigvecs)
+            aux_op_vals = filt_aux_op_vals
 
             self._k = k_orig
 
-        # evaluate ground state after filtering (in case a filter is set)
-        self._get_ground_state_energy(operator)
-        if self._ret.eigenstates is not None:
-            self._ret.eigenstates = [Statevector(vec) for vec in self._ret.eigenstates]
+        result = NumPyEigensolverResult()
+        result.eigenvalues = eigvals
+        result.eigenstates = [Statevector(vec) for vec in eigvecs]
+        result.aux_operators_evaluated = aux_op_vals
 
-        logger.debug("NumpyEigensolverResult:\n%s", self._ret)
-        return self._ret
+        logger.debug("NumpyEigensolverResult:\n%s", result)
+        return result
 
 
 class NumPyEigensolverResult(EigensolverResult):
@@ -297,11 +314,11 @@ class NumPyEigensolverResult(EigensolverResult):
         self._eigenstates = None
 
     @property
-    def eigenstates(self) -> np.ndarray | None:
+    def eigenstates(self) -> list[Statevector] | None:
         """Return eigenstates."""
         return self._eigenstates
 
     @eigenstates.setter
-    def eigenstates(self, value: np.ndarray) -> None:
+    def eigenstates(self, value: list[Statevector]) -> None:
         """Set eigenstates."""
         self._eigenstates = value

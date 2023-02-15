@@ -55,3 +55,7 @@ class IGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the identity gate."""
         return numpy.array([[1, 0], [0, 1]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return IGate()

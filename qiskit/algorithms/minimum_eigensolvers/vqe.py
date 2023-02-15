@@ -35,6 +35,9 @@ from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from ..observables_evaluator import estimate_observables
 from ..utils import validate_initial_point, validate_bounds
 
+# private function as we expect this to be updated in the next released
+from ..utils.set_batching import _set_default_batchsize
+
 logger = logging.getLogger(__name__)
 
 
@@ -181,9 +184,17 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
         else:
+            # we always want to submit as many estimations per job as possible for minimal
+            # overhead on the hardware
+            was_updated = _set_default_batchsize(self.optimizer)
+
             optimizer_result = self.optimizer.minimize(
                 fun=evaluate_energy, x0=initial_point, jac=evaluate_gradient, bounds=bounds
             )
+
+            # reset to original value
+            if was_updated:
+                self.optimizer.set_max_evals_grouped(None)
 
         optimizer_time = time() - start_time
 

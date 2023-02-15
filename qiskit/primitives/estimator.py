@@ -26,8 +26,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .base_estimator import BaseEstimator
-from .estimator_result import EstimatorResult
+from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
 from .utils import (
     _circuit_key,
@@ -110,7 +109,7 @@ class Estimator(BaseEstimator):
             rng = np.random.default_rng(seed)
 
         # Initialize metadata
-        metadata: list[dict[str, Any]] = [{}] * len(circuits)
+        metadata: list[dict[str, Any]] = [{} for _ in range(len(circuits))]
 
         bound_circuits = []
         for i, value in zip(circuits, parameter_values):
@@ -138,9 +137,10 @@ class Estimator(BaseEstimator):
                 expectation_values.append(expectation_value)
             else:
                 expectation_value = np.real_if_close(expectation_value)
-                sq_obs = (obs @ obs).simplify()
+                sq_obs = (obs @ obs).simplify(atol=0)
                 sq_exp_val = np.real_if_close(final_state.expectation_value(sq_obs))
                 variance = sq_exp_val - expectation_value**2
+                variance = max(variance, 0)
                 standard_deviation = np.sqrt(variance / shots)
                 expectation_value_with_error = rng.normal(expectation_value, standard_deviation)
                 expectation_values.append(expectation_value_with_error)
@@ -154,9 +154,9 @@ class Estimator(BaseEstimator):
 
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        observables: Sequence[BaseOperator | PauliSumOp],
-        parameter_values: Sequence[Sequence[float]],
+        circuits: tuple[QuantumCircuit, ...],
+        observables: tuple[BaseOperator | PauliSumOp, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []

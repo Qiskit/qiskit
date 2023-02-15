@@ -292,7 +292,7 @@ class TestBIPMapping(QiskitTestCase):
                 self.assertTrue(bit_indices[q] in qubit_subset)
         # ancilla qubits are set in the resulting qubit
         idle = QuantumRegister(1, name="ancilla")
-        self.assertEqual(idle[0], actual._layout[2])
+        self.assertEqual(idle[0], actual._layout.initial_layout[2])
 
     def test_unconnected_qubit_subset(self):
         """Fails if qubits in `qubit_subset` are not connected."""
@@ -304,7 +304,7 @@ class TestBIPMapping(QiskitTestCase):
             BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)
 
     def test_objective_function(self):
-        """Test if ``objective`` functions priorities metrics correctly."""
+        """Test if ``objective`` functions prioritize metrics correctly."""
 
         #      ┌──────┐┌──────┐     ┌──────┐
         # q_0: ┤0     ├┤0     ├─────┤0     ├
@@ -331,11 +331,11 @@ class TestBIPMapping(QiskitTestCase):
             backend_prop=FakeLima().properties(),
         )(qc)
         # depth = number of su4 layers (mirrored gates have to be consolidated as single su4 gates)
-        pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx"])])
+        pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx", "u"])])
         dep_opt = pm_.run(dep_opt)
         err_opt = pm_.run(err_opt)
         self.assertLessEqual(dep_opt.depth(), err_opt.depth())
         # count CNOTs after synthesized
-        dep_opt = UnitarySynthesis(basis_gates=["cx"])(dep_opt)
-        err_opt = UnitarySynthesis(basis_gates=["cx"])(err_opt)
+        dep_opt = UnitarySynthesis(basis_gates=["cx", "u"])(dep_opt)
+        err_opt = UnitarySynthesis(basis_gates=["cx", "u"])(err_opt)
         self.assertGreater(dep_opt.count_ops()["cx"], err_opt.count_ops()["cx"])

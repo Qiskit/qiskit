@@ -11,16 +11,20 @@
 # that they have been altered from the originals.
 
 """Tests ClassicalFunction as a gate."""
-from qiskit.test import QiskitTestCase
+import unittest
 
-from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
+from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import XGate
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
-from . import examples
+if HAS_TWEEDLEDUM:
+    from . import examples
+    from qiskit.circuit.classicalfunction import classical_function as compile_classical_function
 
 
+@unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
 class TestOracleDecomposition(QiskitTestCase):
     """Tests ClassicalFunction.decomposition."""
 

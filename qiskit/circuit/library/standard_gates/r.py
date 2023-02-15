@@ -88,3 +88,8 @@ class RGate(Gate):
         exp_m = exp(-1j * phi)
         exp_p = exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin], [-1j * exp_p * sin, cos]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        theta, phi = self.params
+        return RGate(exponent * theta, phi)
