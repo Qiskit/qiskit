@@ -33,3 +33,5 @@ line-length=105
 "qiskit/providers/fake_provider/__init__.py" = ["F403"]
 "qiskit/visualization/pulse/__init__.py" = ["F403"]
 "qiskit/opflow/operator_globals.py" = ["E741"] # Ambiguous variable name `I`
+"qiskit/quantum_info/operators/random.py" = ["F401"] # Should be fixed.
+"qiskit/quantum_info/random.py" = ["F401"] # Should be fixed.
