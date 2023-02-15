@@ -364,7 +364,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             if len(parameters.shape) == 1:
-                parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
+                parameters = np.reshape(parameters, (-1, num_parameters))
             batch_size = len(parameters)
 
             estimator_job = self.estimator.run(
@@ -372,17 +372,18 @@ class VQD(VariationalAlgorithm, Eigensolver):
             )
 
             total_cost = np.zeros(batch_size)
+
             if step > 1:
                 # compute overlap cost
+                batched_prev_states = [state for state in prev_states for _ in range(batch_size)]
                 fidelity_job = self.fidelity.run(
                     batch_size * [self.ansatz] * (step - 1),
-                    batch_size * prev_states,
+                    batched_prev_states,
                     np.tile(parameters, (step - 1, 1)),
                 )
-
                 costs = fidelity_job.result().fidelities
-                costs = np.reshape(costs, (batch_size, -1)).T
 
+                costs = np.reshape(costs, (step - 1, -1))
                 for state, cost in enumerate(costs):
                     total_cost += np.real(betas[state] * cost)
 

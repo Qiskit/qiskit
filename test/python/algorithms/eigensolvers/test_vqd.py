@@ -200,9 +200,12 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
         np.testing.assert_array_almost_equal(history["step"], ref_step, decimal=0)
 
-    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
-    def test_vqd_optimizer(self, op):
+    def test_vqd_optimizer(self):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
+
+        op = SparsePauliOp(["ZI", "IZ"], coeffs=[1, 0.5])
+        energy_excited = [-1.5, -0.5, 0.5, 1.5]
+
         vqd = VQD(
             estimator=self.estimator,
             fidelity=self.fidelity,
@@ -215,7 +218,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         def run_check():
             result = vqd.compute_eigenvalues(operator=op)
             np.testing.assert_array_almost_equal(
-                result.eigenvalues.real, self.h2_energy_excited[:2], decimal=3
+                result.eigenvalues.real, energy_excited[:2], decimal=3
             )
 
         run_check()
