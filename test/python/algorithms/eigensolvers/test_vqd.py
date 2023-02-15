@@ -103,10 +103,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
             )
             np.testing.assert_array_almost_equal(job.result().values, result.eigenvalues, 6)
 
-    @data(L_BFGS_B(), SPSA())
-    def test_full_spectrum(self, optimizer):
+    def test_full_spectrum(self):
         """Test obtaining all eigenvalues."""
-        vqd = VQD(self.estimator, self.fidelity, self.ryrz_wavefunction, optimizer=optimizer, k=4)
+        vqd = VQD(self.estimator, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B(), k=4)
         result = vqd.compute_eigenvalues(H2_PAULI)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
@@ -227,6 +226,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest("Optimizer replace"):
             vqd.optimizer = L_BFGS_B()
             run_check()
+
+        with self.subTest("Batched optimizer replace"):
+            vqd.optimizer = SLSQP(maxiter=60, max_evals_grouped=10)
+            run_check()
+
         with self.subTest("SPSA replace"):
             vqd.optimizer = SPSA()
             run_check()

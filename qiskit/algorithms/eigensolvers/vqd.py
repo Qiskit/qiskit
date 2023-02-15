@@ -193,7 +193,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQDResult:
-
         super().compute_eigenvalues(operator, aux_operators)
 
         # this sets the size of the ansatz, so it must be called before the initial point
@@ -226,7 +225,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
             aux_operators = None
 
         if self.betas is None:
-
             if isinstance(operator, PauliSumOp):
                 operator = operator.coeff * operator.primitive
 
@@ -254,7 +252,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         prev_states = []
 
         for step in range(1, self.k + 1):
-
             # update list of optimal circuits
             if step > 1:
                 prev_states.append(self.ansatz.bind_parameters(result.optimal_points[-1]))
@@ -365,7 +362,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self._check_operator_ansatz(operator)
 
         def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
-
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             if len(parameters.shape) == 1:
                 parameters = np.reshape(parameters, (-1, num_parameters)).tolist()
@@ -388,7 +384,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 costs = np.reshape(costs, (batch_size, -1)).T
 
                 for state, cost in enumerate(costs):
-                    v = np.real(betas[state] * cost)
                     total_cost += np.real(betas[state] * cost)
 
             try:
@@ -413,7 +408,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @staticmethod
     def _build_vqd_result() -> VQDResult:
-
         result = VQDResult()
         result.optimal_points = []
         result.optimal_parameters = []
@@ -427,7 +421,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @staticmethod
     def _update_vqd_result(result, opt_result, eval_time, ansatz) -> VQDResult:
-
         result.optimal_points.append(opt_result.x)
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
         result.optimal_values.append(opt_result.fun)
