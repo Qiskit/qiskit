@@ -5032,6 +5032,7 @@ def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_) -> list[Bi
         try:
             return [bit_sequence[specifier]]
         except IndexError as ex:
+            breakpoint()
             raise CircuitError(
                 f"Index {specifier} out of range for size {len(bit_sequence)}."
             ) from ex
