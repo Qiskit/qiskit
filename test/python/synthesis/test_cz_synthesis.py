@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2022.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,7 +18,7 @@ import numpy as np
 from ddt import ddt
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import Permutation
-from qiskit.synthesis.linear import synth_cz_depth_line_mr
+from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
 from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
 from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase

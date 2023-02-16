@@ -21,8 +21,9 @@ from qiskit.exceptions import QiskitError
 from qiskit.synthesis.linear import (
     synth_cnot_count_full_pmh,
     synth_cnot_depth_line_kms,
-    synth_cz_depth_line_mr,
 )
+from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
+
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
     _compute_rank,
@@ -65,7 +66,7 @@ def synth_clifford_layers(
     cx_synth_func=_default_cx_synth_func,
     cz_synth_func=_default_cz_synth_func,
     cx_cz_synth_func=None,
-    reverse_qubits=False,
+    cz_func_reverse_qubits=False,
     validate=False,
 ):
     """Synthesis of a Clifford into layers, it provides a similar decomposition to the synthesis
@@ -86,13 +87,18 @@ def synth_clifford_layers(
         q_4: ┤4    ├┤4    ├┤4       ├┤4    ├┤4    ├┤4    ├┤4    ├┤4       ├
              └─────┘└─────┘└────────┘└─────┘└─────┘└─────┘└─────┘└────────┘
 
+    This decomposition is for the default cz_synth_func and cx_synth_func functions,
+    with other functions one may see slightly different decomposition.
+
     Args:
         cliff (Clifford): a clifford operator.
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
+            It gets as input a boolean invertible matrix, and outputs a QuantumCircuit.
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
+            It gets as input a boolean symmetric matrix, and outputs a QuantumCircuit.
         cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
         validate (Boolean): if True, validates the synthesis process.
-        reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
+        cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
             since this function returns a circuit that inverts the order of qubits.
 
     Return:
@@ -105,7 +111,7 @@ def synth_clifford_layers(
     """
 
     num_qubits = cliff.num_qubits
-    if reverse_qubits:
+    if cz_func_reverse_qubits:
         cliff0 = _reverse_clifford(cliff)
     else:
         cliff0 = cliff
@@ -125,7 +131,7 @@ def synth_clifford_layers(
         cz_synth_func=cz_synth_func,
         cx_synth_func=cx_synth_func,
         cx_cz_synth_func=cx_cz_synth_func,
-        reverse_qubits=reverse_qubits,
+        cz_func_reverse_qubits=cz_func_reverse_qubits,
     )
 
     layeredCircuit.append(S2_circ, qubit_list)
@@ -138,7 +144,7 @@ def synth_clifford_layers(
     layeredCircuit.append(S1_circ, qubit_list)
     layeredCircuit.append(CZ1_circ, qubit_list)
 
-    if reverse_qubits:
+    if cz_func_reverse_qubits:
         H1_circ = H1_circ.reverse_bits()
     layeredCircuit.append(H1_circ, qubit_list)
 
@@ -293,7 +299,7 @@ def _decompose_graph_state(cliff, validate, cz_synth_func):
 
 
 def _decompose_hadamard_free(
-    cliff, validate, cz_synth_func, cx_synth_func, cx_cz_synth_func, reverse_qubits
+    cliff, validate, cz_synth_func, cx_synth_func, cx_cz_synth_func, cz_func_reverse_qubits
 ):
     """Assumes that the Clifford cliff is Hadamard free.
     Decompose it into the layers S2 - CZ2 - CX, where
@@ -307,7 +313,7 @@ def _decompose_hadamard_free(
         cz_synth_func (Callable): a function to decompose the CZ sub-circuit.
         cx_synth_func (Callable): a function to decompose the CX sub-circuit.
         cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
-        reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr.
+        cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr.
 
     Return:
         S2_circ: a circuit that can contain only S gates.
@@ -349,7 +355,7 @@ def _decompose_hadamard_free(
     CZ2_circ = cz_synth_func(destabz_update)
 
     mat = destabx.transpose()
-    if reverse_qubits:
+    if cz_func_reverse_qubits:
         mat = np.flip(mat, axis=0)
     CX_circ = cx_synth_func(mat)
 
@@ -394,7 +400,7 @@ def synth_clifford_depth_lnn(cliff):
     """Synthesis of a Clifford into layers for linear-nearest neighbour connectivity.
 
     The depth of the synthesized n-qubit circuit is bounded by 9*n+4, which is not optimal.
-    It should be replaced by a better algorithm that provides a depth bounded by 7*n-4 [3].
+    It should be replaced by a better algorithm that provides depth bounded by 7*n-4 [3].
 
     Args:
         cliff (Clifford): a clifford operator.
@@ -417,6 +423,6 @@ def synth_clifford_depth_lnn(cliff):
         cliff,
         cx_synth_func=synth_cnot_depth_line_kms,
         cz_synth_func=synth_cz_depth_line_mr,
-        reverse_qubits=True,
+        cz_func_reverse_qubits=True,
     )
     return circ

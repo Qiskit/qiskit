@@ -11,9 +11,10 @@
 # that they have been altered from the originals.
 
 """
-Optimize the synthesis of an n-qubit circuit contains only CZ gates for
+Synthesis of an n-qubit circuit containing only CZ gates for
 linear nearest neighbor (LNN) connectivity, using CX and phase (S, Sdg or Z) gates.
 The two-qubit depth of the circuit is bounded by 2*n+2.
+This algorithm reverts the order of qubits.
 
 References:
     [1]: Dmitri Maslov, Martin Roetteler,
@@ -40,13 +41,6 @@ def _append_cx_stage2(qc, n):
         qc.cx(2 * i + 1, 2 * i)
     for i in range((n + 1) // 2 - 1):
         qc.cx(2 * i + 1, 2 * i + 2)
-    return qc
-
-
-def _append_cx_stage(qc, n):
-    """Append a depth 2 layer of CX gates."""
-    qc = _append_cx_stage1(qc, n)
-    qc = _append_cx_stage2(qc, n)
     return qc
 
 
@@ -187,7 +181,8 @@ def synth_cz_depth_line_mr(mat: np.ndarray):
                 qc.z(j)
             elif s_gates[j] % 4 == 3:
                 qc.s(j)
-        qc = _append_cx_stage(qc, num_qubits)
+        qc = _append_cx_stage1(qc, num_qubits)
+        qc = _append_cx_stage2(qc, num_qubits)
         s_gates = np.zeros(num_qubits)
 
     if (num_qubits % 2) == 0:

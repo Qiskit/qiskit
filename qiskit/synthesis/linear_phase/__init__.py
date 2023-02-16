@@ -10,12 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing cnot circuits"""
+"""Module containing cnot-phase circuits"""
 
-from .graysynth import graysynth, synth_cnot_count_full_pmh
-from .linear_depth_lnn import synth_cnot_depth_line_kms
-from .linear_matrix_utils import (
-    random_invertible_binary_matrix,
-    calc_inverse_matrix,
-    check_invertible_binary_matrix,
-)
+from .cz_depth_lnn import synth_cz_depth_line_mr
