@@ -475,25 +475,33 @@ class Target(Mapping):
                 if inst_name_map is None:
                     inst_name_map = get_standard_gate_name_mapping()
                 if inst_name in inst_name_map:
+                    # Remove qargs with length that doesn't match with instruction qubit number
                     inst_obj = inst_name_map[inst_name]
+                    normalized_props = {}
+                    for qargs, prop in out_props.items():
+                        if len(qargs) != inst_obj.num_qubits:
+                            continue
+                        normalized_props[qargs] = prop
+                    self.add_instruction(inst_obj, normalized_props, name=inst_name)
                 else:
-                    # Custom gate object, which doesn't belong to standard Qiskit gates.
+                    # Assumes qubit number and parameter names are consistent
+                    qargs0 = inst_map.qubits_with_instruction(inst_name)[0]
+                    try:
+                        qargs0 = tuple(qargs0)
+                    except TypeError:
+                        qargs0 = (qargs0,)
+                    cal = getattr(out_props[qargs0], "_calibration")
                     inst_obj = Gate(
                         name=inst_name,
-                        num_qubits=len(qarg),
-                        params=list(map(Parameter, entry.get_signature().parameters.keys())),
+                        num_qubits=len(qargs0),
+                        params=list(map(Parameter, cal.get_signature().parameters.keys())),
                     )
-                normalized_props = {}
-                for qargs, prop in out_props.items():
-                    if len(qargs) != inst_obj.num_qubits:
-                        continue
-                    normalized_props[qargs] = prop
-                self.add_instruction(inst_obj, normalized_props, name=inst_name)
+                    self.add_instruction(inst_obj, out_props, name=inst_name)
             else:
-                for qarg, prop in out_props.items():
-                    if qarg not in self._gate_map[inst_name]:
+                for qargs, prop in out_props.items():
+                    if qargs not in self._gate_map[inst_name]:
                         continue
-                    self.update_instruction_properties(inst_name, qarg, prop)
+                    self.update_instruction_properties(inst_name, qargs, prop)
 
     @property
     def qargs(self):
