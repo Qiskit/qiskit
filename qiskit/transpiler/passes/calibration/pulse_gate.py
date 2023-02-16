@@ -62,9 +62,11 @@ class PulseGates(CalibrationBuilder):
         """
         super().__init__()
 
+        if inst_map is None and target is None:
+            raise TranspilerError("inst_map and target cannot be None simulataneously.")
+
         if target is None:
             target = Target()
-        if inst_map is not None:
             target.update_from_instruction_schedule_map(inst_map)
         self.target = target
 

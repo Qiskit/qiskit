@@ -659,6 +659,8 @@ def _parse_transpile_args(
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
     target = _parse_target(backend, target)
+    if inst_map is not None and inst_map.has_custom_gate() and target is not None:
+        target.update_from_instruction_schedule_map(inst_map)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"
