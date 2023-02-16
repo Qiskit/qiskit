@@ -663,7 +663,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
      - This class allowed a sum a of Pauli operators to be grouped, a similar functionality can be achieved
        through the :meth:`~qiskit.quantum_info.SparsePauliOp.group_commuting` method of
        :class:`qiskit.quantum_info.SparsePauliOp`, although this is not a 1-1 replacement, as you can see
-        in the example below.
+       in the example below.
    * - :class:`~qiskit.opflow.converters.DictToCircuitSum`
      - No direct replacement. This class was used to convert from ``DictStateFns`` or ``VectorStateFns``
        to equivalent ``CircuitStateFns``.
