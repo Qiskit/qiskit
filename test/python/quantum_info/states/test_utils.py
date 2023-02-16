@@ -17,7 +17,7 @@ import numpy as np
 
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import Statevector, DensityMatrix
-from qiskit.quantum_info.states import partial_trace, shannon_entropy, partial_transpose
+from qiskit.quantum_info.states import partial_trace, shannon_entropy
 
 
 class TestStateUtils(QiskitTestCase):
@@ -55,7 +55,6 @@ class TestStateUtils(QiskitTestCase):
         # Base 10
         self.assertAlmostEqual(0.533908120973504, shannon_entropy(input_pvec, 10))
 
-    
 
 if __name__ == "__main__":
     unittest.main()
