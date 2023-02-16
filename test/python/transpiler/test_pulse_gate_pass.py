@@ -12,39 +12,43 @@
 
 """Transpiler pulse gate pass testing."""
 
+import ddt
+
 from qiskit import pulse, circuit, transpile
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeAthens, FakeAthensV2
+from qiskit.quantum_info.random import random_unitary
 
 
+@ddt.ddt
 class TestPulseGate(QiskitTestCase):
     """Integration test of pulse gate pass with custom backend."""
 
     def setUp(self):
         super().setUp()
 
+        self.sched_param = circuit.Parameter("P0")
+
         with pulse.build(name="sx_q0") as custom_sx_q0:
             pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
-
         self.custom_sx_q0 = custom_sx_q0
 
         with pulse.build(name="sx_q1") as custom_sx_q1:
             pulse.play(pulse.Constant(100, 0.2), pulse.DriveChannel(1))
-
         self.custom_sx_q1 = custom_sx_q1
 
-        self.sched_param = circuit.Parameter("P0")
+        with pulse.build(name="cx_q01") as custom_cx_q01:
+            pulse.play(pulse.Constant(100, 0.4), pulse.ControlChannel(0))
+        self.custom_cx_q01 = custom_cx_q01
 
         with pulse.build(name="my_gate_q0") as my_gate_q0:
             pulse.shift_phase(self.sched_param, pulse.DriveChannel(0))
             pulse.play(pulse.Constant(120, 0.1), pulse.DriveChannel(0))
-
         self.my_gate_q0 = my_gate_q0
 
         with pulse.build(name="my_gate_q1") as my_gate_q1:
             pulse.shift_phase(self.sched_param, pulse.DriveChannel(1))
             pulse.play(pulse.Constant(120, 0.2), pulse.DriveChannel(1))
-
         self.my_gate_q1 = my_gate_q1
 
     def test_transpile_with_bare_backend(self):
@@ -265,7 +269,8 @@ class TestPulseGate(QiskitTestCase):
 
         self.assertDictEqual(transpiled_qc.calibrations, {})
 
-    def test_transpile_with_both_instmap_and_empty_target(self):
+    @ddt.data(0, 1, 2, 3)
+    def test_transpile_with_both_instmap_and_empty_target(self, opt_level):
         """Test when instmap and target are both provided
         and only instmap contains custom schedules.
 
@@ -274,20 +279,19 @@ class TestPulseGate(QiskitTestCase):
         instmap = FakeAthens().defaults().instruction_schedule_map
         instmap.add("sx", (0,), self.custom_sx_q0)
         instmap.add("sx", (1,), self.custom_sx_q1)
+        instmap.add("cx", (0, 1), self.custom_cx_q01)
 
         # This doesn't have custom schedule definition
         target = FakeAthensV2().target
 
         qc = circuit.QuantumCircuit(2)
-        qc.sx(0)
-        qc.x(0)
-        qc.rz(0, 0)
-        qc.sx(1)
+        qc.append(random_unitary(4, seed=123), [0, 1])
         qc.measure_all()
 
         transpiled_qc = transpile(
             qc,
-            basis_gates=["sx", "rz", "x"],
+            optimization_level=opt_level,
+            basis_gates=["sx", "rz", "x", "cx"],
             inst_map=instmap,
             target=target,
             initial_layout=[0, 1],
@@ -296,11 +300,15 @@ class TestPulseGate(QiskitTestCase):
             "sx": {
                 ((0,), ()): self.custom_sx_q0,
                 ((1,), ()): self.custom_sx_q1,
-            }
+            },
+            "cx": {
+                ((0, 1), ()): self.custom_cx_q01,
+            },
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
-    def test_transpile_with_instmap_with_v2backend(self):
+    @ddt.data(0, 1, 2, 3)
+    def test_transpile_with_instmap_with_v2backend(self, opt_level):
         """Test when instmap is provided with V2 backend.
 
         Test case from Qiskit/qiskit-terra/#9489
@@ -308,24 +316,32 @@ class TestPulseGate(QiskitTestCase):
         instmap = FakeAthens().defaults().instruction_schedule_map
         instmap.add("sx", (0,), self.custom_sx_q0)
         instmap.add("sx", (1,), self.custom_sx_q1)
+        instmap.add("cx", (0, 1), self.custom_cx_q01)
 
         qc = circuit.QuantumCircuit(2)
-        qc.sx(0)
-        qc.x(0)
-        qc.rz(0, 0)
-        qc.sx(1)
+        qc.append(random_unitary(4, seed=123), [0, 1])
         qc.measure_all()
 
-        transpiled_qc = transpile(qc, FakeAthensV2(), inst_map=instmap, initial_layout=[0, 1])
+        transpiled_qc = transpile(
+            qc,
+            FakeAthensV2(),
+            optimization_level=opt_level,
+            inst_map=instmap,
+            initial_layout=[0, 1],
+        )
         ref_calibration = {
             "sx": {
                 ((0,), ()): self.custom_sx_q0,
                 ((1,), ()): self.custom_sx_q1,
-            }
+            },
+            "cx": {
+                ((0, 1), ()): self.custom_cx_q01,
+            },
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
-    def test_transpile_with_instmap_with_v2backend_with_custom_gate(self):
+    @ddt.data(0, 1, 2, 3)
+    def test_transpile_with_instmap_with_v2backend_with_custom_gate(self, opt_level):
         """Test when instmap is provided with V2 backend.
 
         In this test case, instmap contains a custom gate which doesn't belong to
@@ -342,7 +358,13 @@ class TestPulseGate(QiskitTestCase):
         qc.append(gate, [0])
         qc.measure_all()
 
-        transpiled_qc = transpile(qc, FakeAthensV2(), inst_map=instmap, initial_layout=[0])
+        transpiled_qc = transpile(
+            qc,
+            FakeAthensV2(),
+            optimization_level=opt_level,
+            inst_map=instmap,
+            initial_layout=[0],
+        )
         ref_calibration = {
             "rabi12": {
                 ((0,), ()): self.custom_sx_q0,

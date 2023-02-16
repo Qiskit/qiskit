@@ -1167,8 +1167,10 @@ Instructions:
         inst_map.add("sx", 1, custom_sx)
         self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
         self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
-        self.assertIsNone(self.pulse_target["sx"][(0,)].duration)
-        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+        # Calibration doesn't change for q0
+        self.assertEqual(self.pulse_target["sx"][(0,)].duration, 35.5e-9)
+        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
+        # Calibration is updated for q1 without error dict and gate time
         self.assertIsNone(self.pulse_target["sx"][(1,)].duration)
         self.assertIsNone(self.pulse_target["sx"][(1,)].error)
 
@@ -1201,7 +1203,11 @@ Instructions:
         self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
         self.assertEqual(self.pulse_target["sx"][(1,)].duration, 1000.0)
         self.assertIsNone(self.pulse_target["sx"][(1,)].error)
-        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+        # This is an edge case.
+        # System dt is read-only property and changing it will break all underlying calibrations.
+        # duration of sx0 returns previous value since calibration doesn't change.
+        self.assertEqual(self.pulse_target["sx"][(0,)].duration, 35.5e-9)
+        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
 
     def test_update_from_instruction_schedule_map_with_error_dict(self):
         inst_map = InstructionScheduleMap()
@@ -1217,7 +1223,7 @@ Instructions:
             inst_map, {"sx": SXGate()}, error_dict=error_dict
         )
         self.assertEqual(self.pulse_target["sx"][(1,)].error, 1.0)
-        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
 
     def test_timing_constraints(self):
         generated_constraints = self.pulse_target.timing_constraints()
