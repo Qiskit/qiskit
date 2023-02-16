@@ -11,7 +11,6 @@
 // that they have been altered from the originals.
 
 #![allow(clippy::too_many_arguments)]
-#![allow(clippy::unnecessary_unwrap)]
 
 use hashbrown::HashMap;
 use num_complex::{Complex64, ComplexFloat};
@@ -338,13 +337,14 @@ where
     circuit.global_phase -= PI / 2.;
     // emit circuit
     pfun(&mut circuit, lam);
-    if xpifun.is_some() && mod_2pi(theta).abs() < atol {
-        xpifun.unwrap()(&mut circuit);
-    } else {
-        xfun(&mut circuit);
-        pfun(&mut circuit, theta);
-        xfun(&mut circuit);
-    }
+    match xpifun {
+        Some(mut xpifun) if mod_2pi(theta).abs() < atol => xpifun(&mut circuit),
+        _ => {
+            xfun(&mut circuit);
+            pfun(&mut circuit, theta);
+            xfun(&mut circuit);
+        }
+    };
     pfun(&mut circuit, phi);
     circuit
 }
