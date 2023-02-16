@@ -660,7 +660,10 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
      - :class:`~qiskit.primitives.Sampler` or :class:`~qiskit.primitives.Estimator` if used with
        :class:`~qiskit.oflow.expectations`. See examples below.
    * - :class:`~qiskit.opflow.converters.AbelianGrouper`
-     - No direct replacement. This class allowed a sum a of Pauli operators to be grouped. These type of groupings are now left to the primitives to handle.
+     - This class allowed a sum a of Pauli operators to be grouped, a similar functionality can be achieved
+       through the :meth:`~qiskit.quantum_info.SparsePauliOp.group_commuting` method of
+       :class:`qiskit.quantum_info.SparsePauliOp`, although this is not a 1-1 replacement, as you can see
+        in the example below.
    * - :class:`~qiskit.opflow.converters.DictToCircuitSum`
      - No direct replacement. This class was used to convert from ``DictStateFns`` or ``VectorStateFns``
        to equivalent ``CircuitStateFns``.
@@ -775,6 +778,48 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
     estimator = Estimator()
     expectation_value = estimator.run(state, hamiltonian).result().values.real
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><font size="+1">Example 3: <code>AbelianGrouper</code> for grouping operators</font></a></summary>
+    <br>
+
+**Opflow**
+
+.. code-block:: python
+
+    from qiskit.opflow import PauliSumOp, AbelianGrouper
+
+    op = PauliSumOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
+
+    grouped_sum = AbelianGrouper.group_subops(op)
+    # returns: SummedOp([PauliSumOp(SparsePauliOp(['XX'], coeffs=[2.+0.j]), coeff=1.0),
+    #                   PauliSumOp(SparsePauliOp(['YY'], coeffs=[1.+0.j]), coeff=1.0),
+    #                   PauliSumOp(SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j]),
+    #                   coeff=1.0)], coeff=1.0, abelian=False)
+
+
+**Alternative**
+
+.. code-block:: python
+
+    from qiskit.quantum_info import SparsePauliOp
+
+    op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
+
+    grouped = op.group_commuting()
+    # returns: [SparsePauliOp(["IZ", "ZZ"], coeffs=[0.+2.j, 0.+1j]),
+    #           SparsePauliOp(["XX", "YY"], coeffs=[2.+0.j, 1.+0.j])]
+
+    grouped = op.group_commuting(qubit_wise=True)
+    # returns: [SparsePauliOp(['XX'], coeffs=[2.+0.j]),
+    #           SparsePauliOp(['YY'], coeffs=[1.+0.j]),
+    #           SparsePauliOp(['IZ', 'ZZ'], coeffs=[0.+2.j, 0.+1.j])]
 
 .. raw:: html
 
@@ -1166,5 +1211,5 @@ Gradients
 *Back to* `Contents`_
 
 Replaced by the new :mod:`qiskit.algorithms.gradients` module. You can see further details in the
-`algorithms migration guide <http://>`_.
+`algorithms migration guide <http://qisk.it/algo_migration>`_.
 
