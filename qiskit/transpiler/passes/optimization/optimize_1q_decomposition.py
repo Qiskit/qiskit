@@ -38,6 +38,9 @@ from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 logger = logging.getLogger(__name__)
 
+# When expanding the list of supported gates this needs to updated in
+# lockstep with the VALID_BASES constant in src/euler_one_qubit_decomposer.rs
+# and the global variables in qiskit/quantum_info/synthesis/one_qubit_decompose.py
 NAME_MAP = {
     "u": UGate,
     "u1": U1Gate,
@@ -193,15 +196,17 @@ class Optimize1qGatesDecomposition(TransformationPass):
             operator = run[0].op.to_matrix()
             for node in run[1:]:
                 operator = node.op.to_matrix().dot(operator)
-            new_dag = self._resynthesize_run(operator, qubit)
+            best_circuit_sequence = self._resynthesize_run(operator, qubit)
 
             if self._target is None:
                 basis = self._basis_gates
             else:
                 basis = self._target.operation_names_for_qargs((qubit,))
 
-            if new_dag is not None and self._substitution_checks(dag, run, new_dag, basis, qubit):
-                new_dag = self._gate_sequence_to_dag(new_dag)
+            if best_circuit_sequence is not None and self._substitution_checks(
+                dag, run, best_circuit_sequence, basis, qubit
+            ):
+                new_dag = self._gate_sequence_to_dag(best_circuit_sequence)
                 dag.substitute_node_with_dag(run[0], new_dag)
                 # Delete the other nodes in the run
                 for current_node in run[1:]:
@@ -212,7 +217,8 @@ class Optimize1qGatesDecomposition(TransformationPass):
     def _error(self, circuit, qubit):
         """
         Calculate a rough error for a `circuit` that runs on a specific
-        `qubit` of `target` (circuit could also be a list of DAGNodes)
+        `qubit` of `target` (`circuit` can either be an OneQubitGateSequence
+        from Rust or a list of DAGOPNodes).
 
         Use basis errors from target if available, otherwise use length
         of circuit as a weak proxy for error.
