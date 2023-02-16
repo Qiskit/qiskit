@@ -55,28 +55,7 @@ class TestStateUtils(QiskitTestCase):
         # Base 10
         self.assertAlmostEqual(0.533908120973504, shannon_entropy(input_pvec, 10))
 
-    def test_statevector_partial_transpose(self):
-        """Test partial_transpose function on statevectors"""
-        psi = Statevector.from_label("10+")
-        rho1=np.zeros((8,8),complex)
-        rho1[4,4]=0.5
-        rho1[4,5]=0.5
-        rho1[5,4]=0.5
-        rho1[5,5]=0.5
-        self.assertEqual(partial_transpose(psi, [0, 1]), DensityMatrix(rho1))
-        self.assertEqual(partial_transpose(psi, [0, 2]), DensityMatrix(rho1))
-
-    def test_density_matrix_partial_transpose(self):
-        """Test partial_transpose function on density matrices"""
-        rho = DensityMatrix.from_label("10+")
-        rho1=np.zeros((8,8),complex)
-        rho1[4,4]=0.5
-        rho1[4,5]=0.5
-        rho1[5,4]=0.5
-        rho1[5,5]=0.5
-        self.assertEqual(partial_transpose(rho, [0, 1]), DensityMatrix(rho1))
-        self.assertEqual(partial_transpose(rho, [0, 2]), DensityMatrix(rho1))
-
+    
 
 if __name__ == "__main__":
     unittest.main()

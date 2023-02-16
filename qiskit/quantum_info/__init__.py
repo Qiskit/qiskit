@@ -131,7 +131,6 @@ from .operators.dihedral import CNOTDihedral
 from .states import Statevector, DensityMatrix, StabilizerState
 from .states import (
     partial_trace,
-    partial_transpose,
     state_fidelity,
     purity,
     entropy,
