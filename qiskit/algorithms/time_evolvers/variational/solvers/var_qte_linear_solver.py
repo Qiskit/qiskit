@@ -13,7 +13,6 @@
 """Class for solving linear equations for Quantum Time Evolution."""
 from __future__ import annotations
 
-import copy
 from collections.abc import Mapping, Sequence
 from typing import Callable
 
@@ -24,7 +23,7 @@ from qiskit.circuit import Parameter
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .ode.assign_params import _assign_parameters
+from qiskit.algorithms.utils.assign_params import _assign_parameters
 
 from ..variational_principles import VariationalPrinciple
 
@@ -93,7 +92,7 @@ class VarQTELinearSolver:
         self,
         param_dict: Mapping[Parameter, float],
         time_value: float | None = None,
-    ) -> (np.ndarray, np.ndarray, np.ndarray):
+    ) -> tuple(np.ndarray, np.ndarray, np.ndarray):
         """
         Solve the system of linear equations underlying McLachlan's variational principle for the
         calculation without error bounds.
@@ -116,8 +115,7 @@ class VarQTELinearSolver:
 
         if self._time_param is not None:
             if time_value is not None:
-                parametrized_coeffs = copy.deepcopy(self._hamiltonian.coeffs)
-                bound_params_array = _assign_parameters(parametrized_coeffs, [time_value])
+                bound_params_array = _assign_parameters(self._hamiltonian.coeffs, [time_value])
                 hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
             else:
                 raise ValueError(

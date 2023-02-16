@@ -270,8 +270,8 @@ class TestUnitaryCircuit(QiskitTestCase):
             "OPENQASM 2.0;\n"
             'include "qelib1.inc";\n'
             "gate custom_gate p0,p1 {\n"
-            "\tu3(pi,-pi/2,pi/2) p0;\n"
-            "\tu3(pi,pi/2,-pi/2) p1;\n"
+            "\tu(pi,-pi/2,pi/2) p0;\n"
+            "\tu(pi,pi/2,-pi/2) p1;\n"
             "}\n"
             "qreg q0[2];\n"
             "creg c0[1];\n"
