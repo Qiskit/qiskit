@@ -532,10 +532,6 @@ pub fn generate_circuit(
     Ok(res)
 }
 
-const VALID_BASIS: [&str; 12] = [
-    "U321", "U3", "U", "PSX", "ZSX", "ZSXX", "U1X", "RR", "ZYZ", "ZXZ", "XYX", "XZX",
-];
-
 #[inline]
 fn angles_from_unitary(unitary: ArrayView2<Complex64>, target_basis: &str) -> [f64; 4] {
     match target_basis {
@@ -618,8 +614,11 @@ pub fn unitary_to_gate_sequence(
     qubit: usize,
     error_map: Option<&OneQubitGateErrorMap>,
 ) -> PyResult<Option<OneQubitGateSequence>> {
+    const VALID_BASES: [&str; 12] = [
+        "U321", "U3", "U", "PSX", "ZSX", "ZSXX", "U1X", "RR", "ZYZ", "ZXZ", "XYX", "XZX",
+    ];
     for basis in &target_basis_list {
-        if !VALID_BASIS.contains(basis) {
+        if !VALID_BASES.contains(basis) {
             return Err(PyTypeError::new_err(format!(
                 "Invalid target basis {basis}"
             )));
