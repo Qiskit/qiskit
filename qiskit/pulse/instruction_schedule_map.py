@@ -34,7 +34,6 @@ from typing import Callable, Iterable, List, Tuple, Union, Optional
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.calibration_entries import (
-    CalibrationPublisher,
     CalibrationEntry,
     ScheduleDef,
     CallableDef,
@@ -248,9 +247,6 @@ class InstructionScheduleMap:
         # generate signature
         if isinstance(schedule, (Schedule, ScheduleBlock)):
             entry = ScheduleDef(arguments)
-            # add metadata
-            if "publisher" not in schedule.metadata:
-                schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
         elif callable(schedule):
             if arguments:
                 warnings.warn(
@@ -404,3 +400,9 @@ def _get_instruction_string(inst: Union[str, Instruction]):
             raise PulseError(
                 'Input "inst" has no attribute "name". This should be a circuit "Instruction".'
             ) from ex
+
+
+def __getattr__(name):
+    from qiskit.pulse import calibration_entries
+
+    return getattr(calibration_entries, name)

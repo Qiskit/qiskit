@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix a bug that :meth:`.InstructionScheduleMap.has_custom_gate` returns always
+    True when the inst map is created by :class:`.Target`.
