@@ -8,7 +8,7 @@ release series is currently supported.
 
 ## Reporting a Vulnerability
 
-To report vulnerabilities you can privately report a potential security issue
+To report vulnerabilities, you can privately report a potential security issue
 via the Github security vulnerabilities feature. This can be done here:
 
 https://github.com/Qiskit/qiskit-terra/security/advisories
