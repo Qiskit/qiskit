@@ -1035,7 +1035,7 @@ class Target(Mapping):
                 error = getattr(props, "error", None)
                 if error is not None:
                     prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
-                schedule = getattr(props, "calibration", None)
+                schedule = getattr(props, "_calibration", None)
                 if schedule is not None:
                     prop_str_pieces.append("\t\t\tWith pulse schedule calibration\n")
                 extra_props = getattr(props, "properties", None)
