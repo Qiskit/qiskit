@@ -95,9 +95,9 @@ class Optimize1qGatesDecomposition(TransformationPass):
             error_map = euler_one_qubit_decomposer.OneQubitGateErrorMap(self._target.num_qubits)
             for qubit in range(self._target.num_qubits):
                 gate_error = {}
-                for gate in self._target:
-                    if self._target[gate] is not None:
-                        props = self._target[gate].get((qubit,), None)
+                for gate, gate_props in self._target.items():
+                    if gate_props is not None:
+                        props = gate_props.get((qubit,), None)
                         if props is not None and props.error is not None:
                             gate_error[gate] = props.error
                 error_map.add_qubit(gate_error)
