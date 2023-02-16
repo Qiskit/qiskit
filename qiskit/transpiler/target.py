@@ -443,27 +443,34 @@ class Target(Mapping):
         """
         for inst_name in inst_map.instructions:
             out_props = {}
-            for qarg in inst_map.qubits_with_instruction(inst_name):
+            for qargs in inst_map.qubits_with_instruction(inst_name):
                 try:
-                    qarg = tuple(qarg)
+                    qargs = tuple(qargs)
                 except TypeError:
-                    qarg = (qarg,)
-                entry = inst_map._get_calibration_entry(inst_name, qarg)
-                val = InstructionProperties(calibration=entry)
+                    qargs = (qargs,)
+                entry = inst_map._get_calibration_entry(inst_name, qargs)
+                if inst_name in self._gate_map and qargs in self._gate_map[inst_name]:
+                    default_entry = self._gate_map[inst_name][qargs]._calibration
+                    if entry == default_entry:
+                        # Skip parsing existing entry, e.g. backend calibrated schedule.
+                        continue
                 if self.dt is not None:
-                    val.duration = entry.get_duration() * self.dt
+                    duration = entry.get_schedule().duration * self.dt
                 else:
-                    val.duration = None
+                    duration = None
                 if inst_name in self._gate_map and error_dict is not None:
                     error_inst = error_dict.get(inst_name)
                     if error_inst:
-                        error = error_inst.get(qarg)
-                        val.error = error
+                        error = error_inst.get(qargs)
                     else:
-                        val.error = None
+                        error = None
                 else:
-                    val.error = None
-                out_props[qarg] = val
+                    error = None
+                out_props[qargs] = InstructionProperties(
+                    duration=duration,
+                    error=error,
+                    calibration=entry,
+                )
             if inst_name not in self._gate_map:
                 if inst_name_map is None:
                     inst_name_map = get_standard_gate_name_mapping()
