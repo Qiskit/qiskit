@@ -14,10 +14,12 @@
 
 import functools
 import warnings
-from typing import Type
+from typing import Any, Dict, Optional, Type
 
 
-def deprecate_arguments(kwarg_map, category: Type[Warning] = DeprecationWarning):
+def deprecate_arguments(
+    kwarg_map: Dict[str, Optional[str]], category: Type[Warning] = DeprecationWarning
+):
     """Decorator to automatically alias deprecated argument names and warn upon use."""
 
     def decorator(func):
@@ -55,7 +57,15 @@ def deprecate_function(msg: str, stacklevel: int = 2, category: Type[Warning] = 
     return decorator
 
 
-def _rename_kwargs(func_name, kwargs, kwarg_map, category: Type[Warning] = DeprecationWarning):
+def _rename_kwargs(
+    func_name: str,
+    kwargs: Dict[str, Any],
+    kwarg_map: Dict[str, Optional[str]],
+    category: Type[Warning] = DeprecationWarning,
+) -> None:
+    deprecation_description = (
+        "pending deprecation" if isinstance(category, PendingDeprecationWarning) else "deprecated"
+    )
     for old_arg, new_arg in kwarg_map.items():
         if old_arg in kwargs:
             if new_arg in kwargs:
@@ -63,14 +73,14 @@ def _rename_kwargs(func_name, kwargs, kwarg_map, category: Type[Warning] = Depre
 
             if new_arg is None:
                 warnings.warn(
-                    f"{func_name} keyword argument {old_arg} is deprecated and "
-                    "will in future be removed.",
+                    f"{func_name}'s keyword argument {old_arg} is {deprecation_description} and "
+                    "will in the future be removed.",
                     category=category,
                     stacklevel=3,
                 )
             else:
                 warnings.warn(
-                    f"{func_name} keyword argument {old_arg} is deprecated and "
+                    f"{func_name}'s keyword argument {old_arg} is {deprecation_description} and "
                     f"replaced with {new_arg}.",
                     category=category,
                     stacklevel=3,
