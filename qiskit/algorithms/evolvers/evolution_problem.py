@@ -38,7 +38,7 @@ class EvolutionProblem:
         "qiskit.algorithms.time_evolvers.TimeEvolutionProblem class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(
         self,

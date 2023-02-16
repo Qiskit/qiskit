@@ -128,7 +128,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         "The AmplitudeEstimation.quantum_instance getter is pending deprecation. "
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation; Get the quantum instance.
@@ -143,7 +143,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         "The AmplitudeEstimation.quantum_instance setter is pending deprecation. "
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation; Set quantum instance.

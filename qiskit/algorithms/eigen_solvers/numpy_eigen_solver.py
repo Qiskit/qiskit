@@ -54,7 +54,7 @@ class NumPyEigensolver(Eigensolver):
         "qiskit.algorithms.eigensolvers.NumPyEigensolver class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(
         self,

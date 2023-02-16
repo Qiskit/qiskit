@@ -64,7 +64,7 @@ class QAOA(VQE):
         "qiskit.algorithms.minimum_eigensolvers.QAOA class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(
         self,

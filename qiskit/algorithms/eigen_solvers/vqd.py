@@ -101,7 +101,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         "qiskit.algorithms.eigensolvers.VQD class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(
         self,
@@ -771,7 +771,7 @@ class VQDResult(VariationalResult, EigensolverResult):
         "qiskit.algorithms.eigensolvers.VQDResult class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(self) -> None:
         super().__init__()

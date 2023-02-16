@@ -41,7 +41,7 @@ class Eigensolver(ABC):
         "qiskit.algorithms.eigensolvers.Eigensolver interface. "
         "This interface will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(self) -> None:
         pass
@@ -93,7 +93,7 @@ class EigensolverResult(AlgorithmResult):
         "qiskit.algorithms.eigensolvers.EigensolverResult class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(self) -> None:
         super().__init__()

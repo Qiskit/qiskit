@@ -41,7 +41,7 @@ class MinimumEigensolver(ABC):
         "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver interface. "
         "This interface will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(self) -> None:
         pass
@@ -97,7 +97,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(self) -> None:
         super().__init__()

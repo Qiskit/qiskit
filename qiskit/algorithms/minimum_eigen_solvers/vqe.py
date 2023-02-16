@@ -132,7 +132,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         "qiskit.algorithms.minimum_eigensolvers.VQE class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(
         self,
@@ -671,7 +671,7 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
         "qiskit.algorithms.minimum_eigensolvers.VQEResult class. "
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
-        category=PendingDeprecationWarning,
+        pending=True,
     )
     def __init__(self) -> None:
         with warnings.catch_warnings():
