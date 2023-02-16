@@ -3,7 +3,7 @@
 ## Supported Versions
 
 Qiskit (and `qiskit-terra`) supports one minor version release at a time both for bug and
-security fixes. For example, if the most recent release is 0.12.1 the 0.12.x
+security fixes. For example, if the most recent release is 0.12.1, then the 0.12.x
 release series is currently supported.
 
 ## Reporting a Vulnerability
