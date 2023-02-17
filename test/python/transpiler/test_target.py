@@ -1254,6 +1254,11 @@ Instructions:
         inst_map = target.instruction_schedule_map()
         self.assertTrue(inst_map.has_custom_gate())
 
+        empty = InstructionProperties()
+        target.update_instruction_properties(instruction="sx", qargs=(0,), properties=empty)
+        inst_map = target.instruction_schedule_map()
+        self.assertFalse(inst_map.has_custom_gate())
+
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):
     def setUp(self):

@@ -1,5 +1,7 @@
 ---
 fixes:
   - |
-    Fix a bug that :meth:`.InstructionScheduleMap.has_custom_gate` returns always
-    True when the inst map is created by :class:`.Target`.
+    Fixed an issue with the :meth:`.InstructionScheduleMap.has_custom_gate` method,
+    where it would always return ``True`` when the :class:`~.InstructionScheduleMap`
+    object was created by :class:`.Target`.
+    Fixed `#9595 <https://github.com/Qiskit/qiskit-terra/issues/9595>`__
