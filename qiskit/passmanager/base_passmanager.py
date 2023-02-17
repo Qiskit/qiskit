@@ -27,13 +27,7 @@ from .propertyset import get_property_set
 
 
 class BasePassManager(ABC):
-    """Base class of pass manager.
-
-    The pass manager instance initializes flow controllers from user input,
-    and create :class:`.BasePassRunner` subclass to optimize/transform input program.
-    The subclass of BasePassManager is defined for each combination of the
-    input program and pass runner type which are tied to the expected pass manager IR.
-    """
+    """Pass manager base class."""
 
     def __init_subclass__(cls, passmanager_error=None, **kwargs):
         # Temp fix for backward compatibility.

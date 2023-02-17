@@ -1197,10 +1197,6 @@ Pass Manager Construction
    StagedPassManager
    PassManager
    PassManagerConfig
-   PropertySet
-   FlowController
-   ConditionalController
-   DoWhileController
 
 Layout and Topology
 -------------------

@@ -25,29 +25,7 @@ from .propertyset import init_property_set, get_property_set
 
 
 class BasePassRunner(ABC):
-    """A stateful pass manager runner which is spawned by the pass manager run.
-
-    The base pass runner must be agnostic to the pass manager IR and pass type.
-    The flow controller is also agnostic to the IR and atomic passes
-    as long as the passes are defined based upon the MetaPass metaclass.
-    This "vail of ignorance" allows us to complete the flow control within
-    the base pass runner, and each runner subclass only need to implement
-    a mechanism to run an atomic pass and the data conversion logic across IRs/codes.
-
-    A BasePassRunner subclass must be implemented for each combination of
-    the pass manager IR, input code and target code.
-
-    A flow controller provides custom interator to loop over the
-    underlying passes, and the pass runner instance receives normalized controllers
-    from the pass manager instance when created.
-    All passes and controllers under the pass runner share
-    the same thread local variable "property_set" implemented by the python contextvar,
-    which is updated through the pass execution.
-
-    The runner only takes a single input program and returns a single program.
-    The pass manager IR must be consistent through the execution of registered passes.
-    Note that input code and output code don't need to be identical type.
-    """
+    """Pass runner base class."""
 
     def __init_subclass__(cls, passmanager_error=None, **kwargs):
         # Temp fix for backward compatibility.

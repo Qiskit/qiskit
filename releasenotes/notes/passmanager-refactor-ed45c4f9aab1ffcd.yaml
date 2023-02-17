@@ -1,0 +1,24 @@
+---
+features:
+  - |
+    New module :mod:`qiskit.passmanager` has been added. This module contains
+    a base class of circuit :class:`.qiskit.transpiler.PassManager` and
+    ``RunningPassManager``. These base classes are agnostic to
+    the internal representation of transformed data, i.e. :class:`.DAGCircuit`
+    for circuit transpile, and input and output data format, i.e.
+    :class:`.QuantumCircuit` for circuit transpile.
+    This adds flexibility for transpiler and compiler to use more efficient
+    representation.
+other:
+  - |
+    The mechanism for internal handling of :class:`.PropertySet` has been changed.
+    This is an object to manage state of transpile, which is accessed by the
+    transpiler passes. Previously, it was an attribute of running pass manager
+    and copied to a transpiler pass when the pass is run.
+    This is now promoted to a thread local variable, which is managed by
+    Python `ContextVar <https://docs.python.org/3/library/contextvars.html>`__.
+    This allows :class:`.qiskit.transpiler.PassManager` to immediately
+    build a :class:`.FlowController` instance with appended transpiler passes.
+    Now ``RunningPassManager.append`` is expected to receive a normalized flow controller,
+    rather than list of passes.
+    A user who develops own transpiler pass might be affected by this change.
