@@ -10,6 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=unused-import
+
 """
 A convenient way to track reusable subschedules by name and qubit.
 
@@ -38,6 +40,8 @@ from qiskit.pulse.calibration_entries import (
     ScheduleDef,
     CallableDef,
     PulseQobjDef,
+    # for backward compatibility
+    CalibrationPublisher,
 )
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
@@ -400,9 +404,3 @@ def _get_instruction_string(inst: Union[str, Instruction]):
             raise PulseError(
                 'Input "inst" has no attribute "name". This should be a circuit "Instruction".'
             ) from ex
-
-
-def __getattr__(name):
-    from qiskit.pulse import calibration_entries
-
-    return getattr(calibration_entries, name)
