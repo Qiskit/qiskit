@@ -202,6 +202,8 @@ class SiSwapDecomposer:
                 # first remove the post-rotation to u to be able to
                 # play with angles of RXX.RYY.RZZ by appending gates
                 nonred = QuantumCircuit(2)
+                nonred.append(B1.adjoint(), [0])
+                nonred.append(B2.adjoint(), [1])
                 nonred.append(Operator(unitary), [0, 1])
                 nonred.append(A1.adjoint(), [0])
                 nonred.append(A2.adjoint(), [1])
@@ -247,6 +249,8 @@ class SiSwapDecomposer:
 
                 # now write u in terms of 3 x SiSwap
                 circuit = QuantumCircuit(2)
+                circuit.append(B1, [0])
+                circuit.append(B2, [1])
                 circuit = circuit.compose(red_decomp, [0, 1])
                 circuit = circuit.compose(follow, [0, 1])
                 circuit.append(A1, [0])
