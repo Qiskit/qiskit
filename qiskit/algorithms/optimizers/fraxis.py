@@ -29,13 +29,13 @@ class FraxisOptimizer(SciPyOptimizer):
 
     More precisely, this class implements π-Fraxis algorithm in Algorithm 1 of [1].
 
-    This optimizer can optimize circuits with only U (or U3) gates as parametrized gates.
+    This optimizer can optimize circuits with only U gates as parametrized gates.
     Recommended to use :class:`~qiskit.circuit.library.FraxisCircuit` as ansatz.
 
-    References
+    References:
       [1] "Optimizing Parameterized Quantum Circuits with Free-Axis Selection,"
           HC. Watanabe, R. Raymond, Y. Ohnishi, E. Kaminishi, M. Sugawara
-          https://arxiv.org/abs/2104.14875
+          `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__
     """
 
     _OPTIONS = ["maxiter", "disp", "initialize"]
@@ -117,7 +117,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
 
     x0 = np.asarray(x0)
     if x0.size % 3 != 0:
-        raise ValueError(f"The size of x0 should be multiple of 3. actual size: {x0.size}")
+        raise ValueError(f"The size of x0 should be multiple of 3. Actual size: {x0.size}")
     if maxiter is None:
         maxiter = x0.size // 3 * 10
 
