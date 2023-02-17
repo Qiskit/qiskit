@@ -53,7 +53,8 @@ class NumPyLinearSolver(LinearSolver):
 
     @deprecate_function(
         "The NumPyLinearSolver class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+        "and will be removed no sooner than 3 months after the release date. ",
+        since="0.22.0",
     )
     def __init__(self) -> None:
         super().__init__()

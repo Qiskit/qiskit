@@ -14,11 +14,26 @@
 
 import functools
 import warnings
-from typing import Type
+from typing import Any, Dict, Optional, Type
 
 
-def deprecate_arguments(kwarg_map, category: Type[Warning] = DeprecationWarning):
-    """Decorator to automatically alias deprecated argument names and warn upon use."""
+def deprecate_arguments(
+    kwarg_map: Dict[str, str],
+    category: Type[Warning] = DeprecationWarning,
+    *,
+    since: Optional[str] = None,  # pylint: disable=unused-argument
+):
+    """Decorator to automatically alias deprecated argument names and warn upon use.
+
+    Args:
+        kwarg_map: A dictionary of the old argument name to the new name.
+        category: Usually either DeprecationWarning or PendingDeprecationWarning.
+        since: The version the deprecation started at. Only Optional for backwards
+            compatibility - this should always be set.
+
+    Returns:
+        Callable: The decorated callable.
+    """
 
     def decorator(func):
         @functools.wraps(func)
@@ -32,13 +47,21 @@ def deprecate_arguments(kwarg_map, category: Type[Warning] = DeprecationWarning)
     return decorator
 
 
-def deprecate_function(msg: str, stacklevel: int = 2, category: Type[Warning] = DeprecationWarning):
+def deprecate_function(
+    msg: str,
+    stacklevel: int = 2,
+    category: Type[Warning] = DeprecationWarning,
+    *,
+    since: Optional[str] = None,  # pylint: disable=unused-argument
+):
     """Emit a warning prior to calling decorated function.
 
     Args:
         msg: Warning message to emit.
-        stacklevel: The warning stackevel to use, defaults to 2.
-        category: warning category, defaults to DeprecationWarning
+        stacklevel: The warning stacklevel to use, defaults to 2.
+        category: Usually either DeprecationWarning or PendingDeprecationWarning.
+        since: The version the deprecation started at. Only Optional for backwards
+            compatibility - this should always be set.
 
     Returns:
         Callable: The decorated, deprecated callable.
@@ -55,7 +78,12 @@ def deprecate_function(msg: str, stacklevel: int = 2, category: Type[Warning] = 
     return decorator
 
 
-def _rename_kwargs(func_name, kwargs, kwarg_map, category: Type[Warning] = DeprecationWarning):
+def _rename_kwargs(
+    func_name: str,
+    kwargs: Dict[str, Any],
+    kwarg_map: Dict[str, str],
+    category: Type[Warning] = DeprecationWarning,
+) -> None:
     for old_arg, new_arg in kwarg_map.items():
         if old_arg in kwargs:
             if new_arg in kwargs:
