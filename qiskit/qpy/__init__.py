@@ -796,10 +796,10 @@ as part of it, for example::
 the register ``qr`` would be a standalone register. While something like::
 
     bits = [Qubit(), Qubit()]
-    qr = QuantumRegister(bits=bits)
-    qc = QuantumCircuit(bits=bits)
+    qr2 = QuantumRegister(bits=bits)
+    qc = QuantumCircuit(qr2)
 
-``qr`` would have ``standalone`` set to ``False``.
+``qr2`` would have ``standalone`` set to ``False``.
 
 
 .. _qpy_custom_definition:

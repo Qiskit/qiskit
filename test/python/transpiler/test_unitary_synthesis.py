@@ -16,9 +16,9 @@
 Tests for the default UnitarySynthesis transpiler pass.
 """
 
-import unittest
-
 from test import combine
+import unittest
+import numpy as np
 
 from ddt import ddt, data
 
@@ -46,7 +46,15 @@ from qiskit.transpiler.passes import (
     SabreSwap,
     TrivialLayout,
 )
-from qiskit.circuit.library import CXGate, ECRGate, UGate, ZGate
+from qiskit.circuit.library import (
+    CXGate,
+    ECRGate,
+    UGate,
+    ZGate,
+    RYYGate,
+    RZZGate,
+    RXXGate,
+)
 from qiskit.circuit import Parameter
 
 
@@ -56,14 +64,17 @@ class TestUnitarySynthesis(QiskitTestCase):
 
     def test_empty_basis_gates(self):
         """Verify when basis_gates is None, we do not synthesize unitaries."""
-        qc = QuantumCircuit(1)
-        qc.unitary([[0, 1], [1, 0]], [0])
+        qc = QuantumCircuit(3)
+        op_1q = random_unitary(2, seed=0)
+        op_2q = random_unitary(4, seed=0)
+        op_3q = random_unitary(8, seed=0)
+        qc.unitary(op_1q.data, [0])
+        qc.unitary(op_2q.data, [0, 1])
+        qc.unitary(op_3q.data, [0, 1, 2])
 
-        dag = circuit_to_dag(qc)
+        out = UnitarySynthesis(basis_gates=None, min_qubits=2)(qc)
 
-        out = UnitarySynthesis(None).run(dag)
-
-        self.assertEqual(out.count_ops(), {"unitary": 1})
+        self.assertEqual(out.count_ops(), {"unitary": 3})
 
     @data(
         ["u3", "cx"],
@@ -618,6 +629,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         dsc=(
             "Test direction with transpile using opt_level {opt_level} on"
             " target with multiple 2q gates with bidirectional={bidirectional}"
+            "direction [0, 1] is lower error and should be picked."
         ),
         name="opt_level_{opt_level}_bidirectional_{bidirectional}",
     )
@@ -635,13 +647,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         )
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertGreaterEqual(len(tqc.get_instructions("cx")), 1)
-        if bidirectional:
-            for instr in tqc.get_instructions("cx"):
-                self.assertEqual((1, 0), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
-
-        else:
-            for instr in tqc.get_instructions("cx"):
-                self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
+        for instr in tqc.get_instructions("cx"):
+            self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
 
     @combine(
         opt_level=[0, 1, 2, 3],
@@ -710,6 +717,47 @@ class TestUnitarySynthesis(QiskitTestCase):
         self.assertGreaterEqual(len(tqc.get_instructions("ecr")), 1)
         for instr in tqc.get_instructions("ecr"):
             self.assertEqual((0, 1), (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]]))
+
+    @combine(
+        opt_level=[0, 1, 2, 3],
+        dsc=("Test controlled but not supercontrolled basis"),
+        name="opt_level_{opt_level}",
+    )
+    def test_controlled_basis(self, opt_level):
+        target = Target(2)
+        target.add_instruction(RYYGate(np.pi / 8), {(0, 1): InstructionProperties(error=1.2e-6)})
+        target.add_instruction(
+            UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")), {(0,): None, (1,): None}
+        )
+        qr = QuantumRegister(2)
+        circ = QuantumCircuit(qr)
+        circ.append(random_unitary(4, seed=1), [1, 0])
+        tqc = transpile(
+            circ,
+            target=target,
+            optimization_level=opt_level,
+            translation_method="synthesis",
+            layout_method="trivial",
+        )
+        self.assertGreaterEqual(len(tqc.get_instructions("ryy")), 1)
+        self.assertEqual(Operator(tqc), Operator(circ))
+
+    def test_approximation_controlled(self):
+        target = Target(2)
+        target.add_instruction(RZZGate(np.pi / 10), {(0, 1): InstructionProperties(error=0.006)})
+        target.add_instruction(RXXGate(np.pi / 3), {(0, 1): InstructionProperties(error=0.01)})
+        target.add_instruction(
+            UGate(Parameter("theta"), Parameter("phi"), Parameter("lam")),
+            {(0,): InstructionProperties(error=0.001), (1,): InstructionProperties(error=0.002)},
+        )
+        circ = QuantumCircuit(2)
+        circ.append(random_unitary(4, seed=7), [1, 0])
+
+        dag = circuit_to_dag(circ)
+        dag_100 = UnitarySynthesis(target=target, approximation_degree=1.0).run(dag)
+        dag_99 = UnitarySynthesis(target=target, approximation_degree=0.99).run(dag)
+        self.assertGreaterEqual(dag_100.depth(), dag_99.depth())
+        self.assertEqual(Operator(dag_to_circuit(dag_100)), Operator(circ))
 
     def test_if_simple(self):
         """Test a simple if statement."""

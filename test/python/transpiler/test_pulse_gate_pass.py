@@ -180,6 +180,28 @@ class TestPulseGate(QiskitTestCase):
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
 
+    def test_transpile_with_parameterized_custom_gate(self):
+        """Test providing non-basis gate, which is kept parameterized throughout transpile."""
+        backend = FakeAthens()
+        backend.defaults().instruction_schedule_map.add(
+            "my_gate", (0,), self.my_gate_q0, arguments=["P0"]
+        )
+
+        param = circuit.Parameter("new_P0")
+        qc = circuit.QuantumCircuit(1)
+        qc.append(circuit.Gate("my_gate", 1, [param]), [0])
+
+        transpiled_qc = transpile(qc, backend, basis_gates=["my_gate"], initial_layout=[0])
+
+        my_gate_q0_p = self.my_gate_q0.assign_parameters({self.sched_param: param}, inplace=False)
+
+        ref_calibration = {
+            "my_gate": {
+                ((0,), (param,)): my_gate_q0_p,
+            }
+        }
+        self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+
     def test_transpile_with_multiple_circuits(self):
         """Test transpile with multiple circuits with custom gate."""
         backend = FakeAthens()
