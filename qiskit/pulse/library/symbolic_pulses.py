@@ -739,7 +739,7 @@ class Gaussian(metaclass=_PulseType):
         angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ) -> SymbolicPulse:
+    ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -837,7 +837,7 @@ class GaussianSquare(metaclass=_PulseType):
         risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ) -> SymbolicPulse:
+    ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -924,7 +924,7 @@ def GaussianSquareDrag(
     risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
-) -> SymbolicPulse:
+) -> ScalableSymbolicPulse:
     """A square pulse with a Drag shaped rise and fall
 
     This pulse shape is similar to :class:`~.GaussianSquare` but uses
@@ -1112,7 +1112,7 @@ class Drag(metaclass=_PulseType):
         angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ) -> SymbolicPulse:
+    ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -1181,7 +1181,7 @@ class Constant(metaclass=_PulseType):
         angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ) -> SymbolicPulse:
+    ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
