@@ -20,6 +20,7 @@ Visualization functions for quantum states.
 from typing import Optional, List, Union
 from functools import reduce
 import colorsys
+import warnings
 import numpy as np
 from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
@@ -29,7 +30,7 @@ from qiskit.utils.deprecation import deprecate_arguments
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
 
-from .array import array_to_latex
+from .array import _num_to_latex, array_to_latex
 from .utils import matplotlib_close_if_inline
 from .exceptions import VisualizationError
 
@@ -599,15 +600,20 @@ def plot_state_city(
 def plot_state_paulivec(
     state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
 ):
-    """Plot the paulivec representation of a quantum state.
+    r"""Plot the paulivec representation of a quantum state.
 
-    Plot a bargraph of the mixed state rho over the pauli matrices
+    Plot a bargraph of the density matrix of a quantum state using as a basis all
+    possible tensor products of Pauli operators and identities, that is,
+    :math:`\{\bigotimes_{i=0}^{N-1}P_i\}_{P_i\in \{I,X,Y,Z\}}`, where
+    :math:`N` is the number of qubits.
+
+
 
     Args:
         state (Statevector or DensityMatrix or ndarray): an N-qubit quantum state.
         title (str): a string that represents the plot title
         figsize (tuple): Figure size in inches.
-        color (list or str): Color of the expectation value bars.
+        color (list or str): Color of the coefficient value bars.
         ax (matplotlib.axes.Axes): An optional Axes object to be used for
             the visualization output. If none is specified a new matplotlib
             Figure will be created and used. Additionally, if specified there
@@ -685,7 +691,7 @@ def plot_state_paulivec(
     ax.bar(ind, values, width, color=color, zorder=2)
     ax.axhline(linewidth=1, color="k")
     # add some text for labels, title, and axes ticks
-    ax.set_ylabel("Expectation value", fontsize=14)
+    ax.set_ylabel("Coefficients", fontsize=14)
     ax.set_xticks(ind)
     ax.set_yticks([-1, -0.5, 0, 0.5, 1])
     ax.set_xticklabels(labels, fontsize=14, rotation=70)
@@ -1272,59 +1278,47 @@ def num_to_latex_ket(raw_value: complex, first_term: bool, decimals: int = 10) -
     Returns:
         String with latex code or None if no term is required
     """
-    import sympy  # runtime import
-
-    if raw_value == 0:
-        value = 0
-        real_value = 0
-        imag_value = 0
-    else:
-        raw_value = np.around(raw_value, decimals=decimals)
-        value = sympy.nsimplify(raw_value, constants=(sympy.pi,), rational=False)
-        real_value = float(sympy.re(value))
-        imag_value = float(sympy.im(value))
-
-    element = ""
-    if np.abs(value) > 0:
-        latex_element = sympy.latex(value, full_prec=False)
-        two_term = real_value != 0 and imag_value != 0
-        if isinstance(value, sympy.core.Add):
-            # can happen for expressions like 1 + sqrt(2)
-            two_term = True
-        if two_term:
-            if first_term:
-                element = f"({latex_element})"
-            else:
-                element = f"+ ({latex_element})"
-        else:
-            if first_term:
-                if np.isreal(complex(value)) and value > 0:
-                    element = latex_element
-                else:
-                    element = latex_element
-                if element == "1":
-                    element = ""
-                elif element == "-1":
-                    element = "-"
-            else:
-
-                if imag_value == 0 and real_value > 0:
-                    element = "+" + latex_element
-                elif real_value == 0 and imag_value > 0:
-                    element = "+" + latex_element
-                else:
-                    element = latex_element
-                if element == "+1":
-                    element = "+"
-                elif element == "-1":
-                    element = "-"
-
-        return element
-    else:
+    warnings.warn(
+        "qiskit.visualization.state_visualization.num_to_latex_ket is "
+        "deprecated as of 0.23.0 and will be removed no earlier than 3 months "
+        "after the release. For similar functionality, see sympy's `nsimplify` "
+        "and `latex` functions.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    if np.around(np.abs(raw_value), decimals=decimals) == 0:
         return None
+    return _num_to_latex(raw_value, first_term=first_term, decimals=decimals, coefficient=True)
 
 
 def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
+    """Convert a list of numbers to latex formatted terms
+    The first non-zero term is treated differently. For this term a leading + is suppressed.
+    Args:
+        numbers: List of numbers to format
+        decimals: Number of decimal places to round to (default: 10).
+    Returns:
+        List of formatted terms
+    """
+    warnings.warn(
+        "qiskit.visualization.state_visualization.num_to_latex_terms is "
+        "deprecated as of 0.23.0 and will be removed no earlier than 3 months "
+        "after the release. For similar functionality, see sympy's `nsimplify` "
+        "and `latex` functions.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    first_term = True
+    terms = []
+    for number in numbers:
+        term = num_to_latex_ket(number, first_term, decimals)
+        if term is not None:
+            first_term = False
+        terms.append(term)
+    return terms
+
+
+def _numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
     """Convert a list of numbers to latex formatted terms
 
     The first non-zero term is treated differently. For this term a leading + is suppressed.
@@ -1338,10 +1332,9 @@ def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[s
     first_term = True
     terms = []
     for number in numbers:
-        term = num_to_latex_ket(number, first_term, decimals)
-        if term is not None:
-            first_term = False
+        term = _num_to_latex(number, decimals=decimals, first_term=first_term, coefficient=True)
         terms.append(term)
+        first_term = False
     return terms
 
 
@@ -1368,10 +1361,10 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12, prefix: str = "
         nonzero_indices = (
             nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
         )
-        latex_terms = numbers_to_latex_terms(data[nonzero_indices], max_size)
+        latex_terms = _numbers_to_latex_terms(data[nonzero_indices], max_size)
         nonzero_indices[max_size // 2] = None
     else:
-        latex_terms = numbers_to_latex_terms(data[nonzero_indices], max_size)
+        latex_terms = _numbers_to_latex_terms(data[nonzero_indices], max_size)
 
     latex_str = ""
     for idx, ket_idx in enumerate(nonzero_indices):

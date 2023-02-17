@@ -72,14 +72,31 @@ Amplitude Estimators
    MaximumLikelihoodAmplitudeEstimationResult
 
 
-Eigen Solvers
--------------
+Eigensolvers
+------------
 
 Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
-states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain. These algorithms are pending deprecation.
-One should instead make use of the Eigensolver classes in the section below, which leverage
-Runtime primitives.
+states of a molecule, and ``qiskit-nature`` has some algorithms that leverage chemistry specific
+knowledge to do this in that application domain.
+
+Primitive-based Eigensolvers
+++++++++++++++++++++++++++++
+
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use
+of :class:`.QuantumInstance` in algorithms. To ensure continued support and development, we recommend
+using the primitive-based Eigensolvers in place of the legacy :class:`.QuantumInstance`-based ones.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   eigensolvers
+
+
+Legacy Eigensolvers
++++++++++++++++++++
+
+These algorithms, still based on the :class:`.QuantumInstance`, are superseded
+by the primitive-based versions in the section above but are still supported for now.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -87,38 +104,45 @@ Runtime primitives.
 
    Eigensolver
    EigensolverResult
+   NumPyEigensolver
+   VQD
+   VQDResult
+
+
+Time Evolvers
+-------------
+
+Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
+with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
+used to train Quantum Boltzmann Machine Neural Networks for example.
+
+Primitive-based Time Evolvers
++++++++++++++++++++++++++++++
+
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use
+of :class:`.QuantumInstance` in algorithms. To ensure continued support and development, we recommend
+using the primitive-based Time Evolvers in place of the legacy :class:`.QuantumInstance`-based ones.
 
 .. autosummary::
    :toctree: ../stubs/
    :nosignatures:
 
-   NumPyEigensolver
-   VQD
-   VQDResult
+   RealTimeEvolver
+   ImaginaryTimeEvolver
+   TimeEvolutionResult
+   TimeEvolutionProblem
+   PVQD
+   PVQDResult
+   SciPyImaginaryEvolver
+   SciPyRealEvolver
+   VarQITE
+   VarQRTE
 
-Eigensolvers
-------------
+Legacy Time Evolvers
+++++++++++++++++++++
 
-Algorithms to find eigenvalues of an operator. For chemistry these can be used to find excited
-states of a molecule, and qiskit-nature has some algorithms that leverage chemistry specific
-knowledge to do this in that application domain.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   eigensolvers
-
-Evolvers
---------
-
-Pending deprecation: This package has been superseded by the package below. It will be
-deprecated in a future release and subsequently removed after that:
-
-`Time Evolvers`_
-
-Algorithms to evolve quantum states in time. Both real and imaginary time evolution is possible
-with algorithms that support them. For machine learning, Quantum Imaginary Time Evolution might be
-used to train Quantum Boltzmann Machine Neural Networks for example.
+These algorithms, still based on the :class:`.QuantumInstance`, are superseded
+by the primitive-based versions in the section above but are still supported for now.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -131,31 +155,23 @@ used to train Quantum Boltzmann Machine Neural Networks for example.
     EvolutionProblem
 
 
-Time Evolvers
--------------
+Variational Quantum Time Evolution
+++++++++++++++++++++++++++++++++++
 
-Primitives-enabled algorithms to evolve quantum states in time. Both real and imaginary time
-evolution is possible with algorithms that support them. For machine learning, Quantum Imaginary
-Time Evolution might be used to train Quantum Boltzmann Machine Neural Networks for example.
+Classes used by variational quantum time evolution algorithms - :class:`.VarQITE` and
+:class:`.VarQRTE`.
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
 
-    RealTimeEvolver
-    ImaginaryTimeEvolver
-    PVQD
-    PVQDResult
-    TimeEvolutionResult
-    TimeEvolutionProblem
-    SciPyImaginaryEvolver
-    SciPyRealEvolver
+   time_evolvers.variational
 
 
 Trotterization-based Quantum Real Time Evolution
-------------------------------------------------
+++++++++++++++++++++++++++++++++++++++++++++++++
 
-Package for primitives-enabled Trotterization-based quantum time evolution algorithm - TrotterQRTE.
+Package for primitives-enabled Trotterization-based quantum time evolution
+algorithm - :class:`~.time_evolvers.TrotterQRTE`.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -199,12 +215,30 @@ Algorithms to solve linear systems of equations.
    linear_solvers
 
 
-Minimum Eigen Solvers
+Minimum Eigensolvers
 ---------------------
 
 Algorithms that can find the minimum eigenvalue of an operator.
-These algorithms are pending deprecation. One should instead make use of the
-Minimum Eigensolver classes in the section below, which leverage Runtime primitives.
+
+Primitive-based Minimum Eigensolvers
+++++++++++++++++++++++++++++++++++++
+
+These algorithms are based on the Qiskit Primitives, a new execution paradigm that replaces the use
+of :class:`.QuantumInstance` in algorithms. To ensure continued support and development, we recommend
+using the primitive-based Minimum Eigensolvers in place of the legacy :class:`.QuantumInstance`-based
+ones.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   minimum_eigensolvers
+
+
+Legacy Minimum Eigensolvers
++++++++++++++++++++++++++++
+
+These algorithms, still based on the :class:`.QuantumInstance`, are superseded
+by the primitive-based versions in the section above but are still supported for now.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -212,24 +246,9 @@ Minimum Eigensolver classes in the section below, which leverage Runtime primiti
 
    MinimumEigensolver
    MinimumEigensolverResult
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
    NumPyMinimumEigensolver
    QAOA
    VQE
-
-Minimum Eigensolvers
---------------------
-
-Algorithms that can find the minimum eigenvalue of an operator and leverage primitives.
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   minimum_eigensolvers
 
 
 Optimizers
@@ -308,10 +327,6 @@ from .algorithm_result import AlgorithmResult
 from .evolvers import EvolutionResult, EvolutionProblem
 from .evolvers.real_evolver import RealEvolver
 from .evolvers.imaginary_evolver import ImaginaryEvolver
-from .time_evolvers.imaginary_time_evolver import ImaginaryTimeEvolver
-from .time_evolvers.real_time_evolver import RealTimeEvolver
-from .time_evolvers.time_evolution_problem import TimeEvolutionProblem
-from .time_evolvers.time_evolution_result import TimeEvolutionResult
 from .variational_algorithm import VariationalAlgorithm, VariationalResult
 from .amplitude_amplifiers import Grover, GroverResult, AmplificationProblem, AmplitudeAmplifier
 from .amplitude_estimators import (
@@ -351,8 +366,20 @@ from .aux_ops_evaluator import eval_observables
 from .observables_evaluator import estimate_observables
 from .evolvers.trotterization import TrotterQRTE
 
-from .time_evolvers.pvqd import PVQD, PVQDResult
-from .time_evolvers.classical_methods import SciPyRealEvolver, SciPyImaginaryEvolver
+from .time_evolvers import (
+    ImaginaryTimeEvolver,
+    RealTimeEvolver,
+    TimeEvolutionProblem,
+    TimeEvolutionResult,
+    PVQD,
+    PVQDResult,
+    SciPyImaginaryEvolver,
+    SciPyRealEvolver,
+    VarQITE,
+    VarQRTE,
+    VarQTE,
+    VarQTEResult,
+)
 
 __all__ = [
     "AlgorithmJob",
@@ -413,4 +440,8 @@ __all__ = [
     "AlgorithmError",
     "eval_observables",
     "estimate_observables",
+    "VarQITE",
+    "VarQRTE",
+    "VarQTE",
+    "VarQTEResult",
 ]

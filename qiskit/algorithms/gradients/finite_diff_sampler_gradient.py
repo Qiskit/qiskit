@@ -20,13 +20,14 @@ from typing import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
 from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
+
+from ..exceptions import AlgorithmError
 
 if sys.version_info >= (3, 8):
     # pylint: disable=no-name-in-module, ungrouped-imports

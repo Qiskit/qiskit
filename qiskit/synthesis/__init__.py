@@ -28,6 +28,7 @@ Evolution Synthesis
    LieTrotter
    SuzukiTrotter
    MatrixExponential
+   QDrift
 
 Linear Function Synthesis
 =========================
@@ -44,6 +45,8 @@ Permutation Synthesis
    :toctree: ../stubs/
 
    synth_permutation_depth_lnn_kms
+   synth_permutation_basic
+   synth_permutation_acg
 
 Clifford Synthesis
 ==================
@@ -86,8 +89,12 @@ from .evolution import (
     QDrift,
 )
 
+from .permutation import (
+    synth_permutation_depth_lnn_kms,
+    synth_permutation_basic,
+    synth_permutation_acg,
+)
 from .linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
-from .permutation import synth_permutation_depth_lnn_kms
 from .clifford import (
     synth_clifford_full,
     synth_clifford_ag,

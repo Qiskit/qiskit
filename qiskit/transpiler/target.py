@@ -16,7 +16,7 @@
 A target object represents the minimum set of information the transpiler needs
 from a backend
 """
-
+import warnings
 from typing import Union
 from collections.abc import Mapping
 from collections import defaultdict
@@ -35,6 +35,7 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.utils.deprecation import deprecate_arguments
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
@@ -190,13 +191,14 @@ class Target(Mapping):
         "granularity",
         "min_length",
         "pulse_alignment",
-        "aquire_alignment",
+        "acquire_alignment",
         "_non_global_basis",
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
     )
 
+    @deprecate_arguments({"aquire_alignment": "acquire_alignment"})
     def __init__(
         self,
         description=None,
@@ -205,7 +207,7 @@ class Target(Mapping):
         granularity=1,
         min_length=1,
         pulse_alignment=1,
-        aquire_alignment=1,
+        acquire_alignment=1,
         qubit_properties=None,
     ):
         """
@@ -264,7 +266,7 @@ class Target(Mapping):
         self.granularity = granularity
         self.min_length = min_length
         self.pulse_alignment = pulse_alignment
-        self.aquire_alignment = aquire_alignment
+        self.acquire_alignment = acquire_alignment
         self._non_global_basis = None
         self._non_global_strict_basis = None
         if qubit_properties is not None:
@@ -514,7 +516,7 @@ class Target(Mapping):
             TimingConstraints: The timing constraints represented in the Target
         """
         return TimingConstraints(
-            self.granularity, self.min_length, self.pulse_alignment, self.aquire_alignment
+            self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
         )
 
     def instruction_schedule_map(self):
@@ -963,6 +965,22 @@ class Target(Mapping):
         else:
             self._non_global_basis = incomplete_basis_gates
         return incomplete_basis_gates
+
+    @property
+    def aquire_alignment(self):
+        """Alias of deprecated name. This will be removed."""
+        warnings.warn(
+            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
+        )
+        return self.acquire_alignment
+
+    @aquire_alignment.setter
+    def aquire_alignment(self, new_value: int):
+        """Alias of deprecated name. This will be removed."""
+        warnings.warn(
+            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
+        )
+        self.acquire_alignment = new_value
 
     def __iter__(self):
         return iter(self._gate_map)

@@ -49,7 +49,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
 
         self._basis_gates = basis
         self._target = target
-        self._global_decomposers = None
+        self._global_decomposers = []
         self._local_decomposers_cache = {}
 
         if basis:
@@ -58,19 +58,21 @@ class Optimize1qGatesDecomposition(TransformationPass):
             self._global_decomposers = _possible_decomposers(None)
             self._basis_gates = None
 
-    def _resynthesize_run(self, run, qubit=None):
+    def _resynthesize_run(self, matrix, qubit=None):
         """
-        Resynthesizes one `run`, typically extracted via `dag.collect_1q_runs`.
+        Resynthesizes one 2x2 `matrix`, typically extracted via `dag.collect_1q_runs`.
 
         Returns the newly synthesized circuit in the indicated basis, or None
         if no synthesis routine applied.
-        """
-        operator = run[0].op.to_matrix()
-        for gate in run[1:]:
-            operator = gate.op.to_matrix().dot(operator)
 
+        When multiple synthesis options are available, it prefers the one with lowest
+        error when the circuit is applied to `qubit`.
+        """
         if self._target:
-            qubits_tuple = (qubit,)
+            if qubit is not None:
+                qubits_tuple = (qubit,)
+            else:
+                qubits_tuple = None
             if qubits_tuple in self._local_decomposers_cache:
                 decomposers = self._local_decomposers_cache[qubits_tuple]
             else:
@@ -80,7 +82,7 @@ class Optimize1qGatesDecomposition(TransformationPass):
         else:
             decomposers = self._global_decomposers
 
-        new_circs = [decomposer._decompose(operator) for decomposer in decomposers]
+        new_circs = [decomposer._decompose(matrix) for decomposer in decomposers]
 
         if len(new_circs) == 0:
             return None
@@ -134,7 +136,10 @@ class Optimize1qGatesDecomposition(TransformationPass):
         qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for run in runs:
             qubit = qubit_indices[run[0].qargs[0]]
-            new_dag = self._resynthesize_run(run, qubit)
+            operator = run[0].op.to_matrix()
+            for node in run[1:]:
+                operator = node.op.to_matrix().dot(operator)
+            new_dag = self._resynthesize_run(operator, qubit)
 
             if self._target is None:
                 basis = self._basis_gates
@@ -168,7 +173,7 @@ def _possible_decomposers(basis_set):
     return decomposers
 
 
-def _error(circuit, target, qubit):
+def _error(circuit, target=None, qubit=None):
     """
     Calculate a rough error for a `circuit` that runs on a specific
     `qubit` of `target` (circuit could also be a list of DAGNodes)
