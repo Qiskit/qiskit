@@ -42,8 +42,12 @@ class SiSwapDecomposer:
     """
     A class for decomposing 2-qubit unitaries into at most 3 uses of the sqrt(iSWAP) gate.
 
+    This basis is attractive in that it is shorter/cheaper than iSWAP and generates a large
+    volume (~79%) of Haar-random SU(4) unitaries with only two applications, and an even
+    larger volume when approximation is enabled.
+
     Args:
-        euler_basis (list(str)): single-qubit gates basis in the decomposition
+        euler_basis (list(str)): single-qubit gates basis in the decomposition.
 
     Reference:
         1. C. Huang et al,

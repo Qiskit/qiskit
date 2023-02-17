@@ -35,6 +35,7 @@ from qiskit.circuit.library import (
 
 _EPS = 1e-12
 
+
 @ddt
 class TestSiSwapSynth(QiskitTestCase):
     """Test synthesis of SU(4)s over SiSwap basis."""
@@ -112,7 +113,7 @@ class TestSiSwapSynth(QiskitTestCase):
             [np.pi / 4, np.pi / 8, -np.pi / 8],  # inverse of above (and locally equivalent)
             [np.pi / 4, np.pi / 16, np.pi / 16],  # quarter-way between CX and SWAP
             [np.pi / 4, np.pi / 16, np.pi / 16],  # inverse of above (and locally equivalent)
-            [np.pi / 6, np.pi / 8, np.pi / 24],  # red and blue and green intersection 
+            [np.pi / 6, np.pi / 8, np.pi / 24],  # red and blue and green intersection
             [np.pi / 6, np.pi / 8, -np.pi / 24],  # inverse of above (not locally equivalent)
             [np.pi / 16, np.pi / 24, np.pi / 48],  # red and blue and purple intersection
             [np.pi / 16, np.pi / 24, -np.pi / 48],  # inverse of above (not locally equivalent)
@@ -121,11 +122,16 @@ class TestSiSwapSynth(QiskitTestCase):
     )
     def test_siswap_special_points(self, p):
         """Test special points in the Weyl chamber related to SiSwap polytopes."""
-        u = Operator(RXXGate(-2*p[0])) & Operator(RYYGate(-2*p[1])) & Operator(RZZGate(-2*p[2]))
+        u = (
+            Operator(RXXGate(-2 * p[0]))
+            & Operator(RYYGate(-2 * p[1]))
+            & Operator(RZZGate(-2 * p[2]))
+        )
         decomposer = SiSwapDecomposer(euler_basis=["u"])
         circuit = decomposer(u)
         self.assertEqual(circuit.count_ops().get("siswap", 0), 2)
         self.assertEqual(Operator(circuit), Operator(u))
+
 
 if __name__ == "__main__":
     unittest.main()
