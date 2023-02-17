@@ -26,6 +26,9 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
 
 
+_PARITY = np.array([-1 if bin(i).count("1") % 2 else 1 for i in range(256)], dtype=complex)
+
+
 class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     r"""Symplectic representation of a list of N-qubit Paulis.
 
@@ -432,7 +435,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             coeff = (-1j) ** phase
         else:
             coeff = 1
-        data = np.array([coeff * (-1) ** (bin(i).count("1") % 2) for i in z_indices & indptr])
+        data = coeff * _PARITY[(z_indices & indptr).astype(np.uint8)]
         if sparse:
             # Return sparse matrix
             from scipy.sparse import csr_matrix
