@@ -51,7 +51,9 @@ def deprecate_function(msg: str, stacklevel: int = 2, category: Type[Warning] = 
             warnings.warn(msg, category=category, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
-        _DeprecationMetadata.set_func_deprecation(func, msg=msg, since="TODO")
+        _DeprecationMetadata.set_func_deprecation(
+            func, msg=msg, since="TODO", pending=isinstance(category, PendingDeprecationWarning)
+        )
         return wrapper
 
     return decorator
@@ -75,7 +77,13 @@ def _rename_kwargs(
                 f"{func_name} keyword argument {old_arg} is deprecated and "
                 f"replaced with {new_arg}."
             )
-        _DeprecationMetadata.set_args_deprecation(func, arg=old_arg, msg=msg, since="TODO")
+        _DeprecationMetadata.set_args_deprecation(
+            func,
+            arg=old_arg,
+            msg=msg,
+            since="TODO",
+            pending=isinstance(category, PendingDeprecationWarning),
+        )
         if old_arg in kwargs:
             if new_arg in kwargs:
                 raise TypeError(f"{func_name} received both {new_arg} and {old_arg} (deprecated).")
@@ -88,6 +96,7 @@ def _rename_kwargs(
 class _DeprecationMetadataEntry:
     msg: str
     since: str
+    pending: bool
 
 
 @dataclass
@@ -95,7 +104,7 @@ class _DeprecationMetadata:
     """Used to store deprecation information on a function.
 
     This is used by the Qiskit Sphinx Theme to render deprecations in documentation. Warning:
-    coordinate changes with the Sphinx Theme's extension.
+    changes may accidentally break the Sphinx Theme; pay attention to backwards compatibility.
     """
 
     func_deprecation: Optional[_DeprecationMetadataEntry]
@@ -104,8 +113,9 @@ class _DeprecationMetadata:
     dunder_name: ClassVar[str] = "__qiskit_deprecation__"
 
     @classmethod
-    def set_func_deprecation(cls, func: Callable, *, msg: str, since: str) -> None:
-        entry = _DeprecationMetadataEntry(msg, since)
+    def set_func_deprecation(cls, func: Callable, *, msg: str, since: str, pending: bool) -> None:
+        """Add or modify `__qiskit_deprecation__` to set `func_deprecation`."""
+        entry = _DeprecationMetadataEntry(msg, since, pending)
         if hasattr(func, cls.dunder_name):
             metadata = cast(_DeprecationMetadata, getattr(func, cls.dunder_name))
             metadata.func_deprecation = entry
@@ -114,8 +124,11 @@ class _DeprecationMetadata:
             setattr(func, cls.dunder_name, metadata)
 
     @classmethod
-    def set_args_deprecation(cls, func: Callable, *, arg: str, msg: str, since: str) -> None:
-        entry = _DeprecationMetadataEntry(msg, since)
+    def set_args_deprecation(
+        cls, func: Callable, *, arg: str, msg: str, since: str, pending: bool
+    ) -> None:
+        """Add or modify `__qiskit_deprecation__` to set `args_deprecations` for `arg`."""
+        entry = _DeprecationMetadataEntry(msg, since, pending)
         if hasattr(func, cls.dunder_name):
             metadata = cast(_DeprecationMetadata, getattr(func, cls.dunder_name))
             metadata.args_deprecations[arg] = entry
