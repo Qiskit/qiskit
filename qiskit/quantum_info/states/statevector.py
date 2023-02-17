@@ -13,7 +13,6 @@
 """
 Statevector quantum state class.
 """
-
 import copy
 import re
 from numbers import Number
@@ -225,7 +224,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return len(self._data)
 
     @property
-    def data(self):
+    def data(self) -> np.ndarray:
         """Return data."""
         return self._data
 
@@ -238,7 +237,7 @@ class Statevector(QuantumState, TolerancesMixin):
         norm = np.linalg.norm(self.data)
         return np.allclose(norm, 1, rtol=rtol, atol=atol)
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert state to a rank-1 projector operator"""
         mat = np.outer(self.data, np.conj(self.data))
         return Operator(mat, input_dims=self.dims(), output_dims=self.dims())
