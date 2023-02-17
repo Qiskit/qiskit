@@ -109,10 +109,10 @@ def _operator_to_matrix(operator: BaseOperator | PauliSumOp):
                 "Trying dense computation",
                 type(operator),
             )
-        try:
-            op_matrix = operator.to_matrix()
-        except AttributeError as ex:
-            raise AlgorithmError(f"Unsupported operator type `{type(operator)}`.") from ex
+            try:
+                op_matrix = operator.to_matrix()
+            except AttributeError as ex:
+                raise AlgorithmError(f"Unsupported operator type `{type(operator)}`.") from ex
     return op_matrix
 
 

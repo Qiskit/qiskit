@@ -101,6 +101,7 @@ stages:
               pythonVersion: ${{ version }}
               testQPY: false
               testImages: false
+              testRust: false
 
           - template: ".azure/test-macos.yml"
             parameters:
@@ -146,6 +147,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
+            testRust: true
             testQPY: true
             testImages: false
 
@@ -165,6 +167,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            testRust: false
             testQPY: false
             testImages: true
             installFromSdist: true
@@ -193,6 +196,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.branchPushPythonVersion }}
+            testRust: true
             testQPY: true
             testImages: true
 
