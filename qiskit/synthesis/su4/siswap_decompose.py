@@ -96,14 +96,10 @@ class SiSwapDecomposer:
 
         p = np.array([x, y, z])
 
-        print('p: ', p)
-
         if abs(z) <= x - y + _EPS:
             polytope_projection = p
         else:
             polytope_projection = find_min_point([v - p for v in _POLYTOPE]) + p
-
-        print('q: ', polytope_projection)
 
         candidate_points = [
             _ID,  # 0 applications
@@ -152,11 +148,13 @@ class SiSwapDecomposer:
         elif best_nbasis == 2:  # red region
             V = _interleaving_single_qubit_gates(x, y, z)
             v_decomp = TwoQubitWeylDecomposition(Operator(V))
-            if not all(np.isclose([x, y, z], [v_decomp.a, v_decomp.b, v_decomp.c])):
-                print(" ** deviant sandwich ** ")
-                print('original: ', [x, y, z])
-                print('V: ', [v_decomp.a, v_decomp.b, v_decomp.c])
-                print(V)
+
+            # Due to the symmetry of Weyl chamber CAN(pi/4, y, z) ~ CAN(pi/4, y, -z)
+            # we might get a V operator that implements CAN(pi/4, y, -z) instead
+            # we catch this case and fix it by local gates
+            deviant = False
+            if not np.isclose(v_decomp.c, z):
+                deviant = True
 
             D1 = Operator(v_decomp.K1r)
             D2 = Operator(v_decomp.K1l)
@@ -167,11 +165,16 @@ class SiSwapDecomposer:
             circuit.append(B1, [0])
             circuit.append(B2, [1])
 
+            if deviant:
+                circuit.x(0)
+                circuit.z(1)
             circuit.append(E1.adjoint(), [0])
             circuit.append(E2.adjoint(), [1])
             circuit.compose(V, inplace=True)
             circuit.append(D1.adjoint(), [0])
             circuit.append(D2.adjoint(), [1])
+            if deviant:
+                circuit.y(1)
 
             circuit.append(A1, [0])
             circuit.append(A2, [1])
@@ -182,9 +185,7 @@ class SiSwapDecomposer:
                 # CAN(x, y, z) ~ CAN(x, y, -z)†
                 # so we decompose the adjoint, replace SiSwap with a template in
                 # terms of SiSwap†, then invert the whole thing
-                inverse_decomposition = self.__call__(
-                    Operator(unitary).adjoint()
-                )
+                inverse_decomposition = self.__call__(Operator(unitary).adjoint())
                 inverse_decomposition_with_siswap_dg = QuantumCircuit(2)
                 for instruction in inverse_decomposition:
                     if isinstance(instruction.operation, SiSwapGate):
@@ -265,10 +266,10 @@ def _interleaving_single_qubit_gates(x, y, z):
     (x, y, z) ∈ W′ when sandwiched by two SiSwap gates.
     Return the SiSwap sandwich.
     """
-    assert abs(z) <= x - y + _EPS and np.pi/4 >= x and x >= y and y >= abs(z)
+    assert abs(z) <= x - y + _EPS and np.pi / 4 >= x and x >= y and y >= abs(z)
     C = np.sin(x + y - z) * np.sin(x - y + z) * np.sin(-x - y - z) * np.sin(-x + y + z)
     if abs(C) < _EPS:
-        C = 0.
+        C = 0.0
 
     α = np.arccos(np.cos(2 * x) - np.cos(2 * y) + np.cos(2 * z) + 2 * np.sqrt(C))
 
@@ -279,7 +280,7 @@ def _interleaving_single_qubit_gates(x, y, z):
     sign_z = 1 if z >= 0 else -1
     γ = np.arccos(sign_z * np.sqrt(s / (s + t)))
 
-    # create V operator
+    # create V (sandwich) operator
     V = QuantumCircuit(2)
     V.append(SiSwapGate(), [0, 1])
     V.rz(γ, 0)

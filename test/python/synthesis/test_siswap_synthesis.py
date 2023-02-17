@@ -22,7 +22,17 @@ import numpy as np
 from qiskit.synthesis.su4 import SiSwapDecomposer
 from qiskit.quantum_info import random_unitary, Operator
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.library import SwapGate, iSwapGate, CXGate, IGate, SGate, XGate, RXXGate, RYYGate, RZZGate
+from qiskit.circuit.library import (
+    SwapGate,
+    iSwapGate,
+    CXGate,
+    IGate,
+    SGate,
+    XGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+)
 
 
 @ddt
@@ -47,9 +57,16 @@ class TestSiSwapSynth(QiskitTestCase):
         self.assertEqual(circuit.count_ops().get("siswap", 0), 3)
         self.assertEqual(Operator(circuit), Operator(u))
 
-    @combine(corner=[iSwapGate(), CXGate(), CXGate().power(-1 / 2),
-                     Operator(RXXGate(-2*np.pi/4)) @ Operator(RYYGate(-2*np.pi/8)) @ Operator(RZZGate(2*np.pi/8))]
-             )
+    @combine(
+        corner=[
+            iSwapGate(),
+            CXGate(),
+            CXGate().power(-1 / 2),
+            Operator(RXXGate(-2 * np.pi / 4))
+            @ Operator(RYYGate(-2 * np.pi / 8))
+            @ Operator(RZZGate(2 * np.pi / 8)),
+        ]
+    )
     def test_siswap_corners_2_uses(self, corner):
         """Test synthesis of some special corner cases."""
         u = Operator(corner)
