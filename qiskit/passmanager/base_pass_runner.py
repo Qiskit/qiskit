@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,13 +14,13 @@
 
 # pylint: disable=ungrouped-imports, no-name-in-module
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, Any, Union, Optional
+from typing import Dict, Any, Union, Optional
 
 from qiskit.utils.deprecation import deprecate_exception
 
 from .base_pass import BasePass
 from .exceptions import PassManagerError
-from .flow_controller import FlowController, PassSequence
+from .flow_controller import FlowController
 from .propertyset import init_property_set, get_property_set
 
 
@@ -63,33 +63,18 @@ class BasePassRunner(ABC):
         self.valid_passes = set()
 
         # pass manager's overriding options for the passes it runs (for debugging)
-        # This is no longer used -- Naoki Kanazawa (Qiskit/qiskit-terra/#9163)
         self.passmanager_options = {"max_iteration": max_iteration}
 
     def append(
         self,
-        passes: PassSequence,
-        **flow_controller_conditions: Callable,
+        flow_controller: FlowController,
     ):
-        """Append a passes to the schedule of passes.
+        """Append a flow controller to the schedule of controllers.
 
         Args:
-            passes: A list of passes to be added to schedule.
-            flow_controller_conditions: Dictionary of control flow plugins.
-                This is going to be deprecated. Provide flow controller rather than
-                a pass list with flow_controller_conditions.
-
-        Raises:
-            PassManagerError: When invalid flow condition is provided.
+            flow_controller: A normalized flow controller instance.
         """
-        # TODO Remove this. Now standard input is only normalized flow controller.
-        #  This lives only for unittest where it can take un-formatted pass list input.
-        normalized_flow_controller = FlowController.controller_factory(
-            passes=passes,
-            options=self.passmanager_options,
-            **flow_controller_conditions,
-        )
-        self.working_list.append(normalized_flow_controller)
+        self.working_list.append(flow_controller)
 
     @abstractmethod
     def _to_passmanager_ir(self, in_program):
@@ -120,14 +105,12 @@ class BasePassRunner(ABC):
         self,
         pass_: BasePass,
         passmanager_ir: Any,
-        options: Dict,
     ) -> Any:
         """Do a single base pass.
 
         Args:
             pass_: A base pass to run.
             passmanager_ir: Pass manager IR.
-            options: PassManager options.
 
         Returns:
             Pass manager IR with optimization.
@@ -156,11 +139,20 @@ class BasePassRunner(ABC):
         if isinstance(pass_sequence, BasePass):
             # Allow mutation of property set by pass execution.
             pass_sequence.property_set = get_property_set()
-            passmanager_ir = self._run_base_pass(
-                pass_=pass_sequence,
-                passmanager_ir=passmanager_ir,
-                options=options,
-            )
+            # First, do the requirements of this pass
+            for required_pass in pass_sequence.requires:
+                passmanager_ir = self._run_pass_generic(
+                    pass_sequence=required_pass,
+                    passmanager_ir=passmanager_ir,
+                    options=options,
+                )
+            # Run the pass itself, if not already run
+            if pass_sequence not in self.valid_passes:
+                passmanager_ir = self._run_base_pass(
+                    pass_=pass_sequence,
+                    passmanager_ir=passmanager_ir,
+                )
+                self._update_valid_passes(pass_sequence)
             return passmanager_ir
         if isinstance(pass_sequence, FlowController):
             for pass_ in pass_sequence:
@@ -183,7 +175,7 @@ class BasePassRunner(ABC):
         Returns:
             Compiled or optimized program.
         """
-        # Create thread local propety set.
+        # Create thread local property set.
         init_property_set()
 
         passmanager_ir = self._to_passmanager_ir(in_program)
@@ -200,5 +192,3 @@ class BasePassRunner(ABC):
 
     def _update_valid_passes(self, pass_):
         self.valid_passes.add(pass_)
-        if not pass_.is_analysis_pass:  # Analysis passes preserve all
-            self.valid_passes.intersection_update(set(pass_.preserves))

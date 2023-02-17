@@ -17,6 +17,7 @@ import re
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.passmanager.flow_controller import PassSequence
 from qiskit.passmanager.base_passmanager import BasePassManager
 
 from .basepasses import BasePass
@@ -83,6 +84,29 @@ class PassManager(BasePassManager, passmanager_error=TranspilerError):
         for flow_controller in self._flow_controllers:
             running_passmanager.append(flow_controller)
         return running_passmanager
+
+    def append(
+        self,
+        passes: PassSequence,
+        max_iteration: int = None,
+        **flow_controller_conditions: Callable,
+    ) -> None:
+        if max_iteration:
+            # TODO remove this argument from append
+            self.max_iteration = max_iteration
+        super().append(passes, **flow_controller_conditions)
+
+    def replace(
+        self,
+        index: int,
+        passes: PassSequence,
+        max_iteration: int = None,
+        **flow_controller_conditions: Any,
+    ) -> None:
+        if max_iteration:
+            # TODO remove this argument from append
+            self.max_iteration = max_iteration
+        super().replace(index, passes, **flow_controller_conditions)
 
 
 class StagedPassManager(PassManager):

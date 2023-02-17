@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2018, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -59,8 +59,8 @@ def get_property_set() -> PropertySet:
         return CONTEXT_PROPERTIES.get()
     except LookupError as ex:
         raise PassManagerError(
-            "A property set is called outside of the thread or "
-            "property set is initialized in this thread."
+            "A property set is called outside the running thread or "
+            "property set is not initialized in this thread."
         ) from ex
 
 

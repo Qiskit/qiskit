@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -80,7 +80,6 @@ class BasePassManager(ABC):
     def append(
         self,
         passes: PassSequence,
-        max_iteration: int = None,
         **flow_controller_conditions: Callable,
     ) -> None:
         """Append a Pass Set to the schedule of passes.
@@ -92,7 +91,6 @@ class BasePassManager(ABC):
                     It is also possible to append a
                     :class:`~qiskit.transpiler.runningpassmanager.FlowController` instance and the
                     rest of the parameter will be ignored.
-            max_iteration: max number of iterations of passes.
             flow_controller_conditions: Dictionary of control flow plugins. Default:
 
                 * do_while (callable property_set -> boolean): The passes repeat until the
@@ -103,10 +101,6 @@ class BasePassManager(ABC):
                   callable returns True.
                   Default: `lambda x: True # i.e. passes run`
         """
-        if max_iteration:
-            # TODO remove this argument from append
-            self.max_iteration = max_iteration
-
         normalized_flow_controller = FlowController.controller_factory(
             passes=passes,
             options={"max_iteration": self.max_iteration},
@@ -126,7 +120,6 @@ class BasePassManager(ABC):
         self,
         index: int,
         passes: PassSequence,
-        max_iteration: int = None,
         **flow_controller_conditions: Any,
     ) -> None:
         """Replace a particular pass in the scheduler.
@@ -135,16 +128,11 @@ class BasePassManager(ABC):
             index: Pass index to replace, based on the position in passes().
             passes: A pass set (as defined in :py:func:`qiskit.transpiler.PassManager.append`)
                 to be added to the pass manager schedule.
-            max_iteration: max number of iterations of passes.
             flow_controller_conditions: control flow plugins.
 
         Raises:
             PassManagerError: if a pass in passes is not a proper pass or index not found.
         """
-        if max_iteration:
-            # TODO remove this argument from append
-            self.max_iteration = max_iteration
-
         normalized_flow_controller = FlowController.controller_factory(
             passes=passes,
             options={"max_iteration": self.max_iteration},

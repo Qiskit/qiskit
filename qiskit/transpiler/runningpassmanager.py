@@ -15,12 +15,13 @@ This object holds the state of a pass manager during running-time."""
 
 import logging
 from time import time
-from typing import Dict
+from typing import Callable
 
 from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.base_pass_runner import BasePassRunner
+from qiskit.passmanager.flow_controller import FlowController, PassSequence
 from qiskit.passmanager.propertyset import get_property_set
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.fencedobjs import FencedDAGCircuit
@@ -63,10 +64,6 @@ class RunningPassManager(BasePassRunner, passmanager_error=TranspilerError):
     )
     def fenced_property_set(self):
         """Return a thread local fenced property set."""
-        # TODO Remove. We no longer need FencedPropertySet and indeed this is not used.
-        #   Now we can get property set at any time through the contextvar.
-        #   LazyPropertySet provides the same behavior with simpler merchinary.
-
         # global property set is the context of the circuit held by the pass manager
         # as it runs through its scheduled passes. The flow controller
         # have read-only access (via the fenced_property_set).
@@ -131,51 +128,59 @@ class RunningPassManager(BasePassRunner, passmanager_error=TranspilerError):
 
         return super().run(in_program=circuit)
 
+    def append(
+        self,
+        passes: PassSequence,
+        **flow_controller_conditions: Callable,
+    ):
+        """Append a passes to the schedule of passes.
+
+        Args:
+            passes: passes to be added to schedule
+            flow_controller_conditions: See add_flow_controller(): Dictionary of
+            control flow plugins. Default:
+
+                * do_while (callable property_set -> boolean): The passes repeat until the
+                  callable returns False.
+                  Default: `lambda x: False # i.e. passes run once`
+
+                * condition (callable property_set -> boolean): The passes run only if the
+                  callable returns True.
+                  Default: `lambda x: True # i.e. passes run`
+        """
+        normalized_flow_controller = FlowController.controller_factory(
+            passes=passes,
+            options=self.passmanager_options,
+            **flow_controller_conditions,
+        )
+        super().append(normalized_flow_controller)
+
     def _run_base_pass(
         self,
         pass_: BasePass,
         passmanager_ir: DAGCircuit,
-        options: Dict,
     ) -> DAGCircuit:
         """Do a single base pass.
 
         Args:
             pass_: A base pass to run.
-            passmanager_ir: The dag on which the pass is ran.
-            options: PassManager options.
+            passmanager_ir: Pass manager IR.
 
         Returns:
-            The transformed dag in case of a transformation pass.
-            The same input dag in case of an analysis pass.
+            Pass manager IR with optimization.
 
         Raises:
-            TypeError: When pass_ it not a valid pass type.
+            TypeError: When pass_ is not a valid base pass.
+            TranspilerError: When transform pass returns non DAGCircuit.
+            TranspilerError: When pass is neither transform pass nor analysis pass.
         """
         if not isinstance(pass_, BasePass):
             raise TypeError(f"A pass {pass_} is not a valid BasePass for circuit transpiler.")
 
-        # First, do the requires of pass_
-        for required_pass in pass_.requires:
-            passmanager_ir = self._run_pass_generic(
-                pass_sequence=required_pass,
-                passmanager_ir=passmanager_ir,
-                options=options,
-            )
-
-        # Run the pass itself, if not already run
-        if pass_ not in self.valid_passes:
-            passmanager_ir = self._run_current_pass(pass_, passmanager_ir)
-
-            # update the valid_passes property
-            self._update_valid_passes(pass_)
-
-        return passmanager_ir
-
-    def _run_current_pass(self, pass_, dag):
         if pass_.is_transformation_pass:
             # Measure time if we have a callback or logging set
             start_time = time()
-            new_dag = pass_.run(dag)
+            new_dag = pass_.run(passmanager_ir)
             end_time = time()
             run_time = end_time - start_time
             # Execute the callback function if one is set
@@ -190,24 +195,24 @@ class RunningPassManager(BasePassRunner, passmanager_error=TranspilerError):
                 self.count += 1
             self._log_pass(start_time, end_time, pass_.name())
             if isinstance(new_dag, DAGCircuit):
-                new_dag.calibrations = dag.calibrations
+                new_dag.calibrations = passmanager_ir.calibrations
             else:
                 raise TranspilerError(
                     "Transformation passes should return a transformed dag."
                     "The pass %s is returning a %s" % (type(pass_).__name__, type(new_dag))
                 )
-            dag = new_dag
+            passmanager_ir = new_dag
         elif pass_.is_analysis_pass:
             # Measure time if we have a callback or logging set
             start_time = time()
-            pass_.run(FencedDAGCircuit(dag))
+            pass_.run(FencedDAGCircuit(passmanager_ir))
             end_time = time()
             run_time = end_time - start_time
             # Execute the callback function if one is set
             if self.callback:
                 self.callback(
                     pass_=pass_,
-                    dag=dag,
+                    dag=passmanager_ir,
                     time=run_time,
                     property_set=get_property_set(),
                     count=self.count,
@@ -216,7 +221,12 @@ class RunningPassManager(BasePassRunner, passmanager_error=TranspilerError):
             self._log_pass(start_time, end_time, pass_.name())
         else:
             raise TranspilerError("I dont know how to handle this type of pass")
-        return dag
+        return passmanager_ir
+
+    def _update_valid_passes(self, pass_):
+        super()._update_valid_passes(pass_)
+        if not pass_.is_analysis_pass:  # Analysis passes preserve all
+            self.valid_passes.intersection_update(set(pass_.preserves))
 
     def _log_pass(self, start_time, end_time, name):
         log_msg = f"Pass: {name} - {(end_time - start_time) * 1000:.5f} (ms)"

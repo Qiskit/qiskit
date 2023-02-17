@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2020, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,7 @@
 
 from collections import OrderedDict
 from functools import partial
-from typing import Callable, Sequence, List, Dict, Union
+from typing import Callable, Sequence, List, Dict, Union, Any
 
 from .base_pass import BasePass
 from .exceptions import PassManagerError
@@ -86,7 +86,7 @@ class FlowController:
     @classmethod
     def controller_factory(
         cls,
-        passes: Sequence[Union[BasePass, "FlowController"]],
+        passes: Any,
         options: Dict,
         **partial_controller: Callable,
     ) -> "FlowController":
