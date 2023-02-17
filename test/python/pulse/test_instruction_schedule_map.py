@@ -30,7 +30,7 @@ from qiskit.pulse import (
     ShiftPhase,
     Constant,
 )
-from qiskit.pulse.instruction_schedule_map import CalibrationPublisher
+from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.pulse.channels import DriveChannel
 from qiskit.qobj import PulseQobjInstruction
 from qiskit.qobj.converters import QobjToInstructionConverter
@@ -602,8 +602,12 @@ class TestInstructionScheduleMap(QiskitTestCase):
 
         self.assertFalse(instmap.has_custom_gate())
 
-        # add something
+        # add custom schedule
         some_sched = Schedule()
         instmap.add("u3", (0,), some_sched)
 
         self.assertTrue(instmap.has_custom_gate())
+
+        # delete custom schedule
+        instmap.remove("u3", (0,))
+        self.assertFalse(instmap.has_custom_gate())
