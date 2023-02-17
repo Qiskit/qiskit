@@ -13,6 +13,7 @@
 Circuit simulation for the Clifford class.
 """
 import copy
+import numpy as np
 
 from qiskit.circuit import Barrier, Delay, Gate
 from qiskit.circuit.exceptions import CircuitError
@@ -95,6 +96,28 @@ def _append_operation(clifford, operation, qargs=None, recursion_depth=0):
             raise QiskitError("Invalid qubits for 2-qubit gate.")
         return _BASIS_2Q[name](clifford, qargs[0], qargs[1])
 
+    # If u gate, check if it is a Clifford, and if so, apply it
+    if isinstance(gate, Gate) and name == "u" and len(qargs) == 1:
+        try:
+            theta, phi, lambd = tuple(_n_half_pis(par) for par in gate.params)
+        except ValueError as err:
+            raise QiskitError("U gate angles must be multiples of pi/2 to be a Clifford") from err
+        if theta == 0:
+            clifford = _append_rz(clifford, qargs[0], lambd + phi)
+        elif theta == 1:
+            clifford = _append_rz(clifford, qargs[0], lambd - 2)
+            clifford = _append_h(clifford, qargs[0])
+            clifford = _append_rz(clifford, qargs[0], phi)
+        elif theta == 2:
+            clifford = _append_rz(clifford, qargs[0], lambd - 1)
+            clifford = _append_x(clifford, qargs[0])
+            clifford = _append_rz(clifford, qargs[0], phi + 1)
+        elif theta == 3:
+            clifford = _append_rz(clifford, qargs[0], lambd)
+            clifford = _append_h(clifford, qargs[0])
+            clifford = _append_rz(clifford, qargs[0], phi + 2)
+        return clifford
+
     # If gate is a Clifford, we can either unroll the gate using the "to_circuit"
     # method, or we can compose the Cliffords directly. Experimentally, for large
     # cliffords the second method is considerably faster.
@@ -140,9 +163,42 @@ def _append_operation(clifford, operation, qargs=None, recursion_depth=0):
     raise QiskitError(f"Cannot apply {gate}")
 
 
+def _n_half_pis(param) -> int:
+    try:
+        param = float(param)
+    except TypeError as err:
+        raise ValueError(f"{param} is not bounded") from err
+
+    epsilon = (abs(param) + 0.5 * 1e-10) % (np.pi / 2)
+    if epsilon < 1e-10:
+        multiple = int(np.round(param / (np.pi / 2)))
+        return multiple % 4
+
+    raise ValueError(f"{param} is not to a multiple of pi/2")
+
+
 # ---------------------------------------------------------------------
 # Helper functions for applying basis gates
 # ---------------------------------------------------------------------
+def _append_rz(clifford, qubit, multiple):
+    """Apply an Rz gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+        multiple (int): z-rotation angle in a multiple of pi/2
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    if multiple % 4 == 1:
+        return _append_s(clifford, qubit)
+    if multiple % 4 == 2:
+        return _append_z(clifford, qubit)
+    if multiple % 4 == 3:
+        return _append_sdg(clifford, qubit)
+
+    return clifford
 
 
 def _append_i(clifford, qubit):
