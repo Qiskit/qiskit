@@ -74,9 +74,9 @@ disable=spelling,       # way too noisy
     import-outside-toplevel,
     import-error,        # overzealous with our optionals/dynamic packages
 
-    # TODO: these were added in modern Pylint and we want to enable them.
-    # (If we decide any of them should be ignored, then move it above this section
-    #  and add a comment with the rationale.)
+    # TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
+    #  remove from here and fix the issues. Else, move it above this section and add a comment
+    #  with the rationale.
     arguments-renamed,
     broad-exception-raised,
     consider-iterating-dictionary,
