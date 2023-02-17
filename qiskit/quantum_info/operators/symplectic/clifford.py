@@ -621,9 +621,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Initialize an identity Clifford
         clifford = Clifford(np.eye(2 * circuit.num_qubits), validate=False)
         if isinstance(circuit, QuantumCircuit):
-            _append_circuit(clifford, circuit)
+            clifford = _append_circuit(clifford, circuit)
         else:
-            _append_operation(clifford, circuit)
+            clifford = _append_operation(clifford, circuit)
         return clifford
 
     @staticmethod
@@ -679,7 +679,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         num_qubits = len(label)
         op = Clifford(np.eye(2 * num_qubits, dtype=bool))
         for qubit, char in enumerate(reversed(label)):
-            _append_operation(op, label_gates[char], qargs=[qubit])
+            op = _append_operation(op, label_gates[char], qargs=[qubit])
         return op
 
     def to_labels(self, array=False, mode="B"):
