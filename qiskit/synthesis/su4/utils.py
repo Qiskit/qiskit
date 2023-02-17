@@ -10,6 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=invalid-name
+
+"""Utilities for SU(4) synthesis: Weyl chamber, polytopes, distances, etc."""
+
 import numpy as np
 
 
@@ -27,7 +31,7 @@ def find_min_point(P):
     if len(P) == 1:
         return P[0]
 
-    P = [np.array([i for i in p]) for p in P]
+    P = [np.array(p) for p in P]
 
     # Step 0. Choose a point from C(P)
     x = P[np.array([np.dot(p, p) for p in P]).argmin()]

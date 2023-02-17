@@ -15,7 +15,6 @@ Driver for a synthesis routine which emits optimal XX-based circuits.
 """
 from __future__ import annotations
 import heapq
-import math
 from operator import itemgetter
 from typing import Callable
 
@@ -27,11 +26,11 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
+from qiskit.synthesis.su4.utils import average_infidelity
 
 from .circuits import apply_reflection, apply_shift, canonical_xx_circuit
 from .utilities import EPSILON
 from .polytopes import XXPolytope
-from qiskit.synthesis.su4.utils import average_infidelity
 
 
 class XXDecomposer:

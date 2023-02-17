@@ -266,7 +266,6 @@ def _interleaving_single_qubit_gates(x, y, z):
     (x, y, z) ∈ W′ when sandwiched by two SiSwap gates.
     Return the SiSwap sandwich.
     """
-    assert abs(z) <= x - y + _EPS and np.pi / 4 >= x and x >= y and y >= abs(z)
     C = np.sin(x + y - z) * np.sin(x - y + z) * np.sin(-x - y - z) * np.sin(-x + y + z)
     if abs(C) < _EPS:
         C = 0.0
