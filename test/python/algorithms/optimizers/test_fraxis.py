@@ -16,8 +16,8 @@ import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from qiskit.algorithms.minimum_eigensolvers import VQE
-from qiskit.algorithms.optimizers import FraxisOptimizer
-from qiskit.circuit.library import FraxisCircuit
+from qiskit.algorithms.optimizers import Fraxis
+from qiskit.circuit.library import TwoLocal
 from qiskit.primitives import Estimator
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.utils import algorithm_globals
@@ -45,8 +45,8 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
 
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=FraxisCircuit(),
-            optimizer=FraxisOptimizer(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857275, places=6)

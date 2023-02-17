@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -31,6 +31,7 @@ from ..standard_gates import (
     SdgGate,
     TGate,
     TdgGate,
+    UGate,
     RXXGate,
     RYYGate,
     RZXGate,
@@ -250,6 +251,8 @@ class TwoLocal(NLocal):
         # this could be a lot easier if the standard layers would have ``name`` and ``num_params``
         # as static types, which might be something they should have anyway
         theta = Parameter("θ")
+        phi = Parameter("θ2")  # for U gate
+        lam = Parameter("θ3")  # for U gate
         valid_layers = {
             "ch": CHGate(),
             "cx": CXGate(),
@@ -277,6 +280,7 @@ class TwoLocal(NLocal):
             "z": ZGate(),
             "t": TGate(),
             "tdg": TdgGate(),
+            "u": UGate(theta, phi, lam),
         }
 
         # try to exchange `layer` from a string to a gate instance

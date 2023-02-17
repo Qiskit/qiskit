@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,7 +19,6 @@ from .real_amplitudes import RealAmplitudes
 from .efficient_su2 import EfficientSU2
 from .excitation_preserving import ExcitationPreserving
 from .qaoa_ansatz import QAOAAnsatz
-from .fraxis import FraxisCircuit
 
 __all__ = [
     "NLocal",
@@ -29,5 +28,4 @@ __all__ = [
     "EfficientSU2",
     "ExcitationPreserving",
     "QAOAAnsatz",
-    "FraxisCircuit",
 ]

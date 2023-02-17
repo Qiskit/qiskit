@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -914,6 +914,25 @@ class TestTwoLocal(QiskitTestCase):
         full.assign_parameters(params, inplace=True)
         reverse.assign_parameters(params, inplace=True)
         assert Operator(full) == Operator(reverse)
+
+    def test_ugate(self):
+        """Test UGate as rotation block"""
+        two = TwoLocal(2, "u", "cx", entanglement="pairwise", reps=1)
+        parameters = np.arange(two.num_parameters)
+
+        # ┌──────────┐      ┌──────────┐
+        # q_0: ┤ U(0, 1, 2) ├──■───┤ U(6, 7, 8) ├─
+        # ├──────────┤┌─┴─┐┌┴──────────┴┐
+        # q_1: ┤ U(3, 4, 5) ├┤ X ├┤ U(9, 10, 11) ├
+        # └──────────┘└───┘└────────────┘
+        ref = QuantumCircuit(2)
+        ref.u(*parameters[0:3], 0)
+        ref.u(*parameters[3:6], 1)
+        ref.cx(0, 1)
+        ref.u(*parameters[6:9], 0)
+        ref.u(*parameters[9:12], 1)
+
+        self.assertCircuitEqual(two.assign_parameters(parameters), ref)
 
 
 if __name__ == "__main__":

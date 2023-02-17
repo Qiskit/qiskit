@@ -83,7 +83,7 @@ Local Optimizers
    TNC
    SciPyOptimizer
    UMDA
-   FraxisOptimizer
+   Fraxis
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -122,7 +122,7 @@ from .aqgd import AQGD
 from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
-from .fraxis import FraxisOptimizer
+from .fraxis import Fraxis
 from .gradient_descent import GradientDescent, GradientDescentState
 from .gsls import GSLS
 from .imfil import IMFIL
@@ -181,5 +181,5 @@ __all__ = [
     "BOBYQA",
     "IMFIL",
     "UMDA",
-    "FraxisOptimizer",
+    "Fraxis",
 ]

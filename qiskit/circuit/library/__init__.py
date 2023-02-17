@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2020.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -340,7 +340,6 @@ They are heavily used in near-term algorithms in e.g. Chemistry, Physics or Opti
    EfficientSU2
    ExcitationPreserving
    QAOAAnsatz
-   FraxisCircuit
 
 
 Data encoding circuits
@@ -545,7 +544,6 @@ from .n_local import (
     EfficientSU2,
     ExcitationPreserving,
     QAOAAnsatz,
-    FraxisCircuit,
 )
 from .data_preparation import PauliFeatureMap, ZFeatureMap, ZZFeatureMap, StatePreparation
 from .quantum_volume import QuantumVolume

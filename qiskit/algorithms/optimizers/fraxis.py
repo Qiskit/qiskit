@@ -23,14 +23,15 @@ from qiskit.utils import algorithm_globals
 from .scipy_optimizer import SciPyOptimizer
 
 
-class FraxisOptimizer(SciPyOptimizer):
+class Fraxis(SciPyOptimizer):
     """
     Free-Axis Selection (Fraxis) algorithm [1].
 
     More precisely, this class implements π-Fraxis algorithm in Algorithm 1 of [1].
 
-    This optimizer can optimize circuits with only U gates as parametrized gates.
-    Recommended to use :class:`~qiskit.circuit.library.FraxisCircuit` as ansatz.
+    .. note::
+
+        This optimizer only works with U gates as parameterized gates etc.
 
     References:
       [1] "Optimizing Parameterized Quantum Circuits with Free-Axis Selection,"
@@ -142,12 +143,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
         vals = fun(xs, *args)
         funcalls += len(xs)
 
-        r_x = vals[0]
-        r_y = vals[1]
-        r_z = vals[2]
-        r_xy = vals[3]
-        r_yz = vals[4]
-        r_zx = vals[5]
+        r_x, r_y, r_z, r_xy, r_yz, r_zx = vals
 
         mat = np.array(
             [
@@ -166,12 +162,10 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
 
         if callback is not None:
             # pass x0 values and the estimated energy value fun(x0) to the callback
-            callback(np.copy(x0), eigvals[0] / 2)
+            callback(x0, eigvals[0] / 2)
 
         if maxiter is not None:
             if niter >= maxiter:
                 break
 
-    return OptimizeResult(
-        fun=fun(np.copy(x0), *args), x=x0, nit=niter, nfev=funcalls, success=(niter > 1)
-    )
+    return OptimizeResult(fun=fun(x0, *args), x=x0, nit=niter, nfev=funcalls, success=(niter > 1))
