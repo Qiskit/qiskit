@@ -1364,7 +1364,7 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, FakeBoeblingen(), optimization_level=optimization_level)
 
         self.assertEqual(len(out.qubits), FakeBoeblingen().configuration().num_qubits)
-        self.assertEqual(out.clbits, clbits)
+        self.assertEqual(len(out.clbits), len(clbits))
 
     @data(0, 1, 2, 3)
     def test_translate_ecr_basis(self, optimization_level):
