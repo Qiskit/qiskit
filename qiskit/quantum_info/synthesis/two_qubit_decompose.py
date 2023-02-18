@@ -276,44 +276,55 @@ class TwoQubitWeylDecomposition:
         od._original_decomposition = None
         od._is_flipped_from_original = False
 
-        def is_close(ap, bp, cp):
-            da, db, dc = a - ap, b - bp, c - cp
-            tr = 4 * complex(
-                math.cos(da) * math.cos(db) * math.cos(dc),
-                math.sin(da) * math.sin(db) * math.sin(dc),
-            )
-            fid = trace_to_fid(tr)
-            return fid >= fidelity
-
         if fidelity is None:  # Don't specialize if None
             instance = super().__new__(
                 TwoQubitWeylGeneral if cls is TwoQubitWeylDecomposition else cls
             )
-        elif is_close(0, 0, 0):
-            instance = super().__new__(TwoQubitWeylIdEquiv)
-        elif is_close(pi4, pi4, pi4) or is_close(pi4, pi4, -pi4):
-            instance = super().__new__(TwoQubitWeylSWAPEquiv)
-        elif (lambda x: is_close(x, x, x))(_closest_partial_swap(a, b, c)):
-            instance = super().__new__(TwoQubitWeylPartialSWAPEquiv)
-        elif (lambda x: is_close(x, x, -x))(_closest_partial_swap(a, b, -c)):
-            instance = super().__new__(TwoQubitWeylPartialSWAPFlipEquiv)
-        elif is_close(a, 0, 0):
-            instance = super().__new__(TwoQubitWeylControlledEquiv)
-        elif is_close(pi4, pi4, c):
-            instance = super().__new__(TwoQubitWeylMirrorControlledEquiv)
-        elif is_close((a + b) / 2, (a + b) / 2, c):
-            instance = super().__new__(TwoQubitWeylfSimaabEquiv)
-        elif is_close(a, (b + c) / 2, (b + c) / 2):
-            instance = super().__new__(TwoQubitWeylfSimabbEquiv)
-        elif is_close(a, (b - c) / 2, (c - b) / 2):
-            instance = super().__new__(TwoQubitWeylfSimabmbEquiv)
         else:
-            instance = super().__new__(TwoQubitWeylGeneral)
+            for spec in (
+                TwoQubitWeylIdEquiv,  # (0, 0, 0)
+                TwoQubitWeylSWAPEquiv,  # (pi4, pi4, pi4) ~ (pi4, pi4, -pi4)
+                TwoQubitWeylPartialSWAPEquiv,  # (a, a, a)
+                TwoQubitWeylPartialSWAPFlipEquiv,  # (a, a, -a)
+                TwoQubitWeylControlledEquiv,  # (a, 0, 0)
+                TwoQubitWeylMirrorControlledEquiv,  # (pi4, pi4, c)
+                TwoQubitWeylfSimaabEquiv,  # (a, a, b)
+                TwoQubitWeylfSimabbEquiv,  # (a, b, b)
+                TwoQubitWeylfSimabmbEquiv,  # (a, b, -b)
+            ):
+                if spec.can_specialize(od, fidelity):
+                    instance = super().__new__(spec)
+                    break
+            else:
+                instance = super().__new__(TwoQubitWeylGeneral)  # (a, b, c)
 
         instance._original_decomposition = od
         return instance
 
-    def __init__(self, unitary_matrix, fidelity=None):
+    def _is_close(self, ap, bp, cp):
+        """Is current decomposition close (by requested_fidelity) to being ~Ud(ap, bp, cp)"""
+        if self.requested_fidelity is None:
+            return False
+        da, db, dc = self.a - ap, self.b - bp, self.c - cp
+        tr = 4 * complex(
+            math.cos(da) * math.cos(db) * math.cos(dc),
+            math.sin(da) * math.sin(db) * math.sin(dc),
+        )
+        fid = trace_to_fid(tr)
+        return fid >= self.requested_fidelity
+
+    def _flip(self):
+        """Flip a -> pi/2-a, b -> b, c -> -c"""
+
+        self._is_flipped_from_original = True
+        self.a = np.pi / 4
+        self.c = -self.c
+        self.K1r = self.K1r @ _ipy
+        self.K2l = _ipx @ self.K2l
+        self.K2r = _ipz @ self.K2r
+        self.global_phase += np.pi / 2
+
+    def __init__(self, unitary_matrix, fidelity=(1.0 - 1.0e-9)):
         del unitary_matrix  # unused in __init__ (used in new)
         od = self._original_decomposition
         self.a, self.b, self.c = od.a, od.b, od.c
@@ -328,16 +339,12 @@ class TwoQubitWeylDecomposition:
         # Update the phase after specialization:
         if self._is_flipped_from_original:
             da, db, dc = (np.pi / 2 - od.a) - self.a, od.b - self.b, -od.c - self.c
-            tr = 4 * complex(
-                math.cos(da) * math.cos(db) * math.cos(dc),
-                math.sin(da) * math.sin(db) * math.sin(dc),
-            )
         else:
             da, db, dc = od.a - self.a, od.b - self.b, od.c - self.c
-            tr = 4 * complex(
-                math.cos(da) * math.cos(db) * math.cos(dc),
-                math.sin(da) * math.sin(db) * math.sin(dc),
-            )
+        tr = 4 * complex(
+            math.cos(da) * math.cos(db) * math.cos(dc),
+            math.sin(da) * math.sin(db) * math.sin(dc),
+        )
         self.global_phase += cmath.phase(tr)
         self.calculated_fidelity = trace_to_fid(tr)
         if logger.isEnabledFor(logging.DEBUG):
@@ -359,6 +366,11 @@ class TwoQubitWeylDecomposition:
                 f"calculated fidelity: {self.calculated_fidelity} "
                 f"is worse than requested fidelity: {self.requested_fidelity}."
             )
+
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        """Can this class approximate gen up to fidelity?"""
+        raise NotImplementedError
 
     def specialize(self):
         """Make changes to the decomposition to comply with any specialization.
@@ -457,6 +469,10 @@ class TwoQubitWeylIdEquiv(TwoQubitWeylDecomposition):
         K2r = Id .
     """
 
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        return gen._is_close(0, 0, 0)
+
     def specialize(self):
         self.a = self.b = self.c = 0.0
         self.K1l = self.K1l @ self.K2l
@@ -473,15 +489,17 @@ class TwoQubitWeylSWAPEquiv(TwoQubitWeylDecomposition):
         K2r = Id .
     """
 
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        return gen._is_close(np.pi / 4, np.pi / 4, np.pi / 4) or gen._is_close(
+            np.pi / 4, np.pi / 4, -np.pi / 4
+        )
+
     def specialize(self):
-        if self.c > 0:
-            self.K1l = self.K1l @ self.K2r
-            self.K1r = self.K1r @ self.K2l
-        else:
-            self._is_flipped_from_original = True
-            self.K1l = self.K1l @ _ipz @ self.K2r
-            self.K1r = self.K1r @ _ipz @ self.K2l
-            self.global_phase = self.global_phase + np.pi / 2
+        if self.c < 0:
+            self._flip()
+        self.K1l = self.K1l @ self.K2r
+        self.K1r = self.K1r @ self.K2l
         self.a = self.b = self.c = np.pi / 4
         self.K2l = _id.copy()
         self.K2r = _id.copy()
@@ -510,6 +528,11 @@ class TwoQubitWeylPartialSWAPEquiv(TwoQubitWeylDecomposition):
         K2l = Id .
     """
 
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        a = _closest_partial_swap(gen.a, gen.b, gen.c)
+        return gen._is_close(a, a, a)
+
     def specialize(self):
         self.a = self.b = self.c = _closest_partial_swap(self.a, self.b, self.c)
         self.K1l = self.K1l @ self.K2l
@@ -527,6 +550,11 @@ class TwoQubitWeylPartialSWAPFlipEquiv(TwoQubitWeylDecomposition):
     This gate binds 3 parameters, we make it canonical by setting:
         K2l = Id .
     """
+
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        a = _closest_partial_swap(gen.a, gen.b, -gen.c)
+        return gen._is_close(a, a, -a)
 
     def specialize(self):
         self.a = self.b = _closest_partial_swap(self.a, self.b, -self.c)
@@ -551,6 +579,10 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
 
     _default_1q_basis = "XYX"
 
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        return gen._is_close(gen.a, 0, 0)
+
     def specialize(self):
         self.b = self.c = 0
         k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
@@ -560,6 +592,127 @@ class TwoQubitWeylControlledEquiv(TwoQubitWeylDecomposition):
         self.K1r = self.K1r @ np.asarray(RXGate(k2rphi))
         self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
         self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RXGate(k2rlambda))
+
+
+class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
+    """U ~ Ud(𝜋/4, 𝜋/4, α) ~ SWAP . Ctrl-U
+
+    This gate binds 4 parameters, we make it canonical by setting:
+        K2l = Ry(θl).Rz(λl) ,
+        K2r = Ry(θr).Rz(λr) .
+    """
+
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        return gen._is_close(np.pi / 4, np.pi / 4, gen.c)
+
+    def specialize(self):
+        self.a = self.b = np.pi / 4
+        if self.c < 0:
+            self._flip()
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
+        k2rtheta, k2rphi, k2rlambda, k2rphase = _oneq_zyz.angles_and_phase(self.K2r)
+        self.global_phase += k2lphase + k2rphase
+        self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
+        self.K1l = self.K1l @ np.asarray(RZGate(k2rphi))
+        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RZGate(k2llambda))
+        self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RZGate(k2rlambda))
+
+    def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
+        circ.swap(0, 1)
+        circ.rzz((np.pi / 4 - self.c) * 2, 0, 1)
+        circ.global_phase += np.pi / 4
+
+
+# These next 3 gates use the definition of fSim from https://arxiv.org/pdf/2001.08343.pdf eq (1)
+class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
+    """U ~ Ud(α, α, β), α ≥ |β|
+
+    This gate binds 5 parameters, we make it canonical by setting:
+        K2l = Ry(θl).Rz(λl) .
+    """
+
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        a = (gen.a + gen.b) / 2
+        return gen._is_close(a, a, gen.c)
+
+    def specialize(self):
+        self.a = self.b = (self.a + self.b) / 2
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
+        self.global_phase += k2lphase
+        self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
+        self.K1l = self.K1l @ np.asarray(RZGate(k2lphi))
+        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RZGate(k2llambda))
+        self.K2r = np.asarray(RZGate(-k2lphi)) @ self.K2r
+
+
+class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
+    """U ~ Ud(α, β, β), α ≥ β
+
+    This gate binds 5 parameters, we make it canonical by setting:
+        K2l = Ry(θl).Rx(λl) .
+    """
+
+    _default_1q_basis = "XYX"
+
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        bc = (gen.b + gen.c) / 2
+        bmc = (gen.b - gen.c) / 2
+        return gen._is_close(gen.a, bc, bc) or gen._is_close(np.pi / 4, bmc, -bmc)
+
+    def specialize(self):
+        if self._is_close(np.pi / 4, (self.b - self.c) / 2, -(self.b - self.c) / 2):
+            self._flip()
+        self.b = self.c = (self.b + self.c) / 2
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
+        self.global_phase += k2lphase
+        self.K1r = self.K1r @ np.asarray(RXGate(k2lphi))
+        self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
+        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
+        self.K2r = np.asarray(RXGate(-k2lphi)) @ self.K2r
+
+
+class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
+    """U ~ Ud(α, β, -β), α ≥ β ≥ 0
+
+    This gate binds 5 parameters, we make it canonical by setting:
+        K2l = Ry(θl).Rx(λl) .
+    """
+
+    _default_1q_basis = "XYX"
+
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        b = (gen.b - gen.c) / 2
+        return gen._is_close(gen.a, b, -b)
+
+    def specialize(self):
+        self.b = (self.b - self.c) / 2
+        self.c = -self.b
+        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
+        self.global_phase += k2lphase
+        self.K1r = self.K1r @ _ipz @ np.asarray(RXGate(k2lphi)) @ _ipz
+        self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
+        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
+        self.K2r = _ipz @ np.asarray(RXGate(-k2lphi)) @ _ipz @ self.K2r
+
+
+class TwoQubitWeylGeneral(TwoQubitWeylDecomposition):
+    """U has no special symmetry.
+
+    This gate binds all 6 possible parameters, so there is no need to make the single-qubit
+    pre-/post-gates canonical.
+    """
+
+    @staticmethod
+    def can_specialize(gen: "TwoQubitWeylDecomposition", fidelity: float) -> bool:
+        return True
+
+    def specialize(self):
+        if self.c < 0 and self._is_close(np.pi / 4, self.b, self.c):
+            self._flip()
 
 
 class TwoQubitControlledUDecomposer:
@@ -723,98 +876,6 @@ class TwoQubitControlledUDecomposer:
                 circ.compose(circ_rzz, inplace=True)
 
         return circ
-
-
-class TwoQubitWeylMirrorControlledEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(𝜋/4, 𝜋/4, α) ~ SWAP . Ctrl-U
-
-    This gate binds 4 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rz(λl) ,
-        K2r = Ry(θr).Rz(λr) .
-    """
-
-    def specialize(self):
-        self.a = self.b = np.pi / 4
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
-        k2rtheta, k2rphi, k2rlambda, k2rphase = _oneq_zyz.angles_and_phase(self.K2r)
-        self.global_phase += k2lphase + k2rphase
-        self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
-        self.K1l = self.K1l @ np.asarray(RZGate(k2rphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RZGate(k2llambda))
-        self.K2r = np.asarray(RYGate(k2rtheta)) @ np.asarray(RZGate(k2rlambda))
-
-    def _weyl_gate(self, simplify, circ: QuantumCircuit, atol):
-        circ.swap(0, 1)
-        circ.rzz((np.pi / 4 - self.c) * 2, 0, 1)
-        circ.global_phase += np.pi / 4
-
-
-# These next 3 gates use the definition of fSim from https://arxiv.org/pdf/2001.08343.pdf eq (1)
-class TwoQubitWeylfSimaabEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α, α, β), α ≥ |β|
-
-    This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rz(λl) .
-    """
-
-    def specialize(self):
-        self.a = self.b = (self.a + self.b) / 2
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_zyz.angles_and_phase(self.K2l)
-        self.global_phase += k2lphase
-        self.K1r = self.K1r @ np.asarray(RZGate(k2lphi))
-        self.K1l = self.K1l @ np.asarray(RZGate(k2lphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RZGate(k2llambda))
-        self.K2r = np.asarray(RZGate(-k2lphi)) @ self.K2r
-
-
-class TwoQubitWeylfSimabbEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α, β, β), α ≥ β
-
-    This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rx(λl) .
-    """
-
-    _default_1q_basis = "XYX"
-
-    def specialize(self):
-        self.b = self.c = (self.b + self.c) / 2
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
-        self.global_phase += k2lphase
-        self.K1r = self.K1r @ np.asarray(RXGate(k2lphi))
-        self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
-        self.K2r = np.asarray(RXGate(-k2lphi)) @ self.K2r
-
-
-class TwoQubitWeylfSimabmbEquiv(TwoQubitWeylDecomposition):
-    """U ~ Ud(α, β, -β), α ≥ β ≥ 0
-
-    This gate binds 5 parameters, we make it canonical by setting:
-        K2l = Ry(θl).Rx(λl) .
-    """
-
-    _default_1q_basis = "XYX"
-
-    def specialize(self):
-        self.b = (self.b - self.c) / 2
-        self.c = -self.b
-        k2ltheta, k2lphi, k2llambda, k2lphase = _oneq_xyx.angles_and_phase(self.K2l)
-        self.global_phase += k2lphase
-        self.K1r = self.K1r @ _ipz @ np.asarray(RXGate(k2lphi)) @ _ipz
-        self.K1l = self.K1l @ np.asarray(RXGate(k2lphi))
-        self.K2l = np.asarray(RYGate(k2ltheta)) @ np.asarray(RXGate(k2llambda))
-        self.K2r = _ipz @ np.asarray(RXGate(-k2lphi)) @ _ipz @ self.K2r
-
-
-class TwoQubitWeylGeneral(TwoQubitWeylDecomposition):
-    """U has no special symmetry.
-
-    This gate binds all 6 possible parameters, so there is no need to make the single-qubit
-    pre-/post-gates canonical.
-    """
-
-    def specialize(self):
-        pass  # Nothing to do
 
 
 def Ud(a, b, c):

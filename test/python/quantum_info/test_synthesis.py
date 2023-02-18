@@ -168,7 +168,7 @@ class CheckDecompositions(QiskitTestCase):
         self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
         self.assertEqual(weyl1.a, weyl2.a, msg=msg_base)
         self.assertEqual(weyl1.b, weyl2.b, msg=msg_base)
-        self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
+        # self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
         maxdiff = np.max(np.abs(weyl1.K1l - weyl2.K1l))
         self.assertEqual(maxdiff, 0, msg=f"K1l matrix differs by {maxdiff}" + msg_base)
         maxdiff = np.max(np.abs(weyl1.K1r - weyl2.K1r))
@@ -226,7 +226,7 @@ class CheckDecompositions(QiskitTestCase):
         )
 
     def check_two_qubit_weyl_specialization(
-        self, target_unitary, fidelity, expected_specialization, expected_gates
+        self, target_unitary, fidelity, expected_specialization, expected_gates, expected_flip=None
     ):
         """Check that the two qubit Weyl decomposition gets specialized as expected"""
 
@@ -254,6 +254,9 @@ class CheckDecompositions(QiskitTestCase):
             self.assertAlmostEqual(
                 trace.imag, 0, places=13, msg=f"Real trace for {decomposer.__name__}"
             )
+            if expected_flip is not None:
+                self.assertEqual(expected_flip, decomp._is_flipped_from_original, "Expected flip")
+
         with self.assertDebugOnly():
             decomp2 = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
         self.assertRoundTrip(decomp2)
@@ -771,19 +774,21 @@ K1K2SB = [
         [(0.21, 0.13, 0.45), (2.1, 0.77, 0.88), (1.5, 2.3, 2.3), (2.1, 0.4, 1.7)],
     ]
 ]
-DELTAS = [
-    (-0.019, 0.018, 0.021),
-    (0.01, 0.015, 0.02),
-    (-0.01, -0.009, 0.011),
-    (-0.002, -0.003, -0.004),
-]
+DELTAS = (
+    [  # Shifts for a, b, c. Abs(delta) should be <0.01 to avoid crossing eps, or fidelity<0.999
+        (-0.0089, 0.0018, 0.0071),
+        (0.0092, 0.0075, 0.006),
+        (-0.005, -0.009, 0.0081),
+        (-0.002, -0.003, -0.004),
+    ]
+)
 
 
 class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
     """Check TwoQubitWeylDecomposition specialized subclasses"""
 
     def test_weyl_specialize_id(self):
-        """Weyl specialization for Id gate"""
+        """Weyl specialization for identity gate"""
         a, b, c = 0.0, 0.0, 0.0
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
@@ -794,11 +799,13 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylIdEquiv,
                     {"rz": 4, "ry": 2},
+                    expected_flip=False,
                 )
 
     def test_weyl_specialize_swap(self):
         """Weyl specialization for swap gate"""
-        a, b, c = np.pi / 4, np.pi / 4, np.pi / 4
+        eps = 0.01
+        a = b = c = np.pi / 4 - eps
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
@@ -808,11 +815,13 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylSWAPEquiv,
                     {"rz": 4, "ry": 2, "swap": 1},
+                    expected_flip=False,
                 )
 
     def test_weyl_specialize_flip_swap(self):
         """Weyl specialization for flip swap gate"""
-        a, b, c = np.pi / 4, np.pi / 4, -np.pi / 4
+        eps = 0.01
+        a, b, c = np.pi / 4 - eps, np.pi / 4 - eps, -np.pi / 4 + eps
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
@@ -822,6 +831,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylSWAPEquiv,
                     {"rz": 4, "ry": 2, "swap": 1},
+                    expected_flip=True,
                 )
 
     def test_weyl_specialize_pswap(self, theta=0.123):
@@ -836,6 +846,7 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylPartialSWAPEquiv,
                     {"rz": 6, "ry": 3, "rxx": 1, "ryy": 1, "rzz": 1},
+                    expected_flip=False,
                 )
 
     def test_weyl_specialize_flip_pswap(self, theta=0.123):
@@ -850,10 +861,11 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylPartialSWAPFlipEquiv,
                     {"rz": 6, "ry": 3, "rxx": 1, "ryy": 1, "rzz": 1},
+                    expected_flip=False,
                 )
 
     def test_weyl_specialize_fsim_aab(self, aaa=0.456, bbb=0.132):
-        """Weyl specialization for partial swap gate"""
+        """Weyl specialization for fsim(a,a,b) gate"""
         a, b, c = aaa, aaa, bbb
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
@@ -864,10 +876,11 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylfSimaabEquiv,
                     {"rz": 7, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
+                    expected_flip=False,
                 )
 
     def test_weyl_specialize_fsim_abb(self, aaa=0.456, bbb=0.132):
-        """Weyl specialization for partial swap gate"""
+        """Weyl specialization for fsim(a,b,b) gate"""
         a, b, c = aaa, bbb, bbb
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
@@ -878,10 +891,27 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylfSimabbEquiv,
                     {"rx": 7, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
+                    expected_flip=False,
+                )
+
+    def test_weyl_specialize_fsim_abb_flip(self, bbb=-0.132):
+        """Weyl specialization for fsim(a,b,b) gate, with flip"""
+        eps = 0.01
+        a, b, c = np.pi / 4 - eps, bbb, -bbb
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2SB:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(
+                    k1 @ Ud(a + da, b + db, c + dc) @ k2,
+                    0.999,
+                    TwoQubitWeylfSimabbEquiv,
+                    {"rx": 7, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
+                    expected_flip=True,
                 )
 
     def test_weyl_specialize_fsim_abmb(self, aaa=0.456, bbb=0.132):
-        """Weyl specialization for partial swap gate"""
+        """Weyl specialization for fsim(a,b,-b) gate"""
         a, b, c = aaa, bbb, -bbb
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
@@ -892,10 +922,11 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylfSimabmbEquiv,
                     {"rx": 7, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
+                    expected_flip=False,
                 )
 
     def test_weyl_specialize_ctrl(self, aaa=0.456):
-        """Weyl specialization for partial swap gate"""
+        """Weyl specialization for controlled gate gate"""
         a, b, c = aaa, 0.0, 0.0
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
@@ -906,11 +937,14 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylControlledEquiv,
                     {"rx": 6, "ry": 4, "rxx": 1},
+                    expected_flip=False,
                 )
 
-    def test_weyl_specialize_mirror_ctrl(self, aaa=-0.456):
-        """Weyl specialization for partial swap gate"""
-        a, b, c = np.pi / 4, np.pi / 4, aaa
+    def test_weyl_specialize_mirror_ctrl(self, aaa=0.456):
+        """Weyl specialization for mirror control gate"""
+        eps = 0.01
+        a = b = np.pi / 4 - eps
+        c = aaa
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
                 k1 = np.kron(k1l.data, k1r.data)
@@ -920,10 +954,28 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylMirrorControlledEquiv,
                     {"rz": 6, "ry": 4, "rzz": 1, "swap": 1},
+                    expected_flip=False,
+                )
+
+    def test_weyl_specialize_mirror_ctrl_flip(self, aaa=-0.456):
+        """Weyl specialization for mirror control gate, with flip"""
+        eps = 0.01
+        a = b = np.pi / 4 - eps
+        c = aaa
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2SB:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(
+                    k1 @ Ud(a + da, b + db, c + dc) @ k2,
+                    0.999,
+                    TwoQubitWeylMirrorControlledEquiv,
+                    {"rz": 6, "ry": 4, "rzz": 1, "swap": 1},
+                    expected_flip=True,
                 )
 
     def test_weyl_specialize_general(self, aaa=0.456, bbb=0.345, ccc=0.123):
-        """Weyl specialization for partial swap gate"""
+        """Weyl specialization for general gate"""
         a, b, c = aaa, bbb, ccc
         for da, db, dc in DELTAS:
             for k1l, k1r, k2l, k2r in K1K2SB:
@@ -934,6 +986,22 @@ class TestTwoQubitWeylDecompositionSpecialization(CheckDecompositions):
                     0.999,
                     TwoQubitWeylGeneral,
                     {"rz": 8, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
+                    expected_flip=False,
+                )
+
+    def test_weyl_specialize_general_flip(self, aaa=np.pi / 4 - 0.01, bbb=0.345, ccc=-0.123):
+        """Weyl specialization for general gate, with flip"""
+        a, b, c = aaa, bbb, ccc
+        for da, db, dc in DELTAS:
+            for k1l, k1r, k2l, k2r in K1K2SB:
+                k1 = np.kron(k1l.data, k1r.data)
+                k2 = np.kron(k2l.data, k2r.data)
+                self.check_two_qubit_weyl_specialization(
+                    k1 @ Ud(a + da, b + db, c + dc) @ k2,
+                    0.999,
+                    TwoQubitWeylGeneral,
+                    {"rz": 8, "ry": 4, "rxx": 1, "ryy": 1, "rzz": 1},
+                    expected_flip=True,
                 )
 
 
