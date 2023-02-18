@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,6 +26,7 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
 
 
+# utility for _to_matrix
 _PARITY = np.array([-1 if bin(i).count("1") % 2 else 1 for i in range(256)], dtype=complex)
 
 
@@ -397,7 +398,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
     @staticmethod
     def _to_matrix(z, x, phase=0, group_phase=False, sparse=False):
-        """Return the matrix matrix from symplectic representation.
+        """Return the matrix from symplectic representation.
 
         The Pauli is defined as :math:`P = (-i)^{phase + z.x} * Z^z.x^x`
         where ``array = [x, z]``.
@@ -444,8 +445,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # Build dense matrix using csr format
         mat = np.zeros((dim, dim), dtype=complex)
-        for i in range(dim):
-            mat[i][indices[indptr[i] : indptr[i + 1]]] = data[indptr[i] : indptr[i + 1]]
+        mat[range(dim), indices[:dim]] = data[:dim]
         return mat
 
     @staticmethod
