@@ -23,6 +23,7 @@ from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
     CXGate,
     CZGate,
+    CYGate,
     HGate,
     IGate,
     SdgGate,
@@ -30,6 +31,8 @@ from qiskit.circuit.library import (
     SXGate,
     SXdgGate,
     SwapGate,
+    iSwapGate,
+    ECRGate,
     XGate,
     YGate,
     ZGate,
@@ -85,7 +88,7 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
     """Generate a pseudo random Clifford circuit."""
 
     qubits_1_gates = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "v", "w"]
-    qubits_2_gates = ["cx", "cz", "swap"]
+    qubits_2_gates = ["cx", "cz", "cy", "swap", "iswap", "ecr"]
     if gates == "all":
         if num_qubits == 1:
             gates = qubits_1_gates
@@ -105,8 +108,11 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         "v": (VGate(), 1),
         "w": (WGate(), 1),
         "cx": (CXGate(), 2),
+        "cy": (CYGate(), 2),
         "cz": (CZGate(), 2),
         "swap": (SwapGate(), 2),
+        "iswap": (iSwapGate(), 2),
+        "ecr": (ECRGate(), 2),
     }
 
     if isinstance(seed, np.random.Generator):
