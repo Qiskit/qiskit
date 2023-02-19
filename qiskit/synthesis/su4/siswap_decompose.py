@@ -21,7 +21,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
-from qiskit.circuit.library import SiSwapGate, XGate, YGate, ZGate, SGate, SdgGate
+from qiskit.circuit.library import SiSwapGate, XGate, YGate, ZGate
 from qiskit.synthesis.su4.utils import find_min_point, average_infidelity
 
 
@@ -170,7 +170,7 @@ def _can_circuit(x, y, z):
             for instruction in inverse_circuit:
                 if isinstance(instruction.operation, SiSwapGate):
                     inverse_circuit_with_siswap_dg.z(0)
-                    inverse_circuit_with_siswap_dg.append(SiSwapGate().inverse(), [0, 1])
+                    inverse_circuit_with_siswap_dg.append(SiSwapdgGate(), [0, 1])
                     inverse_circuit_with_siswap_dg.z(0)
                 else:
                     inverse_circuit_with_siswap_dg.append(instruction)
