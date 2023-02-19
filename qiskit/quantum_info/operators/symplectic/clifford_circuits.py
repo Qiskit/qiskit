@@ -230,6 +230,42 @@ def _append_sdg(clifford, qubit):
     return clifford
 
 
+def _append_sx(clifford, qubit):
+    """Apply an SX gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+
+    clifford.phase ^= ~x & z
+    x ^= z
+    return clifford
+
+
+def _append_sxdg(clifford, qubit):
+    """Apply an SXdg gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+
+    clifford.phase ^= x & z
+    x ^= z
+    return clifford
+
+
 def _append_v(clifford, qubit):
     """Apply a V gate to a Clifford.
 
@@ -340,6 +376,8 @@ _BASIS_1Q = {
     "s": _append_s,
     "sdg": _append_sdg,
     "sinv": _append_sdg,
+    "sx": _append_sx,
+    "sxdg": _append_sxdg,
     "v": _append_v,
     "w": _append_w,
 }

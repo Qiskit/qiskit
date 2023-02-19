@@ -27,6 +27,8 @@ from qiskit.circuit.library import (
     IGate,
     SdgGate,
     SGate,
+    SXGate,
+    SXdgGate,
     SwapGate,
     XGate,
     YGate,
@@ -82,11 +84,13 @@ class WGate(Gate):
 def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
     """Generate a pseudo random Clifford circuit."""
 
+    qubits_1_gates = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "v", "w"]
+    qubits_2_gates = ["cx", "cz", "swap"]
     if gates == "all":
         if num_qubits == 1:
-            gates = ["i", "x", "y", "z", "h", "s", "sdg", "v", "w"]
+            gates = qubits_1_gates
         else:
-            gates = ["i", "x", "y", "z", "h", "s", "sdg", "v", "w", "cx", "cz", "swap"]
+            gates = qubits_1_gates + qubits_2_gates
 
     instructions = {
         "i": (IGate(), 1),
@@ -96,6 +100,8 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         "h": (HGate(), 1),
         "s": (SGate(), 1),
         "sdg": (SdgGate(), 1),
+        "sx": (SXGate(), 1),
+        "sxdg": (SXdgGate(), 1),
         "v": (VGate(), 1),
         "w": (WGate(), 1),
         "cx": (CXGate(), 2),
