@@ -1227,3 +1227,119 @@ class Constant(metaclass=_PulseType):
         instance.validate_parameters()
 
         return instance
+
+
+def Sin(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    phase: Union[float, ParameterExpression],
+    freq: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """A sinusoidal pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) &= \\text{A}\\sin\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the sinusoidal wave.
+        phase: The phase of the sinusoidal wave (note that this is not equivalent to the angle of the complex amplitude)
+        freq: The frequency of the sinusoidal wave, in terms of 1 over sampling period. If not provided defaults to a
+            single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    if freq is None:
+        freq = 1/duration
+    parameters = {"freq": freq, "phase": phase}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols(
+        "t, duration, amp, angle, freq, phase"
+    )
+
+    envelope_expr = (
+        _amp
+        * sym.exp(sym.I * _angle)
+        * sym.sin(2 * sym.pi * _freq * _t + _phase)
+    )
+
+    consts_expr = _freq > 0
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0  # This might fail for waves shorter than a single cycle
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="Sin",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def Cos(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    phase: Union[float, ParameterExpression],
+    freq: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """A cosine pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) &= \\text{A}\\cos\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the cosine wave.
+        phase: The phase of the cosine wave (note that this is not equivalent to the angle of the complex amplitude).
+        freq: The frequency of the cosine wave, in terms of 1 over sampling period. If not provided defaults to a
+            single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    instance = Sin(
+        duration=duration,
+        amp=amp,
+        phase=phase+np.pi/2,
+        freq=freq,
+        angle=angle,
+        name=name,
+        limit_amplitude=limit_amplitude
+    )
+
+    return instance
