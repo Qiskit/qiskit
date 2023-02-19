@@ -1354,15 +1354,16 @@ def Sawtooth(
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
 ) -> ScalableSymbolicPulse:
-    """A sinusoidal pulse.
+    """A sawtooth pulse.
 
     The envelope of the pulse is given by:
 
     .. math::
 
-        f(x) &= \\text{A}\\sin\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+        f(x) &= 2\\text{A}\\left[g\\left(x\\right)-\\lfloorg\\left(x\\right)+\\frac{1}{2}\\rfloor\\right]  ,  0 <= x < duration
 
-    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\lfloor ...\\rfloor` is the floor operation.
 
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
@@ -1393,6 +1394,77 @@ def Sawtooth(
         2 * _amp * (
             lin_expr - sym.floor(lin_expr + 1/2)
         )
+    )
+
+    consts_expr = _freq > 0
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0  # This might fail for waves shorter than a single cycle
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="Sawtooth",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def Triangle(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    phase: Union[float, ParameterExpression],
+    freq: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """A triangle pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) &= \\text{A}\\left[\\text{sawtooth}\\left(x\\right)right]  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\text{sawtooth}\\left(x\\right)` is a sawtooth wave with the same frequency and
+    phase of the triangle wave.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the triangle wave.
+        phase: The phase of the triangle wave (note that this is not equivalent to the angle of the complex amplitude)
+        freq: The frequency of the triangle wave, in terms of 1 over sampling period. If not provided defaults to a
+            single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    if freq is None:
+        freq = 1/duration
+    parameters = {"freq": freq, "phase": phase}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols(
+        "t, duration, amp, angle, freq, phase"
+    )
+    lin_expr = _t * _freq + _phase/sym.pi
+    sawtooth_expr = lin_expr - sym.floor(lin_expr + 1/2)
+
+    envelope_expr = (
+        _amp * (-2 * sawtooth_expr + 1)
     )
 
     consts_expr = _freq > 0
