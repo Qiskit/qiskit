@@ -412,10 +412,8 @@ def _append_ecr(clifford, qubit0, qubit1):
     Returns:
         Clifford: the updated Clifford.
     """
-    clifford = _append_h(clifford, qubit1)
     clifford = _append_s(clifford, qubit0)
-    clifford = _append_sdg(clifford, qubit1)
-    clifford = _append_h(clifford, qubit1)
+    clifford = _append_sxdg(clifford, qubit1)
     clifford = _append_cx(clifford, qubit0, qubit1)
     clifford = _append_x(clifford, qubit0)
     clifford = _append_x(clifford, qubit1)
