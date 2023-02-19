@@ -99,7 +99,7 @@ def synth_clifford_layers(
         cx_cz_synth_func (Callable): optional, a function to decompose both sub-circuits CZ and CX.
         validate (Boolean): if True, validates the synthesis process.
         cz_func_reverse_qubits (Boolean): True only if cz_synth_func is synth_cz_depth_line_mr,
-            since this function returns a circuit that inverts the order of qubits.
+            since this function returns a circuit that reverts the order of qubits.
 
     Return:
         QuantumCircuit: a circuit implementation of the Clifford.
