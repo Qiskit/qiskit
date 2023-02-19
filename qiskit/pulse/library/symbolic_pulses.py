@@ -1250,7 +1250,7 @@ def Sin(
 
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
-        amp: The magnitude of the amplitude of the sinusoidal wave.
+        amp: The magnitude of the amplitude of the sinusoidal wave. Wave range is [-`amp`,`amp`].
         phase: The phase of the sinusoidal wave (note that this is not equivalent to the angle of the complex amplitude)
         freq: The frequency of the sinusoidal wave, in terms of 1 over sampling period. If not provided defaults to a
             single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
@@ -1319,7 +1319,7 @@ def Cos(
 
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
-        amp: The magnitude of the amplitude of the cosine wave.
+        amp: The magnitude of the amplitude of the cosine wave. Wave range is [-`amp`,`amp`].
         phase: The phase of the cosine wave (note that this is not equivalent to the angle of the complex amplitude).
         freq: The frequency of the cosine wave, in terms of 1 over sampling period. If not provided defaults to a
             single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
@@ -1360,14 +1360,15 @@ def Sawtooth(
 
     .. math::
 
-        f(x) &= 2\\text{A}\\left[g\\left(x\\right)-\\lfloorg\\left(x\\right)+\\frac{1}{2}\\rfloor\\right]  ,  0 <= x < duration
+        f(x) &= 2\\text{A}\\left[g\\left(x\\right)-\\lfloor g\\left(x\\right)+\\frac{1}{2}\\rfloor\\right]  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    :math:`g\\left(x\\right)=x\\times\\text{freq}+\\frac{\\text{phase}}{2\\pi}`,
     and :math:`\\lfloor ...\\rfloor` is the floor operation.
 
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
-        amp: The magnitude of the amplitude of the sawtooth wave.
+        amp: The magnitude of the amplitude of the sawtooth wave. Wave range is [-`amp`,`amp`].
         phase: The phase of the sawtooth wave (note that this is not equivalent to the angle of the complex amplitude)
         freq: The frequency of the sawtooth wave, in terms of 1 over sampling period. If not provided defaults to a
             single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
@@ -1388,10 +1389,10 @@ def Sawtooth(
     _t, _duration, _amp, _angle, _freq, _phase = sym.symbols(
         "t, duration, amp, angle, freq, phase"
     )
-    lin_expr = _t * _freq + _phase/sym.pi
+    lin_expr = _t * _freq + _phase/(2*sym.pi)
 
     envelope_expr = (
-        2 * _amp * (
+        2 * _amp * sym.exp(sym.I * _angle) * (
             lin_expr - sym.floor(lin_expr + 1/2)
         )
     )
@@ -1434,12 +1435,12 @@ def Triangle(
         f(x) &= \\text{A}\\left[\\text{sawtooth}\\left(x\\right)right]  ,  0 <= x < duration
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
-    and :math:`\\text{sawtooth}\\left(x\\right)` is a sawtooth wave with the same frequency and
-    phase of the triangle wave.
+    and :math:`\\text{sawtooth}\\left(x\\right)` is a sawtooth wave with the same frequency
+    as the triangle wave, but a phase shifted by :math:`\\frac{\\pi}{2}`.
 
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
-        amp: The magnitude of the amplitude of the triangle wave.
+        amp: The magnitude of the amplitude of the triangle wave. Wave range is [-`amp`,`amp`].
         phase: The phase of the triangle wave (note that this is not equivalent to the angle of the complex amplitude)
         freq: The frequency of the triangle wave, in terms of 1 over sampling period. If not provided defaults to a
             single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
@@ -1460,18 +1461,18 @@ def Triangle(
     _t, _duration, _amp, _angle, _freq, _phase = sym.symbols(
         "t, duration, amp, angle, freq, phase"
     )
-    lin_expr = _t * _freq + _phase/sym.pi
-    sawtooth_expr = lin_expr - sym.floor(lin_expr + 1/2)
+    lin_expr = _t * _freq + _phase/(2*sym.pi) - 0.25
+    sawtooth_expr = 2 * (lin_expr - sym.floor(lin_expr + 1/2))
 
     envelope_expr = (
-        _amp * (-2 * sawtooth_expr + 1)
+        _amp * sym.exp(sym.I * _angle) * (-2 * sym.Abs(sawtooth_expr) + 1)
     )
 
     consts_expr = _freq > 0
     valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0  # This might fail for waves shorter than a single cycle
 
     instance = ScalableSymbolicPulse(
-        pulse_type="Sawtooth",
+        pulse_type="Triangle",
         duration=duration,
         amp=amp,
         angle=angle,
