@@ -18,7 +18,6 @@ import numpy as np
 from scipy.optimize import OptimizeResult
 
 from qiskit.quantum_info import OneQubitEulerDecomposer, Pauli
-from qiskit.utils import algorithm_globals
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -39,14 +38,13 @@ class Fraxis(SciPyOptimizer):
           `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__
     """
 
-    _OPTIONS = ["maxiter", "disp", "initialize"]
+    _OPTIONS = ["maxiter", "disp"]
 
     # pylint: disable=unused-argument
     def __init__(
         self,
         maxiter: Optional[int] = None,
         disp: bool = False,
-        initialize: bool = True,
         options: Optional[dict] = None,
         **kwargs,
     ) -> None:
@@ -86,7 +84,7 @@ def _vec2angles(vec: np.ndarray) -> Tuple[float, float, float]:
 
 
 # pylint: disable=invalid-name
-def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
+def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
     """
     Find the global minimum of a function using Fraxis algorithm.
 
@@ -103,7 +101,6 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
         maxiter (int):
             Maximum number of iterations to perform.
             Will default to N*10, where N is the number of U gates in the input circuit.
-        initialize (bool): initialize ``x0`` randomly if True. Otherwise, use ``x0`` directly.
         **_ : additional options
         callback (callable, optional):
             Called after each iteration.
@@ -125,11 +122,13 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, initialize=True, **_):
     niter = 0
     funcalls = 0
 
-    if initialize:
-        for idx in range(0, x0.size, 3):
-            vec = 2 * algorithm_globals.random.random(3) - 1
-            vec /= np.linalg.norm(vec)
-            x0[idx : idx + 3] = _vec2angles(vec)
+    for idx in range(0, x0.size, 3):
+        vec = x0[idx : idx + 3]
+        # Note: Fraxis cannot represent some parameter values of U gate such as all 0 (i.e., identity).
+        if np.allclose(vec, 0):
+            vec[0] = 1
+        vec /= np.linalg.norm(vec)
+        x0[idx : idx + 3] = _vec2angles(vec)
 
     while True:
         idx = (niter * 3) % x0.size
