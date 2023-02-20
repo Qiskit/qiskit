@@ -78,8 +78,9 @@ It should be also noted that zero duration instructions issued at the same time 
 overlapped on the canvas. Thus it is convenient to plot a total frame change amount rather
 than plotting each operand value bound to the instruction.
 """
+from __future__ import annotations
 from collections import defaultdict
-from typing import Dict, List, Iterator, Tuple
+from typing import Iterator
 
 from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
@@ -102,8 +103,8 @@ class ChannelEvents:
 
     def __init__(
         self,
-        waveforms: Dict[int, pulse.Instruction],
-        frames: Dict[int, List[pulse.Instruction]],
+        waveforms: dict[int, pulse.Instruction],
+        frames: dict[int, list[pulse.Instruction]],
         channel: pulse.channels.Channel,
     ):
         """Create new event manager.
@@ -158,6 +159,7 @@ class ChannelEvents:
             init_frequency: Modulation frequency in Hz.
             init_phase: Initial phase in rad.
         """
+        # TODO: should be float?
         self._dt = dt or 1
         self._init_frequency = init_frequency or 0
         self._init_phase = init_phase or 0
@@ -225,8 +227,8 @@ class ChannelEvents:
 
     @classmethod
     def _calculate_current_frame(
-        cls, frame_changes: List[pulse.instructions.Instruction], phase: float, frequency: float
-    ) -> Tuple[float, float]:
+        cls, frame_changes: list[pulse.instructions.Instruction], phase: float, frequency: float
+    ) -> tuple[float, float]:
         """Calculate the current frame from the previous frame.
 
         If parameter is unbound phase or frequency accumulation with this instruction is skipped.

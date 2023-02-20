@@ -55,9 +55,11 @@ data arrays, if we introduced such a drawing and wrote a custom wrapper function
 on top of the existing API, it could be difficult to prevent bugs with the CI tools
 due to lack of the effective unittest.
 """
+from __future__ import annotations
+
 from abc import ABC
 from enum import Enum
-from typing import Dict, Any, Optional, Union, List
+from typing import cast, Any, List
 
 import numpy as np
 
@@ -73,13 +75,13 @@ class ElementaryData(ABC):
 
     def __init__(
         self,
-        data_type: Union[str, Enum],
+        data_type: str | Enum,
         xvals: np.ndarray,
         yvals: np.ndarray,
-        channels: Optional[Union[Channel, List[Channel]]] = None,
-        meta: Optional[Dict[str, Any]] = None,
+        channels: Channel | list[Channel] | None = None,
+        meta: dict[str, Any] | None = None,
         ignore_scaling: bool = False,
-        styles: Optional[Dict[str, Any]] = None,
+        styles: dict[str, Any] | None = None,
     ):
         """Create new drawing.
 
@@ -94,6 +96,7 @@ class ElementaryData(ABC):
         """
         if channels and isinstance(channels, Channel):
             channels = [channels]
+        channels = cast(List[Channel], channels)
 
         if isinstance(data_type, Enum):
             data_type = data_type.value
@@ -101,7 +104,7 @@ class ElementaryData(ABC):
         self.data_type = str(data_type)
         self.xvals = np.array(xvals, dtype=object)
         self.yvals = np.array(yvals, dtype=object)
-        self.channels = channels or []
+        self.channels: list[Channel] = channels or []
         self.meta = meta or {}
         self.ignore_scaling = ignore_scaling
         self.styles = styles or {}
@@ -128,14 +131,14 @@ class LineData(ElementaryData):
 
     def __init__(
         self,
-        data_type: Union[str, Enum],
-        xvals: Union[np.ndarray, List[types.Coordinate]],
-        yvals: Union[np.ndarray, List[types.Coordinate]],
+        data_type: str | Enum,
+        xvals: np.ndarray | list[types.Coordinate],
+        yvals: np.ndarray | list[types.Coordinate],
         fill: bool = False,
-        channels: Optional[Union[Channel, List[Channel]]] = None,
-        meta: Optional[Dict[str, Any]] = None,
+        channels: Channel | list[Channel] | None = None,
+        meta: dict[str, Any] | None = None,
         ignore_scaling: bool = False,
-        styles: Optional[Dict[str, Any]] = None,
+        styles: dict[str, Any] | None = None,
     ):
         """Create new drawing.
 
@@ -170,15 +173,15 @@ class TextData(ElementaryData):
 
     def __init__(
         self,
-        data_type: Union[str, Enum],
-        xvals: Union[np.ndarray, List[types.Coordinate]],
-        yvals: Union[np.ndarray, List[types.Coordinate]],
+        data_type: str | Enum,
+        xvals: np.ndarray | list[types.Coordinate],
+        yvals: np.ndarray | list[types.Coordinate],
         text: str,
-        latex: Optional[str] = None,
-        channels: Optional[Union[Channel, List[Channel]]] = None,
-        meta: Optional[Dict[str, Any]] = None,
+        latex: str | None = None,
+        channels: Channel | list[Channel] | None = None,
+        meta: dict[str, Any] | None = None,
         ignore_scaling: bool = False,
-        styles: Optional[Dict[str, Any]] = None,
+        styles: dict[str, Any] | None = None,
     ):
         """Create new drawing.
 
@@ -215,13 +218,13 @@ class BoxData(ElementaryData):
 
     def __init__(
         self,
-        data_type: Union[str, Enum],
-        xvals: Union[np.ndarray, List[types.Coordinate]],
-        yvals: Union[np.ndarray, List[types.Coordinate]],
-        channels: Optional[Union[Channel, List[Channel]]] = None,
-        meta: Dict[str, Any] = None,
+        data_type: str | Enum,
+        xvals: np.ndarray | list[types.Coordinate],
+        yvals: np.ndarray | list[types.Coordinate],
+        channels: Channel | list[Channel] | None = None,
+        meta: dict[str, Any] | None = None,
         ignore_scaling: bool = False,
-        styles: Dict[str, Any] = None,
+        styles: dict[str, Any] | None = None,
     ):
         """Create new box.
 

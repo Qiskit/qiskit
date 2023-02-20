@@ -37,9 +37,11 @@ Arbitrary generator function satisfying the above format can be accepted.
 Returned `ElementaryData` can be arbitrary subclasses that are implemented in
 the plotter API.
 """
+
+from __future__ import annotations
 import re
 from fractions import Fraction
-from typing import Dict, Any, List, Union
+from typing import Any
 
 import numpy as np
 
@@ -50,8 +52,8 @@ from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
 def gen_filled_waveform_stepwise(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+    data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
+) -> list[drawings.LineData | drawings.BoxData | drawings.TextData]:
     """Generate filled area objects of the real and the imaginary part of waveform envelope.
 
     The curve of envelope is not interpolated nor smoothed and presented
@@ -126,8 +128,8 @@ def gen_filled_waveform_stepwise(
 
 
 def gen_ibmq_latex_waveform_name(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[drawings.TextData]:
+    data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
+) -> list[drawings.TextData]:
     r"""Generate the formatted instruction name associated with the waveform.
 
     Channel name and ID string are removed and the rotation angle is expressed in units of pi.
@@ -237,8 +239,8 @@ def gen_ibmq_latex_waveform_name(
 
 
 def gen_waveform_max_value(
-    data: types.PulseInstruction, formatter: Dict[str, Any], device: device_info.DrawerBackendInfo
-) -> List[drawings.TextData]:
+    data: types.PulseInstruction, formatter: dict[str, Any], device: device_info.DrawerBackendInfo
+) -> list[drawings.TextData]:
     """Generate the annotation for the maximum waveform height for
     the real and the imaginary part of the waveform envelope.
 
@@ -334,10 +336,10 @@ def gen_waveform_max_value(
 def _draw_shaped_waveform(
     xdata: np.ndarray,
     ydata: np.ndarray,
-    meta: Dict[str, Any],
+    meta: dict[str, Any],
     channel: pulse.channels.PulseChannel,
-    formatter: Dict[str, Any],
-) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+    formatter: dict[str, Any],
+) -> list[drawings.LineData | drawings.BoxData | drawings.TextData]:
     """A private function that generates drawings of stepwise pulse lines.
 
     Args:
@@ -358,11 +360,11 @@ def _draw_shaped_waveform(
     resolution = formatter["general.vertical_resolution"]
 
     # stepwise interpolation
-    xdata = np.concatenate((xdata, [xdata[-1] + 1]))
+    xdata: np.ndarray = np.concatenate((xdata, [xdata[-1] + 1]))
     ydata = np.repeat(ydata, 2)
     re_y = np.real(ydata)
     im_y = np.imag(ydata)
-    time = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
+    time: np.ndarray = np.concatenate(([xdata[0]], np.repeat(xdata[1:-1], 2), [xdata[-1]]))
 
     # setup style options
     style = {
@@ -438,11 +440,11 @@ def _draw_opaque_waveform(
     init_time: int,
     duration: int,
     pulse_shape: str,
-    pnames: List[str],
-    meta: Dict[str, Any],
+    pnames: list[str],
+    meta: dict[str, Any],
     channel: pulse.channels.PulseChannel,
-    formatter: Dict[str, Any],
-) -> List[Union[drawings.LineData, drawings.BoxData, drawings.TextData]]:
+    formatter: dict[str, Any],
+) -> list[drawings.LineData | drawings.BoxData | drawings.TextData]:
     """A private function that generates drawings of stepwise pulse lines.
 
     Args:
@@ -457,7 +459,7 @@ def _draw_opaque_waveform(
     Returns:
         List of drawings.
     """
-    fill_objs = []
+    fill_objs: list[drawings.LineData | drawings.BoxData | drawings.TextData] = []
 
     fc, ec = formatter["color.opaque_shape"]
     # setup style options
@@ -542,7 +544,7 @@ def _find_consecutive_index(data_array: np.ndarray, resolution: float) -> np.nda
 
 def _parse_waveform(
     data: types.PulseInstruction,
-) -> Union[types.ParsedInstruction, types.OpaqueShape]:
+) -> types.ParsedInstruction | types.OpaqueShape:
     """A helper function that generates an array for the waveform with
     instruction metadata.
 
@@ -557,7 +559,7 @@ def _parse_waveform(
     """
     inst = data.inst
 
-    meta = {}
+    meta: dict[str, Any] = {}
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse
