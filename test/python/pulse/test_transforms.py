@@ -271,7 +271,9 @@ class TestPad(QiskitTestCase):
             | Delay(delay, DriveChannel(0))
             | Delay(delay, DriveChannel(0)).shift(20)
             | Delay(delay, DriveChannel(1))
-            | Delay(2 * delay, DriveChannel(1)).shift(20)
+            | Delay(  # pylint: disable=unsupported-binary-operation
+                2 * delay, DriveChannel(1)
+            ).shift(20)
         )
 
         self.assertEqual(transforms.pad(sched), ref_sched)
@@ -294,7 +296,9 @@ class TestPad(QiskitTestCase):
             | Delay(delay, DriveChannel(0))
             | Delay(delay, DriveChannel(0)).shift(20)
             | Delay(delay, DriveChannel(1))
-            | Delay(2 * delay, DriveChannel(1)).shift(20)
+            | Delay(  # pylint: disable=unsupported-binary-operation
+                2 * delay, DriveChannel(1)
+            ).shift(20)
         )
 
         self.assertEqual(transforms.pad(sched), ref_sched)
@@ -319,7 +323,7 @@ class TestPad(QiskitTestCase):
             sched
             | Delay(delay, DriveChannel(0))
             | Delay(30, DriveChannel(0)).shift(20)
-            | Delay(40, DriveChannel(1)).shift(10)
+            | Delay(40, DriveChannel(1)).shift(10)  # pylint: disable=unsupported-binary-operation
         )
 
         self.assertEqual(transforms.pad(sched, until=50), ref_sched)

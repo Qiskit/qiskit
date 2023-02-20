@@ -108,8 +108,12 @@ class LookaheadSwap(TransformationPass):
                 the property_set.
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG
+            compatible with the DAG, or if the coupling_map=None
         """
+
+        if self.coupling_map is None:
+            raise TranspilerError("LookaheadSwap cannot run with coupling_map=None")
+
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Lookahead swap runs on physical circuits only")
 
