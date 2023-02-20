@@ -152,6 +152,8 @@ class TestCliffordGates(QiskitTestCase):
             "sinv": np.array([[[True, True], [False, True]]], dtype=bool),
             "v": np.array([[[True, True], [True, False]]], dtype=bool),
             "w": np.array([[[False, True], [True, True]]], dtype=bool),
+            "sx": np.array([[[True, False], [True, True]]], dtype=bool),
+            "sxdg": np.array([[[True, False], [True, True]]], dtype=bool),
         }
 
         target_phase = {
@@ -167,6 +169,8 @@ class TestCliffordGates(QiskitTestCase):
             "sinv": np.array([[True, False]], dtype=bool),
             "v": np.array([[False, False]], dtype=bool),
             "w": np.array([[False, False]], dtype=bool),
+            "sx": np.array([[False, True]], dtype=bool),
+            "sxdg": np.array([[False, False]], dtype=bool),
         }
 
         target_stabilizer = {
@@ -182,6 +186,8 @@ class TestCliffordGates(QiskitTestCase):
             "sinv": "+Z",
             "v": "+X",
             "w": "+Y",
+            "sx": "-Y",
+            "sxdg": "+Y",
         }
 
         target_destabilizer = {
@@ -197,9 +203,25 @@ class TestCliffordGates(QiskitTestCase):
             "sinv": "-Y",
             "v": "+Y",
             "w": "+Z",
+            "sx": "+X",
+            "sxdg": "+X",
         }
 
-        for gate_name in ("i", "id", "iden", "x", "y", "z", "h", "s", "sdg", "v", "w"):
+        for gate_name in (
+            "i",
+            "id",
+            "iden",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "v",
+            "w",
+            "sx",
+            "sxdg",
+        ):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
@@ -285,6 +307,8 @@ class TestCliffordGates(QiskitTestCase):
             "w * x * v = y",
             "w * y * v = z",
             "w * z * v = x",
+            "sdg * h * sdg = sx",
+            "s * h * s = sxdg",
         ]
 
         for rel in rels:
@@ -603,7 +627,9 @@ class TestCliffordDecomposition(QiskitTestCase):
             ["h", "s", "sdg"],
             ["h", "s", "v"],
             ["h", "s", "w"],
-            ["h", "s", "sdg", "i", "x", "y", "z", "v", "w"],
+            ["h", "sx", "sxdg"],
+            ["s", "sx", "sxdg"],
+            ["h", "s", "sdg", "i", "x", "y", "z", "v", "w", "sx", "sxdg"],
         ]
     )
     def test_to_operator_1qubit_gates(self, gates):
@@ -621,11 +647,16 @@ class TestCliffordDecomposition(QiskitTestCase):
         gates=[
             ["cx"],
             ["cz"],
+            ["cy"],
             ["swap"],
+            ["iswap"],
+            ["ecr"],
             ["cx", "cz"],
+            ["cx", "cz", "cy"],
             ["cx", "swap"],
             ["cz", "swap"],
             ["cx", "cz", "swap"],
+            ["cx", "cz", "cy", "swap", "iswap", "ecr"],
         ]
     )
     def test_to_operator_2qubit_gates(self, gates):
