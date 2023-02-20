@@ -152,7 +152,6 @@ def _error(circuit, target=None, qubits=None):
             keys = target.operation_names_for_qargs(inst_qubits)
             for key in keys:
                 target_op = target.operation_from_name(key)
-                # pylint: disable=unidiomatic-typecheck
                 if isinstance(target_op, type(inst.operation)) and (
                     target_op.is_parameterized()
                     or all(
