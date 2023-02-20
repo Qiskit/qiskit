@@ -42,7 +42,7 @@ class MinimumEigensolver(ABC):
         "This interface will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
-        since="0.23.0",
+        since="0.24.0",
     )
     def __init__(self) -> None:
         pass
@@ -99,7 +99,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
-        since="0.23.0",
+        since="0.24.0",
     )
     def __init__(self) -> None:
         super().__init__()

@@ -133,7 +133,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
-        since="0.23.0",
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -673,7 +673,7 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
-        since="0.23.0",
+        since="0.24.0",
     )
     def __init__(self) -> None:
         with warnings.catch_warnings():
