@@ -98,7 +98,7 @@ primitives provide a similar feature:
      - No
      - No
      - No (but can ``skip_transpilation``)
-     - Yes
+     - No (but can ``skip_transpilation``)
    * - Set ``bound_pass_manager``
      - No
      - No
@@ -324,15 +324,14 @@ matrix refresh period or the mitigation pattern.
     from qiskit import QuantumCircuit
     from qiskit.utils import QuantumInstance
     from qiskit.utils.mitigation import CompleteMeasFitter
-    from qiskit import IBMQ # USE NON-IBMQ syntax!!!
+    from qiskit_ibm_provider import IBMProvider
 
     circuit = QuantumCircuit(2)
     circuit.x(0)
     circuit.x(1)
     circuit.measure_all()
 
-    IBMQ.load_account()
-    provider = IBMQ.get_provider()
+    provider = IBMProvider()
     backend = provider.get_backend("ibmq_manila")
 
     qi = QuantumInstance(
@@ -393,9 +392,9 @@ resources:
 
     from qiskit.circuit import QuantumRegister, Parameter
     from qiskit.utils import QuantumInstance
-    from qiskit import IBMQ # USE NON-IBMQ syntax!!!
     from qiskit.transpiler import PassManager, CouplingMap
     from qiskit.transpiler.passes import BasicSwap, Unroller
+    from qiskit_ibm_provider import IBMProvider
 
     q = QuantumRegister(7, 'q')
     p = Parameter('p')
@@ -416,7 +415,8 @@ resources:
     pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
     bound_pm = PassManager(pass_)
 
-    # Define backend!
+    provider = IBMProvider()
+    backend = provider.get_backend("ibmq_manila")
 
     qi = QuantumInstance(
         backend=backend,
@@ -438,9 +438,9 @@ and activating the ``skip_transpilation=True`` option. However, this option will
     from qiskit.primitives import BackendSampler
     from qiskit.circuit import QuantumRegister, Parameter
     from qiskit.utils import QuantumInstance
-    from qiskit import IBMQ # USE NON-IBMQ syntax!!!
     from qiskit.transpiler import PassManager, CouplingMap
     from qiskit.transpiler.passes import BasicSwap, Unroller
+    from qiskit_ibm_provider import IBMProvider
 
     q = QuantumRegister(7, 'q')
     p = Parameter('p')
@@ -461,11 +461,11 @@ and activating the ``skip_transpilation=True`` option. However, this option will
     pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
     bound_pm = PassManager(pass_)
 
-    # Define backend!
+    provider = IBMProvider()
+    backend = provider.get_backend("ibmq_manila")
 
-    # can you set the unbound pm?
+    # if you skip_transpilation does it skipp the bound_pm?
     sampler = BackendSampler(backend=backend, bound_pass_manager=bound_pm)
-    sampler.set_transpile_options(pass_manager=unbound_pm) #?????
 
     result = sampler.run(circuit).quasi_dists
 
