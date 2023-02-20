@@ -619,19 +619,17 @@ _sel.add_equivalence(ECRGate(), def_ecr)
 # ECRGate decomposed to Clifford gates (up to a global phase)
 #
 #                  global phase: 7π/4
-#      ┌──────┐         ┌───┐                 ┌───┐
-# q_0: ┤0     ├    q_0: ┤ S ├──────────────■──┤ X ├
-#      │  Ecr │  ≡      ├───┤┌─────┐┌───┐┌─┴─┐├───┤
-# q_1: ┤1     ├    q_1: ┤ H ├┤ Sdg ├┤ H ├┤ X ├┤ X ├
-#      └──────┘         └───┘└─────┘└───┘└───┘└───┘
+#      ┌──────┐          ┌───┐       ┌───┐
+# q_0: ┤0     ├    q_0: ─┤ S ├────■──┤ X ├
+#      │  Ecr │  ≡      ┌┴───┴─┐┌─┴─┐├───┤
+# q_1: ┤1     ├    q_1: ┤ √Xdg ├┤ X ├┤ X ├
+#      └──────┘         └──────┘└───┘└───┘
 
 q = QuantumRegister(2, "q")
 def_ecr_cliff = QuantumCircuit(q, global_phase=-pi / 4)
 for inst, qargs, cargs in [
     (SGate(), [q[0]], []),
-    (HGate(), [q[1]], []),
-    (SdgGate(), [q[1]], []),
-    (HGate(), [q[1]], []),
+    (SXdgGate(), [q[1]], []),
     (CXGate(), [q[0], q[1]], []),
     (XGate(), [q[0]], []),
     (XGate(), [q[1]], []),
