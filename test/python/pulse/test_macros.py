@@ -24,7 +24,7 @@ from qiskit.pulse import (
 )
 from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 from qiskit.test import QiskitTestCase
 
 

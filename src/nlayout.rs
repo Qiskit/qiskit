@@ -86,4 +86,60 @@ impl NLayout {
             .map(|i| [i, self.logic_to_phys[i]])
             .collect()
     }
+
+    /// Get physical bit from logical bit
+    #[pyo3(text_signature = "(self, logical_bit, /)")]
+    fn logical_to_physical(&self, logical_bit: usize) -> usize {
+        self.logic_to_phys[logical_bit]
+    }
+
+    /// Get logical bit from physical bit
+    #[pyo3(text_signature = "(self, physical_bit, /)")]
+    pub fn physical_to_logical(&self, physical_bit: usize) -> usize {
+        self.phys_to_logic[physical_bit]
+    }
+
+    /// Swap the specified virtual qubits
+    #[pyo3(text_signature = "(self, bit_a, bit_b, /)")]
+    pub fn swap_logical(&mut self, bit_a: usize, bit_b: usize) {
+        self.logic_to_phys.swap(bit_a, bit_b);
+        self.phys_to_logic[self.logic_to_phys[bit_a]] = bit_a;
+        self.phys_to_logic[self.logic_to_phys[bit_b]] = bit_b;
+    }
+
+    /// Swap the specified physical qubits
+    #[pyo3(text_signature = "(self, bit_a, bit_b, /)")]
+    pub fn swap_physical(&mut self, bit_a: usize, bit_b: usize) {
+        self.swap(bit_a, bit_b)
+    }
+
+    pub fn copy(&self) -> NLayout {
+        self.clone()
+    }
+
+    #[staticmethod]
+    pub fn generate_trivial_layout(num_qubits: usize) -> Self {
+        NLayout {
+            logic_to_phys: (0..num_qubits).collect(),
+            phys_to_logic: (0..num_qubits).collect(),
+        }
+    }
+
+    #[staticmethod]
+    pub fn from_logical_to_physical(logic_to_phys: Vec<usize>) -> Self {
+        let mut phys_to_logic = vec![std::usize::MAX; logic_to_phys.len()];
+        for (logic, phys) in logic_to_phys.iter().enumerate() {
+            phys_to_logic[*phys] = logic;
+        }
+        NLayout {
+            logic_to_phys,
+            phys_to_logic,
+        }
+    }
+}
+
+#[pymodule]
+pub fn nlayout(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_class::<NLayout>()?;
+    Ok(())
 }

@@ -17,7 +17,7 @@
 import numpy as np
 from qiskit.circuit import Delay
 from qiskit.circuit import Parameter, ParameterVector
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import QuantumCircuit, CircuitInstruction
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test.base import QiskitTestCase
 
@@ -32,10 +32,10 @@ class TestDelayClass(QiskitTestCase):
         qc.delay(200, 0, unit="s")
         qc.delay(300, 0, unit="ns")
         qc.delay(400, 0, unit="dt")
-        self.assertEqual(qc.data[1][0].unit, "dt")
-        self.assertEqual(qc.data[2][0].unit, "s")
-        self.assertEqual(qc.data[3][0].unit, "ns")
-        self.assertEqual(qc.data[4][0].unit, "dt")
+        self.assertEqual(qc.data[1].operation.unit, "dt")
+        self.assertEqual(qc.data[2].operation.unit, "s")
+        self.assertEqual(qc.data[3].operation.unit, "ns")
+        self.assertEqual(qc.data[4].operation.unit, "dt")
 
     def test_fail_if_non_integer_duration_with_dt_unit_is_supplied(self):
         qc = QuantumCircuit(1)
@@ -60,9 +60,9 @@ class TestDelayClass(QiskitTestCase):
         qc.delay(100, 0)
         qc.delay(200, [0])
         qc.delay(300, qc.qubits[0])
-        self.assertEqual(qc.data[1], (Delay(duration=100), qc.qubits, []))
-        self.assertEqual(qc.data[2], (Delay(duration=200), qc.qubits, []))
-        self.assertEqual(qc.data[3], (Delay(duration=300), qc.qubits, []))
+        self.assertEqual(qc.data[1], CircuitInstruction(Delay(duration=100), qc.qubits, []))
+        self.assertEqual(qc.data[2], CircuitInstruction(Delay(duration=200), qc.qubits, []))
+        self.assertEqual(qc.data[3], CircuitInstruction(Delay(duration=300), qc.qubits, []))
 
     def test_add_delay_on_multiple_qubits_to_circuit(self):
         qc = QuantumCircuit(3)
@@ -99,14 +99,14 @@ class TestParameterizedDelay(QiskitTestCase):
         dur = Parameter("t")
         qc = QuantumCircuit(1)
         qc.delay(dur)
-        self.assertEqual(qc.data[0][0], Delay(dur))
+        self.assertEqual(qc.data[0].operation, Delay(dur))
 
     def test_can_assign_duration_parameter(self):
         dur = Parameter("t")
         qc = QuantumCircuit(1)
         qc.delay(dur)
         qc.assign_parameters({dur: 100}, inplace=True)
-        self.assertEqual(qc.data[0][0].duration, 100)
+        self.assertEqual(qc.data[0].operation.duration, 100)
 
     def test_fail_if_assign_invalid_duration_parameters(self):
         dur = Parameter("t")
@@ -125,5 +125,5 @@ class TestParameterizedDelay(QiskitTestCase):
         qc.delay(durs[0])
         qc.delay(durs[1])
         qc = qc.assign_parameters([0, 1])
-        durations = [inst[0].duration for inst in qc.data]
+        durations = [inst.operation.duration for inst in qc.data]
         self.assertEqual(durations, [0, 0, 1, 1])

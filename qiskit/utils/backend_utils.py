@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 _UNSUPPORTED_BACKENDS = ["unitary_simulator", "clifford_simulator"]
 
-# pylint: disable=no-name-in-module, import-error, unused-import
+# pylint: disable=no-name-in-module,unused-import
 
 
 class ProviderCheck:
@@ -157,7 +157,7 @@ def is_statevector_backend(backend):
 
         if isinstance(backend, StatevectorSimulator):
             return True
-        if isinstance(backend, AerSimulator) and backend.name() == "aer_simulator_statevector":
+        if isinstance(backend, AerSimulator) and "aer_simulator_statevector" in backend.name():
             return True
     if backend is None:
         return False

@@ -1,6 +1,6 @@
 # Trigger types.  This needs to include all the triggers for the different
 # pipelines we might want to run.
-# 
+#
 # Each of these individually triggers the pipeline compilation step, but it's
 # the templating expressions in the `stages` list that actually set what runs.
 trigger:
@@ -33,7 +33,7 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.7", "3.8", "3.9", "3.10"]
+    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
@@ -43,7 +43,7 @@ parameters:
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.10"
+    default: "3.11"
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -59,6 +59,10 @@ parameters:
     type: string
     default: "3.8"
 
+  - name: "documentationPythonVersion"
+    displayName: "Version of Python to use to build Sphinx documentation"
+    type: string
+    default: "3.9"
 
 # Conditional compilation logic.  This is all the logic for "what to run"; each
 # stage in turn delegates to various templates in ".azure" that provide the
@@ -97,6 +101,7 @@ stages:
               pythonVersion: ${{ version }}
               testQPY: false
               testImages: false
+              testRust: false
 
           - template: ".azure/test-macos.yml"
             parameters:
@@ -137,12 +142,13 @@ stages:
 
         - template: ".azure/docs-linux.yml"
           parameters:
-            pythonVersion: ${{ parameters.minimumPythonVersion }}
+            pythonVersion: ${{ parameters.documentationPythonVersion }}
 
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-            testQPY: false
+            testRust: true
+            testQPY: true
             testImages: false
 
     # The rest of the PR pipeline is to test the oldest and newest supported
@@ -161,7 +167,8 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
-            testQPY: true
+            testRust: false
+            testQPY: false
             testImages: true
             installFromSdist: true
 
@@ -189,6 +196,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.branchPushPythonVersion }}
+            testRust: true
             testQPY: true
             testImages: true
 
@@ -205,12 +213,12 @@ stages:
         - template: ".azure/wheels.yml"
           parameters:
             jobName: "macos"
-            pool: {vmImage: 'macOS-10.15'}
+            pool: {vmImage: 'macOS-11'}
 
         - template: ".azure/wheels.yml"
           parameters:
             jobName: "macos_arm"
-            pool: {vmImage: 'macOS-10.15'}
+            pool: {vmImage: 'macOS-11'}
             env:
               CIBW_BEFORE_ALL: rustup target add aarch64-apple-darwin
               CIBW_ARCHS_MACOS: arm64 universal2

@@ -17,7 +17,9 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import U1Gate, RZGate
+from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
+from qiskit.circuit.parameter import Parameter
+from qiskit.transpiler.target import Target
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
 from qiskit.quantum_info import Operator
@@ -557,6 +559,27 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         self.assertEqual(new_circuit, expected)
 
+    def test_target_basis_01(self):
+        """Test basis priority change, phase gate, with target."""
+        circuit = QuantumCircuit(1)
+        circuit.s(0)
+        circuit.z(0)
+        circuit.t(0)
+        circuit.rz(np.pi, 0)
+        theta = Parameter("theta")
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate())
+        target.add_instruction(PhaseGate(theta))
+        target.add_instruction(SXGate())
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation(target=target))
+        new_circuit = passmanager.run(circuit)
+        expected = QuantumCircuit(1)
+        expected.rz(11 * np.pi / 4, 0)
+        expected.global_phase = 11 * np.pi / 4 / 2 - np.pi / 2
+
+        self.assertEqual(new_circuit, expected)
+
     def test_basis_02(self):
         """Test basis priority change, Rz gate"""
         circuit = QuantumCircuit(1)
@@ -620,6 +643,17 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         ccirc = passmanager.run(circ)
         self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_basic_classical_wires(self):
+        """Test that transpile runs without internal errors when dealing with commutable operations
+        with classical controls. Regression test for gh-8553."""
+        original = QuantumCircuit(2, 1)
+        original.x(0).c_if(original.cregs[0], 0)
+        original.x(1).c_if(original.cregs[0], 0)
+        # This transpilation shouldn't change anything, but it should succeed.  At one point it was
+        # triggering an internal logic error and crashing.
+        transpiled = PassManager([CommutativeCancellation()]).run(original)
+        self.assertEqual(original, transpiled)
 
 
 if __name__ == "__main__":

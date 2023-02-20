@@ -15,8 +15,8 @@
 from os.path import basename, isfile
 from typing import Callable, Optional
 
-from tweedledum import BitVec, BoolFunction
-from tweedledum.synthesis import pkrm_synth
+from tweedledum import BitVec, BoolFunction  # pylint: disable=import-error
+from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
 
 from qiskit.circuit import QuantumCircuit
 from .classical_element import ClassicalElement
@@ -25,15 +25,19 @@ from .classical_element import ClassicalElement
 class BooleanExpression(ClassicalElement):
     """The Boolean Expression gate."""
 
-    def __init__(self, expression: str, name: str = None) -> None:
+    def __init__(self, expression: str, name: str = None, var_order: list = None) -> None:
         """
         Args:
             expression (str): The logical expression string.
-            name (str): Optional. Instruction gate name. Otherwise part of
-                        the expression is going to be used.
+            name (str): Optional. Instruction gate name. Otherwise part of the expression is
+               going to be used.
+            var_order(list): A list with the order in which variables will be created.
+               (default: by appearance)
         """
 
-        self._tweedledum_bool_expression = BoolFunction.from_expression(expression)
+        self._tweedledum_bool_expression = BoolFunction.from_expression(
+            expression, var_order=var_order
+        )
 
         short_expr_for_name = (expression[:10] + "...") if len(expression) > 13 else expression
         num_qubits = (

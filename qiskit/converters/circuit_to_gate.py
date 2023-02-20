@@ -49,13 +49,13 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     if circuit.clbits:
         raise QiskitError("Circuit with classical bits cannot be converted to gate.")
 
-    for inst, _, _ in circuit.data:
-        if not isinstance(inst, Gate):
+    for instruction in circuit.data:
+        if not isinstance(instruction.operation, Gate):
             raise QiskitError(
                 (
                     "One or more instructions cannot be converted to"
                     ' a gate. "{}" is not a gate instruction'
-                ).format(inst.name)
+                ).format(instruction.operation.name)
             )
 
     if parameter_map is None:
@@ -84,19 +84,16 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     if equivalence_library is not None:
         equivalence_library.add_equivalence(gate, target)
 
-    rules = target.data
-
+    qc = QuantumCircuit(name=gate.name, global_phase=target.global_phase)
     if gate.num_qubits > 0:
         q = QuantumRegister(gate.num_qubits, "q")
-
+        qc.add_register(q)
     qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
 
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
-    rules = [(inst, [qubit_map[y] for y in qargs], []) for inst, qargs, _ in rules]
-    qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
-    for instr, qargs, cargs in rules:
-        qc._append(instr, qargs, cargs)
+    for instruction in target.data:
+        qc._append(instruction.replace(qubits=tuple(qubit_map[y] for y in instruction.qubits)))
     gate.definition = qc
     return gate

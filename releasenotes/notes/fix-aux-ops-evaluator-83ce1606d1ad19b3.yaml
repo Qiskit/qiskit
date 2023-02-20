@@ -1,6 +1,0 @@
-fixes:
-  - |
-    The :func:`~qiskit.algorithms.eval_observables` function raised an error when the 
-    ``quantum_state`` argument is a :class:`~qiskit.opflow.StateFn`. 
-    This error was fixed and ``eval_observables`` now correctly supports all input types
-    specifying in the type hints.

@@ -11,12 +11,15 @@
 # that they have been altered from the originals.
 
 """T and Tdg gate."""
-
+import math
 from typing import Optional
+
 import numpy
-from qiskit.qasm import pi
+
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates.p import PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.qasm import pi
 
 
 class TGate(Gate):
@@ -26,6 +29,9 @@ class TGate(Gate):
     (because of how the RZ(\pi/4) matrix looks like).
 
     This is a non-Clifford gate and a fourth-root of Pauli-Z.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.t` method.
 
     **Matrix Representation:**
 
@@ -57,6 +63,7 @@ class TGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -75,6 +82,10 @@ class TGate(Gate):
         """Return a numpy.array for the T gate."""
         return numpy.array([[1, 0], [0, (1 + 1j) / numpy.sqrt(2)]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(0.25 * numpy.pi * exponent)
+
 
 class TdgGate(Gate):
     r"""Single qubit T-adjoint gate (~Z**0.25).
@@ -82,6 +93,9 @@ class TdgGate(Gate):
     It induces a :math:`-\pi/4` phase.
 
     This is a non-Clifford gate and a fourth-root of Pauli-Z.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.tdg` method.
 
     **Matrix Representation:**
 
@@ -100,7 +114,7 @@ class TdgGate(Gate):
         q_0: ┤ Tdg ├
              └─────┘
 
-    Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
+    Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
 
     def __init__(self, label: Optional[str] = None):
@@ -113,6 +127,7 @@ class TdgGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .u1 import U1Gate
 
         q = QuantumRegister(1, "q")
@@ -129,4 +144,8 @@ class TdgGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the inverse T gate."""
-        return numpy.array([[1, 0], [0, (1 - 1j) / numpy.sqrt(2)]], dtype=dtype)
+        return numpy.array([[1, 0], [0, (1 - 1j) / math.sqrt(2)]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return PhaseGate(-0.25 * numpy.pi * exponent)

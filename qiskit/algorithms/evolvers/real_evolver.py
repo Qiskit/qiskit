@@ -13,13 +13,31 @@
 """Interface for Quantum Real Time Evolution."""
 
 from abc import ABC, abstractmethod
+from qiskit.utils.deprecation import deprecate_function
 
 from .evolution_problem import EvolutionProblem
 from .evolution_result import EvolutionResult
 
 
 class RealEvolver(ABC):
-    """Interface for Quantum Real Time Evolution."""
+    """Pending deprecation: Interface for Quantum Real Time Evolution.
+
+    The RealEvolver interface has been superseded by the
+    :class:`qiskit.algorithms.time_evolvers.RealTimeEvolver` interface.
+    This interface will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The RealEvolver interface has been superseded by the "
+        "qiskit.algorithms.time_evolvers.RealTimeEvolver interface. "
+        "This interface will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def evolve(self, evolution_problem: EvolutionProblem) -> EvolutionResult:

@@ -14,6 +14,7 @@
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 
 
 class RemoveBarriers(TransformationPass):
@@ -23,7 +24,8 @@ class RemoveBarriers(TransformationPass):
 
     Example:
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit
             from qiskit.transpiler.passes import RemoveBarriers
@@ -34,10 +36,11 @@ class RemoveBarriers(TransformationPass):
             circuit.h(0)
 
             circuit = RemoveBarriers()(circuit)
-            circuit.draw()
+            circuit.draw('mpl')
 
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the RemoveBarriers pass on `dag`."""
 

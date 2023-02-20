@@ -28,7 +28,7 @@ const PARALLEL_THRESHOLD: usize = 19;
 // https://stackoverflow.com/a/67191480/14033130
 // and adjust for f64 usage
 #[inline]
-fn fast_sum(values: &[f64]) -> f64 {
+pub fn fast_sum(values: &[f64]) -> f64 {
     let chunks = values.chunks_exact(LANES);
     let remainder = chunks.remainder();
 
@@ -58,8 +58,7 @@ pub fn expval_pauli_no_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too large and would overflow",
-            num_qubits
+            "The value for num_qubits, {num_qubits}, is too large and would overflow"
         )));
     }
     let data_arr = data.as_slice()?;
@@ -93,8 +92,7 @@ pub fn expval_pauli_with_x(
 ) -> PyResult<f64> {
     if num_qubits > usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too large and would overflow",
-            num_qubits
+            "The value for num_qubits, {num_qubits}, is too large and would overflow",
         )));
     }
     let data_arr = data.as_slice()?;
@@ -149,8 +147,7 @@ pub fn density_expval_pauli_no_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too large and would overflow",
-            num_qubits
+            "The value for num_qubits, {num_qubits}, is too large and would overflow",
         )));
     }
     let data_arr = data.as_slice()?;
@@ -185,8 +182,7 @@ pub fn density_expval_pauli_with_x(
 ) -> PyResult<f64> {
     if num_qubits >= usize::BITS as usize {
         return Err(PyOverflowError::new_err(format!(
-            "The value for num_qubits, {}, is too large and would overflow",
-            num_qubits
+            "The value for num_qubits, {num_qubits}, is too large and would overflow",
         )));
     }
     let data_arr = data.as_slice()?;

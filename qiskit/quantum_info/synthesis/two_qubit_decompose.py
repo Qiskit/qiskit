@@ -28,14 +28,13 @@ import math
 import io
 import base64
 import warnings
-from typing import ClassVar, Optional, Type
+from typing import ClassVar, Optional, Type, Union
 
 import logging
 
 import numpy as np
 
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
+from qiskit.circuit import QuantumRegister, QuantumCircuit, Gate
 from qiskit.circuit.library.standard_gates import CXGate, RXGate, RYGate, RZGate
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator
@@ -44,6 +43,8 @@ from qiskit.quantum_info.synthesis.one_qubit_decompose import (
     OneQubitEulerDecomposer,
     DEFAULT_ATOL,
 )
+from qiskit.utils.deprecation import deprecate_arguments
+
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +133,7 @@ class TwoQubitWeylDecomposition:
         )
 
     @staticmethod
-    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9)):
+    def __new__(cls, unitary_matrix, *, fidelity=(1.0 - 1.0e-9), _unpickling=False):
         """Perform the Weyl chamber decomposition, and optionally choose a specialized subclass.
 
         The flip into the Weyl Chamber is described in B. Kraus and J. I. Cirac, Phys. Rev. A 63,
@@ -144,7 +145,8 @@ class TwoQubitWeylDecomposition:
 
         The overall decomposition scheme is taken from Drury and Love, arXiv:0806.4015 [quant-ph].
         """
-        from scipy import linalg as la
+        if _unpickling:
+            return super().__new__(cls)
 
         pi = np.pi
         pi2 = np.pi / 2
@@ -152,7 +154,7 @@ class TwoQubitWeylDecomposition:
 
         # Make U be in SU(4)
         U = np.array(unitary_matrix, dtype=complex, copy=True)
-        detU = la.det(U)
+        detU = np.linalg.det(U)
         U *= detU ** (-0.25)
         global_phase = cmath.phase(detU) / 4
 
@@ -198,7 +200,7 @@ class TwoQubitWeylDecomposition:
         P[:, :3] = P[:, order]
 
         # Fix the sign of P to be in SO(4)
-        if np.real(la.det(P)) < 0:
+        if np.real(np.linalg.det(P)) < 0:
             P[:, -1] = -P[:, -1]
 
         # Find K1, K2 so that U = K1.A.K2, with K being product of single-qubit unitaries
@@ -403,6 +405,9 @@ class TwoQubitWeylDecomposition:
         circ = self.circuit(**kwargs)
         trace = np.trace(Operator(circ).data.T.conj() @ self.unitary_matrix)
         return trace_to_fid(trace)
+
+    def __getnewargs_ex__(self):
+        return (self.unitary_matrix,), {"_unpickling": True}
 
     def __repr__(self):
         """Represent with enough precision to allow copy-paste debugging of all corner cases"""
@@ -850,7 +855,6 @@ class TwoQubitBasisDecomposer:
         basis_fidelity (float): Fidelity to be assumed for applications of KAK Gate. Default 1.0.
         euler_basis (str): Basis string to be provided to OneQubitEulerDecomposer for 1Q synthesis.
             Valid options are ['ZYZ', 'ZXZ', 'XYX', 'U', 'U3', 'U1X', 'PSX', 'ZSX', 'RR'].
-            Default 'U3'.
         pulse_optimize (None or bool): If True, try to do decomposition which minimizes
             local unitaries in between entangling gates. This will raise an exception if an
             optimal decomposition is not implemented. Currently, only [{CX, SX, RZ}] is known.
@@ -858,16 +862,19 @@ class TwoQubitBasisDecomposer:
             if unknown.
     """
 
-    def __init__(self, gate, basis_fidelity=1.0, euler_basis=None, pulse_optimize=None):
+    def __init__(
+        self,
+        gate: Gate,
+        basis_fidelity: float = 1.0,
+        euler_basis: str = "U",
+        pulse_optimize: Optional[bool] = None,
+    ):
         self.gate = gate
         self.basis_fidelity = basis_fidelity
         self.pulse_optimize = pulse_optimize
 
         basis = self.basis = TwoQubitWeylDecomposition(Operator(gate).data)
-        if euler_basis is not None:
-            self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
-        else:
-            self._decomposer1q = OneQubitEulerDecomposer("U3")
+        self._decomposer1q = OneQubitEulerDecomposer(euler_basis)
 
         # FIXME: find good tolerances
         self.is_supercontrolled = math.isclose(basis.a, np.pi / 4) and math.isclose(basis.c, 0.0)
@@ -1078,16 +1085,35 @@ class TwoQubitBasisDecomposer:
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    def __call__(self, target, basis_fidelity=None, *, _num_basis_uses=None) -> QuantumCircuit:
-        """Decompose a two-qubit unitary over fixed basis + SU(2) using the best approximation given
-        that each basis application has a finite fidelity.
+    @deprecate_arguments({"target": "unitary"})
+    def __call__(
+        self,
+        unitary: Union[Operator, np.ndarray],
+        basis_fidelity: Optional[float] = None,
+        approximate: bool = True,
+        *,
+        _num_basis_uses: int = None,
+    ) -> QuantumCircuit:
+        """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
+        that each basis application has a finite `basis_fidelity`.
 
-        You can force a particular approximation by passing _num_basis_uses.
+        Args:
+            unitary (Operator or ndarray): 4x4 unitary to synthesize.
+            basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
+                If given, overrides basis_fidelity given at init.
+            approximate (bool): Approximates if basis fidelities are less than 1.0.
+            _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
+        Returns:
+            QuantumCircuit: Synthesized circuit.
+        Raises:
+            QiskitError: if pulse_optimize is True but we don't know how to do it.
         """
         basis_fidelity = basis_fidelity or self.basis_fidelity
-        target = np.asarray(target, dtype=complex)
+        if approximate is False:
+            basis_fidelity = 1.0
+        unitary = np.asarray(unitary, dtype=complex)
 
-        target_decomposed = TwoQubitWeylDecomposition(target)
+        target_decomposed = TwoQubitWeylDecomposition(unitary)
         traces = self.traces(target_decomposed)
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
@@ -1401,6 +1427,95 @@ class TwoQubitBasisDecomposer:
             4,
         ]
         return np.argmax([trace_to_fid(traces[i]) * self.basis_fidelity**i for i in range(4)])
+
+
+class TwoQubitDecomposeUpToDiagonal:
+    """
+    Class to decompose two qubit unitaries into the product of a diagonal gate
+    and another unitary gate which can be represented by two CX gates instead of the
+    usual three. This can be used when neighboring gates commute with the diagonal to
+    potentially reduce overall CX count.
+    """
+
+    def __init__(self):
+        sy = np.array([[0, -1j], [1j, 0]])
+        self.sysy = np.kron(sy, sy)
+
+    def _u4_to_su4(self, u4):
+        phase_factor = np.conj(np.linalg.det(u4) ** (-1 / u4.shape[0]))
+        su4 = u4 / phase_factor
+        return su4, cmath.phase(phase_factor)
+
+    def _gamma(self, mat):
+        """
+        proposition II.1: this invariant characterizes when two operators in U(4),
+        say u, v, are equivalent up to single qubit gates:
+
+           u ≡ v -> Det(γ(u)) = Det(±(γ(v)))
+        """
+        sumat, _ = self._u4_to_su4(mat)
+        sysy = self.sysy
+        return sumat @ sysy @ sumat.T @ sysy
+
+    def _cx0_test(self, mat):
+        # proposition III.1: zero cx sufficient
+        gamma = self._gamma(mat)
+        evals = np.linalg.eigvals(gamma)
+        return np.all(np.isclose(evals, np.ones(4)))
+
+    def _cx1_test(self, mat):
+        # proposition III.2: one cx sufficient
+        gamma = self._gamma(mat)
+        evals = np.linalg.eigvals(gamma)
+        uvals, ucnts = np.unique(np.round(evals, 10), return_counts=True)
+        return (
+            len(uvals) == 2
+            and all(ucnts == 2)
+            and all((np.isclose(x, 1j)) or np.isclose(x, -1j) for x in uvals)
+        )
+
+    def _cx2_test(self, mat):
+        # proposition III.3: two cx sufficient
+        gamma = self._gamma(mat)
+        return np.isclose(np.trace(gamma).imag, 0)
+
+    def _real_trace_transform(self, mat):
+        """
+        Determine diagonal gate such that
+
+        U3 = D U2
+
+        Where U3 is a general two-qubit gate which takes 3 cnots, D is a
+        diagonal gate, and U2 is a gate which takes 2 cnots.
+        """
+        a1 = (
+            -mat[1, 3] * mat[2, 0]
+            + mat[1, 2] * mat[2, 1]
+            + mat[1, 1] * mat[2, 2]
+            - mat[1, 0] * mat[2, 3]
+        )
+        a2 = (
+            mat[0, 3] * mat[3, 0]
+            - mat[0, 2] * mat[3, 1]
+            - mat[0, 1] * mat[3, 2]
+            + mat[0, 0] * mat[3, 3]
+        )
+        theta = 0  # arbitrary
+        phi = 0  # arbitrary
+        psi = np.arctan2(a1.imag + a2.imag, a1.real - a2.real) - phi
+        diag = np.diag(np.exp(-1j * np.array([theta, phi, psi, -(theta + phi + psi)])))
+        return diag
+
+    def __call__(self, mat):
+        """do the decomposition"""
+        su4, phase = self._u4_to_su4(mat)
+        real_map = self._real_trace_transform(su4)
+        mapped_su4 = real_map @ su4
+        if not self._cx2_test(mapped_su4):
+            warnings.warn("Unitary decomposition up to diagonal may use an additionl CX gate.")
+        circ = two_qubit_cnot_decompose(mapped_su4)
+        circ.global_phase += phase
+        return real_map.conj(), circ
 
 
 # This weird duplicated lazy structure is for backwards compatibility; Qiskit has historically

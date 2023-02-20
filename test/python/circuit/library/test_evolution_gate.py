@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -255,7 +255,7 @@ class TestEvolutionGate(QiskitTestCase):
         """Test that global ``PauliOp`` coefficients are being taken care of."""
         evo = PauliEvolutionGate(5 * (Z ^ I), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
-        rz_angle = circuit.data[0][0].params[0]
+        rz_angle = circuit.data[0].operation.params[0]
         self.assertEqual(rz_angle, 10)
 
     def test_paulisumop_coefficients_respected(self):
@@ -263,9 +263,9 @@ class TestEvolutionGate(QiskitTestCase):
         evo = PauliEvolutionGate(5 * (2 * X + 3 * Y - Z), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
         rz_angles = [
-            circuit.data[0][0].params[0],  # X
-            circuit.data[1][0].params[0],  # Y
-            circuit.data[2][0].params[0],  # Z
+            circuit.data[0].operation.params[0],  # X
+            circuit.data[1].operation.params[0],  # Y
+            circuit.data[2].operation.params[0],  # Z
         ]
         self.assertListEqual(rz_angles, [20, 30, -10])
 
@@ -285,6 +285,11 @@ class TestEvolutionGate(QiskitTestCase):
         """Test an operator with complex coefficient raises an error."""
         with self.assertRaises(ValueError):
             _ = PauliEvolutionGate(Pauli("iZ"))
+
+    def test_paramtrized_op_raises(self):
+        """Test an operator with parametrized coefficient raises an error."""
+        with self.assertRaises(ValueError):
+            _ = PauliEvolutionGate(SparsePauliOp("Z", np.array(Parameter("t"))))
 
     @data(LieTrotter, MatrixExponential)
     def test_inverse(self, synth_cls):

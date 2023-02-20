@@ -14,8 +14,6 @@
 
 """Object to represent the information at a node in the DAGCircuit."""
 
-import warnings
-
 from qiskit.exceptions import QiskitError
 
 
@@ -49,9 +47,8 @@ class DAGDepNode:
         type=None,
         op=None,
         name=None,
-        qargs=None,
-        cargs=None,
-        condition=None,
+        qargs=(),
+        cargs=(),
         successors=None,
         predecessors=None,
         reachable=None,
@@ -66,17 +63,8 @@ class DAGDepNode:
         self.type = type
         self._op = op
         self.name = name
-        self._qargs = qargs if qargs is not None else []
-        self.cargs = cargs if cargs is not None else []
-        if condition:
-            warnings.warn(
-                "The DAGDepNode 'condition' kwarg and 'condition' attribute are deprecated "
-                "as of 0.18.0 and will be removed no earlier than 3 months after the "
-                "release date. You can use 'DAGDepNode.op.condition' if the DAGDepNode "
-                "is of type 'op'.",
-                DeprecationWarning,
-                2,
-            )
+        self._qargs = tuple(qargs) if qargs is not None else ()
+        self.cargs = tuple(cargs) if cargs is not None else ()
         self.node_id = nid
         self.sort_key = str(self._qargs)
         self.successors = successors if successors is not None else []
@@ -100,34 +88,6 @@ class DAGDepNode:
         self._op = data
 
     @property
-    def condition(self):
-        """Returns the condition of the node.op"""
-        if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
-        warnings.warn(
-            "The DAGDepNode 'condition' attribute is deprecated as of 0.18.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "You can use 'DAGDepNode.op.condition' if the DAGDepNode is of type 'op'.",
-            DeprecationWarning,
-            2,
-        )
-        return self._op.condition
-
-    @condition.setter
-    def condition(self, new_condition):
-        """Sets the node.condition which sets the node.op.condition."""
-        if not self.type or self.type != "op":
-            raise QiskitError("The node %s is not an op node" % (str(self)))
-        warnings.warn(
-            "The DAGDepNode 'condition' attribute is deprecated as of 0.18.0 and "
-            "will be removed no earlier than 3 months after the release date. "
-            "You can use 'DAGDepNode.op.condition' if the DAGDepNode is of type 'op'.",
-            DeprecationWarning,
-            2,
-        )
-        self._op.condition = new_condition
-
-    @property
     def qargs(self):
         """
         Returns list of Qubit, else an empty list.
@@ -137,7 +97,7 @@ class DAGDepNode:
     @qargs.setter
     def qargs(self, new_qargs):
         """Sets the qargs to be the given list of qargs."""
-        self._qargs = new_qargs
+        self._qargs = tuple(new_qargs)
         self.sort_key = str(new_qargs)
 
     @staticmethod
@@ -162,7 +122,9 @@ class DAGDepNode:
                     if node1._qargs == node2._qargs:
                         if node1.cargs == node2.cargs:
                             if node1.type == "op":
-                                if node1._op.condition != node2._op.condition:
+                                if getattr(node1._op, "condition", None) != getattr(
+                                    node2._op, "condition", None
+                                ):
                                     return False
                             return True
         return False

@@ -11,7 +11,8 @@
 # that they have been altered from the originals.
 
 """Two-qubit XX+YY gate."""
-
+import math
+from cmath import exp
 from typing import Optional
 from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
@@ -152,20 +153,25 @@ class XXPlusYYGate(Gate):
         """Return inverse XX+YY gate (i.e. with the negative rotation angle and same phase angle)."""
         return XXPlusYYGate(-self.params[0], self.params[1])
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the XX+YY gate."""
         import numpy
 
         half_theta = float(self.params[0]) / 2
         beta = float(self.params[1])
-        cos = numpy.cos(half_theta)
-        sin = numpy.sin(half_theta)
+        cos = math.cos(half_theta)
+        sin = math.sin(half_theta)
         return numpy.array(
             [
                 [1, 0, 0, 0],
-                [0, cos, -1j * sin * numpy.exp(-1j * beta), 0],
-                [0, -1j * sin * numpy.exp(1j * beta), cos, 0],
+                [0, cos, -1j * sin * exp(-1j * beta), 0],
+                [0, -1j * sin * exp(1j * beta), cos, 0],
                 [0, 0, 0, 1],
             ],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        theta, beta = self.params
+        return XXPlusYYGate(exponent * theta, beta)
