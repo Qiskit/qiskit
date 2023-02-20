@@ -32,9 +32,9 @@ else
 	CONCURRENCY := $(shell echo "$(NPROCS) 2" | awk '{printf "%.0f", $$1 / $$2}')
 endif
 
-.PHONY: default env lint lint-incr style black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
+.PHONY: default env style ruff black test test_randomized pytest pytest_randomized test_ci coverage coverage_erase clean
 
-default: style lint-incr test ;
+default: style ruff test ;
 
 # Dependencies need to be installed on the Anaconda virtual environment.
 env:
@@ -60,6 +60,10 @@ lint-incr:
 	tools/pylint_incr.py -j4 -rn -sn --disable='invalid-name, missing-module-docstring, redefined-outer-name' --paths ':(glob,top)examples/python/*.py'
 	tools/verify_headers.py qiskit test tools examples
 	tools/find_optional_imports.py
+
+# TODO: 'ruff qiskit test' and maybe other files too
+ruff:
+	ruff qiskit
 
 style:
 	black --check qiskit test tools examples setup.py

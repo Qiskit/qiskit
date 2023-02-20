@@ -84,7 +84,9 @@ class VarQTELinearSolver:
     def lse_solver(self, lse_solver: Callable[[np.ndarray, np.ndarray], np.ndarray] | None) -> None:
         """Sets an LSE solver. Uses a ``np.linalg.lstsq`` callable if ``None`` provided."""
         if lse_solver is None:
-            def lse_solver(a, b): return np.linalg.lstsq(a, b, rcond=1e-2)[0]
+
+            def lse_solver(a, b):
+                return np.linalg.lstsq(a, b, rcond=1e-2)[0]
 
         self._lse_solver = lse_solver
 

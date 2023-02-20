@@ -40,7 +40,7 @@ from qiskit.utils.deprecation import deprecate_arguments
 # import QubitProperties here to provide convenience alias for building a
 # full target
 # pylint: disable=unused-import
-from qiskit.providers.backend import QubitProperties # noqa: F401
+from qiskit.providers.backend import QubitProperties  # noqa: F401
 from qiskit.providers.models.backendproperties import BackendProperties
 
 logger = logging.getLogger(__name__)

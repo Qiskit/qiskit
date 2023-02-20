@@ -10,7 +10,7 @@ pillow>=4.2.1
 black[jupyter]~=22.0
 pydot
 astroid==2.5.6
-pylint==2.8.3
+ruff
 stestr>=2.0.0,!=4.0.0
 pylatexenc>=1.4
 ddt>=1.2.0,!=1.4.0,!=1.4.3

@@ -43,4 +43,6 @@ line-length=105
 "qiskit/transpiler/passes/scheduling/calibration_creators.py" = ["F401"]
 "qiskit/transpiler/passes/scheduling/rzx_templates.py" = ["F401"]
 
+[tool.ruff.pydocstyle]
+convention = "google"
 
