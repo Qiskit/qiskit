@@ -1251,9 +1251,10 @@ def Sin(
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
         amp: The magnitude of the amplitude of the sinusoidal wave. Wave range is [-`amp`,`amp`].
-        phase: The phase of the sinusoidal wave (note that this is not equivalent to the angle of the complex amplitude)
-        freq: The frequency of the sinusoidal wave, in terms of 1 over sampling period. If not provided defaults to a
-            single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
+        phase: The phase of the sinusoidal wave (note that this is not equivalent to the angle of
+            the complex amplitude)
+        freq: The frequency of the sinusoidal wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
         angle: The angle in radians of the complex phase factor uniformly
             scaling the pulse. Default value 0.
         name: Display name for this pulse envelope.
@@ -1264,22 +1265,18 @@ def Sin(
         ScalableSymbolicPulse instance.
     """
     if freq is None:
-        freq = 1/duration
+        freq = 1 / duration
     parameters = {"freq": freq, "phase": phase}
 
     # Prepare symbolic expressions
-    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols(
-        "t, duration, amp, angle, freq, phase"
-    )
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
 
-    envelope_expr = (
-        _amp
-        * sym.exp(sym.I * _angle)
-        * sym.sin(2 * sym.pi * _freq * _t + _phase)
-    )
+    envelope_expr = _amp * sym.exp(sym.I * _angle) * sym.sin(2 * sym.pi * _freq * _t + _phase)
 
     consts_expr = _freq > 0
-    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0  # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = (
+        sym.Abs(_amp) <= 1.0
+    )  # This might fail for waves shorter than a single cycle
 
     instance = ScalableSymbolicPulse(
         pulse_type="Sin",
@@ -1317,12 +1314,18 @@ def Cos(
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
 
+    .. note::
+
+        Because `Cos` calls :fun:`~qiskit.pulse.library.Sin` with an appropriate shift of phase,
+        the resulting pulse will have `pulse_type="Sin"`.
+
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
         amp: The magnitude of the amplitude of the cosine wave. Wave range is [-`amp`,`amp`].
-        phase: The phase of the cosine wave (note that this is not equivalent to the angle of the complex amplitude).
-        freq: The frequency of the cosine wave, in terms of 1 over sampling period. If not provided defaults to a
-            single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
+        phase: The phase of the cosine wave (note that this is not equivalent to the angle
+            of the complex amplitude).
+        freq: The frequency of the cosine wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
         angle: The angle in radians of the complex phase factor uniformly
             scaling the pulse. Default value 0.
         name: Display name for this pulse envelope.
@@ -1335,11 +1338,11 @@ def Cos(
     instance = Sin(
         duration=duration,
         amp=amp,
-        phase=phase+np.pi/2,
+        phase=phase + np.pi / 2,
         freq=freq,
         angle=angle,
         name=name,
-        limit_amplitude=limit_amplitude
+        limit_amplitude=limit_amplitude,
     )
 
     return instance
@@ -1360,7 +1363,8 @@ def Sawtooth(
 
     .. math::
 
-        f(x) &= 2\\text{A}\\left[g\\left(x\\right)-\\lfloor g\\left(x\\right)+\\frac{1}{2}\\rfloor\\right]  ,  0 <= x < duration
+        f(x) &= 2\\text{A}\\left[g\\left(x\\right)-
+            \\lfloor g\\left(x\\right)+\\frac{1}{2}\\rfloor\\right]
 
     where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
     :math:`g\\left(x\\right)=x\\times\\text{freq}+\\frac{\\text{phase}}{2\\pi}`,
@@ -1369,9 +1373,10 @@ def Sawtooth(
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
         amp: The magnitude of the amplitude of the sawtooth wave. Wave range is [-`amp`,`amp`].
-        phase: The phase of the sawtooth wave (note that this is not equivalent to the angle of the complex amplitude)
-        freq: The frequency of the sawtooth wave, in terms of 1 over sampling period. If not provided defaults to a
-            single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
+        phase: The phase of the sawtooth wave (note that this is not equivalent to the angle
+            of the complex amplitude)
+        freq: The frequency of the sawtooth wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
         angle: The angle in radians of the complex phase factor uniformly
             scaling the pulse. Default value 0.
         name: Display name for this pulse envelope.
@@ -1382,23 +1387,19 @@ def Sawtooth(
         ScalableSymbolicPulse instance.
     """
     if freq is None:
-        freq = 1/duration
+        freq = 1 / duration
     parameters = {"freq": freq, "phase": phase}
 
     # Prepare symbolic expressions
-    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols(
-        "t, duration, amp, angle, freq, phase"
-    )
-    lin_expr = _t * _freq + _phase/(2*sym.pi)
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+    lin_expr = _t * _freq + _phase / (2 * sym.pi)
 
-    envelope_expr = (
-        2 * _amp * sym.exp(sym.I * _angle) * (
-            lin_expr - sym.floor(lin_expr + 1/2)
-        )
-    )
+    envelope_expr = 2 * _amp * sym.exp(sym.I * _angle) * (lin_expr - sym.floor(lin_expr + 1 / 2))
 
     consts_expr = _freq > 0
-    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0  # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = (
+        sym.Abs(_amp) <= 1.0
+    )  # This might fail for waves shorter than a single cycle
 
     instance = ScalableSymbolicPulse(
         pulse_type="Sawtooth",
@@ -1441,9 +1442,10 @@ def Triangle(
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
         amp: The magnitude of the amplitude of the triangle wave. Wave range is [-`amp`,`amp`].
-        phase: The phase of the triangle wave (note that this is not equivalent to the angle of the complex amplitude)
-        freq: The frequency of the triangle wave, in terms of 1 over sampling period. If not provided defaults to a
-            single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
+        phase: The phase of the triangle wave (note that this is not equivalent to the angle
+            of the complex amplitude)
+        freq: The frequency of the triangle wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e ::math::'\\frac{1}{\\text{duration}}').
         angle: The angle in radians of the complex phase factor uniformly
             scaling the pulse. Default value 0.
         name: Display name for this pulse envelope.
@@ -1454,22 +1456,20 @@ def Triangle(
         ScalableSymbolicPulse instance.
     """
     if freq is None:
-        freq = 1/duration
+        freq = 1 / duration
     parameters = {"freq": freq, "phase": phase}
 
     # Prepare symbolic expressions
-    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols(
-        "t, duration, amp, angle, freq, phase"
-    )
-    lin_expr = _t * _freq + _phase/(2*sym.pi) - 0.25
-    sawtooth_expr = 2 * (lin_expr - sym.floor(lin_expr + 1/2))
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+    lin_expr = _t * _freq + _phase / (2 * sym.pi) - 0.25
+    sawtooth_expr = 2 * (lin_expr - sym.floor(lin_expr + 1 / 2))
 
-    envelope_expr = (
-        _amp * sym.exp(sym.I * _angle) * (-2 * sym.Abs(sawtooth_expr) + 1)
-    )
+    envelope_expr = _amp * sym.exp(sym.I * _angle) * (-2 * sym.Abs(sawtooth_expr) + 1)
 
     consts_expr = _freq > 0
-    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0  # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = (
+        sym.Abs(_amp) <= 1.0
+    )  # This might fail for waves shorter than a single cycle
 
     instance = ScalableSymbolicPulse(
         pulse_type="Triangle",

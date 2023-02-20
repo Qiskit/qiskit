@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The ``SymbolicPulse`` library was extended. The new pulses in the library are:
+
+      * :fun:``~qiskit.pulse.library.Sin``
+      * :fun:``~qiskit.pulse.library.Cos``
+      * :fun:``~qiskit.pulse.library.Sawtooth``
+      * :fun:``~qiskit.pulse.library.Triangle``
+
+    The new functions return a ``ScalableSymbolicPulse``. With the exception of the ``Sawtooth`` phase,
+    behaviour is identical to that of the corresponding waveform generators (:class:``~qiskit.pulse.library.sin`` etc).
