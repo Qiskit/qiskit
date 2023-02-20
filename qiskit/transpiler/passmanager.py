@@ -17,7 +17,7 @@ import re
 from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.passmanager.flow_controller import PassSequence
+from qiskit.passmanager.flow_controller import PassSequence, FlowController, FlowControllerLinear
 from qiskit.passmanager.base_passmanager import BasePassManager
 
 from .basepasses import BasePass
@@ -107,6 +107,31 @@ class PassManager(BasePassManager, passmanager_error=TranspilerError):
             # TODO remove this argument from append
             self.max_iteration = max_iteration
         super().replace(index, passes, **flow_controller_conditions)
+
+    def passes(self) -> List[Dict[str, BasePass]]:
+        """Return a list structure of the appended passes and its options.
+
+        Returns:
+            A list of pass sets, as defined in ``append()``.
+        """
+        ret = []
+        for controller in self._flow_controllers:
+            passes = controller.passes
+            while hasattr(passes, "passes"):
+                passes = passes.passes
+            if isinstance(passes, BasePass):
+                passes = [passes]
+            if isinstance(controller, FlowControllerLinear):
+                condition = {}
+            else:
+                for name, cls_controller in FlowController.registered_controllers.items():
+                    if isinstance(controller, cls_controller):
+                        condition = {name}
+                        break
+                else:
+                    condition = {controller.__class__.__name__}
+            ret.append({"passes": passes, "flow_controllers": condition})
+        return ret
 
 
 class StagedPassManager(PassManager):
@@ -232,14 +257,10 @@ class StagedPassManager(PassManager):
 
     def _update_passmanager(self) -> None:
         self._flow_controllers = []
-        self._pass_sets = []
         for stage in self.expanded_stages:
             pm = getattr(self, stage, None)
             if pm is not None:
                 self._flow_controllers.extend(pm._flow_controllers)
-
-                # For backward compatibility. This will be removed.
-                self._pass_sets.extend(pm._pass_sets)
 
     def __setattr__(self, attr, value):
         if value == self and attr in self.expanded_stages:
@@ -276,12 +297,6 @@ class StagedPassManager(PassManager):
         # It returns instance of self.__class__ which is StagetPassManager.
         new_passmanager = PassManager()
         new_passmanager._flow_controllers = [self._flow_controllers[index]]
-
-        # Backward compatibility. This will be removed.
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
 
         return new_passmanager
 

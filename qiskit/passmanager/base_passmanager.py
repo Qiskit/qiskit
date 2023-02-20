@@ -13,13 +13,12 @@
 """Manager for a set of Passes and their scheduling during transpilation."""
 
 from abc import ABC, abstractmethod
-from typing import List, Callable, Dict, Any
+from typing import List, Callable, Any
 
 import dill
 from qiskit.tools.parallel import parallel_map
 from qiskit.utils.deprecation import deprecate_exception
 
-from .base_pass import BasePass
 from .base_pass_runner import BasePassRunner
 from .exceptions import PassManagerError
 from .flow_controller import FlowController, PassSequence
@@ -70,10 +69,6 @@ class BasePassManager(ABC):
         self.max_iteration = max_iteration
         self.property_set = None
 
-        # For backward compatibility. In principle this is no longer necessary.
-        # This can be dropped with self.passes method.
-        self._pass_sets = []
-
         if passes is not None:
             self.append(passes)
 
@@ -108,14 +103,6 @@ class BasePassManager(ABC):
         )
         self._flow_controllers.append(normalized_flow_controller)
 
-        # Backward compatibility. This will be removed.
-        self._pass_sets.append(
-            {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
-        )
-
     def replace(
         self,
         index: int,
@@ -141,12 +128,6 @@ class BasePassManager(ABC):
 
         try:
             self._flow_controllers[index] = normalized_flow_controller
-
-            # Backward compatibility. This will be removed.
-            self._pass_sets[index] = {
-                "passes": passes,
-                "flow_controllers": flow_controller_conditions,
-            }
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -161,9 +142,6 @@ class BasePassManager(ABC):
         """
         try:
             del self._flow_controllers[index]
-
-            # Backward compatibility. This will be removed.
-            del self._pass_sets[index]
         except IndexError as ex:
             raise PassManagerError(f"Index to replace {index} does not exists") from ex
 
@@ -171,30 +149,20 @@ class BasePassManager(ABC):
         self.replace(index, item)
 
     def __len__(self):
-        return len(self._pass_sets)
+        return len(self._flow_controllers)
 
     def __getitem__(self, index):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
         new_passmanager._flow_controllers = [self._flow_controllers[index]]
-
-        # Backward compatibility. This will be removed.
-        _pass_sets = self._pass_sets[index]
-        if isinstance(_pass_sets, dict):
-            _pass_sets = [_pass_sets]
-        new_passmanager._pass_sets = _pass_sets
 
         return new_passmanager
 
     def __add__(self, other):
         new_passmanager = self.__class__(max_iteration=self.max_iteration)
         new_passmanager._flow_controllers = self._flow_controllers
-        # Backward compatibility. This will be removed.
-        new_passmanager._pass_sets = self._pass_sets
 
         if isinstance(other, self.__class__):
             new_passmanager._flow_controllers += other._flow_controllers
-            # Backward compatibility. This will be removed.
-            new_passmanager._pass_sets += other._pass_sets
         else:
             try:
                 new_passmanager.append(other)
@@ -281,26 +249,6 @@ class BasePassManager(ABC):
         from qiskit.visualization import pass_manager_drawer
 
         return pass_manager_drawer(self, filename=filename, style=style, raw=raw)
-
-    def passes(self) -> List[Dict[str, PassSequence]]:
-        """Return a list structure of the appended passes and its options.
-
-        Returns:
-            A list of pass sets, as defined in ``append()``.
-        """
-        # Backward compatibility. This will be removed.
-        ret = []
-        for pass_set in self._pass_sets:
-            passes = pass_set["passes"]
-            if isinstance(passes, BasePass):
-                passes = [passes]
-            item = {"passes": passes}
-            if pass_set["flow_controllers"]:
-                item["flow_controllers"] = set(pass_set["flow_controllers"].keys())
-            else:
-                item["flow_controllers"] = {}
-            ret.append(item)
-        return ret
 
     @property
     def flow_controllers(self) -> List[FlowController]:

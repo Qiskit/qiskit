@@ -1244,6 +1244,14 @@ Exceptions
 """
 
 
+# For backward compatibility
+from qiskit.passmanager import (
+    PropertySet,
+    FlowController,
+    ConditionalController,
+    DoWhileController,
+)
+
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
 from .exceptions import TranspilerError, TranspilerAccessError
@@ -1255,9 +1263,3 @@ from .instruction_durations import InstructionDurations
 from .target import Target
 from .target import InstructionProperties
 from .target import QubitProperties
-
-
-def __getattr__(name):
-    from qiskit import passmanager
-
-    return getattr(passmanager, name)

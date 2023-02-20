@@ -755,7 +755,11 @@ class TestDumpPasses(SchedulerTestCase):
                     PassA_TP_NR_NP(),
                     PassF_reduce_dag_property(),
                 ],
-                "flow_controllers": {"condition", "do_while"},
+                # Note that FlowController.registered_controllers always checks
+                # conditional controller prior to do-while controller.
+                # So "condition" is always an outer controller regardless of
+                # the key ordering in the user kwargs.
+                "flow_controllers": {"condition", "condition"},
             },
         ]
         self.assertEqual(expected, passmanager.passes())
