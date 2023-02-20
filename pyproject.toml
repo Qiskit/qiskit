@@ -45,4 +45,3 @@ line-length=105
 
 [tool.ruff.pydocstyle]
 convention = "google"
-
