@@ -136,7 +136,7 @@ class OverlapBlockDiag(CircuitQFI):
                         "gates parameterized by a single parameter. For such "
                         "circuits use LinCombFull"
                     )
-                gate = circuit._parameter_table[param][0][0]
+                gate = next(iter(circuit._parameter_table[param]))[0]
                 if len(gate.params) > 1:
                     raise OpflowError(
                         "OverlapDiag cannot yet support gates with more than one parameter."

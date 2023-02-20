@@ -15,15 +15,17 @@
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
+from functools import partial
 import math
 import numpy as np
-import retworkx as rx
+from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
+import rustworkx as rx
 
 from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 
-from qiskit.opflow import I, X, PauliSumOp
+from qiskit.opflow import I, X, Z, PauliSumOp
 
 from qiskit import BasicAer, QuantumCircuit, QuantumRegister
 
@@ -109,8 +111,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def test_qaoa_qc_mixer(self, w, prob, solutions, convert_to_matrix_op):
         """QAOA test with a mixer as a parameterized circuit"""
         self.log.debug(
-            "Testing %s-step QAOA with MaxCut on graph with "
-            "a mixer as a parameterized circuit\n%s",
+            "Testing %s-step QAOA with MaxCut on graph with a mixer as a parameterized circuit\n%s",
             prob,
             w,
         )
@@ -298,6 +299,26 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
         self.assertLess(result.eigenvalue, -0.97)
+
+    def test_qaoa_construct_circuit_update(self):
+        """Test updating operators with QAOA construct_circuit"""
+        qaoa = QAOA()
+        ref = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+        circ2 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+        self.assertEqual(circ2, ref)
+        circ3 = qaoa.construct_circuit([0, 0], Z ^ I)[0]
+        self.assertNotEqual(circ3, ref)
+        circ4 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+        self.assertEqual(circ4, ref)
+
+    def test_optimizer_scipy_callable(self):
+        """Test passing a SciPy optimizer directly as callable."""
+        qaoa = QAOA(
+            optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
+            quantum_instance=self.statevector_simulator,
+        )
+        result = qaoa.compute_minimum_eigenvalue(Z)
+        self.assertEqual(result.cost_function_evals, 4)
 
     def _get_operator(self, weight_matrix):
         """Generate Hamiltonian for the max-cut problem of a graph.

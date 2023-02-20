@@ -8,6 +8,7 @@ Qiskit Terra API Reference
    :maxdepth: 1
 
    circuit
+   circuit_library
    compiler
    execute
    visualization
@@ -18,9 +19,13 @@ Qiskit Terra API Reference
    extensions
    providers_basicaer
    providers
+   providers_fake_provider
    providers_models
    pulse
    scheduler
+   synthesis
+   primitives
+   qasm3
    qasm
    qobj
    qpy
@@ -32,6 +37,8 @@ Qiskit Terra API Reference
    transpiler_passes
    transpiler_preset
    transpiler_plugins
+   transpiler_synthesis_plugins
+   transpiler_builtin_plugins
    utils
    utils_mitigation
    opflow

@@ -19,18 +19,8 @@ from IPython.display import display
 from IPython.core import magic_arguments
 from IPython.core.magic import cell_magic, line_magic, Magics, magics_class, register_line_magic
 
-from qiskit.exceptions import MissingOptionalLibraryError
-
-try:
-    import ipywidgets as widgets
-except ImportError as ex:
-    raise MissingOptionalLibraryError(
-        libname="ipywidgets",
-        name="jupyter magics",
-        pip_install="pip install ipywidgets",
-    ) from ex
+from qiskit.utils import optionals as _optionals
 import qiskit
-from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
 from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
 from .library import circuit_library_widget
@@ -81,8 +71,11 @@ class StatusMagic(Magics):
     @magic_arguments.argument(
         "-i", "--interval", type=float, default=None, help="Interval for status check."
     )
+    @_optionals.HAS_IPYWIDGETS.require_in_call
     def qiskit_job_status(self, line="", cell=None):
         """A Jupyter magic function to check the status of a Qiskit job instance."""
+        import ipywidgets as widgets
+
         args = magic_arguments.parse_argstring(self.qiskit_job_status, line)
 
         if args.interval is None:
@@ -119,10 +112,10 @@ class StatusMagic(Magics):
 
                 if iter_var:
                     for item in self.shell.user_ns[var]:
-                        if isinstance(item, qiskit.providers.basejob.BaseJob):
+                        if isinstance(item, qiskit.providers.job.Job):
                             jobs.append(item)
                 else:
-                    if isinstance(self.shell.user_ns[var], qiskit.providers.basejob.BaseJob):
+                    if isinstance(self.shell.user_ns[var], qiskit.providers.job.Job):
                         jobs.append(self.shell.user_ns[var])
 
         # Must have one job class
@@ -178,7 +171,7 @@ class ProgressBarMagic(Magics):
         return pbar
 
 
-if HAS_MATPLOTLIB and get_ipython():
+if _optionals.HAS_MATPLOTLIB and get_ipython():
 
     @register_line_magic
     def circuit_library_info(circuit: qiskit.QuantumCircuit) -> None:

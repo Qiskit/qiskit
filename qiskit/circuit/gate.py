@@ -12,10 +12,8 @@
 
 """Unitary gate."""
 
-from warnings import warn
 from typing import List, Optional, Union, Tuple
 import numpy as np
-from scipy.linalg import schur
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.exceptions import CircuitError
@@ -71,11 +69,12 @@ class Gate(Instruction):
         """
         from qiskit.quantum_info.operators import Operator  # pylint: disable=cyclic-import
         from qiskit.extensions.unitary import UnitaryGate  # pylint: disable=cyclic-import
+        from scipy.linalg import schur
 
         # Should be diagonalized because it's a unitary.
         decomposition, unitary = schur(Operator(self).data, output="complex")
         # Raise the diagonal entries to the specified power
-        decomposition_power = list()
+        decomposition_power = []
 
         decomposition_diagonal = decomposition.diagonal()
         # assert off-diagonal are 0
@@ -87,6 +86,9 @@ class Gate(Instruction):
         # Then reconstruct the resulting gate.
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
         return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
+
+    def __pow__(self, exponent: float) -> "Gate":
+        return self.power(exponent)
 
     def _return_repeat(self, exponent: float) -> "Gate":
         return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)
@@ -205,6 +207,10 @@ class Gate(Instruction):
         if any(not qarg for qarg in qargs):
             raise CircuitError("One or more of the arguments are empty")
 
+        if len(qargs) == 0:
+            return [
+                ([], []),
+            ]
         if len(qargs) == 1:
             return Gate._broadcast_single_argument(qargs[0])
         elif len(qargs) == 2:
@@ -227,15 +233,5 @@ class Gate(Instruction):
             return parameter
         elif isinstance(parameter, (np.integer, np.floating)):
             return parameter.item()
-        elif isinstance(parameter, np.ndarray):
-            warn(
-                "Gate param type %s is being deprecated as of 0.16.0, and will be removed "
-                "no earlier than 3 months after that release date. "
-                "Considering creating your own Gate subclass with the method validate_parameter "
-                " to allow this param type." % type(parameter),
-                DeprecationWarning,
-                3,
-            )
-            return parameter
         else:
             raise CircuitError(f"Invalid param type {type(parameter)} for gate {self.name}.")

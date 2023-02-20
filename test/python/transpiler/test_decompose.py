@@ -78,9 +78,7 @@ class TestDecompose(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Decompose(HGate)
-        with self.assertWarns(DeprecationWarning):
-            pass_.gate = None
+        pass_ = Decompose()
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
@@ -294,3 +292,24 @@ class TestDecompose(QiskitTestCase):
 
         decomposed = circuit.decompose()
         self.assertEqual(len(decomposed.data), 0)
+
+    def test_decompose_reps(self):
+        """Test decompose reps function is decomposed correctly"""
+        decom_circ = self.complex_circuit.decompose(reps=2)
+        decomposed = self.complex_circuit.decompose().decompose()
+        self.assertEqual(decom_circ, decomposed)
+
+    def test_decompose_single_qubit_clbit(self):
+        """Test the decomposition of a block with a single qubit and clbit works.
+
+        Regression test of Qiskit/qiskit-terra#8591.
+        """
+        block = QuantumCircuit(1, 1)
+        block.h(0)
+
+        circuit = QuantumCircuit(1, 1)
+        circuit.append(block, [0], [0])
+
+        decomposed = circuit.decompose()
+
+        self.assertEqual(decomposed, block)

@@ -10,9 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cell-var-from-loop
-
 """Replace each block of consecutive gates by a single Unitary node."""
+
+import numpy as np
 
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -39,16 +39,26 @@ class ConsolidateBlocks(TransformationPass):
         collected by a previous pass, such as `Collect2qBlocks`.
     """
 
-    def __init__(self, kak_basis_gate=None, force_consolidate=False, basis_gates=None):
+    def __init__(
+        self,
+        kak_basis_gate=None,
+        force_consolidate=False,
+        basis_gates=None,
+        approximation_degree=1.0,
+        target=None,
+    ):
         """ConsolidateBlocks initializer.
 
         Args:
             kak_basis_gate (Gate): Basis gate for KAK decomposition.
             force_consolidate (bool): Force block consolidation
             basis_gates (List(str)): Basis gates from which to choose a KAK gate.
+            approximation_degree (float): a float between [0.0, 1.0]. Lower approximates more.
+            target (Target): The target object for the compilation target backend
         """
         super().__init__()
         self.basis_gates = None
+        self.target = target
         if basis_gates is not None:
             self.basis_gates = set(basis_gates)
         self.force_consolidate = force_consolidate
@@ -56,11 +66,9 @@ class ConsolidateBlocks(TransformationPass):
         if kak_basis_gate is not None:
             self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
         elif basis_gates is not None:
-            kak_basis_gate = unitary_synthesis._choose_kak_gate(basis_gates)
-            if kak_basis_gate is not None:
-                self.decomposer = TwoQubitBasisDecomposer(kak_basis_gate)
-            else:
-                self.decomposer = None
+            self.decomposer = unitary_synthesis._decomposer_2q_from_basis_gates(
+                basis_gates, approximation_degree=approximation_degree
+            )
         else:
             self.decomposer = TwoQubitBasisDecomposer(CXGate())
 
@@ -75,11 +83,13 @@ class ConsolidateBlocks(TransformationPass):
 
         # compute ordered indices for the global circuit wires
         global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
-        blocks = self.property_set["block_list"]
+        blocks = self.property_set["block_list"] or []
         basis_gate_name = self.decomposer.gate.name
         all_block_gates = set()
         for block in blocks:
-            if len(block) == 1 and (self.basis_gates and block[0].name not in self.basis_gates):
+            if len(block) == 1 and self._check_not_in_basis(
+                block[0].name, block[0].qargs, global_index_map
+            ):
                 all_block_gates.add(block[0])
                 dag.substitute_node(block[0], UnitaryGate(block[0].op.to_matrix()))
             else:
@@ -89,8 +99,8 @@ class ConsolidateBlocks(TransformationPass):
                 block_cargs = set()
                 for nd in block:
                     block_qargs |= set(nd.qargs)
-                    if isinstance(nd, DAGOpNode) and nd.op.condition:
-                        block_cargs |= set(nd.op.condition[0])
+                    if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
+                        block_cargs |= set(getattr(nd.op, "condition", None)[0])
                     all_block_gates.add(nd)
                 q = QuantumRegister(len(block_qargs))
                 qc = QuantumCircuit(q)
@@ -101,7 +111,7 @@ class ConsolidateBlocks(TransformationPass):
                 for nd in block:
                     if nd.op.name == basis_gate_name:
                         basis_count += 1
-                    if self.basis_gates and nd.op.name not in self.basis_gates:
+                    if self._check_not_in_basis(nd.op.name, nd.qargs, global_index_map):
                         outside_basis = True
                     qc.append(nd.op, [q[block_index_map[i]] for i in nd.qargs])
                 unitary = UnitaryGate(Operator(qc))
@@ -112,15 +122,26 @@ class ConsolidateBlocks(TransformationPass):
                     or unitary.num_qubits > 2
                     or self.decomposer.num_basis_gates(unitary) < basis_count
                     or len(block) > max_2q_depth
-                    or (self.basis_gates is not None and outside_basis)
+                    or ((self.basis_gates is not None) and outside_basis)
+                    or ((self.target is not None) and outside_basis)
                 ):
-                    dag.replace_block_with_op(block, unitary, block_index_map, cycle_check=False)
+                    identity = np.eye(2**unitary.num_qubits)
+                    if np.allclose(identity, unitary.to_matrix()):
+                        for node in block:
+                            dag.remove_op_node(node)
+                    else:
+                        dag.replace_block_with_op(
+                            block, unitary, block_index_map, cycle_check=False
+                        )
         # If 1q runs are collected before consolidate those too
         runs = self.property_set["run_list"] or []
+        identity_1q = np.eye(2)
         for run in runs:
-            if run[0] in all_block_gates:
+            if any(gate in all_block_gates for gate in run):
                 continue
-            if len(run) == 1 and self.basis_gates and run[0].name not in self.basis_gates:
+            if len(run) == 1 and not self._check_not_in_basis(
+                run[0].name, run[0].qargs, global_index_map
+            ):
                 dag.substitute_node(run[0], UnitaryGate(run[0].op.to_matrix()))
             else:
                 qubit = run[0].qargs[0]
@@ -133,8 +154,25 @@ class ConsolidateBlocks(TransformationPass):
                 if already_in_block:
                     continue
                 unitary = UnitaryGate(operator)
-                dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+                if np.allclose(identity_1q, unitary.to_matrix()):
+                    for node in run:
+                        dag.remove_op_node(node)
+                else:
+                    dag.replace_block_with_op(run, unitary, {qubit: 0}, cycle_check=False)
+        # Clear collected blocks and runs as they are no longer valid after consolidation
+        if "run_list" in self.property_set:
+            del self.property_set["run_list"]
+        if "block_list" in self.property_set:
+            del self.property_set["block_list"]
         return dag
+
+    def _check_not_in_basis(self, gate_name, qargs, global_index_map):
+        if self.target is not None:
+            return not self.target.instruction_supported(
+                gate_name, tuple(global_index_map[qubit] for qubit in qargs)
+            )
+        else:
+            return self.basis_gates and gate_name not in self.basis_gates
 
     def _block_qargs_to_indices(self, block_qargs, global_index_map):
         """Map each qubit in block_qargs to its wire position among the block's wires.

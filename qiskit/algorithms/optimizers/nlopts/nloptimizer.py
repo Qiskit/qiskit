@@ -17,23 +17,11 @@ from enum import Enum
 from abc import abstractmethod
 import logging
 import numpy as np
-from qiskit.exceptions import MissingOptionalLibraryError
+
+from qiskit.utils import optionals as _optionals
 from ..optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 logger = logging.getLogger(__name__)
-
-try:
-    import nlopt
-
-    logger.info(
-        "NLopt version: %s.%s.%s",
-        nlopt.version_major(),
-        nlopt.version_minor(),
-        nlopt.version_bugfix(),
-    )
-    _HAS_NLOPT = True
-except ImportError:
-    _HAS_NLOPT = False
 
 
 class NLoptOptimizerType(Enum):
@@ -46,6 +34,7 @@ class NLoptOptimizerType(Enum):
     GN_ISRES = 5
 
 
+@_optionals.HAS_NLOPT.require_in_instance
 class NLoptOptimizer(Optimizer):
     """
     NLopt global optimizer base class
@@ -61,14 +50,7 @@ class NLoptOptimizer(Optimizer):
         Raises:
             MissingOptionalLibraryError: NLopt library not installed.
         """
-        if not _HAS_NLOPT:
-            raise MissingOptionalLibraryError(
-                libname="nlopt",
-                name="NLoptOptimizer",
-                msg="See https://qiskit.org/documentation/apidoc/"
-                "qiskit.algorithms.optimizers.nlopts.html"
-                " for installation information",
-            )
+        import nlopt
 
         super().__init__()
         for k, v in list(locals().items()):
@@ -100,22 +82,6 @@ class NLoptOptimizer(Optimizer):
     def settings(self):
         return {"max_evals": self._options.get("max_evals", 1000)}
 
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(
-            objective_function, initial_point, gradient_function, variable_bounds
-        )
-        return result.x, result.fun, result.nfev
-
     def minimize(
         self,
         fun: Callable[[POINT], float],
@@ -123,6 +89,8 @@ class NLoptOptimizer(Optimizer):
         jac: Optional[Callable[[POINT], POINT]] = None,
         bounds: Optional[List[Tuple[float, float]]] = None,
     ) -> OptimizerResult:
+        import nlopt
+
         x0 = np.asarray(x0)
 
         if bounds is None:

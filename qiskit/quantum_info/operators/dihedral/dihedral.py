@@ -19,9 +19,8 @@ import numpy as np
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.operator import Operator
-from qiskit.quantum_info.operators.pauli import Pauli
+from qiskit.quantum_info.operators.symplectic.pauli import Pauli
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.synthesis.cnotdihedral_decompose import decompose_cnotdihedral
 from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
 from qiskit.circuit import QuantumCircuit, Instruction
 from .dihedral_circuits import _append_circuit
@@ -46,7 +45,7 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      The phase polynomial is a polynomial of degree at most 3,
      in :math:`N` variables, whose coefficients are in the ring Z_8 with 8 elements.
 
-     .. jupyter-execute::
+     .. code-block::
 
          from qiskit import QuantumCircuit
          from qiskit.quantum_info import CNOTDihedral
@@ -62,6 +61,14 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
          # Print the CNOTDihedral element
          print(elem)
 
+    .. parsed-literal::
+
+        phase polynomial =
+        0 + 3*x_0 + 3*x_1 + 2*x_0*x_1
+        affine function =
+         (x_0,x_0 + x_1,x_2 + 1)
+
+
     **Circuit Conversion**
 
      CNOTDihedral operators can be initialized from circuits containing *only* the
@@ -71,7 +78,8 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      :class:`~qiskit.circuit.library.TGate`, :class:`~qiskit.circuit.library.TdgGate`
      :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
      :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
-     :class:`~qiskit.circuit.library.SwapGate`.
+     :class:`~qiskit.circuit.library.CSGate`, :class:`~qiskit.circuit.library.CSdgGate`,
+     :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.CCZGate`.
      They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
      or :class:`~qiskit.circuit.Gate` object using the :meth:`~CNOTDihedral.to_circuit`
      or :meth:`~CNOTDihderal.to_instruction` methods respectively. Note that this
@@ -159,6 +167,16 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         # Validate the CNOTDihedral element
         if validate and not self._is_valid():
             raise QiskitError("Invalid CNOTDihedral element.")
+
+    @property
+    def name(self):
+        """Unique string identifier for operation type."""
+        return "cnotdihedral"
+
+    @property
+    def num_clbits(self):
+        """Number of classical bits."""
+        return 0
 
     def _z2matmul(self, left, right):
         """Compute product of two n x n z2 matrices."""
@@ -304,7 +322,9 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
                *Scalable randomised benchmarking of non-Clifford gates*,
                npj Quantum Inf 2, 16012 (2016).
         """
-        return decompose_cnotdihedral(self)
+        from qiskit.synthesis.cnotdihedral import synth_cnotdihedral_full
+
+        return synth_cnotdihedral_full(self)
 
     def to_instruction(self):
         """Return a Gate instruction implementing the CNOTDihedral object."""
@@ -418,26 +438,26 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
         circ = self.to_instruction()
         new_circ = QuantumCircuit(self.num_qubits)
         bit_indices = {bit: index for index, bit in enumerate(circ.definition.qubits)}
-        for instr, qregs, _ in circ.definition:
-            new_qubits = [bit_indices[tup] for tup in qregs]
-            if instr.name == "p":
-                params = 2 * np.pi - instr.params[0]
-                instr.params[0] = params
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "t":
-                instr.name = "tdg"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "tdg":
-                instr.name = "t"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "s":
-                instr.name = "sdg"
-                new_circ.append(instr, new_qubits)
-            elif instr.name == "sdg":
-                instr.name = "s"
-                new_circ.append(instr, new_qubits)
+        for instruction in circ.definition:
+            new_qubits = [bit_indices[tup] for tup in instruction.qubits]
+            if instruction.operation.name == "p":
+                params = 2 * np.pi - instruction.operation.params[0]
+                instruction.operation.params[0] = params
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "t":
+                instruction.operation.name = "tdg"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "tdg":
+                instruction.operation.name = "t"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "s":
+                instruction.operation.name = "sdg"
+                new_circ.append(instruction.operation, new_qubits)
+            elif instruction.operation.name == "sdg":
+                instruction.operation.name = "s"
+                new_circ.append(instruction.operation, new_qubits)
             else:
-                new_circ.append(instr, new_qubits)
+                new_circ.append(instruction.operation, new_qubits)
         result = self._from_circuit(new_circ)
         return result
 

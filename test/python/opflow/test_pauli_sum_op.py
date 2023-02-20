@@ -10,11 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test PauliSumOp """
+"""Test PauliSumOp."""
 
 import unittest
 from itertools import product
 from test.python.opflow import QiskitOpflowTestCase
+from ddt import ddt, data, unpack
 
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -36,10 +37,12 @@ from qiskit.opflow import (
     Y,
     Z,
     Zero,
+    OpflowError,
 )
 from qiskit.quantum_info import Pauli, PauliTable, SparsePauliOp
 
 
+@ddt
 class TestPauliSumOp(QiskitOpflowTestCase):
     """PauliSumOp tests."""
 
@@ -134,6 +137,8 @@ class TestPauliSumOp(QiskitOpflowTestCase):
 
         self.assertNotEqual((X ^ X) + (Y ^ Y), X + Y)
         self.assertEqual((X ^ X) + (Y ^ Y), (Y ^ Y) + (X ^ X))
+        self.assertEqual(0 * X + I, I)
+        self.assertEqual(I, 0 * X + I)
 
         theta = ParameterVector("theta", 2)
         pauli_sum0 = theta[0] * (X + Z)
@@ -162,12 +167,28 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             expected = (Z ^ Z) + (Z ^ I)
             self.assertEqual(pauli_sum, expected)
 
-    def test_permute(self):
-        """permute test"""
-        pauli_sum = PauliSumOp(SparsePauliOp((X ^ Y ^ Z).primitive))
-        expected = PauliSumOp(SparsePauliOp((X ^ I ^ Y ^ Z ^ I).primitive))
+    @data(([1, 2, 4], "XIYZI"), ([2, 1, 0], "ZYX"))
+    @unpack
+    def test_permute(self, permutation, expected_pauli):
+        """Test the permute method."""
+        pauli_sum = PauliSumOp(SparsePauliOp.from_list([("XYZ", 1)]))
+        expected = PauliSumOp(SparsePauliOp.from_list([(expected_pauli, 1)]))
+        permuted = pauli_sum.permute(permutation)
 
-        self.assertEqual(pauli_sum.permute([1, 2, 4]), expected)
+        with self.subTest(msg="test permutated object"):
+            self.assertEqual(permuted, expected)
+
+        with self.subTest(msg="test original object is unchanged"):
+            original = PauliSumOp(SparsePauliOp.from_list([("XYZ", 1)]))
+            self.assertEqual(pauli_sum, original)
+
+    @data([1, 2, 1], [1, 2, -1])
+    def test_permute_invalid(self, permutation):
+        """Test the permute method raises an error on invalid permutations."""
+        pauli_sum = PauliSumOp(SparsePauliOp((X ^ Y ^ Z).primitive))
+
+        with self.assertRaises(OpflowError):
+            pauli_sum.permute(permutation)
 
     def test_compose(self):
         """compose test"""
@@ -283,6 +304,13 @@ class TestPauliSumOp(QiskitOpflowTestCase):
             + 0.18093119978423156 * (X ^ X)
         )
         self.assertEqual(target, expected)
+
+        a = Parameter("a")
+        target = PauliSumOp.from_list([("X", 0.5 * a), ("Y", -0.5j * a)], dtype=object)
+        expected = PauliSumOp(
+            SparsePauliOp.from_list([("X", 0.5 * a), ("Y", -0.5j * a)], dtype=object)
+        )
+        self.assertEqual(target.primitive, expected.primitive)
 
     def test_matrix_iter(self):
         """Test PauliSumOp dense matrix_iter method."""

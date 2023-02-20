@@ -14,20 +14,16 @@
 
 from typing import Tuple
 
-from qiskit import QuantumRegister
+from qiskit.circuit import QuantumRegister
 from qiskit.circuit.library.standard_gates import RZXGate, HGate, XGate
 
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.passes.calibration.rzx_builder import _check_calibration_type, CRCalType
 
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag
-
-from qiskit.providers import basebackend
-
-import qiskit.quantum_info as qi
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
 
 
 class EchoRZXWeylDecomposition(TransformationPass):
@@ -38,19 +34,42 @@ class EchoRZXWeylDecomposition(TransformationPass):
     Each pair of RZXGates forms an echoed RZXGate.
     """
 
-    def __init__(self, backend: basebackend):
-        """EchoRZXWeylDecomposition pass."""
-        self._inst_map = backend.defaults().instruction_schedule_map
+    def __init__(self, instruction_schedule_map=None, target=None):
+        """EchoRZXWeylDecomposition pass.
+
+        Args:
+            instruction_schedule_map (InstructionScheduleMap): the mapping from circuit
+                :class:`~.circuit.Instruction` names and arguments to :class:`.Schedule`\\ s.
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``instruction_schedule_map`` and this are specified then this argument will take
+                precedence and ``instruction_schedule_map`` will be ignored.
+        """
         super().__init__()
+        self._inst_map = instruction_schedule_map
+        if target is not None:
+            self._inst_map = target.instruction_schedule_map()
 
     def _is_native(self, qubit_pair: Tuple) -> bool:
-        """Return the direction of the qubit pair that is native, i.e. with the shortest schedule."""
-        cx1 = self._inst_map.get("cx", qubit_pair)
-        cx2 = self._inst_map.get("cx", qubit_pair[::-1])
-        return cx1.duration < cx2.duration
+        """Return the direction of the qubit pair that is native."""
+        cal_type, _, _ = _check_calibration_type(self._inst_map, qubit_pair)
+        return cal_type in [
+            CRCalType.ECR_CX_FORWARD,
+            CRCalType.ECR_FORWARD,
+            CRCalType.DIRECT_CX_FORWARD,
+        ]
 
     @staticmethod
     def _echo_rzx_dag(theta):
+        """Return the following circuit
+
+        .. parsed-literal::
+
+                 ┌───────────────┐┌───┐┌────────────────┐┌───┐
+            q_0: ┤0              ├┤ X ├┤0               ├┤ X ├
+                 │  Rzx(theta/2) │└───┘│  Rzx(-theta/2) │└───┘
+            q_1: ┤1              ├─────┤1               ├─────
+                 └───────────────┘     └────────────────┘
+        """
         rzx_dag = DAGCircuit()
         qr = QuantumRegister(2)
         rzx_dag.add_qreg(qr)
@@ -62,6 +81,16 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
     @staticmethod
     def _reverse_echo_rzx_dag(theta):
+        """Return the following circuit
+
+        .. parsed-literal::
+
+                 ┌───┐┌───────────────┐     ┌────────────────┐┌───┐
+            q_0: ┤ H ├┤1              ├─────┤1               ├┤ H ├─────
+                 ├───┤│  Rzx(theta/2) │┌───┐│  Rzx(-theta/2) │├───┤┌───┐
+            q_1: ┤ H ├┤0              ├┤ X ├┤0               ├┤ X ├┤ H ├
+                 └───┘└───────────────┘└───┘└────────────────┘└───┘└───┘
+        """
         reverse_rzx_dag = DAGCircuit()
         qr = QuantumRegister(2)
         reverse_rzx_dag.add_qreg(qr)
@@ -92,6 +121,10 @@ class EchoRZXWeylDecomposition(TransformationPass):
             TranspilerError: If the circuit cannot be rewritten.
         """
 
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info import Operator
+        from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitControlledUDecomposer
+
         if len(dag.qregs) > 1:
             raise TranspilerError(
                 "EchoRZXWeylDecomposition expects a single qreg input DAG,"
@@ -104,7 +137,7 @@ class EchoRZXWeylDecomposition(TransformationPass):
 
         for node in dag.two_qubit_ops():
 
-            unitary = qi.Operator(node.op).data
+            unitary = Operator(node.op).data
             dag_weyl = circuit_to_dag(decomposer(unitary))
             dag.substitute_node_with_dag(node, dag_weyl)
 

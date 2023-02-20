@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,10 +15,10 @@
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 import numpy as np
-import retworkx as rx
-from qiskit import QuantumCircuit
+import rustworkx as rx
+from qiskit import QuantumCircuit, execute
 from qiskit.quantum_info import Pauli
 from qiskit.exceptions import QiskitError
 from qiskit.utils import QuantumInstance, algorithm_globals
@@ -27,33 +27,39 @@ from qiskit.opflow import I, X, Z, PauliSumOp
 from qiskit.algorithms.optimizers import SPSA, COBYLA
 from qiskit.circuit.library import EfficientSU2
 from qiskit.utils.mitigation import CompleteMeasFitter, TensoredMeasFitter
+from qiskit.utils.measurement_error_mitigation import build_measurement_error_mitigation_circuits
+from qiskit.utils import optionals
 
-try:
+if optionals.HAS_AER:
+    # pylint: disable=no-name-in-module
     from qiskit import Aer
     from qiskit.providers.aer import noise
-
-    HAS_AER = True
-except ImportError:
-    HAS_AER = False
-
-try:
+if optionals.HAS_IGNIS:
+    # pylint: disable=no-name-in-module
     from qiskit.ignis.mitigation.measurement import (
         CompleteMeasFitter as CompleteMeasFitter_IG,
         TensoredMeasFitter as TensoredMeasFitter_IG,
     )
-
-    HAS_IGNIS = True
-except ImportError:
-    HAS_IGNIS = False
 
 
 @ddt
 class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
     """Test measurement error mitigation."""
 
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
-    @data("CompleteMeasFitter", "TensoredMeasFitter")
-    def test_measurement_error_mitigation_with_diff_qubit_order(self, fitter_str):
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
+    @data(
+        ("CompleteMeasFitter", None, False),
+        ("TensoredMeasFitter", None, False),
+        ("TensoredMeasFitter", [[0, 1]], True),
+        ("TensoredMeasFitter", [[1], [0]], False),
+    )
+    @unpack
+    def test_measurement_error_mitigation_with_diff_qubit_order(
+        self,
+        fitter_str,
+        mit_pattern,
+        fails,
+    ):
         """measurement error mitigation with different qubit order"""
         algorithm_globals.random_seed = 0
 
@@ -74,6 +80,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             noise_model=noise_model,
             measurement_error_mitigation_cls=fitter_cls,
             cals_matrix_refresh_period=0,
+            mit_pattern=mit_pattern,
         )
         # circuit
         qc1 = QuantumCircuit(2, 2)
@@ -87,15 +94,14 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         qc2.measure(1, 0)
         qc2.measure(0, 1)
 
-        if fitter_cls == TensoredMeasFitter:
+        if fails:
             self.assertRaisesRegex(
                 QiskitError,
-                "TensoredMeasFitter doesn't support subset_fitter.",
+                "Each element in the mit pattern should have length 1.",
                 quantum_instance.execute,
                 [qc1, qc2],
             )
         else:
-            # this should run smoothly
             quantum_instance.execute([qc1, qc2])
 
         self.assertGreater(quantum_instance.time_taken, 0.0)
@@ -110,7 +116,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
     @data(("CompleteMeasFitter", None), ("TensoredMeasFitter", [[0], [1]]))
     def test_measurement_error_mitigation_with_vqe(self, config):
         """measurement error mitigation test with vqe"""
@@ -178,7 +184,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
         return PauliSumOp.from_list(opflow_list), shift
 
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
     def test_measurement_error_mitigation_qaoa(self):
         """measurement error mitigation test with QAOA"""
         algorithm_globals.random_seed = 167
@@ -215,6 +221,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_transpiler=algorithm_globals.random_seed,
             noise_model=noise_model,
             measurement_error_mitigation_cls=CompleteMeasFitter,
+            shots=10000,
         )
 
         qaoa = QAOA(
@@ -225,8 +232,8 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, ref_eigenvalue, delta=0.05)
 
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
-    @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
+    @unittest.skipUnless(optionals.HAS_IGNIS, "qiskit-ignis is required to run this test")
     @data("CompleteMeasFitter", "TensoredMeasFitter")
     def test_measurement_error_mitigation_with_diff_qubit_order_ignis(self, fitter_str):
         """measurement error mitigation with different qubit order"""
@@ -287,8 +294,8 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
-    @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
+    @unittest.skipUnless(optionals.HAS_IGNIS, "qiskit-ignis is required to run this test")
     @data(("CompleteMeasFitter", None), ("TensoredMeasFitter", [[0], [1]]))
     def test_measurement_error_mitigation_with_vqe_ignis(self, config):
         """measurement error mitigation test with vqe"""
@@ -330,9 +337,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
-    @unittest.skipUnless(HAS_AER, "qiskit-aer is required for this test")
-    @unittest.skipUnless(HAS_IGNIS, "qiskit-ignis is required to run this test")
-    def test_callibration_results(self):
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
+    @unittest.skipUnless(optionals.HAS_IGNIS, "qiskit-ignis is required to run this test")
+    def test_calibration_results(self):
         """check that results counts are the same with/without error mitigation"""
         algorithm_globals.random_seed = 1679
         np.random.seed(algorithm_globals.random_seed)
@@ -366,6 +373,93 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         self.assertEqual(
             counts_array[0], counts_array[1], msg="Counts different with/without fitter."
         )
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
+    def test_circuit_modified(self):
+        """tests that circuits don't get modified on QI execute with error mitigation
+        as per issue #7449
+        """
+        algorithm_globals.random_seed = 1679
+        np.random.seed(algorithm_globals.random_seed)
+        circuit = QuantumCircuit(1)
+        circuit.x(0)
+        circuit.measure_all()
+
+        qi = QuantumInstance(
+            Aer.get_backend("aer_simulator"),
+            seed_simulator=algorithm_globals.random_seed,
+            seed_transpiler=algorithm_globals.random_seed,
+            shots=1024,
+            measurement_error_mitigation_cls=CompleteMeasFitter,
+        )
+        # The error happens on transpiled circuits since "execute" was changing the input array
+        # Non transpiled circuits didn't have a problem because a new transpiled array was created
+        # internally.
+        circuits_ref = qi.transpile(circuit)  # always returns a new array
+        circuits_input = circuits_ref.copy()
+        _ = qi.execute(circuits_input, had_transpiled=True)
+        self.assertEqual(circuits_ref, circuits_input, msg="Transpiled circuit array modified.")
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
+    def test_tensor_subset_fitter(self):
+        """Test the subset fitter method of the tensor fitter."""
+
+        # Construct a noise model where readout has errors of different strengths.
+        noise_model = noise.NoiseModel()
+        # big error
+        read_err0 = noise.errors.readout_error.ReadoutError([[0.90, 0.10], [0.25, 0.75]])
+        # ideal
+        read_err1 = noise.errors.readout_error.ReadoutError([[1.00, 0.00], [0.00, 1.00]])
+        # small error
+        read_err2 = noise.errors.readout_error.ReadoutError([[0.98, 0.02], [0.03, 0.97]])
+        noise_model.add_readout_error(read_err0, (0,))
+        noise_model.add_readout_error(read_err1, (1,))
+        noise_model.add_readout_error(read_err2, (2,))
+
+        mit_pattern = [[idx] for idx in range(3)]
+        backend = Aer.get_backend("aer_simulator")
+        backend.set_options(seed_simulator=123)
+        mit_circuits = build_measurement_error_mitigation_circuits(
+            [0, 1, 2],
+            TensoredMeasFitter,
+            backend,
+            backend_config={},
+            compile_config={},
+            mit_pattern=mit_pattern,
+        )
+        result = execute(mit_circuits[0], backend, noise_model=noise_model).result()
+        fitter = TensoredMeasFitter(result, mit_pattern=mit_pattern)
+        cal_matrices = fitter.cal_matrices
+
+        # Check that permutations and permuted subsets match.
+        for subset in [[1, 0], [1, 2], [0, 2], [2, 0, 1]]:
+            with self.subTest(subset=subset):
+                new_fitter = fitter.subset_fitter(subset)
+                for idx, qubit in enumerate(subset):
+                    self.assertTrue(np.allclose(new_fitter.cal_matrices[idx], cal_matrices[qubit]))
+
+        self.assertRaisesRegex(
+            QiskitError,
+            "Qubit 3 is not in the mit pattern",
+            fitter.subset_fitter,
+            [0, 2, 3],
+        )
+
+        # Test that we properly correct a circuit with permuted measurements.
+        circuit = QuantumCircuit(3, 3)
+        circuit.x(range(3))
+        circuit.measure(1, 0)
+        circuit.measure(2, 1)
+        circuit.measure(0, 2)
+
+        result = execute(
+            circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0
+        ).result()
+        new_result = fitter.subset_fitter([1, 2, 0]).filter.apply(result)
+
+        # The noisy result should have a poor 111 state, the mit. result should be good.
+        self.assertTrue(result.get_counts()["111"] < 800)
+        self.assertTrue(new_result.get_counts()["111"] > 990)
 
 
 if __name__ == "__main__":

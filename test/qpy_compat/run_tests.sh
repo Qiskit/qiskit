@@ -14,23 +14,15 @@
 set -e
 set -x
 
+# Set fixed hash seed to ensure set orders are identical between saving and
+# loading.
+export PYTHONHASHSEED=$(python -S -c "import random; print(random.randint(1, 4294967295))")
+echo "PYTHONHASHSEED=$PYTHONHASHSEED"
+
 python -m venv qiskit_venv
 qiskit_venv/bin/pip install ../..
 
-for version in $(git tag --sort=-creatordate) ; do
-    parts=( ${version//./ } )
-    if [[ ${parts[1]} -lt 18 ]] ; then
-        break
-    fi
-    echo "Building venv for qiskit-terra $version"
-    python -m venv $version
-    ./$version/bin/pip install "qiskit-terra==$version"
-    echo "Generating qpy files with qiskit-terra $version"
-    ./$version/bin/python test_qpy.py generate --version=$version
-    echo "Loading qpy files from $version with dev qiskit-terra"
-    qiskit_venv/bin/python test_qpy.py load --version=$version
-    rm *qpy
-done
+parallel bash ./process_version.sh ::: `git tag --sort=-creatordate`
 
 # Test dev compatibility
 dev_version=`qiskit_venv/bin/python -c 'import qiskit;print(qiskit.__version__)'`

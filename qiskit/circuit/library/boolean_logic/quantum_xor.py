@@ -45,13 +45,12 @@ class XOR(QuantumCircuit):
             CircuitError: if the xor bitstring exceeds available qubits.
 
         Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit.library import XOR
-                import qiskit.tools.jupyter
-                circuit = XOR(5, seed=42)
-                %circuit_library_info circuit
+               from qiskit.circuit.library import XOR
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               circuit = XOR(5, seed=42)
+               _generate_circuit_library_visualization(circuit)
         """
         circuit = QuantumCircuit(num_qubits, name="xor")
 
@@ -60,7 +59,7 @@ class XOR(QuantumCircuit):
                 raise CircuitError("Bits in 'amount' exceed circuit width")
         else:
             rng = np.random.default_rng(seed)
-            amount = rng.integers(0, 2 ** num_qubits)
+            amount = rng.integers(0, 2**num_qubits)
 
         for i in range(num_qubits):
             bit = amount & 1

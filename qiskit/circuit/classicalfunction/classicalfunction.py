@@ -15,8 +15,8 @@
 import ast
 from typing import Callable, Optional
 
-from tweedledum.classical import simulate
-from tweedledum.synthesis import pkrm_synth
+from tweedledum.classical import simulate  # pylint: disable=import-error
+from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
@@ -116,7 +116,7 @@ class ClassicalFunction(ClassicalElement):
         Returns:
             str: a bitstring with a truth table
         """
-        result = list()
+        result = []
         for position in range(2 ** self._network.num_pis()):
             sim_result = "".join([str(int(tt[position])) for tt in self.truth_table])
             result.append(sim_result)

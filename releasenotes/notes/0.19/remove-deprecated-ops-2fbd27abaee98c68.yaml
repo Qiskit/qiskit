@@ -1,0 +1,35 @@
+---
+upgrade:
+  - |
+    The use of ``*`` (``__mul__``) for the
+    :meth:`~qiskit.quantum_info.Operator.dot` method and ``@`` (``__matmul__``)
+    for the :meth:`~qiskit.quantum_info.Operator.compose` method of
+    ``BaseOperator`` (which is the parent of all the operator classes in
+    :mod:`qiskit.quantum_info` including classes like
+    :class:`~qiskit.quantum_info.Operator` and
+    :class:`~qiskit.quantum_info.Pauli`) is no longer supported.  The use of
+    these operators were previously deprecated in 0.17.0 release.  Instead you
+    should use the :meth:`~qiskit.quantum_info.Operator.dot` and
+    :meth:`~qiskit.quantum_info.Operator.compose` methods directly, or the ``&``
+    operator (``__and__``) can be used for
+    :meth:`~qiskit.quantum_info.Operator.compose`.  For example, if you were
+    previously using the operator like::
+
+        from qiskit.quantum_info import random_hermitian
+
+        op_a = random_hermitian(4)
+        op_b = random_hermitian(4)
+
+        new_op = op_a @ op_b
+
+    this should be changed to be::
+
+        from qiskit.quantum_info import random_hermitian
+
+        op_a = random_hermitian(4)
+        op_b = random_hermitian(4)
+        new_op = op_a.compose(op_b)
+
+    or::
+
+        new_op = op_a & op_b

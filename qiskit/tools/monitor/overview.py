@@ -58,6 +58,14 @@ def backend_monitor(backend):
     Raises:
         QiskitError: Input is not a IBMQ backend.
         MissingOptionalLibraryError: If qiskit-ibmq-provider is not installed
+
+    Examples:
+    .. code-block:: python
+
+       from qiskit.providers.ibmq import IBMQ
+       from qiskit.tools.monitor import backend_monitor
+       provider = IBMQ.get_provider(hub='ibm-q')
+       backend_monitor(provider.backends.ibmq_lima)
     """
     try:
         from qiskit.providers.ibmq import IBMQBackend
@@ -112,7 +120,7 @@ def backend_monitor(backend):
 
         cal_data = dict.fromkeys(["T1", "T2", "frequency", "readout_error"], "Unknown")
         for nduv in qubit_data:
-            if nduv.name in cal_data.keys():
+            if nduv.name in cal_data:
                 cal_data[nduv.name] = format(nduv.value, ".5f") + " " + nduv.unit
 
         gate_names = []
@@ -162,6 +170,15 @@ def backend_monitor(backend):
 def backend_overview():
     """Gives overview information on all the IBMQ
     backends that are available.
+
+    Examples:
+
+        .. code-block:: python
+
+            from qiskit.providers.ibmq import IBMQ
+            from qiskit.tools.monitor import backend_overview
+            provider = IBMQ.get_provider(hub='ibm-q')
+            backend_overview()
     """
     unique_hardware_backends = get_unique_backends()
     _backends = []

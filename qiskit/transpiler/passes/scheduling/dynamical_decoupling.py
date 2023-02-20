@@ -13,6 +13,7 @@
 """Dynamical Decoupling insertion pass."""
 
 import itertools
+import warnings
 
 import numpy as np
 from qiskit.circuit.delay import Delay
@@ -44,7 +45,8 @@ class DynamicalDecoupling(TransformationPass):
     This pass ensures that the inserted sequence preserves the circuit exactly
     (including global phase).
 
-    .. jupyter-execute::
+    .. plot::
+       :include-source:
 
         import numpy as np
         from qiskit.circuit import QuantumCircuit
@@ -63,17 +65,12 @@ class DynamicalDecoupling(TransformationPass):
              ("cx", [1, 2], 200), ("cx", [2, 3], 300),
              ("x", None, 50), ("measure", None, 1000)]
         )
-
-    .. jupyter-execute::
-
         # balanced X-X sequence on all qubits
         dd_sequence = [XGate(), XGate()]
         pm = PassManager([ALAPSchedule(durations),
                           DynamicalDecoupling(durations, dd_sequence)])
         circ_dd = pm.run(circ)
         timeline_drawer(circ_dd)
-
-    .. jupyter-execute::
 
         # Uhrig sequence on qubit 0
         n = 8
@@ -94,7 +91,9 @@ class DynamicalDecoupling(TransformationPass):
         timeline_drawer(circ_dd)
     """
 
-    def __init__(self, durations, dd_sequence, qubits=None, spacing=None, skip_reset_qubits=True):
+    def __init__(
+        self, durations, dd_sequence, qubits=None, spacing=None, skip_reset_qubits=True, target=None
+    ):
         """Dynamical decoupling initializer.
 
         Args:
@@ -111,13 +110,26 @@ class DynamicalDecoupling(TransformationPass):
             skip_reset_qubits (bool): if True, does not insert DD on idle
                 periods that immediately follow initialized/reset qubits (as
                 qubits in the ground state are less susceptile to decoherence).
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                  ``durations`` and this are specified then this argument will take
+                  precedence and ``durations`` will be ignored.
         """
+        warnings.warn(
+            "The DynamicalDecoupling class has been supersceded by the "
+            "DynamicalDecouplingPadding class which performs the same function but "
+            "requires scheduling and alignment analysis passes to run prior to it. "
+            "This class will be deprecated in a future release and subsequently "
+            "removed after that.",
+            PendingDeprecationWarning,
+        )
         super().__init__()
         self._durations = durations
         self._dd_sequence = dd_sequence
         self._qubits = qubits
         self._spacing = spacing
         self._skip_reset_qubits = skip_reset_qubits
+        if target is not None:
+            self._durations = target.durations()
 
     def run(self, dag):
         """Run the DynamicalDecoupling pass on dag.
@@ -166,7 +178,7 @@ class DynamicalDecoupling(TransformationPass):
             end = mid / 2
             self._spacing = [end] + [mid] * (num_pulses - 1) + [end]
 
-        new_dag = dag._copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         qubit_index_map = {qubit: index for index, qubit in enumerate(new_dag.qubits)}
         index_sequence_duration_map = {}

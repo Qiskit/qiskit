@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    Using an odd integer for the ``order`` argument on the constructor of the
+    :class:`~.qiskit.synthesis.SuzukiTrotter` class is deprecated and will
+    no longer work in a future release. The product formulae used by the
+    :class:`~.qiskit.synthesis.SuzukiTrotter` are only defined when the order
+    is even as the Suzuki product formulae is symmetric.

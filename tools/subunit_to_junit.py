@@ -21,7 +21,7 @@
 import argparse
 import sys
 
-from junitxml import JUnitXmlResult  # pylint: disable=import-error
+from junitxml import JUnitXmlResult
 from subunit.filters import run_tests_from_stream
 from testtools import StreamToExtendedDecorator
 
@@ -122,9 +122,11 @@ def run_filter_script(
         "--forward",
         action="store_true",
         default=False,
-        help="Forward subunit stream on stdout. When set, "
-        "received non-subunit output will be encapsulated"
-        " in subunit.",
+        help=(
+            "Forward subunit stream on stdout. When set, "
+            "received non-subunit output will be encapsulated"
+            " in subunit."
+        ),
     )
     args = parser.parse_args()
     result = filter_by_result(

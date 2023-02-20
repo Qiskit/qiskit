@@ -66,15 +66,15 @@ class TestAdder(QiskitTestCase):
         expectations = np.zeros_like(probabilities)
         num_bits_sum = num_state_qubits + 1
         # iterate over all possible inputs
-        for x in range(2 ** num_state_qubits):
-            for y in range(2 ** num_state_qubits):
+        for x in range(2**num_state_qubits):
+            for y in range(2**num_state_qubits):
                 # compute the sum
                 if kind == "full":
                     additions = [x + y, 1 + x + y]
                 elif kind == "half":
                     additions = [x + y]
                 else:
-                    additions = [(x + y) % (2 ** num_state_qubits)]
+                    additions = [(x + y) % (2**num_state_qubits)]
 
                 # compute correct index in statevector
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
@@ -95,7 +95,7 @@ class TestAdder(QiskitTestCase):
                         )
 
                     index = int(bin_index, 2)
-                    expectations[index] += 1 / 2 ** num_superpos_qubits
+                    expectations[index] += 1 / 2**num_superpos_qubits
 
         np.testing.assert_array_almost_equal(expectations, probabilities)
 

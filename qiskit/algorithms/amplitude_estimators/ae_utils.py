@@ -171,7 +171,7 @@ def _derivative_beta(x, p):
 
 def _pdf_a_single_angle(x, p, m, pi_delta):
     """Helper function for `pdf_a`."""
-    M = 2 ** m
+    M = 2**m
 
     d = pi_delta(x, p)
     res = np.sin(M * d) ** 2 / (M * np.sin(d)) ** 2 if d != 0 else 1
@@ -226,7 +226,7 @@ def derivative_log_pdf_a(x, p, m):
     Returns:
         float: d/dp log(PDF(x|p))
     """
-    M = 2 ** m
+    M = 2**m
 
     if x not in [0, 1]:
         num_p1 = 0

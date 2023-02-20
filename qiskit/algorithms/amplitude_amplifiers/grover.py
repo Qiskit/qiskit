@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,14 +14,19 @@
 
 import itertools
 import operator
+import warnings
 from typing import Iterator, List, Optional, Union
 
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.providers import Backend, BaseBackend
+from qiskit.algorithms.exceptions import AlgorithmError
+from qiskit.primitives import BaseSampler
+from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
-from qiskit.utils import QuantumInstance
+from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils.deprecation import deprecate_function
+
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
@@ -29,7 +34,15 @@ from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 class Grover(AmplitudeAmplifier):
     r"""Grover's Search algorithm.
 
-    Grover's Search [1, 2] is a well known quantum algorithm for that can be used for
+    .. note::
+
+        If you want to learn more about the theory behind Grover's Search algorithm, check
+        out the `Qiskit Textbook <https://qiskit.org/textbook/ch-algorithms/grover.html>`_.
+        or the `Qiskit Tutorials
+        <https://qiskit.org/documentation/tutorials/algorithms/07_grover_examples.html>`_
+        for more concrete how-to examples.
+
+    Grover's Search [1, 2] is a well known quantum algorithm that can be used for
     searching through unstructured collections of records for particular targets
     with quadratic speedup compared to classical algorithms.
 
@@ -58,10 +71,10 @@ class Grover(AmplitudeAmplifier):
     The details of how :math:`S_f` works are unimportant to the algorithm; Grover's
     search algorithm treats the oracle as a black box.
 
-    This class supports oracles in form of :class:`~qiskit.QuantumCircuit`
+    This class supports oracles in form of a :class:`~qiskit.circuit.QuantumCircuit`.
 
-    With oracle at hand, Grover's Search constructs the Grover operator to amplify the amplitudes
-    of the good states:
+    With the given oracle, Grover's Search constructs the Grover operator to amplify the
+    amplitudes of the good states:
 
     .. math::
 
@@ -78,7 +91,7 @@ class Grover(AmplitudeAmplifier):
     powers of Grover's operator, see the `iterations` argument, and after each iteration checks
     if a good state has been measured using `good_state`.
 
-    The generalization of Grover's Search, Quantum Amplitude Amplification [3] uses a modified
+    The generalization of Grover's Search, Quantum Amplitude Amplification [3], uses a modified
     version of :math:`\mathcal{Q}` where the diffusion operator does not reflect about the
     equal superposition state, but another state specified via an operator :math:`\mathcal{A}`:
 
@@ -97,7 +110,6 @@ class Grover(AmplitudeAmplifier):
         [3]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
             Quantum Amplitude Amplification and Estimation.
             `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
-
     """
 
     def __init__(
@@ -105,24 +117,28 @@ class Grover(AmplitudeAmplifier):
         iterations: Optional[Union[List[int], Iterator[int], int]] = None,
         growth_rate: Optional[float] = None,
         sample_from_iterations: bool = False,
-        quantum_instance: Optional[Union[QuantumInstance, Backend, BaseBackend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        sampler: Optional[BaseSampler] = None,
     ) -> None:
         r"""
         Args:
             iterations: Specify the number of iterations/power of Grover's operator to be checked.
                 * If an int, only one circuit is run with that power of the Grover operator.
-                If the number of solutions is known, this is option should be used with the optimal
+                If the number of solutions is known, this option should be used with the optimal
                 power. The optimal power can be computed with ``Grover.optimal_num_iterations``.
                 * If a list, all the powers in the list are run in the specified order.
                 * If an iterator, the powers yielded by the iterator are checked, until a maximum
                 number of iterations or maximum power is reached.
+                * If ``None``, the :obj:`AmplificationProblem` provided must have an ``is_good_state``,
+                and circuits are run until that good state is reached.
             growth_rate: If specified, the iterator is set to increasing powers of ``growth_rate``,
                 i.e. to ``int(growth_rate ** 1), int(growth_rate ** 2), ...`` until a maximum
                 number of iterations is reached.
             sample_from_iterations: If True, instead of taking the values in ``iterations`` as
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
-            quantum_instance: A Quantum Instance or Backend to run the circuits.
+            quantum_instance: Pending deprecation: A Quantum Instance or Backend to run the circuits.
+            sampler: A Sampler to use for sampling the results of the circuits.
 
         Raises:
             ValueError: If ``growth_rate`` is a float but not larger than 1.
@@ -141,37 +157,88 @@ class Grover(AmplitudeAmplifier):
 
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
-            self._iterations = map(lambda x: int(growth_rate ** x), itertools.count(1))
+            self._iterations = map(lambda x: int(growth_rate**x), itertools.count(1))
         elif isinstance(iterations, int):
             self._iterations = [iterations]
         else:
             self._iterations = iterations
 
+        if quantum_instance is not None and sampler is not None:
+            raise ValueError("Only one of quantum_instance or sampler can be passed, not both!")
+
+        # check positionally passing the sampler in the place of quantum_instance
+        # which will be removed in future
+        if isinstance(quantum_instance, BaseSampler):
+            sampler = quantum_instance
+            quantum_instance = None
+
         self._quantum_instance = None
         if quantum_instance is not None:
-            self.quantum_instance = quantum_instance
+            warnings.warn(
+                "The quantum_instance argument has been superseded by the sampler argument. "
+                "This argument will be deprecated in a future release and subsequently "
+                "removed after that.",
+                category=PendingDeprecationWarning,
+                stacklevel=2,
+            )
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=PendingDeprecationWarning)
+                self.quantum_instance = quantum_instance
+
+        self._sampler = sampler
 
         self._sample_from_iterations = sample_from_iterations
+        self._iterations_arg = iterations
 
     @property
+    @deprecate_function(
+        "The Grover.quantum_instance getter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Get the quantum instance.
+        r"""Pending deprecation\; Get the quantum instance.
+
         Returns:
             The quantum instance used to run this algorithm.
         """
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
-        """Set quantum instance.
+    @deprecate_function(
+        "The Grover.quantum_instance setter is pending deprecation. "
+        "This property will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+        r"""Pending deprecation\; Set quantum instance.
+
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
+
+    @property
+    def sampler(self) -> Optional[BaseSampler]:
+        """Get the sampler.
+
+        Returns:
+            The sampler used to run this algorithm.
+        """
+        return self._sampler
+
+    @sampler.setter
+    def sampler(self, sampler: BaseSampler) -> None:
+        """Set the sampler.
+
+        Args:
+            sampler: The sampler used to run this algorithm.
+        """
+        self._sampler = sampler
 
     def amplify(self, amplification_problem: AmplificationProblem) -> "GroverResult":
         """Run the Grover algorithm.
@@ -182,13 +249,25 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The result as a ``GroverResult``, where e.g. the most likely state can be queried
             as ``result.top_measurement``.
+
+        Raises:
+            ValueError: If a quantum instance or sampler is not set.
+            AlgorithmError: If a sampler job fails.
+            TypeError: If ``is_good_state`` is not provided and is required (i.e. when iterations
+            is ``None`` or a ``list``)
         """
+        if self._sampler is None and self._quantum_instance is None:
+            raise ValueError("A quantum instance or sampler must be provided.")
+
+        if self._quantum_instance is not None and self._sampler is not None:
+            raise ValueError("Only one of quantum_instance or sampler can be passed, not both!")
+
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
             max_power = np.inf  # no cap on the power
             iterator = iter(self._iterations)
         else:
-            max_iterations = max(10, 2 ** amplification_problem.oracle.num_qubits)
+            max_iterations = max(10, 2**amplification_problem.oracle.num_qubits)
             max_power = np.ceil(
                 2 ** (len(amplification_problem.grover_operator.reflection_qubits) / 2)
             )
@@ -214,39 +293,70 @@ class Grover(AmplitudeAmplifier):
 
             # sample from [0, power) if specified
             if self._sample_from_iterations:
-                power = np.random.randint(power)
+                power = algorithm_globals.random.randint(power)
             # Run a grover experiment for a given power of the Grover operator.
-            if self._quantum_instance.is_statevector:
-                qc = self.construct_circuit(amplification_problem, power, measurement=False)
-                circuit_results = self._quantum_instance.execute(qc).get_statevector()
-                num_bits = len(amplification_problem.objective_qubits)
-
-                # trace out work qubits
-                if qc.width() != num_bits:
-                    indices = [
-                        i
-                        for i in range(qc.num_qubits)
-                        if i not in amplification_problem.objective_qubits
-                    ]
-                    rho = partial_trace(circuit_results, indices)
-                    circuit_results = np.diag(rho.data)
-
-                max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
-                max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
-                top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
-                max_probability = np.abs(max_amplitude) ** 2
-                shots = 1
-            else:
+            if self._sampler is not None:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
-                circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
-                top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
-                shots = sum(circuit_results.values())
-                max_probability = (
-                    max(circuit_results.items(), key=operator.itemgetter(1))[1] / shots
-                )
+                job = self._sampler.run([qc])
+
+                try:
+                    results = job.result()
+                except Exception as exc:
+                    raise AlgorithmError("Sampler job failed.") from exc
+
+                num_bits = len(amplification_problem.objective_qubits)
+                circuit_results = {
+                    np.binary_repr(k, num_bits): v for k, v in results.quasi_dists[0].items()
+                }
+                top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
+
+            else:  # use of else brach instead of elif as this seperates out the deprecated logic
+                if self._quantum_instance.is_statevector:
+                    qc = self.construct_circuit(amplification_problem, power, measurement=False)
+                    circuit_results = self._quantum_instance.execute(qc).get_statevector()
+                    num_bits = len(amplification_problem.objective_qubits)
+
+                    # trace out work qubits
+                    if qc.width() != num_bits:
+                        indices = [
+                            i
+                            for i in range(qc.num_qubits)
+                            if i not in amplification_problem.objective_qubits
+                        ]
+                        rho = partial_trace(circuit_results, indices)
+                        circuit_results = np.diag(rho.data)
+
+                    max_amplitude = max(circuit_results.max(), circuit_results.min(), key=abs)
+                    max_amplitude_idx = np.where(circuit_results == max_amplitude)[0][0]
+                    top_measurement = np.binary_repr(max_amplitude_idx, num_bits)
+                    max_probability = np.abs(max_amplitude) ** 2
+                    shots = 1
+                else:
+                    qc = self.construct_circuit(amplification_problem, power, measurement=True)
+                    circuit_results = self._quantum_instance.execute(qc).get_counts(qc)
+                    top_measurement = max(circuit_results.items(), key=operator.itemgetter(1))[0]
+                    shots = sum(circuit_results.values())
+                    max_probability = (
+                        max(circuit_results.items(), key=operator.itemgetter(1))[1] / shots
+                    )
 
             all_circuit_results.append(circuit_results)
+
+            if (isinstance(self._iterations_arg, int)) and (
+                amplification_problem.is_good_state is None
+            ):
+                oracle_evaluation = None  # cannot check for good state without is_good_state arg
+                break
+
+            # is_good_state arg must be provided if iterations arg is not an integer
+            if (
+                self._iterations_arg is None or isinstance(self._iterations_arg, list)
+            ) and amplification_problem.is_good_state is None:
+                raise TypeError("An is_good_state function is required with the provided oracle")
+
+            # only check if top measurement is a good state if an is_good_state arg is provided
             oracle_evaluation = amplification_problem.is_good_state(top_measurement)
+
             if oracle_evaluation is True:
                 break  # we found a solution
 
@@ -270,7 +380,7 @@ class Grover(AmplitudeAmplifier):
         Returns:
             The optimal number of iterations for Grover's algorithm to succeed.
         """
-        amplitude = np.sqrt(num_solutions / 2 ** num_qubits)
+        amplitude = np.sqrt(num_solutions / 2**num_qubits)
         return round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
 
     def construct_circuit(
@@ -314,8 +424,6 @@ class GroverResult(AmplitudeAmplifierResult):
     def __init__(self) -> None:
         super().__init__()
         self._iterations = None
-        self._circuit_results = None
-        self._shots = None
 
     @property
     def iterations(self) -> List[int]:

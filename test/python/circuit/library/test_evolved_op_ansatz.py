@@ -37,7 +37,7 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         for string, time in zip(strings, parameters):
             reference.compose(evolve(string, time), inplace=True)
 
-        self.assertEqual(evo.decompose(), reference)
+        self.assertEqual(evo.decompose().decompose(), reference)
 
     def test_custom_evolution(self):
         """Test using another evolution than the default (e.g. matrix evolution)."""

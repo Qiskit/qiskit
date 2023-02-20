@@ -32,8 +32,7 @@ from qiskit.quantum_info.operators.predicates import is_positive_semidefinite_ma
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
 from qiskit.quantum_info.operators.channel.superop import SuperOp
 
-# pylint: disable=no-name-in-module
-from .cython.exp_value import density_expval_pauli_no_x, density_expval_pauli_with_x
+from qiskit._accelerate.pauli_expval import density_expval_pauli_no_x, density_expval_pauli_with_x
 
 
 class DensityMatrix(QuantumState, TolerancesMixin):
@@ -124,6 +123,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             pad,
             self._op_shape.dims_l(),
         )
+
+    @property
+    def settings(self):
+        """Return settings."""
+        return {"data": self.data, "dims": self._op_shape.dims_l()}
 
     def draw(self, output=None, **drawer_args):
         """Return a visualization of the Statevector.
@@ -324,7 +328,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         # Unitary evolution by an Operator
         if not isinstance(other, Operator):
-            other = Operator(other)
+            dims = self.dims(qargs=qargs)
+            other = Operator(other, input_dims=dims, output_dims=dims)
         return self._evolve_operator(other, qargs=qargs)
 
     def reverse_qargs(self):
@@ -376,7 +381,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             return pauli_phase * density_expval_pauli_no_x(data, self.num_qubits, z_mask)
 
         x_max = qubits[pauli.x][-1]
-        y_phase = (-1j) ** np.sum(pauli.x & pauli.z)
+        y_phase = (-1j) ** pauli._count_y()
         return pauli_phase * density_expval_pauli_with_x(
             data, self.num_qubits, z_mask, x_mask, y_phase, x_max
         )
@@ -425,7 +430,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             with :math:`\\rho_1=|+\\rangle\\!\\langle+|`,
             :math:`\\rho_0=|0\\rangle\\!\\langle0|`.
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -443,10 +448,16 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 probs_qubit_1 = rho.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
+            .. parsed-literal::
+
+                probs: [0.5 0.  0.5 0. ]
+                Qubit-0 probs: [1. 0.]
+                Qubit-1 probs: [0.5 0.5]
+
             We can also permute the order of qubits in the ``qargs`` list
             to change the qubit position in the probabilities output
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import DensityMatrix
 
@@ -460,6 +471,11 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 # but swapping qubits 0 and 1 in output
                 probs_swapped = rho.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
+
+            .. parsed-literal::
+
+                probs: [0.5 0.  0.5 0. ]
+                Swapped probs: [0.5 0.5 0.  0. ]
         """
         probs = self._subsystem_probabilities(
             np.abs(self.data.diagonal()), self._op_shape.dims_l(), qargs=qargs
@@ -587,7 +603,7 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             instruction = instruction.to_instruction()
         # Initialize an the statevector in the all |0> state
         num_qubits = instruction.num_qubits
-        init = np.zeros((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
+        init = np.zeros((2**num_qubits, 2**num_qubits), dtype=complex)
         init[0, 0] = 1
         vec = DensityMatrix(init, dims=num_qubits * (2,))
         vec._append_instruction(instruction)
@@ -614,17 +630,26 @@ class DensityMatrix(QuantumState, TolerancesMixin):
             The ket-form of a 2-qubit density matrix
             :math:`rho = |-\rangle\!\langle -|\otimes |0\rangle\!\langle 0|`
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import DensityMatrix
 
                 rho = DensityMatrix.from_label('-0')
                 print(rho.to_dict())
 
+            .. parsed-literal::
+
+               {
+                   '00|00': (0.4999999999999999+0j),
+                   '10|00': (-0.4999999999999999-0j),
+                   '00|10': (-0.4999999999999999+0j),
+                   '10|10': (0.4999999999999999+0j)
+               }
+
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system
 
-            .. jupyter-execute::
+            .. code-block::
 
                 import numpy as np
                 from qiskit.quantum_info import DensityMatrix
@@ -637,11 +662,15 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 rho = DensityMatrix(mat, dims=(3, 3))
                 print(rho.to_dict())
 
+            .. parsed-literal::
+
+                {'00|00': (0.25+0j), '10|10': (0.25+0j), '20|20': (0.25+0j), '22|22': (0.25+0j)}
+
             For large subsystem dimensions delimiters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
-            .. jupyter-execute::
+            .. code-block::
 
                 import numpy as np
                 from qiskit.quantum_info import DensityMatrix
@@ -651,6 +680,10 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 mat[-1, -1] = 0.5
                 rho = DensityMatrix(mat, dims=(2, 10))
                 print(rho.to_dict())
+
+            .. parsed-literal::
+
+                {'00|00': (0.5+0j), '91|91': (0.5+0j)}
         """
         return self._matrix_to_dict(
             self.data, self._op_shape.dims_l(), decimals=decimals, string_labels=True
@@ -724,17 +757,17 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 )
             )
         qubit_indices = {bit: idx for idx, bit in enumerate(other.definition.qubits)}
-        for instr, qregs, cregs in other.definition:
-            if cregs:
+        for instruction in other.definition:
+            if instruction.clbits:
                 raise QiskitError(
-                    f"Cannot apply instruction with classical registers: {instr.name}"
+                    f"Cannot apply instruction with classical bits: {instruction.operation.name}"
                 )
             # Get the integer position of the flat register
             if qargs is None:
-                new_qargs = [qubit_indices[tup] for tup in qregs]
+                new_qargs = [qubit_indices[tup] for tup in instruction.qubits]
             else:
-                new_qargs = [qargs[qubit_indices[tup]] for tup in qregs]
-            self._append_instruction(instr, qargs=new_qargs)
+                new_qargs = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
+            self._append_instruction(instruction.operation, qargs=new_qargs)
 
     def _evolve_instruction(self, obj, qargs=None):
         """Return a new statevector by applying an instruction."""

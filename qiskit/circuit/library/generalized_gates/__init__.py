@@ -13,9 +13,10 @@
 """The circuit library module on generalized gates."""
 
 from .diagonal import Diagonal
-from .permutation import Permutation
+from .permutation import Permutation, PermutationGate
 from .mcmt import MCMT, MCMTVChain
 from .gms import GMS, MSGate
 from .gr import GR, GRX, GRY, GRZ
 from .pauli import PauliGate
 from .rv import RVGate
+from .linear_function import LinearFunction

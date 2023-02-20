@@ -30,7 +30,7 @@ from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 
 
 class PauliSumOp(PrimitiveOp):
-    """Class for Operators backend by Terra's ``SparsePauliOp`` class."""
+    """Class for Operators backed by Terra's ``SparsePauliOp`` class."""
 
     primitive: SparsePauliOp
 
@@ -148,19 +148,22 @@ class PauliSumOp(PrimitiveOp):
     def equals(self, other: OperatorBase) -> bool:
         self_reduced, other_reduced = self.reduce(), other.reduce()
 
+        if isinstance(other_reduced, PauliOp):
+            other_reduced = PauliSumOp(
+                SparsePauliOp(other_reduced.primitive, coeffs=[other_reduced.coeff])
+            )
+
         if not isinstance(other_reduced, PauliSumOp):
             return False
 
         if isinstance(self_reduced.coeff, ParameterExpression) or isinstance(
             other_reduced.coeff, ParameterExpression
         ):
-            return (
-                self_reduced.coeff == other_reduced.coeff
-                and self_reduced.primitive == other_reduced.primitive
+            return self_reduced.coeff == other_reduced.coeff and self_reduced.primitive.equiv(
+                other_reduced.primitive
             )
-        return (
-            len(self_reduced) == len(other_reduced)
-            and self_reduced.primitive == other_reduced.primitive
+        return len(self_reduced) == len(other_reduced) and self_reduced.primitive.equiv(
+            other_reduced.primitive
         )
 
     def _expand_dim(self, num_qubits: int) -> "PauliSumOp":
@@ -197,12 +200,21 @@ class PauliSumOp(PrimitiveOp):
         Raises:
             OpflowError: if indices do not define a new index for each qubit.
         """
+        set_perm = set(permutation)
+        if len(set_perm) != len(permutation) or any(index < 0 for index in set_perm):
+            raise OpflowError(f"List {permutation} is not a permutation.")
+
         if len(permutation) != self.num_qubits:
             raise OpflowError(
                 "List of indices to permute must have the same size as Pauli Operator"
             )
         length = max(permutation) + 1
-        spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
+
+        if length > self.num_qubits:
+            spop = self.primitive.tensor(SparsePauliOp(Pauli("I" * (length - self.num_qubits))))
+        else:
+            spop = self.primitive.copy()
+
         permutation = [i for i in range(length) if i not in permutation] + permutation
         permu_arr = np.arange(length)[np.argsort(permutation)]
         spop.paulis.x = spop.paulis.x[:, permu_arr]
@@ -419,19 +431,22 @@ class PauliSumOp(PrimitiveOp):
     @classmethod
     def from_list(
         cls,
-        pauli_list: List[Tuple[str, complex]],
+        pauli_list: List[Tuple[str, Union[complex, ParameterExpression]]],
         coeff: Union[complex, ParameterExpression] = 1.0,
+        dtype: type = complex,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]
 
         Args:
             pauli_list: A list of Tuple of pauli_str and coefficient.
             coeff: A coefficient multiplying the primitive.
+            dtype: The dtype to use to construct the internal SparsePauliOp.
+                Defaults to ``complex``.
 
         Returns:
             The PauliSumOp constructed from the pauli_list.
         """
-        return cls(SparsePauliOp.from_list(pauli_list), coeff=coeff)
+        return cls(SparsePauliOp.from_list(pauli_list, dtype=dtype), coeff=coeff)
 
     def is_zero(self) -> bool:
         """

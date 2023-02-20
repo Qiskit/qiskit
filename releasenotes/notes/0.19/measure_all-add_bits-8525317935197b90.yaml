@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Added a new parameter, ``add_bits``, to :meth:`.QuantumCircuit.measure_all`.
+    By default it is set to ``True`` to maintain the previous behaviour of adding a new :obj:`.ClassicalRegister` of the same size as the number of qubits to store the measurements.
+    If set to ``False``, the measurements will be stored in the already existing classical bits.
+    For example, if you created a circuit with existing classical bits like::
+    
+        from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
+        
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2, "meas")
+        circuit = QuantumCircuit(qr, cr)
+
+    calling ``circuit.measure_all(add_bits=False)`` will use the existing
+    classical register ``cr`` as the output target of the
+    :class:`~qiskit.circuit.Measurement` objects added to the circuit.

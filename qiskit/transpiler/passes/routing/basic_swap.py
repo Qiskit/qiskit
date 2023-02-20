@@ -55,7 +55,7 @@ class BasicSwap(TransformationPass):
         if self.fake_run:
             return self.fake_run(dag)
 
-        new_dag = dag._copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         if self.coupling_map is None:
             raise TranspilerError("BasicSwap cannot run with coupling_map=None")
@@ -105,6 +105,7 @@ class BasicSwap(TransformationPass):
             order = current_layout.reorder_bits(new_dag.qubits)
             new_dag.compose(subdag, qubits=order)
 
+        self.property_set["final_layout"] = current_layout
         return new_dag
 
     def _fake_run(self, dag):

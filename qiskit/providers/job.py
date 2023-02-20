@@ -12,13 +12,14 @@
 
 """Job abstract interface."""
 
+import time
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
-import time
 
-from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
-from qiskit.providers.exceptions import JobTimeoutError
+from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
+from qiskit.providers.exceptions import JobTimeoutError
+from qiskit.providers.jobstatus import JOB_FINAL_STATES, JobStatus
 
 
 class Job:
@@ -46,7 +47,7 @@ class JobV1(Job, ABC):
     version = 1
     _async = True
 
-    def __init__(self, backend: Backend, job_id: str, **kwargs) -> None:
+    def __init__(self, backend: Optional[Backend], job_id: str, **kwargs) -> None:
         """Initializes the asynchronous job.
 
         Args:
@@ -65,6 +66,8 @@ class JobV1(Job, ABC):
 
     def backend(self) -> Backend:
         """Return the backend where this job was executed."""
+        if self._backend is None:
+            raise QiskitError("The job does not have any backend.")
         return self._backend
 
     def done(self) -> bool:

@@ -26,6 +26,9 @@ from qiskit.circuit.parameterexpression import ParameterValueType
 class RXGate(Gate):
     r"""Single-qubit rotation about the X axis.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rx` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -40,7 +43,7 @@ class RXGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        RX(\theta) = exp(-i \th X) =
+        RX(\theta) = \exp\left(-i \th X\right) =
             \begin{pmatrix}
                 \cos{\th}   & -i\sin{\th} \\
                 -i\sin{\th} & \cos{\th}
@@ -103,9 +106,17 @@ class RXGate(Gate):
         sin = math.sin(self.params[0] / 2)
         return numpy.array([[cos, -1j * sin], [-1j * sin, cos]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RXGate(exponent * theta)
+
 
 class CRXGate(ControlledGate):
     r"""Controlled-RX gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.crx` method.
 
     **Circuit symbol:**
 
@@ -122,7 +133,7 @@ class CRXGate(ControlledGate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        CRX(\lambda)\ q_0, q_1 =
+        CRX(\theta)\ q_0, q_1 =
             I \otimes |0\rangle\langle 0| + RX(\theta) \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
@@ -192,6 +203,10 @@ class CRXGate(ControlledGate):
         from .u3 import U3Gate
         from .x import CXGate
 
+        # q_0: ─────────────■───────────────────■────────────────────
+        #      ┌─────────┐┌─┴─┐┌─────────────┐┌─┴─┐┌────────────────┐
+        # q_1: ┤ U1(π/2) ├┤ X ├┤ U3(0/2,0,0) ├┤ X ├┤ U3(0/2,-π/2,0) ├
+        #      └─────────┘└───┘└─────────────┘└───┘└────────────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
@@ -213,8 +228,8 @@ class CRXGate(ControlledGate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the CRX gate."""
         half_theta = float(self.params[0]) / 2
-        cos = numpy.cos(half_theta)
-        isin = 1j * numpy.sin(half_theta)
+        cos = math.cos(half_theta)
+        isin = 1j * math.sin(half_theta)
         if self.ctrl_state:
             return numpy.array(
                 [[1, 0, 0, 0], [0, cos, 0, -isin], [0, 0, 1, 0], [0, -isin, 0, cos]], dtype=dtype

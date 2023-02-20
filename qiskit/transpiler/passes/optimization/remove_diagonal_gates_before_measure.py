@@ -28,6 +28,7 @@ from qiskit.circuit.library.standard_gates import (
 )
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 
 
 class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
@@ -37,6 +38,7 @@ class RemoveDiagonalGatesBeforeMeasure(TransformationPass):
     a measurement. Including diagonal 2Q gates.
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the RemoveDiagonalGatesBeforeMeasure pass on `dag`.
 

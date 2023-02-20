@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,44 +15,51 @@
 See https://arxiv.org/abs/1304.3061
 """
 
-from typing import Optional, List, Callable, Union, Dict, Tuple
+from __future__ import annotations
+
 import logging
 import warnings
 from time import time
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit, Parameter
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
-from qiskit.providers import BaseBackend
-from qiskit.providers import Backend
 from qiskit.opflow import (
-    OperatorBase,
+    CircuitSampler,
+    CircuitStateFn,
     ExpectationBase,
     ExpectationFactory,
-    StateFn,
-    CircuitStateFn,
     ListOp,
-    CircuitSampler,
+    OperatorBase,
     PauliSumOp,
+    StateFn,
 )
 from qiskit.opflow.gradients import GradientBase
-from qiskit.utils.validation import validate_min
-from qiskit.utils.backend_utils import is_aer_provider
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance, algorithm_globals
-from ..optimizers import Optimizer, SLSQP
-from ..variational_algorithm import VariationalAlgorithm, VariationalResult
-from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult, ListOrDict
+from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.utils.validation import validate_min
+from qiskit.utils.deprecation import deprecate_function
+
+from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
+from ..list_or_dict import ListOrDict
+from ..optimizers import SLSQP, Minimizer, Optimizer
+from ..variational_algorithm import VariationalAlgorithm, VariationalResult
+from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 logger = logging.getLogger(__name__)
 
-# disable check for ansatzes, optimizer setter because of pylint bug
-# pylint: disable=no-member
-
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
-    r"""The Variational Quantum Eigensolver algorithm.
+    r"""Pending deprecation: Variational Quantum Eigensolver algorithm.
+
+    The VQE class has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.VQE` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     `VQE <https://arxiv.org/abs/1304.3061>`__ is a quantum algorithm that uses a
     variational technique to find
@@ -84,25 +91,67 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     will default it to :math:`-2\pi`; similarly, if the ansatz returns ``None``
     as the upper bound, the default value will be :math:`2\pi`.
 
+    The optimizer can either be one of Qiskit's optimizers, such as
+    :class:`~qiskit.algorithms.optimizers.SPSA` or a callable with the following signature:
+
+    .. note::
+
+        The callable _must_ have the argument names ``fun, x0, jac, bounds`` as indicated
+        in the following code block.
+
+    .. code-block:: python
+
+        from qiskit.algorithms.optimizers import OptimizerResult
+
+        def my_minimizer(fun, x0, jac=None, bounds=None) -> OptimizerResult:
+            # Note that the callable *must* have these argument names!
+            # Args:
+            #     fun (callable): the function to minimize
+            #     x0 (np.ndarray): the initial point for the optimization
+            #     jac (callable, optional): the gradient of the objective function
+            #     bounds (list, optional): a list of tuples specifying the parameter bounds
+
+            result = OptimizerResult()
+            result.x = # optimal parameters
+            result.fun = # optimal function value
+            return result
+
+    The above signature also allows to directly pass any SciPy minimizer, for instance as
+
+    .. code-block:: python
+
+        from functools import partial
+        from scipy.optimize import minimize
+
+        optimizer = partial(minimize, method="L-BFGS-B")
+
     """
 
+    @deprecate_function(
+        "The VQE class has been superseded by the "
+        "qiskit.algorithms.minimum_eigensolvers.VQE class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,
-        optimizer: Optional[Optimizer] = None,
+        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
         initial_point: Optional[np.ndarray] = None,
         gradient: Optional[Union[GradientBase, Callable]] = None,
         expectation: Optional[ExpectationBase] = None,
         include_custom: bool = False,
         max_evals_grouped: int = 1,
         callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None,
+        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
     ) -> None:
         """
 
         Args:
             ansatz: A parameterized circuit used as Ansatz for the wave function.
-            optimizer: A classical optimizer.
+            optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
+                that takes an array as input and returns a Qiskit or SciPy optimization result.
             initial_point: An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQE will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
@@ -136,7 +185,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
 
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
@@ -144,8 +195,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self.expectation = expectation
         self._include_custom = include_custom
 
-        # set ansatz -- still supporting pre 0.18.0 sorting
-        self._ansatz_params = None
         self._ansatz = None
         self.ansatz = ansatz
 
@@ -189,7 +238,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             ansatz = RealAmplitudes()
 
         self._ansatz = ansatz
-        self._ansatz_params = list(ansatz.parameters)
 
     @property
     def gradient(self) -> Optional[Union[GradientBase, Callable]]:
@@ -207,9 +255,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, BaseBackend, Backend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Sets quantum_instance"""
         if not isinstance(quantum_instance, QuantumInstance):
             quantum_instance = QuantumInstance(quantum_instance)
@@ -281,7 +327,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
                 # try to set the number of qubits on the ansatz, if possible
                 try:
                     self.ansatz.num_qubits = operator.num_qubits
-                    self._ansatz_params = sorted(self.ansatz.parameters, key=lambda p: p.name)
                 except AttributeError as ex:
                     raise AlgorithmError(
                         "The number of qubits of the ansatz does not match the "
@@ -305,7 +350,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if optimizer is None:
             optimizer = SLSQP()
 
-        optimizer.set_max_evals_grouped(self.max_evals_grouped)
+        if isinstance(optimizer, Optimizer):
+            optimizer.set_max_evals_grouped(self.max_evals_grouped)
+
         self._optimizer = optimizer
 
     @property
@@ -340,7 +387,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             ret += "ansatz has not been set"
         ret += "===============================================================\n"
-        ret += f"{self._optimizer.setting}"
+        if callable(self.optimizer):
+            ret += "Optimizer is custom callable\n"
+        else:
+            ret += f"{self._optimizer.setting}"
         ret += "===============================================================\n"
         return ret
 
@@ -385,8 +435,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         else:
             expectation = self.expectation
 
-        param_dict = dict(zip(self._ansatz_params, parameter))  # type: Dict
-        wave_function = self.ansatz.assign_parameters(param_dict)
+        wave_function = self.ansatz.assign_parameters(parameter)
 
         observable_meas = expectation.convert(StateFn(operator, is_measurement=True))
         ansatz_circuit_op = CircuitStateFn(wave_function)
@@ -430,59 +479,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     @classmethod
     def supports_aux_operators(cls) -> bool:
         return True
-
-    def _eval_aux_ops(
-        self,
-        parameters: np.ndarray,
-        aux_operators: ListOrDict[OperatorBase],
-        expectation: ExpectationBase,
-        threshold: float = 1e-12,
-    ) -> ListOrDict[Tuple[complex, complex]]:
-        # Create new CircuitSampler to avoid breaking existing one's caches.
-        sampler = CircuitSampler(self.quantum_instance)
-
-        if isinstance(aux_operators, dict):
-            list_op = ListOp(list(aux_operators.values()))
-        else:
-            list_op = ListOp(aux_operators)
-
-        aux_op_expect = expectation.convert(
-            StateFn(list_op, is_measurement=True).compose(
-                CircuitStateFn(self.ansatz.bind_parameters(parameters))
-            )
-        )
-        aux_op_expect_sampled = sampler.convert(aux_op_expect)
-
-        # compute means
-        values = np.real(aux_op_expect_sampled.eval())
-
-        # compute standard deviations
-        variances = np.real(expectation.compute_variance(aux_op_expect_sampled))
-        if not isinstance(variances, np.ndarray) and variances == 0.0:
-            # when `variances` is a single value equal to 0., our expectation value is exact and we
-            # manually ensure the variances to be a list of the correct length
-            variances = np.zeros(len(aux_operators), dtype=float)
-        std_devs = np.sqrt(variances / self.quantum_instance.run_config.shots)
-
-        # Discard values below threshold
-        aux_op_means = values * (np.abs(values) > threshold)
-        # zip means and standard deviations into tuples
-        aux_op_results = zip(aux_op_means, std_devs)
-
-        # Return None eigenvalues for None operators if aux_operators is a list.
-        # None operators are already dropped in compute_minimum_eigenvalue if aux_operators is a dict.
-        if isinstance(aux_operators, list):
-            aux_operator_eigenvalues = [None] * len(aux_operators)
-            key_value_iterator = enumerate(aux_op_results)
-        else:
-            aux_operator_eigenvalues = {}
-            key_value_iterator = zip(aux_operators.keys(), aux_op_results)
-
-        for key, value in key_value_iterator:
-            if aux_operators[key] is not None:
-                aux_operator_eigenvalues[key] = value
-
-        return aux_operator_eigenvalues
 
     def compute_minimum_eigenvalue(
         self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
@@ -528,8 +524,8 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         # optimization routine.
         if isinstance(self._gradient, GradientBase):
             gradient = self._gradient.gradient_wrapper(
-                ~StateFn(operator) @ StateFn(self._ansatz),
-                bind_params=self._ansatz_params,
+                ~StateFn(operator) @ StateFn(self.ansatz),
+                bind_params=list(self.ansatz.parameters),
                 backend=self._quantum_instance,
             )
         else:
@@ -542,32 +538,20 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         start_time = time()
 
-        # keep this until Optimizer.optimize is removed
-        try:
-            opt_result = self.optimizer.minimize(
+        if callable(self.optimizer):
+            opt_result = self.optimizer(  # pylint: disable=not-callable
                 fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
             )
-        except AttributeError:
-            # self.optimizer is an optimizer with the deprecated interface that uses
-            # ``optimize`` instead of ``minimize```
-            warnings.warn(
-                "Using an optimizer that is run with the ``optimize`` method is "
-                "deprecated as of Qiskit Terra 0.19.0 and will be unsupported no "
-                "sooner than 3 months after the release date. Instead use an optimizer "
-                "providing ``minimize`` (see qiskit.algorithms.optimizers.Optimizer).",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-            opt_result = self.optimizer.optimize(
-                len(initial_point), energy_evaluation, gradient, bounds, initial_point
+        else:
+            opt_result = self.optimizer.minimize(
+                fun=energy_evaluation, x0=initial_point, jac=gradient, bounds=bounds
             )
 
         eval_time = time() - start_time
 
         result = VQEResult()
         result.optimal_point = opt_result.x
-        result.optimal_parameters = dict(zip(self._ansatz_params, opt_result.x))
+        result.optimal_parameters = dict(zip(self.ansatz.parameters, opt_result.x))
         result.optimal_value = opt_result.fun
         result.cost_function_evals = opt_result.nfev
         result.optimizer_time = eval_time
@@ -585,7 +569,11 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ret = result
 
         if aux_operators is not None:
-            aux_values = self._eval_aux_ops(opt_result.x, aux_operators, expectation=expectation)
+            bound_ansatz = self.ansatz.bind_parameters(result.optimal_point)
+
+            aux_values = eval_observables(
+                self.quantum_instance, bound_ansatz, aux_operators, expectation=expectation
+            )
             result.aux_operator_eigenvalues = aux_values
 
         return result
@@ -618,14 +606,15 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         if num_parameters == 0:
             raise RuntimeError("The ansatz must be parameterized, but has 0 free parameters.")
 
+        ansatz_params = self.ansatz.parameters
         expect_op, expectation = self.construct_expectation(
-            self._ansatz_params, operator, return_expectation=True
+            ansatz_params, operator, return_expectation=True
         )
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
             # Create dict associating each parameter with the lists of parameterization values for it
-            param_bindings = dict(zip(self._ansatz_params, parameter_sets.transpose().tolist()))
+            param_bindings = dict(zip(ansatz_params, parameter_sets.transpose().tolist()))
 
             start_time = time()
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
@@ -655,53 +644,6 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return energy_evaluation
 
-    @deprecate_function(
-        """
-The VQE.get_optimal_cost method is deprecated as of Qiskit Terra 0.18.0
-and will be removed no sooner than 3 months after the releasedate.
-This information is part of the returned result object and can be
-queried as VQEResult.eigenvalue."""
-    )
-    def get_optimal_cost(self) -> float:
-        """Get the minimal cost or energy found by the VQE."""
-        if self._ret.optimal_point is None:
-            raise AlgorithmError(
-                "Cannot return optimal cost before running the algorithm to find optimal params."
-            )
-        return self._ret.optimal_value
-
-    @deprecate_function(
-        """
-The VQE.get_optimal_circuit method is deprecated as of Qiskit Terra
-0.18.0 and will be removed no sooner than 3 months after the releasedate.
-This information is part of the returned result object and can be
-queried as VQEResult.ansatz.bind_parameters(VQEResult.optimal_point)."""
-    )
-    def get_optimal_circuit(self) -> QuantumCircuit:
-        """Get the circuit with the optimal parameters."""
-        if self._ret.optimal_point is None:
-            raise AlgorithmError(
-                "Cannot find optimal circuit before running the "
-                "algorithm to find optimal params."
-            )
-        return self.ansatz.assign_parameters(self._ret.optimal_parameters)
-
-    @deprecate_function(
-        """
-The VQE.get_optimal_vector method is deprecated as of Qiskit Terra 0.18.0
-and will be removed no sooner than 3 months after the releasedate.
-This information is part of the returned result object and can be
-queried as VQEResult.eigenvector."""
-    )
-    def get_optimal_vector(self) -> Union[List[float], Dict[str, int]]:
-        """Get the simulation outcome of the optimal circuit."""
-        if self._ret.optimal_parameters is None:
-            raise AlgorithmError(
-                "Cannot find optimal circuit before running the "
-                "algorithm to find optimal vector."
-            )
-        return self._get_eigenstate(self._ret.optimal_parameters)
-
     def _get_eigenstate(self, optimal_parameters) -> Union[List[float], Dict[str, int]]:
         """Get the simulation outcome of the ansatz, provided with parameters."""
         optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
@@ -713,26 +655,28 @@ queried as VQEResult.eigenvector."""
 
         return state
 
-    @property
-    @deprecate_function(
-        """
-The VQE.optimal_params property is deprecated as of Qiskit Terra 0.18.0
-and will be removed no sooner than 3 months after the releasedate.
-This information is part of the returned result object and can be
-queried as VQEResult.optimal_point."""
-    )
-    def optimal_params(self) -> np.ndarray:
-        """The optimal parameters for the ansatz."""
-        if self._ret.optimal_point is None:
-            raise AlgorithmError("Cannot find optimal params before running the algorithm.")
-        return self._ret.optimal_point
-
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
-    """VQE Result."""
+    """Pending deprecation: VQE Result.
 
+    The VQEResult class has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.VQEResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The VQEResult class has been superseded by the "
+        "qiskit.algorithms.minimum_eigensolvers.VQEResult class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(self) -> None:
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._cost_function_evals = None
 
     @property
