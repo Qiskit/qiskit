@@ -31,7 +31,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
 )
 from qiskit.quantum_info import Operator
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit import ControlFlowOp, Gate
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
@@ -152,18 +152,23 @@ def _error(circuit, target=None, qubits=None):
             keys = target.operation_names_for_qargs(inst_qubits)
             for key in keys:
                 target_op = target.operation_from_name(key)
-                # pylint: disable=unidiomatic-typecheck
-                if type(target_op) == type(inst.operation) and (  # noqa: E721 Do not compare types
+                if isinstance(target_op, type(inst.operation)) and (
                     target_op.is_parameterized()
                     or all(
                         isclose(float(p1), float(p2))
                         for p1, p2 in zip(target_op.params, inst.operation.params)
                     )
                 ):
-                    error = getattr(target[key][inst_qubits], "error", 0.0) or 0.0
-                    duration = getattr(target[key][inst_qubits], "duration", 0.0) or 0.0
-                    gate_fidelities.append(1 - error)
-                    gate_durations.append(duration)
+                    inst_props = target[key].get(inst_qubits, None)
+                    if inst_props is not None:
+                        error = getattr(inst_props, "error", 0.0) or 0.0
+                        duration = getattr(inst_props, "duration", 0.0) or 0.0
+                        gate_fidelities.append(1 - error)
+                        gate_durations.append(duration)
+                    else:
+                        gate_fidelities.append(1.0)
+                        gate_durations.append(0.0)
+
                     break
             else:
                 raise KeyError
@@ -599,7 +604,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         try:
             keys = target.operation_names_for_qargs(qubits_tuple)
             for key in keys:
-                available_2q_basis[key] = target.operation_from_name(key)
+                op = target.operation_from_name(key)
+                if not isinstance(op, Gate):
+                    continue
+                available_2q_basis[key] = op
                 available_2q_props[key] = target[key][qubits_tuple]
         except KeyError:
             pass
@@ -607,7 +615,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             keys = target.operation_names_for_qargs(reverse_tuple)
             for key in keys:
                 if key not in available_2q_basis:
-                    available_2q_basis[key] = target.operation_from_name(key)
+                    op = target.operation_from_name(key)
+                    if not isinstance(op, Gate):
+                        continue
+                    available_2q_basis[key] = op
                     available_2q_props[key] = target[key][reverse_tuple]
         except KeyError:
             pass
@@ -636,7 +647,11 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             k: v for k, v in available_2q_basis.items() if is_supercontrolled(v)
         }
         for basis_1q, basis_2q in product(available_1q_basis, supercontrolled_basis.keys()):
-            basis_2q_fidelity = 1 - getattr(available_2q_props[basis_2q], "error", 0.0)
+            props = available_2q_props.get(basis_2q)
+            if props is None:
+                basis_2q_fidelity = 1.0
+            else:
+                basis_2q_fidelity = 1 - getattr(props, "error", 0.0)
             if approximation_degree is not None:
                 basis_2q_fidelity *= approximation_degree
             decomposer = TwoQubitBasisDecomposer(
@@ -654,7 +669,11 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         for k, v in controlled_basis.items():
             strength = 2 * TwoQubitWeylDecomposition(Operator(v).data).a  # pi/2: fully entangling
             # each strength has its own fidelity
-            basis_2q_fidelity[strength] = 1 - getattr(available_2q_props[k], "error", 0.0)
+            props = available_2q_props.get(k)
+            if props is None:
+                basis_2q_fidelity[strength] = 1.0
+            else:
+                basis_2q_fidelity[strength] = 1 - getattr(props, "error", 0.0)
             # rewrite XX of the same strength in terms of it
             embodiment = XXEmbodiments[type(v)]
             if len(embodiment.parameters) == 1:
