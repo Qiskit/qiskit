@@ -48,6 +48,7 @@ from .vqe import VQE, VQEResult
 from .sampling_mes import SamplingMinimumEigensolver, SamplingMinimumEigensolverResult
 from .sampling_vqe import SamplingVQE, SamplingVQEResult
 from .qaoa import QAOA
+from .falqon import FALQON
 
 __all__ = [
     "AdaptVQE",
@@ -63,4 +64,5 @@ __all__ = [
     "SamplingVQE",
     "SamplingVQEResult",
     "QAOA",
+    "FALQON"
 ]
