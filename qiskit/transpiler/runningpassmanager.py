@@ -21,7 +21,16 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit import QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.passmanager.base_pass_runner import BasePassRunner
-from qiskit.passmanager.flow_controller import FlowController, PassSequence
+
+# pylint: disable=unused-import
+from qiskit.passmanager.flow_controller import (
+    PassSequence,
+    FlowController,
+    # For backward compatibility
+    DoWhileController,
+    ConditionalController,
+)
+
 from qiskit.passmanager.propertyset import get_property_set
 from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.fencedobjs import FencedDAGCircuit
@@ -231,10 +240,3 @@ class RunningPassManager(BasePassRunner, passmanager_error=TranspilerError):
     def _log_pass(self, start_time, end_time, name):
         log_msg = f"Pass: {name} - {(end_time - start_time) * 1000:.5f} (ms)"
         logger.info(log_msg)
-
-
-def __getattr__(name):
-    # For backward compatibility. Flow controllers are moved to pass manager module.
-    from qiskit.passmanager import flow_controller
-
-    return getattr(flow_controller, name)

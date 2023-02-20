@@ -33,6 +33,7 @@ Qiskit Terra API Reference
    result
    tools
    tools_jupyter
+   passmanager
    transpiler
    transpiler_passes
    transpiler_preset

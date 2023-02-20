@@ -19,14 +19,11 @@ import sys
 
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import PassManager, TranspilerError
-
-# pylint: disable=no-name-in-module
 from qiskit.transpiler.runningpassmanager import (
     DoWhileController,
     ConditionalController,
     FlowController,
 )
-
 from qiskit.test import QiskitTestCase
 from ._dummy_passes import (
     PassA_TP_NR_NP,

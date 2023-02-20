@@ -1251,6 +1251,7 @@ from qiskit.passmanager import (
     ConditionalController,
     DoWhileController,
 )
+from qiskit.passmanager import propertyset
 
 from .passmanager import PassManager, StagedPassManager
 from .passmanager_config import PassManagerConfig
