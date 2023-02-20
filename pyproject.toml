@@ -17,6 +17,7 @@ test-command = "python {project}/examples/python/stochastic_swap.py"
 # Numpy 1.22 there are no i686 wheels, so we force pip to use older ones without
 # restricting any dependencies that Numpy and Scipy might have.
 before-test = "pip install --only-binary=numpy,scipy numpy scipy"
+environment = 'RUSTUP_TOOLCHAIN="stable"'
 
 [tool.cibuildwheel.linux]
 before-all = "yum install -y wget && {package}/tools/install_rust.sh"
