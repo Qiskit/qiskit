@@ -30,7 +30,7 @@ class Fraxis(SciPyOptimizer):
 
     .. note::
 
-        This optimizer only works with U gates as parameterized gates etc.
+        This optimizer only works with U gates as parameterized gates.
 
     References:
       [1] "Optimizing Parameterized Quantum Circuits with Free-Axis Selection,"
@@ -38,24 +38,21 @@ class Fraxis(SciPyOptimizer):
           `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__
     """
 
-    _OPTIONS = ["maxiter", "disp"]
+    _OPTIONS = ["maxiter"]
 
     # pylint: disable=unused-argument
     def __init__(
         self,
         maxiter: Optional[int] = None,
-        disp: bool = False,
         options: Optional[dict] = None,
         **kwargs,
     ) -> None:
         """
         Args:
-            maxiter: Maximum number of iterations to perform.
-                Will default to N*10, where N is the number of U gates
+            maxiter: Maximum number of iterations to perform. Will default to None.
+                If it is None, it is interpreted as N*10, where N is the number of U gates
                 in the input circuit.
-            disp: Set to True to print convergence messages.
             options: A dictionary of solver options.
-            initialize: Set to True to initialize ``x0`` randomly.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
         if options is None:
@@ -115,8 +112,12 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
 
     x0 = np.asarray(x0)
     if x0.size % 3 != 0:
-        raise ValueError(f"The size of x0 should be multiple of 3. Actual size: {x0.size}")
+        raise ValueError(
+            f"The size of x0 should be multiple of 3. Actual size: {x0.size}. "
+            "Note that Fraxis works with only U gates as parameterized gates."
+        )
     if maxiter is None:
+        # `x0.size // 3` denotes the number of U gates because each U gate has 3 parameters.
         maxiter = x0.size // 3 * 10
 
     niter = 0
@@ -161,10 +162,14 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
 
         if callback is not None:
             # pass x0 values and the estimated energy value fun(x0) to the callback
-            callback(x0, eigvals[0] / 2)
-
-        if maxiter is not None:
-            if niter >= maxiter:
+            state = OptimizeResult(
+                fun=eigvals[0] / 2, x=x0, nit=niter, nfev=funcalls, success=(niter > 1)
+            )
+            terminate = callback(x0, state)
+            if terminate:
                 break
+
+        if niter >= maxiter:
+            break
 
     return OptimizeResult(fun=fun(x0, *args), x=x0, nit=niter, nfev=funcalls, success=(niter > 1))
