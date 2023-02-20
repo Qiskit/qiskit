@@ -33,7 +33,7 @@ from qiskit.result import QuasiDistribution
 from qiskit.primitives import Sampler
 from qiskit.utils import algorithm_globals
 
-I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
+I = PauliSumOp.from_list([("I", 1)])  # noqa: E741
 X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
 
 W1 = np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
