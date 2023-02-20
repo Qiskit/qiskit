@@ -360,6 +360,14 @@ def clean_tutorials(app, exc):
     tutorials_dir = os.path.join(app.srcdir, 'tutorials')
     shutil.rmtree(tutorials_dir)
 
+def deprecate_ibmq_provider(app, docname, source):
+    message = """.. warning::
+       The package ``qiskit-ibmq-provider`` is being deprecated and its repo is going to be
+       archived soon. Please transition to the new packages. More information in
+       https://ibm.biz/provider_migration_guide\n\n"""
+    if 'apidoc/ibmq' in docname or 'qiskit.providers.ibmq' in docname:
+        source[0] = message + source[0]
+
 # -- Extension configuration -------------------------------------------------
 
 def setup(app):
@@ -374,3 +382,4 @@ def setup(app):
     app.add_css_file('css/theme-override.css')
     app.connect('build-finished', clean_api_source)
     app.connect('build-finished', clean_tutorials)
+    app.connect('source-read', deprecate_ibmq_provider)
