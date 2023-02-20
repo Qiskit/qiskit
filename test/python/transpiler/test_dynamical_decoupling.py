@@ -17,8 +17,8 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data
 
-from qiskit.circuit import QuantumCircuit, Delay
-from qiskit.circuit.library import XGate, YGate, RXGate, UGate
+from qiskit.circuit import QuantumCircuit, Delay, Measure, Reset, Parameter
+from qiskit.circuit.library import XGate, YGate, RXGate, UGate, CXGate, HGate
 from qiskit.quantum_info import Operator
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
@@ -28,8 +28,8 @@ from qiskit.transpiler.passes import (
 )
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
-
-import qiskit.pulse as pulse
+from qiskit.transpiler.target import Target, InstructionProperties
+from qiskit import pulse
 
 from qiskit.test import QiskitTestCase
 
@@ -119,6 +119,87 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
             [
                 ALAPScheduleAnalysis(self.durations),
                 PadDynamicalDecoupling(self.durations, dd_sequence),
+            ]
+        )
+
+        ghz4_dd = pm.run(self.ghz4)
+
+        expected = self.ghz4.copy()
+        expected = expected.compose(Delay(50), [1], front=True)
+        expected = expected.compose(Delay(750), [2], front=True)
+        expected = expected.compose(Delay(950), [3], front=True)
+
+        expected = expected.compose(Delay(100), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(200), [0])
+        expected = expected.compose(XGate(), [0])
+        expected = expected.compose(Delay(100), [0])
+
+        expected = expected.compose(Delay(50), [1])
+        expected = expected.compose(XGate(), [1])
+        expected = expected.compose(Delay(100), [1])
+        expected = expected.compose(XGate(), [1])
+        expected = expected.compose(Delay(50), [1])
+
+        self.assertEqual(ghz4_dd, expected)
+
+    def test_insert_dd_ghz_with_target(self):
+        """Test DD gates are inserted in correct spots.
+
+                   ┌───┐            ┌────────────────┐      ┌───┐      »
+        q_0: ──────┤ H ├─────────■──┤ Delay(100[dt]) ├──────┤ X ├──────»
+             ┌─────┴───┴─────┐ ┌─┴─┐└────────────────┘┌─────┴───┴─────┐»
+        q_1: ┤ Delay(50[dt]) ├─┤ X ├────────■─────────┤ Delay(50[dt]) ├»
+             ├───────────────┴┐└───┘      ┌─┴─┐       └───────────────┘»
+        q_2: ┤ Delay(750[dt]) ├───────────┤ X ├───────────────■────────»
+             ├────────────────┤           └───┘             ┌─┴─┐      »
+        q_3: ┤ Delay(950[dt]) ├─────────────────────────────┤ X ├──────»
+             └────────────────┘                             └───┘      »
+        «     ┌────────────────┐      ┌───┐       ┌────────────────┐
+        «q_0: ┤ Delay(200[dt]) ├──────┤ X ├───────┤ Delay(100[dt]) ├─────────────────
+        «     └─────┬───┬──────┘┌─────┴───┴──────┐└─────┬───┬──────┘┌───────────────┐
+        «q_1: ──────┤ X ├───────┤ Delay(100[dt]) ├──────┤ X ├───────┤ Delay(50[dt]) ├
+        «           └───┘       └────────────────┘      └───┘       └───────────────┘
+        «q_2: ───────────────────────────────────────────────────────────────────────
+        «
+        «q_3: ───────────────────────────────────────────────────────────────────────
+        «
+        """
+        target = Target(num_qubits=4, dt=1)
+        target.add_instruction(HGate(), {(0,): InstructionProperties(duration=50)})
+        target.add_instruction(
+            CXGate(),
+            {
+                (0, 1): InstructionProperties(duration=700),
+                (1, 2): InstructionProperties(duration=200),
+                (2, 3): InstructionProperties(duration=300),
+            },
+        )
+        target.add_instruction(
+            XGate(), {(x,): InstructionProperties(duration=50) for x in range(4)}
+        )
+        target.add_instruction(
+            YGate(), {(x,): InstructionProperties(duration=50) for x in range(4)}
+        )
+        target.add_instruction(
+            UGate(Parameter("theta"), Parameter("phi"), Parameter("lambda")),
+            {(x,): InstructionProperties(duration=100) for x in range(4)},
+        )
+        target.add_instruction(
+            RXGate(Parameter("theta")),
+            {(x,): InstructionProperties(duration=100) for x in range(4)},
+        )
+        target.add_instruction(
+            Measure(), {(x,): InstructionProperties(duration=1000) for x in range(4)}
+        )
+        target.add_instruction(
+            Reset(), {(x,): InstructionProperties(duration=1500) for x in range(4)}
+        )
+        dd_sequence = [XGate(), XGate()]
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(target=target),
+                PadDynamicalDecoupling(target=target, dd_sequence=dd_sequence),
             ]
         )
 

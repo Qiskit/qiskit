@@ -236,10 +236,10 @@ class SabreLayout(TransformationPass):
             self._neighbor_table,
             dist_matrix,
             Heuristic.Decay,
-            self.seed,
             self.max_iterations,
             self.swap_trials,
             self.layout_trials,
+            self.seed,
         )
         # Apply initial layout selected.
         original_dag = dag

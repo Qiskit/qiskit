@@ -56,12 +56,15 @@ class BasicSwap(TransformationPass):
 
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG.
+            compatible with the DAG, or if the coupling_map=None.
         """
         if self.fake_run:
             return self.fake_run(dag)
 
         new_dag = dag.copy_empty_like()
+
+        if self.coupling_map is None:
+            raise TranspilerError("BasicSwap cannot run with coupling_map=None")
 
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Basic swap runs on physical circuits only")

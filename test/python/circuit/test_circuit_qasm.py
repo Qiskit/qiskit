@@ -12,12 +12,14 @@
 
 """Test Qiskit's QuantumCircuit class."""
 
+import unittest
 from math import pi
 import re
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate
+from qiskit.circuit.library import C3SXGate
 from qiskit.qasm.exceptions import QasmError
 
 # Regex pattern to match valid OpenQASM identifiers
@@ -245,6 +247,22 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         qc = QuantumCircuit.from_qasm_str(original_str)
 
         self.assertEqual(original_str, qc.qasm())
+
+    def test_c3sxgate_roundtrips(self):
+        """Test that C3SXGate correctly round trips.  Qiskit gives this gate a different name
+        ('c3sx') to the name in Qiskit's version of qelib1.inc ('c3sqrtx') gate, which can lead to
+        resolution issues."""
+        qc = QuantumCircuit(4)
+        qc.append(C3SXGate(), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[4];
+c3sqrtx q[0],q[1],q[2],q[3];
+"""
+        self.assertEqual(qasm, expected)
+        parsed = QuantumCircuit.from_qasm_str(qasm)
+        self.assertIsInstance(parsed.data[0].operation, C3SXGate)
 
     def test_unbound_circuit_raises(self):
         """Test circuits with unbound parameters raises."""
@@ -529,3 +547,21 @@ p(pi) q[0];\n"""
 
         with self.assertRaisesRegex(QasmError, "OpenQASM 2 can only condition on registers"):
             qc.qasm()
+
+    def test_circuit_qasm_with_permutations(self):
+        """Test circuit qasm() method with Permutation gates."""
+        from qiskit.circuit.library import PermutationGate
+
+        qc = QuantumCircuit(4)
+        qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+gate permutation__2_1_0_ q0,q1,q2 { swap q0,q2; }
+qreg q[4];
+permutation__2_1_0_ q[0],q[1],q[2];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+
+if __name__ == "__main__":
+    unittest.main()

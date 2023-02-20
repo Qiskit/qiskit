@@ -154,7 +154,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     _opt = [
         Optimize1qGatesDecomposition(basis=basis_gates, target=target),
-        CommutativeCancellation(basis_gates=basis_gates),
+        CommutativeCancellation(basis_gates=basis_gates, target=target),
     ]
 
     unroll_3q = None
@@ -235,7 +235,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     if scheduling_method is None or scheduling_method in {"alap", "asap"}:
         sched = common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map
+            instruction_durations,
+            scheduling_method,
+            timing_constraints,
+            inst_map,
+            target=target,
         )
     else:
         sched = plugin_manager.get_passmanager_stage(
