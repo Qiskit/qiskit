@@ -1316,7 +1316,7 @@ def Cos(
 
     .. note::
 
-        Because `Cos` calls :fun:`~qiskit.pulse.library.Sin` with an appropriate shift of phase,
+        Because `Cos` calls :class:`~qiskit.pulse.library.Sin` with an appropriate shift of phase,
         the resulting pulse will have `pulse_type="Sin"`.
 
     Args:
