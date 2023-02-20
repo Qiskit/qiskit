@@ -21,7 +21,7 @@ def deprecate_arguments(
     kwarg_map: Dict[str, str],
     category: Type[Warning] = DeprecationWarning,
     *,
-    since: Optional[str] = None,  # pylint: disable=unused-argument
+    since: Optional[str] = None,
 ):
     """Decorator to automatically alias deprecated argument names and warn upon use.
 
@@ -35,6 +35,8 @@ def deprecate_arguments(
     Returns:
         Callable: The decorated callable.
     """
+
+    del since  # Will be used in a followup to add deprecations to our docs site.
 
     def decorator(func):
         @functools.wraps(func)
@@ -53,7 +55,7 @@ def deprecate_function(
     stacklevel: int = 2,
     category: Type[Warning] = DeprecationWarning,
     *,
-    since: Optional[str] = None,  # pylint: disable=unused-argument
+    since: Optional[str] = None,
 ):
     """Emit a warning prior to calling decorated function.
 
@@ -68,6 +70,8 @@ def deprecate_function(
     Returns:
         Callable: The decorated, deprecated callable.
     """
+
+    del since  # Will be used in a followup to add deprecations to our docs site.
 
     def decorator(func):
         @functools.wraps(func)
