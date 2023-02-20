@@ -37,7 +37,7 @@ from .list_or_dict import ListOrDict
     "This function will be deprecated in a future release and subsequently "
     "removed after that.",
     category=PendingDeprecationWarning,
-    since="0.24.0",
+    since="0.23.0",
 )
 def eval_observables(
     quantum_instance: Union[QuantumInstance, Backend],

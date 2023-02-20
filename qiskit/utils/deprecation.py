@@ -29,8 +29,7 @@ def deprecate_arguments(
         kwarg_map: A dictionary of the old argument name to the new name.
         category: Usually either DeprecationWarning or PendingDeprecationWarning.
         since: The version the deprecation started at. Only Optional for backwards
-            compatibility - this should always be set. If the deprecation is pending,
-            set the version to when the deprecation will officially start.
+            compatibility - this should always be set.
 
     Returns:
         Callable: The decorated callable.
@@ -64,8 +63,7 @@ def deprecate_function(
         stacklevel: The warning stacklevel to use, defaults to 2.
         category: Usually either DeprecationWarning or PendingDeprecationWarning.
         since: The version the deprecation started at. Only Optional for backwards
-            compatibility - this should always be set. If the deprecation is pending,
-            set the version to when the deprecation will officially start.
+            compatibility - this should always be set.
 
     Returns:
         Callable: The decorated, deprecated callable.
