@@ -397,6 +397,7 @@ class BackendEstimator(BaseEstimator):
                 output = [output]
             return output
 
+
 def _paulis2inds(paulis: PauliList) -> list[int]:
     """Convert PauliList to diagonal integers.
     These are integer representations of the binary string with a

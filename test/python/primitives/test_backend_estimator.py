@@ -33,6 +33,7 @@ BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
 logger = "LocalLogger"
 
+
 class LogPass(DummyAP):
     """A dummy analysis pass that logs when executed"""
 
@@ -42,6 +43,7 @@ class LogPass(DummyAP):
 
     def run(self, dag):
         logging.getLogger(logger).info(self.message)
+
 
 @ddt
 class TestBackendEstimator(QiskitTestCase):
@@ -342,8 +344,7 @@ class TestBackendEstimator(QiskitTestCase):
         bound_counter = LogPass("bound_pass_manager")
         bound_pass = PassManager(bound_counter)
 
-        estimator = BackendEstimator(backend=FakeNairobi(),
-                                     bound_pass_manager=bound_pass)
+        estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
 
         qc = QuantumCircuit(2)
         op = SparsePauliOp.from_list([("II", 1)])

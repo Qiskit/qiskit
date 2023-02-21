@@ -34,6 +34,7 @@ BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
 logger = "LocalLogger"
 
+
 class LogPass(DummyAP):
     """A dummy analysis pass that logs when executed"""
 
@@ -43,6 +44,7 @@ class LogPass(DummyAP):
 
     def run(self, dag):
         logging.getLogger(logger).info(self.message)
+
 
 @ddt
 class TestBackendSampler(QiskitTestCase):
@@ -378,9 +380,9 @@ class TestBackendSampler(QiskitTestCase):
         bound_counter = LogPass("bound_pass_manager")
         bound_pass = PassManager(bound_counter)
 
-        sampler = BackendSampler(backend=FakeNairobi(),
-                                 skip_transpilation=True,
-                                 bound_pass_manager=bound_pass)
+        sampler = BackendSampler(
+            backend=FakeNairobi(), skip_transpilation=True, bound_pass_manager=bound_pass
+        )
 
         with self.subTest("Test single circuit"):
             with self.assertLogs(logger, level="INFO") as cm:
@@ -393,6 +395,7 @@ class TestBackendSampler(QiskitTestCase):
                 _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
             expected = ["bound_pass_manager", "bound_pass_manager"]
             self.assertEqual([record.message for record in cm.records], expected)
+
 
 if __name__ == "__main__":
     unittest.main()
