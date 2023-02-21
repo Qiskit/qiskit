@@ -61,9 +61,8 @@ lint-incr:
 	tools/verify_headers.py qiskit test tools examples
 	tools/find_optional_imports.py
 
-# TODO: 'ruff qiskit test' and maybe other files too
 ruff:
-	ruff qiskit
+	ruff qiskit test
 
 style:
 	black --check qiskit test tools examples setup.py
