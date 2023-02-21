@@ -32,6 +32,7 @@ from qiskit.pulse.library import (
     gaussian,
     gaussian_square,
     drag as pl_drag,
+    sin,
     cos,
     triangle,
     sawtooth,
@@ -130,8 +131,8 @@ class TestParametricPulses(QiskitTestCase):
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
         Sin(duration=25, amp=0.5, freq=0.1, phase=0.5, angle=0.5)
         Cos(duration=30, amp=0.5, freq=0.1, phase=-0.5)
-        Sawtooth(duration=40, amp=0.5, freq=1, phase=3.14)
-        Triangle(duration=50, amp=0.5, freq=10, phase=0.5)
+        Sawtooth(duration=40, amp=0.5, freq=0.2, phase=3.14)
+        Triangle(duration=50, amp=0.5, freq=0.01, phase=0.5)
 
     # This test should be removed once deprecation of complex amp is completed.
     def test_complex_amp_deprecation(self):
@@ -325,21 +326,40 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             check_drag(duration=50, sigma=4, amp=0.8, beta=-20)
 
-    def test_trig_pulses(self):
-        """Test that Sin,Cos sample pulses match expectations."""
+    def test_sin_pulse(self):
+        """Test that Sin sample pulse matches expectations, and parameter validation"""
         duration = 100
         amp = 0.5
         freq = 0.1
-        shifted_sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=np.pi / 2)
-        cos_pulse = Cos(duration=duration, amp=amp, freq=freq, phase=0)
+        phase = 0
+
+        sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=phase)
+        sin_waveform = sin(duration=duration, amp=amp, freq=freq, phase=phase)
+
+        np.testing.assert_almost_equal(sin_pulse.get_waveform().samples, sin_waveform.samples)
+
+        with self.assertRaises(PulseError):
+            Sin(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_cos_pulse(self):
+        """Test that Cin sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0
+        cos_pulse = Cos(duration=duration, amp=amp, freq=freq, phase=phase)
+        cos_waveform = cos(duration=duration, amp=amp, freq=freq, phase=phase)
+        np.testing.assert_almost_equal(cos_pulse.get_waveform().samples, cos_waveform.samples)
+
+        shifted_sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=phase + np.pi / 2)
         np.testing.assert_almost_equal(
             shifted_sin_pulse.get_waveform().samples, cos_pulse.get_waveform().samples
         )
-        cos_waveform = cos(duration=duration, amp=amp, freq=freq, phase=0)
-        np.testing.assert_almost_equal(cos_pulse.get_waveform().samples, cos_waveform.samples)
+        with self.assertRaises(PulseError):
+            Cos(duration=duration, amp=amp, freq=5, phase=phase)
 
     def test_sawtooth_pulse(self):
-        """Test that Sawtooth sample pulse matches expectations."""
+        """Test that Sawtooth sample pulse matches expectations, and parameter validation"""
         duration = 100
         amp = 0.5
         freq = 0.1
@@ -355,8 +375,11 @@ class TestParametricPulses(QiskitTestCase):
             sawtooth_pulse.get_waveform().samples, sawtooth_pulse_2.get_waveform().samples
         )
 
+        with self.assertRaises(PulseError):
+            Sawtooth(duration=duration, amp=amp, freq=5, phase=phase)
+
     def test_triangle_pulse(self):
-        """Test that Sawtooth sample pulse matches expectations."""
+        """Test that Sawtooth sample pulse matches expectations, and parameter validation"""
         duration = 100
         amp = 0.5
         freq = 0.1
@@ -370,6 +393,9 @@ class TestParametricPulses(QiskitTestCase):
         np.testing.assert_almost_equal(
             triangle_pulse.get_waveform().samples, triangle_pulse_2.get_waveform().samples
         )
+
+        with self.assertRaises(PulseError):
+            Triangle(duration=duration, amp=amp, freq=5, phase=phase)
 
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
