@@ -4,17 +4,43 @@ Quantum Instance Migration Guide
 
 The :class:`~qiskit.utils.QuantumInstance` is a utility class that allowed to jointly
 configure the circuit transpilation and execution steps, and provided useful tools for algorithm development,
-such as basic error mitigation strategies. This functionality has now been delegated to the different
-implementations of the :mod:`~qiskit.primitives` base classes, and thus,
-the :class:`~qiskit.utils.QuantumInstance` is being deprecated.
+such as basic error mitigation strategies. The functionality of :class:`~qiskit.utils.QuantumInstance.execute` has
+now been delegated to the different implementations of the :mod:`~qiskit.primitives` base classes,
+while the explicit transpilation has been left to the :meth:`~qiskit.transpiler` module (see table below).
+Thus, the :class:`~qiskit.utils.QuantumInstance` is being deprecated.
+
+Summary of migration alternatives for the :class:`~qiskit.utils.QuantumInstance` class:
+
+.. list-table::
+   :header-rows: 1
+
+   * - QuantumInstance method
+     - Alternative
+   * - ``QuantumInstance.execute``
+     - ``Sampler.run`` or ``Estimator.run``
+   * - ``QuantumInstance.transpile``
+     - ``qiskit.transpiler.transpile``
+   * - ``QuantumInstance.assemble``
+     - Deprecated
+
+Contents
+--------
+* `Choosing the right primitive for your task`_
+* `Choosing the right primitive for your settings`_
+* `Code examples`_
+
+
+.. |qiskit_aer.primitives| replace:: ``qiskit_aer.primitives``
+.. _qiskit_aer.primitives: https://github.com/Qiskit/qiskit-aer/tree/main/qiskit_aer/primitives
+
+.. |qiskit_ibm_runtime| replace:: ``qiskit_ibm_runtime``
+.. _qiskit_ibm_runtime: https://qiskit.org/documentation/partners/qiskit_ibm_runtime/index.html
 
 .. attention::
 
     The current pool of primitives includes **two** different **classes** (:class:`~qiskit.primitives.Sampler` and
     :class:`~qiskit.primitives.Estimator`) that can be imported from **three** different locations (
-    :mod:`qiskit.primitives`,
-    `qiskit_aer.primitives <https://github.com/Qiskit/qiskit-aer/tree/main/qiskit_aer/primitives>`_ and
-    `qiskit_ibm_runtime <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/index.html>`_ ). In addition to the
+    :mod:`qiskit.primitives`, |qiskit_aer.primitives|_ and |qiskit_ibm_runtime|_ ). In addition to the
     reference Sampler and Estimator, :mod:`qiskit.primitives` also contains a
     :class:`~qiskit.primitives.BackendSampler` and a :class:`~qiskit.primitives.BackendEstimator` class. These are
     wrappers for ``backend.run()`` that follow the primitives interface.
@@ -23,16 +49,11 @@ the :class:`~qiskit.utils.QuantumInstance` is being deprecated.
 
     - *Primitives* - Any Sampler/Estimator implementation
     - *Reference Primitives* - The Sampler and Estimator in :mod:`qiskit.primitives` --> ``from qiskit.primitives import Sampler/Estimator``
-    - *Aer Primitives* - The Sampler and Estimator in :mod:`qiskit_aer.primitives` --> ``from qiskit_aer.primitives import Sampler/Estimator``
-    - *Runtime Primitives* - The Sampler and Estimator in :mod:`qiskit_ibm_runtime` --> ``from qiskit_ibm_runtime import Sampler/Estimator``
+    - *Aer Primitives* - The Sampler and Estimator in |qiskit_aer.primitives|_ --> ``from qiskit_aer.primitives import Sampler/Estimator``
+    - *Runtime Primitives* - The Sampler and Estimator in |qiskit_ibm_runtime|_ --> ``from qiskit_ibm_runtime import Sampler/Estimator``
     - *Backend Primitives* - The BackendSampler and BackendEstimator in :mod:`qiskit.primitives` --> ``from qiskit import BackendSampler/BackendEstimator``
 
-
-Contents
---------
-* `Choosing the right primitive for your task`_
-* `Choosing the right primitive for your settings`_
-* `Examples`_
+    For guidelines on which primitives to choose for your task. Please continue reading.
 
 Choosing the right primitive for your task
 ------------------------------------------
@@ -42,29 +63,48 @@ the primitives don't follow the same principle. There are multiple primitives, a
 purpose. Selecting the right primitive (``Sampler`` or ``Estimator``) requires some knowledge about
 **what** is it expected to do and **where/how** is it expected to run.
 
-.. important::
+.. note::
 
-    In order to know which primitive to use instead of :class:`~qiskit.utils.QuantumInstance`, you should ask
-    yourself two questions:
+    The role of the primitives is two-fold. On one hand, they act as access points to backends and simulators.
+    On the other hand, they are **algoritmic** abstractions with defined tasks:
 
-    **I. What is what is the minimal unit of information used by my algorithm?**
+    * The ``Estimator`` takes in circuits and observables and returns their **expectation values**.
+    * The ``Sampler`` takes in circuits, measures them, and returns their  **quasi-probability distribution**.
 
+    The :class:`~qiskit.utils.QuantumInstance` shares the role of access point to backends and simulators, but
+    unlike the primitives, it returned the **raw** output of the execution, with a higher level of granularity.
+    The minimal unit of information of this output was usually **measurement counts**. And in this sense, the closest
+    primitive would be the ``Sampler``. However, you must keep in mind the difference in output formats.
+
+
+In order to know which primitive to use instead of :class:`~qiskit.utils.QuantumInstance`, you should ask
+yourself two questions:
+
+1. What is the minimal unit of information used by your algorithm?
     a. **Expectation value** - you will need an ``Estimator``
     b. **Probability distribution** (from sampling the device) - you will need a ``Sampler``
 
-    **II. How do I want to execute my circuits?**
+2. How do you want to execute your circuits?
+    a. Using **local** statevector simulators for quick prototyping: **Reference Primitives**
+    b. Using **local** noisy simulations for finer algorithm tuning: **Aer Primitives**
+    c. Accessing **runtime-enabled backends** (or cloud simulators): **Runtime Primitives**
+    d. Accessing **non runtime-enabled backends** : **Backend Primitives**
 
-    1. Using **local** statevector simulators for quick prototyping: Reference Primitives
-    2. Using **local** noisy simulations for finer algorithm tuning: Aer Primitives
-    3. Accessing **runtime-enabled backends** (or cloud simulators): Runtime Primitives
-    4. Accessing **non runtime-enabled backends** : Backend Primitives
+
 
 Choosing the right primitive for your settings
 ----------------------------------------------
 
 Certain :class:`~qiskit.utils.QuantumInstance` features are only available in certain primitive implementations.
-The following chart summarizes the most common :class:`~qiskit.utils.QuantumInstance` settings and which
-primitives provide a similar feature:
+The following table summarizes the most common :class:`~qiskit.utils.QuantumInstance` settings and which
+primitives **expose a similar setting through their interface**:
+
+.. attention::
+
+    In some cases, a setting might not be exposed through the interface, but there might be workarounds to make
+    it work. This is the case for custom transpiler passes, which cannot be set through the primitives interface,
+    but pre-transpiled circuits can be sent if setting the option ``skip_transpilation=True``. For more information,
+    please refer to the API reference or source code of the desired primitive implementation.
 
 .. list-table::
    :header-rows: 1
@@ -109,20 +149,26 @@ primitives provide a similar feature:
      - No
      - No (only ``qubit_layout``)
      - No
-   * - M3 error mitigation: ``measurement_error_mitigation_cls``, ``cals_matrix_refresh_period``,
+   * - Measurement error mitigation: ``measurement_error_mitigation_cls``, ``cals_matrix_refresh_period``,
        ``measurement_error_mitigation_shots``, ``mit_pattern``
      - No
      - No
-     - Sampler default
+     - Sampler default -> M3 (*)
      - No
    * - Job management: ``job_callback``, ``max_job_retries``, ``timeout``, ``wait``
      - No
      - No
-     - Sessions, callback
+     - Sessions, callback (**)
      - No
 
-Examples
---------
+
+(*) For more information on error mitigation options on Runtime Primitives, visit
+`this link <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.options.Options.html#qiskit_ibm_runtime.options.Options>`_.
+
+(**) For more information on Runtime sessions, visit `this how-to <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/how_to/run_session.html>`_.
+
+Code examples
+-------------
 
 .. raw:: html
 
@@ -232,7 +278,7 @@ closer to the Quantum Instance's output.
 **Using Quantum Instance**
 
 The most common use case for computing expectation values with the Quantum Instance was as in combination with the
-Opflow library. You can see more information in the opflow migration guide [link].
+:mod:`~qiskit.opflow` library. You can see more information in the `opflow migration guide <http://qisk.it/opflow_migration>`_.
 
 .. code-block:: python
 
@@ -241,7 +287,7 @@ Opflow library. You can see more information in the opflow migration guide [link
     from qiskit.utils import QuantumInstance
     from qiskit_aer import AerSimulator
     from qiskit_aer.noise import NoiseModel
-    from qiskit.providers.fake_provider import FakeVigo
+    from qiskit_ibm_provider import IBMProvider
 
     # Define problem
     op = PauliSumOp.from_list([("XY",1)])
@@ -253,7 +299,7 @@ Opflow library. You can see more information in the opflow migration guide [link
     expectation = PauliExpectation().convert(measurable_expression)
 
     # Define Quantum Instance with noisy simulator
-    device = FakeVigo()
+    device = provider.get_backend("ibmq_manila")
     noise_model = NoiseModel.from_backend(device)
     coupling_map = device.configuration().coupling_map
 
@@ -277,7 +323,7 @@ In this case, for local noisy simulation, this will be the Aer Estimator.
     from qiskit import QuantumCircuit
     from qiskit_aer.noise import NoiseModel
     from qiskit_aer.primitives import Estimator
-    from qiskit.providers.fake_provider import FakeVigo
+    from qiskit_ibm_provider import IBMProvider
 
     # Define problem
     op = SparsePauliOp("XY")
@@ -286,7 +332,7 @@ In this case, for local noisy simulation, this will be the Aer Estimator.
     qc.x(1)
 
     # Define Aer Estimator with noisy simulator
-    device = FakeVigo()
+    device = provider.get_backend("ibmq_manila")
     noise_model = NoiseModel.from_backend(device)
     coupling_map = device.configuration().coupling_map
 
@@ -301,7 +347,7 @@ In this case, for local noisy simulation, this will be the Aer Estimator.
             )
 
     # Run
-    expectation_value = estimator.run(qc,op).result().values
+    expectation_value = estimator.run(qc, op).result().values
     # expectation_value = array([-0.04101562])
 
 .. raw:: html
@@ -351,7 +397,8 @@ is the closest alternative to the Quantum Instance's error mitigation implementa
 is not a 1-1 replacement.
 
 For more information on the error mitigation options in the Runtime Primitives, you can check out the following
-resources:
+`link <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.options.Options.html#qiskit_ibm_runtime.options.Options>`_.
+
 
 .. code-block:: python
 
@@ -381,20 +428,47 @@ resources:
 .. raw:: html
 
     <details>
-    <summary><a><font size="+1">Example 4: Circuit Sampling on IBM Backend with Bound and Unbound Pass Managers</font></a></summary>
+    <summary><a><font size="+1">Example 4: Circuit Sampling with Custom Bound and Unbound Pass Managers</font></a></summary>
     <br>
 
-(This is a dummy example, the passes chosen might not make much sense)
+The management of transpilation is quite different between the QuantumInstance and the Primitives.
+
+The Quantum Instance allowed you to:
+
+* Define bound and unbound pass managers that will be called during ``.execute()``.
+* Explicitly call its ``.transpile()`` method with a specific pass manager.
+
+However:
+
+* The Quantum Instance **did not** manage parameter bindings on parametrized quantum circuits. This would
+  mean that if a ``bound_pass_manager`` was set, the circuit sent to ``QuantumInstance.execute()`` could
+  not have any free parameters.
+
+On the other hand, when using the primitives:
+
+* You cannot explicitly access their transpilation routine.
+* The mechanism to apply custom transpilation passes to the Aer, Runtime and Backend primitives is to pre-transpile
+  locally and set ``skip_transpilation=True`` in the corresponding primitive.
+* The only primitives that currently accept a custom **bound** transpiler pass manager are the **Backend Primitives**.
+  If a ``bound_pass_manager`` is defined, the ``skip_transpilation=True`` option will **not** skip this bound pass.
+
+Note that the primitives **do** handle parameter bindings, meaning that even if a ``bound_pass_manager`` is defined in a
+Backend Primitive, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
+
+Let's see an example with a parametrized quantum circuit and different custom transpiler passes, ran on an ``AerSimulator``.
 
 **Using Quantum Instance**
 
 .. code-block:: python
 
-    from qiskit.circuit import QuantumRegister, Parameter
-    from qiskit.utils import QuantumInstance
+    from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit
     from qiskit.transpiler import PassManager, CouplingMap
     from qiskit.transpiler.passes import BasicSwap, Unroller
     from qiskit_ibm_provider import IBMProvider
+
+    from qiskit.utils import QuantumInstance
+    from qiskit_aer.noise import NoiseModel
+    from qiskit_aer import AerSimulator
 
     q = QuantumRegister(7, 'q')
     p = Parameter('p')
@@ -408,39 +482,56 @@ resources:
     circuit.cx(q[5], q[0])
     circuit.measure_all()
 
-    coupling = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]]
-    coupling_map = CouplingMap(couplinglist=coupling)
-    unbound_pm = PassManager(BasicSwap(coupling_map))
-
-    pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
-    bound_pm = PassManager(pass_)
-
+    # Set up simulation based on real device
     provider = IBMProvider()
-    backend = provider.get_backend("ibmq_manila")
+    backend = AerSimulator()
+    device = provider.get_backend("ibm_oslo")
+    noise_model = NoiseModel.from_backend(device)
+    coupling_map = device.configuration().coupling_map
 
+    # Define unbound pass manager
+    unbound_pm = PassManager(BasicSwap(CouplingMap(couplinglist=coupling_map)))
+
+    # Define bound pass manager
+    bound_pm = PassManager(Unroller(['u1', 'u2', 'u3', 'cx']))
+
+    # Define quantum instance
     qi = QuantumInstance(
         backend=backend,
         shots=1000,
+        seed_simulator=42,
+        noise_model=noise_model,
+        coupling_map=coupling_map,
         pass_manager=unbound_pm,
         bound_pass_manager=bound_pm
     )
 
-    result = qi.execute(circuit).results[0]
+    # You can transpile the unbound circuit
+    transpiled_circuit = qi.transpile(circuit, pass_manager=unbound_pm)
+    print(transpiled_circuit)
+
+    # You can bind the parameter and transpile
+    bound_circuit = circuit.bind_parameters({p: 0.1})
+    transpiled_bound_circuit = qi.transpile(bound_circuit, pass_manager=bound_pm)
+    print(transpiled_bound_circuit)
+
+    # Or you can execute bound circuit with passes defined during init.
+    result = qi.execute(bound_circuit).results[0]
 
 **Using Primitives**
 
-The only primitives that currently accept custom pass managers are the Backend Primitives. For the Runtime and
-Aer primitives, it is possible to still perform custom unbound transpilation passes by pre-transpiling locally
-and activating the ``skip_transpilation=True`` option. However, this option will not work for bound pass managers.
+Let's see how the workflow changes with the Backend Sampler:
 
 .. code-block:: python
 
-    from qiskit.primitives import BackendSampler
     from qiskit.circuit import QuantumRegister, Parameter
-    from qiskit.utils import QuantumInstance
     from qiskit.transpiler import PassManager, CouplingMap
     from qiskit.transpiler.passes import BasicSwap, Unroller
     from qiskit_ibm_provider import IBMProvider
+    from qiskit import QuantumCircuit
+    from qiskit.primitives import BackendSampler
+    from qiskit_aer.noise import NoiseModel
+    from qiskit_aer import AerSimulator
 
     q = QuantumRegister(7, 'q')
     p = Parameter('p')
@@ -454,24 +545,27 @@ and activating the ``skip_transpilation=True`` option. However, this option will
     circuit.cx(q[5], q[0])
     circuit.measure_all()
 
-    coupling = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]]
-    coupling_map = CouplingMap(couplinglist=coupling)
-    unbound_pm = PassManager(BasicSwap(coupling_map))
-
-    pass_ = Unroller(['u1', 'u2', 'u3', 'cx'])
-    bound_pm = PassManager(pass_)
-
+    # Set up simulation based on real device
     provider = IBMProvider()
-    backend = provider.get_backend("ibmq_manila")
+    backend = AerSimulator()
+    device = provider.get_backend("ibm_oslo")
+    noise_model = NoiseModel.from_backend(device)
+    coupling_map = device.configuration().coupling_map
+    backend.set_options(seed_simulator=42, noise_model=noise_model, coupling_map=coupling_map)
 
-    # if you skip_transpilation does it skipp the bound_pm?
-    sampler = BackendSampler(backend=backend, bound_pass_manager=bound_pm)
+    # Pre-run transpilation using pass manager
+    unbound_pm = PassManager(BasicSwap(CouplingMap(couplinglist=coupling_map)))
+    transpiled_circuit = unbound_pm.run(circuit)
 
-    result = sampler.run(circuit).quasi_dists
+    # Define bound pass manager
+    bound_pm = PassManager(Unroller(['u1', 'u2', 'u3', 'cx']))
+
+    # Set up sampler with skip_transpilation and bound_pass_manager
+    sampler = BackendSampler(backend=backend, skip_transpilation=True, bound_pass_manager=bound_pm)
+
+    # Run
+    result = sampler.run([transpiled_circuit], [[0.1]], shots=1024).result().quasi_dists
 
 .. raw:: html
 
     </details>
-
-
-https://qiskit.org/documentation/partners/qiskit_ibm_runtime/apidocs/options.html
