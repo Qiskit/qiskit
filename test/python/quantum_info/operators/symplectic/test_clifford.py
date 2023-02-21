@@ -448,6 +448,14 @@ class TestCliffordGates(QiskitTestCase):
             cliff = _append_operation(cliff, "sdg", [0])
             self.assertEqual(cliff, cliff1)
 
+        with self.subTest(msg="relation between cx and dcx"):
+            cliff = Clifford(np.eye(4))
+            cliff1 = cliff.copy()
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "cx", [1, 0])
+            cliff1 = _append_operation(cliff1, "dcx", [0, 1])
+            self.assertEqual(cliff, cliff1)
+
     def test_barrier_delay_sim(self):
         """Test barrier and delay instructions can be simulated"""
         target_circ = QuantumCircuit(2)
