@@ -18,6 +18,7 @@ import numpy as np
 from scipy.optimize import OptimizeResult
 
 from qiskit.quantum_info import OneQubitEulerDecomposer, Pauli
+from qiskit.circuit.library import UGate
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -124,8 +125,14 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
     funcalls = 0
 
     for idx in range(0, x0.size, 3):
-        vec = x0[idx : idx + 3]
-        # Note: Fraxis cannot represent some parameter values of U gate such as all 0 (i.e., identity).
+        # convert U3 angles to weight of rotation axes if possible
+        mat = UGate(*x0[idx : idx + 3]).to_matrix()
+        n_x = mat[1, 0].real
+        n_y = mat[1, 0].imag
+        n_z = mat[0, 0]
+        vec = np.array([n_x, n_y, n_z])
+        # Fraxis cannot handle identity, i.e. U3(0,0,0).
+        # The following assigns a different rotation that Fraxis can handle.
         if np.allclose(vec, 0):
             vec[0] = 1
         vec /= np.linalg.norm(vec)
