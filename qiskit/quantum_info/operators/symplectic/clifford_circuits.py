@@ -401,6 +401,22 @@ def _append_iswap(clifford, qubit0, qubit1):
     return clifford
 
 
+def _append_dcx(clifford, qubit0, qubit1):
+    """Apply a DCX gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_cx(clifford, qubit0, qubit1)
+    clifford = _append_cx(clifford, qubit1, qubit0)
+    return clifford
+
+
 def _append_ecr(clifford, qubit0, qubit1):
     """Apply an ECR gate to a Clifford.
 
@@ -445,6 +461,7 @@ _BASIS_2Q = {
     "swap": _append_swap,
     "iswap": _append_iswap,
     "ecr": _append_ecr,
+    "dcx": _append_dcx,
 }
 # Non-clifford gates
 _NON_CLIFFORD = {"t", "tdg", "ccx", "ccz"}

@@ -33,6 +33,7 @@ from qiskit.circuit.library import (
     SwapGate,
     iSwapGate,
     ECRGate,
+    DCXGate,
     XGate,
     YGate,
     ZGate,
@@ -88,7 +89,7 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
     """Generate a pseudo random Clifford circuit."""
 
     qubits_1_gates = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "v", "w"]
-    qubits_2_gates = ["cx", "cz", "cy", "swap", "iswap", "ecr"]
+    qubits_2_gates = ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]
     if gates == "all":
         if num_qubits == 1:
             gates = qubits_1_gates
@@ -113,6 +114,7 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         "swap": (SwapGate(), 2),
         "iswap": (iSwapGate(), 2),
         "ecr": (ECRGate(), 2),
+        "dcx": (DCXGate(), 2),
     }
 
     if isinstance(seed, np.random.Generator):
@@ -651,12 +653,13 @@ class TestCliffordDecomposition(QiskitTestCase):
             ["swap"],
             ["iswap"],
             ["ecr"],
+            ["dcx"],
             ["cx", "cz"],
             ["cx", "cz", "cy"],
             ["cx", "swap"],
             ["cz", "swap"],
             ["cx", "cz", "swap"],
-            ["cx", "cz", "cy", "swap", "iswap", "ecr"],
+            ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"],
         ]
     )
     def test_to_operator_2qubit_gates(self, gates):
