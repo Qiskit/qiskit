@@ -23,6 +23,6 @@ class MockModuleDeprecationTest(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             from qiskit.test.mock import FakeWashington
         with self.assertWarns(DeprecationWarning):
-            from qiskit.test.mock.backends import FakeWashington
+            from qiskit.test.mock.backends import FakeWashington  # noqa: F811
         with self.assertWarns(DeprecationWarning):
-            from qiskit.test.mock.backends.washington import FakeWashington
+            from qiskit.test.mock.backends.washington import FakeWashington  # noqa: F811, F401
