@@ -92,13 +92,31 @@ from qiskit.providers.fake_provider import (
 from qiskit.test.base import dicts_almost_equal
 
 
-# pylint: disable=wildcard-import,unused-wildcard-import
 from qiskit.circuit.library.standard_gates import (
-    HGate, IGate, SGate, SdgGate, TGate, TdgGate, XGate, YGate,
-    ZGate, CXGate, CYGate, CZGate, SwapGate,
-    CCXGate, CSwapGate, PhaseGate, RXGate, RYGate, RZGate,
-    UGate, RZZGate, CPhaseGate, CUGate
-    )
+    HGate,
+    IGate,
+    SGate,
+    SdgGate,
+    TGate,
+    TdgGate,
+    XGate,
+    YGate,
+    ZGate,
+    CXGate,
+    CYGate,
+    CZGate,
+    SwapGate,
+    CCXGate,
+    CSwapGate,
+    PhaseGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    UGate,
+    RZZGate,
+    CPhaseGate,
+    CUGate,
+)
 
 default_profile = "transpiler_equivalence"
 settings.register_profile(
