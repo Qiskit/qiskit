@@ -62,7 +62,7 @@ lint-incr:
 	tools/find_optional_imports.py
 
 ruff:
-	ruff qiskit test
+	ruff qiskit test tools examples
 
 style:
 	black --check qiskit test tools examples setup.py

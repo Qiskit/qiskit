@@ -17,7 +17,7 @@ import subprocess
 import sys
 
 # This is not unused: importing it sets up sys.modules
-import qiskit  # pylint: disable=unused-import
+import qiskit  # noqa: F401
 
 
 def _main():
