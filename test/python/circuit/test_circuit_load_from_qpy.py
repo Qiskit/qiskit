@@ -1284,4 +1284,4 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test the old import path's deprecations fire."""
         with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
             # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
-            from qiskit.circuit.qpy_serialization import dump, load
+            from qiskit.circuit.qpy_serialization import dump, load  # noqa: 401
