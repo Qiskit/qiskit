@@ -30,7 +30,7 @@ def id_bad_return(a: Int1) -> Int2:
 
 
 def out_of_scope(a: Int1) -> Int1:
-    return a & c
+    return a & c  # noqa: F821
 
 
 def bit_not(a: Int1) -> Int1:
