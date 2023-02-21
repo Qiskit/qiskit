@@ -401,7 +401,7 @@ class TestWrapMethod(QiskitTestCase):
         wrap_method(Dummy, "__new__", before=call_second_argument_with("extra"))
 
         mock = unittest.mock.Mock()
-        dummy = Dummy(mock)
+        _dummy = Dummy(mock)
         mock.assert_has_calls(
             [unittest.mock.call(Dummy, "extra"), unittest.mock.call(Dummy, "__new__")],
             any_order=False,
@@ -420,7 +420,7 @@ class TestWrapMethod(QiskitTestCase):
 
         mock = unittest.mock.Mock()
         wrap_method(Dummy, "__new__", before=mock)
-        dummy = Dummy()
+        _dummy = Dummy()
         mock.assert_called_once_with(Dummy)
 
     def test_wrapping_object___eq__(self):
