@@ -51,7 +51,7 @@ class Fraxis(SciPyOptimizer):
         """
         Args:
             maxiter: Maximum number of iterations to perform. Will default to None.
-                If it is None, it is interpreted as N*10, where N is the number of U gates
+                If None, it is interpreted as N*10, where N is the number of U gates
                 in the input circuit.
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
@@ -97,8 +97,8 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
         args (tuple, optional):
             Extra arguments passed to the objective function.
         maxiter (int):
-            Maximum number of iterations to perform.
-            Will default to N*10, where N is the number of U gates in the input circuit.
+            Maximum number of iterations to perform. Will default to None.
+            If None, it is interpreted as N*10, where N is the number of U gates in the input circuit.
         **_ : additional options
         callback (callable, optional):
             Called after each iteration.
@@ -125,14 +125,13 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
     funcalls = 0
 
     for idx in range(0, x0.size, 3):
-        # convert U3 angles to weight of rotation axes if possible
+        # Fraxis cannot handle some U3 rotations such as identity(=U3(0,0,0)).
+        # The following converts such rotations into ones that Fraxis can handle.
         mat = UGate(*x0[idx : idx + 3]).to_matrix()
         n_x = mat[1, 0].real
         n_y = mat[1, 0].imag
         n_z = mat[0, 0]
         vec = np.array([n_x, n_y, n_z])
-        # Fraxis cannot handle identity, i.e. U3(0,0,0).
-        # The following assigns a different rotation that Fraxis can handle.
         if np.allclose(vec, 0):
             vec[0] = 1
         vec /= np.linalg.norm(vec)
@@ -147,10 +146,8 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
             p[idx : idx + 3] = angles
             xs.append(p)
 
-        vals = fun(xs, *args)
+        r_x, r_y, r_z, r_xy, r_yz, r_zx = fun(xs, *args)
         funcalls += len(xs)
-
-        r_x, r_y, r_z, r_xy, r_yz, r_zx = vals
 
         mat = np.array(
             [
