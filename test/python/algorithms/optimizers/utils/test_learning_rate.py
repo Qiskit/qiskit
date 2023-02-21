@@ -36,7 +36,9 @@ class TestLearningRate(QiskitAlgorithmsTestCase):
         """
         constant_learning_rate_input = 0.01
         list_learning_rate_input = [0.01 * n for n in range(10)]
-        def generator_learning_rate_input(): return (el for el in list_learning_rate_input)
+
+        def generator_learning_rate_input():
+            return (el for el in list_learning_rate_input)
 
         with self.subTest("Check constant learning rate."):
             constant_learning_rate = LearningRate(learning_rate=constant_learning_rate_input)

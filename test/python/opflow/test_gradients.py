@@ -719,30 +719,33 @@ class TestGradients(QiskitOpflowTestCase):
         circuit.rx(x, 0)
         state = StateFn(circuit)
 
-        dx = (
-            lambda x, y: (-1)
-            * 0.5j
-            * np.array(
-                [
+        def dx(x, y):
+            return (
+                (-1)
+                * 0.5j
+                * np.array(
                     [
-                        -1j * np.sin(x / 2) * np.cos(y / 2) + np.cos(x / 2) * np.sin(y / 2),
-                        np.cos(x / 2) * np.cos(y / 2) - 1j * np.sin(x / 2) * np.sin(y / 2),
+                        [
+                            -1j * np.sin(x / 2) * np.cos(y / 2) + np.cos(x / 2) * np.sin(y / 2),
+                            np.cos(x / 2) * np.cos(y / 2) - 1j * np.sin(x / 2) * np.sin(y / 2),
+                        ]
                     ]
-                ]
+                )
             )
-        )
-        dy = (
-            lambda x, y: (-1)
-            * 0.5j
-            * np.array(
-                [
+
+        def dy(x, y):
+            return (
+                (-1)
+                * 0.5j
+                * np.array(
                     [
-                        -1j * np.cos(x / 2) * np.sin(y / 2) + np.sin(x / 2) * np.cos(y / 2),
-                        1j * np.cos(x / 2) * np.cos(y / 2) - 1 * np.sin(x / 2) * np.sin(y / 2),
+                        [
+                            -1j * np.cos(x / 2) * np.sin(y / 2) + np.sin(x / 2) * np.cos(y / 2),
+                            1j * np.cos(x / 2) * np.cos(y / 2) - 1 * np.sin(x / 2) * np.sin(y / 2),
+                        ]
                     ]
-                ]
+                )
             )
-        )
 
         state_grad = LinCombFull(aux_meas_op=-1 * Y, phase_fix=False).convert(
             operator=state, params=[x, y]
