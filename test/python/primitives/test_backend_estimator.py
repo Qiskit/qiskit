@@ -12,8 +12,10 @@
 
 """Tests for Estimator."""
 
+import logging
 import unittest
 from test import combine
+from test.python.transpiler._dummy_passes import DummyAP
 
 import numpy as np
 from ddt import ddt
@@ -25,9 +27,21 @@ from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
+logger = "LocalLogger"
+
+class LogPass(DummyAP):
+    """A dummy analysis pass that logs when executed"""
+
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+    def run(self, dag):
+        logging.getLogger(logger).info(self.message)
 
 @ddt
 class TestBackendEstimator(QiskitTestCase):
@@ -321,6 +335,30 @@ class TestBackendEstimator(QiskitTestCase):
             result = estimator.run([qc] * k, [op] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
+
+    def test_bound_pass_manager(self):
+        """Test bound pass manager."""
+
+        bound_counter = LogPass("bound_pass_manager")
+        bound_pass = PassManager(bound_counter)
+
+        estimator = BackendEstimator(backend=FakeNairobi(),
+                                     bound_pass_manager=bound_pass)
+
+        qc = QuantumCircuit(2)
+        op = SparsePauliOp.from_list([("II", 1)])
+
+        with self.subTest("Test single circuit"):
+            with self.assertLogs(logger, level="INFO") as cm:
+                _ = estimator.run(qc, op).result()
+            expected = ["bound_pass_manager"]
+            self.assertEqual([record.message for record in cm.records], expected)
+
+        with self.subTest("Test circuit batch"):
+            with self.assertLogs(logger, level="INFO") as cm:
+                _ = estimator.run([qc, qc], [op, op]).result()
+            expected = ["bound_pass_manager", "bound_pass_manager"]
+            self.assertEqual([record.message for record in cm.records], expected)
 
 
 if __name__ == "__main__":

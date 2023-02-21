@@ -12,9 +12,11 @@
 
 """Tests for BackendSampler."""
 
+import logging
 import math
 import unittest
 from test import combine
+from test.python.transpiler._dummy_passes import DummyAP
 
 import numpy as np
 from ddt import ddt
@@ -25,10 +27,22 @@ from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
+logger = "LocalLogger"
+
+class LogPass(DummyAP):
+    """A dummy analysis pass that logs when executed"""
+
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+    def run(self, dag):
+        logging.getLogger(logger).info(self.message)
 
 @ddt
 class TestBackendSampler(QiskitTestCase):
@@ -358,6 +372,27 @@ class TestBackendSampler(QiskitTestCase):
         self.assertDictAlmostEqual(result3.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result3.quasi_dists[1], {1: 1}, 0.1)
 
+    def test_bound_pass_manager(self):
+        """Test bound pass manager."""
+
+        bound_counter = LogPass("bound_pass_manager")
+        bound_pass = PassManager(bound_counter)
+
+        sampler = BackendSampler(backend=FakeNairobi(),
+                                 skip_transpilation=True,
+                                 bound_pass_manager=bound_pass)
+
+        with self.subTest("Test single circuit"):
+            with self.assertLogs(logger, level="INFO") as cm:
+                _ = sampler.run(self._circuit[0]).result()
+            expected = ["bound_pass_manager"]
+            self.assertEqual([record.message for record in cm.records], expected)
+
+        with self.subTest("Test circuit batch"):
+            with self.assertLogs(logger, level="INFO") as cm:
+                _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
+            expected = ["bound_pass_manager", "bound_pass_manager"]
+            self.assertEqual([record.message for record in cm.records], expected)
 
 if __name__ == "__main__":
     unittest.main()
