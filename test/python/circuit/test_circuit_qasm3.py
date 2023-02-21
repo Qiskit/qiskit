@@ -146,7 +146,7 @@ class TestCircuitQASM3(QiskitTestCase):
                 "let first_four = _all_qubits[0:3];",
                 "let last_five = _all_qubits[5:9];",
                 # The exporter does not attempt to output steps.
-                "let alternate = _all_qubits[0:0] ++ _all_qubits[2:2] ++ _all_qubits[4:4] ++ _all_qubits[6:6] ++ _all_qubits[8:8];",
+                "let alternate = _all_qubits[0:0] ++ _all_qubits[2:2] ++ _all_qubits[4:4] ++ _all_qubits[6:6] ++ _all_qubits[8:8];",  # noqa: E501
                 "let sporadic = _all_qubits[4:4] ++ _all_qubits[2:2] ++ _all_qubits[9:9];",
                 "",
             ]
