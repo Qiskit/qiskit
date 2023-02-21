@@ -14,8 +14,7 @@
 
 import os
 import re
-import sys
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
 
