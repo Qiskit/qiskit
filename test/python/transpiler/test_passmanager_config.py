@@ -184,5 +184,5 @@ class TestPassManagerConfig(QiskitTestCase):
 	unitary_synthesis_method: default
 	unitary_synthesis_plugin_config: None
 	target: None
-"""
+"""  # noqa: E101, E501
         self.assertEqual(str_out, expected)
