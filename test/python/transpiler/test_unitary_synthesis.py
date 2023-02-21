@@ -55,6 +55,7 @@ from qiskit.circuit.library import (
     RZZGate,
     RXXGate,
 )
+from qiskit.circuit.controlflow import IfElseOp
 from qiskit.circuit import Parameter
 
 
@@ -820,6 +821,20 @@ class TestUnitarySynthesis(QiskitTestCase):
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(result_qc, QuantumCircuit(1))
+
+    def test_unitary_synthesis_with_ideal_and_variable_width_ops(self):
+        """Test unitary synthesis works with a target that contains ideal and variadic ops."""
+        qc = QuantumCircuit(2)
+        qc.unitary(np.eye(4), [0, 1])
+        dag = circuit_to_dag(qc)
+        target = FakeBelemV2().target
+        target.add_instruction(IfElseOp, name="if_else")
+        target.add_instruction(ZGate())
+        target.add_instruction(ECRGate())
+        unitary_synth_pass = UnitarySynthesis(target=target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(result_qc, QuantumCircuit(2))
 
 
 if __name__ == "__main__":
