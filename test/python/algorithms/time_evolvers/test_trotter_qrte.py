@@ -69,7 +69,7 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
     @unpack
     def test_trotter_qrte_trotter(self, operator, t_param):
         """Test for default TrotterQRTE on a single qubit with auxiliary operators."""
-        if not t_param is None:
+        if t_param is not None:
             operator = SparsePauliOp(operator.paulis, np.array([t_param, 1]))
 
         # LieTrotter with 1 rep
