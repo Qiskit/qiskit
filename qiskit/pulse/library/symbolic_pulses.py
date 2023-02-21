@@ -1274,9 +1274,8 @@ def Sin(
     envelope_expr = _amp * sym.exp(sym.I * _angle) * sym.sin(2 * sym.pi * _freq * _t + _phase)
 
     consts_expr = _freq > 0
-    valid_amp_conditions_expr = (
-        sym.Abs(_amp) <= 1.0
-    )  # This might fail for waves shorter than a single cycle
+    # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
 
     instance = ScalableSymbolicPulse(
         pulse_type="Sin",
