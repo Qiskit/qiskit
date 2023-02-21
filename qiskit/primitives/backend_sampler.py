@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from typing import Any, cast
+from typing import Any
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.providers.backend import BackendV1, BackendV2
