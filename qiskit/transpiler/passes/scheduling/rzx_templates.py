@@ -17,7 +17,7 @@ Convenience function to load RZXGate based templates.
 """
 
 import warnings
-from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates
+from qiskit.transpiler.passes.calibration.rzx_templates import rzx_templates  # noqa: F401
 
 # TODO remove this import after sufficient deprecation period
 

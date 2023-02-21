@@ -56,7 +56,7 @@ Uniformly Controlled Rotations
 """
 
 # import all standard gates
-from qiskit.circuit.library.standard_gates import *
+from qiskit.circuit.library.standard_gates import *  # noqa: F403
 from qiskit.circuit.barrier import Barrier
 
 from .quantum_initializer import (

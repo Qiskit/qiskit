@@ -91,7 +91,7 @@ class SolovayKitaevDecomposition:
         recursion_degree: int,
         return_dag: bool = False,
         check_input: bool = True,
-    ) -> "QuantumCircuit" | "DAGCircuit":
+    ) -> "QuantumCircuit" | "DAGCircuit":  # noqa: F821
         r"""Run the algorithm.
 
         Args:

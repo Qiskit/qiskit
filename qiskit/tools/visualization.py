@@ -13,4 +13,4 @@
 # pylint: disable=unused-wildcard-import,missing-module-docstring,wildcard-import
 
 # NOTE(mtreinish): Import public API here to maintain backwards compat
-from qiskit.visualization import *
+from qiskit.visualization import *  # noqa: F403

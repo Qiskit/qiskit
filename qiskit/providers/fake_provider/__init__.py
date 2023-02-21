@@ -239,7 +239,7 @@ from .fake_pulse_backend import FakePulseBackend
 from .fake_provider import FakeProviderFactory, FakeProviderForBackendV2, FakeProvider
 
 # Standard fake backends with IBM Quantum systems snapshots
-from .backends import *
+from .backends import *  # noqa: F403
 
 # Special fake backends for special testing perpurposes
 from .fake_qasm_simulator import FakeQasmSimulator

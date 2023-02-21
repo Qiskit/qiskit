@@ -47,7 +47,7 @@ def make_immutable(obj):
 X = make_immutable(PauliOp(Pauli("X")))
 Y = make_immutable(PauliOp(Pauli("Y")))
 Z = make_immutable(PauliOp(Pauli("Z")))
-I = make_immutable(PauliOp(Pauli("I")))
+I = make_immutable(PauliOp(Pauli("I")))  # noqa: E741
 
 # Clifford+T, and some other common non-parameterized gates
 CX = make_immutable(CircuitOp(CXGate()))

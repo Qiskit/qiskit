@@ -15,5 +15,5 @@
 # TODO This import path will be deprecated.
 
 # pylint: disable=unused-import
-from .pulse_gate import PulseGates
-from .rzx_builder import RZXCalibrationBuilder, RZXCalibrationBuilderNoEcho
+from .pulse_gate import PulseGates  # noqa: F401
+from .rzx_builder import RZXCalibrationBuilder, RZXCalibrationBuilderNoEcho  # noqa: F401

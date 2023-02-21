@@ -14,14 +14,17 @@
 
 # pylint: disable=unused-import
 from qiskit.quantum_info.operators.random import (
-    random_clifford,
-    random_cnotdihedral,
-    random_hermitian,
-    random_pauli,
-    random_pauli_list,
-    random_pauli_table,
-    random_quantum_channel,
-    random_stabilizer_table,
-    random_unitary,
+    random_clifford,  # noqa: F401
+    random_cnotdihedral,  # noqa: F401
+    random_hermitian,  # noqa: F401
+    random_pauli,  # noqa: F401
+    random_pauli_list,  # noqa: F401
+    random_pauli_table,  # noqa: F401
+    random_quantum_channel,  # noqa: F401
+    random_stabilizer_table,  # noqa: F401
+    random_unitary,  # noqa: F401
 )
-from qiskit.quantum_info.states.random import random_density_matrix, random_statevector
+from qiskit.quantum_info.states.random import (
+    random_density_matrix,  # noqa: F401
+    random_statevector,  # noqa: F401
+)

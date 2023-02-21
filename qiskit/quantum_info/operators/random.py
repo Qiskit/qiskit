@@ -21,13 +21,13 @@ from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators import Operator, Stinespring
 
 # pylint: disable=unused-import
-from .dihedral.random import random_cnotdihedral
+from .dihedral.random import random_cnotdihedral  # noqa: F401
 from .symplectic.random import (
-    random_clifford,
-    random_pauli,
-    random_pauli_list,
-    random_pauli_table,
-    random_stabilizer_table,
+    random_clifford,  # noqa: F401
+    random_pauli,  # noqa: F401
+    random_pauli_list,  # noqa: F401
+    random_pauli_table,  # noqa: F401
+    random_stabilizer_table,  # noqa: F401
 )
 
 DEFAULT_RNG = default_rng()

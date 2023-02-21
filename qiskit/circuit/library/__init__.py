@@ -485,8 +485,8 @@ Template circuits with :class:`~qiskit.circuit.library.RZXGate`.
 
 """
 
-from .standard_gates import *
-from .templates import *
+from .standard_gates import *  # noqa: F403
+from .templates import *  # noqa: F403
 from ..barrier import Barrier
 from ..measure import Measure
 from ..reset import Reset
