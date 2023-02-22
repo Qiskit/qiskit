@@ -39,12 +39,13 @@ class Fraxis(SciPyOptimizer):
           `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__
     """
 
-    _OPTIONS = ["maxiter"]
+    _OPTIONS = ["maxiter", "xtol"]
 
     # pylint: disable=unused-argument
     def __init__(
         self,
         maxiter: Optional[int] = None,
+        xtol: Optional[float] = None,
         options: Optional[dict] = None,
         **kwargs,
     ) -> None:
@@ -53,6 +54,10 @@ class Fraxis(SciPyOptimizer):
             maxiter: Maximum number of iterations to perform. Will default to None.
                 If None, it is interpreted as N*3, where N is the number of parameters
                 in the input circuit.
+            xtol: If the norm of the parameter update is smaller than this threshold,
+                the optimizer is considered to have converged.
+                This check is invoked at every first parameterized U gate.
+                Will default to None. If None, no convergence check is invoked.
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
         """
@@ -82,7 +87,7 @@ def _vec2angles(vec: np.ndarray) -> Tuple[float, float, float]:
 
 
 # pylint: disable=invalid-name
-def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
+def fraxis(fun, x0, args=(), maxiter=None, xtol=None, callback=None, **_):
     """
     Find the global minimum of a function using Fraxis algorithm.
 
@@ -96,9 +101,14 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
             where 'n' is the number of independent variables.
         args (tuple, optional):
             Extra arguments passed to the objective function.
-        maxiter (int):
+        maxiter (int, optional):
             Maximum number of iterations to perform. Will default to None.
             If None, it is interpreted as N*3, where N is the number of parameters in the input circuit.
+        xtol (float, optional):
+            If the norm of the parameter update is smaller than this threshold,
+            the optimizer is considered to have converged.
+            This check is invoked at every first parameterized U gate.
+            Will default to None. If None, no convergence check is invoked.
         **_ : additional options
         callback (callable, optional):
             Called after each iteration.
@@ -122,6 +132,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
 
     niter = 0
     funcalls = 0
+    x0_prev = x0.copy()
 
     for idx in range(0, x0.size, 3):
         # Fraxis cannot handle some U3 rotations such as identity(=U3(0,0,0)).
@@ -174,5 +185,13 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
 
         if niter >= maxiter:
             break
+
+        if xtol is not None:
+            if niter > 1 and idx == 0:
+                # check the norm of x0 difference at every first parameterized U gate
+                norm = np.linalg.norm(x0 - x0_prev)
+                if norm < xtol:
+                    break
+                x0_prev = x0.copy()
 
     return OptimizeResult(fun=fun(x0, *args), x=x0, nit=niter, nfev=funcalls, success=(niter > 1))
