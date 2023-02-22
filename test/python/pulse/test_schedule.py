@@ -787,7 +787,7 @@ class TestScheduleFilter(BaseTestSchedule):
             sched, instruction_types=[Play], time_ranges=[(25, 100), (0, 11)]
         )
         self.assertTrue(len(excluded.instructions), 3)
-        for time, inst in filtered.instructions:
+        for _time, inst in filtered.instructions:
             self.assertIsInstance(inst, (ShiftPhase, Play))
         self.assertTrue(len(filtered.instructions), 4)
         # make sure the Play instruction is not in the intervals

@@ -898,7 +898,7 @@ class TestDensityMatrix(QiskitTestCase):
                     self.assertEqual(value, target)
 
         with self.subTest(msg="measure [0, 1]"):
-            for i in range(shots):
+            for _ in range(shots):
                 rho = state.copy()
                 outcome, value = rho.measure([0, 1])
                 self.assertIn(outcome, ["00", "10"])
@@ -910,7 +910,7 @@ class TestDensityMatrix(QiskitTestCase):
                     self.assertEqual(value, target)
 
         with self.subTest(msg="measure [1, 0]"):
-            for i in range(shots):
+            for _ in range(shots):
                 rho = state.copy()
                 outcome, value = rho.measure([1, 0])
                 self.assertIn(outcome, ["00", "01"])
@@ -921,7 +921,7 @@ class TestDensityMatrix(QiskitTestCase):
                     target = DensityMatrix.from_label("10")
                     self.assertEqual(value, target)
         with self.subTest(msg="measure [0]"):
-            for i in range(shots):
+            for _ in range(shots):
                 rho = state.copy()
                 outcome, value = rho.measure([0])
                 self.assertEqual(outcome, "0")
@@ -929,7 +929,7 @@ class TestDensityMatrix(QiskitTestCase):
                 self.assertEqual(value, target)
 
         with self.subTest(msg="measure [1]"):
-            for i in range(shots):
+            for _ in range(shots):
                 rho = state.copy()
                 outcome, value = rho.measure([1])
                 self.assertIn(outcome, ["0", "1"])

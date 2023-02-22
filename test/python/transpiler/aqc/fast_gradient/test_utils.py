@@ -165,7 +165,7 @@ class TestUtils(QiskitTestCase):
 
         tol = np.finfo(np.float64).eps * 2.0
         out = np.full((2, 2), fill_value=0, dtype=np.cfloat)
-        for test in range(self.num_repeats_gates2x2):  # pylint: disable=unused-variable
+        for _test in range(self.num_repeats_gates2x2):  # pylint: disable=unused-variable
             phi = random.random() * 2.0 * np.pi
             self.assertTrue(np.allclose(myu.make_rx(phi, out=out), _rx(phi), atol=tol, rtol=tol))
             self.assertTrue(np.allclose(myu.make_ry(phi, out=out), _ry(phi), atol=tol, rtol=tol))

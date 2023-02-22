@@ -688,7 +688,7 @@ class TestParameters(QiskitTestCase):
             for q in qc.qubits:
                 qc.ry(next(theta_iter), q)
                 qc.rz(next(theta_iter), q)
-            for i, q in enumerate(qc.qubits[:-1]):
+            for i in range(len(qc.qubits[:-1])):
                 qc.cx(qc.qubits[i], qc.qubits[i + 1])
             qc.barrier()
         theta_vals = numpy.linspace(0, 1, len(theta)) * numpy.pi
@@ -710,7 +710,7 @@ class TestParameters(QiskitTestCase):
             for q in qc.qubits:
                 qc.ry(next(theta_iter), q)
                 qc.rz(next(theta_iter), q)
-            for i, q in enumerate(qc.qubits[:-1]):
+            for i in range(len(qc.qubits[:-1])):
                 qc.cx(qc.qubits[i], qc.qubits[i + 1])
             qc.barrier()
         backend = BasicAer.get_backend("qasm_simulator")

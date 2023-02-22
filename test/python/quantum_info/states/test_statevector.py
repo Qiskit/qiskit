@@ -938,7 +938,7 @@ class TestStatevector(QiskitTestCase):
                     self.assertEqual(value, target)
 
         with self.subTest(msg="measure [0, 1]"):
-            for i in range(shots):
+            for _ in range(shots):
                 psi = state.copy()
                 outcome, value = psi.measure([0, 1])
                 self.assertIn(outcome, ["00", "10"])
@@ -950,7 +950,7 @@ class TestStatevector(QiskitTestCase):
                     self.assertEqual(value, target)
 
         with self.subTest(msg="measure [1, 0]"):
-            for i in range(shots):
+            for _ in range(shots):
                 psi = state.copy()
                 outcome, value = psi.measure([1, 0])
                 self.assertIn(outcome, ["00", "01"])
@@ -962,7 +962,7 @@ class TestStatevector(QiskitTestCase):
                     self.assertEqual(value, target)
 
         with self.subTest(msg="measure [0]"):
-            for i in range(shots):
+            for _ in range(shots):
                 psi = state.copy()
                 outcome, value = psi.measure([0])
                 self.assertEqual(outcome, "0")
@@ -970,7 +970,7 @@ class TestStatevector(QiskitTestCase):
                 self.assertEqual(value, target)
 
         with self.subTest(msg="measure [1]"):
-            for i in range(shots):
+            for _ in range(shots):
                 psi = state.copy()
                 outcome, value = psi.measure([1])
                 self.assertIn(outcome, ["0", "1"])

@@ -26,11 +26,17 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 
 [tool.ruff]
 line-length=105
+select = [
+  "E", "F",
+  "B007",  # unused loop control variable
+]
+
 
 [tool.ruff.per-file-ignores]
 # The following line covers over 1300 errors
 "__init__.py" = ["F401", "E402"] # imported but unused, Module level import not at top of file
 "./setup.py" = ["E501"]
+
 
 [tool.ruff.pydocstyle]
 convention = "google"

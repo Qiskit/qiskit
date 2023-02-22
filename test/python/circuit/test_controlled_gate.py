@@ -845,7 +845,7 @@ class TestControlledGate(QiskitTestCase):
         num_target_qubits = 2
         num_qubits = num_ctrl_qubits + num_target_qubits
         target_op = Operator(XGate())
-        for i in range(num_target_qubits - 1):
+        for _ in range(num_target_qubits - 1):
             target_op = target_op.tensor(XGate())
 
         for i in range(2**num_qubits):

@@ -175,7 +175,7 @@ class DrawerCanvas:
 
         for t0, instruction in zip(program.op_start_times, program.data):
             bits = list(instruction.qubits) + list(instruction.clbits)
-            for bit_pos, bit in enumerate(bits):
+            for bit_pos in range(len(bits)):
                 if not isinstance(instruction.operation, not_gate_like):
                     # Generate draw object for gates
                     gate_source = types.ScheduledGate(

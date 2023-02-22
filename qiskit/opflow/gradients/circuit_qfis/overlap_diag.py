@@ -159,7 +159,7 @@ def _partition_circuit(circuit):
     # The idea being that all parameterized gates should have
     # no descendants within their layer
     bit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
-    for i, (layer, ledger) in enumerate(layers):
+    for layer, ledger in layers:
         op_node = layer.op_nodes()[0]
         is_param = op_node.op.is_parameterized()
         qargs = op_node.qargs

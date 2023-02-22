@@ -442,7 +442,7 @@ class ScheduleDrawer:
             _channels.update(schedule.channels)
         # take channels that do not only contain framechanges
         else:
-            for start_time, instruction in schedule.instructions:
+            for _start_time, instruction in schedule.instructions:
                 if not isinstance(instruction, (ShiftPhase, SetPhase)):
                     _channels.update(instruction.channels)
 
