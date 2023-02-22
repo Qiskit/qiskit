@@ -142,7 +142,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         """
         warn(
             "The PauliTable class is deprecated as of Qiskit Terra 0.24.0 "
-            "and will be removed no sooner than 3 months after the releasedate. "
+            "and will be removed no sooner than 3 months after the release date. "
             "Use PauliList class instead.",
             DeprecationWarning,
             stacklevel=2,
