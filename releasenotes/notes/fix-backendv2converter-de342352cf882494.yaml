@@ -5,5 +5,5 @@ fixes:
     that had returned backend ``dt`` instead.
   - |
     Fixed a bug of missing return value from methods :meth:`.BackendV2Converter.drive_channel`,
-    :meth:`.BackendV2Converter.measure_channel`, :meth:`.ackendV2Converter.acquire_channel` and
+    :meth:`.BackendV2Converter.measure_channel`, :meth:`.BackendV2Converter.acquire_channel` and
     :meth:`.BackendV2Converter.control_channel`.
