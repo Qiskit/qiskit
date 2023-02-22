@@ -85,7 +85,7 @@ class Options:
 
         The returned option and validator values are shallow copies of the originals.
         """
-        out = self.__new__(type(self))
+        out = type(self).__new__(type(self))
         out.__setstate__((self._fields.copy(), self.validator.copy()))
         return out
 
