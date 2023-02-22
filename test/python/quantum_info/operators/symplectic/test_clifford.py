@@ -1001,6 +1001,14 @@ class TestCliffordOperators(QiskitTestCase):
             actual = Clifford.from_matrix(expected.to_matrix())
             self.assertEqual(expected, actual)
 
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_from_operator_round_trip(self, num_qubits):
+        """Test round trip conversion to and from operator"""
+        for i in range(10):
+            expected = random_clifford(num_qubits, seed=777 + i)
+            actual = Clifford.from_operator(expected.to_operator())
+            self.assertEqual(expected, actual)
+
     @combine(
         gate=[
             RXGate(theta=np.pi / 2),

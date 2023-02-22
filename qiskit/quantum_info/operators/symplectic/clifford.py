@@ -556,13 +556,16 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def from_matrix(cls, matrix):
         """Create a Clifford from a unitary matrix.
 
-        Note that this function takes exponentially longer w.r.t. the number of qubits.
+        Note that this function takes exponentially long time w.r.t. the number of qubits.
+
+        Args:
+            matrix (np.array): A unitary matrix representing a Clifford to be converted.
 
         Returns:
             Clifford: the Clifford object for the unitary matrix.
 
         Raises:
-            QiskitError: if the input instruction is non-Clifford matrix.
+            QiskitError: if the input is not a Clifford matrix.
         """
         tableau = cls._unitary_matrix_to_tableau(matrix)
         if tableau is None:
@@ -572,6 +575,26 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def to_operator(self):
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
+
+    @classmethod
+    def from_operator(cls, operator):
+        """Create a Clifford from a operator.
+
+        Note that this function takes exponentially long time w.r.t. the number of qubits.
+
+        Args:
+            operator (Operator): An operator representing a Clifford to be converted.
+
+        Returns:
+            Clifford: the Clifford object for the operator.
+
+        Raises:
+            QiskitError: if the input is not a Clifford operator.
+        """
+        tableau = cls._unitary_matrix_to_tableau(operator.to_matrix())
+        if tableau is None:
+            raise QiskitError("Non-Clifford operator is not convertible")
+        return cls(tableau)
 
     def to_circuit(self):
         """Return a QuantumCircuit implementing the Clifford.
