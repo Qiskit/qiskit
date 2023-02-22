@@ -333,7 +333,7 @@ class Commuting2qGateRouter(TransformationPass):
             # Apply SWAP gates
             if i < max_distance:
                 for swap in swap_strategy.swap_layer(i):
-                    (j, k) = [trivial_layout.get_physical_bits()[vertex] for vertex in swap]
+                    (j, k) = (trivial_layout.get_physical_bits()[vertex] for vertex in swap)
 
                     circuit_with_swap.swap(j, k)
                     current_layout.swap(j, k)

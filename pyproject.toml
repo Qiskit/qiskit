@@ -42,8 +42,13 @@ select = [
   "D210", # No whitespaces allowed surrounding docstring text
   "D211", # No blank lines allowed before class docstring
   "D208", # Docstring is over-indented
-  "D",
+  #   "UP018", maybe want this.
+  "S506", # unsafe yaml load
+  # "BLE", 75 of these. We should fix them
+  "UP027", # Replace unpacked list comprehension with a generator expression
 ]
+
+target-version = "py37"
 
 ignore = ["B905"]
 
