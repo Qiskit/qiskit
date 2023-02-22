@@ -51,7 +51,7 @@ class Fraxis(SciPyOptimizer):
         """
         Args:
             maxiter: Maximum number of iterations to perform. Will default to None.
-                If None, it is interpreted as N*10, where N is the number of U gates
+                If None, it is interpreted as N*3, where N is the number of parameters
                 in the input circuit.
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
@@ -98,7 +98,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
             Extra arguments passed to the objective function.
         maxiter (int):
             Maximum number of iterations to perform. Will default to None.
-            If None, it is interpreted as N*10, where N is the number of U gates in the input circuit.
+            If None, it is interpreted as N*3, where N is the number of parameters in the input circuit.
         **_ : additional options
         callback (callable, optional):
             Called after each iteration.
@@ -118,8 +118,7 @@ def fraxis(fun, x0, args=(), maxiter=None, callback=None, **_):
             "Note that Fraxis works with only U gates as parameterized gates."
         )
     if maxiter is None:
-        # `x0.size // 3` denotes the number of U gates because each U gate has 3 parameters.
-        maxiter = x0.size // 3 * 10
+        maxiter = x0.size * 3
 
     niter = 0
     funcalls = 0
