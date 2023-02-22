@@ -361,8 +361,7 @@ class TemplateSubstitution:
 
         # Unmatched gates that are not predecessors of any group of matches.
         self.unmatched_list = sorted(
-            list(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
-        )
+            set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
 
     def run_dag_opt(self):
         """

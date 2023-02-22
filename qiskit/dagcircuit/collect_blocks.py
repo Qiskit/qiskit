@@ -70,7 +70,7 @@ class BlockCollector:
         ``_in_degree`` is 0.
         """
         self._pending_nodes = []
-        self._in_degree = dict()
+        self._in_degree = {}
         for node in self._op_nodes():
             deg = len(self._direct_preds(node))
             self._in_degree[node] = deg

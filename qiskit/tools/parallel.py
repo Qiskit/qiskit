@@ -106,7 +106,7 @@ def _task_wrapper(param):
 
 
 def parallel_map(
-    task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT  # noqa: B006
+    task, values, task_args=(), task_kwargs={}, num_processes=CPU_COUNT  # noqa: B006
 ):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -171,7 +171,7 @@ def parallel_map(
         try:
             results = []
             with ProcessPoolExecutor(max_workers=num_processes) as executor:
-                param = map(lambda value: (task, value, task_args, task_kwargs), values)
+                param = ((task, value, task_args, task_kwargs) for value in values)
                 future = executor.map(_task_wrapper, param)
 
             results = list(future)

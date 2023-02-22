@@ -580,7 +580,7 @@ class Target(Mapping):
             raise KeyError(f"{qargs} not in target.")
         res = [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
         if qargs is not None:
-            res += self._global_operations.get(len(qargs), list())
+            res += self._global_operations.get(len(qargs), [])
         for op in self._gate_name_map.values():
             if inspect.isclass(op):
                 res.append(op)

@@ -57,15 +57,14 @@ select = [
   "UP031", # Use format specifiers instead of percent format
   "N818",  # Exception name `{errorname}` should be named with an Error suffix
   "YTT",   # misuse of sys.version or sys.version_info
-  "C400",  # Unnecessary generator (rewrite as a `list` comprehension)
-  "C401",  # Unnecessary generator (rewrite as a `set` comprehension)
-  "C402",  # Unnecessary generator (rewrite as a `dict` comprehension)
+  "C4",    # flake8-comprehensions, several rules
 ]
 
 target-version = "py37"
 
 ignore = [
 "B905",  # zip-without-explicit-strict
+"C901",  # function too complex
 "UP015", # Unnecessary open mode parameters (This removes "r". Do we want this ?)
 "UP014", # convert-named-tuple-functional-to-class
 ]

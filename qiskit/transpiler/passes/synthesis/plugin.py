@@ -510,7 +510,7 @@ class HighLevelSynthesisPluginManager:
         # The registered plugin names should be of the form <OperationName.SynthesisMethodName>.
 
         # Create a dict, mapping <OperationName> to the list of its <SynthesisMethodName>s.
-        self.plugins_by_op = dict()
+        self.plugins_by_op = {}
         for plugin_name in self.plugins.names():
             op_name, method_name = plugin_name.split(".")
             if op_name not in self.plugins_by_op.keys():

@@ -43,7 +43,7 @@ class EquivalenceLibrary:
 
         if base is None:
             self._graph = rx.PyDiGraph()
-            self._key_to_node_index = dict()
+            self._key_to_node_index = {}
             self._rule_count = 0
         else:
             self._graph = base._graph.copy()
@@ -246,7 +246,7 @@ class EquivalenceLibrary:
                 graph.add_edge(
                     node_map[basis],
                     node_map[decomp_basis],
-                    dict(label=label, fontname="Courier", fontsize=str(8)),
+                    {"label": label, "fontname": "Courier", "fontsize": str(8)},
                 )
 
         return graph

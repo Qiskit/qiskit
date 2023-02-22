@@ -27,13 +27,13 @@ class TestResultOperations(QiskitTestCase):
     """Result operations methods."""
 
     def setUp(self):
-        self.base_result_args = dict(
-            backend_name="test_backend",
-            backend_version="1.0.0",
-            qobj_id="id-123",
-            job_id="job-123",
-            success=True,
-        )
+        self.base_result_args = {
+            "backend_name": "test_backend",
+            "backend_version": "1.0.0",
+            "qobj_id": "id-123",
+            "job_id": "job-123",
+            "success": True,
+        }
 
         super().setUp()
 
@@ -677,13 +677,13 @@ class TestResultOperationsFailed(QiskitTestCase):
     """Result operations methods."""
 
     def setUp(self):
-        self.base_result_args = dict(
-            backend_name="test_backend",
-            backend_version="1.0.0",
-            qobj_id="id-123",
-            job_id="job-123",
-            success=True,
-        )
+        self.base_result_args = {
+            "backend_name": "test_backend",
+            "backend_version": "1.0.0",
+            "qobj_id": "id-123",
+            "job_id": "job-123",
+            "success": True,
+        }
         super().setUp()
 
     def test_counts_int_out(self):

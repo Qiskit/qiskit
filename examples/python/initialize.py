@@ -55,7 +55,7 @@ shots = 10000
 
 # Desired vector
 print("Desired probabilities: ")
-print(list(map(lambda x: format(abs(x * x), ".3f"), desired_vector)))
+print([format(abs(x * x), ".3f") for x in desired_vector])
 
 # Initialize on local simulator
 sim_backend = BasicAer.get_backend("qasm_simulator")
