@@ -14,10 +14,14 @@
 Quantum information utility functions for operators.
 """
 
+from typing import TypeVar
+
 from qiskit.quantum_info.operators.linear_op import LinearOp
 
+OperatorTypeT = TypeVar("OperatorTypeT", bound=LinearOp)
 
-def commutator(a: LinearOp, b: LinearOp) -> LinearOp:
+
+def commutator(a: OperatorTypeT, b: OperatorTypeT) -> OperatorTypeT:
     r"""Compute commutator of a and b.
 
     .. math::
@@ -33,7 +37,7 @@ def commutator(a: LinearOp, b: LinearOp) -> LinearOp:
     return a @ b - b @ a
 
 
-def anti_commutator(a: LinearOp, b: LinearOp) -> LinearOp:
+def anti_commutator(a: OperatorTypeT, b: OperatorTypeT) -> OperatorTypeT:
     r"""Compute anti-commutator of a and b.
 
     .. math::
@@ -49,7 +53,9 @@ def anti_commutator(a: LinearOp, b: LinearOp) -> LinearOp:
     return a @ b + b @ a
 
 
-def double_commutator(a: LinearOp, b: LinearOp, c: LinearOp, *, commutes: bool = True) -> LinearOp:
+def double_commutator(
+    a: OperatorTypeT, b: OperatorTypeT, c: OperatorTypeT, *, commutes: bool = True
+) -> OperatorTypeT:
     r"""Compute symmetric double commutator of a, b and c.
     See also Equation (13.6.18) in [1].
 
