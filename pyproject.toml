@@ -46,6 +46,7 @@ select = [
   "S506", # unsafe yaml load
   # "BLE", 75 of these. We should fix them
   "UP027", # Replace unpacked list comprehension with a generator expression
+  "UP018", # Unnecessary call to `bytes`. (Using b'' instead of bytes() is much faster)
 ]
 
 target-version = "py37"
