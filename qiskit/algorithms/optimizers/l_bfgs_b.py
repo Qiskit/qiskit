@@ -50,7 +50,7 @@ class L_BFGS_B(SciPyOptimizer):  # pylint: disable=invalid-name
         self,
         maxfun: int = 15000,
         maxiter: int = 15000,
-        ftol: float = 10 * np.finfo(float).eps,
+        ftol: float = 10 * np.finfo(float).eps,  # noqa: B008
         iprint: int = -1,
         eps: float = 1e-08,
         options: Optional[dict] = None,

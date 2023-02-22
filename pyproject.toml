@@ -28,7 +28,12 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 line-length=105
 select = [
   "E", "F",
+  "B006",  # Do not use mutable data structures for argument defaults
   "B007",  # unused loop control variable
+  "B008",  # Do not perform function call in argument defaults
+  # Within an except clause, raise exceptions with `raise ... from err`
+  # or `raise ... from None` to distinguish them from errors in exception handling
+  "B904",
   "W",
   #  "C90", complexity. There are many failures.
   # "I", isort 1300 violations
@@ -52,9 +57,6 @@ select = [
   "UP031", # Use format specifiers instead of percent format
   "N818",  # Exception name `{errorname}` should be named with an Error suffix
   "YTT",   # misuse of sys.version or sys.version_info
-  # Within an except clause, raise exceptions with `raise ... from err`
-  # or `raise ... from None` to distinguish them from errors in exception handling
-  "B904",
 ]
 
 target-version = "py37"
