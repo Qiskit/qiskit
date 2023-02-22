@@ -48,10 +48,10 @@ class NoiseAdaptiveLayout(AnalysisPass):
      participate in any CNOT), map them to any available
      hardware qubit.
 
-     Notes:
-         even though a `layout` is not strictly a property of the DAG,
-         in the transpiler architecture it is best passed around between passes
-         by being set in `property_set`.
+    Notes:
+     even though a `layout` is not strictly a property of the DAG,
+     in the transpiler architecture it is best passed around between passes
+     by being set in `property_set`.
     """
 
     def __init__(self, backend_prop):

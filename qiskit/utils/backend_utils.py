@@ -67,7 +67,7 @@ def has_ibmq():
 
 
 def has_aer():
-    """check if Aer is installed"""
+    """Check if Aer is installed"""
     if not _PROVIDER_CHECK.checked_aer:
         try:
             from qiskit.providers.aer import AerProvider  # noqa: F401

@@ -2947,7 +2947,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
 
-        See also:
+        See Also:
             QuantumCircuit.i: the same function.
         """
         return self.i(qubit)

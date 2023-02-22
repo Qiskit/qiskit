@@ -91,13 +91,13 @@ class CNOTDihedral(BaseOperator, AdjointMixin):
      :meth:`to_operator` method. This is done via decomposing to a circuit,
      and then simulating the circuit as a unitary operator.
 
-     References:
-         1. Shelly Garion and Andrew W. Cross, *Synthesis of CNOT-Dihedral circuits
-            with optimal number of two qubit gates*, `Quantum 4(369), 2020
-            <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
-         2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
-            *Scalable randomised benchmarking of non-Clifford gates*,
-            npj Quantum Inf 2, 16012 (2016).
+    References:
+        1. Shelly Garion and Andrew W. Cross, *Synthesis of CNOT-Dihedral circuits
+           with optimal number of two qubit gates*, `Quantum 4(369), 2020
+           <https://quantum-journal.org/papers/q-2020-12-07-369/>`_
+        2. Andrew W. Cross, Easwar Magesan, Lev S. Bishop, John A. Smolin and Jay M. Gambetta,
+           *Scalable randomised benchmarking of non-Clifford gates*,
+           npj Quantum Inf 2, 16012 (2016).
     """
 
     def __init__(self, data=None, num_qubits=None, validate=True):

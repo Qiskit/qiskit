@@ -86,7 +86,7 @@ def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, 
         the used and sorted qubit index
         key is qubit index str connected by '_',
               value is the experiment index. {str: list[int]}
-     Raises:
+    Raises:
         QiskitError: invalid qubit mapping
     """
 

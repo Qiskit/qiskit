@@ -34,7 +34,10 @@ select = [
   # "I", isort 1300 violations
   # "N", 900 violations. identifiers names. We would want exceptions for many of these
   "D419", # Docstring is empty
-  "D201",
+  "D201", # No blank lines allowed before function docstring
+  "D403", # First word of the first line should be properly capitalized
+  "D405", # Section name should be properly capitalized,
+  "D214", # Section is over-indented
 ]
 
 ignore = ["B905"]
