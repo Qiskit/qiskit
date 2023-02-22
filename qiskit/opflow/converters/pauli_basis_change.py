@@ -346,7 +346,9 @@ class PauliBasisChange(ConverterBase):
         y_to_x_origin = tensorall(
             [S if has_y else I for has_y in reversed(np.logical_and(pauli.x, pauli.z))]
         ).adjoint()
-        x_to_z_origin = tensorall([H if has_x else I for has_x in reversed(pauli.x)])
+        x_to_z_origin = tensorall(  # pylint: disable=assignment-from-no-return
+            [H if has_x else I for has_x in reversed(pauli.x)]
+        )
         return x_to_z_origin.compose(y_to_x_origin)
 
     def pad_paulis_to_equal_length(
