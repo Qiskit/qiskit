@@ -437,7 +437,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         else:
             coeff = 1
 
-        # computes parities of each value of `z_indices & indptr`, i.e.,
+        # Compute parities of `z_indices & indptr`, i.e.,
         # np.array([(-1) ** bin(i).count("1") for i in z_indices & indptr])
         vec_u64 = z_indices & indptr
         mat_u8 = np.zeros((vec_u64.size, 8), dtype=np.uint8)
