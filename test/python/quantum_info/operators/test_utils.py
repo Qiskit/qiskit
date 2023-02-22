@@ -44,14 +44,14 @@ class TestOperatorUtils(QiskitTestCase):
 
     @unpack
     @data(
-        (X, Y, Z, False, zero),
-        (X, Y, X, False, -4 * Y),
-        (X, Y, Z, True, 4j * I),
-        (X, Y, X, True, zero),
+        (X, Y, Z, True, zero),
+        (X, Y, X, True, -4 * Y),
+        (X, Y, Z, False, 4j * I),
+        (X, Y, X, False, zero),
     )
-    def test_double_commutator(self, a, b, c, sign, com):
+    def test_double_commutator(self, a, b, c, commutes, com):
         """Test double_commutator function on SparsePauliOp."""
-        self.assertTrue(double_commutator(a, b, c, sign=sign).equiv(com))
+        self.assertTrue(double_commutator(a, b, c, commutes=commutes).equiv(com))
 
 
 if __name__ == "__main__":

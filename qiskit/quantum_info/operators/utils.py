@@ -18,8 +18,7 @@ from qiskit.quantum_info.operators.linear_op import LinearOp
 
 
 def commutator(a: LinearOp, b: LinearOp) -> LinearOp:
-    r"""
-    Compute commutator of a and b.
+    r"""Compute commutator of a and b.
 
     .. math::
 
@@ -35,8 +34,7 @@ def commutator(a: LinearOp, b: LinearOp) -> LinearOp:
 
 
 def anti_commutator(a: LinearOp, b: LinearOp) -> LinearOp:
-    r"""
-    Compute anti-commutator of a and b.
+    r"""Compute anti-commutator of a and b.
 
     .. math::
 
@@ -51,19 +49,18 @@ def anti_commutator(a: LinearOp, b: LinearOp) -> LinearOp:
     return a @ b + b @ a
 
 
-def double_commutator(a: LinearOp, b: LinearOp, c: LinearOp, *, sign: bool = False) -> LinearOp:
-    r"""
-    Compute symmetric double commutator of a, b and c.
+def double_commutator(a: LinearOp, b: LinearOp, c: LinearOp, *, commutes: bool = True) -> LinearOp:
+    r"""Compute symmetric double commutator of a, b and c.
     See also Equation (13.6.18) in [1].
 
-    If `sign` is `False`, it returns
+    If `commutes` is `True`, it returns
 
     .. math::
 
          [[A, B], C]/2 + [A, [B, C]]/2
          = (2ABC + 2CBA - BAC - CAB - ACB - BCA)/2.
 
-    If `sign` is `True`, it returns
+    If `commutes` is `False`, it returns
 
     .. math::
          \lbrace[A, B], C\rbrace/2 + \lbrace A, [B, C]\rbrace/2
@@ -73,7 +70,7 @@ def double_commutator(a: LinearOp, b: LinearOp, c: LinearOp, *, sign: bool = Fal
         a: Operator a.
         b: Operator b.
         c: Operator c.
-        sign: False anti-commutes, True commutes.
+        commutes: True commutes, False anti-commutes.
 
     Returns:
         The double commutator
@@ -84,7 +81,7 @@ def double_commutator(a: LinearOp, b: LinearOp, c: LinearOp, *, sign: bool = Fal
             2nd Edition, Academic Press, 1992.
             ISBN 0-12-486552-6.
     """
-    sign_num = 1 if sign else -1
+    sign_num = -1 if commutes else 1
 
     ab = a @ b
     ba = b @ a
