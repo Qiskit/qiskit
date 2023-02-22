@@ -14,35 +14,44 @@
 
 import unittest
 
+from ddt import data, ddt, unpack
+
 from qiskit.quantum_info import SparsePauliOp, anti_commutator, commutator, double_commutator
 from qiskit.test import QiskitTestCase
 
+I = SparsePauliOp("I")
+X = SparsePauliOp("X")
+Y = SparsePauliOp("Y")
+Z = SparsePauliOp("Z")
+zero = SparsePauliOp("I", 0)
 
+
+@ddt
 class TestOperatorUtils(QiskitTestCase):
     """Test utility functions for operator classes."""
 
-    def test_commutator(self):
+    @unpack
+    @data((Z, I, zero), (Z, X, 2j * Y))
+    def test_commutator(self, a, b, com):
         """Test commutator function on SparsePauliOp."""
-        Z = SparsePauliOp("Z")
-        I = SparsePauliOp("I")
-        zero = SparsePauliOp("I", 0)
-        self.assertTrue(commutator(Z, I).equiv(zero))
+        self.assertTrue(commutator(a, b).equiv(com))
 
-    def test_anti_commutator(self):
+    @unpack
+    @data((Z, X, zero), (Z, I, 2 * Z))
+    def test_anti_commutator(self, a, b, com):
         """Test anti_commutator function on SparsePauliOp."""
-        Z = SparsePauliOp("Z")
-        X = SparsePauliOp("X")
-        zero = SparsePauliOp("I", 0)
-        self.assertTrue(anti_commutator(Z, X).equiv(zero))
+        self.assertTrue(anti_commutator(a, b).equiv(com))
 
-    def test_double_commutator(self):
+    @unpack
+    @data(
+        (X, Y, Z, False, zero),
+        (X, Y, X, False, -4 * Y),
+        (X, Y, Z, True, 4j * I),
+        (X, Y, X, True, zero),
+    )
+    def test_double_commutator(self, a, b, c, sign, com):
         """Test double_commutator function on SparsePauliOp."""
-        X = SparsePauliOp("X")
-        Y = SparsePauliOp("Y")
-        Z = SparsePauliOp("Z")
-        zero = SparsePauliOp("I", 0)
-        self.assertTrue(double_commutator(X, Y, Z, sign=False).equiv(zero))
-        self.assertTrue(double_commutator(X, Y, X, sign=True).equiv(zero))
+        self.assertTrue(double_commutator(a, b, c, sign=sign).equiv(com))
 
 
 if __name__ == "__main__":
