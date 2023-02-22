@@ -41,7 +41,7 @@ class PrimitiveOp(OperatorBase):
     """
 
     def __init_subclass__(cls):
-        cls.__new__ = lambda cls, *args, **kwargs: OperatorBase.__new__(cls=cls)
+        cls.__new__ = lambda cls, *args, **kwargs: OperatorBase.__new__(cls)
 
     @staticmethod
     # pylint: disable=unused-argument
