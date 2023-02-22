@@ -81,14 +81,14 @@ Here is an example of how the estimator is used.
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import copy
 from typing import cast
 from warnings import warn
 
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
@@ -96,9 +96,9 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from ..utils import _circuit_key, _observable_key, init_observable
 from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
-from ..utils import _circuit_key, _observable_key, init_observable
 
 
 class BaseEstimator(BasePrimitive):
@@ -177,7 +177,11 @@ class BaseEstimator(BasePrimitive):
         self,
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
         observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
+        parameter_values: Sequence[Sequence[float] | Mapping[ParameterExpression, float]]
+        | Sequence[float]
+        | Mapping[ParameterExpression, float]
+        | float
+        | None = None,
         **run_options,
     ) -> Job:
         """Run the job of the estimation of expectation value(s).
@@ -219,10 +223,7 @@ class BaseEstimator(BasePrimitive):
         # Singular validation
         circuits = self._validate_circuits(circuits)
         observables = self._validate_observables(observables)
-        parameter_values = self._validate_parameter_values(
-            parameter_values,
-            default=[()] * len(circuits),
-        )
+        parameter_values = self._validate_parameter_values(parameter_values, circuits)
 
         # Cross-validation
         self._cross_validate_circuits_parameter_values(circuits, parameter_values)

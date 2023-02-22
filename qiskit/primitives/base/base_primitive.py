@@ -15,12 +15,12 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import numpy as np
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.providers import Options
 
 
@@ -73,14 +73,16 @@ class BasePrimitive(ABC):
 
     @staticmethod
     def _validate_parameter_values(
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None,
-        default: Sequence[Sequence[float]] | Sequence[float] | None = None,
+        parameter_values: Sequence[Sequence[float] | Mapping[ParameterExpression, float]]
+        | Sequence[float]
+        | Mapping[ParameterExpression, float]
+        | float
+        | None,
+        circuits: tuple[QuantumCircuit, ...],
     ) -> tuple[tuple[float, ...], ...]:
-        # Allow optional (if default)
+        # Allow optional
         if parameter_values is None:
-            if default is None:
-                raise ValueError("No default `parameter_values`, optional input disallowed.")
-            parameter_values = default
+            parameter_values = [()] * len(circuits)
 
         # Support numpy ndarray
         if isinstance(parameter_values, np.ndarray):
@@ -98,6 +100,17 @@ class BasePrimitive(ABC):
             isinstance(vector, Sequence) for vector in parameter_values
         ):
             parameter_values = (parameter_values,)
+
+        # Support Mapping
+        if isinstance(parameter_values, Mapping):
+            parameter_values = [parameter_values[parameter] for parameter in circuits[0].parameters]
+        elif isinstance(parameter_values, Sequence):
+            parameter_values = [
+                [vector[parameter] for parameter in circuit.parameters]
+                if isinstance(vector, Mapping)
+                else vector
+                for vector, circuit in zip(parameter_values, circuits)
+            ]
 
         # Validation
         if (
