@@ -145,10 +145,11 @@ class TestVF2LayoutSimple(LayoutTestCase):
 
     def test_3q_circuit_3q_coupling_non_induced(self):
         """A simple example, check for non-induced subgraph
+
             1         qr0 -> qr1 -> qr2
            / \
           0 - 2
-        """
+        """  # noqa: D208
         cmap = CouplingMap([[0, 1], [1, 2], [2, 0]])
 
         qr = QuantumRegister(3, "qr")
@@ -163,10 +164,11 @@ class TestVF2LayoutSimple(LayoutTestCase):
 
     def test_3q_circuit_3q_coupling_non_induced_control_flow(self):
         r"""A simple example, check for non-induced subgraph
+
             1         qr0 -> qr1 -> qr2
            / \
           0 - 2
-        """
+        """  # noqa: D208
         cmap = CouplingMap([[0, 1], [1, 2], [2, 0]])
 
         circuit = QuantumCircuit(3, 1)

@@ -40,6 +40,9 @@ select = [
   "D214", # Section is over-indented
   "D416", # Section name should end with a colon
   "D210", # No whitespaces allowed surrounding docstring text
+  "D211", # No blank lines allowed before class docstring
+  "D208", # Docstring is over-indented
+  "D",
 ]
 
 ignore = ["B905"]
