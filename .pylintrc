@@ -87,7 +87,6 @@ disable=spelling,       # way too noisy
     modified-iterating-list,
     nested-min-max,
     no-member,
-    no-value-for-parameter,
     non-ascii-name,
     not-context-manager,
     pointless-exception-statement,
