@@ -442,7 +442,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         vec_u64 = z_indices & indptr
         mat_u8 = np.zeros((vec_u64.size, 8), dtype=np.uint8)
         for i in range(8):
-            mat_u8[:, i] = np.mod(vec_u64, 256)
+            mat_u8[:, i] = vec_u64 & 255
             vec_u64 >>= 8
             if np.all(vec_u64 == 0):
                 break
