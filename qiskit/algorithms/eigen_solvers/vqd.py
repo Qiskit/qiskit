@@ -17,6 +17,7 @@ See https://arxiv.org/abs/1805.08138.
 
 from typing import Optional, List, Callable, Union, Dict, Tuple
 import logging
+import warnings
 from time import time
 import numpy as np
 
@@ -37,6 +38,7 @@ from qiskit.opflow import (
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.utils import QuantumInstance
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, Minimizer
@@ -50,7 +52,12 @@ logger = logging.getLogger(__name__)
 
 
 class VQD(VariationalAlgorithm, Eigensolver):
-    r"""The Variational Quantum Deflation algorithm.
+    r"""Pending deprecation: Variational Quantum Deflation algorithm.
+
+    The VQD class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.VQD` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     `VQD <https://arxiv.org/abs/1805.08138>`__ is a quantum algorithm that uses a
     variational technique to find
@@ -89,6 +96,13 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     """
 
+    @deprecate_function(
+        "The VQD class has been superseded by the "
+        "qiskit.algorithms.eigensolvers.VQD class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,
@@ -108,10 +122,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
         Args:
             ansatz: A parameterized circuit used as ansatz for the wave function.
             k: the number of eigenvalues to return. Returns the lowest k eigenvalues.
-            betas: beta parameter in the VQD paper. Should have size k -1, the number of excited states.
-                It is a hyperparameter that balances the contribution of the overlap
-                term to the cost function and has a default value computed as
-                mean square sum of coefficients of observable.
+            betas: beta parameters in the VQD paper.
+                Should have length k - 1, with k the number of excited states.
+                These hyperparameters balance the contribution of each overlap term to the cost
+                function and have a default value computed as the mean square sum of the
+                coefficients of the observable.
             optimizer: A classical optimizer. Can either be a Qiskit optimizer or a callable
                 that takes an array as input and returns a Qiskit or SciPy optimization result.
             initial_point: An optional initial point (i.e. initial parameter values)
@@ -141,14 +156,16 @@ class VQD(VariationalAlgorithm, Eigensolver):
             callback: a callback that can access the intermediate data during the optimization.
                 Four parameter values are passed to the callback as follows during each evaluation
                 by the optimizer for its current set of parameters as it works towards the minimum.
-                These are: the evaluation count, the optimizer parameters for the
-                ansatz, the evaluated mean and the evaluated standard deviation.`
+                These are: the evaluation count, the optimizer parameters for the ansatz, the
+                evaluated mean, the evaluated standard deviation, and the current step.
             quantum_instance: Quantum Instance or Backend
 
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
 
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
@@ -264,12 +281,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
             self.expectation = None
 
     @property
-    def callback(self) -> Optional[Callable[[int, np.ndarray, float, float], None]]:
+    def callback(self) -> Optional[Callable[[int, np.ndarray, float, float, int], None]]:
         """Returns callback"""
         return self._callback
 
     @callback.setter
-    def callback(self, callback: Optional[Callable[[int, np.ndarray, float, float], None]]):
+    def callback(self, callback: Optional[Callable[[int, np.ndarray, float, float, int], None]]):
         """Sets callback"""
         self._callback = callback
 
@@ -475,7 +492,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
         aux_op_results = zip(aux_op_means, std_devs)
 
         # Return None eigenvalues for None operators if aux_operators is a list.
-        # None operators are already dropped in compute_minimum_eigenvalue if aux_operators is a dict.
+        # None operators are already dropped in compute_minimum_eigenvalue if aux_operators is a
+        # dict.
         if isinstance(aux_operators, list):
             aux_operator_eigenvalues = [None] * len(aux_operators)
             key_value_iterator = enumerate(aux_op_results)
@@ -608,7 +626,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             if step == 1:
 
                 logger.info(
-                    "Ground state optimization complete in %s seconds.\nFound opt_params %s in %s evals",
+                    "Ground state optimization complete in %s seconds.\n"
+                    "Found opt_params %s in %s evals",
                     eval_time,
                     result.optimal_point,
                     self._eval_count,
@@ -616,7 +635,8 @@ class VQD(VariationalAlgorithm, Eigensolver):
             else:
                 logger.info(
                     (
-                        "%s excited state optimization complete in %s s.\nFound opt_parms %s in %s evals"
+                        "%s excited state optimization complete in %s s.\n"
+                        "Found opt_params %s in %s evals"
                     ),
                     str(step - 1),
                     eval_time,
@@ -624,7 +644,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
                     self._eval_count,
                 )
 
-        # To match the siignature of NumpyEigenSolver Result
+        # To match the signature of NumpyEigenSolver Result
         result.eigenstates = ListOp([StateFn(vec) for vec in result.eigenstates])
         result.eigenvalues = np.array(result.eigenvalues)
         result.optimal_point = np.array(result.optimal_point)
@@ -649,7 +669,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         This return value is the objective function to be passed to the optimizer for evaluation.
 
         Args:
-            step: level of enegy being calculated. 0 for ground, 1 for first excited state and so on.
+            step: level of energy being calculated. 0 for ground, 1 for first excited state...
             operator: The operator whose energy to evaluate.
             return_expectation: If True, return the ``ExpectationBase`` expectation converter used
                 in the construction of the expectation value. Useful e.g. to evaluate other
@@ -695,22 +715,29 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         def energy_evaluation(parameters):
             parameter_sets = np.reshape(parameters, (-1, num_parameters))
-            # Create dict associating each parameter with the lists of parameterization values for it
+            # Dict associating each parameter with the lists of parameterization values for it
             param_bindings = dict(zip(ansatz_params, parameter_sets.transpose().tolist()))
 
             sampled_expect_op = self._circuit_sampler.convert(expect_op, params=param_bindings)
-            mean = np.real(sampled_expect_op.eval())
+            means = np.real(sampled_expect_op.eval())
 
             for state in range(step - 1):
                 sampled_final_op = self._circuit_sampler.convert(
                     overlap_op[state], params=param_bindings
                 )
                 cost = sampled_final_op.eval()
-                mean += np.real(self.betas[state] * np.conj(cost) * cost)
+                means += np.real(self.betas[state] * np.conj(cost) * cost)
 
-            self._eval_count += len(mean)
+            if self._callback is not None:
+                variance = np.real(expectation.compute_variance(sampled_expect_op))
+                estimator_error = np.sqrt(variance / self.quantum_instance.run_config.shots)
+                for i, param_set in enumerate(parameter_sets):
+                    self._eval_count += 1
+                    self._callback(self._eval_count, param_set, means[i], estimator_error[i], step)
+            else:
+                self._eval_count += len(means)
 
-            return mean if len(mean) > 1 else mean[0]
+            return means if len(means) > 1 else means[0]
 
         if return_expectation:
             return energy_evaluation, expectation
@@ -730,8 +757,22 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
 
 class VQDResult(VariationalResult, EigensolverResult):
-    """VQD Result."""
+    """Pending deprecation: VQD Result.
 
+    The VQDResult class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.VQDResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The VQDResult class has been superseded by the "
+        "qiskit.algorithms.eigensolvers.VQDResult class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+    )
     def __init__(self) -> None:
         super().__init__()
         self._cost_function_evals = None

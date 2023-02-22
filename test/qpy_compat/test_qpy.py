@@ -14,6 +14,7 @@
 """Test cases to verify qpy backwards compatibility."""
 
 import argparse
+import itertools
 import random
 import re
 import sys
@@ -25,11 +26,15 @@ from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
-from qiskit.circuit.qpy_serialization import dump, load
 from qiskit.opflow import X, Y, Z, I
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.library import U1Gate, U2Gate, U3Gate, QFT, DCXGate
 from qiskit.circuit.gate import Gate
+
+try:
+    from qiskit.qpy import dump, load
+except ModuleNotFoundError:
+    from qiskit.circuit.qpy_serialization import dump, load
 
 
 # This version pattern is taken from the pypa packaging project:
@@ -406,7 +411,7 @@ def generate_schedule_blocks():
             builder.set_phase(1.57, channels.DriveChannel(0))
             builder.shift_phase(0.1, channels.DriveChannel(1))
             builder.barrier(channels.DriveChannel(0), channels.DriveChannel(1))
-            builder.play(library.Gaussian(160, 0.1, 40), channels.DriveChannel(0))
+            builder.play(library.Gaussian(160, 0.1j, 40), channels.DriveChannel(0))
             builder.play(library.GaussianSquare(800, 0.1, 64, 544), channels.ControlChannel(0))
             builder.play(library.Drag(160, 0.1, 40, 1.5), channels.DriveChannel(1))
             builder.play(library.Constant(800, 0.1), channels.MeasureChannel(0))
@@ -446,14 +451,14 @@ def generate_calibrated_circuits():
 
     # custom gate
     mygate = Gate("mygate", 1, [])
-    qc = QuantumCircuit(1)
+    qc = QuantumCircuit(1, name="calibrated_circuit_1")
     qc.append(mygate, [0])
     with builder.build() as caldef:
         builder.play(Constant(100, 0.1), DriveChannel(0))
     qc.add_calibration(mygate, (0,), caldef)
     circuits.append(qc)
     # override instruction
-    qc = QuantumCircuit(1)
+    qc = QuantumCircuit(1, name="calibrated_circuit_2")
     qc.x(0)
     with builder.build() as caldef:
         builder.play(Constant(100, 0.1), DriveChannel(0))
@@ -466,7 +471,7 @@ def generate_calibrated_circuits():
 def generate_controlled_gates():
     """Test QPY serialization with custom ControlledGates."""
     circuits = []
-    qc = QuantumCircuit(3)
+    qc = QuantumCircuit(3, name="custom_controlled_gates")
     controlled_gate = DCXGate().control(1)
     qc.append(controlled_gate, [0, 1, 2])
     circuits.append(qc)
@@ -476,25 +481,44 @@ def generate_controlled_gates():
     custom_definition.rz(1.5, 0)
     custom_definition.sdg(0)
     custom_gate.definition = custom_definition
-    nested_qc = QuantumCircuit(3)
+    nested_qc = QuantumCircuit(3, name="nested_qc")
     qc.append(custom_gate, [0])
     controlled_gate = custom_gate.control(2)
     nested_qc.append(controlled_gate, [0, 1, 2])
     nested_qc.measure_all()
     circuits.append(nested_qc)
-    qc_open = QuantumCircuit(2)
+    qc_open = QuantumCircuit(2, name="open_cx")
     qc_open.cx(0, 1, ctrl_state=0)
     circuits.append(qc_open)
     return circuits
 
 
-def generate_circuits(version_str=None):
-    """Generate reference circuits."""
-    version_parts = None
-    if version_str:
-        version_match = re.search(VERSION_PATTERN, version_str, re.VERBOSE | re.IGNORECASE)
-        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
+def generate_open_controlled_gates():
+    """Test QPY serialization with custom ControlledGates with open controls."""
+    circuits = []
+    qc = QuantumCircuit(3, name="open_controls_simple")
+    controlled_gate = DCXGate().control(1, ctrl_state=0)
+    qc.append(controlled_gate, [0, 1, 2])
+    circuits.append(qc)
 
+    custom_gate = Gate("black_box", 1, [])
+    custom_definition = QuantumCircuit(1)
+    custom_definition.h(0)
+    custom_definition.rz(1.5, 0)
+    custom_definition.sdg(0)
+    custom_gate.definition = custom_definition
+    nested_qc = QuantumCircuit(3, name="open_controls_nested")
+    nested_qc.append(custom_gate, [0])
+    controlled_gate = custom_gate.control(2, ctrl_state=1)
+    nested_qc.append(controlled_gate, [0, 1, 2])
+    nested_qc.measure_all()
+    circuits.append(nested_qc)
+
+    return circuits
+
+
+def generate_circuits(version_parts):
+    """Generate reference circuits."""
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
         "unitary.qpy": [generate_unitary_gate_circuit()],
@@ -525,11 +549,13 @@ def generate_circuits(version_str=None):
         output_circuits["controlled_gates.qpy"] = generate_controlled_gates()
         output_circuits["schedule_blocks.qpy"] = generate_schedule_blocks()
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
+    if version_parts >= (0, 21, 2):
+        output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
 
     return output_circuits
 
 
-def assert_equal(reference, qpy, count, bind=None):
+def assert_equal(reference, qpy, count, version_parts, bind=None):
     """Compare two circuits."""
     if bind is not None:
         reference_parameter_names = [x.name for x in reference.parameters]
@@ -550,6 +576,22 @@ def assert_equal(reference, qpy, count, bind=None):
         )
         sys.stderr.write(msg)
         sys.exit(1)
+    # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
+    # include enough information for us to fully reconstruct this, so we only test if newer.
+    if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):
+        for ref_bit, qpy_bit in itertools.chain(
+            zip(reference.qubits, qpy.qubits), zip(reference.clbits, qpy.clbits)
+        ):
+            if ref_bit._register is not None and ref_bit != qpy_bit:
+                msg = (
+                    f"Reference Circuit {count}:\n"
+                    "deprecated bit-level register information mismatch\n"
+                    f"reference bit: {ref_bit}\n"
+                    f"loaded bit: {qpy_bit}\n"
+                )
+                sys.stderr.write(msg)
+                sys.exit(1)
+
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:
         msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
@@ -568,7 +610,7 @@ def generate_qpy(qpy_files):
             dump(circuits, fd)
 
 
-def load_qpy(qpy_files):
+def load_qpy(qpy_files, version_parts):
     """Load qpy circuits from files and compare to reference circuits."""
     for path, circuits in qpy_files.items():
         print(f"Loading qpy file: {path}")
@@ -588,7 +630,7 @@ def load_qpy(qpy_files):
             elif path == "parameter_vector_expression.qpy":
                 bind = np.linspace(1.0, 2.0, 15)
 
-            assert_equal(circuit, qpy_circuits[i], i, bind=bind)
+            assert_equal(circuit, qpy_circuits[i], i, version_parts, bind=bind)
 
 
 def _main():
@@ -604,11 +646,18 @@ def _main():
         ),
     )
     args = parser.parse_args()
-    qpy_files = generate_circuits(args.version)
+
+    # Terra 0.18.0 was the first release with QPY, so that's the default.
+    version_parts = (0, 18, 0)
+    if args.version:
+        version_match = re.search(VERSION_PATTERN, args.version, re.VERBOSE | re.IGNORECASE)
+        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
+
+    qpy_files = generate_circuits(version_parts)
     if args.command == "generate":
         generate_qpy(qpy_files)
     else:
-        load_qpy(qpy_files)
+        load_qpy(qpy_files, version_parts)
 
 
 if __name__ == "__main__":

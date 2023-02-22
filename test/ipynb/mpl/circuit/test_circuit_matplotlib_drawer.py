@@ -24,7 +24,7 @@ from numpy import pi
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
 from qiskit.providers.fake_provider import FakeTenerife
-from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
+from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (
     XGate,
     MCXGate,
@@ -919,6 +919,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
             wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
             filename="wire_order.png",
         )
+
+    def test_barrier_label(self):
+        """Test the barrier label"""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(0)
+        circuit.x(1)
+        circuit.barrier(label="End Y/X")
+        self.circuit_drawer(circuit, filename="barrier_label.png")
 
 
 if __name__ == "__main__":

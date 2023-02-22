@@ -8,6 +8,7 @@ Qiskit Terra API Reference
    :maxdepth: 1
 
    circuit
+   circuit_library
    compiler
    execute
    visualization
@@ -36,6 +37,7 @@ Qiskit Terra API Reference
    transpiler_passes
    transpiler_preset
    transpiler_plugins
+   transpiler_synthesis_plugins
    transpiler_builtin_plugins
    utils
    utils_mitigation

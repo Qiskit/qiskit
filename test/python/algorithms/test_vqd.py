@@ -40,6 +40,7 @@ from qiskit.opflow import (
 )
 
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
+from qiskit.test import slow_test
 
 
 if has_aer():
@@ -85,6 +86,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             seed_transpiler=self.seed,
         )
 
+    @slow_test
     def test_basic_aer_statevector(self):
         """Test the VQD on BasicAer's statevector simulator."""
         wavefunction = self.ryrz_wavefunction
@@ -257,13 +259,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
     def test_callback(self):
         """Test the callback on VQD."""
-        history = {"eval_count": [], "parameters": [], "mean": [], "std": []}
+        history = {"eval_count": [], "parameters": [], "mean": [], "std": [], "step": []}
 
-        def store_intermediate_result(eval_count, parameters, mean, std):
+        def store_intermediate_result(eval_count, parameters, mean, std, step):
             history["eval_count"].append(eval_count)
             history["parameters"].append(parameters)
             history["mean"].append(mean)
             history["std"].append(std)
+            history["step"].append(step)
 
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
@@ -279,8 +282,19 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
         self.assertTrue(all(isinstance(std, float) for std in history["std"]))
+        self.assertTrue(all(isinstance(count, int) for count in history["step"]))
         for params in history["parameters"]:
             self.assertTrue(all(isinstance(param, float) for param in params))
+
+        ref_eval_count = [1, 2, 3, 1, 2, 3]
+        ref_mean = [-1.063, -1.457, -1.360, 37.340, 48.543, 28.586]
+        ref_std = [0.011, 0.010, 0.014, 0.011, 0.010, 0.015]
+        ref_step = [1, 1, 1, 2, 2, 2]
+
+        np.testing.assert_array_almost_equal(history["eval_count"], ref_eval_count, decimal=0)
+        np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
+        np.testing.assert_array_almost_equal(history["std"], ref_std, decimal=2)
+        np.testing.assert_array_almost_equal(history["step"], ref_step, decimal=0)
 
     def test_reuse(self):
         """Test re-using a VQD algorithm instance."""

@@ -84,7 +84,7 @@ class PauliOp(PrimitiveOp):
         return SummedOp([self, other])
 
     def adjoint(self) -> "PauliOp":
-        return PauliOp(self.primitive, coeff=self.coeff.conjugate())
+        return PauliOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
         if isinstance(other, PauliOp) and self.coeff == other.coeff:
@@ -154,9 +154,6 @@ class PauliOp(PrimitiveOp):
 
         if front:
             return other.compose(new_self)
-        # If self is identity, just return other.
-        if not any(new_self.primitive.x + new_self.primitive.z):
-            return other * new_self.coeff
 
         # Both Paulis
         if isinstance(other, PauliOp):

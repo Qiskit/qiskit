@@ -241,7 +241,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         # this import appears to be unused, but is actually needed to get snapshot instruction
         import qiskit.extensions.simulator  # pylint: disable=unused-import
 
-        circuit.snapshot("1")
+        circuit.snapshot("sn 1")
 
         # check the barriers plot properly when plot_barriers= True
         circuit_drawer(circuit, filename=filename1, output="latex_source", plot_barriers=True)
@@ -260,6 +260,22 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit = QuantumCircuit(q1, c1)
         circuit.h(q1[0])
         circuit.h(q1[1])
+
+        circuit_drawer(circuit, filename=filename, output="latex_source")
+
+        self.assertEqualToReference(filename)
+
+    def test_barrier_label(self):
+        """Test the barrier label"""
+        filename = self._get_resource_path("test_latex_barrier_label.tex")
+        qr = QuantumRegister(2, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(0)
+        circuit.x(1)
+        circuit.barrier(label="End Y/X")
 
         circuit_drawer(circuit, filename=filename, output="latex_source")
 
@@ -665,7 +681,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         self.assertEqualToReference(filename)
 
     def test_wire_order(self):
-        """Test the wire_order option"""
+        """Test the wire_order option to latex drawer"""
         filename = self._get_resource_path("test_latex_wire_order.tex")
         qr = QuantumRegister(4, "q")
         cr = ClassicalRegister(4, "c")

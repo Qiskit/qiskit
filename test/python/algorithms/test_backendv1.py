@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """ Test Providers that support BackendV1 interface """
 
 import unittest
+import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.providers.fake_provider import FakeProvider
@@ -22,6 +23,7 @@ from qiskit.opflow import X, Z, I
 from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 from qiskit.utils.mitigation import CompleteMeasFitter
+from qiskit.test import slow_test
 
 
 class TestBackendV1(QiskitAlgorithmsTestCase):
@@ -33,6 +35,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         self._qasm = self._provider.get_backend("fake_qasm_simulator")
         self.seed = 50
 
+    @slow_test
     def test_shor_factoring(self):
         """shor factoring test"""
         n_v = 15
@@ -40,7 +43,14 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         qasm_simulator = QuantumInstance(
             self._qasm, shots=1000, seed_simulator=self.seed, seed_transpiler=self.seed
         )
-        shor = Shor(quantum_instance=qasm_simulator)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            shor = Shor(quantum_instance=qasm_simulator)
+            self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
+
         result = shor.factor(N=n_v)
         self.assertListEqual(result.factors[0], factors)
         self.assertTrue(result.total_counts >= result.successful_counts)
@@ -77,7 +87,8 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         qi = QuantumInstance(
             self._provider.get_backend("fake_vigo"), seed_simulator=12, seed_transpiler=32
         )
-        grover = Grover(quantum_instance=qi)
+        with self.assertWarns(PendingDeprecationWarning):
+            grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
 
@@ -89,7 +100,8 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         backend = self._provider.get_backend("fake_vigo")
         backend._configuration.max_experiments = 1
         qi = QuantumInstance(backend, seed_simulator=12, seed_transpiler=32)
-        grover = Grover(quantum_instance=qi)
+        with self.assertWarns(PendingDeprecationWarning):
+            grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
 

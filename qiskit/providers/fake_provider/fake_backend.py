@@ -10,17 +10,19 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,import-error
+# pylint: disable=no-name-in-module
 
 """
 Base class for dummy backends.
 """
 
 import warnings
+import collections
 import json
 import os
+import re
 
-from typing import List
+from typing import List, Iterable
 
 from qiskit import circuit
 from qiskit.providers.models import BackendProperties
@@ -84,12 +86,42 @@ class FakeBackendV2(BackendV2):
         self._target = None
         self.sim = None
 
+        if "channels" in self._conf_dict:
+            self._parse_channels(self._conf_dict["channels"])
+
+    def _parse_channels(self, channels):
+        type_map = {
+            "acquire": pulse.AcquireChannel,
+            "drive": pulse.DriveChannel,
+            "measure": pulse.MeasureChannel,
+            "control": pulse.ControlChannel,
+        }
+        identifier_pattern = re.compile(r"\D+(?P<index>\d+)")
+
+        channels_map = {
+            "acquire": collections.defaultdict(list),
+            "drive": collections.defaultdict(list),
+            "measure": collections.defaultdict(list),
+            "control": collections.defaultdict(list),
+        }
+        for identifier, spec in channels.items():
+            channel_type = spec["type"]
+            out = re.match(identifier_pattern, identifier)
+            if out is None:
+                # Identifier is not a valid channel name format
+                continue
+            channel_index = int(out.groupdict()["index"])
+            qubit_index = tuple(spec["operates"]["qubits"])
+            chan_obj = type_map[channel_type](channel_index)
+            channels_map[channel_type][qubit_index].append(chan_obj)
+        setattr(self, "channels_map", channels_map)
+
     def _setup_sim(self):
         if _optionals.HAS_AER:
             from qiskit.providers import aer
 
             self.sim = aer.AerSimulator()
-            if self._props_dict:
+            if self.target and self._props_dict:
                 noise_model = self._get_noise_model_from_backend_v2()
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default too to avoid overwriting
@@ -193,6 +225,73 @@ class FakeBackendV2(BackendV2):
         """
         return self._conf_dict.get("meas_map")
 
+    def drive_channel(self, qubit: int):
+        """Return the drive channel for the given qubit.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Returns:
+            DriveChannel: The Qubit drive channel
+        """
+        drive_channels_map = getattr(self, "channels_map", {}).get("drive", {})
+        qubits = (qubit,)
+        if qubits in drive_channels_map:
+            return drive_channels_map[qubits][0]
+        return None
+
+    def measure_channel(self, qubit: int):
+        """Return the measure stimulus channel for the given qubit.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Returns:
+            MeasureChannel: The Qubit measurement stimulus line
+        """
+        measure_channels_map = getattr(self, "channels_map", {}).get("measure", {})
+        qubits = (qubit,)
+        if qubits in measure_channels_map:
+            return measure_channels_map[qubits][0]
+        return None
+
+    def acquire_channel(self, qubit: int):
+        """Return the acquisition channel for the given qubit.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Returns:
+            AcquireChannel: The Qubit measurement acquisition line.
+        """
+        acquire_channels_map = getattr(self, "channels_map", {}).get("acquire", {})
+        qubits = (qubit,)
+        if qubits in acquire_channels_map:
+            return acquire_channels_map[qubits][0]
+        return None
+
+    def control_channel(self, qubits: Iterable[int]):
+        """Return the secondary drive channel for the given qubit
+
+        This is typically utilized for controlling multiqubit interactions.
+        This channel is derived from other channels.
+
+        This is required to be implemented if the backend supports Pulse
+        scheduling.
+
+        Args:
+            qubits: Tuple or list of qubits of the form
+                ``(control_qubit, target_qubit)``.
+
+        Returns:
+            List[ControlChannel]: The multi qubit control line.
+        """
+        control_channels_map = getattr(self, "channels_map", {}).get("control", {})
+        qubits = tuple(qubits)
+        if qubits in control_channels_map:
+            return control_channels_map[qubits]
+        return []
+
     def run(self, run_input, **options):
         """Run on the fake backend using a simulator.
 
@@ -261,7 +360,6 @@ class FakeBackendV2(BackendV2):
         temperature=0,
         gate_lengths=None,
         gate_length_units="ns",
-        standard_gates=None,
     ):
         """Build noise model from BackendV2.
 
@@ -307,7 +405,6 @@ class FakeBackendV2(BackendV2):
                 gate_lengths=gate_lengths,
                 gate_length_units=gate_length_units,
                 temperature=temperature,
-                standard_gates=standard_gates,
             )
         for name, qubits, error in gate_errors:
             noise_model.add_quantum_error(error, name, qubits)
@@ -360,7 +457,7 @@ class FakeBackend(BackendV1):
 
             self.sim = aer.AerSimulator()
             if self.properties():
-                noise_model = NoiseModel.from_backend(self, warnings=False)
+                noise_model = NoiseModel.from_backend(self)
                 self.sim.set_options(noise_model=noise_model)
                 # Update fake backend default options too to avoid overwriting
                 # it when run() is called
