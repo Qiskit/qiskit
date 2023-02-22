@@ -48,13 +48,15 @@ select = [
   "UP027", # Replace unpacked list comprehension with a generator expression
   "UP018", # Unnecessary call to `bytes`. (Using b'' instead of bytes() is much faster)
   "UP034", # Avoid extraneous parentheses
+  "UP032",
 ]
 
 target-version = "py37"
 
 ignore = [
-"B905",
+"B905",  # zip-without-explicit-strict
 "UP015", # Unnecessary open mode parameters (This removes "r". Do we want this ?)
+"UP014", # convert-named-tuple-functional-to-class
 ]
 
 [tool.ruff.per-file-ignores]
