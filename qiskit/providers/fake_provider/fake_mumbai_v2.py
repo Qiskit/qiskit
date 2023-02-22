@@ -40,7 +40,7 @@ class FakeMumbaiFractionalCX(BackendV2):
         super().__init__(
             name="FakeMumbaiFractionalCX",
             description="A fake BackendV2 example based on IBM Mumbai",
-            online_date=datetime.datetime.utcnow(),
+            online_date=datetime.datetime.now(datetime.timezone.utc),
             backend_version="0.0.1",
         )
         dt = 0.2222222222222222e-9

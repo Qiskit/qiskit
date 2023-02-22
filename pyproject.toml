@@ -58,6 +58,7 @@ select = [
   "N818",  # Exception name `{errorname}` should be named with an Error suffix
   "YTT",   # misuse of sys.version or sys.version_info
   "C4",    # flake8-comprehensions, several rules
+  "DTZ003", # use of `datetime.datetime.utcnow()` is not allowed, use `datetime.datetime.now(tz=)` instead
 ]
 
 target-version = "py37"
