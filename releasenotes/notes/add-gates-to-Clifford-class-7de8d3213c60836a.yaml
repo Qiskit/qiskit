@@ -1,7 +1,8 @@
 ---
-features:
+fixes:
   - |
-    Add the following Clifford gates to the :class:`.Clifford` class:
+    Add the following Clifford gates, that already exist in the Circuit Library,
+    to the :class:`.Clifford` class:
     :class:`.SXGate`, :class:`.SXdgGate`, :class:`.CYGate`, :class:`.DCXGate`,
     :class:`.iSwapGate` and :class:`.ECRGate`.
   - |
