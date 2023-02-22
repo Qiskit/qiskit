@@ -54,7 +54,7 @@ def anti_commutator(a: LinearOp, b: LinearOp) -> LinearOp:
 def double_commutator(a: LinearOp, b: LinearOp, c: LinearOp, *, sign: bool = False) -> LinearOp:
     r"""
     Compute symmetric double commutator of a, b and c.
-    See McWeeny chapter 13.6 Equation of motion methods (page 479)
+    See also Equation (13.6.18) in [1].
 
     If `sign` is `False`, it returns
 
@@ -74,8 +74,15 @@ def double_commutator(a: LinearOp, b: LinearOp, c: LinearOp, *, sign: bool = Fal
         b: Operator b.
         c: Operator c.
         sign: False anti-commutes, True commutes.
+
     Returns:
         The double commutator
+
+    References:
+        [1]: R. McWeeny.
+            Methods of Molecular Quantum Mechanics.
+            2nd Edition, Academic Press, 1992.
+            ISBN 0-12-486552-6.
     """
     sign_num = 1 if sign else -1
 
