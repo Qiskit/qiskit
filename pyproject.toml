@@ -34,6 +34,7 @@ select = [
   # "I", isort 1300 violations
   # "N", 900 violations. identifiers names. We would want exceptions for many of these
   "D419", # Docstring is empty
+  "D201",
 ]
 
 ignore = ["B905"]
