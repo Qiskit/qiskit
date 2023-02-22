@@ -59,7 +59,7 @@ select = [
   "YTT",   # misuse of sys.version or sys.version_info
   "C400",  # Unnecessary generator (rewrite as a `list` comprehension)
   "C401",  # Unnecessary generator (rewrite as a `set` comprehension)
-#  "C402",  # Unnecessary generator (rewrite as a `dict` comprehension)
+  "C402",  # Unnecessary generator (rewrite as a `dict` comprehension)
 ]
 
 target-version = "py37"

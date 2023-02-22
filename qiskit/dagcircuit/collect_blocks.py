@@ -265,7 +265,7 @@ class BlockCollapser:
             sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
 
             # Construct a quantum circuit from the nodes in the block, remapping the qubits.
-            wire_pos_map = dict((qb, ix) for ix, qb in enumerate(sorted_qubits))
+            wire_pos_map = {qb: ix for ix, qb in enumerate(sorted_qubits)}
             qc = QuantumCircuit(len(cur_qubits))
             for node in block:
                 remapped_qubits = [wire_pos_map[qarg] for qarg in node.qargs]
