@@ -138,9 +138,7 @@ def convert_to_target(
     for op in combined_global_ops:
         if op not in target:
             if op in name_mapping:
-                target.add_instruction(
-                    name_mapping[op], {(bit,): None for bit in range(target.num_qubits)}
-                )
+                target.add_instruction(name_mapping[op], name=op)
             else:
                 raise QiskitError(
                     f"Operation name '{op}' does not have a known mapping. Use "
@@ -220,7 +218,7 @@ class BackendV2Converter(BackendV2):
             provider=backend.provider,
             name=backend.name(),
             description=self._config.description,
-            online_date=self._config.online_date,
+            online_date=getattr(self._config, "online_date", None),
             backend_version=self._config.backend_version,
         )
         self._options = self._backend._options
