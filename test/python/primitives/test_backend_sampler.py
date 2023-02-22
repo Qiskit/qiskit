@@ -380,9 +380,7 @@ class TestBackendSampler(QiskitTestCase):
         bound_counter = LogPass("bound_pass_manager")
         bound_pass = PassManager(bound_counter)
 
-        sampler = BackendSampler(
-            backend=FakeNairobi(), skip_transpilation=True, bound_pass_manager=bound_pass
-        )
+        sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
 
         with self.subTest("Test single circuit"):
             with self.assertLogs(logger, level="INFO") as cm:
