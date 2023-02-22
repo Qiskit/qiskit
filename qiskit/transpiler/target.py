@@ -897,7 +897,7 @@ class Target(Mapping):
 
         if two_q_gate is not None:
             coupling_graph = rx.PyDiGraph(multigraph=False)
-            coupling_graph.add_nodes_from(list(None for _ in range(self.num_qubits)))
+            coupling_graph.add_nodes_from([None for _ in range(self.num_qubits)])
             for qargs, properties in self._gate_map[two_q_gate].items():
                 if len(qargs) != 2:
                     raise ValueError(

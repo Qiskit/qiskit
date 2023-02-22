@@ -36,7 +36,7 @@ class RemoveFinalMeasurements(TransformationPass):
         final_op_types = {"measure", "barrier"}
         final_ops = []
 
-        to_visit = list(next(dag.predecessors(dag.output_map[qubit])) for qubit in dag.qubits)
+        to_visit = [next(dag.predecessors(dag.output_map[qubit])) for qubit in dag.qubits]
         barrier_encounters_remaining = dict()
 
         while to_visit:

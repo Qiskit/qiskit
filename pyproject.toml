@@ -57,6 +57,7 @@ select = [
   "UP031", # Use format specifiers instead of percent format
   "N818",  # Exception name `{errorname}` should be named with an Error suffix
   "YTT",   # misuse of sys.version or sys.version_info
+  "C400",  # Unnecessary generator (rewrite as a `list` comprehension)
 ]
 
 target-version = "py37"
