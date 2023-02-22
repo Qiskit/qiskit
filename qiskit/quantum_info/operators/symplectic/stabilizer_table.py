@@ -1027,7 +1027,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
     @staticmethod
     def _to_matrix(pauli, phase, sparse=False):
-        """ "Return the Pauli stabilizer matrix from symplectic representation.
+        """Return the Pauli stabilizer matrix from symplectic representation.
 
         Args:
             pauli (array): symplectic Pauli vector.

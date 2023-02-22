@@ -60,7 +60,7 @@ class _Broker:
         """Subscribes to an event, so when it's emitted all the callbacks subscribed,
         will be executed. We are not allowing double registration.
 
-        Args
+        Args:
             event (string): The event to subscribed in the form of:
                             "terra.<component>.<method>.<action>"
             callback (callable): The callback that will be executed when an event is
@@ -83,7 +83,7 @@ class _Broker:
     def dispatch(self, event, *args, **kwargs):
         """Emits an event if there are any subscribers.
 
-        Args
+        Args:
             event (String): The event to be emitted
             args: Arguments linked with the event
             kwargs: Named arguments linked with the event
@@ -98,11 +98,11 @@ class _Broker:
     def unsubscribe(self, event, callback):
         """Unsubscribe the specific callback to the event.
 
-        Args
+        Args:
             event (String): The event to unsubscribe
             callback (callable): The callback that won't be executed anymore
 
-        Returns
+        Returns:
             True: if we have successfully unsubscribed to the event
             False: if there's no callback previously registered
         """

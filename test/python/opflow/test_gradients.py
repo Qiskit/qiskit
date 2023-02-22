@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 # =============================================================================
 
-""" Test Quantum Gradient Framework """
+"""Test Quantum Gradient Framework"""
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase

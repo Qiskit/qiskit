@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Amplitude Amplifiers Package """
+"""Amplitude Amplifiers Package"""
 
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 from .amplification_problem import AmplificationProblem

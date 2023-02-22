@@ -44,7 +44,7 @@ class PulseGates(CalibrationBuilder):
     This pass allows users to easily override quantum circuit with custom gate definitions
     without directly dealing with those schedules.
 
-    References
+    References:
         * [1] OpenQASM 3: A broader and deeper quantum assembly language
           https://arxiv.org/abs/2104.14722
     """

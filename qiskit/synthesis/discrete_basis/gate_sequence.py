@@ -206,7 +206,7 @@ class GateSequence:
     def __getitem__(self, index: int) -> Gate:
         """Returns the gate at ``index`` from the list of gates.
 
-        Args
+        Args:
             index: Index of gate in list that will be returned.
 
         Returns:

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Minimize using objective function """
+"""Minimize using objective function"""
 
 from typing import List, Optional, Tuple, Callable
 from enum import Enum

@@ -124,7 +124,7 @@ class QasmLexer:
         return t
 
     def t_STRING(self, t):
-        r"\"([^\\\"]|\\.)*\" "
+        r"\"([^\\\"]|\\.)*\" "  # noqa: D210
         return t
 
     def t_INCLUDE(self, _):
