@@ -6,4 +6,4 @@ fixes:
     the ``online_date`` field in the :class:`~.BackendConfiguration` for the
     simulator was not present or if the simulator backend supports ideal
     implementations of gates that involve more than 1 qubit.
-    Fixed `#9562 <https://github.com/Qiskit/qiskit-terra/issues/9562>`__
+    Fixed `#9562 <https://github.com/Qiskit/qiskit-terra/issues/9562>`__.
