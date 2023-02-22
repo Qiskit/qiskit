@@ -407,6 +407,5 @@ class TestSolovayKitaevUtils(QiskitTestCase):
         self.assertGreater(len(approx), len(basis))
 
 
-
 if __name__ == "__main__":
     unittest.main()
