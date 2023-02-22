@@ -183,7 +183,7 @@ def backend_overview():
     unique_hardware_backends = get_unique_backends()
     _backends = []
     # Sort backends by operational or not
-    for idx, back in enumerate(unique_hardware_backends):
+    for back in unique_hardware_backends:
         if back.status().operational:
             _backends = [back] + _backends
         else:
