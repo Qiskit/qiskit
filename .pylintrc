@@ -91,17 +91,6 @@ inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
 [FORMAT]
 max-line-length=105
 
-[SIMILARITIES]
-ignore-imports=no
-
-[SPELLING]
-spelling-private-dict-file=.local-spellings
-
 [TYPECHECK]
 ignored-classes=optparse.Values,thread._local,_thread._local,argparse.Namespace,QuantumCircuit
 generated-members=retworkx.visualization,retwork.visit
-
-[DESIGN]
-max-args=8
-max-attributes=10
-max-public-methods=35
