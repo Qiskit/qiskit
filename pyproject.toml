@@ -26,94 +26,70 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 [tool.pylint.main]
 extension-pkg-allow-list = ["retworkx", "numpy", "tweedledum", "qiskit._accelerate", "rustworkx"]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
-ignore-patterns = []
+py-version = "3.7"  # update it when bumping minimum supported python version
 
 [tool.pylint.basic]
 argument-rgx = "[a-z_][a-z0-9_]{2,30}|ax|dt$"
-attr-rgx = "[a-z_][a-z0-9_]{2,30}$"
-bad-names = ["foo", "bar", "toto", "tutu", "tata"]
-class-attribute-rgx = "([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__))$"
-class-rgx = "[A-Z_][a-zA-Z0-9]+$"
-const-rgx = "(([A-Z_][A-Z0-9_]*)|(__.*__))$"
-function-rgx = "[a-z_][a-z0-9_]{2,30}$"
 good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "dt", "__unittest", "iSwapGate", "mu"]
-inlinevar-rgx = "[A-Za-z_][A-Za-z0-9_]*$"
 method-rgx = "(([a-z_][a-z0-9_]{2,49})|(assert[A-Z][a-zA-Z0-9]{2,43})|(test_[_a-zA-Z0-9]{2,}))$"
-module-rgx = "(([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$"
 variable-rgx = "[a-z_][a-z0-9_]{1,30}$"
 
-[tool.pylint.classes]
-defining-attr-methods = ["__init__", "__new__", "setUp"]  # default ["__init__", "__new__", "setUp", "__post_init__"]
-
-[tool.pylint.design]
-max-args = 8  # default 5
-max-attributes = 10  # default 7
-max-public-methods = 35  # default 20
-
-[tool.pylint.exceptions]
-overgeneral-exceptions = ["builtins.Exception"]  # default ["builtins.BaseException", "builtins.Exception"]
 
 [tool.pylint.format]
 max-line-length = 105  # default 100
 
-[tool.pylint.imports]
-deprecated-modules = ["optparse"]
-
 [tool.pylint."messages control"]
-disable = ["raw-checker-failed",
-"bad-inline-option",
-"locally-disabled",
-"file-ignored",
-"suppressed-message",
-"useless-suppression",
-"deprecated-pragma",
-"wrong-spelling-in-comment",
-"wrong-spelling-in-docstring",
-"invalid-characters-in-docstring",
-"fixme",
-"protected-access",
-"duplicate-code",
-"redundant-returns-doc",
-"too-many-lines",
-"too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements", "too-many-instance-attributes",
-"too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
-"unnecessary-pass",
-"no-else-return",
-"docstring-first-line-empty",
-"import-outside-toplevel",
-"import-error",
-"arguments-renamed",
-"broad-exception-raised",
-"consider-iterating-dictionary",
-"consider-using-dict-items",
-"consider-using-enumerate",
-"consider-using-f-string",
-"consider-using-from-import",
-"modified-iterating-list",
-"nested-min-max",
-"no-member",
-"no-value-for-parameter",
-"non-ascii-name",
-"not-context-manager",
-"pointless-exception-statement",
-"superfluous-parens",
-"unknown-option-value",
-"unexpected-keyword-arg",
-"unnecessary-dict-index-lookup",
-"unnecessary-direct-lambda-call",
-"unnecessary-dunder-call",
-"unnecessary-ellipsis",
-"unnecessary-lambda-assignment",
-"unnecessary-list-index-lookup",
-"unspecified-encoding",
-"unsupported-assignment-operation",
-"use-dict-literal",
-"use-list-literal",
-"use-implicit-booleaness-not-comparison",
-"use-maxsplit-arg",
-"used-before-assignment"]
+disable = [
+# intentionally disabled:
+    "spelling",  # too noisy
+    "fixme", # disabled as TODOs would show up as warnings
+    "protected-access", # disabled as we don't follow the public vs private convention strictly
+    "duplicate-code", # disabled as it is too verbose
+    "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
+    "too-many-lines", "too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements",
+    "too-many-instance-attributes", "too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
+    "unnecessary-pass", # allow for methods with just "pass", for clarity
+    "no-else-return",  # relax "elif" after a clause with a return
+    "docstring-first-line-empty", # relax docstring style
+    "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
+# TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
+#  remove from here and fix the issues. Else, move it above this section and add a comment
+#  with the rationale
+    "arguments-renamed",
+    "broad-exception-raised",
+    "consider-iterating-dictionary",
+    "consider-using-dict-items",
+    "consider-using-enumerate",
+    "consider-using-f-string",
+    "consider-using-from-import",
+    "modified-iterating-list",
+    "nested-min-max",
+    "no-member",
+    "no-value-for-parameter",
+    "non-ascii-name",
+    "not-context-manager",
+    "pointless-exception-statement",
+    "superfluous-parens",
+    "unknown-option-value",
+    "unexpected-keyword-arg",
+    "unnecessary-dict-index-lookup",
+    "unnecessary-direct-lambda-call",
+    "unnecessary-dunder-call",
+    "unnecessary-ellipsis",
+    "unnecessary-lambda-assignment",
+    "unnecessary-list-index-lookup",
+    "unspecified-encoding",
+    "unsupported-assignment-operation",
+    "use-dict-literal",
+    "use-list-literal",
+    "use-implicit-booleaness-not-comparison",
+    "use-maxsplit-arg",
+    "used-before-assignment",
+]
 
-enable = ["use-symbolic-message-instead", "c-extension-no-member"]
+enable = [
+    "use-symbolic-message-instead",
+    "c-extension-no-member"]
 
 [tool.pylint.parameter_documentation]
 accept-no-param-doc = true
@@ -122,20 +98,5 @@ accept-no-return-doc = true
 accept-no-yields-doc = true
 default-docstring-type = "default"
 
-[tool.pylint.reports]
-evaluation = "10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)"
-#default: "max(0, 0 if fatal else 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10))"
-reports = true
-ignore-imports = false
-
 [tool.pylint.spelling]
 spelling-private-dict-file = ".local-spellings"
-
-[tool.pylint.typecheck]
-ignored-classes = ["optparse.Values", "thread._local", "_thread._local", "QuantumCircuit"]
-# default  ["optparse.Values", "thread._local", "_thread._local", "argparse.Namespace"]
-
-[tool.pylint.variables]
-dummy-variables-rgx = "(_+[a-zA-Z0-9_]*?$)|dummy" # default "_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_"
-ignored-argument-names = "_.*"  # default "_.*|^ignored_|^unused_"
-redefining-builtins-modules = ["six.moves", "future.builtins"]  # default ["six.moves", "past.builtins", "future.builtins", "builtins", "io"]
