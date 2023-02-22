@@ -404,7 +404,7 @@ class TestSolovayKitaevUtils(QiskitTestCase):
 
         # This mainly checks that there are no errors in the generation (like
         # in computing the inverse as described in #9585), so a simple check is enough.
-        self.assertLarger(len(approx), len(basis))
+        self.assertTrue(len(approx) > len(basis))
 
 
 
