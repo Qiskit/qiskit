@@ -13,7 +13,7 @@
 """Node for an OPENQASM id."""
 
 from .node import Node
-from .nodeexception import NodeException
+from .nodeerror import NodeError
 
 
 class Id(Node):
@@ -49,7 +49,7 @@ class Id(Node):
             return "\textrm{" + self.name + "}"
         else:
             if self.name not in nested_scope[-1]:
-                raise NodeException(
+                raise NodeError(
                     "Expected local parameter name: ",
                     "name=%s, " % self.name,
                     "line=%s, " % self.line,
@@ -61,7 +61,7 @@ class Id(Node):
     def sym(self, nested_scope=None):
         """Return the correspond symbolic number."""
         if not nested_scope or self.name not in nested_scope[-1]:
-            raise NodeException(
+            raise NodeError(
                 "Expected local parameter name: ",
                 f"name={self.name}, line={self.line}, file={self.file}",
             )
@@ -70,7 +70,7 @@ class Id(Node):
     def real(self, nested_scope=None):
         """Return the correspond floating point number."""
         if not nested_scope or self.name not in nested_scope[-1]:
-            raise NodeException(
+            raise NodeError(
                 "Expected local parameter name: ",
                 f"name={self.name}, line={self.line}, file={self.file}",
             )

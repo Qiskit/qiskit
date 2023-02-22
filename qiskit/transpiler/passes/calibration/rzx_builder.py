@@ -36,7 +36,7 @@ from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
 
 from .base_builder import CalibrationBuilder
-from .exceptions import CalibrationNotAvailable
+from .exceptions import CalibrationNotAvailableError
 
 
 class CRCalType(enum.Enum):
@@ -184,7 +184,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
         Raises:
             QiskitError: if rotation angle is not assigned.
             QiskitError: If the control and target qubits cannot be identified.
-            CalibrationNotAvailable: RZX schedule cannot be built for input node.
+            CalibrationNotAvailableError: RZX schedule cannot be built for input node.
         """
         theta = node_op.params[0]
 
@@ -206,7 +206,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
                     "RZX schedule is not generated for this qubit pair.",
                     UserWarning,
                 )
-            raise CalibrationNotAvailable
+            raise CalibrationNotAvailableError
 
         # The CR instruction is in the forward (native) direction
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:
@@ -279,7 +279,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
             QiskitError: if rotation angle is not assigned.
             QiskitError: If the control and target qubits cannot be identified,
                 or the backend does not natively support the specified direction of the cx.
-            CalibrationNotAvailable: RZX schedule cannot be built for input node.
+            CalibrationNotAvailableError: RZX schedule cannot be built for input node.
         """
         theta = node_op.params[0]
 
@@ -301,7 +301,7 @@ class RZXCalibrationBuilderNoEcho(RZXCalibrationBuilder):
                     "RZX schedule is not generated for this qubit pair.",
                     UserWarning,
                 )
-            raise CalibrationNotAvailable
+            raise CalibrationNotAvailableError
 
         # RZXCalibrationNoEcho only good for forward CR direction
         if cal_type in [CRCalType.ECR_CX_FORWARD, CRCalType.ECR_FORWARD]:

@@ -533,7 +533,7 @@ def _requires_backend(function: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(function)
     def wrapper(self, *args, **kwargs):
         if self.backend is None:
-            raise exceptions.BackendNotSet(
+            raise exceptions.BackendNotSetError(
                 'This function requires the builder to have a "backend" set.'
             )
         return function(self, *args, **kwargs)
@@ -1026,13 +1026,13 @@ def _active_builder() -> _PulseBuilder:
         The active active builder in this context.
 
     Raises:
-        exceptions.NoActiveBuilder: If a pulse builder function is called
+        exceptions.NoActiveBuilderError: If a pulse builder function is called
         outside of a builder context.
     """
     try:
         return BUILDER_CONTEXTVAR.get()
     except LookupError as ex:
-        raise exceptions.NoActiveBuilder(
+        raise exceptions.NoActiveBuilderError(
             "A Pulse builder function was called outside of "
             "a builder context. Try calling within a builder "
             'context, eg., "with pulse.build() as schedule: ...".'
@@ -1047,11 +1047,11 @@ def active_backend():
             builder context.
 
     Raises:
-        exceptions.BackendNotSet: If the builder does not have a backend set.
+        exceptions.BackendNotSetError: If the builder does not have a backend set.
     """
     builder = _active_builder().backend
     if builder is None:
-        raise exceptions.BackendNotSet(
+        raise exceptions.BackendNotSetError(
             'This function requires the active builder to have a "backend" set.'
         )
     return builder

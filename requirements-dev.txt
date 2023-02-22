@@ -28,3 +28,4 @@ jaxlib;platform_system != 'Windows'
 tweedledum;platform_system != 'Darwin' and python_version<'3.11'
 docplex
 qiskit-qasm3-import; python_version>='3.8'
+qcircuits

@@ -16,7 +16,7 @@ import numpy as np
 
 from qiskit.exceptions import MissingOptionalLibraryError
 from .node import Node
-from .nodeexception import NodeException
+from .nodeerror import NodeError
 
 
 class External(Node):
@@ -63,7 +63,7 @@ class External(Node):
             arg = expr.real(nested_scope)
             return dispatch[op](arg)
         else:
-            raise NodeException("internal error: undefined external")
+            raise NodeError("internal error: undefined external")
 
     def sym(self, nested_scope=None):
         """Return the corresponding symbolic expression."""
@@ -84,4 +84,4 @@ class External(Node):
             arg = expr.sym(nested_scope)
             return dispatch[op](arg)
         else:
-            raise NodeException("internal error: undefined external")
+            raise NodeError("internal error: undefined external")

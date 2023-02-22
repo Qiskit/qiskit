@@ -21,7 +21,7 @@ from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.transpiler.basepasses import TransformationPass
 
-from .exceptions import CalibrationNotAvailable
+from .exceptions import CalibrationNotAvailableError
 
 
 class CalibrationBuilder(TransformationPass):
@@ -68,7 +68,7 @@ class CalibrationBuilder(TransformationPass):
                 # calibration can be provided and no user-defined calibration is already provided
                 try:
                     schedule = self.get_calibration(node.op, qubits)
-                except CalibrationNotAvailable:
+                except CalibrationNotAvailableError:
                     # Fail in schedule generation. Just ignore.
                     continue
                 publisher = schedule.metadata.get("publisher", CalibrationPublisher.QISKIT)

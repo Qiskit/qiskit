@@ -50,6 +50,7 @@ select = [
   "UP034", # Avoid extraneous parentheses
   "UP032", # Use f-string instead of format call
   "UP031", # Use format specifiers instead of percent format
+  "N818",  # Exception name `{errorname}` should be named with an Error suffix
 ]
 
 target-version = "py37"
