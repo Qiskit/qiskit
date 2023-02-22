@@ -736,7 +736,7 @@ and we can view this layout selection graphically using
 
       ghz = QuantumCircuit(3, 3)
       ghz.h(0)
-      for i  in range(1, 3):
+      for i in range(1, 3):
         ghz.cx(0, i)
       ghz.barrier()
       ghz.measure(range(3), range(3))
