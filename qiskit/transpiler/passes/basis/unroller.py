@@ -134,8 +134,8 @@ class Unroller(TransformationPass):
                         continue
                     # opaque node
                     raise QiskitError(
-                        "Cannot unroll the circuit to the given basis, %s. "
-                        "No rule to expand instruction %s." % (str(self.basis), node.op.name)
+                        "Cannot unroll the circuit to the given basis, {}. "
+                        "No rule to expand instruction {}.".format(str(self.basis), node.op.name)
                     )
                 decomposition = circuit_to_dag(node.op.definition)
                 unrolled_dag = self.run(decomposition)  # recursively unroll ops

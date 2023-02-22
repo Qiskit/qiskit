@@ -80,7 +80,7 @@ class Register:
         if (size, bits) == (None, None) or (size is not None and bits is not None):
             raise CircuitError(
                 "Exactly one of the size or bits arguments can be "
-                "provided. Provided size=%s bits=%s." % (size, bits)
+                "provided. Provided size={} bits={}.".format(size, bits)
             )
 
         # validate (or cast) size

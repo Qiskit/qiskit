@@ -48,7 +48,8 @@ select = [
   "UP027", # Replace unpacked list comprehension with a generator expression
   "UP018", # Unnecessary call to `bytes`. (Using b'' instead of bytes() is much faster)
   "UP034", # Avoid extraneous parentheses
-  "UP032",
+  "UP032", # Use f-string instead of format call
+  "UP031", # Use format specifiers instead of percent format
 ]
 
 target-version = "py37"

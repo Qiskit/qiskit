@@ -591,7 +591,7 @@ class QCircuitImage:
             else:
                 wire2 = self._wire_map[node.cargs[0]]
 
-            self._latex[wire2][col] = "\\dstick{_{_{\\hspace{%sem}%s}}} \\cw \\ar @{<=} [-%s,0]" % (
+            self._latex[wire2][col] = "\\dstick{{_{{_{{\\hspace{{{}em}}{}}}}}}} \\cw \\ar @{{<=}} [-{},0]".format(
                 cond_offset,
                 idx_str,
                 str(wire2 - wire1),
@@ -662,7 +662,7 @@ class QCircuitImage:
             )
             gap = cwire - max(wire_list)
             control = "\\control" if op.condition[1] else "\\controlo"
-            self._latex[cwire][col] = f"{control}" + " \\cw^(%s){^{\\mathtt{%s}}} \\cwx[-%s]" % (
+            self._latex[cwire][col] = f"{control}" + " \\cw^({}){{^{{\\mathtt{{{}}}}}}} \\cwx[-{}]".format(
                 meas_offset,
                 label,
                 str(gap),
