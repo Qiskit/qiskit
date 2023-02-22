@@ -29,8 +29,14 @@ line-length=105
 select = [
   "E", "F",
   "B007",  # unused loop control variable
+  "W",
+  #  "C90", complexity. There are many failures.
+  # "I", isort 1300 violations
+  # "N", 900 violations. identifiers names. We would want exceptions for many of these
+  "D419", # Docstring is empty
 ]
 
+ignore = ["B905"]
 
 [tool.ruff.per-file-ignores]
 # The following line covers over 1300 errors
