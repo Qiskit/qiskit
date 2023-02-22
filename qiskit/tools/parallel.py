@@ -105,9 +105,7 @@ def _task_wrapper(param):
     return task(value, *task_args, **task_kwargs)
 
 
-def parallel_map(
-    task, values, task_args=(), task_kwargs={}, num_processes=CPU_COUNT  # noqa: B006
-):
+def parallel_map(task, values, task_args=(), task_kwargs={}, num_processes=CPU_COUNT):  # noqa: B006
     """
     Parallel execution of a mapping of `values` to the function `task`. This
     is functionally equivalent to::
