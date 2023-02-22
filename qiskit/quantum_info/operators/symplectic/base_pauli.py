@@ -436,7 +436,20 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             coeff = (-1j) ** phase
         else:
             coeff = 1
-        data = coeff * _PARITY[(z_indices & indptr).astype(np.uint8)]
+
+        # computes parities of each value of `z_indices & indptr`, i.e.,
+        # np.array([(-1) ** bin(i).count("1") for i in z_indices & indptr])
+        vec_u64 = z_indices & indptr
+        mat_u8 = np.zeros((vec_u64.size, 8), dtype=np.uint8)
+        for i in range(8):
+            mat_u8[:, i] = np.mod(vec_u64, 256)
+            vec_u64 >>= 8
+            if np.all(vec_u64 == 0):
+                break
+        parity = _PARITY[np.bitwise_xor.reduce(mat_u8, axis=1)]
+
+        data = coeff * parity
+
         if sparse:
             # Return sparse matrix
             from scipy.sparse import csr_matrix
