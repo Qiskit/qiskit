@@ -150,15 +150,14 @@ def _append_operation(clifford, operation, qargs=None, recursion_depth=0):
     if isinstance(gate, Gate) and len(qargs) <= 3:
         try:
             matrix = gate.to_matrix()
-            try:
-                gate_cliff = Clifford.from_matrix(matrix)
-                return _append_operation(clifford, gate_cliff, qargs=qargs)
-            except QiskitError as err:
-                raise QiskitError(f"Cannot apply non-Clifford gate: {gate.name}") from err
+            gate_cliff = Clifford.from_matrix(matrix)
+            return _append_operation(clifford, gate_cliff, qargs=qargs)
         except TypeError as err:
             raise QiskitError(f"Cannot apply {gate.name} gate with unbounded parameters") from err
-        except CircuitError:
-            pass
+        except CircuitError as err:
+            raise QiskitError(f"Cannot apply {gate.name} gate without to_matrix defined") from err
+        except QiskitError as err:
+            raise QiskitError(f"Cannot apply non-Clifford gate: {gate.name}") from err
 
     raise QiskitError(f"Cannot apply {gate}")
 
@@ -166,15 +165,13 @@ def _append_operation(clifford, operation, qargs=None, recursion_depth=0):
 def _n_half_pis(param) -> int:
     try:
         param = float(param)
-    except TypeError as err:
-        raise ValueError(f"{param} is not bounded") from err
-
-    epsilon = (abs(param) + 0.5 * 1e-10) % (np.pi / 2)
-    if epsilon < 1e-10:
+        epsilon = (abs(param) + 0.5 * 1e-10) % (np.pi / 2)
+        if epsilon > 1e-10:
+            raise ValueError(f"{param} is not to a multiple of pi/2")
         multiple = int(np.round(param / (np.pi / 2)))
         return multiple % 4
-
-    raise ValueError(f"{param} is not to a multiple of pi/2")
+    except TypeError as err:
+        raise ValueError(f"{param} is not bounded") from err
 
 
 # ---------------------------------------------------------------------
