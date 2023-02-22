@@ -449,7 +449,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         parity = _PARITY[np.bitwise_xor.reduce(mat_u8, axis=1)]
 
         data = coeff * parity
-
         if sparse:
             # Return sparse matrix
             from scipy.sparse import csr_matrix
