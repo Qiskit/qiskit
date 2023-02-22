@@ -135,7 +135,7 @@ def derive_circuit(
         raise NotImplementedError("No product rule support yet, circuit parameters must be unique.")
 
     summands, op_context = [], []
-    for i, op in enumerate(circuit.data):
+    for op in circuit.data:
         gate = op[0]
         op_context += [op[1:]]
         if parameter in gate.params:
