@@ -47,11 +47,15 @@ select = [
   # "BLE", 75 of these. We should fix them
   "UP027", # Replace unpacked list comprehension with a generator expression
   "UP018", # Unnecessary call to `bytes`. (Using b'' instead of bytes() is much faster)
+  "UP034", # Avoid extraneous parentheses
 ]
 
 target-version = "py37"
 
-ignore = ["B905"]
+ignore = [
+"B905",
+"UP015", # Unnecessary open mode parameters (This removes "r". Do we want this ?)
+]
 
 [tool.ruff.per-file-ignores]
 # The following line covers over 1300 errors

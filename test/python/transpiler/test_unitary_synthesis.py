@@ -238,10 +238,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+            all((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx"))
         )
         self.assertTrue(
-            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out_nat.get_instructions("cx")))
+            all((qr[0], qr[1]) == instr.qubits for instr in qc_out_nat.get_instructions("cx"))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -281,10 +281,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+            all((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx"))
         )
         self.assertTrue(
-            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out_nat.get_instructions("cx")))
+            all((qr[0], qr[1]) == instr.qubits for instr in qc_out_nat.get_instructions("cx"))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -324,10 +324,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         # the decomposer defaults to the [1, 0] direction but the coupling
         # map specifies a [0, 1] direction. Check that this is respected.
         self.assertTrue(
-            all(((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+            all((qr[1], qr[0]) == instr.qubits for instr in qc_out.get_instructions("cx"))
         )
         self.assertTrue(
-            all(((qr[1], qr[0]) == instr.qubits for instr in qc_out_nat.get_instructions("cx")))
+            all((qr[1], qr[0]) == instr.qubits for instr in qc_out_nat.get_instructions("cx"))
         )
         self.assertEqual(Operator(qc), Operator(qc_out))
         self.assertEqual(Operator(qc), Operator(qc_out_nat))
@@ -400,7 +400,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         pm = PassManager([triv_layout_pass, unisynth_pass])
         qc_out = pm.run(qc)
         self.assertTrue(
-            all(((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx")))
+            all((qr[0], qr[1]) == instr.qubits for instr in qc_out.get_instructions("cx"))
         )
 
     def test_two_qubit_natural_direction_true_gate_length_raises(self):
@@ -561,18 +561,14 @@ class TestUnitarySynthesis(QiskitTestCase):
 
         self.assertTrue(
             all(
-                (
-                    (1, 0) == (circ_10_index[instr.qubits[0]], circ_10_index[instr.qubits[1]])
-                    for instr in circ_10.get_instructions("cx")
-                )
+                (1, 0) == (circ_10_index[instr.qubits[0]], circ_10_index[instr.qubits[1]])
+                for instr in circ_10.get_instructions("cx")
             )
         )
         self.assertTrue(
             all(
-                (
-                    (0, 1) == (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
-                    for instr in circ_01.get_instructions("cx")
-                )
+                (0, 1) == (circ_01_index[instr.qubits[0]], circ_01_index[instr.qubits[1]])
+                for instr in circ_01.get_instructions("cx")
             )
         )
 
@@ -617,10 +613,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         tqc_index = {qubit: index for index, qubit in enumerate(tqc.qubits)}
         self.assertTrue(
             all(
-                (
-                    (0, 1) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
-                    for instr in tqc.get_instructions("cx")
-                )
+                (0, 1) == (tqc_index[instr.qubits[0]], tqc_index[instr.qubits[1]])
+                for instr in tqc.get_instructions("cx")
             )
         )
 
