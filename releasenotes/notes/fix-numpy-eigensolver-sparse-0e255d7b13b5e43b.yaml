@@ -1,6 +1,9 @@
 ---
 fixes:
   - |
-    Fixed a bug in :class:`~.minimum_eigensolvers.NumPyMinimumEigensolver` and 
-    :class:`~.eigensolvers.NumPyEigensolver` where operators that support conversion
+    Fixed a bug in the NumPy-based eigensolvers 
+    (:class:`~.minimum_eigensolvers.NumPyMinimumEigensolver` / 
+    :class:`~.eigensolvers.NumPyEigensolver`)
+    and in the SciPy-based time evolvers (:class:`.SciPyRealEvolver` / 
+    :class:`.SciPyImaginaryEvolver`), where operators that support conversion
     to sparse matrices, such as :class:`.SparsePauliOp`, were converted to dense matrices anyways.
