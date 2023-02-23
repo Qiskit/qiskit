@@ -1247,6 +1247,261 @@ Gradients
 ---------
 *Back to* `Contents`_
 
-Replaced by the new :mod:`qiskit.algorithms.gradients` module. You can see further details in the
-`algorithms migration guide <http://qisk.it/algo_migration>`_.
+The opflow :mod:`~qiskit.opflow.gradients` framework has been replaced by the new :mod:`qiskit.algorithms.gradients`
+module. The new gradients are **primitive-based subroutines** commonly used by algorithms and applications, which
+can also be executed in a standalone manner. For this reason, they now reside under :mod:`qiskit.algorithms`.
 
+The former gradient framework contained base classes, converters and derivatives. The "derivatives"
+followed a factory design pattern, where different methods could be provided via string identifiers
+to each of these classes. The new gradient framework contains two main families of subroutines:
+**Gradients** and **QGT/QFI**.
+
+This leads to a change in the workflow, where instead of doing:
+
+.. code-block:: python
+
+    from qiskit.opflow import Gradient
+
+    grad = Gradient(method="param_shift")
+
+    # task based on expectation value computations + gradients
+
+We now import explicitly the desired class, depending on the target primitive (Sampler/Estimator) and target method:
+
+.. code-block:: python
+
+    from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
+
+    grad = ParamShiftEstimatorGradient(estimator)
+
+    # task based on expectation value computations + gradients
+
+This works similarly for the QFI class, where instead of doing:
+
+.. code-block:: python
+
+    from qiskit.opflow import QFI
+
+    qfi = QFI(method="param_shift")
+
+    # task based on expectation value computations + QFI
+
+You now have a generic QFI implementation that can be initialized with any gradient instance:
+
+.. code-block:: python
+
+    from qiskit.algorithms.gradients import ParamShiftEstimatorGradient, QFI
+
+    grad = ParamShiftEstimatorGradient(estimator)
+    qfi = QFI(gradient=grad)
+
+    # task based on expectation value computations + QFI
+
+.. note::
+
+    Here is a quick guide for migrating the most common gradient settings. Please note that all new gradient
+    imports follow the format:
+
+    .. code-block:: python
+
+        from qiskit.algorithms.gradients import MethodPrimitiveGradient
+
+    .. raw:: html
+
+        <details>
+        <summary><a><b>Gradients</b></a></summary>
+        <br>
+
+    .. list-table::
+       :header-rows: 1
+
+       * - Opflow
+         - Alternative
+
+       * - ``Gradient(method="lin_comb")``
+         - ``LinCombEstimatorGradient(estimator=estimator)`` or ``LinCombSamplerGradient(sampler=sampler)``
+       * - ``Gradient(method="param_shift")``
+         - ``ParamShiftEstimatorGradient(estimator=estimator)`` or ``ParamShiftSamplerGradient(sampler=sampler)``
+       * - ``Gradient(method="fin_diff")``
+         - ``FiniteDiffEstimatorGradient(estimator=estimator)`` or ``ParamShiftSamplerGradient(sampler=sampler)``
+
+
+    .. raw:: html
+
+        </details>
+
+    .. raw:: html
+
+        <details>
+        <summary><a><b>QFI/QGT</b></a></summary>
+        <br>
+
+    .. list-table::
+       :header-rows: 1
+
+       * - Opflow
+         - Alternative
+
+       * - ``QFI(method="lin_comb")``
+         - ``QFI(gradient=gradient_instance_for_method)``
+
+    .. raw:: html
+
+        </details>
+
+Other auxiliary classes in the legacy gradient framework have now been deprecated. Here is the complete migration
+list:
+
+.. list-table::
+   :header-rows: 1
+
+   * - Opflow
+     - Alternative
+
+   * - :class:`~qiskit.opflow.gradients.DerivativeBase`
+     - No replacement. This was the base class for the gradient, hessian and QFI base classes.
+   * - :class:`.GradientBase` and :class:`~qiskit.opflow.gradients.Gradient`
+     - :class:`.BaseSamplerGradient` or :class:`.BaseEstimatorGradient`, and specific subclasses per method,
+       as explained above.
+   * - :class:`.HessianBase` and :class:`~qiskit.opflow.gradients.Hessian`
+     - No replacement. The new gradient framework does not work with hessians as independent objects.
+   * - :class:`.QFIBase` and :class:`~qiskit.opflow.gradients.QFI`
+     - The new :class:`~qiskit.algorithms.gradients.QFI` class extends :class:`~qiskit.algorithms.gradients.QGT`, so the
+       corresponding base class is :class:`~qiskit.algorithms.gradients.BaseQGT`
+   * - :class:`~qiskit.opflow.gradients.CircuitGradient`
+     - No replacement. This class was used to convert between circuit and gradient
+       :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`, and this functionality is no longer necessary.
+   * - :class:`~qiskit.opflow.gradients.CircuitQFI`
+     - No replacement. This class was used to convert between circuit and QFI
+       :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`, and this functionality is no longer necessary.
+   * - :class:`~qiskit.opflow.gradients.NaturalGradient`
+     - No replacement. The same functionality can be achieved with the QFI module.
+
+.. raw:: html
+
+    <details>
+    <summary><a><font size="+1">Example 1: Finite Differences Batched Gradient</font></a></summary>
+    <br>
+
+**Opflow**
+
+.. code-block:: python
+
+    from qiskit.circuit.library import Parameter, QuantumCircuit
+    from qiskit.opflow import Gradient, X, Z, StateFn, CircuitStateFn
+
+    ham = 0.5 * X - 1 * Z
+
+    a = Parameter("a")
+    b = Parameter("b")
+    c = Parameter("c")
+
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    qc.u(a, b, c, 0)
+    qc.h(0)
+    qc.measure_all()
+
+    op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+
+    # the gradient class acted similarly opflow converters,
+    # with a .convert() step and an .eval() step
+    state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
+
+    # the old workflow did not allow for batched evaluation of parameter values
+    values_dict = [{a: np.pi / 4, b: 0, c: 0}, {a: np.pi / 4, b: np.pi / 4, c: np.pi / 4}]
+    gradients = []
+    for i, value_dict in enumerate(values_dict):
+        gradients.append(state_grad.assign_parameters(value_dict).eval())
+
+**Alternative**
+
+.. code-block:: python
+
+    from qiskit.circuit.library import Parameter, QuantumCircuit
+    from qiskit.primitives import Estimator
+    from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
+    from qiskit.quantum_info import SparsePauliOp
+
+    ham = SparsePauliOp.from_list([(X, 0.5), (Z, -1)])
+
+    a = Parameter("a")
+    b = Parameter("b")
+    c = Parameter("c")
+
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    qc.u(a, b, c, 0)
+    qc.h(0)
+    qc.measure_all()
+
+    estimator = Estimator()
+    gradient = ParamShiftEstimatorGradient(estimator)
+
+    # the new workflow follows an interface close to the primitives'
+    param_list = [[np.pi / 4, 0, 0], [np.pi / 4, np.pi / 4, np.pi / 4]]
+    # for batched evaluations, the number of circuits must match the
+    # number of parameter value sets
+    gradients = gradient.run([qc] * 3, param_list).result().gradients
+
+.. raw:: html
+
+    </details>
+
+.. raw:: html
+
+    <details>
+    <summary><a><font size="+1">Example 2: QFI </font></a></summary>
+    <br>
+
+**Opflow**
+
+.. code-block:: python
+
+    from qiskit.circuit.library import Parameter, QuantumCircuit
+    from qiskit.opflow import QFI, CircuitStateFn
+
+    # create the circuit
+    a, b = Parameter("a"), Parameter("b")
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    qc.rz(a, 0)
+    qc.rx(b, 0)
+
+    # convert the circuit to a QFI object
+    op = CircuitStateFn(qc)
+    qfi = QFI(qfi_method="lin_comb_full").convert(operator=op)
+
+    # test for different values
+    values_dict = [{a: np.pi / 4, b: 0.1}, {a: np.pi, b: 0.1}, {a: np.pi / 2, b: 0.1}]
+    qfis = []
+    for i, value_dict in enumerate(values_dict):
+        qfis.append(qfi.assign_parameters(value_dict).eval())
+
+**Alternative**
+
+.. code-block:: python
+
+    from qiskit.circuit.library import Parameter, QuantumCircuit
+    from qiskit.primitives import Sampler
+    from qiskit.algorithms.gradients import LinCombSamplerGradient, QFI
+
+    # create the circuit
+    a, b = Parameter("a"), Parameter("b")
+    qc = QuantumCircuit(1)
+    qc.h(0)
+    qc.rz(a, 0)
+    qc.rx(b, 0)
+
+    sampler = Sampler()
+    gradient = ParamShiftSamplerGradient(sampler)
+    qfi = QFI(gradient)
+
+    # test for different values
+    values_list = [[np.pi / 4,, 0.1], [np.pi, 0.1], [np.pi / 2, 0.1]]
+    qfis = qfi.run([qc] * 3, values_list).results().qfis
+
+
+.. raw:: html
+
+    </details>
