@@ -202,6 +202,35 @@ class TestSolovayKitaev(QiskitTestCase):
             discretized = skd(transpiled)
             self.assertLess(_trace_distance(transpiled, discretized), 7)
 
+    def test_u_gates_work(self):
+        """Test SK works on Qiskit's UGate.
+
+        Regression test of Qiskit/qiskit-terra#9437.
+        """
+        circuit = QuantumCircuit(1)
+        circuit.u(np.pi / 2, -np.pi, -np.pi, 0)
+        circuit.u(np.pi / 2, np.pi / 2, -np.pi, 0)
+        circuit.u(-np.pi / 4, 0, -np.pi / 2, 0)
+        circuit.u(np.pi / 4, -np.pi / 16, 0, 0)
+        circuit.u(0, 0, np.pi / 16, 0)
+        circuit.u(0, np.pi / 4, np.pi / 4, 0)
+        circuit.u(np.pi / 2, 0, -15 * np.pi / 16, 0)
+        circuit.p(-np.pi / 4, 0)
+        circuit.p(np.pi / 4, 0)
+        circuit.u(np.pi / 2, 0, -3 * np.pi / 4, 0)
+        circuit.u(0, 0, -np.pi / 16, 0)
+        circuit.u(np.pi / 2, 0, 15 * np.pi / 16, 0)
+
+        depth = 4
+        basis_gates = ["h", "t", "tdg", "s", "z"]
+        gate_approx_library = generate_basic_approximations(basis_gates=basis_gates, depth=depth)
+
+        skd = SolovayKitaev(recursion_degree=2, basic_approximations=gate_approx_library)
+        discretized = skd(circuit)
+
+        included_gates = set(discretized.count_ops().keys())
+        self.assertEqual(set(basis_gates), included_gates)
+
 
 @ddt
 class TestGateSequence(QiskitTestCase):
@@ -364,6 +393,18 @@ class TestSolovayKitaevUtils(QiskitTestCase):
         w_so3 = w.product
         actual_commutator = np.dot(v_so3, np.dot(w_so3, np.dot(np.conj(v_so3).T, np.conj(w_so3).T)))
         self.assertTrue(np.allclose(actual_commutator, u_so3))
+
+    def test_generate_basis_approximation_gates(self):
+        """Test the basis approximation generation works for all supported gates.
+
+        Regression test of Qiskit/qiskit-terra#9585.
+        """
+        basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg"]
+        approx = generate_basic_approximations(basis, depth=2)
+
+        # This mainly checks that there are no errors in the generation (like
+        # in computing the inverse as described in #9585), so a simple check is enough.
+        self.assertGreater(len(approx), len(basis))
 
 
 if __name__ == "__main__":
