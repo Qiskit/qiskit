@@ -2,4 +2,4 @@
 fixes:
   - |
     Fixed bug in :class:`.QNSPSA` which raised a type error when the computed fidelities
-    happened to be integers but the perturbation was of type float.
+    happened to be of type ``int`` but the perturbation was of type ``float``.
