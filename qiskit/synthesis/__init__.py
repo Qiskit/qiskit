@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017 - 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -38,6 +38,13 @@ Linear Function Synthesis
     synth_cnot_count_full_pmh
     synth_cnot_depth_line_kms
 
+Linear-Phase Synthesis
+======================
+.. autosummary::
+   :toctree: ../stubs/
+
+    synth_cz_depth_line_mr
+
 Permutation Synthesis
 =====================
 
@@ -59,6 +66,7 @@ Clifford Synthesis
    synth_clifford_bm
    synth_clifford_greedy
    synth_clifford_layers
+   synth_clifford_depth_lnn
 
 CNOTDihedral Synthesis
 ======================
@@ -95,13 +103,18 @@ from .permutation import (
     synth_permutation_basic,
     synth_permutation_acg,
 )
-from .linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
+from .linear import (
+    synth_cnot_count_full_pmh,
+    synth_cnot_depth_line_kms,
+)
+from .linear_phase import synth_cz_depth_line_mr
 from .clifford import (
     synth_clifford_full,
     synth_clifford_ag,
     synth_clifford_bm,
     synth_clifford_greedy,
     synth_clifford_layers,
+    synth_clifford_depth_lnn,
 )
 from .cnotdihedral import (
     synth_cnotdihedral_full,
