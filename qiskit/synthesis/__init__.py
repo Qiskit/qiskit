@@ -80,7 +80,7 @@ Discrete Basis Synthesis
    generate_basic_approximations
 
 SU(4) (2-qubit unitary) Synthesis
-===============
+=========================
 
 .. autosummary::
    :toctree: ../stubs/
