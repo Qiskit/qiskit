@@ -262,7 +262,7 @@ class QubitProperties:
         self.frequency = frequency
 
     def __repr__(self):
-        return f"QubitProperties(t1={self.t1}, t2={self.t2}, " f"frequency={self.frequency})"
+        return f"QubitProperties(t1={self.t1}, t2={self.t2}, frequency={self.frequency})"
 
 
 class BackendV2(Backend, ABC):

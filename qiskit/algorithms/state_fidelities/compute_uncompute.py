@@ -79,7 +79,7 @@ class ComputeUncompute(BaseStateFidelity):
         """
         if not isinstance(sampler, BaseSampler):
             raise ValueError(
-                f"The sampler should be an instance of BaseSampler, " f"but got {type(sampler)}"
+                f"The sampler should be an instance of BaseSampler, but got {type(sampler)}"
             )
         self._sampler: BaseSampler = sampler
         self._local = local
