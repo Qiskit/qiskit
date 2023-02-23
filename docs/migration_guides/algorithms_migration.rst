@@ -251,7 +251,7 @@ The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.VQE` class has now be
     # shot-based simulation
     backend = AerSimulator()
     qi = QuantumInstance(backend=backend, shots=2048)
-    expectation = CVaRExpectation()
+    expectation = CVaRExpectation(alpha=0.2)
     vqe = VQE(ansatz, optimizer=opt, expectation=expectation, quantum_instance=qi)
 
     # diagonal hamiltonian
@@ -275,11 +275,11 @@ The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.VQE` class has now be
 
     # shot-based simulation
     sampler = Sampler(options={"shots": 2048})
-    vqe = SamplingVQE(sampler, ansatz, opt)
+    vqe = SamplingVQE(sampler, ansatz, opt, aggregation=0.2)
 
     # another option
     aer_sampler = AerSampler(run_options={"shots": 2048})
-    vqe = VQE(aer_sampler, ansatz, opt)
+    vqe = SamplingVQE(aer_sampler, ansatz, opt, aggregation=0.2)
 
     # diagonal hamiltonian
     hamiltonian = SparsePauliOp.from_list([("XX", 1), ("XY", 1)]
