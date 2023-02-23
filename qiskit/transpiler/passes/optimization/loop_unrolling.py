@@ -18,6 +18,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp, Instruction, Parameter
+from qiskit.dagcircuit import DAGInNode, DAGOutNode
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 
 
@@ -44,7 +45,7 @@ class UnrollForLoops(TransformationPass):
 class ForLoopBodyOptimizer(TransformationPass):
     """Optimize for loop bodies."""
             
-    def __init__(self, opt_manager=None, pre_opt_cnt=None, inter_opt_cnt=None, post_opt_cnt=None):
+    def __init__(self, opt_manager=None, pre_opt_cnt=0, inter_opt_cnt=0, post_opt_cnt=0):
         """
         Initialize for loop unroller. 
 
@@ -55,6 +56,7 @@ class ForLoopBodyOptimizer(TransformationPass):
            inter_opt_cnt (None or int): how deep to check from the front and back
            post_opt_cnt (None or int): how many operations to consider off the back
         """
+        super().__init__()        
         self._opt = opt_manager
         self._pre_opt_cnt = pre_opt_cnt
         self._inter_opt_cnt = inter_opt_cnt
@@ -65,9 +67,14 @@ class ForLoopBodyOptimizer(TransformationPass):
         self._global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
         for node in dag.op_nodes(op=ForLoopOp):
             # Optimize order here with pass manager?
+            print(dag_to_circuit(dag))
+            print(repr(dag.op_nodes()[3]))
             self._optimize_pre(dag, node)
-            self._optimize_inter(dag, node)
+            print(dag_to_circuit(dag))
+            print(repr(dag.op_nodes()[3]))
             self._optimize_post(dag, node)
+            print(dag_to_circuit(dag))
+            print(repr(dag.op_nodes()[3]))
         return dag
 
     def _optimize_pre(self, dag, node):
@@ -75,17 +82,42 @@ class ForLoopBodyOptimizer(TransformationPass):
         trial_dag_in, block = _get_predecessor_dag(dag, node, self._pre_opt_cnt)
         #TODO: elliminate this conversion
         trial_dag_out = circuit_to_dag(self._opt.run([dag_to_circuit(trial_dag_in)]))
-        breakpoint()
         if sum(trial_dag_out.count_ops().values()) < sum(trial_dag_in.count_ops().values()):
+            # trim idle qubits so block qubits matches trial_dag_out
+            trial_dag_out.remove_qubits(*trial_dag_out.idle_wires())
+            print(dag_to_circuit(trial_dag_out))
             _replace_block_with_dag(dag, block, trial_dag_out)
-        breakpoint()
+            if len(indexset) > 1:
+                new_for_loop = node.op.copy()
+                new_for_loop.params = indexset[:-1], loop_parameter, body
+                dag.substitute_node(node, new_for_loop)
+            else:
+                dag.remove_op_node(node)
 
+    def _optimize_post(self, dag, node):
+        indexset, loop_parameter, body = node.op.params
+        trial_dag_in, block = _get_successor_dag(dag, node, self._post_opt_cnt)
+        #TODO: elliminate this conversion
+        trial_dag_out = circuit_to_dag(self._opt.run([dag_to_circuit(trial_dag_in)]))
+        if sum(trial_dag_out.count_ops().values()) < sum(trial_dag_in.count_ops().values()):
+            # trim idle qubits so block qubits matches trial_dag_out
+            trial_dag_out.remove_qubits(*trial_dag_out.idle_wires())
+            print(dag_to_circuit(trial_dag_out))
+            _replace_block_with_dag(dag, block, trial_dag_out)
+            if len(indexset) > 1:
+                new_for_loop = node.op.copy()
+                new_for_loop.params = indexset[:-1], loop_parameter, body
+                dag.substitute_node(node, new_for_loop)
+            else:
+                dag.remove_op_node(node)
+                
 def _get_predecessor_dag(dag, node, cnt):
     """get the circuit formed from the body of the for-loop node and 
     previous cnt nodes"""
     indexset, loop_parameter, body = node.op.params
 
     # extract body of for_loop into new dag
+    trial_dag = dag.copy_empty_like()
     trial_dag.global_phase = 0
     qubit_map = {body_qubit: dag_qubit for body_qubit, dag_qubit in zip(body.qubits, node.qargs)}
     clbit_map = {body_qubit: dag_qubit for body_clbit, dag_clbit in zip(body.clbits, node.cargs)}
@@ -104,9 +136,47 @@ def _get_predecessor_dag(dag, node, cnt):
         except StopIteration:
             break
         else:
-            cnt -= 1            
+            cnt -= 1
+        if isinstance(this_node, DAGInNode):
+            break
         block.append(this_node)
         trial_dag.apply_operation_front(this_node.op, qargs=this_node.qargs, cargs=this_node.cargs)
+    return trial_dag, block
+
+def _get_successor_dag(dag, node, cnt):
+    """get the circuit formed from the body of the for-loop node and 
+    subsequent cnt nodes"""
+    indexset, loop_parameter, body = node.op.params
+
+    # extract body of for_loop into new dag
+    trial_dag = dag.copy_empty_like()
+    trial_dag.global_phase = 0
+    qubit_map = {body_qubit: dag_qubit for body_qubit, dag_qubit in zip(body.qubits, node.qargs)}
+    clbit_map = {body_qubit: dag_qubit for body_clbit, dag_clbit in zip(body.clbits, node.cargs)}
+    for circ_instr in body.data:
+        qargs = [qubit_map[qubit] for qubit in circ_instr.qubits]
+        cargs = [clbit_map[qubit] for clbit in circ_instr.clbits]        
+        trial_dag.apply_operation_back(circ_instr.operation, qargs=qargs, cargs=cargs)
+
+    # add predecessor nodes from dag
+    post_iter = dag.successors(node)
+    block = [] # tracks the nodes added from _outside_ the loop
+    while cnt > 0:
+        print(f"cnt: {cnt}")
+        try:
+            this_node = next(post_iter)
+        except StopIteration:
+            print('stop iteration')
+            breakpoint()
+            break
+        else:
+            print(this_node.op)
+            cnt -= 1
+        if isinstance(this_node, DAGOutNode):
+            print('dagoutnode')
+            break
+        block.append(this_node)
+        trial_dag.apply_operation_back(this_node.op, qargs=this_node.qargs, cargs=this_node.cargs)
     return trial_dag, block
 
 def _replace_block_with_dag(dag, block_a, dag_b):
@@ -115,7 +185,7 @@ def _replace_block_with_dag(dag, block_a, dag_b):
     There should be 1-to-1 correspondance between qubits in block_a and dag_b.
     """
     block_qubit_inds = sorted([dag.qubits.index(bit) for node in block_a for bit in node.qargs])
-    if len(block_qubit_inds) != dag_b.num_qubits:
+    if len(block_qubit_inds) != dag_b.num_qubits():
         breakpoint()
         raise TranspilerError(f"Number of qubits in block does not match replacement DAG")
     block_clbit_inds = sorted([dag.clbits.index(bit) for node in block_a for bit in node.cargs])
