@@ -6,7 +6,7 @@ features:
     one for each set of connected qubits which have no gates connecting them to another
     set.
 
-    This method  will not return a DAG for idle wires.
+    This method  will not return a DAG solely of classical bits.
 
 issues:
   - |

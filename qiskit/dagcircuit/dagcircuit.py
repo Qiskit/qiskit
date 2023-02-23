@@ -1416,13 +1416,17 @@ class DAGCircuit:
         for subgraph in disconnected_subgraphs:
             new_dag = self.copy_empty_like()
             new_dag.global_phase = 0
+            subgraph_is_classical = True
             for node in rx.lexicographical_topological_sort(subgraph, key=_key):
+                if isinstance(node, DAGInNode):
+                    if isinstance(node.wire, Qubit):
+                        subgraph_is_classical = False
                 if not isinstance(node, DAGOpNode):
                     continue
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
 
-            # Ignore DAGs created for empty qubits and classical bits
-            if new_dag.op_nodes():
+            # Ignore DAGs created for empty clbits
+            if not subgraph_is_classical:
                 decomposed_dags.append(new_dag)
 
         return decomposed_dags
