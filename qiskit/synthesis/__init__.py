@@ -77,6 +77,7 @@ Discrete Basis Synthesis
    :toctree: ../stubs/
 
    SolovayKitaevDecomposition
+   generate_basic_approximations
 
 SU(4) Synthesis
 ===============
@@ -114,5 +115,5 @@ from .cnotdihedral import (
     synth_cnotdihedral_two_qubits,
     synth_cnotdihedral_general,
 )
-from .discrete_basis import SolovayKitaevDecomposition
+from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
 from .su4 import SiSwapDecomposer
