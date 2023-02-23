@@ -1,9 +1,9 @@
 ---
 fixes:
   - |
-    Fixed a bug of wrong return value of the method :meth:`.BackendV2Converter.meas_map`
-    that had returned backend ``dt`` instead.
+    Fixed an incorrect return value of the method :meth:`.BackendV2Converter.meas_map`
+    that had returned the backend ``dt`` instead.
   - |
-    Fixed a bug of missing return value from methods :meth:`.BackendV2Converter.drive_channel`,
-    :meth:`.BackendV2Converter.measure_channel`, :meth:`.BackendV2Converter.acquire_channel` and
-    :meth:`.BackendV2Converter.control_channel`.
+    Fixed missing return values from the methods :meth:`.BackendV2Converter.drive_channel`,
+    :meth:`~.BackendV2Converter.measure_channel`, :meth:`~.BackendV2Converter.acquire_channel` and
+    :meth:`~.BackendV2Converter.control_channel`.
