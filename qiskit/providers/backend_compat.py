@@ -113,7 +113,7 @@ def convert_to_target(
         target.granularity = configuration.timing_constraints.get("granularity")
         target.min_length = configuration.timing_constraints.get("min_length")
         target.pulse_alignment = configuration.timing_constraints.get("pulse_alignment")
-        target.aquire_alignment = configuration.timing_constraints.get("acquire_alignment")
+        target.acquire_alignment = configuration.timing_constraints.get("acquire_alignment")
     # If a pulse defaults exists use that as the source of truth
     if defaults is not None:
         inst_map = defaults.instruction_schedule_map
@@ -138,9 +138,7 @@ def convert_to_target(
     for op in combined_global_ops:
         if op not in target:
             if op in name_mapping:
-                target.add_instruction(
-                    name_mapping[op], {(bit,): None for bit in range(target.num_qubits)}
-                )
+                target.add_instruction(name_mapping[op], name=op)
             else:
                 raise QiskitError(
                     f"Operation name '{op}' does not have a known mapping. Use "
@@ -220,7 +218,7 @@ class BackendV2Converter(BackendV2):
             provider=backend.provider,
             name=backend.name(),
             description=self._config.description,
-            online_date=self._config.online_date,
+            online_date=getattr(self._config, "online_date", None),
             backend_version=self._config.backend_version,
         )
         self._options = self._backend._options
@@ -266,19 +264,19 @@ class BackendV2Converter(BackendV2):
 
     @property
     def meas_map(self) -> List[List[int]]:
-        return self._config.dt
+        return self._config.meas_map
 
     def drive_channel(self, qubit: int):
-        self._config.drive(qubit)
+        return self._config.drive(qubit)
 
     def measure_channel(self, qubit: int):
-        self._config.measure(qubit)
+        return self._config.measure(qubit)
 
     def acquire_channel(self, qubit: int):
-        self._config.acquire(qubit)
+        return self._config.acquire(qubit)
 
     def control_channel(self, qubits: Iterable[int]):
-        self._config.control(qubits)
+        return self._config.control(qubits)
 
     def run(self, run_input, **options):
         return self._backend.run(run_input, **options)

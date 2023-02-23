@@ -9,8 +9,8 @@ matplotlib>=3.3
 pillow>=4.2.1
 black[jupyter]~=22.0
 pydot
-astroid==2.5.6
-pylint==2.8.3
+astroid==2.14.2
+pylint==2.16.2
 stestr>=2.0.0,!=4.0.0
 pylatexenc>=1.4
 ddt>=1.2.0,!=1.4.0,!=1.4.3
@@ -25,5 +25,6 @@ scikit-learn>=0.20.0
 scikit-quant<=0.7;platform_system != 'Windows'
 jax;platform_system != 'Windows'
 jaxlib;platform_system != 'Windows'
+tweedledum;platform_system != 'Darwin' and python_version<'3.11'
 docplex
 qiskit-qasm3-import; python_version>='3.8'
