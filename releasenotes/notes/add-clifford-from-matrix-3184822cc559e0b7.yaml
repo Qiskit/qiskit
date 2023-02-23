@@ -5,4 +5,4 @@ features:
     creates a ``Clifford`` object from its unitary matrix and operator representation respectively.
   - |
     The constructor of :class:`.Clifford` now can take any Clifford gate object up to 3 qubits,
-    such as ``Rz(pi/2)``, ``iSwapGate()`` and ``ECRGate()``, which were not convertible before.
+    including parameterized gates such as ``Rz(pi/2)``, which were not convertible before.
