@@ -30,8 +30,8 @@ Evolution Synthesis
    MatrixExponential
    QDrift
 
-Linear Function
-===============
+Linear Function Synthesis
+=========================
 .. autosummary::
    :toctree: ../stubs/
 
