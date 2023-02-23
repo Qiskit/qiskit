@@ -385,14 +385,14 @@ class TestBackendSampler(QiskitTestCase):
         with self.subTest("Test single circuit"):
             with self.assertLogs(logger, level="INFO") as cm:
                 _ = sampler.run(self._circuit[0]).result()
-            expected = ["bound_pass_manager"]
-            self.assertEqual([record.message for record in cm.records], expected)
+                expected = ["INFO:LocalLogger:bound_pass_manager"]
+                self.assertEqual(cm.output, expected)
 
         with self.subTest("Test circuit batch"):
             with self.assertLogs(logger, level="INFO") as cm:
                 _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
-            expected = ["bound_pass_manager", "bound_pass_manager"]
-            self.assertEqual([record.message for record in cm.records], expected)
+                expected = ['INFO:LocalLogger:bound_pass_manager'] * 2
+                self.assertEqual(cm.output, expected)
 
 
 if __name__ == "__main__":
