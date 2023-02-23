@@ -79,7 +79,7 @@ Discrete Basis Synthesis
    SolovayKitaevDecomposition
    generate_basic_approximations
 
-SU(4) Synthesis
+SU(4) (2-qubit unitary) Synthesis
 ===============
 
 .. autosummary::
