@@ -22,14 +22,129 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.41.1
+*************
+
+.. _Release Notes_Terra_0.23.2:
+
+Terra 0.23.2
+============
+
+.. _Release Notes_Terra_0.23.2_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.23.2-80519f083ae7086c.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+The Qiskit Terra 0.23.2 patch release fixes further bugs identified in the 0.23 series.
+
+
+.. _Release Notes_Terra_0.23.2_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/add-gates-to-Clifford-class-7de8d3213c60836a.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+- Add the following Clifford gates, that already exist in the circuit library,
+  to the :class:`.Clifford` class:
+  :class:`.SXGate`, :class:`.SXdgGate`, :class:`.CYGate`, :class:`.DCXGate`,
+  :class:`.iSwapGate` and :class:`.ECRGate`.
+
+.. releasenotes/notes/add-gates-to-Clifford-class-7de8d3213c60836a.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+- Add a decomposition of an :class:`.ECRGate` into Clifford gates (up to a global phase)
+  to the standard equivalence library.
+
+.. releasenotes/notes/fix-backendv2-converter-simulator-e8f150d1fd6861fe.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+- Fixed an issue with the :class:`~.BackendV2Converter` class when wrapping
+  a :class:`~.BackendV1`-based simulator. It would error if either
+  the ``online_date`` field in the :class:`~.BackendConfiguration` for the
+  simulator was not present or if the simulator backend supported ideal
+  implementations of gates that involve more than 1 qubit.
+  Fixed `#9562 <https://github.com/Qiskit/qiskit-terra/issues/9562>`__.
+
+.. releasenotes/notes/fix-backendv2converter-de342352cf882494.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+- Fixed an incorrect return value of the method :meth:`.BackendV2Converter.meas_map`
+  that had returned the backend ``dt`` instead.
+
+.. releasenotes/notes/fix-backendv2converter-de342352cf882494.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+- Fixed missing return values from the methods :meth:`.BackendV2Converter.drive_channel`,
+  :meth:`~.BackendV2Converter.measure_channel`, :meth:`~.BackendV2Converter.acquire_channel` and
+  :meth:`~.BackendV2Converter.control_channel`.
+
+.. releasenotes/notes/fix-deprecated-bit-qpy-roundtrip-9a23a795aa677c71.yaml @ b'3dbbb32e762850db265c7bb40787a36351aad917'
+
+- The deprecated :class:`.Qubit` and :class:`.Clbit` properties :attr:`~.Qubit.register` and
+  :attr:`~.Qubit.index` will now be correctly round-tripped by QPY (:mod:`qiskit.qpy`) in all
+  valid usages of :class:`.QuantumRegister` and :class:`.ClassicalRegister`.  In earlier releases
+  in the Terra 0.23 series, this information would be lost.  In versions before 0.23.0, this
+  information was partially reconstructed but could be incorrect or produce invalid circuits for
+  certain register configurations.
+
+  The correct way to retrieve the index of a bit within a circuit, and any registers in that
+  circuit the bit is contained within is to call :meth:`.QuantumCircuit.find_bit`.  This method
+  will return the correct information in all versions of Terra since its addition in version 0.19.
+
+.. releasenotes/notes/fix-instmap-from-target-f38962c3fd03e5d3.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+- Fixed an issue with the :meth:`.InstructionScheduleMap.has_custom_gate` method,
+  where it would always return ``True`` when the :class:`~.InstructionScheduleMap`
+  object was created by :class:`.Target`.
+  Fixed `#9595 <https://github.com/Qiskit/qiskit-terra/issues/9595>`__.
+
+.. releasenotes/notes/fix-numpy-eigensolver-sparse-0e255d7b13b5e43b.yaml @ b'29ccca1295520b5db60346b9a373eafe53f7c5f1'
+
+- Fixed a bug in the NumPy-based eigensolvers
+  (:class:`~.minimum_eigensolvers.NumPyMinimumEigensolver` /
+  :class:`~.eigensolvers.NumPyEigensolver`)
+  and in the SciPy-based time evolvers (:class:`.SciPyRealEvolver` /
+  :class:`.SciPyImaginaryEvolver`), where operators that support conversion
+  to sparse matrices, such as :class:`.SparsePauliOp`, were converted to dense matrices anyways.
+
+.. releasenotes/notes/fix-sk-sdg-81ec87abe7af4a89.yaml @ b'5c461eb8079ffb5997a86e984efd7356c0cc32ca'
+
+- Fixed a bug in :func:`.generate_basic_approximations` where the inverse of the
+  :class:`.SdgGate` was not correctly recognized as :class:`.SGate`.
+  Fixed `#9585 <https://github.com/Qiskit/qiskit-terra/issues/9585>`__.
+
+.. releasenotes/notes/fix-vqd-with-spsa-optimizers-9ed02b80f26e8abf.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+- Fixed a bug in the :class:`~.eigensolvers.VQD` algorithm where
+  the energy evaluation function could not process batches of parameters, making it
+  incompatible with optimizers with ``max_evals_grouped>1``.
+  Fixed `#9500 <https://github.com/Qiskit/qiskit-terra/issues/9500>`__.
+
+.. releasenotes/notes/qnspsa-float-bug-fix-4035f7e1eb61dec2.yaml @ b'09f904a03c056abb5ed80030e4d1f75108943502'
+
+- Fixed bug in :class:`.QNSPSA` which raised a type error when the computed fidelities
+  happened to be of type ``int`` but the perturbation was of type ``float``.
+
+Aer 0.11.2
+==========
+
+No change
+
+.. _Release Notes_IBMQ_0.20.1:
+
+IBM Q Provider 0.20.1
+=====================
+
+Since ``qiskit-ibmq-provider`` is now deprecated, the dependencies have been bumped and fixed to the
+latest working versions. There was an issue with the latest version of the ``requests-ntlm`` package
+which caused some end to end tests to fail.
+
+
+*************
 Qiskit 0.41.0
 *************
 
 Terra 0.23.1
 ============
-
-0.23.1
-======
 
 .. _Release Notes_0.23.1_Prelude:
 
