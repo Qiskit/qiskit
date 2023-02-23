@@ -1409,6 +1409,8 @@ class MCXVChain(MCXGate):
         duration=None,
         unit="dt",
         _base_label=None,
+        relative_phase: bool = False,
+        action_only: bool = False,
     ):
         """Create a new MCX instance.
 
@@ -1434,6 +1436,8 @@ class MCXVChain(MCXGate):
         duration=None,
         unit="dt",
         _base_label=None,
+        relative_phase: bool = False,
+        action_only: bool = False,
     ):
         super().__init__(
             num_ctrl_qubits,
@@ -1445,6 +1449,9 @@ class MCXVChain(MCXGate):
             unit=unit,
         )
         self._dirty_ancillas = dirty_ancillas
+        self._relative_phase = relative_phase
+        self._action_only = action_only
+
 
     def inverse(self, annotated: bool = False):
         """Invert this gate. The MCX is its own inverse.
@@ -1462,6 +1469,8 @@ class MCXVChain(MCXGate):
             num_ctrl_qubits=self.num_ctrl_qubits,
             dirty_ancillas=self._dirty_ancillas,
             ctrl_state=self.ctrl_state,
+            relative_phase=self._relative_phase,
+            action_only=self._action_only,
         )
 
     @staticmethod
@@ -1485,60 +1494,166 @@ class MCXVChain(MCXGate):
         definition = []
 
         if self._dirty_ancillas:
-            i = self.num_ctrl_qubits - 3
-            ancilla_pre_rule = [
-                (U2Gate(0, numpy.pi), [q_target], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-            ]
-            for inst in ancilla_pre_rule:
-                definition.append(inst)
-
-            for j in reversed(range(2, self.num_ctrl_qubits - 1)):
+            if self.num_ctrl_qubits < 3:
                 definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], [])
+                    (MCXGate(self.num_ctrl_qubits, mode="noancilla"), [*q_controls, q_target], [])
                 )
-                i -= 1
+            elif not self._relative_phase and self.num_ctrl_qubits == 3:
+                definition.append((C3XGate(), [*q_controls, q_target], []))
+            else:
+                num_ancillas = self.num_ctrl_qubits - 2
+                targets = [q_target] + q_ancillas[:num_ancillas][::-1]
 
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
-        i = 0
-        for j in range(2, self.num_ctrl_qubits - 1):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
-            i += 1
+                for j in range(2):
+                    for i in range(self.num_ctrl_qubits):  # action part
+                        if i < self.num_ctrl_qubits - 2:
+                            if targets[i] != q_target or self._relative_phase:
+                                # gate cancelling
 
-        if self._dirty_ancillas:
-            ancilla_post_rule = [
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U1Gate(-numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_controls[-1], q_ancillas[i]], []),
-                (U1Gate(numpy.pi / 4), [q_ancillas[i]], []),
-                (CXGate(), [q_target, q_ancillas[i]], []),
-                (U2Gate(0, numpy.pi), [q_target], []),
-            ]
-            for inst in ancilla_post_rule:
-                definition.append(inst)
+                                # cancel rightmost gates of action part
+                                # with leftmost gates of reset part
+                                if self._relative_phase and targets[i] == q_target and j == 1:
+                                    definition.append(
+                                        (
+                                            CXGate(),
+                                            [q_ancillas[num_ancillas - i - 1], targets[i]],
+                                            []
+                                        )
+                                    )
+                                    definition.append(
+                                        (U1Gate(pi / 4), [targets[i]], [])      # T gate
+                                    )
+                                    definition.append(
+                                        (
+                                            CXGate(),
+                                            [q_controls[self.num_ctrl_qubits - i - 1], targets[i]],
+                                            []
+                                        )
+                                    )
+                                    definition.append(
+                                        (U1Gate(-pi / 4), [targets[i]], [])     # inverse T gate
+                                    )
+                                    definition.append(
+                                        (U2Gate(0, pi), [targets[i]], [])       # H gate
+                                    )
+                                else:
+                                    definition.append(
+                                        (U2Gate(0, pi), [targets[i]], [])       # H gate
+                                    )
+                                    definition.append(
+                                        (U1Gate(pi / 4), [targets[i]], [])      # T gate
+                                    )
+                                    definition.append(
+                                        (
+                                            CXGate(),
+                                            [q_controls[self.num_ctrl_qubits - i - 1], targets[i]],
+                                            []
+                                        )
+                                    )
+                                    definition.append(
+                                        (U1Gate(-pi / 4), [targets[i]], [])     # inverse T gate
+                                    )
+                                    definition.append(
+                                        (
+                                            CXGate(),
+                                            [q_ancillas[num_ancillas - i - 1], targets[i]],
+                                            []
+                                        )
+                                    )
+                            else:
+                                controls = [
+                                    q_controls[self.num_ctrl_qubits - i - 1],
+                                    q_ancillas[num_ancillas - i - 1]
+                                ]
+
+                                definition.append((CCXGate(), [*controls, targets[i]], []))
+                        else:
+                            definition.append(
+                                (U2Gate(0, pi), [targets[i]], [])       # H gate
+                            )
+                            definition.append(
+                                (U1Gate(pi / 4), [targets[i]], [])      # T gate
+                            )
+                            definition.append(
+                                (
+                                    CXGate(),
+                                    [q_controls[self.num_ctrl_qubits - i - 2], targets[i]],
+                                    []
+                                )
+                            )
+                            definition.append(
+                                (U1Gate(-pi / 4), [targets[i]], [])     # inverse T gate
+                            )
+                            definition.append(
+                                (
+                                    CXGate(),
+                                    [q_controls[self.num_ctrl_qubits - i - 1], targets[i]],
+                                    []
+                                )
+                            )
+                            definition.append(
+                                (U1Gate(pi / 4), [targets[i]], [])      # T gate
+                            )
+                            definition.append(
+                                (
+                                    CXGate(),
+                                    [q_controls[self.num_ctrl_qubits - i - 2], targets[i]],
+                                    []
+                                )
+                            )
+                            definition.append(
+                                (U1Gate(-pi / 4), [targets[i]], [])     # inverse T gate
+                            )
+                            definition.append(
+                                (U2Gate(0, pi), [targets[i]], [])       # H gate
+                            )
+
+                            break
+
+                    for i in range(num_ancillas - 1):  # reset part
+                        definition.append(
+                            (
+                                CXGate(),
+                                [q_ancillas[i], q_ancillas[i + 1]],
+                                []
+                            )
+                        )
+                        definition.append(
+                            (U1Gate(pi / 4), [q_ancillas[i + 1]], [])      # T gate
+                        )
+                        definition.append(
+                            (
+                                CXGate(),
+                                [q_controls[2 + i], q_ancillas[i + 1]],
+                                []
+                            )
+                        )
+                        definition.append(
+                            (U1Gate(-pi / 4), [q_ancillas[i + 1]], [])     # inverse T gate
+                        )
+                        definition.append(
+                            (U2Gate(0, pi), [q_ancillas[i + 1]], [])       # H gate
+                        )
+
+                    if self._action_only:
+                        definition.append(
+                            (CCXGate(), [q_controls[-1], q_ancillas[-1], q_target], [])
+                        )
+
+                        break
         else:
+            definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[0]], []))
+            i = 0
+            for j in range(2, self.num_ctrl_qubits - 1):
+                definition.append((RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], []))
+                i += 1
+
             definition.append((CCXGate(), [q_controls[-1], q_ancillas[i], q_target], []))
 
-        for j in reversed(range(2, self.num_ctrl_qubits - 1)):
-            definition.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
-            i -= 1
-        definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
-
-        if self._dirty_ancillas:
-            for i, j in enumerate(list(range(2, self.num_ctrl_qubits - 1))):
-                definition.append(
-                    (RCCXGate(), [q_controls[j], q_ancillas[i], q_ancillas[i + 1]], [])
-                )
+            for j in reversed(range(2, self.num_ctrl_qubits - 1)):
+                definition.append((RCCXGate(), [q_controls[j], q_ancillas[i - 1], q_ancillas[i]], []))
+                i -= 1
+            definition.append((RCCXGate(), [q_controls[0], q_controls[1], q_ancillas[i]], []))
 
         for instr, qargs, cargs in definition:
             qc._append(instr, qargs, cargs)
