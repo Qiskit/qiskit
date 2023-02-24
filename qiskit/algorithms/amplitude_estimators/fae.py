@@ -20,7 +20,7 @@ from qiskit.circuit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_argument, deprecate_function
 from qiskit.algorithms.exceptions import AlgorithmError
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
@@ -48,6 +48,12 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     """
 
+    @deprecate_argument(
+        "quantum_instance",
+        additional_msg="Instead, use the `sampler` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         delta: float,
@@ -73,13 +79,6 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         """
         super().__init__()
         # set quantum instance
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
-            )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.quantum_instance = quantum_instance

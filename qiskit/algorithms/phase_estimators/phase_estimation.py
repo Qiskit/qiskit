@@ -14,7 +14,6 @@
 """The Quantum Phase Estimation Algorithm."""
 
 from __future__ import annotations
-import warnings
 
 import numpy
 
@@ -24,6 +23,7 @@ from qiskit import circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_argument
 from qiskit.result import Result
 from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
@@ -81,6 +81,12 @@ class PhaseEstimation(PhaseEstimator):
 
     """
 
+    @deprecate_argument(
+        "quantum_instance",
+        additional_msg="Instead, use the `sampler` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         num_evaluation_qubits: int,
@@ -101,13 +107,6 @@ class PhaseEstimation(PhaseEstimator):
         if sampler is None and quantum_instance is None:
             raise AlgorithmError(
                 "Neither a sampler nor a quantum instance was provided. Please provide one of them."
-            )
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
             )
         self._measurements_added = False
         if num_evaluation_qubits is not None:

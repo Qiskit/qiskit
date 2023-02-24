@@ -64,7 +64,7 @@ Optional Depedency Checkers (:mod:`qiskit.utils.optionals`)
 """
 
 from .quantum_instance import QuantumInstance
-from .deprecation import deprecate_arguments
+from .deprecation import deprecate_argument, deprecate_arguments
 from .deprecation import deprecate_function
 from .multiprocessing import local_hardware_info
 from .multiprocessing import is_main_process
@@ -93,6 +93,7 @@ __all__ = [
     "has_aer",
     "name_args",
     "algorithm_globals",
+    "deprecate_argument",
     "deprecate_arguments",
     "deprecate_function",
     "local_hardware_info",
