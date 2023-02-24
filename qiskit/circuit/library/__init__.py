@@ -110,6 +110,7 @@ For example:
    SdgGate
    SwapGate
    iSwapGate
+   BGate
    SXGate
    SXdgGate
    TGate
