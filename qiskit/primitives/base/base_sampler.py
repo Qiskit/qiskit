@@ -173,7 +173,7 @@ class BaseSampler(BasePrimitive):
         """
         # Singular validation
         circuits = self._validate_circuits(circuits)
-        parameter_values = self._validate_parameter_values(parameter_values, circuits)
+        parameter_values = self._validate_parameter_values(parameter_values, [circuit.parameters for circuit in circuits])
 
         # Cross-validation
         self._cross_validate_circuits_parameter_values(circuits, parameter_values)

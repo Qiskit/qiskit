@@ -21,6 +21,7 @@ from typing import Any
 import numpy as np
 
 from qiskit.circuit import ParameterExpression, QuantumCircuit
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import Options
 
 
@@ -78,38 +79,38 @@ class BasePrimitive(ABC):
         | Mapping[ParameterExpression, float]
         | float
         | None,
-        circuits: tuple[QuantumCircuit, ...],
+        parameter_views: Sequence[ParameterView],
     ) -> tuple[tuple[float, ...], ...]:
         # Allow optional
         if parameter_values is None:
-            parameter_values = [()] * len(circuits)
+            parameter_values = [()] * len(parameter_views)
+
+        # Allow single value
+        if _isreal(parameter_values):
+            parameter_values = [[parameter_values]]
+        elif isinstance(parameter_values, (Sequence, np.ndarray)) and not any(
+            isinstance(vector, (Sequence, Mapping, np.ndarray)) for vector in parameter_values
+        ):
+            parameter_values = [parameter_values]
 
         # Support numpy ndarray
         if isinstance(parameter_values, np.ndarray):
             parameter_values = parameter_values.tolist()
         elif isinstance(parameter_values, Sequence):
-            parameter_values = tuple(
+            parameter_values = [
                 vector.tolist() if isinstance(vector, np.ndarray) else vector
                 for vector in parameter_values
-            )
-
-        # Allow single value
-        if _isreal(parameter_values):
-            parameter_values = ((parameter_values,),)
-        elif isinstance(parameter_values, Sequence) and not any(
-            isinstance(vector, Sequence) for vector in parameter_values
-        ):
-            parameter_values = (parameter_values,)
+            ]
 
         # Support Mapping
         if isinstance(parameter_values, Mapping):
-            parameter_values = [parameter_values[parameter] for parameter in circuits[0].parameters]
+            parameter_values = [[parameter_values[parameter] for parameter in parameter_views[0]]]
         elif isinstance(parameter_values, Sequence):
             parameter_values = [
-                [vector[parameter] for parameter in circuit.parameters]
+                [vector[parameter] for parameter in parameter_view]
                 if isinstance(vector, Mapping)
                 else vector
-                for vector, circuit in zip(parameter_values, circuits)
+                for vector, parameter_view in zip(parameter_values, parameter_views)
             ]
 
         # Validation
