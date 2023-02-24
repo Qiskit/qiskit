@@ -76,10 +76,10 @@ class SiSwapDecomposer:
         """Decompose a two-qubit unitary into using the sqrt(iSWAP) gate.
 
         Args:
-            unitary: a 4x4 unitary to synthesize.
+            unitary: A 4x4 unitary to synthesize.
             basis_fidelity: Fidelity of the iSWAP gate.
             approximate: Approximates if basis fidelities are less than 1.0.
-            _num_basis_uses: force a particular approximation by passing a number in [0, 3].
+            _num_basis_uses: Force a particular approximation by passing a number in [0, 3].
 
         Returns:
             QuantumCircuit: Synthesized circuit.
