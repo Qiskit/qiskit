@@ -27,17 +27,17 @@ environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"
 [tool.ruff]
 line-length=105
 select = [
-  "E", "F",
-  "B006",  # Do not use mutable data structures for argument defaults
-  "B007",  # unused loop control variable
-  "B008",  # Do not perform function call in argument defaults
+  "E", # pycodestyle
+  "W", # pycodestyle
+  "F", # pyflakes
+  "B006", # Do not use mutable data structures for argument defaults
+  "B007", # unused loop control variable
+  "B008", # Do not perform function call in argument defaults
+
   # Within an except clause, raise exceptions with `raise ... from err`
   # or `raise ... from None` to distinguish them from errors in exception handling
   "B904",
-  "W",
-  #  "C90", complexity. There are many failures.
-  # "I", isort 1300 violations
-  # "N", 900 violations. identifiers names. We would want exceptions for many of these
+
   "D419", # Docstring is empty
   "D201", # No blank lines allowed before function docstring
   "D403", # First word of the first line should be properly capitalized
@@ -47,9 +47,7 @@ select = [
   "D210", # No whitespaces allowed surrounding docstring text
   "D211", # No blank lines allowed before class docstring
   "D208", # Docstring is over-indented
-  #   "UP018", maybe want this.
   "S506", # unsafe yaml load
-  # "BLE", 75 of these. We should fix them
   "UP027", # Replace unpacked list comprehension with a generator expression
   "UP018", # Unnecessary call to `bytes`. (Using b'' instead of bytes() is much faster)
   "UP034", # Avoid extraneous parentheses
@@ -66,8 +64,8 @@ target-version = "py37"
 
 ignore = [
 "B905",  # zip-without-explicit-strict
-"C901",  # function too complex
-"UP015", # Unnecessary open mode parameters (This removes "r". Do we want this ?)
+"C901",  # mccabe function too complex
+"UP015", # Unnecessary open mode parameters. For example, this removes "r".
 "UP014", # convert-named-tuple-functional-to-class
 ]
 
