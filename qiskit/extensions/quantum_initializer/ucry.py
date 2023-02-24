@@ -19,21 +19,12 @@ If the k control qubits are in the state ket(i) (in the computational bases),
 a single-qubit rotation R_y(a_i) is applied to the target qubit.
 """
 import math
-from typing import List, Sequence, Union
+from typing import List, Sequence
 
-from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.quantumcircuit import QuantumCircuit, QubitSpecifier
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 from qiskit.extensions.quantum_initializer.uc_pauli_rot import UCPauliRotGate
-
-# Types that can be coerced to a valid Qubit specifier in a circuit.
-QubitSpecifier = Union[
-    Qubit,
-    QuantumRegister,
-    int,
-    slice,
-    Sequence[Union[Qubit, int]],
-]
 
 
 class UCRYGate(UCPauliRotGate):
