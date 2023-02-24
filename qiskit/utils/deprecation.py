@@ -19,7 +19,7 @@ from typing import Any, Callable, ClassVar, Dict, Optional, Type
 
 
 def deprecate_arguments(
-    kwarg_map: Dict[str, str],
+    kwarg_map: Dict[str, Optional[str]],
     category: Type[Warning] = DeprecationWarning,
     *,
     since: Optional[str] = None,
@@ -104,7 +104,7 @@ def _rename_kwargs(
     func_name: str,
     kwargs: Dict[str, Any],
     old_kwarg_to_msg: Dict[str, str],
-    kwarg_map: Dict[str, str],
+    kwarg_map: Dict[str, Optional[str]],
     category: Type[Warning] = DeprecationWarning,
 ) -> None:
     for old_arg, new_arg in kwarg_map.items():
