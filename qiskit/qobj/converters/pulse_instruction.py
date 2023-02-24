@@ -507,55 +507,64 @@ class InstructionToQobjConverter:
         return self._qobj_model(**command_dict)
 
     @deprecate_function(
-        "'convert_acquire' has been deprecated. Instead, call converter instance directly."
+        "'convert_acquire' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_acquire(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
 
     @deprecate_function(
-        "'convert_bundled_acquires' has been deprecated. Instead, call converter instance directly."
+        "'convert_bundled_acquires' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_bundled_acquires(self, shift, instructions_):
         return self._convert_bundled_acquire(instructions_, shift)
 
     @deprecate_function(
-        "'convert_set_frequency' has been deprecated. Instead, call converter instance directly."
+        "'convert_set_frequency' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_set_frequency(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
 
     @deprecate_function(
-        "'convert_shift_frequency' has been deprecated. Instead, call converter instance directly."
+        "'convert_shift_frequency' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_shift_frequency(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
 
     @deprecate_function(
-        "'convert_set_phase' has been deprecated. Instead, call converter instance directly."
+        "'convert_set_phase' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_set_phase(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
 
     @deprecate_function(
-        "'convert_shift_phase' has been deprecated. Instead, call converter instance directly."
+        "'convert_shift_phase' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_shift_phase(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
 
     @deprecate_function(
-        "'convert_delay' has been deprecated. Instead, call converter instance directly."
+        "'convert_delay' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_delay(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
 
     @deprecate_function(
-        "'convert_play' has been deprecated. Instead, call converter instance directly."
+        "'convert_play' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_play(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
 
     @deprecate_function(
-        "'convert_snapshot' has been deprecated. Instead, call converter instance directly."
+        "'convert_snapshot' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_snapshot(self, shift, instruction):
         return self._convert_instruction(instruction, shift)
@@ -951,7 +960,8 @@ class QobjToInstructionConverter:
             )
 
     @deprecate_function(
-        "'convert_acquire' has been deprecated. Instead, call converter instance directly."
+        "'convert_acquire' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_acquire(self, instruction):
         t0 = instruction.t0
@@ -961,7 +971,8 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_function(
-        "'convert_set_phase' has been deprecated. Instead, call converter instance directly."
+        "'convert_set_phase' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_set_phase(self, instruction):
         t0 = instruction.t0
@@ -971,7 +982,8 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_function(
-        "'convert_shift_phase' has been deprecated. Instead, call converter instance directly."
+        "'convert_shift_phase' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_shift_phase(self, instruction):
         t0 = instruction.t0
@@ -981,7 +993,8 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_function(
-        "'convert_set_frequency' has been deprecated. Instead, call converter instance directly."
+        "'convert_set_frequency' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_set_frequency(self, instruction):
         t0 = instruction.t0
@@ -991,7 +1004,8 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_function(
-        "'convert_shift_frequency' has been deprecated. Instead, call converter instance directly."
+        "'convert_shift_frequency' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_shift_frequency(self, instruction):
         t0 = instruction.t0
@@ -1001,7 +1015,8 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_function(
-        "'convert_delay' has been deprecated. Instead, call converter instance directly."
+        "'convert_delay' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_delay(self, instruction):
         t0 = instruction.t0
@@ -1011,14 +1026,16 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_function(
-        "'bind_pulse' has been deprecated. Instantiate the class with pulse library."
+        "'bind_pulse' has been deprecated. Instantiate the class with pulse library.",
+        since="0.23.0",
     )
     def bind_pulse(self, pulse):
         if pulse.name not in self._pulse_library:
             self._pulse_library[pulse.name] = pulse.samples
 
     @deprecate_function(
-        "'convert_parametric' has been deprecated. Instead, call converter instance directly."
+        "'convert_parametric' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_parametric(self, instruction):
         t0 = instruction.t0
@@ -1028,7 +1045,8 @@ class QobjToInstructionConverter:
         return schedule
 
     @deprecate_function(
-        "'convert_snapshot' has been deprecated. Instead, call converter instance directly."
+        "'convert_snapshot' has been deprecated. Instead, call converter instance directly.",
+        since="0.23.0",
     )
     def convert_snapshot(self, instruction):
         t0 = instruction.t0

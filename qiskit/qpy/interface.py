@@ -72,7 +72,10 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
-@deprecate_arguments({"circuits": "programs"})
+@deprecate_arguments(
+    {"circuits": "programs"},
+    since="0.21.0",
+)
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
