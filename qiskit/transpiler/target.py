@@ -29,7 +29,7 @@ import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.calibration_entries import CalibrationEntry
+from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
@@ -72,20 +72,25 @@ class InstructionProperties:
                 set of qubits.
             calibration: The pulse representation of the instruction.
         """
+        self._calibration = None
+
         self.duration = duration
         self.error = error
-        self._calibration = calibration
+        self.calibration = calibration
 
     @property
     def calibration(self):
         """The pulse representation of the instruction."""
-        if isinstance(self._calibration, CalibrationEntry):
-            return self._calibration.get_schedule()
-        return self._calibration
+        return self._calibration.get_schedule()
 
     @calibration.setter
     def calibration(self, calibration: Union[Schedule, ScheduleBlock, CalibrationEntry]):
-        self._calibration = calibration
+        if isinstance(calibration, (Schedule, ScheduleBlock)):
+            new_entry = ScheduleDef()
+            new_entry.define(calibration)
+        else:
+            new_entry = calibration
+        self._calibration = new_entry
 
     def __repr__(self):
         return (
@@ -198,7 +203,7 @@ class Target(Mapping):
         "_global_operations",
     )
 
-    @deprecate_arguments({"aquire_alignment": "acquire_alignment"})
+    @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
     def __init__(
         self,
         description=None,
@@ -532,8 +537,12 @@ class Target(Mapping):
         out_inst_schedule_map = InstructionScheduleMap()
         for instruction, qargs in self._gate_map.items():
             for qarg, properties in qargs.items():
-                if properties is not None and properties.calibration is not None:
-                    out_inst_schedule_map.add(instruction, qarg, properties.calibration)
+                # Directly getting CalibrationEntry not to invoke .get_schedule().
+                # This keeps PulseQobjDef un-parsed.
+                cal_entry = getattr(properties, "_calibration", None)
+                if cal_entry is not None:
+                    # Use fast-path to add entries to the inst map.
+                    out_inst_schedule_map._add(instruction, qarg, cal_entry)
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
@@ -1026,7 +1035,7 @@ class Target(Mapping):
                 error = getattr(props, "error", None)
                 if error is not None:
                     prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
-                schedule = getattr(props, "calibration", None)
+                schedule = getattr(props, "_calibration", None)
                 if schedule is not None:
                     prop_str_pieces.append("\t\t\tWith pulse schedule calibration\n")
                 extra_props = getattr(props, "properties", None)
