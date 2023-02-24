@@ -51,8 +51,8 @@ class SiSwapDecomposer:
 
     Reference:
         1. C. Huang et al,
-           *Towards ultra-high fidelity quantum operations:
-           SQiSW gate as a native two-qubit gate (2021)*
+           Towards ultra-high fidelity quantum operations:
+           SQiSW gate as a native two-qubit gate (2021)
            `arXiv:2105.06074 <https://arxiv.org/abs/2105.06074>`_
     """
 
