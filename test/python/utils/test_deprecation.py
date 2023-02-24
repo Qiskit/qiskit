@@ -21,11 +21,19 @@ from qiskit.utils.deprecation import (
 
 
 class TestDeprecations(QiskitTestCase):
+    """Test functions in ``utils.deprecation``."""
+
     def test_deprecations_store_metadata(self) -> None:
+        """Test that our deprecation decorators store the metadata in __qiskit_deprecations__.
+
+        This should support multiple deprecations on the same function.
+        """
+
         @deprecate_function("Stop using my_func!")
         @deprecate_arguments({"old_arg": "new_arg"}, category=PendingDeprecationWarning)
         def my_func(old_arg: int, new_arg: int) -> None:
-            pass
+            del old_arg
+            del new_arg
 
         self.assertEqual(
             getattr(my_func, _DeprecationMetadataEntry.dunder_name),
