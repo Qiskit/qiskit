@@ -34,7 +34,7 @@ class SiSwapGate(Gate):
                  └────────────┘└────────────┘
 
     .. math::
-        B\ q_0, q_1 =
+        \sqrt{\mathrm{iSwap}}\ q_0, q_1 =
             \begin{pmatrix}
                 1       & 0                  & 0                     & 0     \\
                 0       & \frac{1}{\sqrt{2}} & \frac{i}{\sqrt{2}}     & 0     \\
