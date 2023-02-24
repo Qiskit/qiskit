@@ -203,7 +203,7 @@ class Target(Mapping):
         "_global_operations",
     )
 
-    @deprecate_arguments({"aquire_alignment": "acquire_alignment"})
+    @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
     def __init__(
         self,
         description=None,
