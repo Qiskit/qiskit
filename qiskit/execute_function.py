@@ -118,6 +118,7 @@ def execute(
 
             #. :class:`qiskit.transpiler.Layout` instance
             #. ``dict``:
+
                * virtual to physical::
 
                     {qr[0]: 0,
@@ -131,6 +132,7 @@ def execute(
                      5: qr[2]}
 
             #. ``list``:
+
                * virtual to physical::
 
                     [0, 3, 5]  # virtual qubits are ordered (in addition to named)
