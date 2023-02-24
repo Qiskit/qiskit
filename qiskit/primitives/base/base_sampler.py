@@ -88,9 +88,9 @@ from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from ..utils import _circuit_key
 from .base_primitive import BasePrimitive
 from .sampler_result import SamplerResult
-from ..utils import _circuit_key
 
 
 class BaseSampler(BasePrimitive):
