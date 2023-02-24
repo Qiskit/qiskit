@@ -391,7 +391,7 @@ class TestBackendSampler(QiskitTestCase):
         with self.subTest("Test circuit batch"):
             with self.assertLogs(logger, level="INFO") as cm:
                 _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
-                expected = ['INFO:LocalLogger:bound_pass_manager'] * 2
+                expected = ["INFO:LocalLogger:bound_pass_manager"] * 2
                 self.assertEqual(cm.output, expected)
 
 

@@ -358,7 +358,7 @@ class TestBackendEstimator(QiskitTestCase):
         with self.subTest("Test circuit batch"):
             with self.assertLogs(logger, level="INFO") as cm:
                 _ = estimator.run([qc, qc], [op, op]).result()
-                expected = ['INFO:LocalLogger:bound_pass_manager'] * 2
+                expected = ["INFO:LocalLogger:bound_pass_manager"] * 2
                 self.assertEqual(cm.output, expected)
 
 
