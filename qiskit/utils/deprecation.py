@@ -15,11 +15,28 @@
 import functools
 import warnings
 from dataclasses import dataclass
-from typing import Any, Callable, ClassVar, Dict, Type
+from typing import Any, Callable, ClassVar, Dict, Optional, Type
 
 
-def deprecate_arguments(kwarg_map: Dict[str, str], category: Type[Warning] = DeprecationWarning):
-    """Decorator to automatically alias deprecated argument names and warn upon use."""
+def deprecate_arguments(
+    kwarg_map: Dict[str, str],
+    category: Type[Warning] = DeprecationWarning,
+    *,
+    since: Optional[str] = None,
+):
+    """Decorator to automatically alias deprecated argument names and warn upon use.
+
+    Args:
+        kwarg_map: A dictionary of the old argument name to the new name.
+        category: Usually either DeprecationWarning or PendingDeprecationWarning.
+        since: The version the deprecation started at. Only Optional for backwards
+            compatibility - this should always be set. If the deprecation is pending, set
+            the version to when that started; but later, when switching from pending to
+            deprecated, update `since` to the new version.
+
+    Returns:
+        Callable: The decorated callable.
+    """
 
     def decorator(func):
         func_name = func.__name__
@@ -40,20 +57,30 @@ def deprecate_arguments(kwarg_map: Dict[str, str], category: Type[Warning] = Dep
 
         for msg in old_kwarg_to_msg.values():
             _DeprecationMetadataEntry(
-                msg, since="TODO", pending=issubclass(category, PendingDeprecationWarning)
+                msg, since=since, pending=issubclass(category, PendingDeprecationWarning)
             ).store_on_function(wrapper)
         return wrapper
 
     return decorator
 
 
-def deprecate_function(msg: str, stacklevel: int = 2, category: Type[Warning] = DeprecationWarning):
+def deprecate_function(
+    msg: str,
+    stacklevel: int = 2,
+    category: Type[Warning] = DeprecationWarning,
+    *,
+    since: Optional[str] = None,
+):
     """Emit a warning prior to calling decorated function.
 
     Args:
         msg: Warning message to emit.
         stacklevel: The warning stacklevel to use, defaults to 2.
-        category: warning category, defaults to DeprecationWarning
+        category: Usually either DeprecationWarning or PendingDeprecationWarning.
+        since: The version the deprecation started at. Only Optional for backwards
+            compatibility - this should always be set. If the deprecation is pending, set
+            the version to when that started; but later, when switching from pending to
+            deprecated, update `since` to the new version.
 
     Returns:
         Callable: The decorated, deprecated callable.
@@ -66,7 +93,7 @@ def deprecate_function(msg: str, stacklevel: int = 2, category: Type[Warning] = 
             return func(*args, **kwargs)
 
         _DeprecationMetadataEntry(
-            msg=msg, since="TODO", pending=issubclass(category, PendingDeprecationWarning)
+            msg=msg, since=since, pending=issubclass(category, PendingDeprecationWarning)
         ).store_on_function(wrapper)
         return wrapper
 
