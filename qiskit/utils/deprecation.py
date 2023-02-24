@@ -126,7 +126,7 @@ class _DeprecationMetadataEntry:
     """
 
     msg: str
-    since: str
+    since: Optional[str]
     pending: bool
 
     dunder_name: ClassVar[str] = "__qiskit_deprecations__"
