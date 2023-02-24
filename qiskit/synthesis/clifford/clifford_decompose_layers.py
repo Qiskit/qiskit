@@ -425,4 +425,4 @@ def synth_clifford_depth_lnn(cliff):
         cz_synth_func=synth_cz_depth_line_mr,
         cz_func_reverse_qubits=True,
     )
-    return circc
+    return circ
