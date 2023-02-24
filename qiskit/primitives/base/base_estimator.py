@@ -96,9 +96,9 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from ..utils import _circuit_key, _observable_key, init_observable
 from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
-from ..utils import _circuit_key, _observable_key, init_observable
 
 
 class BaseEstimator(BasePrimitive):
