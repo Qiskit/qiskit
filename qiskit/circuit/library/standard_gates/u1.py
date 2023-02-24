@@ -301,6 +301,7 @@ class MCU1Gate(ControlledGate):
         The singly-controlled-version of this gate.
     """
     num_params = 1
+    num_qubits = None
 
     def __init__(
         self,

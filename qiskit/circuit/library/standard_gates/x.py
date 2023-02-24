@@ -920,6 +920,7 @@ class MCXGate(ControlledGate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcx` method.
     """
     num_params = 0
+    num_qubits = None
 
     def __new__(
         cls,
@@ -1029,6 +1030,7 @@ class MCXGrayCode(MCXGate):
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
     num_params = 0
+    num_qubits = None
 
     def __new__(
         cls,
@@ -1081,6 +1083,7 @@ class MCXRecursive(MCXGate):
     for these we have a concrete implementation that do not require ancillas.
     """
     num_params = 0
+    num_qubits = None
 
     def __init__(
         self,
@@ -1144,6 +1147,7 @@ class MCXRecursive(MCXGate):
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
     num_params = 0
+    num_qubits = None
 
     def __new__(
         cls,
