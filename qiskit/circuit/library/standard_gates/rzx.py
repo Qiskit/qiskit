@@ -116,7 +116,6 @@ class RZXGate(Gate):
                                         0  & i & 0  & 1
                                     \end{pmatrix}
     """
-    name = "rzx"
     num_params = 1
     num_qubits = 2
 

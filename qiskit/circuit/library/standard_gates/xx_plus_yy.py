@@ -81,7 +81,6 @@ class XXPlusYYGate(Gate):
                 0 & 0                     & 0                    & 1
             \end{pmatrix}
     """
-    name = "xx_plus_yy"
     num_params = 2
     num_qubits = 2
 

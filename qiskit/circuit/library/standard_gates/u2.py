@@ -86,7 +86,6 @@ class U2Gate(Gate):
         U3 is a generalization of U2 that covers all single-qubit rotations,
         using two X90 pulses.
     """
-    name = "u2"
     num_params = 2
     num_qubits = 1
 

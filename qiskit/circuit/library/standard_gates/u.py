@@ -66,7 +66,6 @@ class UGate(Gate):
 
         U(\theta, 0, 0) = RY(\theta)
     """
-    name = "u"
     num_params = 3
     num_qubits = 1
 
@@ -191,7 +190,6 @@ class CUGate(ControlledGate):
                     0 & 0 & e^{i(\gamma + \phi)}\sin(\th) & e^{i(\gamma + \phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
-    name = "cu"
     num_params = 4
     num_qubits = 2
 

@@ -52,7 +52,6 @@ class TGate(Gate):
 
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
-    name = "t"
     num_params = 0
     num_qubits = 1
 
@@ -119,7 +118,6 @@ class TdgGate(Gate):
 
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
-    name = "tdg"
     num_params = 0
     num_qubits = 1
 

@@ -78,7 +78,6 @@ class U3Gate(Gate):
 
         U3(\theta, 0, 0) = RY(\theta)
     """
-    name = "u3"
     num_params = 3
     num_qubits = 1
 
@@ -203,7 +202,6 @@ class CU3Gate(ControlledGate):
                     0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
-    name = "cu3"
     num_params = 3
     num_qubits = 2
 

@@ -49,7 +49,6 @@ class RXGate(Gate):
                 -i\sin{\th} & \cos{\th}
             \end{pmatrix}
     """
-    name = "rx"
     num_params = 1
     num_qubits = 1
 
@@ -172,7 +171,6 @@ class CRXGate(ControlledGate):
                     0 & 0 & -i\sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
-    name = "crx"
     num_params = 1
     num_qubits = 2
 

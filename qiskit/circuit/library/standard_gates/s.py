@@ -52,7 +52,6 @@ class SGate(Gate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
-    name = "s"
     num_params = 0
     num_qubits = 1
 
@@ -119,7 +118,6 @@ class SdgGate(Gate):
 
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
-    name = "sdg"
     num_params = 0
     num_qubits = 1
 
@@ -185,7 +183,6 @@ class CSGate(ControlledGate):
                 0 & 0 & 0 & i
             \end{pmatrix}
     """
-    name = "cs"
     num_params = 0
     num_qubits = 2
 
@@ -263,7 +260,6 @@ class CSdgGate(ControlledGate):
                 0 & 0 & 0 & -i
             \end{pmatrix}
     """
-    name = "csdg"
     num_params = 0
     num_qubits = 2
 

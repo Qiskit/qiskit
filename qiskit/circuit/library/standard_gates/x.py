@@ -72,7 +72,6 @@ class XGate(Gate):
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
     """
-    name = "x"
     num_params = 0
     num_qubits = 1
 
@@ -190,7 +189,6 @@ class CXGate(ControlledGate):
     .. math::
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
-    name = "cx"
     num_params = 0
     num_qubits = 2
 
@@ -331,7 +329,6 @@ class CCXGate(ControlledGate):
                 \end{pmatrix}
 
     """
-    name = "ccx"
     num_params = 0
     num_qubits = 3
 
@@ -436,8 +433,6 @@ class RCCXGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
-
-    name = "rccx"
     num_params = 0
     num_qubits = 3
 
@@ -505,8 +500,6 @@ class C3SXGate(ControlledGate):
     References:
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
-
-    name = "c3sx"
     num_params = 0
     num_qubits = 4
 
@@ -593,7 +586,6 @@ class C3XGate(ControlledGate):
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
-    name = "mcx"
     num_params = 0
     num_qubits = 4
 
@@ -730,8 +722,6 @@ class RC3XGate(Gate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
-
-    name = "rcccx"
     num_params = 0
     num_qubits = 4
 
@@ -827,8 +817,6 @@ class C4XGate(ControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
         [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
-
-    name = "mcx"
     num_params = 0
     num_qubits = 5
 
@@ -931,8 +919,6 @@ class MCXGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcx` method.
     """
-
-    name = "mcx"
     num_params = 0
 
     def __new__(
@@ -1042,7 +1028,6 @@ class MCXGrayCode(MCXGate):
 
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
-    name = "mcx_gray"
     num_params = 0
 
     def __new__(
@@ -1095,8 +1080,6 @@ class MCXRecursive(MCXGate):
     four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
     for these we have a concrete implementation that do not require ancillas.
     """
-
-    name = "mcx_recursive"
     num_params = 0
 
     def __init__(
@@ -1160,8 +1143,6 @@ class MCXRecursive(MCXGate):
 
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
-
-    name = "mcx_vchain"
     num_params = 0
 
     def __new__(

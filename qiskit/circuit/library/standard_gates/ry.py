@@ -48,7 +48,6 @@ class RYGate(Gate):
                 \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
-    name = "ry"
     num_params = 1
     num_qubits = 1
 
@@ -171,7 +170,6 @@ class CRYGate(ControlledGate):
                     0 & 0 & \sin{\th} & \cos{\th}
                 \end{pmatrix}
     """
-    name = "cry"
     num_params = 1
     num_qubits = 2
 

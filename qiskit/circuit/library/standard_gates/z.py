@@ -70,7 +70,6 @@ class ZGate(Gate):
         |0\rangle \rightarrow |0\rangle \\
         |1\rangle \rightarrow -|1\rangle
     """
-    name = "z"
     num_params = 0
     num_qubits = 1
 
@@ -162,7 +161,6 @@ class CZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
-    name = "cz"
     num_params = 0
     num_qubits = 2
 
@@ -244,7 +242,6 @@ class CCZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
-    name = "ccz"
     num_params = 0
     num_qubits = 3
 

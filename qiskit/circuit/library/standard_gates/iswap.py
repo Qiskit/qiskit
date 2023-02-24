@@ -82,7 +82,6 @@ class iSwapGate(Gate):
                 0 & 0 & 0 & 1
             \end{pmatrix}
     """
-    name = "iswap"
     num_params = 0
     num_qubits = 2
 

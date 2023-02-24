@@ -48,7 +48,6 @@ class RGate(Gate):
                 -i e^{i \phi} \sin{\th} & \cos{\th}
             \end{pmatrix}
     """
-    name = "r"
     num_params = 2
     num_qubits = 1
 

@@ -57,7 +57,6 @@ class SXGate(Gate):
                     = e^{-i pi/4} \sqrt{X}
 
     """
-    name = "sx"
     num_params = 0
     num_qubits = 1
 
@@ -143,7 +142,6 @@ class SXdgGate(Gate):
                     = e^{-i pi/4} \sqrt{X}^{\dagger}
 
     """
-    name = "sxdg"
     num_params = 0
     num_qubits = 1
 
@@ -248,7 +246,6 @@ class CSXGate(ControlledGate):
             [0, 0, 0, 1],
         ]
     )
-    name = "csx"
     num_params = 0
     num_qubits = 2
 

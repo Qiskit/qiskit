@@ -83,7 +83,6 @@ class RZZGate(Gate):
                                         0 & 0 & 0 & 1-i
                                     \end{pmatrix}
     """
-    name = "rzz"
     num_params = 1
     num_qubits = 2
 

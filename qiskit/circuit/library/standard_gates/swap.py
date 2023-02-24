@@ -53,7 +53,6 @@ class SwapGate(Gate):
 
         |a, b\rangle \rightarrow |b, a\rangle
     """
-    name = "swap"
     num_params = 0
     num_qubits = 2
 
@@ -216,7 +215,6 @@ class CSwapGate(ControlledGate):
             [0, 0, 0, 0, 0, 0, 0, 1],
         ]
     )
-    name = "cswap"
     num_params = 0
     num_qubits = 3
 

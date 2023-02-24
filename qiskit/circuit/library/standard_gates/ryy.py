@@ -71,7 +71,6 @@ class RYYGate(Gate):
                                         i & 0 & 0 & 1
                                     \end{pmatrix}
     """
-    name = "ryy"
     num_params = 1
     num_qubits = 2
 

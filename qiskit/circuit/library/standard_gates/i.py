@@ -43,7 +43,6 @@ class IGate(Gate):
         q_0: ┤ I ├
              └───┘
     """
-    name = "id"
     num_params = 0
     num_qubits = 1
 

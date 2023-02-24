@@ -50,7 +50,6 @@ class HGate(Gate):
                 1 & -1
             \end{pmatrix}
     """
-    name = "h"
     num_params = 0
     num_qubits = 1
 
@@ -174,7 +173,6 @@ class CHGate(ControlledGate):
         [[_sqrt2o2, 0, _sqrt2o2, 0], [0, 1, 0, 0], [_sqrt2o2, 0, -_sqrt2o2, 0], [0, 0, 0, 1]],
         dtype=complex,
     )
-    name = "ch"
     num_params = 0
     num_qubits = 2
 
