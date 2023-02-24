@@ -29,8 +29,10 @@ class TestDeprecations(QiskitTestCase):
         This should support multiple deprecations on the same function.
         """
 
-        @deprecate_function("Stop using my_func!")
-        @deprecate_arguments({"old_arg": "new_arg"}, category=PendingDeprecationWarning)
+        @deprecate_function("Stop using my_func!", since="9.99")
+        @deprecate_arguments(
+            {"old_arg": "new_arg"}, category=PendingDeprecationWarning, since="9.99"
+        )
         def my_func(old_arg: int, new_arg: int) -> None:
             del old_arg
             del new_arg
@@ -40,9 +42,9 @@ class TestDeprecations(QiskitTestCase):
             [
                 _DeprecationMetadataEntry(
                     "my_func keyword argument old_arg is deprecated and replaced with new_arg.",
-                    since="TODO",
+                    since="9.99",
                     pending=True,
                 ),
-                _DeprecationMetadataEntry("Stop using my_func!", since="TODO", pending=False),
+                _DeprecationMetadataEntry("Stop using my_func!", since="9.99", pending=False),
             ],
         )
