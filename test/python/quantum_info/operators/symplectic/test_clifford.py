@@ -592,7 +592,8 @@ class TestCliffordGates(QiskitTestCase):
 class TestCliffordSynthesis(QiskitTestCase):
     """Test Clifford synthesis methods."""
 
-    def _cliffords_1q(self):
+    @staticmethod
+    def _cliffords_1q():
         clifford_dicts = [
             {"stabilizer": ["+Z"], "destabilizer": ["-X"]},
             {"stabilizer": ["-Z"], "destabilizer": ["+X"]},
@@ -1036,7 +1037,7 @@ class TestCliffordOperators(QiskitTestCase):
         clifford = random_clifford(num_qubits, seed=777)
         self.assertEqual(clifford.to_instruction().name, str(clifford))
 
-    def visualize_does_not_throw_error(self):
+    def test_visualize_does_not_throw_error(self):
         """Test to verify that drawing Clifford does not throw an error"""
         # An error may be thrown if visualization code calls op.condition instead
         # of getattr(op, "condition", None)
