@@ -17,8 +17,10 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
-from qiskit.circuit.library import LinearFunction
-from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms
+from qiskit.quantum_info.operators import Operator
+from qiskit.circuit.library import LinearFunction, PermutationGate
+from qiskit.synthesis import synth_permutation_acg
+from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms, synth_permutation_basic
 from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
 from qiskit.test import QiskitTestCase
 
@@ -32,13 +34,52 @@ class TestPermutationSynthesis(QiskitTestCase):
         """Test get_ordered_swap function produces correct swap list."""
         np.random.seed(1)
         for _ in range(5):
-            permutation = np.random.permutation(width)
-            swap_list = _get_ordered_swap(permutation)
+            pattern = np.random.permutation(width)
+            swap_list = _get_ordered_swap(pattern)
             output = list(range(width))
             for i, j in swap_list:
                 output[i], output[j] = output[j], output[i]
-            self.assertTrue(np.array_equal(permutation, output))
+            self.assertTrue(np.array_equal(pattern, output))
             self.assertLess(len(swap_list), width)
+
+    @data(4, 5, 10, 15, 20)
+    def test_synth_permutation_basic(self, width):
+        """Test synth_permutation_basic function produces the correct
+        circuit."""
+        np.random.seed(1)
+        for _ in range(5):
+            pattern = np.random.permutation(width)
+            qc = synth_permutation_basic(pattern)
+
+            # Check that the synthesized circuit consists of SWAP gates only.
+            for instruction in qc.data:
+                self.assertEqual(instruction.operation.name, "swap")
+
+            # Construct a linear function from the synthesized circuit, and
+            # check that its permutation pattern matches the original pattern.
+            synthesized_pattern = LinearFunction(qc).permutation_pattern()
+            self.assertTrue(np.array_equal(synthesized_pattern, pattern))
+
+    @data(4, 5, 10, 15, 20)
+    def test_synth_permutation_acg(self, width):
+        """Test synth_permutation_acg function produces the correct
+        circuit."""
+        np.random.seed(1)
+        for _ in range(5):
+            pattern = np.random.permutation(width)
+            qc = synth_permutation_acg(pattern)
+
+            # Check that the synthesized circuit consists of SWAP gates only.
+            for instruction in qc.data:
+                self.assertEqual(instruction.operation.name, "swap")
+
+            # Check that the depth of the circuit (measured in terms of SWAPs) is at most 2.
+            self.assertLessEqual(qc.depth(), 2)
+
+            # Construct a linear function from the synthesized circuit, and
+            # check that its permutation pattern matches the original pattern.
+            synthesized_pattern = LinearFunction(qc).permutation_pattern()
+            self.assertTrue(np.array_equal(synthesized_pattern, pattern))
 
     @data(4, 5, 10, 15, 20)
     def test_synth_permutation_depth_lnn_kms(self, width):
@@ -66,6 +107,18 @@ class TestPermutationSynthesis(QiskitTestCase):
             # check that its permutation pattern matches the original pattern.
             synthesized_pattern = LinearFunction(qc).permutation_pattern()
             self.assertTrue(np.array_equal(synthesized_pattern, pattern))
+
+    @data(4, 5, 6, 7)
+    def test_permutation_matrix(self, width):
+        """Test that the unitary matrix constructed from permutation pattern
+        is correct."""
+        np.random.seed(1)
+        for _ in range(5):
+            pattern = np.random.permutation(width)
+            qc = synth_permutation_depth_lnn_kms(pattern)
+            expected = Operator(qc)
+            constructed = Operator(PermutationGate(pattern))
+            self.assertEqual(expected, constructed)
 
 
 if __name__ == "__main__":
