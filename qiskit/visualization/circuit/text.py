@@ -23,7 +23,14 @@ from qiskit.circuit import Qubit, Clbit, ClassicalRegister, QuantumRegister, Qua
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
-from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, iSwapGate, SXGate, SXdgGate
+from qiskit.circuit.library.standard_gates import (
+    IGate,
+    RZZGate,
+    SwapGate,
+    iSwapGate,
+    SXGate,
+    SXdgGate,
+)
 from qiskit.circuit.tools.pi_check import pi_check
 
 from ._utils import (
