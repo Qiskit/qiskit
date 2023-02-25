@@ -24,6 +24,7 @@ from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
 from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
+    iSwapGate,
     RZZGate,
     U1Gate,
     PhaseGate,
@@ -1123,6 +1124,11 @@ class MatplotlibDrawer:
             self._swap(xy, node, self._data[node]["lc"])
             return
 
+        # iSwap gate
+        if isinstance(op, iSwapGate):
+            self._iswap(xy, node, self._data[node]["lc"])
+            return
+
         # RZZ Gate
         elif isinstance(op, RZZGate):
             self._symmetric_gate(node, RZZGate)
@@ -1404,6 +1410,44 @@ class MatplotlibDrawer:
             color=color,
             linewidth=self._lwidth2,
             zorder=PORDER_LINE + 1,
+        )
+
+    def _iswap(self, xy, node, color=None):
+        """Draw a Swap gate"""
+        fc = self._data[node]["fc"]
+        tc = self._data[node]["tc"]
+        tgt_color = self._style["dispcol"]["target"]
+        tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
+        self._iswap_cross(xy[0], ec=color, ac=tgt)
+        self._iswap_cross(xy[1], ec=color, ac=tgt)
+        self._line(xy[0], xy[1], lc=color)
+
+    def _iswap_cross(self, xy, ec=None, ac=None):
+        """Draw the Swap cross symbol"""
+        xpos, ypos = xy
+        box = self._patches_mod.Circle(
+            xy=(xpos, ypos),
+            radius=HIG * 0.35,
+            fc=ec,
+            ec=ec,
+            linewidth=self._lwidth2,
+            zorder=PORDER_GATE,
+        )
+        self._ax.add_patch(box)
+
+        self._ax.plot(
+            [xpos - 0.20 * WID, xpos + 0.20 * WID],
+            [ypos - 0.20 * WID, ypos + 0.20 * WID],
+            color=ac,
+            linewidth=self._lwidth2,
+            zorder=PORDER_GATE + 1,
+        )
+        self._ax.plot(
+            [xpos - 0.20 * WID, xpos + 0.20 * WID],
+            [ypos + 0.20 * WID, ypos - 0.20 * WID],
+            color=ac,
+            linewidth=self._lwidth2,
+            zorder=PORDER_GATE + 1,
         )
 
     def _sidetext(self, node, xy, tc=None, text=""):
