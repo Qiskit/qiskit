@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug where :meth:`.Parameter.is_real` did not return ``None`` when
+    the parameter is not bound.
+    Fixed `#8619 <https://github.com/Qiskit/qiskit-terra/issues/8619>`.
