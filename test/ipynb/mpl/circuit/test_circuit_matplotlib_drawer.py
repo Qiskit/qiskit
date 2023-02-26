@@ -409,6 +409,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="cz.png")
 
+    def test_cx_iswap_swap(self):
+        """Test CX, iSWAP and Swap gates in a circuit."""
+        circuit = QuantumCircuit(3)
+        circuit = circuit.compose(CXGate(), [0, 1])
+        circuit = circuit.compose(iSwapGate(), [0, 1])
+        circuit = circuit.compose(SwapGate(), [0, 1])
+        circuit = circuit.compose(CXGate().control(), [0, 1, 2])
+        circuit = circuit.compose(iSwapGate().control(), [0, 1, 2])
+        circuit = circuit.compose(SwapGate().control(), [0, 1, 2])
+        self.circuit_drawer(circuit, filename="cx_iswap_swap.png")
+
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
         qr = QuantumRegister(5, "q")

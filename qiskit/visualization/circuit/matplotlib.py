@@ -449,7 +449,9 @@ class MatplotlibDrawer:
                 ):
                     continue
 
-                if isinstance(op, SwapGate) or isinstance(base_type, SwapGate):
+                if isinstance(op, (iSwapGate, SwapGate)) or isinstance(
+                    base_type, (iSwapGate, SwapGate)
+                ):
                     continue
 
                 # small increments at end of the 3 _get_text_width calls are for small
@@ -1246,6 +1248,9 @@ class MatplotlibDrawer:
         elif isinstance(base_type, SwapGate):
             self._swap(xy[num_ctrl_qubits:], node, self._data[node]["lc"])
 
+        elif isinstance(base_type, iSwapGate):
+            self._iswap(xy[num_ctrl_qubits:], node, self._data[node]["lc"])
+
         else:
             self._multiqubit_gate(node, xy[num_ctrl_qubits:])
 
@@ -1413,7 +1418,7 @@ class MatplotlibDrawer:
         )
 
     def _iswap(self, xy, node, color=None):
-        """Draw a Swap gate"""
+        """Draw an iSwap gate"""
         fc = self._data[node]["fc"]
         tc = self._data[node]["tc"]
         tgt_color = self._style["dispcol"]["target"]
@@ -1423,7 +1428,7 @@ class MatplotlibDrawer:
         self._line(xy[0], xy[1], lc=color)
 
     def _iswap_cross(self, xy, ec=None, ac=None):
-        """Draw the Swap cross symbol"""
+        """Draw the iSwap cross symbol"""
         xpos, ypos = xy
         box = self._patches_mod.Circle(
             xy=(xpos, ypos),

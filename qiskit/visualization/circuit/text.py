@@ -1156,6 +1156,10 @@ class TextDrawing:
                 # cswap
                 gates += [Ex(conditional=conditional), Ex(conditional=conditional)]
                 add_connected_gate(node, gates, layer, current_cons)
+            elif base_gate.name == "iswap":
+                # control-iswap
+                gates += [CircleEx(conditional=conditional), CircleEx(conditional=conditional)]
+                add_connected_gate(node, gates, layer, current_cons)
             elif base_gate.name == "rzz":
                 # crzz
                 connection_label = "ZZ%s" % params
