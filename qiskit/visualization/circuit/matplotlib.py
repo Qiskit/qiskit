@@ -1128,7 +1128,7 @@ class MatplotlibDrawer:
 
         # iSwap gate
         if isinstance(op, iSwapGate):
-            self._iswap(xy, node, self._data[node]["lc"])
+            self._iswap(xy, self._data[node]["lc"])
             return
 
         # RZZ Gate
@@ -1249,7 +1249,7 @@ class MatplotlibDrawer:
             self._swap(xy[num_ctrl_qubits:], node, self._data[node]["lc"])
 
         elif isinstance(base_type, iSwapGate):
-            self._iswap(xy[num_ctrl_qubits:], node, self._data[node]["lc"])
+            self._iswap(xy[num_ctrl_qubits:], self._data[node]["lc"])
 
         else:
             self._multiqubit_gate(node, xy[num_ctrl_qubits:])
@@ -1417,7 +1417,7 @@ class MatplotlibDrawer:
             zorder=PORDER_LINE + 1,
         )
 
-    def _iswap(self, xy, node, color=None):
+    def _iswap(self, xy, color=None):
         """Draw an iSwap gate"""
         tgt_color = self._style["dispcol"]["target"]
         tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
