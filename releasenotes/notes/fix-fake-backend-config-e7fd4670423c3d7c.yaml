@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed a bug where all fake backends available in the
+    :attr:`qiskit.providers.fake_provider.configuration().simulator` returned ``False``.
+    Fixed `#9572 <https://github.com/Qiskit/qiskit-terra/issues/9572>`.

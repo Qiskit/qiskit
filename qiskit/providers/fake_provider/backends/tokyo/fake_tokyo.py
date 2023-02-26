@@ -115,7 +115,7 @@ class FakeTokyo(FakeBackend):
             backend_version="0.0.0",
             n_qubits=20,
             basis_gates=["u1", "u2", "u3", "cx", "id"],
-            simulator=False,
+            simulator=True,
             local=True,
             conditional=False,
             open_pulse=False,
