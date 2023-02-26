@@ -95,7 +95,6 @@ For example:
    ECRGate
    HGate
    IGate
-   MCPhaseGate
    MSGate
    PhaseGate
    RCCXGate
