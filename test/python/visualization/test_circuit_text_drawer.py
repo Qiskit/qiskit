@@ -41,7 +41,6 @@ from qiskit.circuit.library import (
     ZGate,
     YGate,
     U1Gate,
-    SwapGate,
     RZZGate,
     CU3Gate,
     CU1Gate,

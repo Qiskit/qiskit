@@ -1419,8 +1419,6 @@ class MatplotlibDrawer:
 
     def _iswap(self, xy, node, color=None):
         """Draw an iSwap gate"""
-        fc = self._data[node]["fc"]
-        tc = self._data[node]["tc"]
         tgt_color = self._style["dispcol"]["target"]
         tgt = tgt_color if isinstance(tgt_color, str) else tgt_color[0]
         self._iswap_cross(xy[0], ec=color, ac=tgt)

@@ -27,9 +27,11 @@ from qiskit.providers.fake_provider import FakeTenerife
 from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer
 from qiskit.circuit.library import (
     XGate,
+    CXGate,
     MCXGate,
     HGate,
     RZZGate,
+    iSwapGate,
     SwapGate,
     DCXGate,
     ZGate,
