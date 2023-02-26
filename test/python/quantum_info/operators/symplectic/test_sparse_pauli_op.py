@@ -227,7 +227,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         np.testing.assert_array_equal(spp_op.coeffs, coeffs)
         self.assertEqual(spp_op.paulis, PauliList(labels))
 
-    def to_matrix(self):
+    def test_to_matrix(self):
         """Test to_matrix method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
@@ -237,17 +237,17 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
 
-    def to_matrix_parameters(self):
+    def test_to_matrix_parameters(self):
         """Test to_matrix method for parameterized SparsePauliOp."""
         labels = ["XI", "YZ", "YY", "ZZ"]
-        coeffs = ParameterVector("a", 4)
+        coeffs = np.array(ParameterVector("a", 4))
         spp_op = SparsePauliOp(labels, coeffs)
         target = np.zeros((4, 4), dtype=object)
         for coeff, label in zip(coeffs, labels):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
 
-    def to_operator(self):
+    def test_to_operator(self):
         """Test to_operator method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
@@ -257,7 +257,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
             target = target + Operator(coeff * pauli_mat(label))
         self.assertEqual(spp_op.to_operator(), target)
 
-    def to_list(self):
+    def test_to_list(self):
         """Test to_operator method."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
@@ -265,7 +265,7 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         target = list(zip(labels, coeffs))
         self.assertEqual(op.to_list(), target)
 
-    def to_list_parameters(self):
+    def test_to_list_parameters(self):
         """Test to_operator method with paramters."""
         labels = ["XI", "YZ", "YY", "ZZ"]
         coeffs = np.array(ParameterVector("a", 4))
