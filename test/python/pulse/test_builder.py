@@ -869,7 +869,7 @@ class TestGates(TestBuilder):
 
     def test_backend_require(self):
         """Test that a backend is required to use a gate."""
-        with self.assertRaises(exceptions.BackendNotSetError):
+        with self.assertRaises(exceptions.BackendNotSet):
             with pulse.build():
                 pulse.x(0)
 

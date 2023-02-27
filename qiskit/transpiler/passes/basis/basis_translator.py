@@ -363,7 +363,7 @@ class BasisTranslator(TransformationPass):
         return source_basis, qargs_local_source_basis
 
 
-class StopIfBasisRewritableError(Exception):
+class StopIfBasisRewritable(Exception):
     """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
 
 
@@ -406,7 +406,7 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no
             # additional transformations that are not required to map our source gates to the given
             # target basis.
             self._basis_transforms.reverse()
-            raise StopIfBasisRewritableError
+            raise StopIfBasisRewritable
 
     def examine_edge(self, edge):
         _, target, edata = edge
@@ -499,7 +499,7 @@ def _basis_search(equiv_lib, source_basis, target_basis):
         rtn = None
         try:
             rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
-        except StopIfBasisRewritableError:
+        except StopIfBasisRewritable:
             rtn = vis.basis_transforms
 
             logger.debug("Transformation path:")

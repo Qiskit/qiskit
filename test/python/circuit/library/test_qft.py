@@ -175,7 +175,7 @@ class TestQFT(QiskitTestCase):
         we temporarily prevent QuantumCircuits from being created in order to short-circuit the QFT
         builder."""
 
-        class SentinelError(Exception):
+        class SentinelException(Exception):
             """Dummy exception that raises itself as soon as it is created."""
 
             def __init__(self, *_args, **_kwargs):
@@ -200,9 +200,9 @@ class TestQFT(QiskitTestCase):
 
         # Short-circuit the build method so it exits after input validation, but without actually
         # spinning the CPU to build a huge, useless object.
-        with unittest.mock.patch("qiskit.circuit.QuantumCircuit.__init__", SentinelError):
+        with unittest.mock.patch("qiskit.circuit.QuantumCircuit.__init__", SentinelException):
             with self.assertWarnsRegex(RuntimeWarning, "precision loss in QFT"):
-                with self.assertRaises(SentinelError):
+                with self.assertRaises(SentinelException):
                     qft._build()
 
 

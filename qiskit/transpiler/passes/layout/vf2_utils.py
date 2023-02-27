@@ -32,7 +32,7 @@ def build_interaction_graph(dag, strict_direction=True):
     im_graph_node_map = {}
     reverse_im_graph_node_map = {}
 
-    class MultiQEncounteredError(Exception):
+    class MultiQEncountered(Exception):
         """Used to singal an error-status return from the DAG visitor."""
 
     def _visit(dag, weight, wire_map):
@@ -73,11 +73,11 @@ def build_interaction_graph(dag, strict_direction=True):
                     weights[node.name] += weight
                     im_graph.add_edge(*edge, weights)
             if len_args > 2:
-                raise MultiQEncounteredError()
+                raise MultiQEncountered()
 
     try:
         _visit(dag, 1, {bit: bit for bit in dag.qubits})
-    except MultiQEncounteredError:
+    except MultiQEncountered:
         return None
     # Remove components with no 2q interactions from interaction graph
     # these will be evaluated separately independently of scoring isomorphic

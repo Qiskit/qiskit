@@ -13,7 +13,7 @@
 """Exception for errors raised while interpreting nodes."""
 
 
-class NodeError(Exception):
+class NodeException(Exception):
     """Base class for errors raised while interpreting nodes."""
 
     def __init__(self, *msg):

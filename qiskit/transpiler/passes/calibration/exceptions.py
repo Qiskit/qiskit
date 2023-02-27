@@ -14,7 +14,7 @@
 from qiskit.exceptions import QiskitError
 
 
-class CalibrationNotAvailableError(QiskitError):
+class CalibrationNotAvailable(QiskitError):
     """Raised when calibration generation fails.
 
     .. note::

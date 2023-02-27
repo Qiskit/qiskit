@@ -38,4 +38,4 @@ from .real import Real
 from .reset import Reset
 from .unaryoperator import UnaryOperator
 from .universalunitary import UniversalUnitary
-from .nodeerror import NodeError
+from .nodeexception import NodeException

@@ -34,7 +34,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.test._canonical import canonicalize_control_flow
 
 
-class SentinelError(Exception):
+class SentinelException(Exception):
     """An exception that we know was raised deliberately."""
 
 
@@ -2274,12 +2274,12 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         with self.subTest("for"):
             test = QuantumCircuit(1, 1)
             test.h(0)
-            with self.assertRaises(SentinelError):
+            with self.assertRaises(SentinelException):
                 with test.for_loop(range(2), x) as bound_x:
                     test.x(0)
                     test.rx(bound_x, 0)
                     test.ry(y, 0)
-                    raise SentinelError
+                    raise SentinelException
             test.z(0)
 
             expected = QuantumCircuit(1, 1)
@@ -2294,11 +2294,11 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             bits = [Qubit(), Clbit()]
             test = QuantumCircuit(bits)
             test.h(0)
-            with self.assertRaises(SentinelError):
+            with self.assertRaises(SentinelException):
                 with test.while_loop((bits[1], 0)):
                     test.x(0)
                     test.rx(x, 0)
-                    raise SentinelError
+                    raise SentinelException
             test.z(0)
 
             expected = QuantumCircuit(bits)
@@ -2312,11 +2312,11 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             bits = [Qubit(), Clbit()]
             test = QuantumCircuit(bits)
             test.h(0)
-            with self.assertRaises(SentinelError):
+            with self.assertRaises(SentinelException):
                 with test.if_test((bits[1], 0)):
                     test.x(0)
                     test.rx(x, 0)
-                    raise SentinelError
+                    raise SentinelException
             test.z(0)
 
             expected = QuantumCircuit(bits)
@@ -2332,11 +2332,11 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
             test.h(0)
             with test.if_test((bits[1], 0)) as else_:
                 test.rx(x, 0)
-            with self.assertRaises(SentinelError):
+            with self.assertRaises(SentinelException):
                 with else_:
                     test.x(0)
                     test.rx(y, 0)
-                    raise SentinelError
+                    raise SentinelException
             test.z(0)
 
             # Note that we expect the "else" manager to restore the "if" block if something errors
@@ -2360,10 +2360,10 @@ class TestControlFlowBuildersFailurePaths(QiskitTestCase):
         test.h(0)
         with test.if_test((bits[1], 0)) as else_:
             test.x(0)
-        with self.assertRaises(SentinelError):
+        with self.assertRaises(SentinelException):
             with else_:
                 test.y(0)
-                raise SentinelError
+                raise SentinelException
         with else_:
             test.h(0)
         test.z(0)
