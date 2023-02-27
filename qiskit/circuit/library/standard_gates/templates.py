@@ -14,12 +14,11 @@
 import numpy as np  # required for rzx templates
 
 from qiskit.qasm import pi
-from qiskit.circuit import Parameter, QuantumCircuit #, TemplateLibrary
+from qiskit.circuit import Parameter, QuantumCircuit  # , TemplateLibrary
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
 
-class TemplateLibrary():
-
+class TemplateLibrary:
     def __init__(self, *, base=None):
         """Create a new equivalence library.
 
@@ -31,7 +30,6 @@ class TemplateLibrary():
 
         self._map = {}
 
-
     # Clifford templates
 
     """
@@ -41,7 +39,6 @@ class TemplateLibrary():
                   │  │
             q_1: ─■──■─
     """
-
 
     def clifford_2_1():
         """
@@ -53,9 +50,7 @@ class TemplateLibrary():
         qc.cz(0, 1)
         return qc
 
-
     def_Clifford2_1 = clifford_2_1()
-
 
     """
     Clifford template 2_2:
@@ -65,7 +60,6 @@ class TemplateLibrary():
             q_1: ┤ X ├┤ X ├
                  └───┘└───┘
     """
-
 
     def clifford_2_2():
         """
@@ -77,7 +71,6 @@ class TemplateLibrary():
         qc.cx(0, 1)
         return qc
 
-
     def_Clifford2_2 = clifford_2_2()
 
     """
@@ -87,7 +80,6 @@ class TemplateLibrary():
             q_0: ┤ H ├┤ H ├
                  └───┘└───┘
     """
-
 
     def clifford_2_3():
         """
@@ -99,7 +91,6 @@ class TemplateLibrary():
         qc.h(0)
         return qc
 
-
     def_Clifford2_3 = clifford_2_3()
 
     """
@@ -109,7 +100,6 @@ class TemplateLibrary():
                   │  │
             q_1: ─X──X─
     """
-
 
     def clifford_2_4():
         """
@@ -121,9 +111,7 @@ class TemplateLibrary():
         qc.swap(1, 0)
         return qc
 
-
     def_Clifford2_4 = clifford_2_4()
-
 
     """
     Clifford template 3_1:
@@ -132,7 +120,6 @@ class TemplateLibrary():
             q_0: ┤ S ├┤ S ├┤ Z ├
                  └───┘└───┘└───┘
     """
-
 
     def clifford_3_1():
         """
@@ -145,9 +132,7 @@ class TemplateLibrary():
         qc.z(0)
         return qc
 
-
     def_Clifford3_1 = clifford_3_1()
-
 
     """
     Clifford template 4_1:
@@ -158,7 +143,6 @@ class TemplateLibrary():
             q_1: ┤ X ├──■──┤ X ├─X─
                  └───┘     └───┘
     """
-
 
     def clifford_4_1():
         """
@@ -172,9 +156,7 @@ class TemplateLibrary():
         qc.swap(0, 1)
         return qc
 
-
     def_Clifford4_1 = clifford_4_1()
-
 
     """
     Clifford template 4_2:
@@ -184,7 +166,6 @@ class TemplateLibrary():
             q_1: ┤ H ├┤ X ├┤ H ├─■─
                  └───┘└───┘└───┘
     """
-
 
     def clifford_4_2():
         """
@@ -198,9 +179,7 @@ class TemplateLibrary():
         qc.cz(0, 1)
         return qc
 
-
     def_Clifford4_2 = clifford_4_2()
-
 
     """
     Clifford template 4_3:
@@ -211,7 +190,6 @@ class TemplateLibrary():
             q_1: ─────┤ X ├───────┤ X ├
                       └───┘       └───┘
     """
-
 
     def clifford_4_3():
         """
@@ -225,9 +203,7 @@ class TemplateLibrary():
         qc.cx(0, 1)
         return qc
 
-
     def_Clifford4_3 = clifford_4_3()
-
 
     """
     Clifford template 4_4:
@@ -237,7 +213,6 @@ class TemplateLibrary():
                  └───┘ │ └─────┘ │
             q_1: ──────■─────────■─
     """
-
 
     def clifford_4_4():
         """
@@ -251,9 +226,7 @@ class TemplateLibrary():
         qc.cz(0, 1)
         return qc
 
-
     def_Clifford4_4 = clifford_4_4()
-
 
     """
     Clifford template 5_1:
@@ -265,7 +238,6 @@ class TemplateLibrary():
             q_2: ─────┤ X ├─────┤ X ├┤ X ├
                       └───┘     └───┘└───┘
     """
-
 
     def clifford_5_1():
         """
@@ -280,9 +252,7 @@ class TemplateLibrary():
         qc.cx(0, 2)
         return qc
 
-
     def_Clifford5_1 = clifford_5_1()
-
 
     """
     Clifford template 6_2:
@@ -293,7 +263,6 @@ class TemplateLibrary():
             q_1: ┤ S ├┤ X ├┤ SDG ├┤ X ├─■─
                  └───┘└───┘└─────┘└───┘
     """
-
 
     def clifford_6_2():
         """
@@ -309,9 +278,7 @@ class TemplateLibrary():
         qc.cz(0, 1)
         return qc
 
-
     def_Clifford6_2 = clifford_6_2()
-
 
     """
     Clifford template 6_3:
@@ -322,7 +289,6 @@ class TemplateLibrary():
             q_1: ─X──■──────┤ X ├──■──┤ H ├
                             └───┘     └───┘
     """
-
 
     def clifford_6_3():
         """
@@ -338,9 +304,7 @@ class TemplateLibrary():
         qc.h(1)
         return qc
 
-
     def_Clifford6_3 = clifford_6_3()
-
 
     """
     Clifford template 6_4:
@@ -349,7 +313,6 @@ class TemplateLibrary():
             q_0: ┤ S ├┤ H ├┤ S ├┤ H ├┤ S ├┤ H ├
                  └───┘└───┘└───┘└───┘└───┘└───┘
     """
-
 
     def clifford_6_4():
         """
@@ -365,9 +328,7 @@ class TemplateLibrary():
         qc.h(0)
         return qc
 
-
     def_Clifford6_4 = clifford_6_4()
-
 
     """
     Clifford template 6_5:
@@ -378,7 +339,6 @@ class TemplateLibrary():
             q_1: ─■─┤ X ├┤ SDG ├┤ X ├┤ S ├
                     └───┘└─────┘└───┘└───┘
     """
-
 
     def clifford_6_5():
         """
@@ -394,9 +354,7 @@ class TemplateLibrary():
         qc.s(1)
         return qc
 
-
     def_Clifford6_5 = clifford_6_5()
-
 
     """
     Clifford template 8_1:
@@ -407,7 +365,6 @@ class TemplateLibrary():
             q_1: ┤ X ├┤ H ├──■──┤ SDG ├──■───┤ H ├─
                  └───┘└───┘     └─────┘      └───┘
     """
-
 
     def clifford_8_1():
         """
@@ -425,9 +382,7 @@ class TemplateLibrary():
         qc.h(1)
         return qc
 
-
     def_Clifford8_1 = clifford_8_1()
-
 
     """
     Clifford template 8_2:
@@ -438,7 +393,6 @@ class TemplateLibrary():
             q_1: ┤ X ├┤ H ├┤ X ├┤ SDG ├┤ X ├┤ S ├┤ H ├
                  └───┘└───┘└───┘└─────┘└───┘└───┘└───┘
     """
-
 
     def clifford_8_2():
         """
@@ -456,7 +410,6 @@ class TemplateLibrary():
         qc.h(1)
         return qc
 
-
     def_Clifford8_2 = clifford_8_2()
 
     """
@@ -467,7 +420,6 @@ class TemplateLibrary():
             q_1: ┤ S ├┤ H ├┤ S ├┤ X ├┤ SDG ├┤ H ├┤ SDG ├┤ X ├
                  └───┘└───┘└───┘└───┘└─────┘└───┘└─────┘└───┘
     """
-
 
     def clifford_8_3():
         """
@@ -485,9 +437,7 @@ class TemplateLibrary():
         qc.cx(0, 1)
         return qc
 
-
     def_Clifford8_3 = clifford_8_3()
-
 
     """
     Template 2a_1:
@@ -496,7 +446,6 @@ class TemplateLibrary():
             q_0: ┤ X ├┤ X ├
                  └───┘└───┘
     """
-
 
     def template_nct_2a_1():
         """
@@ -508,9 +457,7 @@ class TemplateLibrary():
         qc.x(0)
         return qc
 
-
     def_Template_nct_2a_1 = template_nct_2a_1()
-
 
     """
     Template 2a_2:
@@ -520,7 +467,6 @@ class TemplateLibrary():
         q_1: ┤ X ├┤ X ├
              └───┘└───┘
     """
-
 
     def template_nct_2a_2():
         """
@@ -532,9 +478,7 @@ class TemplateLibrary():
         qc.cx(0, 1)
         return qc
 
-
     def_Template_nct_2a_2 = template_nct_2a_2()
-
 
     """
     Template 2a_3:
@@ -547,7 +491,6 @@ class TemplateLibrary():
              └───┘└───┘
     """
 
-
     def template_nct_2a_3():
         """
         Returns:
@@ -558,9 +501,7 @@ class TemplateLibrary():
         qc.ccx(0, 1, 2)
         return qc
 
-
     def_Template_nct_2a_3 = template_nct_2a_3()
-
 
     """
     Template 4a_1:
@@ -577,7 +518,6 @@ class TemplateLibrary():
              └───┘     └───┘
     """
 
-
     def template_nct_4a_1():
         """
         Returns:
@@ -590,9 +530,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 3)
         return qc
 
-
     def_Template_nct_4a_1 = template_nct_4a_1()
-
 
     """
     Template 4a_2:
@@ -607,7 +545,6 @@ class TemplateLibrary():
              └───┘     └───┘
     """
 
-
     def template_nct_4a_2():
         """
         Returns:
@@ -620,9 +557,7 @@ class TemplateLibrary():
         qc.cx(1, 2)
         return qc
 
-
     def_Template_nct_4a_2 = template_nct_4a_2()
-
 
     """
     Template 4a_3:
@@ -634,7 +569,6 @@ class TemplateLibrary():
         q_2: ┤ X ├─────┤ X ├─────
              └───┘     └───┘
     """
-
 
     def template_nct_4a_3():
         """
@@ -648,9 +582,7 @@ class TemplateLibrary():
         qc.cx(0, 1)
         return qc
 
-
     def_Template_nct_4a_3 = template_nct_4a_3()
-
 
     """
     Template 4b_1:
@@ -665,7 +597,6 @@ class TemplateLibrary():
              └───┘└───┘└───┘└───┘
     """
 
-
     def template_nct_4b_1():
         """
         Returns:
@@ -678,9 +609,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 3)
         return qc
 
-
     def_Template_nct_4b_1 = template_nct_4b_1()
-
 
     """
     Template 4b_2:
@@ -692,7 +621,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├┤ X ├┤ X ├
              └───┘└───┘└───┘└───┘
     """
-
 
     def template_nct_4b_2():
         """
@@ -706,9 +634,7 @@ class TemplateLibrary():
         qc.cx(1, 2)
         return qc
 
-
     def_Template_nct_4b_2 = template_nct_4b_2()
-
 
     """
     Template 5a_1:
@@ -720,7 +646,6 @@ class TemplateLibrary():
         q_2: ┤ X ├─────┤ X ├─────┤ X ├
              └───┘     └───┘     └───┘
     """
-
 
     def template_nct_5a_1():
         """
@@ -735,9 +660,7 @@ class TemplateLibrary():
         qc.cx(0, 2)
         return qc
 
-
     def_Template_nct_5a_1 = template_nct_5a_1()
-
 
     """
     Template 5a_2:
@@ -749,7 +672,6 @@ class TemplateLibrary():
         q_2: ┤ X ├─────┤ X ├─────┤ X ├
              └───┘     └───┘     └───┘
     """
-
 
     def template_nct_5a_2():
         """
@@ -764,9 +686,7 @@ class TemplateLibrary():
         qc.cx(0, 2)
         return qc
 
-
     def_Template_nct_5a_2 = template_nct_5a_2()
-
 
     """
     Template 5a_3:
@@ -778,7 +698,6 @@ class TemplateLibrary():
         q_2: ┤ X ├─────┤ X ├─────┤ X ├
              └───┘     └───┘     └───┘
     """
-
 
     def template_nct_5a_3():
         """
@@ -793,10 +712,7 @@ class TemplateLibrary():
         qc.cx(0, 2)
         return qc
 
-
     def_Template_nct_5a_3 = template_nct_5a_3()
-
-
 
     """
     Template 5a_4:
@@ -807,7 +723,6 @@ class TemplateLibrary():
         q_1: ┤ X ├─────┤ X ├┤ X ├
              └───┘     └───┘└───┘
     """
-
 
     def template_nct_5a_4():
         """
@@ -822,10 +737,7 @@ class TemplateLibrary():
         qc.x(1)
         return qc
 
-
     def_Template_nct_5a_4 = template_nct_5a_4()
-
-
 
     """
     Template 6a_1:
@@ -836,7 +748,6 @@ class TemplateLibrary():
         q_1: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
              └───┘     └───┘     └───┘
     """
-
 
     def template_nct_6a_1():
         """
@@ -852,10 +763,7 @@ class TemplateLibrary():
         qc.cx(1, 0)
         return qc
 
-
     def_Template_nct_6a_1 = template_nct_6a_1()
-
-
 
     """
     Template 6a_2:
@@ -867,7 +775,6 @@ class TemplateLibrary():
         q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
              └───┘     └───┘     └───┘
     """
-
 
     def template_nct_6a_2():
         """
@@ -883,10 +790,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_6a_2 = template_nct_6a_2()
-
-
 
     """
     Template 6a_3:
@@ -900,7 +804,6 @@ class TemplateLibrary():
     """
 
     from qiskit.circuit.quantumcircuit import QuantumCircuit
-
 
     def template_nct_6a_3():
         """
@@ -916,9 +819,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_6a_3 = template_nct_6a_3()
-
 
     """
     Template 6a_4:
@@ -930,7 +831,6 @@ class TemplateLibrary():
         q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
              └───┘     └───┘     └───┘
     """
-
 
     def template_nct_6a_4():
         """
@@ -946,10 +846,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_6a_3 = template_nct_6a_4()
-
-
 
     """
     Template 6b_1:
@@ -961,7 +858,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_6b_1():
         """
@@ -977,9 +873,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_6b_1 = template_nct_6b_1()
-
 
     """
     Template 6b_2:
@@ -991,7 +885,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_6b_2():
         """
@@ -1007,10 +900,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_6b_2 = template_nct_6b_2()
-
-
 
     """
     Template 6c_1:
@@ -1022,7 +912,6 @@ class TemplateLibrary():
         q_2: ┤ X ├──■──┤ X ├──■──┤ X ├──■──
              └───┘     └───┘     └───┘
     """
-
 
     def template_nct_6c_1():
         """
@@ -1038,10 +927,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_6c_1 = template_nct_6c_1()
-
-
 
     """
     Template 7a_1:
@@ -1054,7 +940,6 @@ class TemplateLibrary():
         q_2: ──────────┤ X ├┤ X ├──────────┤ X ├
                        └───┘└───┘          └───┘
     """
-
 
     def template_nct_7a_1():
         """
@@ -1071,10 +956,7 @@ class TemplateLibrary():
         qc.ccx(0, 1, 2)
         return qc
 
-
     def_Template_nct_7a_1 = template_nct_7a_1()
-
-
 
     """
     Template 7b_1:
@@ -1087,7 +969,6 @@ class TemplateLibrary():
         q_2: ──────────┤ X ├┤ X ├──────────┤ X ├
                        └───┘└───┘          └───┘
     """
-
 
     def template_nct_7b_1():
         """
@@ -1104,10 +985,7 @@ class TemplateLibrary():
         qc.ccx(0, 1, 2)
         return qc
 
-
     def_Template_nct_7b_1 = template_nct_7b_1()
-
-
 
     """
     Template 7c_1:
@@ -1120,7 +998,6 @@ class TemplateLibrary():
         q_2: ───────■──┤ X ├┤ X ├──■───────┤ X ├
                        └───┘└───┘          └───┘
     """
-
 
     def template_nct_7c_1():
         """
@@ -1137,10 +1014,7 @@ class TemplateLibrary():
         qc.ccx(0, 1, 2)
         return qc
 
-
     def_Template_nct_7c_1 = template_nct_7c_1()
-
-
 
     """
     Template 7d_1:
@@ -1153,7 +1027,6 @@ class TemplateLibrary():
         q_2: ───────■──┤ X ├┤ X ├──■───────┤ X ├
                        └───┘└───┘          └───┘
     """
-
 
     def template_nct_7d_1():
         """
@@ -1170,10 +1043,7 @@ class TemplateLibrary():
         qc.ccx(0, 1, 2)
         return qc
 
-
     def_Template_nct_7d_1 = template_nct_7d_1()
-
-
 
     """
     Template 7e_1:
@@ -1186,7 +1056,6 @@ class TemplateLibrary():
         q_2: ───────■──┤ X ├┤ X ├──■───────┤ X ├
                        └───┘└───┘          └───┘
     """
-
 
     def template_nct_7e_1():
         """
@@ -1203,10 +1072,7 @@ class TemplateLibrary():
         qc.cx(0, 2)
         return qc
 
-
     def_Template_nct_7e_1 = template_nct_7e_1()
-
-
 
     """
     Template 9a_1:
@@ -1219,7 +1085,6 @@ class TemplateLibrary():
         q_2: ───────■────■──┤ X ├──■──┤ X ├──■──
                             └───┘     └───┘
     """
-
 
     def template_nct_9a_1():
         """
@@ -1238,10 +1103,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9a_1 = template_nct_9a_1()
-
-
 
     """
     Template 9c_1:
@@ -1252,7 +1114,6 @@ class TemplateLibrary():
         q_1: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_1():
         """
@@ -1271,10 +1132,7 @@ class TemplateLibrary():
         qc.cx(1, 0)
         return qc
 
-
     def_Template_nct_9c_1 = template_nct_9c_1()
-
-
 
     """
     Template 9c_2:
@@ -1286,7 +1144,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_2():
         """
@@ -1305,10 +1162,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9c_2 = template_nct_9c_2()
-
-
 
     """
     Template 9c_3:
@@ -1320,7 +1174,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_3():
         """
@@ -1339,10 +1192,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9c_3 = template_nct_9c_3()
-
-
 
     """
     Template 9c_4:
@@ -1354,7 +1204,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_4():
         """
@@ -1373,10 +1222,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9c_4 = template_nct_9c_4()
-
-
 
     """
     Template 9c_5:
@@ -1388,7 +1234,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_5():
         """
@@ -1407,10 +1252,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9c_5 = template_nct_9c_5()
-
-
 
     """
     Template 9c_6:
@@ -1422,7 +1264,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_6():
         """
@@ -1441,10 +1282,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9c_6 = template_nct_9c_6()
-
-
 
     """
     Template 9c_7:
@@ -1456,7 +1294,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_7():
         """
@@ -1475,10 +1312,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9c_7 = template_nct_9c_7()
-
-
 
     """
     Template 9c_8:
@@ -1490,7 +1324,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_8():
         """
@@ -1509,9 +1342,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9c_8 = template_nct_9c_8()
-
 
     """
     Template 9c_9:
@@ -1523,7 +1354,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_9():
         """
@@ -1542,10 +1372,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9c_9 = template_nct_9c_9()
-
-
 
     """
     Template 9c_10:
@@ -1557,7 +1384,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_10():
         """
@@ -1576,10 +1402,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9c_10 = template_nct_9c_10()
-
-
 
     """
     Template 9c_11:
@@ -1593,7 +1416,6 @@ class TemplateLibrary():
     """
 
     from qiskit.circuit.quantumcircuit import QuantumCircuit
-
 
     def template_nct_9c_11():
         """
@@ -1612,10 +1434,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9c_11 = template_nct_9c_11()
-
-
 
     """
     Template 9c_12:
@@ -1627,7 +1446,6 @@ class TemplateLibrary():
         q_2: ──■──┤ X ├───────■──┤ X ├──■──┤ X ├┤ X ├──■──
                   └───┘          └───┘     └───┘└───┘
     """
-
 
     def template_nct_9c_12():
         """
@@ -1646,10 +1464,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9c_12 = template_nct_9c_12()
-
-
 
     """
     Template 9d_1:
@@ -1660,7 +1475,6 @@ class TemplateLibrary():
         q_1: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_1():
         """
@@ -1679,10 +1493,7 @@ class TemplateLibrary():
         qc.cx(1, 0)
         return qc
 
-
     def_Template_nct_9d_1 = template_nct_9d_1()
-
-
 
     """
     Template 9d_2:
@@ -1694,7 +1505,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_2():
         """
@@ -1713,10 +1523,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9d_1 = template_nct_9d_1()
-
-
 
     """
     Template 9d_2:
@@ -1728,7 +1535,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_2():
         """
@@ -1746,11 +1552,8 @@ class TemplateLibrary():
         qc.cx(1, 2)
         qc.ccx(0, 2, 1)
         return qc
-
 
     def_Template_nct_9d_2 = template_nct_9d_2()
-
-
 
     """
     Template 9d_3:
@@ -1762,7 +1565,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_3():
         """
@@ -1781,10 +1583,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9d_3 = template_nct_9d_3()
-
-
 
     """
     Template 9d_4:
@@ -1796,7 +1595,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_4():
         """
@@ -1815,10 +1613,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9d_4 = template_nct_9d_4()
-
-
 
     """
     Template 9d_5:
@@ -1830,7 +1625,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_5():
         """
@@ -1849,10 +1643,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9d_5 = template_nct_9d_5()
-
-
 
     """
     Template 9d_6:
@@ -1864,7 +1655,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_6():
         """
@@ -1883,10 +1673,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9d_6 = template_nct_9d_6()
-
-
 
     """
     Template 9d_7:
@@ -1898,7 +1685,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_7():
         """
@@ -1917,10 +1703,7 @@ class TemplateLibrary():
         qc.cx(2, 1)
         return qc
 
-
     def_Template_nct_9d_7 = template_nct_9d_7()
-
-
 
     """
     Template 9d_8:
@@ -1932,7 +1715,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_8():
         """
@@ -1951,10 +1733,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9d_8 = template_nct_9d_8()
-
-
 
     """
     Template 9d_9:
@@ -1966,7 +1745,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_9():
         """
@@ -1985,10 +1763,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9d_9 = template_nct_9d_9()
-
-
 
     """
     Template 9d_10:
@@ -2000,7 +1775,6 @@ class TemplateLibrary():
         q_2: ┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──┤ X ├┤ X ├──■──
              └───┘└───┘     └───┘└───┘     └───┘└───┘
     """
-
 
     def template_nct_9d_10():
         """
@@ -2019,10 +1793,7 @@ class TemplateLibrary():
         qc.ccx(0, 2, 1)
         return qc
 
-
     def_Template_nct_9d_10 = template_nct_9d_10()
-
-
 
     """
     RZX based template for CX - RYGate - CX
@@ -2033,7 +1804,6 @@ class TemplateLibrary():
     q_1: ┤ X ├┤ RY(ϴ) ├┤ X ├┤ RY(-ϴ) ├┤ RZ(-π/2) ├┤ RX(ϴ) ├┤1         ├┤ RZ(π/2) ├
          └───┘└───────┘└───┘└────────┘└──────────┘└───────┘└──────────┘└─────────┘
     """
-
 
     def rzx_cy(theta: float = None):
         """Template for CX - RYGate - CX."""
@@ -2052,10 +1822,7 @@ class TemplateLibrary():
 
         return circ
 
-
     def_rzx_cy = rzx_cy()
-
-
 
     """
     RZX based template for CX - RXGate - CX
@@ -2071,7 +1838,6 @@ class TemplateLibrary():
     «q_1: ─────────────────────────────────
     «
     """
-
 
     def rzx_xz(theta: float = None):
         """Template for CX - RXGate - CX."""
@@ -2092,10 +1858,7 @@ class TemplateLibrary():
         qc.rz(np.pi / 2, 0)
         return qc
 
-
     def_rzx_xz = rzx_xz()
-
-
 
     """
     RZX based template for CX - RYGate - CX
@@ -2106,7 +1869,6 @@ class TemplateLibrary():
     q_1: ┤ X ├──────────┤ X ├───────────┤1        ├────────────
          └───┘          └───┘           └─────────┘
     """
-
 
     def rzx_yz(theta: float = None):
         """Template for CX - RYGate - CX."""
@@ -2123,10 +1885,7 @@ class TemplateLibrary():
 
         return circ
 
-
     def_rzx_yz = rzx_yz()
-
-
 
     """
     RZX based template for CX - phase - CX
@@ -2147,7 +1906,6 @@ class TemplateLibrary():
     «q_1: ┤ RZ(π/2) ├
     «     └─────────┘
     """
-
 
     def rzx_zz1(theta: float = None):
         """Template for CX - RZGate - CX."""
@@ -2178,10 +1936,7 @@ class TemplateLibrary():
 
         return qc
 
-
     def_rzx_zz1 = rzx_zz1()
-
-
 
     """
     RZX based template for CX - PhaseGate - CX
@@ -2197,7 +1952,6 @@ class TemplateLibrary():
     «q_1: ┤1         ├┤ RZ(π/2) ├┤ RX(π/2) ├┤ RZ(π/2) ├
     «     └──────────┘└─────────┘└─────────┘└─────────┘
     """
-
 
     def rzx_zz2(theta: float = None):
         """Template for CX - RZGate - CX."""
@@ -2223,10 +1977,7 @@ class TemplateLibrary():
 
         return qc
 
-
     def_rzx_zz2 = rzx_zz2()
-
-
 
     """
     RZX based template for CX - RZGate - CX
@@ -2245,7 +1996,6 @@ class TemplateLibrary():
 
     import numpy as np
     from qiskit.circuit import Parameter, QuantumCircuit
-
 
     def rzx_zz3(theta: float = None):
         """Template for CX - RZGate - CX."""
@@ -2271,6 +2021,4 @@ class TemplateLibrary():
 
         return qc
 
-
     def_rzx_zz3 = rzx_zz3()
-

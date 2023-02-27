@@ -24,6 +24,7 @@ import qiskit.circuit.library.templates as templib
 
 from qiskit.circuit.library.standard_gates import TemplateLibrary
 
+
 class TestTemplates(QiskitTestCase):
     """Tests for the circuit templates."""
 
@@ -33,7 +34,8 @@ class TestTemplates(QiskitTestCase):
         if isinstance(circuit, QuantumCircuit):
             circuit.assign_parameters({param: 0.2 for param in circuit.parameters}, inplace=True)
 
-    template_circuit=circuits
+    template_circuit = circuits
+
     def test_template(self, template_circuit):
         """test to verify that all templates are equivalent to the identity"""
 
