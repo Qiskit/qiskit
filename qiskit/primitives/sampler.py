@@ -118,16 +118,20 @@ class Sampler(BaseSampler):
             )
             qargs_list.append(self._qargs_list[i])
         probabilities = [
-            Statevector(bound_circuit_to_instruction(circ)).probabilities(qargs=qargs)
+            Statevector(bound_circuit_to_instruction(circ)).probabilities_dict(
+                qargs=qargs, decimals=16
+            )
             for circ, qargs in zip(bound_circuits, qargs_list)
         ]
         if shots is not None:
-            probabilities = [
-                rng.multinomial(shots, probability) / shots for probability in probabilities
-            ]
+            for i, prob_dict in enumerate(probabilities):
+                counts = rng.multinomial(shots, np.fromiter(prob_dict.values(), dtype=float))
+                probabilities[i] = {
+                    key: count / shots for key, count in zip(prob_dict.keys(), counts) if count > 0
+                }
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        quasis = [QuasiDistribution(dict(enumerate(p)), shots=shots) for p in probabilities]
+        quasis = [QuasiDistribution(p, shots=shots) for p in probabilities]
 
         return SamplerResult(quasis, metadata)
 

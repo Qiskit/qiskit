@@ -78,7 +78,14 @@ class ScheduleDef(CalibrationEntry):
 
         Args:
             arguments: User provided argument names for this entry, if parameterized.
+
+        Raises:
+            PulseError: When `arguments` is not a sequence of string.
         """
+        if arguments and not all(isinstance(arg, str) for arg in arguments):
+            raise PulseError(f"Arguments must be name of parameters. Not {arguments}.")
+        if arguments:
+            arguments = list(arguments)
         self._user_arguments = arguments
 
         self._definition = None
@@ -115,6 +122,9 @@ class ScheduleDef(CalibrationEntry):
 
     def define(self, definition: Union[Schedule, ScheduleBlock]):
         self._definition = definition
+        # add metadata
+        if "publisher" not in definition.metadata:
+            definition.metadata["publisher"] = CalibrationPublisher.QISKIT
         self._parse_argument()
 
     def get_signature(self) -> inspect.Signature:
@@ -177,7 +187,11 @@ class CallableDef(CalibrationEntry):
         except TypeError as ex:
             raise PulseError("Assigned parameter doesn't match with function signature.") from ex
 
-        return self._definition(**to_bind.arguments)
+        schedule = self._definition(**to_bind.arguments)
+        # add metadata
+        if "publisher" not in schedule.metadata:
+            schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
+        return schedule
 
     def __eq__(self, other):
         # We cannot evaluate function equality without parsing python AST.

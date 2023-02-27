@@ -236,6 +236,15 @@ class TestStateConstruction(QiskitOpflowTestCase):
         self.assertEqual(len(ex), 3)
         self.assertEqual(ex.eval(), 1)
 
+    def test_tensorstate_to_matrix(self):
+        """Test tensored states to matrix works correctly with a global coefficient.
+
+        Regression test of Qiskit/qiskit-terra#9398.
+        """
+        state = 0.5 * (Plus ^ Zero)
+        expected = 1 / (2 * np.sqrt(2)) * np.array([1, 0, 1, 0])
+        np.testing.assert_almost_equal(state.to_matrix(), expected)
+
 
 if __name__ == "__main__":
     unittest.main()

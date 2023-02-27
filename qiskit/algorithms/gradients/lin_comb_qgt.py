@@ -19,7 +19,6 @@ from collections.abc import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseEstimator
 from qiskit.primitives.utils import _circuit_key
@@ -30,6 +29,8 @@ from .base_qgt import BaseQGT
 from .lin_comb_estimator_gradient import LinCombEstimatorGradient
 from .qgt_result import QGTResult
 from .utils import DerivativeType, _make_lin_comb_qgt_circuit, _make_lin_comb_observables
+
+from ..exceptions import AlgorithmError
 
 
 class LinCombQGT(BaseQGT):
