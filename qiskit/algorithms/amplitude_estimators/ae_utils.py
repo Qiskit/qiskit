@@ -39,20 +39,20 @@ def bisect_max(f, a, b, steps=50, minwidth=1e-12, retval=False):
     m = (a + b) / 2
     fm = 0
     while it < steps and b - a > minwidth:
-        left, r = (a + m) / 2, (m + b) / 2
-        fl, fm, fr = f(left), f(m), f(r)
+        l, r = (a + m) / 2, (m + b) / 2
+        fl, fm, fr = f(l), f(m), f(r)
 
         # fl is the maximum
         if fl > fm and fl > fr:
             b = m
-            m = left
+            m = l
         # fr is the maximum
         elif fr > fm and fr > fl:
             a = m
             m = r
         # fm is the maximum
         else:
-            a = left
+            a = l
             b = r
 
         it += 1
