@@ -57,6 +57,7 @@ def double_commutator(
     a: OperatorTypeT, b: OperatorTypeT, c: OperatorTypeT, *, commutes: bool = True
 ) -> OperatorTypeT:
     r"""Compute symmetric double commutator of a, b and c.
+
     See also Equation (13.6.18) in [1].
 
     If `commutes` is `True`, it returns
@@ -76,12 +77,13 @@ def double_commutator(
         a: Operator a.
         b: Operator b.
         c: Operator c.
-        commutes: True commutes, False anti-commutes.
+        commutes: ``True`` commutes, ``False`` anti-commutes.
 
     Returns:
         The double commutator
 
     References:
+
         [1]: R. McWeeny.
             Methods of Molecular Quantum Mechanics.
             2nd Edition, Academic Press, 1992.
