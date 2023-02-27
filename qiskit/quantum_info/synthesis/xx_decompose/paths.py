@@ -100,7 +100,7 @@ def decomposition_hop(target_coordinate, strengths):
         specialized_polytope = PolytopeData(
             convex_subpolytopes=[
                 ConvexPolytopeData(
-                    inequalities=[[v, h, ineq2] for ((h, ineq2), v) in coefficient_dict.items()]
+                    inequalities=[[v, h, l] for ((h, l), v) in coefficient_dict.items()]
                 )
             ]
         )
