@@ -11,66 +11,7 @@
 # that they have been altered from the originals.
 
 """
-=============================================================
-Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
-=============================================================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   C3XGate
-   C3SXGate
-   C4XGate
-   CCXGate
-   DCXGate
-   CHGate
-   CPhaseGate
-   CRXGate
-   CRYGate
-   CRZGate
-   CSwapGate
-   CSXGate
-   CUGate
-   CU1Gate
-   CU3Gate
-   CXGate
-   CYGate
-   CZGate
-   CCZGate
-   HGate
-   IGate
-   MCPhaseGate
-   PhaseGate
-   RCCXGate
-   RC3XGate
-   RXGate
-   RXXGate
-   RYGate
-   RYYGate
-   RZGate
-   RZZGate
-   RZXGate
-   XXMinusYYGate
-   XXPlusYYGate
-   ECRGate
-   SGate
-   SdgGate
-   CSGate
-   CSdgGate
-   SwapGate
-   iSwapGate
-   SXGate
-   SXdgGate
-   TGate
-   TdgGate
-   UGate
-   U1Gate
-   U2Gate
-   U3Gate
-   XGate
-   YGate
-   ZGate
-
+Standard gates
 """
 
 from .h import HGate, CHGate
