@@ -62,6 +62,7 @@ select = [
 target-version = "py37"
 
 ignore = [
+"E741",  # Do not use variables named 'I', 'O', or 'l'
 "B905",  # zip-without-explicit-strict
 "C901",  # mccabe function too complex
 "UP015", # Unnecessary open mode parameters. For example, this removes "r".
