@@ -16,11 +16,13 @@
 # pylint: disable=attribute-defined-outside-init
 
 import random
+
+import numpy as np
+
 from qiskit.quantum_info import random_clifford, Clifford, \
     decompose_clifford, random_pauli, SparsePauliOp
 from qiskit.quantum_info.operators.symplectic.random import random_pauli_list
 from qiskit.quantum_info import random_cnotdihedral, CNOTDihedral
-import numpy as np
 
 
 class RandomCliffordBench:

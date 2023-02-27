@@ -48,7 +48,9 @@ def build_rb_circuit(qubits, length_vector, num_samples=1, seed=None):
     except OSError:
         skip_msg = ('Skipping tests because '
                     'tables are missing')
-        raise NotImplementedError(skip_msg)
+        raise NotImplementedError(  # pylint: disable=raise-missing-from
+            skip_msg
+        )
     return rb_exp.circuits()
 
 
