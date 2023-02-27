@@ -56,7 +56,7 @@ def make_circuit_ring(nq, depth, seed):
             if HAS_RANDOM_UNITARY:
                 u = random_unitary(2, seed).data
             else:
-                u = random_unitary_matrix(2)
+                u = random_unitary_matrix(2)  # pylint: disable=used-before-assignment  # noqa
 
             angles = decomposer.angles(u)
             qc.u3(angles[0], angles[1], angles[2], q[i])
