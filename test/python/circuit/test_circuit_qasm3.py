@@ -75,8 +75,13 @@ class TestCircuitQASM3(QiskitTestCase):
     @classmethod
     def setUpClass(cls):
         # These regexes are not perfect by any means, but sufficient for simple tests on controlled
-        # input circuits.
-        cls.register_regex = re.compile(r"^\s*let\s+(?P<name>\w+\b)", re.U | re.M)
+        # input circuits.  They can allow false negatives (in which case, update the regex), but to
+        # be useful for the tests must _never_ have false positive matches.  We use an explicit
+        # space (`\s`) or semicolon rather than the end-of-word `\b` because we want to ensure that
+        # the exporter isn't putting out invalid characters as part of the identifiers.
+        cls.register_regex = re.compile(
+            r"^\s*(let|bit(\[\d+\])?)\s+(?P<name>\w+)[\s;]", re.U | re.M
+        )
         scalar_type_names = {
             "angle",
             "duration",
@@ -88,7 +93,7 @@ class TestCircuitQASM3(QiskitTestCase):
         cls.scalar_parameter_regex = re.compile(
             r"^\s*((input|output|const)\s+)?"  # Modifier
             rf"({'|'.join(scalar_type_names)})\s*(\[[^\]]+\])?\s+"  # Type name and designator
-            r"(?P<name>\w+\b)",  # Parameter name
+            r"(?P<name>\w+)[\s;]",  # Parameter name
             re.U | re.M,
         )
         super().setUpClass()
@@ -1390,6 +1395,26 @@ class TestCircuitQASM3(QiskitTestCase):
         )
         self.assertEqual(dumps(qc), expected_qasm)
 
+    def test_registers_have_escaped_names(self):
+        """Test that both types of register are emitted with safely escaped names if they begin with
+        invalid names. Regression test of gh-9658."""
+        qc = QuantumCircuit(
+            QuantumRegister(2, name="q_{reg}"), ClassicalRegister(2, name="c_{reg}")
+        )
+        qc.measure([0, 1], [0, 1])
+        out_qasm = dumps(qc)
+        matches = {match_["name"] for match_ in self.register_regex.finditer(out_qasm)}
+        self.assertEqual(len(matches), 2, msg=f"Observed OQ3 output:\n{out_qasm}")
+
+    def test_parameters_have_escaped_names(self):
+        """Test that parameters are emitted with safely escaped names if they begin with invalid
+        names. Regression test of gh-9658."""
+        qc = QuantumCircuit(1)
+        qc.u(Parameter("p_{0}"), 2 * Parameter("p_?0!"), 0, 0)
+        out_qasm = dumps(qc)
+        matches = {match_["name"] for match_ in self.scalar_parameter_regex.finditer(out_qasm)}
+        self.assertEqual(len(matches), 2, msg=f"Observed OQ3 output:\n{out_qasm}")
+
     def test_parameter_expression_after_naming_escape(self):
         """Test that :class:`.Parameter` instances are correctly renamed when they are used with
         :class:`.ParameterExpression` blocks, even if they have names that needed to be escaped."""
@@ -1401,10 +1426,10 @@ class TestCircuitQASM3(QiskitTestCase):
             [
                 "OPENQASM 3;",
                 'include "stdgates.inc";',
-                "input float[64] measure__generated0;",
+                "input float[64] _measure;",
                 "qubit[1] _all_qubits;",
                 "let q = _all_qubits[0:0];",
-                "U(2*measure__generated0, 0, 0) q[0];",
+                "U(2*_measure, 0, 0) q[0];",
                 "",
             ]
         )
@@ -1437,7 +1462,7 @@ class TestCircuitQASM3(QiskitTestCase):
             qc = QuantumCircuit(qreg)
             out_qasm = dumps(qc)
             register_name = self.register_regex.search(out_qasm)
-            self.assertTrue(register_name)
+            self.assertTrue(register_name, msg=f"Observed OQ3:\n{out_qasm}")
             self.assertNotEqual(keyword, register_name["name"])
         with self.subTest("parameter"):
             qc = QuantumCircuit(1)
@@ -1445,7 +1470,7 @@ class TestCircuitQASM3(QiskitTestCase):
             qc.u(param, 0, 0, 0)
             out_qasm = dumps(qc)
             parameter_name = self.scalar_parameter_regex.search(out_qasm)
-            self.assertTrue(parameter_name)
+            self.assertTrue(parameter_name, msg=f"Observed OQ3:\n{out_qasm}")
             self.assertNotEqual(keyword, parameter_name["name"])
 
 
