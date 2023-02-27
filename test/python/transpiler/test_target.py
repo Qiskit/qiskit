@@ -35,6 +35,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -42,7 +43,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeBackendV2, FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider import FakeBackendV2, FakeMumbaiFractionalCX, FakeGeneva
 
 
 class TestTarget(QiskitTestCase):
@@ -1091,7 +1092,7 @@ class TestPulseTarget(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.pulse_target = Target(
-            dt=3e-7, granularity=2, min_length=4, pulse_alignment=8, aquire_alignment=8
+            dt=3e-7, granularity=2, min_length=4, pulse_alignment=8, acquire_alignment=8
         )
         with pulse.build(name="sx_q0") as self.custom_sx_q0:
             pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
@@ -1227,6 +1228,36 @@ Instructions:
                 f"Generated constraints differs from expected for attribute {i}"
                 f"{getattr(generated_constraints, i)}!={getattr(expected_constraints, i)}",
             )
+
+    def test_default_instmap_has_no_custom_gate(self):
+        backend = FakeGeneva()
+        target = backend.target
+
+        # This copies .calibraiton of InstructionProperties of each instruction
+        # This must not convert PulseQobj to Schedule during this.
+        # See qiskit-terra/#9595
+        inst_map = target.instruction_schedule_map()
+        self.assertFalse(inst_map.has_custom_gate())
+
+        # Get pulse schedule. This generates Schedule provided by backend.
+        sched = inst_map.get("sx", (0,))
+        self.assertEqual(sched.metadata["publisher"], CalibrationPublisher.BACKEND_PROVIDER)
+        self.assertFalse(inst_map.has_custom_gate())
+
+        # Update target with custom instruction. This is user provided schedule.
+        new_prop = InstructionProperties(
+            duration=self.custom_sx_q0.duration,
+            error=None,
+            calibration=self.custom_sx_q0,
+        )
+        target.update_instruction_properties(instruction="sx", qargs=(0,), properties=new_prop)
+        inst_map = target.instruction_schedule_map()
+        self.assertTrue(inst_map.has_custom_gate())
+
+        empty = InstructionProperties()
+        target.update_instruction_properties(instruction="sx", qargs=(0,), properties=empty)
+        inst_map = target.instruction_schedule_map()
+        self.assertFalse(inst_map.has_custom_gate())
 
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):

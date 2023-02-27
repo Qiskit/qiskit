@@ -1269,13 +1269,14 @@ class TestStatevector(QiskitTestCase):
             ([-1, 1j], ["-", "+i"]),
             ([1e-16 + 1j], ["i"]),
             ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
             ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
-        for numbers, latex_terms in cases:
-            terms = numbers_to_latex_terms(numbers, 15)
-            self.assertListEqual(terms, latex_terms)
+        with self.assertWarns(DeprecationWarning):
+            for numbers, latex_terms in cases:
+                terms = numbers_to_latex_terms(numbers, 15)
+                self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""
