@@ -23,7 +23,7 @@ import numpy
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
 from qiskit.qobj.common import QobjExperimentHeader
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class QobjMeasurementOption:
@@ -283,7 +283,7 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
 class PulseQobjConfig(QobjDictField):
     """A configuration for a Pulse Qobj."""
 
-    @deprecate_argument(
+    @deprecate_arg(
         "max_credits",
         since="0.20.0",
         additional_msg=(

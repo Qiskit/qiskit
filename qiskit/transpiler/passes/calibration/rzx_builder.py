@@ -34,7 +34,7 @@ from qiskit.pulse import builder
 from qiskit.pulse.filters import filter_instructions
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.transpiler.target import Target
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 from .base_builder import CalibrationBuilder
 from .exceptions import CalibrationNotAvailable
@@ -64,7 +64,7 @@ class RZXCalibrationBuilder(CalibrationBuilder):
     angle. Additional details can be found in https://arxiv.org/abs/2012.11660.
     """
 
-    @deprecate_argument("qubit_channel_mapping", since="0.22.0")
+    @deprecate_arg("qubit_channel_mapping", since="0.22.0")
     def __init__(
         self,
         instruction_schedule_map: InstructionScheduleMap = None,

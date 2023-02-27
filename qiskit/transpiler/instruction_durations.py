@@ -18,7 +18,7 @@ from qiskit.circuit import Instruction, Qubit, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
 from qiskit.providers import Backend
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.units import apply_prefix
 
 
@@ -164,7 +164,7 @@ class InstructionDurations:
 
         return self
 
-    @deprecate_argument(
+    @deprecate_arg(
         "qubits",
         deprecation_description=(
             "Using a Qubit or List[Qubit] for the `qubits` argument to InstructionDurations.get()"

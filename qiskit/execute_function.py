@@ -26,7 +26,7 @@ from qiskit.compiler import transpile, schedule
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ def _log_submission_time(start_time, end_time):
     logger.info(log_msg)
 
 
-@deprecate_argument(
+@deprecate_arg(
     "max_credits",
     since="0.20.0",
     additional_msg=(
@@ -44,12 +44,8 @@ def _log_submission_time(start_time, end_time):
         "necessary."
     ),
 )
-@deprecate_argument(
-    "qobj_id", since="0.21.0", additional_msg="This argument has no effect anymore."
-)
-@deprecate_argument(
-    "qobj_header", since="0.21.0", additional_msg="This argument has no effect anymore."
-)
+@deprecate_arg("qobj_id", since="0.21.0", additional_msg="This argument has no effect anymore.")
+@deprecate_arg("qobj_header", since="0.21.0", additional_msg="This argument has no effect anymore.")
 def execute(
     experiments,
     backend,

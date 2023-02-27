@@ -25,7 +25,7 @@ from qiskit.circuit import Reset
 from qiskit.circuit import Measure
 from qiskit.circuit.library.standard_gates import IGate, RZZGate, SwapGate, SXGate, SXdgGate
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 from ._utils import (
     get_gate_ctrl_text,
@@ -591,11 +591,11 @@ class InputWire(DrawElement):
 class TextDrawing:
     """The text drawing"""
 
-    @deprecate_argument("gregs", since="0.20.0")
-    @deprecate_argument("cregs", since="0.20.0")
-    @deprecate_argument("layout", since="0.20.0")
-    @deprecate_argument("global_phase", since="0.20.0")
-    @deprecate_argument(
+    @deprecate_arg("gregs", since="0.20.0")
+    @deprecate_arg("cregs", since="0.20.0")
+    @deprecate_arg("layout", since="0.20.0")
+    @deprecate_arg("global_phase", since="0.20.0")
+    @deprecate_arg(
         "circuit",
         deprecation_description=(
             "Not setting the `circuit` argument in the `TextDrawing` constructor`"

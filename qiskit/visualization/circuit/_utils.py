@@ -31,7 +31,7 @@ from qiskit.circuit import ClassicalRegister
 from qiskit.circuit.tools import pi_check
 from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 from ..exceptions import VisualizationError
 
@@ -196,7 +196,7 @@ def get_bit_register(circuit, bit):
     return bit_loc.registers[0][0] if bit_loc.registers else None
 
 
-@deprecate_argument("reverse_bits", since="0.22.0")
+@deprecate_arg("reverse_bits", since="0.22.0")
 def get_bit_reg_index(circuit, bit, reverse_bits=None):
     """Get the register for a bit if there is one, and the index of the bit
     from the top of the circuit, or the index of the bit within a register.
@@ -284,7 +284,7 @@ def get_wire_label(drawer, register, index, layout=None, cregbundle=True):
     return wire_label
 
 
-@deprecate_argument("reverse_bits", since="0.22.0")
+@deprecate_arg("reverse_bits", since="0.22.0")
 def get_condition_label_val(condition, circuit, cregbundle, reverse_bits=None):
     """Get the label and value list to display a condition
 

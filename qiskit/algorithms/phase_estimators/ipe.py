@@ -22,7 +22,7 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimator import PhaseEstimator
 from .phase_estimator import PhaseEstimatorResult
@@ -39,7 +39,7 @@ class IterativePhaseEstimation(PhaseEstimator):
        qubit benchmark, `arxiv/quant-ph/0610214 <https://arxiv.org/abs/quant-ph/0610214>`_
     """
 
-    @deprecate_argument(
+    @deprecate_arg(
         "quantum_instance",
         additional_msg="Instead, use the `sampler` argument.",
         since="0.22.0",

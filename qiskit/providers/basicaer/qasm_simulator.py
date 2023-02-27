@@ -38,7 +38,7 @@ from collections import Counter
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
@@ -374,7 +374,7 @@ class QasmSimulatorPy(BackendV1):
             # measure sampling is allowed
             self._sample_measure = True
 
-    @deprecate_argument(
+    @deprecate_arg(
         "qobj",
         deprecation_description="Using a qobj for the first argument to QasmSimulatorPy.run()",
         since="0.22.0",

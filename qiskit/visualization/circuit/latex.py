@@ -24,7 +24,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.tools.pi_check import pi_check
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 from .qcstyle import load_style
 from ._utils import (
@@ -48,11 +48,11 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
-    @deprecate_argument("gregs", since="0.20.0")
-    @deprecate_argument("cregs", since="0.20.0")
-    @deprecate_argument("layout", since="0.20.0")
-    @deprecate_argument("global_phase", since="0.20.0")
-    @deprecate_argument(
+    @deprecate_arg("gregs", since="0.20.0")
+    @deprecate_arg("cregs", since="0.20.0")
+    @deprecate_arg("layout", since="0.20.0")
+    @deprecate_arg("global_phase", since="0.20.0")
+    @deprecate_arg(
         "circuit",
         deprecation_description=(
             "Not setting the `circuit` argument in the `QCircuitImage` constructor`"

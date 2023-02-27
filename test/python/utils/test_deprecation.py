@@ -16,7 +16,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.utils.deprecation import (
     _DeprecationMetadataEntry,
     deprecate_function,
-    deprecate_argument,
+    deprecate_arg,
     deprecate_arguments,
 )
 
@@ -25,17 +25,17 @@ class TestDeprecations(QiskitTestCase):
     """Test functions in ``utils.deprecation``."""
 
     def test_deprecate_argument_metadata(self) -> None:
-        """Test that `@deprecate_argument` stores the correct metadata."""
+        """Test that `@deprecate_arg` stores the correct metadata."""
 
-        @deprecate_argument("arg1", since="9.99")
-        @deprecate_argument("arg2", pending=True, since="9.99")
-        @deprecate_argument(
+        @deprecate_arg("arg1", since="9.99")
+        @deprecate_arg("arg2", pending=True, since="9.99")
+        @deprecate_arg(
             "arg3",
             since="9.99",
             deprecation_description="Using the argument arg3",
             new_alias="new_arg3",
         )
-        @deprecate_argument(
+        @deprecate_arg(
             "arg4",
             since="9.99",
             additional_msg="Instead, use foo.",
@@ -131,16 +131,16 @@ class TestDeprecations(QiskitTestCase):
         )
 
     def test_deprecate_argument_runtime_warning(self) -> None:
-        """Test that `@deprecate_argument` warns whenever the arguments are used.
+        """Test that `@deprecate_arg` warns whenever the arguments are used.
 
         Also check these edge cases:
         * If `new_alias` is set, pass the old argument as the new alias.
         * If `predicate` is set, only warn if the predicate is True.
         """
 
-        @deprecate_argument("arg1", since="9.99")
-        @deprecate_argument("arg2", new_alias="new_arg2", since="9.99")
-        @deprecate_argument("arg3", predicate=lambda arg3: arg3 == "deprecated value", since="9.99")
+        @deprecate_arg("arg1", since="9.99")
+        @deprecate_arg("arg2", new_alias="new_arg2", since="9.99")
+        @deprecate_arg("arg3", predicate=lambda arg3: arg3 == "deprecated value", since="9.99")
         def my_func(*, arg1: str = "a", new_arg2: str, arg3: str = "a") -> None:
             del arg1
             del arg3

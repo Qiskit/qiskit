@@ -29,7 +29,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
 from qiskit.utils import optionals as _optional
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 if _optional.HAS_SYMENGINE:
     import symengine as sym
@@ -587,7 +587,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
     :math:'\text{amp}\times\exp\left(i\times\text{angle}\right)' is compared.
     """
 
-    @deprecate_argument(
+    @deprecate_arg(
         "amp",
         deprecation_description=(
             "Setting `amp` to a complex in the ScalableSymbolicPulse constructor"

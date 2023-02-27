@@ -33,7 +33,7 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.extensions import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 from .qcstyle import load_style
 from ._utils import (
@@ -65,12 +65,12 @@ class MatplotlibDrawer:
 
     _mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
 
-    @deprecate_argument("gregs", since="0.20.0")
-    @deprecate_argument("cregs", since="0.20.0")
-    @deprecate_argument("layout", since="0.20.0")
-    @deprecate_argument("global_phase", since="0.20.0")
-    @deprecate_argument("calibrations", since="0.20.0")
-    @deprecate_argument(
+    @deprecate_arg("gregs", since="0.20.0")
+    @deprecate_arg("cregs", since="0.20.0")
+    @deprecate_arg("layout", since="0.20.0")
+    @deprecate_arg("global_phase", since="0.20.0")
+    @deprecate_arg("calibrations", since="0.20.0")
+    @deprecate_arg(
         "circuit",
         deprecation_description=(
             "Not setting the `circuit` argument in the `MatplotlibDrawer` constructor`"

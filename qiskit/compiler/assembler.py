@@ -29,7 +29,7 @@ from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import Qobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
-@deprecate_argument(
+@deprecate_arg(
     "max_credits",
     since="0.20.0",
     additional_msg=(

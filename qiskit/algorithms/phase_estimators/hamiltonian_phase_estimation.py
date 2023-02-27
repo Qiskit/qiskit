@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.opflow import (
     SummedOp,
     PauliOp,
@@ -91,7 +91,7 @@ class HamiltonianPhaseEstimation:
 
     """
 
-    @deprecate_argument(
+    @deprecate_arg(
         "quantum_instance",
         additional_msg="Instead, use the `sampler` argument.",
         since="0.22.0",

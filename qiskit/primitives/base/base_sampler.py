@@ -85,7 +85,7 @@ import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
-from qiskit.utils.deprecation import deprecate_argument, deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_function
 
 from ..utils import _circuit_key
 from .base_primitive import BasePrimitive
@@ -100,10 +100,10 @@ class BaseSampler(BasePrimitive):
 
     __hash__ = None
 
-    @deprecate_argument(
+    @deprecate_arg(
         "circuits", since="0.22", additional_msg="Instead, use the run() method to append objects."
     )
-    @deprecate_argument(
+    @deprecate_arg(
         "parameters",
         since="0.22",
         additional_msg="Instead, use the run() method to append objects.",
@@ -283,7 +283,7 @@ class BaseSampler(BasePrimitive):
         "Use run method instead.",
         since="0.22.0",
     )
-    @deprecate_argument("circuit_indices", new_alias="circuits", since="0.21.0")
+    @deprecate_arg("circuit_indices", new_alias="circuits", since="0.21.0")
     def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit],

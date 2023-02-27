@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 from .product_formula import ProductFormula
 
@@ -51,7 +51,7 @@ class SuzukiTrotter(ProductFormula):
         `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
     """
 
-    @deprecate_argument(
+    @deprecate_arg(
         "order",
         deprecation_description=(
             "Setting `order` to an odd number in the constructor of SuzukiTrotter"

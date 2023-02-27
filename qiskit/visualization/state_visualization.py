@@ -26,7 +26,7 @@ from qiskit import user_config
 from qiskit.quantum_info.states.statevector import Statevector
 from qiskit.quantum_info.operators.symplectic import PauliList, SparsePauliOp
 from qiskit.quantum_info.states.densitymatrix import DensityMatrix
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils import optionals as _optionals
 from qiskit.circuit.tools.pi_check import pi_check
 
@@ -35,7 +35,7 @@ from .utils import matplotlib_close_if_inline
 from .exceptions import VisualizationError
 
 
-@deprecate_argument("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_hinton(
     state, title="", figsize=None, ax_real=None, ax_imag=None, *, rho=None, filename=None
@@ -250,7 +250,7 @@ def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartes
     return None
 
 
-@deprecate_argument("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_bloch_multivector(
     state, title="", figsize=None, *, rho=None, reverse_bits=False, filename=None
@@ -338,7 +338,7 @@ def plot_bloch_multivector(
         return fig.savefig(filename)
 
 
-@deprecate_argument("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_city(
     state,
@@ -595,7 +595,7 @@ def plot_state_city(
         return fig.savefig(filename)
 
 
-@deprecate_argument("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 def plot_state_paulivec(
     state, title="", figsize=None, color=None, ax=None, *, rho=None, filename=None
@@ -766,7 +766,7 @@ def phase_to_rgb(complex_number):
     return rgb
 
 
-@deprecate_argument("rho", new_alias="state", since="0.15.1")
+@deprecate_arg("rho", new_alias="state", since="0.15.1")
 @_optionals.HAS_MATPLOTLIB.require_in_call
 @_optionals.HAS_SEABORN.require_in_call
 def plot_state_qsphere(

@@ -35,7 +35,7 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
@@ -203,7 +203,7 @@ class Target(Mapping):
         "_global_operations",
     )
 
-    @deprecate_argument("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
+    @deprecate_arg("aquire_alignment", new_alias="acquire_alignment", since="0.23.0")
     def __init__(
         self,
         description=None,

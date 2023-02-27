@@ -20,7 +20,7 @@ from qiskit.providers import Backend
 from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 from qiskit.primitives import BaseSampler, Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
@@ -253,13 +253,13 @@ class QNSPSA(SPSA):
         return settings
 
     @staticmethod
-    @deprecate_argument(
+    @deprecate_arg(
         "backend",
         deprecation_description="Setting the argument `backend` in QNSPSA.get_fidelity()",
         since="0.22",
         pending=True,
     )
-    @deprecate_argument(
+    @deprecate_arg(
         "expectation",
         deprecation_description="Setting the argument `expectation` in QNSPSA.get_fidelity()",
         since="0.22",

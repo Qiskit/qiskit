@@ -23,7 +23,7 @@ from qiskit import circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import Result
 from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
@@ -81,7 +81,7 @@ class PhaseEstimation(PhaseEstimator):
 
     """
 
-    @deprecate_argument(
+    @deprecate_arg(
         "quantum_instance",
         additional_msg="Instead, use the `sampler` argument.",
         since="0.22.0",

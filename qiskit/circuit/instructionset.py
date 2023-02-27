@@ -18,7 +18,7 @@ import functools
 from typing import Callable, Optional, Tuple, Union
 
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 from .classicalregister import Clbit, ClassicalRegister
 from .operation import Operation
 from .quantumcircuitdata import CircuitInstruction
@@ -92,7 +92,7 @@ class InstructionSet:
 
     __slots__ = ("_instructions", "_requester")
 
-    @deprecate_argument(
+    @deprecate_arg(
         "circuit_cregs",
         since="0.19.0",
         additional_msg=(

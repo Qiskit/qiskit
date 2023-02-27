@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, ClassVar, Dict, Optional, Type
 
 
-def deprecate_argument(
+def deprecate_arg(
     name: str,
     *,
     since: str,
@@ -108,7 +108,7 @@ def deprecate_arguments(
     *,
     since: Optional[str] = None,
 ):
-    """Deprecated in favor of `deprecate_argument` instead.
+    """Deprecated in favor of `deprecate_arg` instead.
 
     Args:
         kwarg_map: A dictionary of the old argument name to the new name.

@@ -17,7 +17,7 @@
 from typing import Iterable
 
 from qiskit.circuit import Qubit, Clbit
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 
 def _condition_as_indices(operation, bit_indices):
@@ -50,7 +50,7 @@ class DAGNode:
         return str(id(self))
 
     @staticmethod
-    @deprecate_argument(
+    @deprecate_arg(
         "bit_indices1",
         deprecation_description="Not setting bit_indices1 in DAGNode.semantic_eq()",
         additional_msg=(
@@ -60,7 +60,7 @@ class DAGNode:
         since="0.21.0",
         predicate=lambda arg: arg is None,
     )
-    @deprecate_argument(
+    @deprecate_arg(
         "bit_indices2",
         deprecation_description="Not setting bit_indices2 in DAGNode.semantic_eq()",
         additional_msg=(

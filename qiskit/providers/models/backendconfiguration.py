@@ -26,7 +26,7 @@ from qiskit.pulse.channels import (
     DriveChannel,
     MeasureChannel,
 )
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class GateConfig:
@@ -831,7 +831,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
             raise BackendConfigurationError(f"Invalid index for {qubit}-qubit systems.")
         return AcquireChannel(qubit)
 
-    @deprecate_argument(
+    @deprecate_arg(
         "qubits",
         since="0.19.0",
         additional_msg=(

@@ -20,7 +20,7 @@ import functools
 import numpy as np
 
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import QuasiDistribution, ProbDistribution
 from .exceptions import VisualizationError
 from .utils import matplotlib_close_if_inline
@@ -57,7 +57,7 @@ def _is_deprecated_data_format(data) -> bool:
     return False
 
 
-@deprecate_argument(
+@deprecate_arg(
     "data",
     deprecation_description=(
         "Using plot_histogram() `data` argument with QuasiDistribution, ProbDistribution, or a "

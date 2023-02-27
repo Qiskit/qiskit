@@ -23,7 +23,7 @@ from qiskit.providers import Backend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.primitives import BaseSampler
-from qiskit.utils.deprecation import deprecate_argument, deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_function
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
@@ -53,7 +53,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
              `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
-    @deprecate_argument(
+    @deprecate_arg(
         "quantum_instance",
         additional_msg="Instead, use the `sampler` argument.",
         since="0.22.0",

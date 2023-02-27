@@ -25,7 +25,7 @@ from qiskit.primitives import BaseSampler
 from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
 from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.utils.deprecation import deprecate_argument, deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_function
 
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
@@ -112,7 +112,7 @@ class Grover(AmplitudeAmplifier):
             `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
-    @deprecate_argument(
+    @deprecate_arg(
         "quantum_instance",
         additional_msg="Instead, use the `sampler` argument.",
         since="0.22.0",

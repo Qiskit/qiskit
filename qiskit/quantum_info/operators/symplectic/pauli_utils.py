@@ -14,10 +14,10 @@ PauliList utility functions.
 """
 
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 
-@deprecate_argument(
+@deprecate_arg(
     "pauli_basis",
     since="0.22",
     additional_msg=(

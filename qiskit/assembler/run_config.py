@@ -14,7 +14,7 @@
 
 from types import SimpleNamespace
 
-from qiskit.utils.deprecation import deprecate_argument
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class RunConfig(SimpleNamespace):
@@ -31,7 +31,7 @@ class RunConfig(SimpleNamespace):
         parameter_binds (list[dict]): List of parameter bindings
     """
 
-    @deprecate_argument(
+    @deprecate_arg(
         "max_credits",
         since="0.20.0",
         additional_msg=(

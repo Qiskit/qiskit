@@ -93,7 +93,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
 from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.utils.deprecation import deprecate_argument, deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_function
 
 from ..utils import _circuit_key, _observable_key, init_observable
 from .base_primitive import BasePrimitive
@@ -108,15 +108,15 @@ class BaseEstimator(BasePrimitive):
 
     __hash__ = None
 
-    @deprecate_argument(
+    @deprecate_arg(
         "circuits", since="0.22", additional_msg="Instead, use the run() method to append objects."
     )
-    @deprecate_argument(
+    @deprecate_arg(
         "observables",
         since="0.22",
         additional_msg="Instead, use the run() method to append objects.",
     )
-    @deprecate_argument(
+    @deprecate_arg(
         "parameters",
         since="0.22",
         additional_msg="Instead, use the run() method to append objects.",
@@ -371,8 +371,8 @@ class BaseEstimator(BasePrimitive):
         "Use the 'run' method instead.",
         since="0.22.0",
     )
-    @deprecate_argument("circuit_indices", new_alias="circuits", since="0.21.0")
-    @deprecate_argument("observable_indices", new_alias="observables", since="0.21.0")
+    @deprecate_arg("circuit_indices", new_alias="circuits", since="0.21.0")
+    @deprecate_arg("observable_indices", new_alias="observables", since="0.21.0")
     def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit],
