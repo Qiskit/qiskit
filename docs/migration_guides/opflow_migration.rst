@@ -44,16 +44,16 @@ The function equivalency can be roughly summarized as follows:
    * - Operators (:class:`~qiskit.opflow.OperatorBase`, |operator_globals|_ ,
        :mod:`~qiskit.opflow.primitive_ops`,
        :mod:`~qiskit.opflow.list_ops`\)
-     - :mod:`qiskit.quantum_info` *Operators*
+     - :mod:`qiskit.quantum_info` :ref:`quantum_info_operators`
 
    * - :mod:`qiskit.opflow.state_fns`
-     - :mod:`qiskit.quantum_info` *States*
+     - :mod:`qiskit.quantum_info` :ref:`quantum_info_states`
 
    * - :mod:`qiskit.opflow.converters`
      - :mod:`qiskit.primitives`
 
    * - :mod:`qiskit.opflow.evolutions`
-     - :mod:`qiskit.quantum_info` *Synthesis*
+     - :mod:`qiskit.quantum_info` :ref:`quantum_info_synthesis`
 
    * - :mod:`qiskit.opflow.expectations`
      - :class:`qiskit.primitives.Estimator`
@@ -64,21 +64,34 @@ The function equivalency can be roughly summarized as follows:
 .. |qiskit_aer.primitives| replace:: ``qiskit_aer.primitives``
 .. _qiskit_aer.primitives: https://qiskit.org/documentation/locale/de_DE/apidoc/aer_primitives.html
 
+.. |qiskit_aer.primitives.Sampler| replace:: ``qiskit_aer.primitives.Sampler``
+.. _qiskit_aer.primitives.Sampler: https://qiskit.org/documentation/locale/de_DE/stubs/qiskit_aer.primitives.Sampler.html
+
 .. |qiskit_aer.primitives.Estimator| replace:: ``qiskit_aer.primitives.Estimator``
 .. _qiskit_aer.primitives.Estimator: https://qiskit.org/documentation/locale/de_DE/stubs/qiskit_aer.primitives.Estimator.html
 
 .. |qiskit_ibm_runtime| replace:: ``qiskit_ibm_runtime``
 .. _qiskit_ibm_runtime: https://qiskit.org/documentation/partners/qiskit_ibm_runtime/primitives.html
 
+.. |qiskit_ibm_runtime.Sampler| replace:: ``qiskit_ibm_runtime.Sampler``
+.. _qiskit_ibm_runtime.Sampler: https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.Sampler.html
+
+.. |qiskit_ibm_runtime.Estimator| replace:: ``qiskit_ibm_runtime.Estimator``
+.. _qiskit_ibm_runtime.Estimator: https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.Estimator.html
+
 ..  attention::
 
     Most references to the :class:`qiskit.primitives.Sampler` or :class:`qiskit.primitives.Estimator` in this guide
-    can be replaced with instances of the Aer primitives (|qiskit_aer.primitives|_ ), Runtime primitives
-    (|qiskit_ibm_runtime|_ ) or Terra backend primitives (:class:`qiskit.primitives.BackendSampler`,
-    :class:`qiskit.primitives.BackendEstimator`). Certain classes, such as the
-    :class:`~qiskit.opflow.expectations.AerPauliExpectation`, are only replaced by a specific primitive instance
+    can be replaced with instances of the:
+
+    - Aer primitives (|qiskit_aer.primitives.Sampler|_, |qiskit_aer.primitives.Estimator|_)
+    - Runtime primitives (|qiskit_ibm_runtime.Sampler|_, |qiskit_ibm_runtime.Estimator|_ )
+    - Terra backend primitives (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`)
+
+    Certain classes, such as the
+    :class:`~qiskit.opflow.expectations.AerPauliExpectation`, can only be replaced by a specific primitive instance
     (in this case, |qiskit_aer.primitives.Estimator|_ ), or require a specific option configuration.
-    This will be explicitly indicated in the corresponding section.
+    If this is the case, it will be explicitly indicated in the corresponding section.
 
 Contents
 ========
@@ -151,7 +164,6 @@ These were mainly used for didactic purposes or quick prototyping, and can easil
 
 
 1-Qubit Paulis
-~~~~~~~~~~~~~~
 --------------
 *Back to* `Contents`_
 
@@ -381,7 +393,7 @@ Some of these classes do not require a 1-1 replacement because they were created
 opflow components.
 
 Primitive Ops
-~~~~~~~~~~~~~~
+-------------
 *Back to* `Contents`_
 
 :class:`~qiskit.opflow.primitive_ops.PrimitiveOp` is the :mod:`~qiskit.opflow.primitive_ops` module's base class.
@@ -524,7 +536,7 @@ might have been used "under the hood" in the original code:
    </details>
 
 ListOps
-~~~~~~~
+--------
 *Back to* `Contents`_
 
 The :mod:`~qiskit.opflow.list_ops` module contained classes for manipulating lists of :mod:`~qiskit.opflow.primitive_ops`
@@ -554,7 +566,7 @@ or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives
 
 
 State Functions
----------------
+===============
 *Back to* `Contents`_
 
 .. |qiskit.quantum_info.QuantumState| replace:: ``qiskit.quantum_info.QuantumState``
@@ -674,7 +686,8 @@ See more applied examples in `Expectations`_  and `Converters`_.
 
 
 Converters
-----------
+==========
+
 *Back to* `Contents`_
 
 The role of this sub-module was to convert the operators into other opflow operator classes
@@ -863,7 +876,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
     </details>
 
 Evolutions
-----------
+==========
 *Back to* `Contents`_
 
 The :mod:`qiskit.opflow.evolutions` sub-module was created to provide building blocks for Hamiltonian simulation algorithms,
@@ -892,7 +905,7 @@ delayed synthesis of the gates or efficient transpilation of the circuits, so th
     This class is no longer necessary, as the :class:`.HamiltonianGate`\s can be directly handled by the algorithms.
 
 Trotterizations
-~~~~~~~~~~~~~~~
+---------------
 *Back to* `Contents`_
 
 .. list-table::
@@ -914,7 +927,7 @@ Trotterizations
      - :class:`qiskit.synthesis.QDrift`
 
 Other Evolution Classes
-~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
 *Back to* `Contents`_
 
 .. list-table::
@@ -1048,14 +1061,14 @@ Other Evolution Classes
     </details>
 
 Expectations
-------------
+============
 *Back to* `Contents`_
 
 Expectations are converters which enable the computation of the expectation value of an observable with respect to some state function.
 This functionality can now be found in the estimator primitive.
 
 Algorithm-Agnostic Expectations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------------------------------
 *Back to* `Contents`_
 
 .. list-table::
@@ -1183,7 +1196,7 @@ Algorithm-Agnostic Expectations
     </details>
 
 CVaRExpectation
-~~~~~~~~~~~~~~~
+---------------
 *Back to* `Contents`_
 
 .. list-table::
@@ -1245,7 +1258,7 @@ CVaRExpectation
     </details>
 
 Gradients
----------
+=========
 *Back to* `Contents`_
 
 The opflow :mod:`~qiskit.opflow.gradients` framework has been replaced by the new :mod:`qiskit.algorithms.gradients`
