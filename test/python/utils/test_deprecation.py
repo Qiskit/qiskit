@@ -17,16 +17,151 @@ from textwrap import dedent
 from qiskit.test import QiskitTestCase
 from qiskit.utils.deprecation import (
     add_deprecation_to_docstring,
-    deprecate_function,
+    deprecate_arg,
     deprecate_arguments,
+    deprecate_func,
+    deprecate_function,
 )
+
+
+@deprecate_func(
+    since="9.99",
+    additional_msg="Instead, use new_func().",
+    removal_timeline="in 2 releases",
+)
+def _deprecated_func():
+    pass
+
+
+class _Foo:
+    @deprecate_func(since="9.99", pending=True)
+    def __init__(self):
+        super().__init__()
+
+    @property
+    @deprecate_func(since="9.99", is_property=True)
+    def my_property(self):
+        """Property."""
+        return 0
+
+    @my_property.setter
+    @deprecate_func(since="9.99")
+    def my_property(self, value):
+        pass
+
+    @deprecate_func(since="9.99", additional_msg="Stop using this!")
+    def my_method(self):
+        """Method."""
+
+    def normal_method(self):
+        """Method."""
 
 
 class TestDeprecationDecorators(QiskitTestCase):
     """Test that the decorators in ``utils.deprecation`` correctly log warnings and get added to
     docstring."""
 
-    def test_deprecate_arguments_message(self) -> None:
+    def test_deprecate_func_docstring(self) -> None:
+        """Test that `@deprecate_func` adds the correct message to the docstring."""
+
+        self.assertEqual(
+            _deprecated_func.__doc__,
+            dedent(
+                f"""\
+
+                .. deprecated:: 9.99
+                  The function ``{__name__}._deprecated_func()`` is deprecated as of Qiskit Terra \
+9.99. It will be removed in 2 releases. Instead, use new_func().
+                """
+            ),
+        )
+        self.assertEqual(
+            _Foo.__init__.__doc__,
+            dedent(
+                f"""\
+
+                .. deprecated:: 9.99_pending
+                  The class ``{__name__}._Foo`` is pending deprecation as of Qiskit Terra 9.99. It \
+will be marked deprecated in a future release, and then removed no earlier than 3 months after \
+the release date.
+                """
+            ),
+        )
+        self.assertEqual(
+            _Foo.my_method.__doc__,
+            dedent(
+                f"""\
+                Method.
+
+                .. deprecated:: 9.99
+                  The method ``{__name__}._Foo.my_method()`` is deprecated as of Qiskit Terra \
+9.99. It will be removed no earlier than 3 months after the release date. Stop using this!
+                """
+            ),
+        )
+        self.assertEqual(
+            _Foo.my_property.__doc__,
+            dedent(
+                f"""\
+                Property.
+
+                .. deprecated:: 9.99
+                  The property ``{__name__}._Foo.my_property`` is deprecated as of Qiskit Terra \
+9.99. It will be removed no earlier than 3 months after the release date.
+                """
+            ),
+        )
+
+    def test_deprecate_arg_docstring(self) -> None:
+        """Test that `@deprecate_arg` adds the correct message to the docstring."""
+
+        @deprecate_arg("arg1", since="9.99", removal_timeline="in 2 releases")
+        @deprecate_arg("arg2", pending=True, since="9.99")
+        @deprecate_arg(
+            "arg3",
+            since="9.99",
+            deprecation_description="Using the argument arg3",
+            new_alias="new_arg3",
+        )
+        @deprecate_arg(
+            "arg4",
+            since="9.99",
+            additional_msg="Instead, use foo.",
+            # This predicate always fails, but it should not impact storing the deprecation
+            # metadata. That ensures the deprecation still shows up in our docs.
+            predicate=lambda arg4: False,
+        )
+        def my_func() -> None:
+            pass
+
+        self.assertEqual(
+            my_func.__doc__,
+            dedent(
+                f"""\
+
+                .. deprecated:: 9.99
+                  ``{__name__}.{my_func.__qualname__}()``'s argument ``arg4`` is deprecated as of \
+Qiskit Terra 9.99. It will be removed no earlier than 3 months after the release date. Instead, \
+use foo.
+
+                .. deprecated:: 9.99
+                  Using the argument arg3 is deprecated as of Qiskit Terra 9.99. It will be \
+removed no earlier than 3 months after the release date. Instead, use the argument ``new_arg3``, \
+which behaves identically.
+
+                .. deprecated:: 9.99_pending
+                  ``{__name__}.{my_func.__qualname__}()``'s argument ``arg2`` is pending \
+deprecation as of Qiskit Terra 9.99. It will be marked deprecated in a future release, and then \
+removed no earlier than 3 months after the release date.
+
+                .. deprecated:: 9.99
+                  ``{__name__}.{my_func.__qualname__}()``'s argument ``arg1`` is deprecated as of \
+Qiskit Terra 9.99. It will be removed in 2 releases.
+                """
+            ),
+        )
+
+    def test_deprecate_arguments_docstring(self) -> None:
         """Test that `@deprecate_arguments` adds the correct message to the docstring."""
 
         @deprecate_arguments(
@@ -70,6 +205,49 @@ future be removed.
                 """
             ),
         )
+
+    def test_deprecate_func_runtime_warning(self) -> None:
+        """Test that `@deprecate_func` warns whenever the function is used."""
+
+        with self.assertWarns(DeprecationWarning):
+            _deprecated_func()
+        with self.assertWarns(PendingDeprecationWarning):
+            instance = _Foo()
+        with self.assertWarns(DeprecationWarning):
+            instance.my_method()
+        with self.assertWarns(DeprecationWarning):
+            _ = instance.my_property
+        with self.assertWarns(DeprecationWarning):
+            instance.my_property = 1
+        instance.normal_method()
+
+    def test_deprecate_arg_runtime_warning(self) -> None:
+        """Test that `@deprecate_arg` warns whenever the arguments are used.
+
+        Also check these edge cases:
+        * If `new_alias` is set, pass the old argument as the new alias.
+        * If `predicate` is set, only warn if the predicate is True.
+        """
+
+        @deprecate_arg("arg1", since="9.99")
+        @deprecate_arg("arg2", new_alias="new_arg2", since="9.99")
+        @deprecate_arg("arg3", predicate=lambda arg3: arg3 == "deprecated value", since="9.99")
+        def my_func(*, arg1: str = "a", new_arg2: str, arg3: str = "a") -> None:
+            del arg1
+            del arg3
+            assert new_arg2 == "z"
+
+        my_func(new_arg2="z")  # No warnings if no deprecated args used.
+        with self.assertWarnsRegex(DeprecationWarning, "arg1"):
+            my_func(arg1="a", new_arg2="z")
+        with self.assertWarnsRegex(DeprecationWarning, "arg2"):
+            # `arg2` should be converted into `new_arg2`.
+            my_func(arg2="z")  # pylint: disable=missing-kwoa
+
+        # Test the `predicate` functionality.
+        my_func(new_arg2="z", arg3="okay value")
+        with self.assertWarnsRegex(DeprecationWarning, "arg3"):
+            my_func(new_arg2="z", arg3="deprecated value")
 
     def test_deprecate_arguments_runtime_warning(self) -> None:
         """Test that `@deprecate_arguments` warns whenever the arguments are used.
