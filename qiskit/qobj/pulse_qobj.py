@@ -18,11 +18,12 @@
 import copy
 import pprint
 from typing import Union, List
-import warnings
+
 import numpy
 from qiskit.qobj.common import QobjDictField
 from qiskit.qobj.common import QobjHeader
 from qiskit.qobj.common import QobjExperimentHeader
+from qiskit.utils.deprecation import deprecate_argument
 
 
 class QobjMeasurementOption:
@@ -282,6 +283,14 @@ def _to_complex(value: Union[List[float], complex]) -> complex:
 class PulseQobjConfig(QobjDictField):
     """A configuration for a Pulse Qobj."""
 
+    @deprecate_argument(
+        "max_credits",
+        since="0.20.0",
+        additional_msg=(
+            "This argument has no effect on modern IBM Quantum systems, and no alternative is"
+            "necessary."
+        ),
+    )
     def __init__(
         self,
         meas_level,
@@ -344,13 +353,6 @@ class PulseQobjConfig(QobjDictField):
 
         if max_credits is not None:
             self.max_credits = int(max_credits)
-            warnings.warn(
-                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-                "and will be removed in a future release. This parameter has no effect on "
-                "modern IBM Quantum systems, and no alternative is necessary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
 
         if seed_simulator is not None:
             self.seed_simulator = int(seed_simulator)

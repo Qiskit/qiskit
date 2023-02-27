@@ -79,7 +79,6 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import cast
-from warnings import warn
 
 import numpy as np
 
@@ -101,6 +100,14 @@ class BaseSampler(BasePrimitive):
 
     __hash__ = None
 
+    @deprecate_argument(
+        "circuits", since="0.22", additional_msg="Instead, use the run() method to append objects."
+    )
+    @deprecate_argument(
+        "parameters",
+        since="0.22",
+        additional_msg="Instead, use the run() method to append objects.",
+    )
     def __init__(
         self,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
@@ -117,14 +124,6 @@ class BaseSampler(BasePrimitive):
         Raises:
             ValueError: For mismatch of circuits and parameters list.
         """
-        if circuits is not None or parameters is not None:
-            warn(
-                "The BaseSampler 'circuits', and `parameters` kwarg are deprecated "
-                "as of 0.22.0 and will be removed no earlier than 3 months after the "
-                "release date. You can use 'run' method to append objects.",
-                DeprecationWarning,
-                2,
-            )
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         self._circuits = [] if circuits is None else list(circuits)

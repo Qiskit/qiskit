@@ -29,6 +29,7 @@ from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import Qobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
+from qiskit.utils.deprecation import deprecate_argument
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,14 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
+@deprecate_argument(
+    "max_credits",
+    since="0.20.0",
+    additional_msg=(
+        "This argument has no effect on modern IBM Quantum systems, and no alternative is"
+        "necessary."
+    ),
+)
 def assemble(
     experiments: Union[
         QuantumCircuit,
@@ -159,13 +168,6 @@ def assemble(
     """
     if max_credits is not None:
         max_credits = None
-        warnings.warn(
-            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-            "and will be removed in a future release. This parameter has no effect on "
-            "modern IBM Quantum systems, and no alternative is necessary.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
     pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)

@@ -33,6 +33,7 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.extensions import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_argument
 
 from .qcstyle import load_style
 from ._utils import (
@@ -64,6 +65,24 @@ class MatplotlibDrawer:
 
     _mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
 
+    @deprecate_argument("gregs", since="0.20.0")
+    @deprecate_argument("cregs", since="0.20.0")
+    @deprecate_argument("layout", since="0.20.0")
+    @deprecate_argument("global_phase", since="0.20.0")
+    @deprecate_argument("calibrations", since="0.20.0")
+    @deprecate_argument(
+        "circuit",
+        deprecation_description=(
+            "Not setting the `circuit` argument in the `MatplotlibDrawer` constructor`"
+        ),
+        since="0.20.0",
+        predicate=lambda circuit: circuit is None,
+        additional_msg=(
+            "The `circuit` argument must be a valid QuantumCircuit. If `circuit` is set to `None`, "
+            "then the circuit will be built using the `qubits` and `clbits` arguments for "
+            "rendering the drawing."
+        ),
+    )
     def __init__(
         self,
         qubits,
@@ -85,66 +104,23 @@ class MatplotlibDrawer:
         with_layout=False,
         circuit=None,
     ):
+        del layout
+        del global_phase
+        del calibrations
+
         from matplotlib import patches
         from matplotlib import pyplot as plt
 
         self._patches_mod = patches
         self._plt_mod = plt
 
-        if qregs is not None:
-            warn(
-                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if cregs is not None:
-            warn(
-                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if global_phase is not None:
-            warn(
-                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if layout is not None:
-            warn(
-                "The 'layout' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if calibrations is not None:
-            warn(
-                "The 'calibrations' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
         # This check should be removed when the 5 deprecations above are removed
         if circuit is None:
-            warn(
-                "The 'circuit' kwarg to the MaptlotlibDrawer class must be a valid "
-                "QuantumCircuit and not None. A new circuit is being created using "
-                "the qubits and clbits for rendering the drawing.",
-                DeprecationWarning,
-                2,
-            )
             circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs:
+            for reg in qregs or []:
                 bits = [qubits[circ._qubit_indices[q].index] for q in reg]
                 circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs:
+            for reg in cregs or []:
                 bits = [clbits[circ._clbit_indices[q].index] for q in reg]
                 circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
             self._circuit = circ

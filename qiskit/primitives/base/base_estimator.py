@@ -84,7 +84,6 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import cast
-from warnings import warn
 
 import numpy as np
 
@@ -109,6 +108,19 @@ class BaseEstimator(BasePrimitive):
 
     __hash__ = None
 
+    @deprecate_argument(
+        "circuits", since="0.22", additional_msg="Instead, use the run() method to append objects."
+    )
+    @deprecate_argument(
+        "observables",
+        since="0.22",
+        additional_msg="Instead, use the run() method to append objects.",
+    )
+    @deprecate_argument(
+        "parameters",
+        since="0.22",
+        additional_msg="Instead, use the run() method to append objects.",
+    )
     def __init__(
         self,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
@@ -132,14 +144,6 @@ class BaseEstimator(BasePrimitive):
         Raises:
             ValueError: For mismatch of circuits and parameters list.
         """
-        if circuits is not None or observables is not None or parameters is not None:
-            warn(
-                "The BaseEstimator `circuits`, `observables`, `parameters` kwarg are deprecated "
-                "as of Qiskit Terra 0.22.0 and will be removed no earlier than 3 months after "
-                "the release date. You can use the 'run' method to append objects.",
-                DeprecationWarning,
-                2,
-            )
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         self._circuits = [] if circuits is None else list(circuits)

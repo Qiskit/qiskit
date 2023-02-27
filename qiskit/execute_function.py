@@ -21,11 +21,12 @@ Executing Experiments (:mod:`qiskit.execute_function`)
 """
 import logging
 from time import time
-import warnings
+
 from qiskit.compiler import transpile, schedule
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_argument
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,20 @@ def _log_submission_time(start_time, end_time):
     logger.info(log_msg)
 
 
+@deprecate_argument(
+    "max_credits",
+    since="0.20.0",
+    additional_msg=(
+        "This argument has no effect on modern IBM Quantum systems, and no alternative is"
+        "necessary."
+    ),
+)
+@deprecate_argument(
+    "qobj_id", since="0.21.0", additional_msg="This argument has no effect anymore."
+)
+@deprecate_argument(
+    "qobj_header", since="0.21.0", additional_msg="This argument has no effect anymore."
+)
 def execute(
     experiments,
     backend,
@@ -280,6 +295,9 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
+    del qobj_id
+    del qobj_header
+    del max_credits
     if isinstance(experiments, (Schedule, ScheduleBlock)) or (
         isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):
@@ -317,28 +335,6 @@ def execute(
             inst_map=inst_map,
             meas_map=meas_map,
             method=scheduling_method,
-        )
-    if max_credits is not None:
-        warnings.warn(
-            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-            "and will be removed in a future release. This parameter has no effect on "
-            "modern IBM Quantum systems, and no alternative is necessary.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    if qobj_id is not None:
-        warnings.warn(
-            "The qobj_id argument is deprecated as of the Qiskit Terra 0.21.0, "
-            "and will be remvoed in a future release. This argument has no effect and "
-            "is not used by any backends."
-        )
-
-    if qobj_header is not None:
-        warnings.warn(
-            "The qobj_header argument is deprecated as of the Qiskit Terra 0.21.0, "
-            "and will be remvoed in a future release. This argument has no effect and "
-            "is not used by any backends."
         )
 
     if isinstance(backend, Backend):
