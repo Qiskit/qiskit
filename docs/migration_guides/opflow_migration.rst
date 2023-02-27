@@ -1,9 +1,9 @@
-=======================
+#######################
 Opflow Migration Guide
-=======================
+#######################
 
 TL;DR
------
+=====
 The new :mod:`~qiskit.primitives`, in combination with the :mod:`~qiskit.quantum_info` module, have superseded
 functionality of :mod:`~qiskit.opflow`. Thus, the latter is being deprecated.
 
@@ -15,7 +15,7 @@ functionality of :mod:`~qiskit.opflow`. Thus, the latter is being deprecated.
 
 
 Background
-----------
+==========
 
 The :mod:`~qiskit.opflow` module was originally introduced as a layer between circuits and algorithms, a series of building blocks
 for quantum algorithms research and development.
@@ -81,7 +81,7 @@ The function equivalency can be roughly summarized as follows:
     This will be explicitly indicated in the corresponding section.
 
 Contents
---------
+========
 
 This document covers the migration from these opflow sub-modules:
 
@@ -104,7 +104,7 @@ This document covers the migration from these opflow sub-modules:
 
 
 Operator Base Class
--------------------
+===================
 *Back to* `Contents`_
 
 .. |qiskit.quantum_info.BaseOperator| replace:: ``qiskit.quantum_info.BaseOperator``
@@ -139,7 +139,7 @@ keeping in mind that |qiskit.quantum_info.BaseOperator|_ is more generic than it
 
 
 Operator Globals
-----------------
+================
 *Back to* `Contents`_
 
 Opflow provided shortcuts to define common single qubit states, operators, and non-parametrized gates in the
@@ -152,6 +152,7 @@ These were mainly used for didactic purposes or quick prototyping, and can easil
 
 1-Qubit Paulis
 ~~~~~~~~~~~~~~
+--------------
 *Back to* `Contents`_
 
 The 1-qubit paulis were commonly used for quick testing of algorithms, as they could be combined to create more complex operators
@@ -246,7 +247,7 @@ directly creating a corresponding :class:`~qiskit.quantum_info.SparsePauliOp`, a
    </details>
 
 Common non-parametrized gates (Clifford)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------
 *Back to* `Contents`_
 
 .. list-table::
@@ -311,7 +312,7 @@ Common non-parametrized gates (Clifford)
    </details>
 
 1-Qubit States
-~~~~~~~~~~~~~~
+--------------
 *Back to* `Contents`_
 
 .. list-table::
@@ -370,7 +371,7 @@ Common non-parametrized gates (Clifford)
 
 
 Primitive and List Ops
-----------------------
+======================
 *Back to* `Contents`_
 
 Most of the workflows that previously relied in components from :mod:`~qiskit.opflow.primitive_ops` and
