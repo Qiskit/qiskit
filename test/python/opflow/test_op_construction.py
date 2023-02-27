@@ -963,14 +963,14 @@ class TestOpConstruction(QiskitOpflowTestCase):
         qc.h(0)
         qc.x(1)
 
-        l = Parameter("λ")
-        op = PrimitiveOp(qc, coeff=l)
+        lambda_ = Parameter("λ")
+        op = PrimitiveOp(qc, coeff=lambda_)
 
-        params = {phi, l, *theta.params}
+        params = {phi, lambda_, *theta.params}
 
         self.assertEqual(params, op.parameters)
         self.assertEqual(params, StateFn(op).parameters)
-        self.assertEqual(params, StateFn(qc, coeff=l).parameters)
+        self.assertEqual(params, StateFn(qc, coeff=lambda_).parameters)
 
     def test_list_op_parameters(self):
         """Test that Parameters are stored correctly in a List Operator"""
