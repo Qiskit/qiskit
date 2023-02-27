@@ -381,4 +381,3 @@ class TestBackendSampler(QiskitTestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
