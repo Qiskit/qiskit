@@ -623,8 +623,8 @@ class TestLoadFromQPY(QiskitTestCase):
             [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
-    
-    def test_statepreparation (self):
+
+    def test_statepreparation(self):
         """Test that state preparation with a complex statevector and qft work."""
         k = 5
         state = (1 / np.sqrt(8)) * np.array(
