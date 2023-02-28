@@ -394,6 +394,18 @@ class TestSolovayKitaevUtils(QiskitTestCase):
         actual_commutator = np.dot(v_so3, np.dot(w_so3, np.dot(np.conj(v_so3).T, np.conj(w_so3).T)))
         self.assertTrue(np.allclose(actual_commutator, u_so3))
 
+    def test_generate_basis_approximation_gates(self):
+        """Test the basis approximation generation works for all supported gates.
+
+        Regression test of Qiskit/qiskit-terra#9585.
+        """
+        basis = ["i", "x", "y", "z", "h", "t", "tdg", "s", "sdg"]
+        approx = generate_basic_approximations(basis, depth=2)
+
+        # This mainly checks that there are no errors in the generation (like
+        # in computing the inverse as described in #9585), so a simple check is enough.
+        self.assertGreater(len(approx), len(basis))
+
 
 if __name__ == "__main__":
     unittest.main()
