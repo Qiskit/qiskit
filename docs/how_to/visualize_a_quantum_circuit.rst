@@ -9,7 +9,7 @@ Build the circuit
 
 The first step is to create the circuit.
 
-.. jupyter-execute::
+.. testcode::
 
     from qiskit import QuantumCircuit
 
@@ -32,18 +32,43 @@ There are three different ways to visualize a circuit. You can use
 
 If you call the ``print()`` function on a :class:`~.QuantumCircuit` object, you will get an `ASCII art version <https://en.wikipedia.org/wiki/ASCII_art>`_ of the circuit diagram.
 
-.. jupyter-execute::
+.. testcode::
 
     print(qc)
+
+.. testoutput::
+    :options: +NORMALIZE_WHITESPACE
+
+         ┌───┐     ┌─┐   
+    q_0: ┤ H ├──■──┤M├───
+         ├───┤┌─┴─┐└╥┘┌─┐
+    q_1: ┤ H ├┤ X ├─╫─┤M├
+         ├───┤└┬─┬┘ ║ └╥┘
+    q_2: ┤ H ├─┤M├──╫──╫─
+         └───┘ └╥┘  ║  ║ 
+    c: 3/═══════╩═══╩══╩═
+                2   0  1 
 
 :meth:`~.QuantumCircuit.draw`
 ---------------------------------------------
 
 You can also call the :meth:`~.QuantumCircuit.draw` method on a :class:`~.QuantumCircuit` object to visualize it. If you don't specify any arguments you will get a plain text representation of the circuit.
 
-.. jupyter-execute::
+.. code-block:: python
 
     qc.draw()
+
+.. code-block:: text
+
+         ┌───┐     ┌─┐   
+    q_0: ┤ H ├──■──┤M├───
+         ├───┤┌─┴─┐└╥┘┌─┐
+    q_1: ┤ H ├┤ X ├─╫─┤M├
+         ├───┤└┬─┬┘ ║ └╥┘
+    q_2: ┤ H ├─┤M├──╫──╫─
+         └───┘ └╥┘  ║  ║ 
+    c: 3/═══════╩═══╩══╩═
+                2   0  1  
 
 However, if you change the ``output`` argument, you can get other different renderings. The available options for this argument are:
 
@@ -61,18 +86,31 @@ Because this optional or keyword argument is actually the first of this method, 
 ``'mpl'``
 ^^^^^^^^^
 
-.. jupyter-execute::
+.. code-block:: python
 
     qc.draw('mpl')
 
+.. plot::
+
+    from qiskit import QuantumCircuit
+
+    qc = QuantumCircuit(3, 3)
+    qc.h(range(3))
+    qc.cx(0, 1)
+    qc.measure(range(3), range(3))
+    qc.draw("mpl")
 
 
 ``'latex_source'``
 ^^^^^^^^^^^^^^^^^^
 
-.. jupyter-execute::
+.. code-block:: python
 
     qc.draw('latex_source')
+
+.. code-block:: text
+
+    '\\documentclass[border=2px]{standalone}\n\n\\usepackage[braket, qm]{qcircuit}\n\\usepackage{graphicx}\n\n\\begin{document}\n\\scalebox{1.0}{\n\\Qcircuit @C=1.0em @R=0.2em @!R { \\\\\n\t \t\\nghost{{q}_{0} :  } & \\lstick{{q}_{0} :  } & \\gate{\\mathrm{H}} & \\ctrl{1} & \\meter & \\qw & \\qw & \\qw\\\\\n\t \t\\nghost{{q}_{1} :  } & \\lstick{{q}_{1} :  } & \\gate{\\mathrm{H}} & \\targ & \\qw & \\meter & \\qw & \\qw\\\\\n\t \t\\nghost{{q}_{2} :  } & \\lstick{{q}_{2} :  } & \\gate{\\mathrm{H}} & \\meter & \\qw & \\qw & \\qw & \\qw\\\\\n\t \t\\nghost{\\mathrm{{c} :  }} & \\lstick{\\mathrm{{c} :  }} & \\lstick{/_{_{3}}} \\cw & \\dstick{_{_{\\hspace{0.0em}2}}} \\cw \\ar @{<=} [-1,0] & \\dstick{_{_{\\hspace{0.0em}0}}} \\cw \\ar @{<=} [-3,0] & \\dstick{_{_{\\hspace{0.0em}1}}} \\cw \\ar @{<=} [-2,0] & \\cw & \\cw\\\\\n\\\\ }}\n\\end{document}'
 
 
 :func:`~.circuit_drawer`
@@ -84,9 +122,19 @@ If you prefer to use a self-contained function instead of a :class:`~.QuantumCir
     In Qiskit Terra :math:`\leq 0.7`, the default behavior for the :func:`~.circuit_drawer` function is to use the ``'latex'`` output backend, and in :math:`0.6.x` that includes a fallback to ``'mpl'`` if ``'latex'`` fails for any reason. Starting with release :math:`> 0.7`, the default changes to the ``'text'`` output.
 
 
-.. jupyter-execute::
+.. code-block:: python
 
     from qiskit.visualization import circuit_drawer
 
     circuit_drawer(qc, output='mpl')
 
+.. plot::
+
+    from qiskit import QuantumCircuit
+    from qiskit.visualization import circuit_drawer
+
+    qc = QuantumCircuit(3, 3)
+    qc.h(range(3))
+    qc.cx(0, 1)
+    qc.measure(range(3), range(3))
+    circuit_drawer(qc, output='mpl')
