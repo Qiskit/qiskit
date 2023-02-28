@@ -739,7 +739,7 @@ class Gaussian(metaclass=_PulseType):
         angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ) -> SymbolicPulse:
+    ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -837,7 +837,7 @@ class GaussianSquare(metaclass=_PulseType):
         risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ) -> SymbolicPulse:
+    ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -924,7 +924,7 @@ def GaussianSquareDrag(
     risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
-) -> SymbolicPulse:
+) -> ScalableSymbolicPulse:
     """A square pulse with a Drag shaped rise and fall
 
     This pulse shape is similar to :class:`~.GaussianSquare` but uses
@@ -1112,7 +1112,7 @@ class Drag(metaclass=_PulseType):
         angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ) -> SymbolicPulse:
+    ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -1181,7 +1181,7 @@ class Constant(metaclass=_PulseType):
         angle: Optional[Union[float, ParameterExpression]] = None,
         name: Optional[str] = None,
         limit_amplitude: Optional[bool] = None,
-    ) -> SymbolicPulse:
+    ) -> ScalableSymbolicPulse:
         """Create new pulse instance.
 
         Args:
@@ -1227,3 +1227,279 @@ class Constant(metaclass=_PulseType):
         instance.validate_parameters()
 
         return instance
+
+
+def Sin(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    phase: Union[float, ParameterExpression],
+    freq: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """A sinusoidal pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) &= \\text{A}\\sin\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the sinusoidal wave. Wave range is [-`amp`,`amp`].
+        phase: The phase of the sinusoidal wave (note that this is not equivalent to the angle of
+            the complex amplitude)
+        freq: The frequency of the sinusoidal wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e :math:'\\frac{1}{\\text{duration}}').
+            The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    if freq is None:
+        freq = 1 / duration
+    parameters = {"freq": freq, "phase": phase}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+
+    envelope_expr = _amp * sym.exp(sym.I * _angle) * sym.sin(2 * sym.pi * _freq * _t + _phase)
+
+    consts_expr = sym.And(_freq > 0, _freq < 0.5)
+
+    # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="Sin",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def Cos(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    phase: Union[float, ParameterExpression],
+    freq: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """A cosine pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) &= \\text{A}\\cos\\left(2\\pi\text{freq}x+\\text{phase}\\right)  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the cosine wave. Wave range is [-`amp`,`amp`].
+        phase: The phase of the cosine wave (note that this is not equivalent to the angle
+            of the complex amplitude).
+        freq: The frequency of the cosine wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e :math:'\\frac{1}{\\text{duration}}').
+            The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    if freq is None:
+        freq = 1 / duration
+    parameters = {"freq": freq, "phase": phase}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+
+    envelope_expr = _amp * sym.exp(sym.I * _angle) * sym.cos(2 * sym.pi * _freq * _t + _phase)
+
+    consts_expr = sym.And(_freq > 0, _freq < 0.5)
+
+    # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="Cos",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def Sawtooth(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    phase: Union[float, ParameterExpression],
+    freq: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """A sawtooth pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) &= 2\\text{A}\\left[g\\left(x\\right)-
+            \\lfloor g\\left(x\\right)+\\frac{1}{2}\\rfloor\\right]
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    :math:`g\\left(x\\right)=x\\times\\text{freq}+\\frac{\\text{phase}}{2\\pi}`,
+    and :math:`\\lfloor ...\\rfloor` is the floor operation.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the sawtooth wave. Wave range is [-`amp`,`amp`].
+        phase: The phase of the sawtooth wave (note that this is not equivalent to the angle
+            of the complex amplitude)
+        freq: The frequency of the sawtooth wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e :math:'\\frac{1}{\\text{duration}}').
+            The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    if freq is None:
+        freq = 1 / duration
+    parameters = {"freq": freq, "phase": phase}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+    lin_expr = _t * _freq + _phase / (2 * sym.pi)
+
+    envelope_expr = 2 * _amp * sym.exp(sym.I * _angle) * (lin_expr - sym.floor(lin_expr + 1 / 2))
+
+    consts_expr = sym.And(_freq > 0, _freq < 0.5)
+
+    # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="Sawtooth",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
+
+
+def Triangle(
+    duration: Union[int, ParameterExpression],
+    amp: Union[float, ParameterExpression],
+    phase: Union[float, ParameterExpression],
+    freq: Optional[Union[float, ParameterExpression]] = None,
+    angle: Optional[Union[float, ParameterExpression]] = 0.0,
+    name: Optional[str] = None,
+    limit_amplitude: Optional[bool] = None,
+) -> ScalableSymbolicPulse:
+    """A triangle pulse.
+
+    The envelope of the pulse is given by:
+
+    .. math::
+
+        f(x) &= \\text{A}\\left[\\text{sawtooth}\\left(x\\right)right]  ,  0 <= x < duration
+
+    where :math:`\\text{A} = \\text{amp} \\times\\exp\\left(i\\times\\text{angle}\\right)`,
+    and :math:`\\text{sawtooth}\\left(x\\right)` is a sawtooth wave with the same frequency
+    as the triangle wave, but a phase shifted by :math:`\\frac{\\pi}{2}`.
+
+    Args:
+        duration: Pulse length in terms of the sampling period `dt`.
+        amp: The magnitude of the amplitude of the triangle wave. Wave range is [-`amp`,`amp`].
+        phase: The phase of the triangle wave (note that this is not equivalent to the angle
+            of the complex amplitude)
+        freq: The frequency of the triangle wave, in terms of 1 over sampling period.
+            If not provided defaults to a single cycle (i.e :math:'\\frac{1}{\\text{duration}}').
+            The frequency is limited to the range :math:`\\left(0,0.5\\right]` (the Nyquist frequency).
+        angle: The angle in radians of the complex phase factor uniformly
+            scaling the pulse. Default value 0.
+        name: Display name for this pulse envelope.
+        limit_amplitude: If ``True``, then limit the amplitude of the
+            waveform to 1. The default is ``True`` and the amplitude is constrained to 1.
+
+    Returns:
+        ScalableSymbolicPulse instance.
+    """
+    if freq is None:
+        freq = 1 / duration
+    parameters = {"freq": freq, "phase": phase}
+
+    # Prepare symbolic expressions
+    _t, _duration, _amp, _angle, _freq, _phase = sym.symbols("t, duration, amp, angle, freq, phase")
+    lin_expr = _t * _freq + _phase / (2 * sym.pi) - 0.25
+    sawtooth_expr = 2 * (lin_expr - sym.floor(lin_expr + 1 / 2))
+
+    envelope_expr = _amp * sym.exp(sym.I * _angle) * (-2 * sym.Abs(sawtooth_expr) + 1)
+
+    consts_expr = sym.And(_freq > 0, _freq < 0.5)
+
+    # This might fail for waves shorter than a single cycle
+    valid_amp_conditions_expr = sym.Abs(_amp) <= 1.0
+
+    instance = ScalableSymbolicPulse(
+        pulse_type="Triangle",
+        duration=duration,
+        amp=amp,
+        angle=angle,
+        parameters=parameters,
+        name=name,
+        limit_amplitude=limit_amplitude,
+        envelope=envelope_expr,
+        constraints=consts_expr,
+        valid_amp_conditions=valid_amp_conditions_expr,
+    )
+    instance.validate_parameters()
+
+    return instance
