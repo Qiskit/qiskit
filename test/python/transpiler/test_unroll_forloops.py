@@ -87,6 +87,24 @@ class TestUnrool(QiskitTestCase):
 
         self.assertEqual(result, qc)
 
+    def test_max_target_depth(self):
+        """Unrolling should not be done when results over `max_target_depth`"""
+
+        loop_parameter = Parameter("foo")
+        indexset = range(0, 10, 2)
+        body = QuantumCircuit(3, 1)
+        body.rx(loop_parameter, [0, 1, 2])
+
+        qreg, creg = QuantumRegister(5, "q"), ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qreg, creg)
+        circuit.for_loop(indexset, loop_parameter, body, [1, 2, 3], [1])
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops(max_target_depth=2))
+        result = passmanager.run(circuit)
+
+        self.assertEqual(result, circuit)
+
 
 if __name__ == "__main__":
     unittest.main()

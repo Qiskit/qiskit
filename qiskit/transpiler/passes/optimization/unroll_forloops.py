@@ -19,9 +19,20 @@ from qiskit.converters import circuit_to_dag
 
 
 class UnrollForLoops(TransformationPass):
-    """UnrollForLoops transpilation pass unrolls for loops when possible. Things like
+    """UnrollForLoops transpilation pass unrolls for-loops when possible. Things like
     `for x in {0, 3, 4} {rx(x) qr[1];}` will turn into `rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];`.
     """
+
+    def __init__(self, max_target_depth=-1):
+        """UnrollForLoops transpilation pass unrolls for-loops when possible. Things like
+        `for x in {0, 3, 4} {rx(x) qr[1];}` will turn into `rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];`.
+
+        Args:
+            max_target_depth (int): Optional. Checks if the unrolled block is over a particular depth.
+                To disable the check, use ``-1`` (Default)
+        """
+        super().__init__()
+        self.max_target_depth = max_target_depth
 
     @control_flow.trivial_recurse
     def run(self, dag):
@@ -36,7 +47,11 @@ class UnrollForLoops(TransformationPass):
         for forloop_op in dag.op_nodes(ForLoopOp):
             (indexset, loop_parameter, body) = forloop_op.op.params
 
-            # do not unroll when break_loop or continue_loop inside body
+            # skip unrolling if it results in bigger than max_target_depth
+            if self.max_target_depth > 0 and len(indexset) * body.depth() > self.max_target_depth:
+                continue
+
+            # skip unroll when break_loop or continue_loop inside body
             if UnrollForLoops.body_contains_continue_or_break(body):
                 continue
 
