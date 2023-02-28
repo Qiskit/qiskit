@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,6 +32,7 @@ from qiskit.opflow import (
 from qiskit.providers import Backend
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_solver import LinearSolver, LinearSolverResult
 from .matrices.numpy_matrix import NumPyMatrix
@@ -39,7 +40,8 @@ from .observables.linear_system_observable import LinearSystemObservable
 
 
 class HHL(LinearSolver):
-    r"""Systems of linear equations arise naturally in many real-life applications in a wide range
+    r"""The deprecated systems of linear equations arise naturally in many real-life applications
+    in a wide range
     of areas, such as in the solution of Partial Differential Equations, the calibration of
     financial models, fluid simulation or numerical field calculation. The problem can be defined
     as, given a matrix :math:`A\in\mathbb{C}^{N\times N}` and a vector
@@ -52,7 +54,7 @@ class HHL(LinearSolver):
     using the conjugate gradient method. Here :math:`\kappa` denotes the condition number of the
     system and :math:`\epsilon` the accuracy of the approximation.
 
-    The HHL is a quantum algorithm to estimate a function of the solution with running time
+    The deprecated HHL is a quantum algorithm to estimate a function of the solution with running time
     complexity of :math:`\mathcal{ O }(\log(N)s^{2}\kappa^{2}/\epsilon)` when
     :math:`A` is a Hermitian matrix under the assumptions of efficient oracles for loading the
     data, Hamiltonian simulation and computing a function of the solution. This is an exponential
@@ -60,28 +62,36 @@ class HHL(LinearSolver):
     classical algorithm returns the full solution, while the HHL can only approximate functions of
     the solution vector.
 
-    Examples:
+    The HHL class is deprecated as of Qiskit Terra 0.22.0
+    and will be removed no sooner than 3 months after the release date.
+    It is replaced by the tutorial at
+    `HHL <https://qiskit.org/textbook/ch-applications/hhl_tutorial.html>`_
 
-        .. jupyter-execute::
+    Examples::
 
+            import warnings
             import numpy as np
             from qiskit import QuantumCircuit
             from qiskit.algorithms.linear_solvers.hhl import HHL
             from qiskit.algorithms.linear_solvers.matrices import TridiagonalToeplitz
             from qiskit.algorithms.linear_solvers.observables import MatrixFunctional
 
-            matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
-            right_hand_side = [1.0, -2.1, 3.2, -4.3]
-            observable = MatrixFunctional(1, 1 / 2)
-            rhs = right_hand_side / np.linalg.norm(right_hand_side)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
+                right_hand_side = [1.0, -2.1, 3.2, -4.3]
+                observable = MatrixFunctional(1, 1 / 2)
+                rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
             # Initial state circuit
             num_qubits = matrix.num_state_qubits
             qc = QuantumCircuit(num_qubits)
             qc.isometry(rhs, list(range(num_qubits)), None)
 
-            hhl = HHL()
-            solution = hhl.solve(matrix, qc, observable)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                hhl = HHL()
+                solution = hhl.solve(matrix, qc, observable)
             approx_result = solution.observable
 
     References:
@@ -96,6 +106,13 @@ class HHL(LinearSolver):
 
     """
 
+    @deprecate_function(
+        """The HHL class is deprecated as of Qiskit Terra 0.22.0 and will be removed
+        no sooner than 3 months after the release date.
+        It is replaced by the tutorial at https://qiskit.org/textbook/ch-applications/hhl_tutorial.html"
+        """,
+        since="0.22.0",
+    )
     def __init__(
         self,
         epsilon: float = 1e-2,

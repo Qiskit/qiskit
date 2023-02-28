@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,11 +17,17 @@ from typing import Tuple
 
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import BlueprintCircuit
+from qiskit.utils.deprecation import deprecate_function
 
 
 class LinearSystemMatrix(BlueprintCircuit, ABC):
-    """Base class for linear system matrices."""
+    """The deprecated base class for linear system matrices."""
 
+    @deprecate_function(
+        "The LinearSystemMatrix class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date.",
+        since="0.22.0",
+    )
     def __init__(
         self,
         num_state_qubits: int,

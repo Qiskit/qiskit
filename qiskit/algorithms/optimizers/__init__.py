@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -39,6 +39,25 @@ Optimizer Base Class
    Optimizer
    Minimizer
 
+Steppable Optimizer Base Class
+==============================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   optimizer_utils
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   SteppableOptimizer
+   AskData
+   TellData
+   OptimizerState
+
+
+
 Local Optimizers
 ================
 
@@ -53,6 +72,7 @@ Local Optimizers
    L_BFGS_B
    GSLS
    GradientDescent
+   GradientDescentState
    NELDER_MEAD
    NFT
    P_BFGS
@@ -82,15 +102,7 @@ not. To install the `scikit-quant` dependent package you can use
 Global Optimizers
 =================
 The global optimizers here all use NLopt for their core function and can only be
-used if their dependent NLopt package is manually installed. See the following
-section for installation instructions.
-
-.. autosummary::
-    :toctree: ../stubs/
-
-    nlopts
-
-The global optimizers are as follows:
+used if their dependent NLopt package is manually installed.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -110,7 +122,7 @@ from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
 from .gsls import GSLS
-from .gradient_descent import GradientDescent
+from .gradient_descent import GradientDescent, GradientDescentState
 from .imfil import IMFIL
 from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
@@ -120,6 +132,7 @@ from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
+from .steppable_optimizer import SteppableOptimizer, AskData, TellData, OptimizerState
 from .optimizer import Minimizer, Optimizer, OptimizerResult, OptimizerSupportLevel
 from .p_bfgs import P_BFGS
 from .powell import POWELL
@@ -134,6 +147,10 @@ from .umda import UMDA
 __all__ = [
     "Optimizer",
     "OptimizerSupportLevel",
+    "SteppableOptimizer",
+    "AskData",
+    "TellData",
+    "OptimizerState",
     "OptimizerResult",
     "Minimizer",
     "ADAM",
@@ -142,6 +159,7 @@ __all__ = [
     "COBYLA",
     "GSLS",
     "GradientDescent",
+    "GradientDescentState",
     "L_BFGS_B",
     "NELDER_MEAD",
     "NFT",

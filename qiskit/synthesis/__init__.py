@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017 - 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -28,6 +28,64 @@ Evolution Synthesis
    LieTrotter
    SuzukiTrotter
    MatrixExponential
+   QDrift
+
+Linear Function Synthesis
+=========================
+.. autosummary::
+   :toctree: ../stubs/
+
+    synth_cnot_count_full_pmh
+    synth_cnot_depth_line_kms
+
+Linear-Phase Synthesis
+======================
+.. autosummary::
+   :toctree: ../stubs/
+
+    synth_cz_depth_line_mr
+
+Permutation Synthesis
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_permutation_depth_lnn_kms
+   synth_permutation_basic
+   synth_permutation_acg
+
+Clifford Synthesis
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_clifford_full
+   synth_clifford_ag
+   synth_clifford_bm
+   synth_clifford_greedy
+   synth_clifford_layers
+   synth_clifford_depth_lnn
+
+CNOTDihedral Synthesis
+======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_cnotdihedral_full
+   synth_cnotdihedral_two_qubits
+   synth_cnotdihedral_general
+
+Discrete Basis Synthesis
+========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   SolovayKitaevDecomposition
+   generate_basic_approximations
 
 """
 
@@ -39,3 +97,28 @@ from .evolution import (
     MatrixExponential,
     QDrift,
 )
+
+from .permutation import (
+    synth_permutation_depth_lnn_kms,
+    synth_permutation_basic,
+    synth_permutation_acg,
+)
+from .linear import (
+    synth_cnot_count_full_pmh,
+    synth_cnot_depth_line_kms,
+)
+from .linear_phase import synth_cz_depth_line_mr
+from .clifford import (
+    synth_clifford_full,
+    synth_clifford_ag,
+    synth_clifford_bm,
+    synth_clifford_greedy,
+    synth_clifford_layers,
+    synth_clifford_depth_lnn,
+)
+from .cnotdihedral import (
+    synth_cnotdihedral_full,
+    synth_cnotdihedral_two_qubits,
+    synth_cnotdihedral_general,
+)
+from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations

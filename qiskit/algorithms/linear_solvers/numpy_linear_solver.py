@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,35 +17,47 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Operator, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_function
 
 from .linear_solver import LinearSolverResult, LinearSolver
 from .observables.linear_system_observable import LinearSystemObservable
 
 
 class NumPyLinearSolver(LinearSolver):
-    """The Numpy Linear Solver algorithm (classical).
+    """The deprecated Numpy Linear Solver algorithm (classical).
 
     This linear system solver computes the exact value of the given observable(s) or the full
     solution vector if no observable is specified.
 
-    Examples:
+    Examples::
 
-        .. jupyter-execute::
-
+            import warnings
             import numpy as np
             from qiskit.algorithms import NumPyLinearSolver
             from qiskit.algorithms.linear_solvers.matrices import TridiagonalToeplitz
             from qiskit.algorithms.linear_solvers.observables import MatrixFunctional
 
-            matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
-            right_hand_side = [1.0, -2.1, 3.2, -4.3]
-            observable = MatrixFunctional(1, 1 / 2)
-            rhs = right_hand_side / np.linalg.norm(right_hand_side)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                matrix = TridiagonalToeplitz(2, 1, 1 / 3, trotter_steps=2)
+                right_hand_side = [1.0, -2.1, 3.2, -4.3]
+                observable = MatrixFunctional(1, 1 / 2)
+                rhs = right_hand_side / np.linalg.norm(right_hand_side)
 
-            np_solver = NumPyLinearSolver()
-            solution = np_solver.solve(matrix, rhs, observable)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                np_solver = NumPyLinearSolver()
+                solution = np_solver.solve(matrix, rhs, observable)
             result = solution.observable
     """
+
+    @deprecate_function(
+        "The NumPyLinearSolver class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date. ",
+        since="0.22.0",
+    )
+    def __init__(self) -> None:
+        super().__init__()
 
     def solve(
         self,

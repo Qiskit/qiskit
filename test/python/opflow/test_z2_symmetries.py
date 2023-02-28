@@ -92,3 +92,21 @@ class TestZ2Symmetries(QiskitOpflowTestCase):
         )
         expected_op = TaperedPauliSumOp(primitive, z2_symmetries)
         self.assertEqual(tapered_op, expected_op)
+
+    def test_twostep_tapering(self):
+        """Test the two-step tapering"""
+        qubit_op = PauliSumOp.from_list(
+            [
+                ("II", -1.0537076071291125),
+                ("IZ", 0.393983679438514),
+                ("ZI", -0.39398367943851387),
+                ("ZZ", -0.01123658523318205),
+                ("XX", 0.1812888082114961),
+            ]
+        )
+        z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
+        tapered_op = z2_symmetries.taper(qubit_op)
+
+        tapered_op_firststep = z2_symmetries.convert_clifford(qubit_op)
+        tapered_op_secondstep = z2_symmetries.taper_clifford(tapered_op_firststep)
+        self.assertEqual(tapered_op, tapered_op_secondstep)

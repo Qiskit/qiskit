@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fix a problem in the :class:`~.GateDirection` transpiler pass for the
+    :class:`~.CZGate`. The CZ gate is symmetric, so flipping the qubit
+    arguments is allowed to match the directed coupling map.

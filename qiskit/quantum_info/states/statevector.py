@@ -13,7 +13,6 @@
 """
 Statevector quantum state class.
 """
-
 import copy
 import re
 from numbers import Number
@@ -31,7 +30,6 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-# pylint: disable=import-error
 from qiskit._accelerate.pauli_expval import (
     expval_pauli_no_x,
     expval_pauli_with_x,
@@ -171,12 +169,13 @@ class Statevector(QuantumState, TolerancesMixin):
 
             Plot one of the Bell states
 
-            .. jupyter-execute::
+            .. plot::
+               :include-source:
 
                 from numpy import sqrt
                 from qiskit.quantum_info import Statevector
                 sv=Statevector([1/sqrt(2), 0, 0, -1/sqrt(2)])
-                sv.draw(output='latex')
+                sv.draw(output='hinton')
 
         """
         # pylint: disable=cyclic-import
@@ -225,7 +224,7 @@ class Statevector(QuantumState, TolerancesMixin):
         return len(self._data)
 
     @property
-    def data(self):
+    def data(self) -> np.ndarray:
         """Return data."""
         return self._data
 
@@ -238,7 +237,7 @@ class Statevector(QuantumState, TolerancesMixin):
         norm = np.linalg.norm(self.data)
         return np.allclose(norm, 1, rtol=rtol, atol=atol)
 
-    def to_operator(self):
+    def to_operator(self) -> Operator:
         """Convert state to a rank-1 projector operator"""
         mat = np.outer(self.data, np.conj(self.data))
         return Operator(mat, input_dims=self.dims(), output_dims=self.dims())
@@ -388,7 +387,8 @@ class Statevector(QuantumState, TolerancesMixin):
 
         # Evolution by an Operator
         if not isinstance(other, Operator):
-            other = Operator(other)
+            dims = self.dims(qargs=qargs)
+            other = Operator(other, input_dims=dims, output_dims=dims)
 
         # check dimension
         if self.dims(qargs) != other.input_dims():
@@ -524,7 +524,7 @@ class Statevector(QuantumState, TolerancesMixin):
             Consider a 2-qubit product state
             :math:`|\\psi\\rangle=|+\\rangle\\otimes|0\\rangle`.
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import Statevector
 
@@ -542,10 +542,16 @@ class Statevector(QuantumState, TolerancesMixin):
                 probs_qubit_1 = psi.probabilities([1])
                 print('Qubit-1 probs: {}'.format(probs_qubit_1))
 
+            .. parsed-literal::
+
+                probs: [0.5 0.  0.5 0. ]
+                Qubit-0 probs: [1. 0.]
+                Qubit-1 probs: [0.5 0.5]
+
             We can also permute the order of qubits in the ``qargs`` list
             to change the qubit position in the probabilities output
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import Statevector
 
@@ -559,6 +565,12 @@ class Statevector(QuantumState, TolerancesMixin):
                 # but swapping qubits 0 and 1 in output
                 probs_swapped = psi.probabilities([1, 0])
                 print('Swapped probs: {}'.format(probs_swapped))
+
+            .. parsed-literal::
+
+                probs: [0.5 0.  0.5 0. ]
+                Swapped probs: [0.5 0.5 0.  0. ]
+
         """
         probs = self._subsystem_probabilities(
             np.abs(self.data) ** 2, self._op_shape.dims_l(), qargs=qargs
@@ -758,17 +770,21 @@ class Statevector(QuantumState, TolerancesMixin):
             The ket-form of a 2-qubit statevector
             :math:`|\psi\rangle = |-\rangle\otimes |0\rangle`
 
-            .. jupyter-execute::
+            .. code-block::
 
                 from qiskit.quantum_info import Statevector
 
                 psi = Statevector.from_label('-0')
                 print(psi.to_dict())
 
+            .. parsed-literal::
+
+                {'00': (0.7071067811865475+0j), '10': (-0.7071067811865475+0j)}
+
             For non-qubit subsystems the integer range can go from 0 to 9. For
             example in a qutrit system
 
-            .. jupyter-execute::
+            .. code-block::
 
                 import numpy as np
                 from qiskit.quantum_info import Statevector
@@ -779,11 +795,15 @@ class Statevector(QuantumState, TolerancesMixin):
                 psi = Statevector(vec, dims=(3, 3))
                 print(psi.to_dict())
 
+            .. parsed-literal::
+
+                {'00': (0.7071067811865475+0j), '22': (0.7071067811865475+0j)}
+
             For large subsystem dimensions delimiters are required. The
             following example is for a 20-dimensional system consisting of
             a qubit and 10-dimensional qudit.
 
-            .. jupyter-execute::
+            .. code-block::
 
                 import numpy as np
                 from qiskit.quantum_info import Statevector
@@ -793,6 +813,11 @@ class Statevector(QuantumState, TolerancesMixin):
                 vec[-1] = 1 / np.sqrt(2)
                 psi = Statevector(vec, dims=(2, 10))
                 print(psi.to_dict())
+
+            .. parsed-literal::
+
+                {'00': (0.7071067811865475+0j), '91': (0.7071067811865475+0j)}
+
         """
         return self._vector_to_dict(
             self.data, self._op_shape.dims_l(), decimals=decimals, string_labels=True
@@ -818,14 +843,21 @@ class Statevector(QuantumState, TolerancesMixin):
         contract_dim = oper._op_shape.shape[1]
         contract_shape = (contract_dim, statevec._op_shape.shape[0] // contract_dim)
 
-        # Reshape input for contraction
-        statevec._data = np.reshape(
-            np.transpose(np.reshape(statevec.data, statevec._op_shape.tensor_shape), axes),
-            contract_shape,
+        # Reshape and transpose input array for contraction
+        tensor = np.transpose(
+            np.reshape(statevec.data, statevec._op_shape.tensor_shape),
+            axes,
         )
-        # Contract and reshape output
-        statevec._data = np.reshape(np.dot(oper.data, statevec._data), new_shape.tensor_shape)
-        statevec._data = np.reshape(np.transpose(statevec._data, axes_inv), new_shape.shape[0])
+        tensor_shape = tensor.shape
+
+        # Perform contraction
+        tensor = np.reshape(
+            np.dot(oper.data, np.reshape(tensor, contract_shape)),
+            tensor_shape,
+        )
+
+        # Transpose back to  original subsystem spec and flatten
+        statevec._data = np.reshape(np.transpose(tensor, axes_inv), new_shape.shape[0])
 
         # Update dimension
         statevec._op_shape = new_shape
@@ -836,6 +868,12 @@ class Statevector(QuantumState, TolerancesMixin):
         """Update the current Statevector by applying an instruction."""
         from qiskit.circuit.reset import Reset
         from qiskit.circuit.barrier import Barrier
+
+        # pylint complains about a cyclic import since the following Initialize file
+        # imports the StatePreparation, which again requires the Statevector (this file),
+        # but as this is a local import, it's not actually an issue and can be ignored
+        # pylint: disable=cyclic-import
+        from qiskit.extensions.quantum_initializer.initializer import Initialize
 
         mat = Operator._instruction_to_matrix(obj)
         if mat is not None:
@@ -848,6 +886,32 @@ class Statevector(QuantumState, TolerancesMixin):
             statevec._data = statevec.reset(qargs)._data
             return statevec
         if isinstance(obj, Barrier):
+            return statevec
+        if isinstance(obj, Initialize):
+            # state is initialized to labels in the initialize object
+            if all(isinstance(param, str) for param in obj.params):
+                initialization = Statevector.from_label("".join(obj.params))._data
+            # state is initialized to an integer
+            # here we're only checking the length as (1) a length-1 object necessarily means the
+            # state is described by an integer (as labels were already covered) and (2) the int
+            # was cast to a complex and we cannot do an int typecheck anyways
+            elif len(obj.params) == 1:
+                state = int(np.real(obj.params[0]))
+                initialization = Statevector.from_int(state, (2,) * obj.num_qubits)._data
+            # state is initialized to the statevector
+            else:
+                initialization = np.asarray(obj.params, dtype=complex)
+
+            if qargs is None:
+                statevec._data = initialization
+            else:
+                # if we act on a subsystem we first need to reset and then apply the
+                # state preparation
+                statevec._data = statevec.reset(qargs)._data
+                mat = np.zeros((2 ** len(qargs), 2 ** len(qargs)), dtype=complex)
+                mat[:, 0] = initialization
+                statevec = Statevector._evolve_operator(statevec, Operator(mat), qargs=qargs)
+
             return statevec
 
         # If the instruction doesn't have a matrix defined we use its

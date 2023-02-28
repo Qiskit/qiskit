@@ -8,8 +8,8 @@ jobs:
     name: Randomized tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: '3.8'
@@ -24,9 +24,11 @@ jobs:
           SETUPTOOLS_ENABLE_FEATURES: "legacy-editable"
       - name: Run randomized tests
         run: make test_randomized
+        env:
+          RUST_BACKTRACE: 1
       - name: Create comment on failed test run
         if: ${{ failure() }}
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           issue-number: 2645
           body: |

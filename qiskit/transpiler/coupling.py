@@ -19,14 +19,13 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
-import io
 import warnings
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
+from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
 
 from qiskit.transpiler.exceptions import CouplingError
-from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class CouplingMap:
@@ -79,6 +78,9 @@ class CouplingMap:
             Tuple(int,int): Each edge is a pair of physical qubits.
         """
         return self.graph.edge_list()
+
+    def __iter__(self):
+        return iter(self.graph.edge_list())
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
@@ -232,10 +234,13 @@ class CouplingMap:
         """
         Convert uni-directional edges into bi-directional.
         """
+        # TODO: replace with PyDiGraph.make_symmetric() after rustworkx
+        # 0.13.0 is released.
         edges = self.get_edges()
+        edge_set = set(edges)
         for src, dest in edges:
-            if (dest, src) not in edges:
-                self.add_edge(dest, src)
+            if (dest, src) not in edge_set:
+                self.graph.add_edge(dest, src, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
@@ -410,36 +415,12 @@ class CouplingMap:
     def draw(self):
         """Draws the coupling map.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`_,
-        which in turn needs `Graphviz <https://www.graphviz.org/>`_ to be
-        installed. Additionally, `pillow <https://python-pillow.org/>`_ will
-        need to be installed.
+        This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
+        ``rustworkx`` package to draw the :class:`CouplingMap` object.
 
         Returns:
             PIL.Image: Drawn coupling map.
 
-        Raises:
-            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
-        try:
-            import pydot
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="pydot",
-                name="coupling map drawer",
-                pip_install="pip install pydot",
-            ) from ex
 
-        try:
-            from PIL import Image
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="coupling map drawer",
-                pip_install="pip install pillow",
-            ) from ex
-        dot_str = self.graph.to_dot()
-        dot = pydot.graph_from_dot_data(dot_str)[0]
-        png = dot.create_png(prog="neato")
-
-        return Image.open(io.BytesIO(png))
+        return graphviz_draw(self.graph, method="neato")

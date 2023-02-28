@@ -17,16 +17,30 @@ from typing import Union, Optional, Dict
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
+from qiskit.utils.deprecation import deprecate_function
 from ..list_or_dict import ListOrDict
 
 
 class EvolutionProblem:
-    """Evolution problem class.
+    """Pending deprecation: Evolution problem class.
+
+    The EvolutionProblem class has been superseded by the
+    :class:`qiskit.algorithms.time_evolvers.TimeEvolutionProblem` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     This class is the input to time evolution algorithms and must contain information on the total
     evolution time, a quantum state to be evolved and under which Hamiltonian the state is evolved.
     """
 
+    @deprecate_function(
+        "The EvolutionProblem class has been superseded by the "
+        "qiskit.algorithms.time_evolvers.TimeEvolutionProblem class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+        since="0.23.0",
+    )
     def __init__(
         self,
         hamiltonian: OperatorBase,

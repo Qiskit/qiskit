@@ -12,13 +12,13 @@
 
 """Module for common pulse programming utilities."""
 import functools
-import warnings
 from typing import List, Dict, Union
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
+from qiskit.utils import deprecate_function  # pylint: disable=cyclic-import
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -98,19 +98,18 @@ def instruction_duration_validation(duration: int):
         )
 
 
+@deprecate_function(
+    "Deprecated since Terra 0.22.0. Use 'qiskit.utils.deprecate_function' instead.",
+    since="0.22.0",
+)
 def deprecated_functionality(func):
     """A decorator that raises deprecation warning without showing alternative method."""
-
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        warnings.warn(
-            f"Calling {func.__name__} is being deprecated and will be removed soon. "
-            "No alternative method will be provided with this change. "
-            "If there is any practical usage of this functionality, please write "
-            "an issue in Qiskit/qiskit-terra repository.",
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        return func(*args, **kwargs)
-
-    return wrapper
+    return deprecate_function(
+        f"Calling {func.__name__} is being deprecated and will be removed soon. "
+        "No alternative method will be provided with this change. "
+        "If there is any practical usage of this functionality, please write "
+        "an issue in Qiskit/qiskit-terra repository.",
+        category=DeprecationWarning,
+        stacklevel=2,
+        since="0.22.0",
+    )(func)

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017--2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,20 +12,24 @@
 """
 Clifford operator class.
 """
+import itertools
 import re
+
 import numpy as np
 
+from qiskit.circuit import Instruction, QuantumCircuit
+from qiskit.circuit.library.standard_gates import HGate, IGate, SGate, XGate, YGate, ZGate
+from qiskit.circuit.operation import Operation
 from qiskit.exceptions import QiskitError
-from qiskit.circuit import QuantumCircuit, Instruction
-from qiskit.circuit.library.standard_gates import IGate, XGate, YGate, ZGate, HGate, SGate
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
-from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
-from qiskit.circuit.operation import Operation
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
+
+from .base_pauli import BasePauli
+from .clifford_circuits import _append_circuit, _append_operation
 from .stabilizer_table import StabilizerTable
-from .clifford_circuits import _append_circuit
 
 
 class Clifford(BaseOperator, AdjointMixin, Operation):
@@ -33,23 +37,22 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     **Representation**
 
-    An *N*-qubit Clifford operator is stored as a length *2N*
-    :class:`~qiskit.quantum_info.StabilizerTable` using the convention
-    from reference [1].
+    An *N*-qubit Clifford operator is stored as a length *2N × (2N+1)*
+    boolean tableau using the convention from reference [1].
 
     * Rows 0 to *N-1* are the *destabilizer* group generators
     * Rows *N* to *2N-1* are the *stabilizer* group generators.
 
-    The internal :class:`~qiskit.quantum_info.StabilizerTable` for the Clifford
-    can be accessed using the :attr:`table` attribute. The destabilizer or
+    The internal boolean tableau for the Clifford
+    can be accessed using the :attr:`tableau` attribute. The destabilizer or
     stabilizer rows can each be accessed as a length-N Stabilizer table using
-    :attr:`destabilizer` and :attr:`stabilizer` attributes.
+    :attr:`destab` and :attr:`stab` attributes.
 
     A more easily human readable representation of the Clifford operator can
     be obtained by calling the :meth:`to_dict` method. This representation is
     also used if a Clifford object is printed as in the following example
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import Clifford
@@ -64,10 +67,16 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         print(cliff)
 
         # Print the Clifford destabilizer rows
-        print(cliff.destabilizer)
+        print(cliff.to_labels(mode="D"))
 
         # Print the Clifford stabilizer rows
-        print(cliff.stabilizer)
+        print(cliff.to_labels(mode="S"))
+
+    .. parsed-literal::
+
+        Clifford: Stabilizer = ['+XX', '+ZZ'], Destabilizer = ['+IZ', '+XI']
+        ['+IZ', '+XI']
+        ['+XX', '+ZZ']
 
     **Circuit Conversion**
 
@@ -76,8 +85,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     :class:`~qiskit.circuit.library.XGate`, :class:`~qiskit.circuit.library.YGate`,
     :class:`~qiskit.circuit.library.ZGate`, :class:`~qiskit.circuit.library.HGate`,
     :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
+    :class:`~qiskit.circuit.library.SXGate`, :class:`~qiskit.circuit.library.SXdgGate`,
     :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
-    :class:`~qiskit.circuit.library.SwapGate`.
+    :class:`~qiskit.circuit.library.CYGate`, :class:`~qiskit.circuit.library.DXGate`,
+    :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.iSwapGate`,
+    :class:`~qiskit.circuit.library.ECRGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this
@@ -102,41 +114,72 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
+    _COMPOSE_PHASE_LOOKUP = None
+    _COMPOSE_1Q_LOOKUP = None
+
     def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
-    def __init__(self, data, validate=True):
+    def __init__(self, data, validate=True, copy=True):
         """Initialize an operator object."""
 
-        # Initialize from another Clifford by sharing the underlying
-        # StabilizerTable
+        # Initialize from another Clifford
         if isinstance(data, Clifford):
-            self._table = data._table
+            num_qubits = data.num_qubits
+            self.tableau = data.tableau.copy() if copy else data.tableau
 
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
             if not data.num_qubits or not data.is_unitary():
                 raise QiskitError("Can only initialize from N-qubit identity ScalarOp.")
-            self._table = StabilizerTable(np.eye(2 * data.num_qubits, dtype=bool))
+            num_qubits = data.num_qubits
+            self.tableau = np.fromfunction(
+                lambda i, j: i == j, (2 * num_qubits, 2 * num_qubits + 1)
+            ).astype(bool)
 
         # Initialize from a QuantumCircuit or Instruction object
         elif isinstance(data, (QuantumCircuit, Instruction)):
-            self._table = Clifford.from_circuit(data)._table
+            num_qubits = data.num_qubits
+            self.tableau = Clifford.from_circuit(data).tableau
 
+        # DEPRECATE in the future: data is StabilizerTable
+        elif isinstance(data, StabilizerTable):
+            self.tableau = self._stack_table_phase(data.array, data.phase)
+            num_qubits = data.num_qubits
         # Initialize StabilizerTable directly from the data
         else:
-            self._table = StabilizerTable(data)
+            if isinstance(data, (list, np.ndarray)) and np.asarray(data, dtype=bool).ndim == 2:
+                data = np.array(data, dtype=bool, copy=copy)
+                if data.shape[0] == data.shape[1]:
+                    self.tableau = self._stack_table_phase(
+                        data, np.zeros(data.shape[0], dtype=bool)
+                    )
+                    num_qubits = data.shape[0] // 2
+                elif data.shape[0] + 1 == data.shape[1]:
+                    self.tableau = data
+                    num_qubits = data.shape[0] // 2
+                else:
+                    raise QiskitError("")
+            else:
+                n_paulis = len(data)
+                symp = self._from_label(data[0])
+                num_qubits = len(symp) // 2
+                tableau = np.zeros((n_paulis, len(symp)), dtype=bool)
+                tableau[0] = symp
+                for i in range(1, n_paulis):
+                    tableau[i] = self._from_label(data[i])
+                self.tableau = tableau
 
             # Validate table is a symplectic matrix
-            if validate and not Clifford._is_symplectic(self._table.array):
+            if validate and not Clifford._is_symplectic(self.symplectic_matrix):
                 raise QiskitError(
                     "Invalid Clifford. Input StabilizerTable is not a valid symplectic matrix."
                 )
 
         # Initialize BaseOperator
-        super().__init__(num_qubits=self._table.num_qubits)
+        super().__init__(num_qubits=num_qubits)
 
     @property
     def name(self):
@@ -144,42 +187,44 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return "clifford"
 
     @property
-    def num_qubits(self):
-        """Number of qubits."""
-        return self._table.num_qubits
-
-    @property
     def num_clbits(self):
         """Number of classical bits."""
         return 0
 
     def __repr__(self):
-        return f"Clifford({repr(self.table)})"
+        return f"Clifford({repr(self.tableau)})"
 
     def __str__(self):
-        return "Clifford: Stabilizer = {}, Destabilizer = {}".format(
-            str(self.stabilizer.to_labels()), str(self.destabilizer.to_labels())
+        return (
+            f'Clifford: Stabilizer = {self.to_labels(mode="S")}, '
+            f'Destabilizer = {self.to_labels(mode="D")}'
         )
 
     def __eq__(self, other):
         """Check if two Clifford tables are equal"""
-        return super().__eq__(other) and self._table == other._table
+        return super().__eq__(other) and (self.tableau == other.tableau).all()
+
+    def copy(self):
+        return type(self)(self, validate=False, copy=True)
 
     # ---------------------------------------------------------------------
     # Attributes
     # ---------------------------------------------------------------------
+
+    # pylint: disable=bad-docstring-quotes
+
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
-        return self._table.__getitem__(key)
+        return self.table.__getitem__(key)
 
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
-        self._table.__setitem__(key, value)
+        self.tableau.__setitem__(key, self._stack_table_phase(value.array, value.phase))
 
     @property
     def table(self):
         """Return StabilizerTable"""
-        return self._table
+        return StabilizerTable(self.symplectic_matrix, phase=self.phase)
 
     @table.setter
     def table(self, value):
@@ -189,30 +234,144 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # another StabilizerTable of the same size.
         if not isinstance(value, StabilizerTable):
             value = StabilizerTable(value)
-        self._table._array[:, :] = value._table._array
-        self._table._phase[:] = value._table._phase
+        self.symplectic_matrix = value._table._array
+        self.phase = value._table._phase
 
     @property
     def stabilizer(self):
         """Return the stabilizer block of the StabilizerTable."""
-        return StabilizerTable(self._table[self.num_qubits : 2 * self.num_qubits])
+        array = self.tableau[self.num_qubits : 2 * self.num_qubits, :-1]
+        phase = self.tableau[self.num_qubits : 2 * self.num_qubits, -1].reshape(self.num_qubits)
+        return StabilizerTable(array, phase)
 
     @stabilizer.setter
     def stabilizer(self, value):
         """Set the value of stabilizer block of the StabilizerTable"""
-        inds = slice(self.num_qubits, 2 * self.num_qubits)
-        self._table.__setitem__(inds, value)
+        if not isinstance(value, StabilizerTable):
+            value = StabilizerTable(value)
+        self.tableau[self.num_qubits : 2 * self.num_qubits, :-1] = value.array
 
     @property
     def destabilizer(self):
         """Return the destabilizer block of the StabilizerTable."""
-        return StabilizerTable(self._table[0 : self.num_qubits])
+        array = self.tableau[0 : self.num_qubits, :-1]
+        phase = self.tableau[0 : self.num_qubits, -1].reshape(self.num_qubits)
+        return StabilizerTable(array, phase)
 
     @destabilizer.setter
     def destabilizer(self, value):
         """Set the value of destabilizer block of the StabilizerTable"""
-        inds = slice(0, self.num_qubits)
-        self._table.__setitem__(inds, value)
+        if not isinstance(value, StabilizerTable):
+            value = StabilizerTable(value)
+        self.tableau[: self.num_qubits, :-1] = value.array
+
+    @property
+    def symplectic_matrix(self):
+        """Return boolean symplectic matrix."""
+        return self.tableau[:, :-1]
+
+    @symplectic_matrix.setter
+    def symplectic_matrix(self, value):
+        self.tableau[:, :-1] = value
+
+    @property
+    def phase(self):
+        """Return phase with boolean representation."""
+        return self.tableau[:, -1]
+
+    @phase.setter
+    def phase(self, value):
+        self.tableau[:, -1] = value
+
+    @property
+    def x(self):
+        """The x array for the symplectic representation."""
+        return self.tableau[:, 0 : self.num_qubits]
+
+    @x.setter
+    def x(self, value):
+        self.tableau[:, 0 : self.num_qubits] = value
+
+    @property
+    def z(self):
+        """The z array for the symplectic representation."""
+        return self.tableau[:, self.num_qubits : 2 * self.num_qubits]
+
+    @z.setter
+    def z(self, value):
+        self.tableau[:, self.num_qubits : 2 * self.num_qubits] = value
+
+    @property
+    def destab(self):
+        """The destabilizer array for the symplectic representation."""
+        return self.tableau[: self.num_qubits, :]
+
+    @destab.setter
+    def destab(self, value):
+        self.tableau[: self.num_qubits, :] = value
+
+    @property
+    def destab_x(self):
+        """The destabilizer x array for the symplectic representation."""
+        return self.tableau[: self.num_qubits, : self.num_qubits]
+
+    @destab_x.setter
+    def destab_x(self, value):
+        self.tableau[: self.num_qubits, : self.num_qubits] = value
+
+    @property
+    def destab_z(self):
+        """The destabilizer z array for the symplectic representation."""
+        return self.tableau[: self.num_qubits, self.num_qubits : 2 * self.num_qubits]
+
+    @destab_z.setter
+    def destab_z(self, value):
+        self.tableau[: self.num_qubits, self.num_qubits : 2 * self.num_qubits] = value
+
+    @property
+    def destab_phase(self):
+        """Return phase of destaibilizer with boolean representation."""
+        return self.tableau[: self.num_qubits, -1]
+
+    @destab_phase.setter
+    def destab_phase(self, value):
+        self.tableau[: self.num_qubits, -1] = value
+
+    @property
+    def stab(self):
+        """The stabilizer array for the symplectic representation."""
+        return self.tableau[self.num_qubits :, :]
+
+    @stab.setter
+    def stab(self, value):
+        self.tableau[self.num_qubits :, :] = value
+
+    @property
+    def stab_x(self):
+        """The stabilizer x array for the symplectic representation."""
+        return self.tableau[self.num_qubits :, : self.num_qubits]
+
+    @stab_x.setter
+    def stab_x(self, value):
+        self.tableau[self.num_qubits :, : self.num_qubits] = value
+
+    @property
+    def stab_z(self):
+        """The stabilizer array for the symplectic representation."""
+        return self.tableau[self.num_qubits :, self.num_qubits : 2 * self.num_qubits]
+
+    @stab_z.setter
+    def stab_z(self, value):
+        self.tableau[self.num_qubits :, self.num_qubits : 2 * self.num_qubits] = value
+
+    @property
+    def stab_phase(self):
+        """Return phase of stablizer with boolean representation."""
+        return self.tableau[self.num_qubits :, -1]
+
+    @stab_phase.setter
+    def stab_phase(self, value):
+        self.tableau[self.num_qubits :, -1] = value
 
     # ---------------------------------------------------------------------
     # Utility Operator methods
@@ -223,7 +382,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # A valid Clifford is always unitary, so this function is really
         # checking that the underlying Stabilizer table array is a valid
         # Clifford array.
-        return Clifford._is_symplectic(self.table.array)
+        return Clifford._is_symplectic(self.symplectic_matrix)
 
     # ---------------------------------------------------------------------
     # BaseOperator Abstract Methods
@@ -250,14 +409,22 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     @classmethod
     def _tensor(cls, a, b):
-        # Pad stabilizers and destabilizers
-        destab = b.destabilizer.expand(a.num_qubits * "I") + a.destabilizer.tensor(
-            b.num_qubits * "I"
-        )
-        stab = b.stabilizer.expand(a.num_qubits * "I") + a.stabilizer.tensor(b.num_qubits * "I")
-
-        # Add the padded table
-        return Clifford(destab + stab, validate=False)
+        n = a.num_qubits + b.num_qubits
+        tableau = np.zeros((2 * n, 2 * n + 1), dtype=bool)
+        clifford = cls(tableau, validate=False)
+        clifford.destab_x[: b.num_qubits, : b.num_qubits] = b.destab_x
+        clifford.destab_x[b.num_qubits :, b.num_qubits :] = a.destab_x
+        clifford.destab_z[: b.num_qubits, : b.num_qubits] = b.destab_z
+        clifford.destab_z[b.num_qubits :, b.num_qubits :] = a.destab_z
+        clifford.stab_x[: b.num_qubits, : b.num_qubits] = b.stab_x
+        clifford.stab_x[b.num_qubits :, b.num_qubits :] = a.stab_x
+        clifford.stab_z[: b.num_qubits, : b.num_qubits] = b.stab_z
+        clifford.stab_z[b.num_qubits :, b.num_qubits :] = a.stab_z
+        clifford.phase[: b.num_qubits] = b.destab_phase
+        clifford.phase[b.num_qubits : n] = a.destab_phase
+        clifford.phase[n : n + b.num_qubits] = b.stab_phase
+        clifford.phase[n + b.num_qubits :] = a.stab_phase
+        return clifford
 
     def compose(self, other, qargs=None, front=False):
         if qargs is None:
@@ -266,13 +433,16 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # using the _append_circuit method to update each gate recursively
         # to the current Clifford, rather than converting to a Clifford first
         # and then doing the composition of tables.
-        if not front and isinstance(other, (QuantumCircuit, Instruction)):
-            ret = self.copy()
-            _append_circuit(ret, other, qargs=qargs)
-            return ret
+        if not front:
+            if isinstance(other, QuantumCircuit):
+                return _append_circuit(self.copy(), other, qargs=qargs)
+            if isinstance(other, Instruction):
+                return _append_operation(self.copy(), other, qargs=qargs)
 
         if not isinstance(other, Clifford):
-            other = Clifford(other)
+            # Not copying is safe since we're going to drop our only reference to `other` at the end
+            # of the function.
+            other = Clifford(other, copy=False)
 
         # Validate compose dimensions
         self._op_shape.compose(other._op_shape, qargs, front)
@@ -280,64 +450,82 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Pad other with identities if composing on subsystem
         other = self._pad_with_identity(other, qargs)
 
-        if front:
-            table1 = self.table
-            table2 = other.table
-        else:
-            table1 = other.table
-            table2 = self.table
+        left, right = (self, other) if front else (other, self)
 
-        num_qubits = self.num_qubits
+        if self.num_qubits == 1:
+            return self._compose_1q(left, right)
+        return self._compose_general(left, right)
 
-        array1 = table1.array.astype(int)
-        phase1 = table1.phase.astype(int)
+    @classmethod
+    def _compose_general(cls, first, second):
+        # Correcting for phase due to Pauli multiplication. Start with factors of -i from XZ = -iY
+        # on individual qubits, and then handle multiplication between each qubitwise pair.
+        ifacts = np.sum(second.x & second.z, axis=1, dtype=int)
 
-        array2 = table2.array.astype(int)
-        phase2 = table2.phase.astype(int)
+        x1, z1 = first.x.astype(np.uint8), first.z.astype(np.uint8)
+        lookup = cls._compose_lookup()
 
-        # Update Pauli table
-        pauli = StabilizerTable(array2.dot(array1) % 2)
-
-        # Add phases
-        phase = np.mod(array2.dot(phase1) + phase2, 2)
-
-        # Correcting for phase due to Pauli multiplication
-        ifacts = np.zeros(2 * num_qubits, dtype=int)
-
-        for k in range(2 * num_qubits):
-
-            row2 = array2[k]
-            x2 = table2.X[k]
-            z2 = table2.Z[k]
-
-            # Adding a factor of i for each Y in the image of an operator under the
-            # first operation, since Y=iXZ
-
-            ifacts[k] += np.sum(x2 & z2)
-
-            # Adding factors of i due to qubit-wise Pauli multiplication
-
-            for j in range(num_qubits):
-                x = 0
-                z = 0
-                for i in range(2 * num_qubits):
-                    if row2[i]:
-                        x1 = array1[i, j]
-                        z1 = array1[i, j + num_qubits]
-                        if (x | z) & (x1 | z1):
-                            val = np.mod(np.abs(3 * z1 - x1) - np.abs(3 * z - x) - 1, 3)
-                            if val == 0:
-                                ifacts[k] += 1
-                            elif val == 1:
-                                ifacts[k] -= 1
-                        x = np.mod(x + x1, 2)
-                        z = np.mod(z + z1, 2)
-
+        # The loop is over 2*n_qubits entries, and the entire loop is cubic in the number of qubits.
+        for k, row2 in enumerate(second.symplectic_matrix):
+            x1_select = x1[row2]
+            z1_select = z1[row2]
+            x1_accum = np.logical_xor.accumulate(x1_select, axis=0).astype(np.uint8)
+            z1_accum = np.logical_xor.accumulate(z1_select, axis=0).astype(np.uint8)
+            indexer = (x1_select[1:], z1_select[1:], x1_accum[:-1], z1_accum[:-1])
+            ifacts[k] += np.sum(lookup[indexer])
         p = np.mod(ifacts, 4) // 2
 
-        phase = np.mod(phase + p, 2)
+        phase = (
+            (np.matmul(second.symplectic_matrix, first.phase, dtype=int) + second.phase + p) % 2
+        ).astype(bool)
+        data = cls._stack_table_phase(
+            (np.matmul(second.symplectic_matrix, first.symplectic_matrix, dtype=int) % 2).astype(
+                bool
+            ),
+            phase,
+        )
+        return Clifford(data, validate=False, copy=False)
 
-        return Clifford(StabilizerTable(pauli, phase), validate=False)
+    @classmethod
+    def _compose_1q(cls, first, second):
+        # 1-qubit composition can be done with a simple lookup table; there are 24 elements in the
+        # 1q Clifford group, so 576 possible combinations, which is small enough to look up.
+        if cls._COMPOSE_1Q_LOOKUP is None:
+            # The valid tables for 1q Cliffords.
+            tables_1q = np.array(
+                [
+                    [[False, True], [True, False]],
+                    [[False, True], [True, True]],
+                    [[True, False], [False, True]],
+                    [[True, False], [True, True]],
+                    [[True, True], [False, True]],
+                    [[True, True], [True, False]],
+                ]
+            )
+            phases_1q = np.array([[False, False], [False, True], [True, False], [True, True]])
+            # Build the lookup table.
+            cliffords = [
+                cls(cls._stack_table_phase(table, phase), validate=False, copy=False)
+                for table, phase in itertools.product(tables_1q, phases_1q)
+            ]
+            cls._COMPOSE_1Q_LOOKUP = {
+                (cls._hash(left), cls._hash(right)): cls._compose_general(left, right)
+                for left, right in itertools.product(cliffords, repeat=2)
+            }
+        return cls._COMPOSE_1Q_LOOKUP[cls._hash(first), cls._hash(second)].copy()
+
+    @classmethod
+    def _compose_lookup(cls):
+        if cls._COMPOSE_PHASE_LOOKUP is None:
+            # A lookup table for calculating phases.  The indices are
+            #     current_x, current_z, running_x_count, running_z_count
+            # where all counts taken modulo 2.
+            lookup = np.zeros((2, 2, 2, 2), dtype=int)
+            lookup[0, 1, 1, 0] = lookup[1, 0, 1, 1] = lookup[1, 1, 0, 1] = -1
+            lookup[0, 1, 1, 1] = lookup[1, 0, 0, 1] = lookup[1, 1, 1, 0] = 1
+            lookup.setflags(write=False)
+            cls._COMPOSE_PHASE_LOOKUP = lookup
+        return cls._COMPOSE_PHASE_LOOKUP
 
     # ---------------------------------------------------------------------
     # Representation conversions
@@ -346,16 +534,21 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     def to_dict(self):
         """Return dictionary representation of Clifford object."""
         return {
-            "stabilizer": self.stabilizer.to_labels(),
-            "destabilizer": self.destabilizer.to_labels(),
+            "stabilizer": self.to_labels(mode="S"),
+            "destabilizer": self.to_labels(mode="D"),
         }
 
-    @staticmethod
-    def from_dict(obj):
+    @classmethod
+    def from_dict(cls, obj):
         """Load a Clifford from a dictionary"""
-        destabilizer = StabilizerTable.from_labels(obj.get("destabilizer"))
-        stabilizer = StabilizerTable.from_labels(obj.get("stabilizer"))
-        return Clifford(destabilizer + stabilizer)
+        labels = obj.get("destabilizer") + obj.get("stabilizer")
+        n_paulis = len(labels)
+        symp = cls._from_label(labels[0])
+        tableau = np.zeros((n_paulis, len(symp)), dtype=bool)
+        tableau[0] = symp
+        for i in range(1, n_paulis):
+            tableau[i] = cls._from_label(labels[i])
+        return cls(tableau)
 
     def to_matrix(self):
         """Convert operator to Numpy matrix."""
@@ -384,9 +577,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                Phys. Rev. A 70, 052328 (2004).
                `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
         """
-        from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford
+        from qiskit.synthesis.clifford import synth_clifford_full
 
-        return decompose_clifford(self)
+        return synth_clifford_full(self)
 
     def to_instruction(self):
         """Return a Gate instruction implementing the Clifford."""
@@ -410,13 +603,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         if not isinstance(circuit, (QuantumCircuit, Instruction)):
             raise QiskitError("Input must be a QuantumCircuit or Instruction")
 
-        # Convert circuit to an instruction
-        if isinstance(circuit, QuantumCircuit):
-            circuit = circuit.to_instruction()
-
         # Initialize an identity Clifford
         clifford = Clifford(np.eye(2 * circuit.num_qubits), validate=False)
-        _append_circuit(clifford, circuit)
+        if isinstance(circuit, QuantumCircuit):
+            _append_circuit(clifford, circuit)
+        else:
+            _append_operation(clifford, circuit)
         return clifford
 
     @staticmethod
@@ -472,12 +664,102 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         num_qubits = len(label)
         op = Clifford(np.eye(2 * num_qubits, dtype=bool))
         for qubit, char in enumerate(reversed(label)):
-            _append_circuit(op, label_gates[char], qargs=[qubit])
+            _append_operation(op, label_gates[char], qargs=[qubit])
         return op
+
+    def to_labels(self, array=False, mode="B"):
+        r"""Convert a Clifford to a list Pauli (de)stabilizer string labels.
+
+        For large Clifford converting using the ``array=True``
+        kwarg will be more efficient since it allocates memory for
+        the full Numpy array of labels in advance.
+
+        .. list-table:: Stabilizer Representations
+            :header-rows: 1
+
+            * - Label
+              - Phase
+              - Symplectic
+              - Matrix
+              - Pauli
+            * - ``"+I"``
+              - 0
+              - :math:`[0, 0]`
+              - :math:`\begin{bmatrix} 1 & 0 \\ 0 & 1 \end{bmatrix}`
+              - :math:`I`
+            * - ``"-I"``
+              - 1
+              - :math:`[0, 0]`
+              - :math:`\begin{bmatrix} -1 & 0 \\ 0 & -1 \end{bmatrix}`
+              - :math:`-I`
+            * - ``"X"``
+              - 0
+              - :math:`[1, 0]`
+              - :math:`\begin{bmatrix} 0 & 1 \\ 1 & 0  \end{bmatrix}`
+              - :math:`X`
+            * - ``"-X"``
+              - 1
+              - :math:`[1, 0]`
+              - :math:`\begin{bmatrix} 0 & -1 \\ -1 & 0  \end{bmatrix}`
+              - :math:`-X`
+            * - ``"Y"``
+              - 0
+              - :math:`[1, 1]`
+              - :math:`\begin{bmatrix} 0 & 1 \\ -1 & 0  \end{bmatrix}`
+              - :math:`iY`
+            * - ``"-Y"``
+              - 1
+              - :math:`[1, 1]`
+              - :math:`\begin{bmatrix} 0 & -1 \\ 1 & 0  \end{bmatrix}`
+              - :math:`-iY`
+            * - ``"Z"``
+              - 0
+              - :math:`[0, 1]`
+              - :math:`\begin{bmatrix} 1 & 0 \\ 0 & -1  \end{bmatrix}`
+              - :math:`Z`
+            * - ``"-Z"``
+              - 1
+              - :math:`[0, 1]`
+              - :math:`\begin{bmatrix} -1 & 0 \\ 0 & 1  \end{bmatrix}`
+              - :math:`-Z`
+
+        Args:
+            array (bool): return a Numpy array if True, otherwise
+                          return a list (Default: False).
+            mode (Literal["S", "D", "B"]): return both stabilizer and destablizer if "B",
+                return only stabilizer if "S" and return only destablizer if "D".
+
+        Returns:
+            list or array: The rows of the StabilizerTable in label form.
+        Raises:
+            QiskitError: if stabilizer and destabilizer are both False.
+        """
+        if mode not in ("S", "B", "D"):
+            raise QiskitError("mode must be B, S, or D.")
+        size = 2 * self.num_qubits if mode == "B" else self.num_qubits
+        offset = self.num_qubits if mode == "S" else 0
+        ret = np.zeros(size, dtype=f"<U{1 + self.num_qubits}")
+        for i in range(size):
+            z = self.tableau[i + offset, self.num_qubits : 2 * self.num_qubits]
+            x = self.tableau[i + offset, 0 : self.num_qubits]
+            phase = int(self.tableau[i + offset, -1]) * 2
+            label = BasePauli._to_label(z, x, phase, group_phase=True)
+            if label[0] != "-":
+                label = "+" + label
+            ret[i] = label
+        if array:
+            return ret
+        return ret.tolist()
 
     # ---------------------------------------------------------------------
     # Internal helper functions
     # ---------------------------------------------------------------------
+
+    def _hash(self):
+        """Produce a hashable value that is unique for each different Clifford.  This should only be
+        used internally when the classes being hashed are under our control, because classes of this
+        type are mutable."""
+        return np.packbits(self.tableau).tobytes()
 
     @staticmethod
     def _is_symplectic(mat):
@@ -511,16 +793,16 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         if method in ["A", "T"]:
             # Apply inverse
             # Update table
-            tmp = ret.destabilizer.X.copy()
-            ret.destabilizer.X = ret.stabilizer.Z.T
-            ret.destabilizer.Z = ret.destabilizer.Z.T
-            ret.stabilizer.X = ret.stabilizer.X.T
-            ret.stabilizer.Z = tmp.T
+            tmp = ret.destab_x.copy()
+            ret.destab_x = ret.stab_z.T
+            ret.destab_z = ret.destab_z.T
+            ret.stab_x = ret.stab_x.T
+            ret.stab_z = tmp.T
             # Update phase
-            ret.table.phase ^= clifford.dot(ret).table.phase
+            ret.phase ^= clifford.dot(ret).phase
         if method in ["C", "T"]:
             # Apply conjugate
-            ret.table.phase ^= np.mod(_count_y(ret.table.X, ret.table.Z), 2).astype(bool)
+            ret.phase ^= np.mod(_count_y(ret.x, ret.z), 2).astype(bool)
         return ret
 
     def _pad_with_identity(self, clifford, qargs):
@@ -528,20 +810,46 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         if qargs is None:
             return clifford
 
-        padded = Clifford(StabilizerTable(np.eye(2 * self.num_qubits, dtype=bool)), validate=False)
-
+        padded = Clifford(np.eye(2 * self.num_qubits, dtype=bool), validate=False, copy=False)
         inds = list(qargs) + [self.num_qubits + i for i in qargs]
 
         # Pad Pauli array
-        pauli = clifford.table.array
         for i, pos in enumerate(qargs):
-            padded.table.array[inds, pos] = pauli[:, i]
-            padded.table.array[inds, self.num_qubits + pos] = pauli[:, clifford.num_qubits + i]
+            padded.tableau[inds, pos] = clifford.tableau[:, i]
+            padded.tableau[inds, self.num_qubits + pos] = clifford.tableau[
+                :, clifford.num_qubits + i
+            ]
 
         # Pad phase
-        padded.table.phase[inds] = clifford.table.phase
+        padded.phase[inds] = clifford.phase
 
         return padded
+
+    @staticmethod
+    def _stack_table_phase(table, phase):
+        return np.hstack((table, phase.reshape(len(phase), 1)))
+
+    @staticmethod
+    def _from_label(label):
+        phase = False
+        if label[0] in ("-", "+"):
+            phase = label[0] == "-"
+            label = label[1:]
+        num_qubits = len(label)
+        symp = np.zeros(2 * num_qubits + 1, dtype=bool)
+        xs = symp[0:num_qubits]
+        zs = symp[num_qubits : 2 * num_qubits]
+        for i, char in enumerate(label):
+            if char not in ["I", "X", "Y", "Z"]:
+                raise QiskitError(
+                    f"Pauli string contains invalid character: {char} not in ['I', 'X', 'Y', 'Z']."
+                )
+            if char in ("X", "Y"):
+                xs[num_qubits - 1 - i] = True
+            if char in ("Z", "Y"):
+                zs[num_qubits - 1 - i] = True
+        symp[-1] = phase
+        return symp
 
 
 # Update docstrings for API docs

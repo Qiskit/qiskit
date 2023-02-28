@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Fixed an issue with the :func:`~.marginal_distribution` function: when
-    a numpy array was passed in for the ``indices`` argument the function would
-    raise an error.
-    Fixed `#8283 <https://github.com/Qiskit/qiskit-terra/issues/8283>`__
