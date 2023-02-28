@@ -48,9 +48,12 @@ from qiskit.circuit.library import (
     CPhaseGate,
 )
 from qiskit.transpiler.passes import ApplyLayout
-from qiskit.circuit.classicalfunction import classical_function
-from qiskit.circuit.classicalfunction.types import Int1
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .visualization import path_to_diagram_reference, QiskitVisualizationTestCase
+
+if HAS_TWEEDLEDUM:
+    from qiskit.circuit.classicalfunction import classical_function
+    from qiskit.circuit.classicalfunction.types import Int1
 
 
 class TestTextDrawerElement(QiskitTestCase):
@@ -1218,6 +1221,7 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit.rz(11111, qr[2])
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
+    @unittest.skipUnless(HAS_TWEEDLEDUM, "Tweedledum is required for these tests.")
     def test_text_synth_no_registerless(self):
         """Test synthesis's label when registerless=False.
         See https://github.com/Qiskit/qiskit-terra/issues/9363"""
