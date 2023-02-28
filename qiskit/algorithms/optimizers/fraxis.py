@@ -189,8 +189,9 @@ def fraxis(fun, x0, args=(), maxiter=None, xtol=None, callback=None, **_):
         if xtol is not None:
             if niter > 1 and idx == 0:
                 # check the norm of x0 difference at every first parameterized U gate
-                norm = np.linalg.norm(x0 - x0_prev)
-                if norm < xtol:
+                norm_x = np.linalg.norm(x0_prev)
+                norm_dx = np.linalg.norm(x0 - x0_prev)
+                if norm_dx < xtol * norm_x:
                     break
                 x0_prev = x0.copy()
 
