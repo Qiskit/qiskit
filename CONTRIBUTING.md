@@ -41,9 +41,9 @@ Qiskit Terra uses the following labels to help non-maintainers find issues best 
 When submitting a pull request and you feel it is ready for review,
 please ensure that:
 
-1. The code follows the code style of the project and successfully
-   passes the tests. For convenience, you can execute `tox` locally,
-   which will run these checks and report any issues.
+1. The code follows the code style of the project and successfully passes the
+   tests. (See [Test](#test) below.) For convenience, you can execute `tox`
+   locally, which will run these checks and report any issues.
 
    If your code fails the local style checks (specifically the black
    code formatting check) you can use `tox -eblack` to automatically
@@ -268,20 +268,27 @@ also run successfully. Before you open a new pull request for your change,
 you'll want to run the test suite locally.
 
 The easiest way to run the test suite is to use
-[**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox
-with pip: `pip install -U tox`. Tox provides several advantages, but the
-biggest one is that it builds an isolated virtualenv for running tests. This
-means it does not pollute your system python when running. Additionally, the
-environment that tox sets up matches the CI environment more closely and it
-runs the tests in parallel (resulting in much faster execution). To run tests
-on all installed supported python versions and lint/style checks you can simply
-run `tox`. Or if you just want to run the tests once run for a specific python
-version: `tox -epy37` (or replace py37 with the python version you want to use,
-py35 or py36).
+[**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox with pip:
+`pip install -U tox`. Tox provides several advantages, but the biggest one is
+that it builds an isolated virtualenv for running tests. This means it does not
+pollute your system Python when running. Additionally, the environment that tox
+sets up matches the CI environment more closely and it runs the tests in
+parallel (resulting in much faster execution). In addition to the requirements
+installed by `tox` in the virtualenv, you'll need to install the LaTeX packages `xpic`,
+`qcircuit`, and `standalone`. These are typically provided in Linux distributions
+by packages of the same names prefixed by `texlive-`. For MacOS a good option is
+[MacTeX](https://www.tug.org/mactex/).
+
+To run tests on all installed
+supported Python versions and lint/style checks you can simply run `tox`.  At a
+minimum, you should run the lint/style checks and the tests for one version of
+Python. For example `tox -e lint && tox -epy311`. If you want to run the tests
+for a specific supported version of Python replace py311 with py37, py38, py39,
+or py310.
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy37 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy311 -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -291,21 +298,21 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy37 -- -n test.python.test_examples
+tox -epy311 -- -n test.python.test_examples
 ```
 or to run the same module by path:
 
 ```
-tox -epy37 -- -n test/python/test_examples.py
+tox -epy311 -- -n test/python/test_examples.py
 ```
 to run a class:
 
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples
+tox -epy311 -- -n test.python.test_examples.TestPythonExamples
 ```
 to run a method:
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
+tox -epy311 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
 ```
 
 Alternatively there is a makefile provided to run tests, however this
