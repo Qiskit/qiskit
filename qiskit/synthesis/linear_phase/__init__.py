@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2022.
+# (C) Copyright IBM 2017 - 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Discrete basis synthesis algorithms."""
+"""Module containing cnot-phase circuits"""
 
-from .solovay_kitaev import SolovayKitaevDecomposition
-from .generate_basis_approximations import generate_basic_approximations
+from .cz_depth_lnn import synth_cz_depth_line_mr

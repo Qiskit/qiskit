@@ -96,9 +96,9 @@ from qiskit.quantum_info.operators import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
+from ..utils import _circuit_key, _observable_key, init_observable
 from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
-from ..utils import _circuit_key, _observable_key, init_observable
 
 
 class BaseEstimator(BasePrimitive):
@@ -343,6 +343,7 @@ class BaseEstimator(BasePrimitive):
         "The BaseEstimator.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseEstimator should be initialized directly.",
+        since="0.22.0",
     )
     def __enter__(self):
         return self
@@ -351,6 +352,7 @@ class BaseEstimator(BasePrimitive):
         "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "BaseEstimator should be initialized directly.",
+        since="0.22.0",
     )
     def __exit__(self, *exc_info):
         self.close()
@@ -363,8 +365,12 @@ class BaseEstimator(BasePrimitive):
         "The BaseEstimator.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
         "and will be removed no sooner than 3 months after the releasedate. "
         "Use the 'run' method instead.",
+        since="0.22.0",
     )
-    @deprecate_arguments({"circuit_indices": "circuits", "observable_indices": "observables"})
+    @deprecate_arguments(
+        {"circuit_indices": "circuits", "observable_indices": "observables"},
+        since="0.21.0",
+    )
     def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit],
