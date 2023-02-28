@@ -81,6 +81,8 @@ class InstructionProperties:
     @property
     def calibration(self):
         """The pulse representation of the instruction."""
+        if self._calibration is None:
+            return None
         return self._calibration.get_schedule()
 
     @calibration.setter
