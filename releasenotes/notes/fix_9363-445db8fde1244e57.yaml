@@ -2,4 +2,39 @@
 fixes:
   - |
     Fixed `#9363 <https://github.com/Qiskit/qiskit-terra/issues/9363>`__.
-    by labeling the non-registerless synthesis in the order that Tweedledum expects.
+    by labeling the non-registerless synthesis in the order that Tweedledum
+    returns. For example, compare this example before and after the fix::
+
+    .. code-block::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.classicalfunction import BooleanExpression
+
+      boolean_exp = BooleanExpression.from_dimacs_file("simple_v3_c2.cnf")
+      circuit = QuantumCircuit(boolean_exp.num_qubits)
+      circuit.append(boolean_exp, range(boolean_exp.num_qubits))
+      circuit.draw('text')
+
+      from qiskit.circuit.classicalfunction import classical_function
+      from qiskit.circuit.classicalfunction.types import Int1
+
+      @classical_function
+      def grover_oracle(a: Int1, b: Int1, c: Int1) -> Int1:
+          return (a and b and not c)
+
+      quantum_circuit = grover_oracle.synth(registerless=False)
+      print(quantum_circuit.draw())
+
+
+    .. parsed-literal::
+
+              Before             After
+
+           c: ──■──           a: ──■──
+                │                  │
+           b: ──■──           b: ──■──
+                │                  │
+           a: ──o──           c: ──o──
+              ┌─┴─┐              ┌─┴─┐
+      return: ┤ X ├      return: ┤ X ├
+              └───┘              └───┘
