@@ -623,6 +623,37 @@ class TestLoadFromQPY(QiskitTestCase):
             [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
+    
+    def test_statepreparation (self):
+        """Test that state preparation with a complex statevector and qft work."""
+        k = 5
+        state = (1 / np.sqrt(8)) * np.array(
+            [
+                np.exp(-1j * 2 * np.pi * k * (0) / 8),
+                np.exp(-1j * 2 * np.pi * k * (1) / 8),
+                np.exp(-1j * 2 * np.pi * k * (2) / 8),
+                np.exp(-1j * 2 * np.pi * k * 3 / 8),
+                np.exp(-1j * 2 * np.pi * k * 4 / 8),
+                np.exp(-1j * 2 * np.pi * k * 5 / 8),
+                np.exp(-1j * 2 * np.pi * k * 6 / 8),
+                np.exp(-1j * 2 * np.pi * k * 7 / 8),
+            ]
+        )
+
+        qubits = 3
+        qc = QuantumCircuit(qubits, qubits)
+        qc.prepare_state(state)
+        qc.append(QFT(qubits), range(qubits))
+        qc.measure(range(qubits), range(qubits))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
+        self.assertDeprecatedBitProperties(qc, new_circ)
 
     def test_single_bit_teleportation(self):
         """Test a teleportation circuit with single bit conditions."""
