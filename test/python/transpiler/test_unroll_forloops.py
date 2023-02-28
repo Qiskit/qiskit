@@ -46,6 +46,23 @@ class TestUnrool(QiskitTestCase):
 
         self.assertEqual(result, expected)
 
+    def test_skip_continue_loop(self):
+        """TODO"""
+        parameter = Parameter("x")
+        loop_body = QuantumCircuit(1)
+        loop_body.rx(parameter, 0)
+        loop_body.continue_loop()
+
+        qc = QuantumCircuit(2)
+        qc.for_loop([0, 3, 4], parameter, loop_body, [1], [])
+        qc.x(0)
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops())
+        result = passmanager.run(qc)
+
+        self.assertEqual(result, qc)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """TODO"""
-from qiskit.circuit import ForLoopOp
+from qiskit.circuit import ForLoopOp, ContinueLoopOp, BreakLoopOp
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
 from qiskit.converters import circuit_to_dag
@@ -32,7 +32,13 @@ class UnrollForLoops(TransformationPass):
         """
         for forloop_op in dag.op_nodes(ForLoopOp):
             (indexset, loop_parameter, body) = forloop_op.op.params
-            # TODO do not unroll when break_loop inside body
+
+            # do not unroll when break_loop or continue_loop inside body
+            if UnrollForLoops.body_contains(
+                body,
+                [ContinueLoopOp, BreakLoopOp],
+            ):
+                continue
 
             unrolled_dag = circuit_to_dag(body).copy_empty_like()
             for index_value in indexset:
@@ -41,3 +47,14 @@ class UnrollForLoops(TransformationPass):
             dag.substitute_node_with_dag(forloop_op, unrolled_dag)
 
         return dag
+
+    @classmethod
+    def body_contains(cls, body, contains_types):
+        """TODO"""
+        for inst in body.data:
+            operation = inst.operation
+            for type_ in contains_types:
+                if isinstance(operation, type_):
+                    return True
+                # TODO run body_contains in the bodies of if statements
+        return False
