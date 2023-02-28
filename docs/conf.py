@@ -34,6 +34,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
+    "sphinx.ext.doctest",
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
     "sphinx_design",
