@@ -334,8 +334,8 @@ Common non-parametrized gates (Clifford)
     >>> from qiskit.quantum_info import Clifford, Operator
 
     >>> qc = QuantumCircuit(2)
-    >>> _ = qc.h(0)
-    >>> _ = qc.h(1)
+    >>> qc.h(0)
+    >>> qc.h(1)
     >>> operator = Clifford(qc).to_operator()
     >>> operator
     Operator([[ 0.5+0.j,  0.5+0.j,  0.5+0.j,  0.5+0.j],
@@ -355,7 +355,7 @@ Common non-parametrized gates (Clifford)
 
     # or...
     >>> qc = QuantumCircuit(1)
-    >>> _ = qc.h(0)
+    >>> qc.h(0)
     >>> H = Clifford(qc).to_operator()
     >>> operator = H ^ H
     >>> operator
@@ -425,13 +425,13 @@ Common non-parametrized gates (Clifford)
 
     >>> qc_zero = QuantumCircuit(1)
     >>> qc_one = qc_zero.copy()
-    >>> _ = qc_one.x(0)
+    >>> qc_one.x(0)
     >>> state1 = Statevector(qc_zero) ^ Statevector(qc_one)
 
     >>> qc_plus = qc_zero.copy()
-    >>> _ = qc_plus.h(0)
+    >>> qc_plus.h(0)
     >>> qc_minus = qc_one.copy()
-    >>> _ = qc_minus.h(0)
+    >>> qc_minus.h(0)
     >>> state2 = StabilizerState(qc_plus) ^ StabilizerState(qc_minus)
 
     >>> state1
@@ -760,8 +760,8 @@ identify the sub-class that is being used, to then look for an alternative.
     >>> from qiskit.opflow import StateFn, X, Y
 
     >>> qc = QuantumCircuit(2)
-    >>> _ = qc.x(0)
-    >>> _ = qc.z(1)
+    >>> qc.x(0)
+    >>> qc.z(1)
     >>> op = X ^ Y
     >>> state = StateFn(qc)
 
@@ -800,8 +800,8 @@ identify the sub-class that is being used, to then look for an alternative.
     >>> from qiskit.quantum_info import SparsePauliOp, Statevector
 
     >>> qc = QuantumCircuit(2)
-    >>> _ = qc.x(0)
-    >>> _ = qc.z(1)
+    >>> qc.x(0)
+    >>> qc.z(1)
     >>> op = SparsePauliOp("XY")
     >>> state = Statevector(qc)
 
@@ -882,11 +882,11 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
     >>> x, y = Parameter("x"), Parameter("y")
 
     >>> circuit1 = QuantumCircuit(1)
-    >>> _ = circuit1.p(0.2, 0)
+    >>> circuit1.p(0.2, 0)
     >>> circuit2 = QuantumCircuit(1)
-    >>> _ = circuit2.p(x, 0)
+    >>> circuit2.p(x, 0)
     >>> circuit3 = QuantumCircuit(1)
-    >>> _ = circuit3.p(y, 0)
+    >>> circuit3.p(y, 0)
 
     >>> bindings = {x: -0.4, y: 0.4}
     >>> listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
@@ -910,13 +910,13 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
     >>> x, y = Parameter("x"), Parameter("y")
 
     >>> circuit1 = QuantumCircuit(1)
-    >>> _ = circuit1.p(0.2, 0)
+    >>> circuit1.p(0.2, 0)
     >>> circuit1.measure_all()     # Don't forget measurements!!!!!
     >>> circuit2 = QuantumCircuit(1)
-    >>> _ = circuit2.p(x, 0)
+    >>> circuit2.p(x, 0)
     >>> circuit2.measure_all()
     >>> circuit3 = QuantumCircuit(1)
-    >>> _ = circuit3.p(y, 0)
+    >>> circuit3.p(y, 0)
     >>> circuit3.measure_all()
 
     >>> circuits = [circuit1, circuit2, circuit3]
@@ -948,7 +948,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
     >>> from qiskit.providers.aer import AerSimulator
 
     >>> qc = QuantumCircuit(1)
-    >>> _ = qc.h(0)
+    >>> qc.h(0)
     >>> state = CircuitStateFn(qc)
     >>> hamiltonian = X + Z
 
@@ -970,7 +970,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
     >>> from qiskit.quantum_info import SparsePauliOp
 
     >>> state = QuantumCircuit(1)
-    >>> _ = state.h(0)
+    >>> state.h(0)
     >>> hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
 
     >>> estimator = Estimator()
@@ -1143,7 +1143,7 @@ Other Evolution Classes
     >>> hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
     >>> evol_gate = PauliEvolutionGate(hamiltonian, time=1, synthesis=SuzukiTrotter(reps=2))
     >>> evolved_state = QuantumCircuit(1)
-    >>> _ = evolved_state.append(evol_gate, [0])
+    >>> evolved_state.append(evol_gate, [0])
 
     >>> print(evolved_state)
        ┌─────────────────────┐
@@ -1193,7 +1193,7 @@ Other Evolution Classes
     >>> hamiltonian = SparsePauliOp.from_list([('X', 1), ('Y',1)])
     >>> evol_gate = PauliEvolutionGate(hamiltonian, time=time, synthesis=LieTrotter())
     >>> evolved_state = QuantumCircuit(1)
-    >>> _ = evolved_state.append(evol_gate, [0])
+    >>> evolved_state.append(evol_gate, [0])
 
     >>> print(evolved_state)
        ┌─────────────────────┐
@@ -1237,7 +1237,7 @@ Other Evolution Classes
 
     >>> evol_gate = HamiltonianGate([[0, 1], [1, 0]], 1)
     >>> evolved_state = QuantumCircuit(1)
-    >>> _ = evolved_state.append(evol_gate, [0])
+    >>> evolved_state.append(evol_gate, [0])
 
     >>> print(evolved_state.decompose().decompose())
        ┌────────────────┐
@@ -1325,8 +1325,8 @@ Algorithm-Agnostic Expectations
 
     >>> op = SparsePauliOp.from_list([("X", 1j)])
     >>> states_op = QuantumCircuit(1)
-    >>> _ = states_op.x(0)
-    >>> _ = states_op.h(0)
+    >>> states_op.x(0)
+    >>> states_op.h(0)
 
     >>> expectation_value = estimator.run(states_op, op).result().values
 
@@ -1379,11 +1379,11 @@ Algorithm-Agnostic Expectations
     >>> X = SparsePauliOp("X")
 
     >>> qc = QuantumCircuit(1)
-    >>> _ = qc.h(0)
+    >>> qc.h(0)
     >>> H = Clifford(qc).to_operator()
 
     >>> plus = QuantumCircuit(1)
-    >>> _ = plus.h(0)
+    >>> plus.h(0)
 
     >>> estimator = Estimator()
     >>> values_plus = estimator.run([plus, plus], [X, H]).result().values
@@ -1627,9 +1627,9 @@ list:
     >>> params = [a,b,c]
 
     >>> qc = QuantumCircuit(1)
-    >>> _ = qc.h(0)
-    >>> _ = qc.u(a, b, c, 0)
-    >>> _ = qc.h(0)
+    >>> qc.h(0)
+    >>> qc.u(a, b, c, 0)
+    >>> qc.h(0)
 
     >>> op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
@@ -1662,9 +1662,9 @@ list:
     >>> c = Parameter("c")
 
     >>> qc = QuantumCircuit(1)
-    >>> _ = qc.h(0)
-    >>> _ = qc.u(a, b, c, 0)
-    >>> _ = qc.h(0)
+    >>> qc.h(0)
+    >>> qc.u(a, b, c, 0)
+    >>> qc.h(0)
 
     >>> estimator = Estimator()
     >>> gradient = ParamShiftEstimatorGradient(estimator)
@@ -1699,9 +1699,9 @@ list:
     # create the circuit
     >>> a, b = Parameter("a"), Parameter("b")
     >>> qc = QuantumCircuit(1)
-    >>> _ = qc.h(0)
-    >>> _ = qc.rz(a, 0)
-    >>> _ = qc.rx(b, 0)
+    >>> qc.h(0)
+    >>> qc.rz(a, 0)
+    >>> qc.rx(b, 0)
 
     # convert the circuit to a QFI object
     >>> op = CircuitStateFn(qc)
@@ -1726,9 +1726,9 @@ list:
     # create the circuit
     >>> a, b = Parameter("a"), Parameter("b")
     >>> qc = QuantumCircuit(1)
-    >>> _ = qc.h(0)
-    >>> _ = qc.rz(a, 0)
-    >>> _ = qc.rx(b, 0)
+    >>> qc.h(0)
+    >>> qc.rz(a, 0)
+    >>> qc.rx(b, 0)
 
     # initialize QFI
     >>> estimator = Estimator()
