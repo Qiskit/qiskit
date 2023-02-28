@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test the unroll_forloops pass"""
+"""Test the UnrollForLoops pass"""
 
 import unittest
 
@@ -24,7 +24,7 @@ class TestUnrool(QiskitTestCase):
     """Test UnrollForLoops pass"""
 
     def test_range(self):
-        """TODO"""
+        """Check simples unrolling case"""
         qreg, creg = QuantumRegister(5, "q"), ClassicalRegister(2, "c")
 
         body = QuantumCircuit(3, 1)
@@ -47,7 +47,7 @@ class TestUnrool(QiskitTestCase):
         self.assertEqual(result, expected)
 
     def test_skip_continue_loop(self):
-        """TODO"""
+        """Unrolling should not be done when a `continue;` in the body"""
         parameter = Parameter("x")
         loop_body = QuantumCircuit(1)
         loop_body.rx(parameter, 0)
@@ -64,7 +64,7 @@ class TestUnrool(QiskitTestCase):
         self.assertEqual(result, qc)
 
     def test_skip_continue_in_conditional(self):
-        """TODO"""
+        """Unrolling should not be done when a `continue;` is in a nested condition"""
         parameter = Parameter("x")
 
         true_body = QuantumCircuit(1)

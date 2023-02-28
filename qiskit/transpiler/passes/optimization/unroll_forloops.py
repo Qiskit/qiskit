@@ -10,7 +10,8 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""TODO"""
+""" UnrollForLoops transpilation pass """
+
 from qiskit.circuit import ForLoopOp, ContinueLoopOp, BreakLoopOp, IfElseOp
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.utils import control_flow
@@ -18,7 +19,9 @@ from qiskit.converters import circuit_to_dag
 
 
 class UnrollForLoops(TransformationPass):
-    """TODO"""
+    """UnrollForLoops transpilation pass unrolls for loops when possible. Things like
+    `for x in {0, 3, 4} {rx(x) qr[1];}` will turn into `rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];`.
+    """
 
     @control_flow.trivial_recurse
     def run(self, dag):
@@ -46,16 +49,15 @@ class UnrollForLoops(TransformationPass):
         return dag
 
     @classmethod
-    def body_contains_continue_or_break(cls, body):
-        """TODO"""
-        for inst in body.data:
+    def body_contains_continue_or_break(cls, circuit):
+        """Checks if a circuit contains ``continue``s or ``break``s. Conditional bodies are inspected."""
+        for inst in circuit.data:
             operation = inst.operation
             for type_ in [ContinueLoopOp, BreakLoopOp]:
                 if isinstance(operation, type_):
                     return True
             if isinstance(operation, IfElseOp):
-                if UnrollForLoops.body_contains_continue_or_break(
-                    operation.params[0]
-                ) or UnrollForLoops.body_contains_continue_or_break(operation.params[1]):
-                    return True
+                for block in operation.params:
+                    if UnrollForLoops.body_contains_continue_or_break(block):
+                        return True
         return False
