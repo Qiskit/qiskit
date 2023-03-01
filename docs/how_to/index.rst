@@ -10,7 +10,16 @@ Create quantum circuits
 .. toctree::
   :maxdepth: 1
 
-  Create a quantum circuit <create_a_quantum_circuit>
-  Compose quantum circuits <compose_quantum_circuits>
-  Visualize a quantum circuit <visualize_a_quantum_circuit>
-  Create a parameterized circuit <create_a_parameterized_circuit>
+  create_a_quantum_circuit
+  compose_quantum_circuits
+  visualize_a_quantum_circuit
+  create_a_parameterized_circuit
+
+Use the primitives
+------------------
+
+.. toctree::
+  :maxdepth: 1
+
+  use_sampler
+  use_estimator
