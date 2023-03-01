@@ -570,6 +570,7 @@ class TestEstimator(QiskitTestCase):
         """Test for errors"""
         qc = QuantumCircuit(1)
         qc2 = QuantumCircuit(2)
+        qc3 = QuantumCircuit(2, 2)
 
         op = SparsePauliOp.from_list([("I", 1)])
         op2 = SparsePauliOp.from_list([("II", 1)])
@@ -587,6 +588,8 @@ class TestEstimator(QiskitTestCase):
             est.run([qc, qc2], [op2], [[1]]).result()
         with self.assertRaises(ValueError):
             est.run([qc], [op, op2], [[1]]).result()
+        with self.assertRaises(ValueError):
+            est.run([qc3], [op2], [[1]]).result()
 
     def test_run_numpy_params(self):
         """Test for numpy array as parameter values"""
