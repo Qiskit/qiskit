@@ -401,7 +401,6 @@ class PauliSumOp(PrimitiveOp):
         """
         return len(self.primitive)
 
-    # pylint: disable=arguments-differ
     def reduce(self, atol: Optional[float] = None, rtol: Optional[float] = None) -> "PauliSumOp":
         """Simplify the primitive ``SparsePauliOp``.
 

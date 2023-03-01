@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Translates gates to a target basis using a given equivalence library."""
 
@@ -31,7 +30,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+    from functools import singledispatchmethod
 else:
     from singledispatchmethod import singledispatchmethod
 
@@ -99,7 +98,7 @@ class BasisTranslator(TransformationPass):
         self._target_basis = target_basis
         self._target = target
         self._non_global_operations = None
-        self._qargs_with_non_global_operation = {}  # pylint: disable=invalid-name
+        self._qargs_with_non_global_operation = {}
         if target is not None:
             self._non_global_operations = self._target.get_non_global_operation_names()
             self._qargs_with_non_global_operation = defaultdict(set)
@@ -367,7 +366,7 @@ class StopIfBasisRewritable(Exception):
     """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
+class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
     """Handles events emitted during `rustworkx.dijkstra_search`."""
 
     def __init__(self, graph, source_basis, target_basis):
@@ -419,7 +418,7 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
         if self._num_gates_remain_for_rule[edata.index] > 0 or target in self.target_basis:
-            raise rustworkx.visit.PruneSearch  # pylint: disable=no-member
+            raise rustworkx.visit.PruneSearch
 
     def edge_relaxed(self, edge):
         _, target, edata = edge

@@ -14,7 +14,7 @@
 
 import enum
 import warnings
-from math import pi, erf  # pylint: disable=no-name-in-module
+from math import pi, erf
 from typing import List, Tuple, Union
 
 import numpy as np
