@@ -373,7 +373,7 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
         self.graph = graph
         self.target_basis = set(target_basis)
         self._source_gates_remain = set(source_basis)
-        self._num_gates_remain_for_rule = dict()
+        self._num_gates_remain_for_rule = {}
         save_index = -1
         for edata in self.graph.edges():
             if save_index == edata.index:
@@ -382,8 +382,8 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
             save_index = edata.index
 
         self._basis_transforms = []
-        self._predecessors = dict()
-        self._opt_cost_map = dict()
+        self._predecessors = {}
+        self._opt_cost_map = {}
 
     def discover_vertex(self, v, score):
         gate = self.graph[v].key

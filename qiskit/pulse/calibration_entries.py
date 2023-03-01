@@ -95,7 +95,7 @@ class ScheduleDef(CalibrationEntry):
         """Generate signature from program and user provided argument names."""
         # This doesn't assume multiple parameters with the same name
         # Parameters with the same name are treated identically
-        all_argnames = set(map(lambda x: x.name, self._definition.parameters))
+        all_argnames = {x.name for x in self._definition.parameters}
 
         if self._user_arguments:
             if set(self._user_arguments) != all_argnames:
