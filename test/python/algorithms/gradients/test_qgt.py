@@ -154,7 +154,7 @@ class TestQGT(QiskitTestCase):
             np.testing.assert_allclose(qgt_result[0], correct_values[i], atol=1e-3)
 
     @data(LinCombQGT, ReverseQGT)
-    def test_qgt_specify_parameters(self, qgt_type):
+    def test_qgt_parameters(self, qgt_type):
         """Test the QGT with specified parameters"""
         args = () if qgt_type == ReverseQGT else (self.estimator,)
         qgt = qgt_type(*args, derivative_type=DerivativeType.REAL)
@@ -164,9 +164,38 @@ class TestQGT(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.ry(b, 0)
-        param_list = [np.pi / 4, np.pi / 4]
-        qgt_result = qgt.run([qc], [param_list], [[a]]).result().qgts
+        param_values = [np.pi / 4, np.pi / 4]
+        qgt_result = qgt.run([qc], [param_values], [[a]]).result().qgts
         np.testing.assert_allclose(qgt_result[0], [[1 / 4]], atol=1e-3)
+
+        c = Parameter("c")
+        qc2 = QuantumCircuit(1)
+        qc2.rx(a, 0)
+        qc2.rz(b, 0)
+        qc2.rx(c, 0)
+        param_values = [np.pi / 4, np.pi / 4, np.pi / 4]
+        params = [[a, b, c], [c, b, a], [a, c], [b, a]]
+        expected = [
+            np.array(
+                [
+                    [0.25, 0.0, 0.1767767],
+                    [0.0, 0.125, -0.08838835],
+                    [0.1767767, -0.08838835, 0.1875],
+                ]
+            ),
+            np.array(
+                [
+                    [0.1875, -0.08838835, 0.1767767],
+                    [-0.08838835, 0.125, 0.0],
+                    [0.1767767, 0.0, 0.25],
+                ]
+            ),
+            np.array([[0.25, 0.1767767], [0.1767767, 0.1875]]),
+            np.array([[0.125, 0.0], [0.0, 0.25]]),
+        ]
+        for i, param in enumerate(params):
+            qgt_result = qgt.run([qc2], [param_values], [param]).result().qgts
+            np.testing.assert_allclose(qgt_result[0], expected[i], atol=1e-3)
 
     @data(LinCombQGT, ReverseQGT)
     def test_qgt_multi_arguments(self, qgt_type):

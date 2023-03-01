@@ -103,7 +103,8 @@ class BaseEstimatorGradient(ABC):
             parameters: The sequence of parameters to calculate only the gradients of
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the gradients of all parameters in
-                each circuit are calculated.
+                each circuit are calculated. None in the sequence means that the gradients of all
+                parameters in the corresponding circuit are calculated.
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > gradient's
                 default options > primitive's default setting.
@@ -127,24 +128,24 @@ class BaseEstimatorGradient(ABC):
 
         if parameters is None:
             # If parameters is None, we calculate the gradients of all parameters in each circuit.
-            parameters_list = [circuit.parameters for circuit in circuits]
+            parameters = [circuit.parameters for circuit in circuits]
         else:
             # If parameters is not None, we calculate the gradients of the specified parameters.
             # None in parameters means that the gradients of all parameters in the corresponding
             # circuit are calculated.
-            parameters_list = [
-                parameters_ if parameters_ is not None else circuits[i].parameters
-                for i, parameters_ in enumerate(parameters)
+            parameters = [
+                params if params is not None else circuits[i].parameters
+                for i, params in enumerate(parameters)
             ]
         # Validate the arguments.
-        self._validate_arguments(circuits, observables, parameter_values, parameters_list)
+        self._validate_arguments(circuits, observables, parameter_values, parameters)
         # The priority of run option is as follows:
         # options in ``run`` method > gradient's default options > primitive's default setting.
         opts = copy(self._default_options)
         opts.update_options(**options)
         # Run the job.
         job = AlgorithmJob(
-            self._run, circuits, observables, parameter_values, parameters_list, **opts.__dict__
+            self._run, circuits, observables, parameter_values, parameters, **opts.__dict__
         )
         job.submit()
         return job
@@ -185,9 +186,7 @@ class BaseEstimatorGradient(ABC):
         """
         translator = TranslateParameterizedGates(supported_gates)
         g_circuits, g_parameter_values, g_parameters = [], [], []
-        for circuit, parameter_value_, parameters_ in zip(
-            circuits, parameter_values, parameters
-        ):
+        for circuit, parameter_value_, parameters_ in zip(circuits, parameter_values, parameters):
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._gradient_circuit_cache:
                 unrolled = translator(circuit)
@@ -265,7 +264,7 @@ class BaseEstimatorGradient(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters_list: Sequence[Sequence[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
     ) -> None:
         """Validate the arguments of the ``run`` method.
 
@@ -273,7 +272,7 @@ class BaseEstimatorGradient(ABC):
             circuits: The list of quantum circuits to compute the gradients.
             observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters_list: The sequence of parameters to calculate only the gradients of the specified
+            parameters: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
 
         Raises:
@@ -308,14 +307,14 @@ class BaseEstimatorGradient(ABC):
                     f"({observable.num_qubits})."
                 )
 
-        if len(circuits) != len(parameters_list):
+        if len(circuits) != len(parameters):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of the list of specified parameters ({len(parameters_list)})."
+                f"the number of the list of specified parameters ({len(parameters)})."
             )
 
-        for i, (circuit, parameters) in enumerate(zip(circuits, parameters_list)):
-            if not set(parameters).issubset(circuit.parameters):
+        for i, (circuit, parameters_) in enumerate(zip(circuits, parameters)):
+            if not set(parameters_).issubset(circuit.parameters):
                 raise ValueError(
                     f"The {i}-th parameters contains parameters not present in the "
                     f"{i}-th circuit."

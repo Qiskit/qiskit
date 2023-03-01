@@ -130,14 +130,13 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
             meta = {"parameters": parameters_}
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._lin_comb_cache:
+                # Cache the circuits for the linear combination of unitaries.
+                # We only cache the circuits for the specified parameters in the future.
                 self._lin_comb_cache[circuit_key] = _make_lin_comb_gradient_circuit(
                     circuit, add_measurement=False
                 )
             lin_comb_circuits = self._lin_comb_cache[circuit_key]
             gradient_circuits = []
-            # for param in circuit.parameters:
-            #     if param not in parameter_set:
-            #         continue
             for param in parameters_:
                 gradient_circuits.append(lin_comb_circuits[param])
             n = len(gradient_circuits)

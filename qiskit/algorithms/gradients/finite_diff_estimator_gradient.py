@@ -100,9 +100,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
             circuits, observables, parameter_values, parameters
         ):
             # Indices of parameters to be differentiated
-            indices = [
-                circuit.parameters.data.index(p) for p in parameters_
-            ]
+            indices = [circuit.parameters.data.index(p) for p in parameters_]
             metadata.append({"parameters": parameters_})
 
             # Combine inputs into a single job to reduce overhead.

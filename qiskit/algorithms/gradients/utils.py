@@ -368,24 +368,3 @@ def _make_gradient_parameters(
     ]
     # make g_parameters unique and return it.
     return list(dict.fromkeys(g_parameters))
-
-
-def _make_gradient_parameter_set(
-    gradient_circuit: GradientCircuit,
-    parameters: Sequence[Parameter],
-) -> Sequence[Parameter]:
-    """Makes parameter set for the gradient circuit.
-
-    Args:
-        gradient_circuit: The gradient circuit
-        parameters: The parameters in the original circuit to calculate gradients
-
-    Returns:
-        The parameters in the gradient circuit to calculate gradients.
-    """
-
-    return [
-        g_parameter
-        for parameter in parameters
-        for g_parameter, _ in gradient_circuit.parameter_map[parameter]
-    ]
