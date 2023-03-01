@@ -163,7 +163,7 @@ class MCSU2Gate(Gate):
             num_ctrl_qubits=k_2,
             dirty_ancillas=True,
             ctrl_state=ctrl_state_k_2,
-            action_only=general_su2_optimization
+            # action_only=general_su2_optimization
         ).definition
         self.definition.append(
             mcx_2.inverse(),
@@ -235,7 +235,7 @@ class MCSU2Gate(Gate):
                 num_ctrl_qubits=k_2,
                 dirty_ancillas=True,
                 ctrl_state=ctrl_state_k_2,
-                action_only=True
+                # action_only=True
             ).definition
             self.definition.append(mcx_2, controls[k_1:] + [target] + controls[k_1 - k_2 + 2:k_1])
 
