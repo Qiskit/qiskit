@@ -230,6 +230,42 @@ def _append_sdg(clifford, qubit):
     return clifford
 
 
+def _append_sx(clifford, qubit):
+    """Apply an SX gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+
+    clifford.phase ^= ~x & z
+    x ^= z
+    return clifford
+
+
+def _append_sxdg(clifford, qubit):
+    """Apply an SXdg gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+
+    clifford.phase ^= x & z
+    x ^= z
+    return clifford
+
+
 def _append_v(clifford, qubit):
     """Apply a V gate to a Clifford.
 
@@ -312,6 +348,23 @@ def _append_cz(clifford, control, target):
     return clifford
 
 
+def _append_cy(clifford, control, target):
+    """Apply a CY gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        control (int): gate control qubit index.
+        target (int): gate target qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_sdg(clifford, target)
+    clifford = _append_cx(clifford, control, target)
+    clifford = _append_s(clifford, target)
+    return clifford
+
+
 def _append_swap(clifford, qubit0, qubit1):
     """Apply a Swap gate to a Clifford.
 
@@ -328,6 +381,61 @@ def _append_swap(clifford, qubit0, qubit1):
     return clifford
 
 
+def _append_iswap(clifford, qubit0, qubit1):
+    """Apply a iSwap gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_s(clifford, qubit0)
+    clifford = _append_h(clifford, qubit0)
+    clifford = _append_s(clifford, qubit1)
+    clifford = _append_cx(clifford, qubit0, qubit1)
+    clifford = _append_cx(clifford, qubit1, qubit0)
+    clifford = _append_h(clifford, qubit1)
+    return clifford
+
+
+def _append_dcx(clifford, qubit0, qubit1):
+    """Apply a DCX gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_cx(clifford, qubit0, qubit1)
+    clifford = _append_cx(clifford, qubit1, qubit0)
+    return clifford
+
+
+def _append_ecr(clifford, qubit0, qubit1):
+    """Apply an ECR gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_s(clifford, qubit0)
+    clifford = _append_sx(clifford, qubit1)
+    clifford = _append_cx(clifford, qubit0, qubit1)
+    clifford = _append_x(clifford, qubit0)
+
+    return clifford
+
+
 # Basis Clifford Gates
 _BASIS_1Q = {
     "i": _append_i,
@@ -340,9 +448,19 @@ _BASIS_1Q = {
     "s": _append_s,
     "sdg": _append_sdg,
     "sinv": _append_sdg,
+    "sx": _append_sx,
+    "sxdg": _append_sxdg,
     "v": _append_v,
     "w": _append_w,
 }
-_BASIS_2Q = {"cx": _append_cx, "cz": _append_cz, "swap": _append_swap}
+_BASIS_2Q = {
+    "cx": _append_cx,
+    "cz": _append_cz,
+    "cy": _append_cy,
+    "swap": _append_swap,
+    "iswap": _append_iswap,
+    "ecr": _append_ecr,
+    "dcx": _append_dcx,
+}
 # Non-clifford gates
 _NON_CLIFFORD = {"t", "tdg", "ccx", "ccz"}

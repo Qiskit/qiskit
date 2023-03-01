@@ -1644,7 +1644,7 @@ class QuantumCircuit:
             "rccx",
             "rc3x",
             "c3x",
-            "c3sx",
+            "c3sx",  # This is the Qiskit gate name, but the qelib1.inc name is 'c3sqrtx'.
             "c4x",
         ]
 

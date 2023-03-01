@@ -62,7 +62,7 @@ class SabreSwap(TransformationPass):
 
     This transpiler pass adds onto the SABRE algorithm in that it will run
     multiple trials of the algorithm with different seeds. The best output,
-    deteremined by the trial with the least amount of SWAPed inserted, will
+    determined by the trial with the least amount of SWAPed inserted, will
     be selected from the random trials.
 
     **References:**
@@ -174,8 +174,12 @@ class SabreSwap(TransformationPass):
             DAGCircuit: A dag mapped to be compatible with the coupling_map.
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG
+            compatible with the DAG, or if the coupling_map=None
         """
+
+        if self.coupling_map is None:
+            raise TranspilerError("SabreSwap cannot run with coupling_map=None")
+
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Sabre swap runs on physical circuits only.")
 
