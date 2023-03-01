@@ -141,6 +141,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation; Get the quantum instance.
@@ -156,6 +157,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation; Set quantum instance.
