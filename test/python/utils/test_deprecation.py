@@ -13,7 +13,7 @@
 """Tests for the functions in ``utils.deprecation``."""
 
 from textwrap import dedent
-from typing import Callable, Optional
+from typing import Callable
 
 from qiskit.test import QiskitTestCase
 from qiskit.utils.deprecation import (
@@ -126,15 +126,16 @@ class DeprecationExtensionTest(QiskitTestCase):
         self,
         func: Callable,
         *,
+        expected: str,
+        msg: str = "Deprecated!",
         pending: bool = False,
         since_is_set: bool = True,
-        expected: Optional[str],
         num_deprecations: int = 1,
     ) -> None:
         """Add docstring to ``func`` and check that it worked as expected."""
         for _ in range(num_deprecations):
             _add_deprecation_to_docstring(
-                func, msg="Deprecated!", since="9.99" if since_is_set else None, pending=pending
+                func, msg=msg, since="9.99" if since_is_set else None, pending=pending
             )
         self.assertEqual(func.__doc__, expected)
 
@@ -452,3 +453,12 @@ class DeprecationExtensionTest(QiskitTestCase):
                 """
             ),
         )
+
+    def test_deprecation_docstring_newline_msg_banned(self) -> None:
+        """Test that `\n` is banned in the deprecation message, as it breaks Sphinx rendering."""
+
+        def func():
+            pass
+
+        with self.assertRaises(ValueError):
+            self.assert_docstring(func, msg="line1\nline2", expected="doesnt matter")
