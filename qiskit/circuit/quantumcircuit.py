@@ -2308,8 +2308,8 @@ class QuantumCircuit:
              c: 2/═╩══╩═
                    0  1
 
-          *  List of qubits and clbits of different size. The lenght of the qubit list sholud be
-           smaller than the lenght of classical bit list::
+          *  List of qubits and clbits of different size. The lenght of the qubit list should be
+           smaller than the length of classical bit list::
 
         .. code-block::
 
