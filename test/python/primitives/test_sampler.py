@@ -450,7 +450,6 @@ class TestSampler(QiskitTestCase):
         self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, SamplerResult)
-        # print([q.binary_probabilities() for q in result.quasi_dists])
         self._compare_probs(result.quasi_dists, self._target[1])
 
     def test_sample_run_multiple_circuits(self):
@@ -460,7 +459,6 @@ class TestSampler(QiskitTestCase):
         bell = self._circuit[1]
         sampler = Sampler()
         result = sampler.run([bell, bell, bell]).result()
-        # print([q.binary_probabilities() for q in result.quasi_dists])
         self._compare_probs(result.quasi_dists[0], self._target[1])
         self._compare_probs(result.quasi_dists[1], self._target[1])
         self._compare_probs(result.quasi_dists[2], self._target[1])
@@ -468,7 +466,6 @@ class TestSampler(QiskitTestCase):
     def test_sampler_run_with_parameterized_circuits(self):
         """Test Sampler.run() with parameterized circuits."""
         # parameterized circuit
-
         pqc = self._pqc
         pqc2 = self._pqc2
         theta1, theta2, theta3 = self._theta
@@ -737,6 +734,47 @@ class TestSampler(QiskitTestCase):
         sampler = Sampler()
         sampler_result = sampler.run([circuit]).result()
         self.assertDictAlmostEqual(sampler_result.quasi_dists[0], {0: 1, 1: 0})
+
+    def test_sampler_run_witt_dict(self):
+        """Test Sampler.run() with parameterized circuits and dict."""
+        # parameterized circuit
+        pqc = self._pqc
+        pqc2 = self._pqc2
+        theta1, theta2, theta3 = self._theta
+
+        param_dict1 = dict(zip(pqc.parameters, theta1))
+        param_dict2 = dict(zip(pqc.parameters, theta2))
+        param_dict3 = dict(zip(pqc2.parameters, theta3))
+
+        sampler = Sampler()
+        result = sampler.run([pqc, pqc, pqc2], [param_dict1, param_dict2, param_dict3]).result()
+
+        # result of pqc(theta1)
+        prob1 = {
+            "00": 0.1309248462975777,
+            "01": 0.3608720796028448,
+            "10": 0.09324865232050054,
+            "11": 0.41495442177907715,
+        }
+        self.assertDictAlmostEqual(result.quasi_dists[0].binary_probabilities(), prob1)
+
+        # result of pqc(theta2)
+        prob2 = {
+            "00": 0.06282290651933871,
+            "01": 0.02877144385576705,
+            "10": 0.606654494132085,
+            "11": 0.3017511554928094,
+        }
+        self.assertDictAlmostEqual(result.quasi_dists[1].binary_probabilities(), prob2)
+
+        # result of pqc2(theta3)
+        prob3 = {
+            "00": 0.1880263994380416,
+            "01": 0.6881971261189544,
+            "10": 0.09326232720582443,
+            "11": 0.030514147237179892,
+        }
+        self.assertDictAlmostEqual(result.quasi_dists[2].binary_probabilities(), prob3)
 
 
 if __name__ == "__main__":
