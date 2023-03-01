@@ -500,7 +500,7 @@ from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.pulse.transforms.alignments import AlignmentKind
 
 if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+    from functools import singledispatchmethod
 else:
     from singledispatchmethod import singledispatchmethod
 
@@ -508,7 +508,7 @@ else:
 #: contextvars.ContextVar[BuilderContext]: active builder
 BUILDER_CONTEXTVAR = contextvars.ContextVar("backend")
 
-T = TypeVar("T")  # pylint: disable=invalid-name
+T = TypeVar("T")
 
 StorageLocation = NewType("StorageLocation", Union[chans.MemorySlot, chans.RegisterSlot])
 
@@ -1212,7 +1212,7 @@ def active_transpiler_settings() -> Dict[str, Any]:
     return dict(_active_builder().transpiler_settings)
 
 
-def active_circuit_scheduler_settings() -> Dict[str, Any]:  # pylint: disable=invalid-name
+def active_circuit_scheduler_settings() -> Dict[str, Any]:
     """Return the current active builder context's circuit scheduler settings.
 
     Examples:
