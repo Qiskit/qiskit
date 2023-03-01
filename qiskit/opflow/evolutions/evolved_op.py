@@ -167,7 +167,6 @@ class EvolvedOp(PrimitiveOp):
     def log_i(self, massive: bool = False) -> OperatorBase:
         return self.primitive * self.coeff
 
-    # pylint: disable=arguments-differ
     def to_instruction(self, massive: bool = False) -> Instruction:
         mat_op = self.to_matrix_op(massive=massive)
         if not isinstance(mat_op, MatrixOp):

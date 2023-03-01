@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=redefined-builtin
 
 """Objects to represent the information at a node in the DAGCircuit."""
 

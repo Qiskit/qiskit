@@ -201,7 +201,6 @@ class ADAM(Optimizer):
         },
         since="0.19.0",
     )
-    # pylint: disable=arguments-differ
     def minimize(
         self,
         fun: Callable[[POINT], float],
