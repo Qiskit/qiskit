@@ -1045,7 +1045,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_empty_tuple_param(self):
         """Test qpy with an instruction that contains an empty tuple."""
-        inst = Instruction("empty_tuple_test", 1, 0, [tuple()])
+        inst = Instruction("empty_tuple_test", 1, 0, [()])
         qc = QuantumCircuit(1)
         qc.append(inst, [0])
         qpy_file = io.BytesIO()

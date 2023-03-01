@@ -359,8 +359,8 @@ def _make_gradient_parameter_set(
     Returns:
         The parameters for the gradient circuit.
     """
-    return set(
+    return {
         g_parameter
         for parameter in parameter_set
         for g_parameter, _ in gradient_circuit.parameter_map[parameter]
-    )
+    }
