@@ -2284,7 +2284,7 @@ class QuantumCircuit:
 
         .. parsed-literal::
                   ┌───┐┌─┐
-               q: ┤ X ├┤M├
+               q: ┤ H ├┤M├
                   └───┘└╥┘
              c: 1/══════╩═
                         0
