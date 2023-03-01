@@ -194,7 +194,7 @@ class QasmSimulatorPy(BackendV1):
         """
         # Get unique qubits that are actually measured and sort in
         # ascending order
-        measured_qubits = sorted(list({qubit for qubit, cmembit in measure_params}))
+        measured_qubits = sorted({qubit for qubit, cmembit in measure_params})
         num_measured = len(measured_qubits)
         # We use the axis kwarg for numpy.sum to compute probabilities
         # this sums over all non-measured qubits to return a vector

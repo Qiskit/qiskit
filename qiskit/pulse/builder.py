@@ -836,7 +836,7 @@ class _PulseBuilder:
             return
 
         # Create local parameter assignment
-        local_assignment = dict()
+        local_assignment = {}
         for param_name, value in kw_params.items():
             params = target_block.get_parameters(param_name)
             if not params:
@@ -2445,7 +2445,7 @@ def measure(
     # just a macro to automate combination of stimulus and acquisition.
     # prepare unique reference name based on qubit and memory slot index.
     qubits_repr = "&".join(map(str, qubits))
-    mslots_repr = "&".join(map(lambda r: str(r.index), registers))
+    mslots_repr = "&".join((str(r.index) for r in registers))
     _active_builder().call_subroutine(measure_sched, name=f"measure_{qubits_repr}..{mslots_repr}")
 
     if len(qubits) == 1:
