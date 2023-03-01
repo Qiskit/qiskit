@@ -2264,14 +2264,14 @@ class QuantumCircuit:
         """
         return self.append(Reset(), [qubit], [])
 
-    def measure(self, qubit: QubitSpecifier, clbit: ClbitSpecifier) -> InstructionSet:
-        """Measure quantum bit (qubit) into classical bit (clbit).
+    def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
+        """Measure quantum bit (qubit) into classical bit (cbit).
 
-         When a qubit is measured, its state collapses to a classical bit and copied to a
-         classical wire:
+        When a qubit is measured, its state collapses to a classical bit and copied to a
+        classical wire:
 
-         In this example, a qubit is measured and the result of that measurement is stored in the
-         classical bit (usually expressed as a double line)
+        In this example, a qubit is measured and the result of that measurement is stored in the
+        classical bit (usually expressed as a double line)
 
         .. code-block::
 
@@ -2283,15 +2283,14 @@ class QuantumCircuit:
 
 
         .. parsed-literal::
+
                   ┌───┐┌─┐
                q: ┤ H ├┤M├
                   └───┘└╥┘
              c: 1/══════╩═
                         0
 
-         ``measure`` can be used with lists of register of the same length:
-
-          *  List of qubits and clbits of the same size::
+        It is possible to call ``measure`` with lists of qubits and cbits of the same size::
 
         .. code-block::
 
@@ -2300,6 +2299,7 @@ class QuantumCircuit:
 
 
         .. parsed-literal::
+
                   ┌─┐
              q_0: ┤M├───
                   └╥┘┌─┐
@@ -2308,16 +2308,16 @@ class QuantumCircuit:
              c: 2/═╩══╩═
                    0  1
 
-          *  List of qubits and clbits of different size. The lenght of the qubit list should be
-           smaller than the length of classical bit list::
+        It is also possible to do a one-to-many readout::
 
         .. code-block::
 
            circuit = QuantumCircuit(2,2)
-           circuit.measure([0], [0,1])  # same as "circuit.measure(0,0); circuit.measure(0,1);"
+           circuit.measure(0, [0,1])  # same as "circuit.measure(0,0); circuit.measure(0,1);"
 
 
         .. parsed-literal::
+
                   ┌─┐┌─┐
              q_0: ┤M├┤M├
                   └╥┘└╥┘
@@ -2326,12 +2326,29 @@ class QuantumCircuit:
              c: 2/═╩══╩═
                    0  1
 
-         Instead of lists, you can use :class:`~.QuantumRegister`s and :class:`~.ClassicalRegister`s
-         under the same logic.
+        Instead of lists, you can use :class:`~.QuantumRegister`s and :class:`~.ClassicalRegister`s
+        under the same logic.
+
+        .. code-block::
+
+            from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+            qreg = QuantumRegister(1, "qreg")
+            creg = ClassicalRegister(2, "creg")
+            circuit = QuantumCircuit(qreg, creg)
+            circuit.measure(qreg, creg)
+
+
+        .. parsed-literal::
+
+                    ┌─┐┌─┐
+              qreg: ┤M├┤M├
+                    └╥┘└╥┘
+            creg: 2/═╩══╩═
+                     0  1
 
          Args:
              qubit: qubit/s to measure.
-             clbit: classical bit/s to place the measurement in.
+             cbit: classical bit/s to place the measurement in.
 
          Returns:
              qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -2339,7 +2356,7 @@ class QuantumCircuit:
          Raises:
              CircuitError: if arguments have bad format.
         """
-        return self.append(Measure(), [qubit], [clbit])
+        return self.append(Measure(), [qubit], [cbit])
 
     def measure_active(self, inplace: bool = True) -> Optional["QuantumCircuit"]:
         """Adds measurement to all non-idle qubits. Creates a new ClassicalRegister with
