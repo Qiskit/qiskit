@@ -434,7 +434,8 @@ def _pauli_expval_with_variance(counts: Counts, paulis: PauliList) -> tuple[np.n
     expvals = np.zeros(size, dtype=float)
     denom = 0  # Total shots for counts dict
     for bin_outcome, freq in counts.items():
-        outcome = int(bin_outcome, 2)
+        split_outcome = bin_outcome.rsplit(" ", 1)[1] if " " in bin_outcome else bin_outcome
+        outcome = int(split_outcome, 2)
         denom += freq
         for k in range(size):
             coeff = (-1) ** _parity(diag_inds[k] & outcome)

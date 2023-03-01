@@ -275,10 +275,10 @@ class BaseEstimator(BasePrimitive):
                 f"the number of observables ({len(observables)})."
             )
         for i, (circuit, observable) in enumerate(zip(circuits, observables)):
-            if circuit.num_qubits != observable.num_qubits:
+            if circuit.num_qubits < observable.num_qubits:
                 raise ValueError(
-                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) does "
-                    f"not match the number of qubits of the {i}-th observable "
+                    f"The number of qubits of the {i}-th circuit ({circuit.num_qubits}) is "
+                    f"smaller than the number of qubits of the {i}-th observable "
                     f"({observable.num_qubits})."
                 )
 

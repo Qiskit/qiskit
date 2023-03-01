@@ -20,7 +20,7 @@ from test.python.transpiler._dummy_passes import DummyAP
 import numpy as np
 from ddt import ddt
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers import JobV1
@@ -28,6 +28,7 @@ from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
@@ -204,8 +205,6 @@ class TestBackendEstimator(QiskitTestCase):
         with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
         with self.assertRaises(ValueError):
-            est.run([qc2], [op], [[]]).result()
-        with self.assertRaises(ValueError):
             est.run([qc], [op], [[1e4]]).result()
         with self.assertRaises(ValueError):
             est.run([qc2], [op2], [[1, 2]]).result()
@@ -360,6 +359,27 @@ class TestBackendEstimator(QiskitTestCase):
                 _ = estimator.run([qc, qc], [op, op]).result()
                 expected = ["INFO:LocalLogger:bound_pass_manager"] * 2
                 self.assertEqual(cm.output, expected)
+
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_dynamic_circuit(self):
+        """Test estimator with a dynamic circuit"""
+        from qiskit import Aer
+
+        qc = QuantumCircuit(2, 1)
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(1, 0)
+            qc.break_loop().c_if(0, True)
+
+        observable = SparsePauliOp("Z")
+
+        backend = Aer.get_backend("aer_simulator")
+        backend.set_options(seed_simulator=15)
+        estimator = BackendEstimator(backend, skip_transpilation=True)
+        estimator.set_transpile_options(seed_transpiler=15)
+        result = estimator.run(qc, observable).result()
+        self.assertAlmostEqual(result.values[0], 0, places=1)
 
 
 if __name__ == "__main__":

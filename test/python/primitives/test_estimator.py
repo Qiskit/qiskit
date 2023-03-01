@@ -578,8 +578,6 @@ class TestEstimator(QiskitTestCase):
         with self.assertRaises(ValueError):
             est.run([qc], [op2], [[]]).result()
         with self.assertRaises(ValueError):
-            est.run([qc2], [op], [[]]).result()
-        with self.assertRaises(ValueError):
             est.run([qc], [op], [[1e4]]).result()
         with self.assertRaises(ValueError):
             est.run([qc2], [op2], [[1, 2]]).result()
