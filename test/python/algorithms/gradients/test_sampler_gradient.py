@@ -303,9 +303,9 @@ class TestSamplerGradient(QiskitTestCase):
 
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 2)
+            array1 = _quasi2array(gradients, num_qubits=2)
+            array2 = _quasi2array(correct_results[i], num_qubits=2)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
 
     @data(*gradient_factories)
     def test_gradient_parameters(self, grad):
