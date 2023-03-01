@@ -314,9 +314,11 @@ class TwoQubitWeylDecomposition:
         return fid >= self.requested_fidelity
 
     def _flip(self):
-        """Flip a -> pi/2-a, b -> b, c -> -c"""
+        """Flip a -> pi/2-a, b -> b, c -> -c.
 
-        self._is_flipped_from_original = True
+        Since this is intended for approximation only we actually set a = pi/4"""
+
+        self._is_flipped_from_original = not self._is_flipped_from_original
         self.a = np.pi / 4
         self.c = -self.c
         self.K1r = self.K1r @ _ipy

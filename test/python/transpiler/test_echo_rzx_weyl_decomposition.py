@@ -47,11 +47,11 @@ class TestEchoRZXWeylDecomposition(QiskitTestCase):
         gamma = TwoQubitWeylDecomposition(unitary_circuit).c
 
         expected_rzx_number = 0
-        if not alpha == 0:
+        if alpha != 0:
             expected_rzx_number += 2
-        if not beta == 0:
+        if beta != 0:
             expected_rzx_number += 2
-        if not gamma == 0:
+        if gamma != 0:
             expected_rzx_number += 2
 
         circuit_rzx_number = QuantumCircuit.count_ops(after)["rzx"]
