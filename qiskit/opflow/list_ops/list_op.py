@@ -359,7 +359,7 @@ class ListOp(OperatorBase):
         # Note: this can end up, when we have list operators containing other list operators, as a
         #       ragged array and numpy 1.19 raises a deprecation warning unless this is explicitly
         #       done as object type now - was implicit before.
-        mat = self.combo_fn(  # pylint: disable=not-callable
+        mat = self.combo_fn(
             np.asarray(
                 [op.to_matrix(massive=massive) * self.coeff for op in self.oplist], dtype=object
             )
@@ -374,7 +374,6 @@ class ListOp(OperatorBase):
         """
 
         # Combination function must be able to handle classical values
-        # pylint: disable=not-callable
         return self.combo_fn([op.to_spmatrix() for op in self.oplist]) * self.coeff
 
     def eval(
@@ -441,7 +440,7 @@ class ListOp(OperatorBase):
                         "Combo_fn not yet supported for mixed measurement "
                         "and non-measurement StateFns"
                     )
-                result = self.combo_fn(evals)  # pylint: disable=not-callable
+                result = self.combo_fn(evals)
                 if isinstance(result, list):
                     multiplied = self.coeff * np.array(result)
                     return multiplied.tolist()
@@ -452,7 +451,7 @@ class ListOp(OperatorBase):
         elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError("Cannot handle mixed scalar and Operator eval results.")
         else:
-            result = self.combo_fn(evals)  # pylint: disable=not-callable
+            result = self.combo_fn(evals)
             if isinstance(result, list):
                 multiplied = self.coeff * np.array(result)
                 return multiplied.tolist()

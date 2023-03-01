@@ -97,7 +97,6 @@ class BackendEstimator(BaseEstimator):
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    # pylint: disable=missing-raises-doc
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
@@ -142,7 +141,7 @@ class BackendEstimator(BaseEstimator):
     def __new__(  # pylint: disable=signature-differs
         cls,
         backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
+        **kwargs,
     ):
         self = super().__new__(cls)
         return self

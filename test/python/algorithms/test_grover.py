@@ -80,7 +80,6 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
         problem = AmplificationProblem(oracle, is_good_state=is_good_state)
 
         expected = [state in ["01", "11"] for state in possible_states]
-        # pylint: disable=not-callable
         actual = [problem.is_good_state(state) for state in possible_states]
 
         self.assertListEqual(expected, actual)

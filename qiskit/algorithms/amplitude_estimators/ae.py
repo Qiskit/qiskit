@@ -98,7 +98,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             self.quantum_instance = quantum_instance
 
         # get parameters
-        self._m = num_eval_qubits  # pylint: disable=invalid-name
+        self._m = num_eval_qubits
         self._M = 2**num_eval_qubits  # pylint: disable=invalid-name
 
         self._iqft = iqft

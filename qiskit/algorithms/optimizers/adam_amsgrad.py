@@ -200,7 +200,6 @@ class ADAM(Optimizer):
             "gradient_function": "jac",
         }
     )
-    # pylint: disable=arguments-differ
     def minimize(
         self,
         fun: Callable[[POINT], float],

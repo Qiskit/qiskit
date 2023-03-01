@@ -99,7 +99,7 @@ def _solve_decomposition_angle(matrix: np.ndarray) -> float:
     return decomposition_angle
 
 
-def _compute_rotation_from_angle_and_axis(  # pylint: disable=invalid-name
+def _compute_rotation_from_angle_and_axis(
     angle: float, axis: np.ndarray
 ) -> np.ndarray:
     """Computes the SO(3)-matrix corresponding to the rotation of ``angle`` about ``axis``.

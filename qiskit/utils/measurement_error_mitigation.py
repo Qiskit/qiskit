@@ -28,8 +28,6 @@ from qiskit.utils.mitigation import (
     TensoredMeasFitter,
 )
 
-# pylint: disable=invalid-name
-
 
 def get_measured_qubits(
     transpiled_circuits: List[QuantumCircuit],

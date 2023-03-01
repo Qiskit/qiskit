@@ -208,8 +208,6 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     # Attributes
     # ---------------------------------------------------------------------
 
-    # pylint: disable=bad-docstring-quotes
-
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
         return self.table.__getitem__(key)

@@ -138,7 +138,6 @@ class CircuitSampler(ConverterBase):
         self._quantum_instance = quantum_instance
         self._check_quantum_instance_and_modes_consistent()
 
-    # pylint: disable=arguments-differ
     def convert(
         self,
         operator: OperatorBase,

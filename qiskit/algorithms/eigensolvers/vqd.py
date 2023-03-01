@@ -265,7 +265,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             # TODO: add gradient support after FidelityGradients are implemented
             if callable(self.optimizer):
-                opt_result = self.optimizer(  # pylint: disable=not-callable
+                opt_result = self.optimizer(
                     fun=energy_evaluation, x0=initial_point, bounds=bounds
                 )
             else:
