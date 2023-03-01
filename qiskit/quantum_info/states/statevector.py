@@ -360,7 +360,7 @@ class Statevector(QuantumState, TolerancesMixin):
         """Evolve a quantum state by the operator.
 
         Args:
-            other (Operator | QuantumCircuit | Instruction): The operator to evolve by.
+            other (Operator | QuantumCircuit | circuit.Instruction): The operator to evolve by.
             qargs (list): a list of Statevector subsystem positions to apply
                            the operator on.
 
