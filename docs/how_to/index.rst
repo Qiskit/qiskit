@@ -1,8 +1,8 @@
 .. _how_to:
 
-======
+######
 How to
-======
+######
 
 Create quantum circuits
 -----------------------

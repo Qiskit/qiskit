@@ -1,6 +1,6 @@
-===========================
+###########################
 Visualize a quantum circuit
-===========================
+###########################
 
 This guide shows how to get a visual representation of a quantum circuit.
 
