@@ -550,7 +550,7 @@ class TestSampler(QiskitTestCase):
         with self.subTest("No parameter"):
             circuit = self._circuit[1]
             target = self._target[1]
-            param_vals = [None, [], [[]], np.array([]), np.array([[]])]
+            param_vals = [None, (), [], [[]], np.array([]), np.array([[]])]
             for val in param_vals:
                 with self.subTest(f"{circuit.name} w/ {val}"):
                     result = sampler.run(circuit, val).result()
@@ -564,6 +564,10 @@ class TestSampler(QiskitTestCase):
             circuit.measure(0, 0)
             target = [{1: 1}]
             param_vals = [
+                np.pi,
+                np.float32(np.pi),
+                np.float64(np.pi),
+                (np.pi,),
                 [np.pi],
                 [[np.pi]],
                 np.array([np.pi]),
@@ -581,7 +585,9 @@ class TestSampler(QiskitTestCase):
             target = [self._pqc_target[0]]
             param_vals = [
                 self._pqc_params[0],
+                tuple(self._pqc_params[0]),
                 [self._pqc_params[0]],
+                tuple([self._pqc_params[0]]),
                 np.array(self._pqc_params[0]),
                 np.array([self._pqc_params[0]]),
                 [np.array(self._pqc_params[0])],
@@ -622,6 +628,33 @@ class TestSampler(QiskitTestCase):
                 # The following raises QiskitError because this check is located in
                 # `Sampler._preprocess_circuit`
                 _ = sampler.run([qc4], [[]])
+        invalid_circuits = [None, "ERROR", True, 0, 1.0, 1j, [0.0]]
+        for circuit in invalid_circuits:
+            with self.subTest(f"Invalid circuit input {circuit}"):
+                with self.assertRaises(TypeError):
+                    sampler.run(circuit)
+        invalid_circuits = [(), [], ""]
+        for circuit in invalid_circuits:
+            with self.subTest(f"Invalid circuit input {circuit}"):
+                with self.assertRaises(ValueError):
+                    sampler.run(circuit)
+        invalid_parameters = [
+            "ERROR",
+            ("E", "R", "R", "O", "R"),
+            (["E", "R", "R"], ["O", "R"]),
+            1j,
+            (1j,),
+            ((1j,),),
+            True,
+            False,
+            float("inf"),
+            float("-inf"),
+            float("nan"),
+        ]
+        for parameter in invalid_parameters:
+            with self.subTest(f"Invalid parameter input {parameter}"):
+                with self.assertRaises(TypeError):
+                    sampler.run([qc1], parameter)
 
     def test_run_empty_parameter(self):
         """Test for empty parameter"""
