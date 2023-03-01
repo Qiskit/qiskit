@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    Primitives are enable to take ``Mapping`` and ``Sequence[Mapping]`` as inputs of ``parameter_values``.
+    For example:
+
+    .. code-block:: python
+
+      from math import pi
+      from qiskit.circuit import QuantumCircuit, Parameter
+      from qiskit.primitives import Sampler
+
+      θ = Parameter("θ")
+      circuit = QuantumCircuit(1)
+      circuit.rx(θ, 0)
+      circuit.measure_all()
+
+      sampler = Sampler()
+      result = sampler.run(circuit, {θ: pi}).result()
+      print(result)
+
+    The output is ``SamplerResult(quasi_dists=[{1: 1.0}], metadata=[{}])``.
