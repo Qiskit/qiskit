@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" TaperedPauliSumOp Class and Z2Symmetries"""
+"""TaperedPauliSumOp Class and Z2Symmetries"""
 
 import itertools
 import logging
