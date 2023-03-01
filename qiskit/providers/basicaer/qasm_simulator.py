@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ
-
 """Contains a (slow) Python simulator.
 
 It simulates a qasm quantum circuit (an experiment) that has been compiled

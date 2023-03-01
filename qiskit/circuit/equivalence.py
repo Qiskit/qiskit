@@ -15,7 +15,7 @@
 import copy
 from collections import namedtuple
 
-from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
+from rustworkx.visualization import graphviz_draw
 import rustworkx as rx
 
 from qiskit.exceptions import InvalidFileError

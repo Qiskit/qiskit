@@ -900,7 +900,7 @@ class TestLoadFromQPY(QiskitTestCase):
         class CustomSerializer(json.JSONEncoder):
             """Custom json encoder to handle CustomObject."""
 
-            def default(self, o):  # pylint: disable=invalid-name
+            def default(self, o):
                 if isinstance(o, CustomObject):
                     return {"__type__": "Custom", "value": o.string}
                 return json.JSONEncoder.default(self, o)
