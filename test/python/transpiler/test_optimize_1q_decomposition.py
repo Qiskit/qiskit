@@ -530,6 +530,41 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         result = passmanager.run(circuit)
         self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
 
+    def test_optimize_run_of_u_to_single_u_on_target_no_error(self):
+        """U(pi/3, 0, 0) * U(pi/3, 0, 0) * U(pi/3, 0, 0) -> U(pi, 0, 0)."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        for _ in range(3):
+            circuit.append(UGate(np.pi / 3, 0.0, 0.0), [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.append(UGate(np.pi, 0.0, 0.0), [qr[0]])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(target=target_rz_ry_u_noerror))
+        result = passmanager.run(circuit)
+
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_optimize_run_of_u_to_single_u_no_target(self):
+        """U(pi/3, 0, 0) * U(pi/3, 0, 0) * U(pi/3, 0, 0) -> U(pi, 0, 0)."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        for _ in range(3):
+            circuit.append(UGate(np.pi / 3, 0.0, 0.0), [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.append(UGate(np.pi, 0.0, 0.0), [qr[0]])
+
+        basis = ["u"]
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
     def test_optimize_u_to_phase_gate(self):
         """U(0, 0, pi/4) ->  p(pi/4). Basis [p, sx]."""
         qr = QuantumRegister(2, "qr")
