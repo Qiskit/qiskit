@@ -1148,7 +1148,7 @@ class TwoQubitBasisDecomposer:
 
         return U3r, U3l, U2r, U2l, U1r, U1l, U0r, U0l
 
-    @deprecate_arguments({"target": "unitary"})
+    @deprecate_arguments({"target": "unitary"}, since="0.23.0")
     def __call__(
         self,
         unitary: Union[Operator, np.ndarray],

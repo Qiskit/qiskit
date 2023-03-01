@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ListOp Operator Class """
+"""ListOp Operator Class"""
 
 from functools import reduce
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
