@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Z2Symmetries """
+"""Test Z2Symmetries"""
 
 from test.python.opflow import QiskitOpflowTestCase
 
