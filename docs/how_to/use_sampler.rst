@@ -8,6 +8,7 @@ Initialize quantum circuits
 ===========================
 
 The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` from which you want to obtain the probability distribution.
+For more details about this part check out :doc:`this guide <create_a_quantum_circuit>`.
 
 .. plot::
     :include-source:

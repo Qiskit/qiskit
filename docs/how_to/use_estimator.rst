@@ -8,6 +8,9 @@ This guide shows how to get the expected value of an observable for a given quan
 Initialize observable
 =====================
 
+The first step is to define the observable whose expected value you want to compute. This observable can be any `BaseOperator`, like the operators from :mod:`qiskit.quantum_info`.
+Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
+
 .. testcode::
 
     from qiskit.quantum_info import SparsePauliOp
@@ -17,7 +20,8 @@ Initialize observable
 Initialize quantum circuits
 ===========================
 
-The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` for which you want to obtain the expected value.
+Then you need to create the :class:`~qiskit.circuit.QuantumCircuit` for which you want to obtain the expected value.
+For more details about this part check out :doc:`this guide <create_a_quantum_circuit>`.
 
 .. plot::
     :include-source:
