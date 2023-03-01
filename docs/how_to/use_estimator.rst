@@ -38,7 +38,7 @@ The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` for whic
     qc.cx(0,1)
 
 Initialize the ``Estimator``
-==========================
+============================
 
 Then, you need to create an :class:`~qiskit.primitives.Estimator` object.
 
