@@ -168,7 +168,7 @@ class CheckDecompositions(QiskitTestCase):
         self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
         self.assertEqual(weyl1.a, weyl2.a, msg=msg_base)
         self.assertEqual(weyl1.b, weyl2.b, msg=msg_base)
-        # self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
+        self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
         maxdiff = np.max(np.abs(weyl1.K1l - weyl2.K1l))
         self.assertEqual(maxdiff, 0, msg=f"K1l matrix differs by {maxdiff}" + msg_base)
         maxdiff = np.max(np.abs(weyl1.K1r - weyl2.K1r))
