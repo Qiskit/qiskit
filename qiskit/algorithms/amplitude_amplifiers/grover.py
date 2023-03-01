@@ -196,6 +196,7 @@ class Grover(AmplitudeAmplifier):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def quantum_instance(self) -> Optional[QuantumInstance]:
         r"""Pending deprecation\; Get the quantum instance.
@@ -211,6 +212,7 @@ class Grover(AmplitudeAmplifier):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         r"""Pending deprecation\; Set quantum instance.
@@ -310,7 +312,7 @@ class Grover(AmplitudeAmplifier):
                 }
                 top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
 
-            else:
+            else:  # use of else brach instead of elif as this seperates out the deprecated logic
                 if self._quantum_instance.is_statevector:
                     qc = self.construct_circuit(amplification_problem, power, measurement=False)
                     circuit_results = self._quantum_instance.execute(qc).get_statevector()

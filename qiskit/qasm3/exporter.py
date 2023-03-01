@@ -13,6 +13,7 @@
 """QASM3 Exporter"""
 
 import collections
+import re
 import io
 import itertools
 import numbers
@@ -107,6 +108,17 @@ _RESERVED_KEYWORDS = frozenset(
         "while",
     }
 )
+
+# This probably isn't precisely the same as the OQ3 spec, but we'd need an extra dependency to fully
+# handle all Unicode character classes, and this should be close enough for users who aren't
+# actively _trying_ to break us (fingers crossed).
+_VALID_IDENTIFIER = re.compile(r"[\w][\w\d]*", flags=re.U)
+
+
+def _escape_invalid_identifier(name: str) -> str:
+    if name in _RESERVED_KEYWORDS or not _VALID_IDENTIFIER.fullmatch(name):
+        name = "_" + re.sub(r"[^\w\d]", "_", name)
+    return name
 
 
 class Exporter:
@@ -359,9 +371,9 @@ class QASM3Builder:
                     f"tried to reserve '{name}', but it is already used by '{table[name]}'"
                 )
         else:
-            name = variable.name
-            while name in table or name in _RESERVED_KEYWORDS:
-                name = f"{variable.name}__generated{next(self._counter)}"
+            name = basename = _escape_invalid_identifier(variable.name)
+            while name in table:
+                name = f"{basename}__generated{next(self._counter)}"
         identifier = ast.Identifier(name)
         table[identifier.string] = variable
         table[variable] = identifier

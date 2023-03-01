@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test AerPauliExpectation """
+"""Test AerPauliExpectation"""
 
 import itertools
 import unittest
@@ -49,7 +49,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
     def setUp(self) -> None:
         super().setUp()
         try:
-            from qiskit import Aer
+            from qiskit_aer import Aer
 
             self.seed = 97
             self.backend = Aer.get_backend("aer_simulator")

@@ -34,7 +34,8 @@ class LinearSolverResult(AlgorithmResult):
 
     @deprecate_function(
         "The LinearSolverResult class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+        "and will be removed no sooner than 3 months after the release date.",
+        since="0.22.0",
     )
     def __init__(self) -> None:
         super().__init__()
@@ -102,7 +103,8 @@ class LinearSolver(ABC):
 
     @deprecate_function(
         "The LinearSolver class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+        "and will be removed no sooner than 3 months after the release date.",
+        since="0.22.0",
     )
     def __init__(self) -> None:
         pass

@@ -10,10 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ListOp Operator Class """
+"""ListOp Operator Class"""
 
 from functools import reduce
-from numbers import Number
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
 
 import numpy as np
@@ -365,10 +364,6 @@ class ListOp(OperatorBase):
                 [op.to_matrix(massive=massive) * self.coeff for op in self.oplist], dtype=object
             )
         )
-        # Note: As ComposedOp has a combo function of inner product we can end up here not with
-        # a matrix (array) but a scalar. In which case we make a single element array of it.
-        if isinstance(mat, Number):
-            mat = [mat]
         return np.asarray(mat, dtype=complex)
 
     def to_spmatrix(self) -> Union[spmatrix, List[spmatrix]]:

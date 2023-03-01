@@ -161,12 +161,33 @@ class DAGCircuit:
         Raises:
             Exception: if the gate is of type string and params is None.
         """
+
+        def _format(operand):
+            try:
+                # Using float/complex value as a dict key is not good idea.
+                # This makes the mapping quite sensitive to the rounding error.
+                # However, the mechanism is already tied to the execution model (i.e. pulse gate)
+                # and we cannot easily update this rule.
+                # The same logic exists in QuantumCircuit.add_calibration.
+                evaluated = complex(operand)
+                if np.isreal(evaluated):
+                    evaluated = float(evaluated.real)
+                    if evaluated.is_integer():
+                        evaluated = int(evaluated)
+                return evaluated
+            except TypeError:
+                # Unassigned parameter
+                return operand
+
         if isinstance(gate, Gate):
-            self._calibrations[gate.name][
-                (tuple(qubits), tuple(float(p) for p in gate.params))
-            ] = schedule
+            params = gate.params
+            gate = gate.name
+        if params is not None:
+            params = tuple(map(_format, params))
         else:
-            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+            params = tuple()
+
+        self._calibrations[gate][(tuple(qubits), params)] = schedule
 
     def has_calibration_for(self, node):
         """Return True if the dag has a calibration defined for the node operation. In this
@@ -509,7 +530,8 @@ class DAGCircuit:
         """The DAGCircuit._copy_circuit_metadata method is deprecated as of 0.20.0. It will be removed
         no earlier than 3 months after the release date. You should use the DAGCircuit.copy_empty_like
         method instead, which acts identically.
-        """
+        """,
+        since="0.20.0",
     )
     def _copy_circuit_metadata(self):
         """DEPRECATED"""

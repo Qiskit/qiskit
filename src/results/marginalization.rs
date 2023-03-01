@@ -115,9 +115,13 @@ fn map_memory(
 }
 
 #[pyfunction(
-    return_int = "false",
-    return_hex = "false",
-    parallel_threshold = "1000"
+    signature = (
+        memory,
+        indices=None,
+        return_int=false,
+        return_hex=false,
+        parallel_threshold=1000,
+    )
 )]
 pub fn marginal_memory(
     py: Python,
