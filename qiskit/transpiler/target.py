@@ -81,6 +81,8 @@ class InstructionProperties:
     @property
     def calibration(self):
         """The pulse representation of the instruction."""
+        if self._calibration is None:
+            return None
         return self._calibration.get_schedule()
 
     @calibration.setter
@@ -203,7 +205,7 @@ class Target(Mapping):
         "_global_operations",
     )
 
-    @deprecate_arguments({"aquire_alignment": "acquire_alignment"})
+    @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
     def __init__(
         self,
         description=None,

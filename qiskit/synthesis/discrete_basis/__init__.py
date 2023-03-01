@@ -13,3 +13,4 @@
 """Discrete basis synthesis algorithms."""
 
 from .solovay_kitaev import SolovayKitaevDecomposition
+from .generate_basis_approximations import generate_basic_approximations

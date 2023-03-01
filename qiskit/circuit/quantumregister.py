@@ -61,7 +61,8 @@ class QuantumRegister(Register):
     @deprecate_function(
         "Register.qasm() is deprecated since Terra 0.23, as correct exporting to OpenQASM 2 is "
         "the responsibility of a larger exporter; it cannot safely be done on an object-by-object "
-        "basis without context. No replacement will be provided, because the premise is wrong."
+        "basis without context. No replacement will be provided, because the premise is wrong.",
+        since="0.23.0",
     )
     def qasm(self):
         """Return OPENQASM string for this register."""

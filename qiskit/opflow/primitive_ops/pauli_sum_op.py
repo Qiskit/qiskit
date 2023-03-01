@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""PauliSumOp Class """
+"""PauliSumOp Class"""
 
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
