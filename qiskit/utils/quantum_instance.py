@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Quantum Instance module """
+"""Quantum Instance module"""
 
 from typing import Optional, List, Union, Dict, Callable, Tuple
 from enum import Enum
