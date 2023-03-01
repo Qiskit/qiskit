@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017 - 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Module containing cnot circuits and cnot-phase circuit synthesize."""
-
+"""Module containing cnot circuits"""
 
 from .graysynth import graysynth, synth_cnot_count_full_pmh
 from .linear_depth_lnn import synth_cnot_depth_line_kms

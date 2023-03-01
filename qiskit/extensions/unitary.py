@@ -38,9 +38,9 @@ class UnitaryGate(Gate):
 
     Example:
 
-        We can create a unitary gate from a unitary matrix then add it
-        to a quantum circuit. The matrix can also be directly applied
-        to the quantum circuit, see :meth:`~qiskit.QuantumCircuit.unitary`.
+        We can create a unitary gate from a unitary matrix then add it to a
+        quantum circuit. The matrix can also be directly applied to the quantum
+        circuit, see :meth:`.QuantumCircuit.unitary`.
 
         .. code-block:: python
 
@@ -216,6 +216,18 @@ class UnitaryGate(Gate):
 
 def unitary(self, obj, qubits, label=None):
     """Apply unitary gate specified by ``obj`` to ``qubits``.
+
+    Args:
+        obj (matrix or Operator): unitary operator.
+        qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
+            transformation to.
+        label (str): unitary name for backend [Default: None].
+
+    Returns:
+        QuantumCircuit: The quantum circuit.
+
+    Raises:
+        ExtensionError: if input data is not an N-qubit unitary operator.
 
     Example:
 
