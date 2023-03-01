@@ -81,7 +81,6 @@ class Call(instruction.Instruction):
         """Returns the channels that this schedule uses."""
         return self.assigned_subroutine().channels
 
-    # pylint: disable=missing-return-type-doc
     @property
     def subroutine(self):
         """Return attached subroutine.
