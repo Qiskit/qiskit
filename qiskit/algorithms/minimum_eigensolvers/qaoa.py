@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The quantum approximate optimization algorithm. """
+"""The quantum approximate optimization algorithm."""
 
 from __future__ import annotations
 
