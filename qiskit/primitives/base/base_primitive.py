@@ -107,10 +107,10 @@ class BasePrimitive(ABC):
             parameter_values = [[parameter_values[parameter] for parameter in parameter_views[0]]]
         elif isinstance(parameter_values, Sequence):
             parameter_values = [
-                [vector[parameter] for parameter in parameter_view]
-                if isinstance(vector, Mapping)
-                else vector
-                for vector, parameter_view in zip(parameter_values, parameter_views)
+                [_validate_and_getitem(value, parameter) for parameter in parameter_view]
+                if isinstance(value, Mapping)
+                else value
+                for value, parameter_view in zip(parameter_values, parameter_views)
             ]
 
         # Validation
@@ -150,3 +150,9 @@ def _isreal(obj: Any) -> bool:
     """Check if object is a real number: int or float except ``±Inf`` and ``NaN``."""
     float_types = (float, np.floating)
     return _isint(obj) or isinstance(obj, float_types) and float("-Inf") < obj < float("Inf")
+
+
+def _validate_and_getitem(parameter_dict, parameter):
+    if parameter not in parameter_dict:
+        raise ValueError(f"Parameter {parameter} can not be found in {parameter_dict}.")
+    return parameter_dict[parameter]
