@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Utility functions for OperatorFlow """
+"""Utility functions for OperatorFlow"""
 
 from qiskit.opflow.operator_base import OperatorBase
 
