@@ -278,7 +278,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
-
         """Heisenberg picture evolution of a Pauli by a Clifford."""
 
         if frame == "s":
