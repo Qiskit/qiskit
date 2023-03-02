@@ -310,7 +310,8 @@ def _parse_common_args(
     backend_name = getattr(backend_config, "backend_name", None)
     backend_version = getattr(backend_config, "backend_version", None)
     qobj_header = {
-        **dict(backend_name=backend_name, backend_version=backend_version),
+        "backend_name": backend_name,
+        "backend_version": backend_version,
         **qobj_header,
     }
     qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})

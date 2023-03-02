@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test of the AdaptVQE minimum eigensolver """
+"""Test of the AdaptVQE minimum eigensolver"""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase

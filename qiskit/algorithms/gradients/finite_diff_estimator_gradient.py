@@ -19,7 +19,6 @@ from typing import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -29,8 +28,9 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
 
+from ..exceptions import AlgorithmError
+
 if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
     from typing import Literal
 else:
     from typing_extensions import Literal

@@ -1367,17 +1367,17 @@ class QuantumCircuit:
             if len(regs) == 1 and isinstance(regs[0], int):
                 # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
                 if regs[0] == 0:
-                    regs = tuple()
+                    regs = ()
                 else:
                     regs = (QuantumRegister(regs[0], "q"),)
             elif len(regs) == 2 and all(isinstance(reg, int) for reg in regs):
                 # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
                 if regs[0] == 0:
-                    qregs = tuple()
+                    qregs = ()
                 else:
                     qregs = (QuantumRegister(regs[0], "q"),)
                 if regs[1] == 0:
-                    cregs = tuple()
+                    cregs = ()
                 else:
                     cregs = (ClassicalRegister(regs[1], "c"),)
                 regs = qregs + cregs
@@ -1644,7 +1644,7 @@ class QuantumCircuit:
             "rccx",
             "rc3x",
             "c3x",
-            "c3sx",
+            "c3sx",  # This is the Qiskit gate name, but the qelib1.inc name is 'c3sqrtx'.
             "c4x",
         ]
 
@@ -1698,20 +1698,29 @@ class QuantumCircuit:
                     operation = operation.copy(name=escaped)
 
                 # decompose gate using definitions if they are not defined in OpenQASM2
-                if (
-                    operation.name not in existing_gate_names
-                    and operation not in existing_composite_circuits
-                ):
-                    if operation.name in [
-                        operation.name for operation in existing_composite_circuits
-                    ]:
-                        # append operation id to name of operation copy to make it unique
-                        operation = operation.copy(name=f"{operation.name}_{id(operation)}")
+                if operation.name not in existing_gate_names:
+                    op_qasm_name = None
+                    if operation.name == "permutation":
+                        op_qasm_name = getattr(operation, "_qasm_name", None)
+                    if op_qasm_name:
+                        operation = operation.copy(name=op_qasm_name)
 
-                    existing_composite_circuits.append(operation)
-                    _add_sub_instruction_to_existing_composite_circuits(
-                        operation, existing_gate_names, existing_composite_circuits
-                    )
+                    if operation not in existing_composite_circuits:
+                        if operation.name in [
+                            operation.name for operation in existing_composite_circuits
+                        ]:
+                            # append operation id to name of operation copy to make it unique
+                            operation = operation.copy(name=f"{operation.name}_{id(operation)}")
+
+                        existing_composite_circuits.append(operation)
+
+                        # Strictly speaking, the code below does not work for operations that
+                        # do not have the "definition" method but require a complex (recursive)
+                        # "_qasm_definition". Fortunately, right now we do not have any such operations.
+                        if getattr(operation, "definition", None) is not None:
+                            _add_sub_instruction_to_existing_composite_circuits(
+                                operation, existing_gate_names, existing_composite_circuits
+                            )
 
                 # Insert qasm representation of the original instruction
                 string_temp += "{} {};\n".format(
@@ -1752,7 +1761,7 @@ class QuantumCircuit:
         style: Optional[Union[dict, str]] = None,
         interactive: bool = False,
         plot_barriers: bool = True,
-        reverse_bits: bool = False,
+        reverse_bits: bool = None,
         justify: Optional[str] = None,
         vertical_compression: Optional[str] = "medium",
         idle_wires: bool = True,
@@ -1813,7 +1822,9 @@ class QuantumCircuit:
                 `latex_source` output type this has no effect and will be silently
                 ignored. Defaults to False.
             reverse_bits (bool): when set to True, reverse the bit order inside
-                registers for the output visualization. Defaults to False.
+                registers for the output visualization. Defaults to False unless the
+                user config file (usually ``~/.qiskit/settings.conf``) has an
+                alternative value set. For example, ``circuit_reverse_bits = True``.
             plot_barriers (bool): enable/disable drawing barriers in the output
                 circuit. Defaults to True.
             justify (string): options are ``left``, ``right`` or ``none``. If
@@ -2936,7 +2947,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
 
-        See also:
+        See Also:
             QuantumCircuit.i: the same function.
         """
         return self.i(qubit)
@@ -4607,10 +4618,33 @@ class QuantumCircuit:
         Raises:
             Exception: if the gate is of type string and params is None.
         """
+
+        def _format(operand):
+            try:
+                # Using float/complex value as a dict key is not good idea.
+                # This makes the mapping quite sensitive to the rounding error.
+                # However, the mechanism is already tied to the execution model (i.e. pulse gate)
+                # and we cannot easily update this rule.
+                # The same logic exists in DAGCircuit.add_calibration.
+                evaluated = complex(operand)
+                if np.isreal(evaluated):
+                    evaluated = float(evaluated.real)
+                    if evaluated.is_integer():
+                        evaluated = int(evaluated)
+                return evaluated
+            except TypeError:
+                # Unassigned parameter
+                return operand
+
         if isinstance(gate, Gate):
-            self._calibrations[gate.name][(tuple(qubits), tuple(gate.params))] = schedule
+            params = gate.params
+            gate = gate.name
+        if params is not None:
+            params = tuple(map(_format, params))
         else:
-            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+            params = ()
+
+        self._calibrations[gate][(tuple(qubits), params)] = schedule
 
     # Functions only for scheduled circuits
     def qubit_duration(self, *qubits: Union[Qubit, int]) -> float:

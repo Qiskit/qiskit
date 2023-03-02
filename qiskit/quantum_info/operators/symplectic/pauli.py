@@ -12,7 +12,6 @@
 """
 N-qubit Pauli Operator Class
 """
-# pylint: disable=invalid-name
 
 import re
 import warnings
@@ -491,7 +490,6 @@ class Pauli(BasePauli):
             other = Pauli(other)
         return Pauli(super().compose(other, qargs=qargs, front=front, inplace=inplace))
 
-    # pylint: disable=arguments-differ
     def dot(self, other, qargs=None, inplace=False):
         """Return the right multiplied operator self * other.
 
