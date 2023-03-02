@@ -637,16 +637,18 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         def is_supercontrolled(gate):
             try:
-                kak = TwoQubitWeylDecomposition(Operator(gate).data)
+                operator = Operator(gate)
             except QiskitError:
                 return False
+            kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.a, pi / 4) and isclose(kak.c, 0.0)
 
         def is_controlled(gate):
             try:
-                kak = TwoQubitWeylDecomposition(Operator(gate).data)
+                operator = Operator(gate)
             except QiskitError:
                 return False
+            kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.b, 0.0) and isclose(kak.c, 0.0)
 
         # possible supercontrolled decomposers (i.e. TwoQubitBasisDecomposer)
