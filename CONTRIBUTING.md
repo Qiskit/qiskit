@@ -276,19 +276,17 @@ pollute your system Python when running. Additionally, the environment that tox
 sets up matches the CI environment more closely and it runs the tests in
 parallel (resulting in much faster execution).
 
-To run tests on all installed
-supported Python versions and lint/style checks you can simply run `tox`.  At a
-minimum, you should run the lint/style checks and the tests for one version of
-Python. For example `tox -e lint && tox -epy311`. If you want to run the tests
-for a specific supported version of Python replace py311 with py37, py38, py39,
-or py310.
+To run tests on all installed supported Python versions and lint/style checks you can simply run
+`tox`.  At a minimum, you should run the lint/style checks and the tests for one version of
+Python. For example `tox -e lint && tox -epy`. If you want to run the tests for a specific supported
+version of Python replace `-epy` with `-epy37`, `-epy38`, `-epy39`, `-epy310`, or `-epy311`.
 
 If you find that tests in [`./test/python/visualization/test_circuit_drawer.py`](./test/python/visualization/test_circuit_drawer.py)
 fail you may be missing some [optional dependencies for the circuit drawer](#optional-dependencies-for-testing-the-circuit-drawer).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy311 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -298,21 +296,21 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy311 -- -n test.python.test_examples
+tox -epy -- -n test.python.test_examples
 ```
 or to run the same module by path:
 
 ```
-tox -epy311 -- -n test/python/test_examples.py
+tox -epy -- -n test/python/test_examples.py
 ```
 to run a class:
 
 ```
-tox -epy311 -- -n test.python.test_examples.TestPythonExamples
+tox -epy -- -n test.python.test_examples.TestPythonExamples
 ```
 to run a method:
 ```
-tox -epy311 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
+tox -epy -- -n test.python.test_examples.TestPythonExamples.test_all_examples
 ```
 
 Alternatively there is a makefile provided to run tests, however this
