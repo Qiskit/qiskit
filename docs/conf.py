@@ -84,8 +84,9 @@ html_css_files = []
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
 # which likely overrides the autodoc defaults.
 
-# Include type hints in both signature and parameter descriptions.
-autodoc_typehints = "both"
+# Move type hints from signatures to the parameter descriptions (except in overload cases, where
+# that's not possible).
+autodoc_typehints = "description"
 # Only add type hints from signature to description body if the parameter has documentation.  The
 # return type is always added to the description (if in the signature).
 autodoc_typehints_description_target = "documented_params"
