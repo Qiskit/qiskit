@@ -81,6 +81,8 @@ class InstructionProperties:
     @property
     def calibration(self):
         """The pulse representation of the instruction."""
+        if self._calibration is None:
+            return None
         return self._calibration.get_schedule()
 
     @calibration.setter
@@ -579,7 +581,7 @@ class Target(Mapping):
             raise KeyError(f"{qargs} not in target.")
         res = [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
         if qargs is not None:
-            res += self._global_operations.get(len(qargs), list())
+            res += self._global_operations.get(len(qargs), [])
         for op in self._gate_name_map.values():
             if inspect.isclass(op):
                 res.append(op)
@@ -896,7 +898,7 @@ class Target(Mapping):
 
         if two_q_gate is not None:
             coupling_graph = rx.PyDiGraph(multigraph=False)
-            coupling_graph.add_nodes_from(list(None for _ in range(self.num_qubits)))
+            coupling_graph.add_nodes_from([None] * self.num_qubits)
             for qargs, properties in self._gate_map[two_q_gate].items():
                 if len(qargs) != 2:
                     raise ValueError(

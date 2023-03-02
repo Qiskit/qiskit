@@ -764,7 +764,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.z(q[3:])
         result = qc.count_ops()
 
-        expected = dict([("h", 6), ("z", 3), ("y", 2), ("x", 1)])
+        expected = {"h": 6, "z": 3, "y": 2, "x": 1}
 
         self.assertIsInstance(result, dict)
         self.assertEqual(expected, result)

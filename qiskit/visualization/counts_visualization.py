@@ -302,7 +302,7 @@ def _plotting_core(
     else:
         fig = None
 
-    labels = list(sorted(functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
+    labels = sorted(functools.reduce(lambda x, y: x.union(y.keys()), data, set()))
     if number_to_keep is not None:
         labels.append("rest")
 
@@ -321,7 +321,7 @@ def _plotting_core(
                 for count in counts:
                     prev_count = combined_counts.get(count, 0)
                     combined_counts[count] = max(prev_count, counts[count])
-        labels = list(sorted(combined_counts.keys(), key=lambda key: combined_counts[key]))
+        labels = sorted(combined_counts.keys(), key=lambda key: combined_counts[key])
 
     length = len(data)
     width = 1 / (len(data) + 1)  # the width of the bars
