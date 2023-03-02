@@ -2346,6 +2346,7 @@ class QuantumCircuit:
             creg: 2/═╩══╩═
                      0  1
 
+
          Args:
              qubit: qubit/s to measure.
              cbit: classical bit/s to place the measurement in.
