@@ -131,7 +131,8 @@ class ControlledGate(Gate):
         """Set controlled gate definition with closed controls.
 
         Args:
-            excited_def: The circuit with all closed controls."""
+            excited_def: The circuit with all closed controls.
+        """
         self._definition = excited_def
 
     @property
