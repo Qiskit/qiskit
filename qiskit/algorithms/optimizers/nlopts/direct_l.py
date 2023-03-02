@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DIviding RECTangles Locally-biased optimizer. """
+"""DIviding RECTangles Locally-biased optimizer."""
 
 from .nloptimizer import NLoptOptimizer, NLoptOptimizerType
 

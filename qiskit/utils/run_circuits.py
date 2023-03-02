@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" run circuits functions """
+"""run circuits functions"""
 
 from typing import Optional, Dict, Callable, List, Union, Tuple
 import sys

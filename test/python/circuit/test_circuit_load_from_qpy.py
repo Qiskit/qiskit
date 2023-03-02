@@ -931,7 +931,7 @@ class TestLoadFromQPY(QiskitTestCase):
         class CustomSerializer(json.JSONEncoder):
             """Custom json encoder to handle CustomObject."""
 
-            def default(self, o):  # pylint: disable=invalid-name
+            def default(self, o):
                 if isinstance(o, CustomObject):
                     return {"__type__": "Custom", "value": o.string}
                 return json.JSONEncoder.default(self, o)
@@ -1076,7 +1076,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_empty_tuple_param(self):
         """Test qpy with an instruction that contains an empty tuple."""
-        inst = Instruction("empty_tuple_test", 1, 0, [tuple()])
+        inst = Instruction("empty_tuple_test", 1, 0, [()])
         qc = QuantumCircuit(1)
         qc.append(inst, [0])
         qpy_file = io.BytesIO()
