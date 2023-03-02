@@ -483,18 +483,6 @@ class CouplingTest(QiskitTestCase):
         for i in range(6):
             self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[i].graph))
 
-    def test_components_disconnected_graph_cached(self):
-        cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
-        self.assertFalse(cmap.is_connected())
-        subgraphs = cmap.components()
-        self.assertEqual(subgraphs, cmap.components())
-
-    def test_strongly_connected_components_disconnected_graph_cached(self):
-        cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
-        self.assertFalse(cmap.is_connected())
-        subgraphs = cmap.components(True)
-        self.assertEqual(subgraphs, cmap.components(True))
-
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")

@@ -44,8 +44,6 @@ class CouplingMap:
         "_qubit_list",
         "_size",
         "_is_symmetric",
-        "_strong_components",
-        "_weak_components",
     )
 
     def __init__(self, couplinglist=None, description=None):
@@ -69,8 +67,6 @@ class CouplingMap:
         # number of qubits in the graph
         self._size = None
         self._is_symmetric = None
-        self._strong_components = None
-        self._weak_components = None
 
         if couplinglist is not None:
             self.graph.extend_from_edge_list([tuple(x) for x in couplinglist])
@@ -111,8 +107,6 @@ class CouplingMap:
         self._dist_matrix = None  # invalidate
         self._qubit_list = None  # invalidate
         self._size = None  # invalidate
-        self._weak_components = None  # invalidate
-        self._strong_components = None  # invalidate
 
     def add_edge(self, src, dst):
         """
@@ -128,8 +122,6 @@ class CouplingMap:
         self.graph.add_edge(src, dst, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
-        self._weak_components = None  # invalidate
-        self._strong_components = None  # invalidate
 
     def subgraph(self, nodelist):
         """Return a CouplingMap object for a subgraph of self.
@@ -430,11 +422,6 @@ class CouplingMap:
             list: A list of :class:`~.CouplingMap` objects for each connected
                 components.
         """
-        if respect_direction and self._strong_components is not None:
-            return self._strong_components
-        if self._weak_components is not None:
-            return self._weak_components
-
         # Set payload to index
         for node in self.graph.node_indices():
             self.graph[node] = node
@@ -447,10 +434,6 @@ class CouplingMap:
             new_cmap = CouplingMap()
             new_cmap.graph = self.graph.subgraph(list(sorted(component)))
             output_list.append(new_cmap)
-        if respect_direction:
-            self._strong_components = output_list
-        else:
-            self._weak_components = output_list
         return output_list
 
     def __str__(self):
