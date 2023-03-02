@@ -17,6 +17,7 @@ contributing to terra, these are documented below.
 * [Release Notes](#release-notes)
 * [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
 * [Test](#test)
+  * [Optional dependencies for the circuit drawer](#optional-dependencies-for-testing-the-circuit-drawer).
   * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
 * [Style and Lint](#style-and-lint)
 * [Development Cycle](#development-cycle)
@@ -273,11 +274,7 @@ The easiest way to run the test suite is to use
 that it builds an isolated virtualenv for running tests. This means it does not
 pollute your system Python when running. Additionally, the environment that tox
 sets up matches the CI environment more closely and it runs the tests in
-parallel (resulting in much faster execution). In addition to the requirements
-installed by `tox` in the virtualenv, you'll need to install the LaTeX packages `xpic`,
-`qcircuit`, and `standalone`. These are typically provided in Linux distributions
-by packages of the same names prefixed by `texlive-`. For MacOS a good option is
-[MacTeX](https://www.tug.org/mactex/).
+parallel (resulting in much faster execution).
 
 To run tests on all installed
 supported Python versions and lint/style checks you can simply run `tox`.  At a
@@ -285,6 +282,9 @@ minimum, you should run the lint/style checks and the tests for one version of
 Python. For example `tox -e lint && tox -epy311`. If you want to run the tests
 for a specific supported version of Python replace py311 with py37, py38, py39,
 or py310.
+
+If you find that tests in [`./test/python/visualization/test_circuit_drawer.py`](./test/python/visualization/test_circuit_drawer.py)
+fail you may be missing some [optional dependencies for the circuit drawer](#optional-dependencies-for-testing-the-circuit-drawer).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
@@ -388,6 +388,24 @@ It is possible to provide more than one option separated with commas.
 Alternatively, the `make test_ci` target can be used instead of
 `make test` in order to run in a setup that replicates the configuration
 we used in our CI systems more closely.
+
+### Optional dependencies for testing the circuit drawer
+
+Several tests in [`./test/python/visualization/test_circuit_drawer.py`](./test/python/visualization/test_circuit_drawer.py)
+will be skipped unless the following optional dependendencies are installed on your system.
+* pdflatex, for compiling TeX source to pdf
+* [Pillow](https://pypi.org/project/Pillow/), a Python image-manipulation library
+* [pylatexenc](https://github.com/phfaist/pylatexenc), a LaTeX parser providing latex-to-unicode and unicode-to-latex conversion
+* pdftocairo, provided by the package [poppler-utils](https://pypi.org/project/poppler-utils/)
+
+Pillow and pylatexenc will be installed by `tox` in its virtual environments. You must install `pylatexenc` manually
+via `pip` and `poppler-utils` manually, for example via `pip` or your system package installer. If any of these are
+missing, then the tests of the circuit drawer will be skipped.
+
+The circuit drawer also requires the LaTeX packages `qcircuit`, `xypic`, and `standalone`. If any of
+these are missing, but all optional dependencies listed above are present, then the tests of the
+circuit drawer will run, but will fail. These LaTeX pacakges are typically provided in Linux distributions by
+packages of the same names prefixed by `texlive-`.
 
 ### Snapshot Testing for Visualizations
 
