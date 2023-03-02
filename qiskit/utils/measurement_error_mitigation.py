@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Measurement error mitigation """
+"""Measurement error mitigation"""
 
 import copy
 from typing import List, Optional, Tuple, Dict, Callable
@@ -27,8 +27,6 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
-
-# pylint: disable=invalid-name
 
 
 def get_measured_qubits(

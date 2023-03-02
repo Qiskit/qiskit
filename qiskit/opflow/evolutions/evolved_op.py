@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" EvolutionOp Class """
+"""EvolutionOp Class"""
 
 from typing import List, Optional, Set, Union, cast
 
@@ -167,7 +167,6 @@ class EvolvedOp(PrimitiveOp):
     def log_i(self, massive: bool = False) -> OperatorBase:
         return self.primitive * self.coeff
 
-    # pylint: disable=arguments-differ
     def to_instruction(self, massive: bool = False) -> Instruction:
         mat_op = self.to_matrix_op(massive=massive)
         if not isinstance(mat_op, MatrixOp):
