@@ -651,6 +651,9 @@ fn complex_phase(x: Complex64) -> f64 {
 
 #[inline]
 fn mod_2pi(angle: f64) -> f64 {
+    // f64::rem_euclid() isn't exactly the same as Python's % operator, but because
+    // the RHS here is a constant and positive it is effectively equivalent for
+    // this case
     (angle + PI).rem_euclid(2. * PI) - PI
 }
 
