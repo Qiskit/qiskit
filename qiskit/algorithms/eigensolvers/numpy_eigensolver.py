@@ -29,7 +29,6 @@ from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
-# pylint: disable=invalid-name
 
 FilterType = Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
 
@@ -120,10 +119,10 @@ class NumPyEigensolver(Eigensolver):
                     "Trying dense computation",
                     type(operator),
                 )
-            try:
-                op_matrix = operator.to_matrix()
-            except AttributeError as ex:
-                raise AlgorithmError(f"Unsupported operator type `{type(operator)}`.") from ex
+                try:
+                    op_matrix = operator.to_matrix()
+                except AttributeError as ex:
+                    raise AlgorithmError(f"Unsupported operator type `{type(operator)}`.") from ex
 
         if isinstance(op_matrix, scisparse.csr_matrix):
             # If matrix is diagonal, the elements on the diagonal are the eigenvalues. Solve by sorting.

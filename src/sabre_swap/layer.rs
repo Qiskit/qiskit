@@ -10,7 +10,9 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
+use ahash;
 use hashbrown::HashMap;
+use indexmap::IndexMap;
 use ndarray::prelude::*;
 use rustworkx_core::petgraph::prelude::*;
 
@@ -21,22 +23,10 @@ use crate::nlayout::NLayout;
 /// unsatisfied 2q predecessor, which disqualifies it from being in the front layer.
 pub struct FrontLayer {
     /// Map of the (index to the) node to the qubits it acts on.
-    nodes: HashMap<NodeIndex, [usize; 2]>,
+    nodes: IndexMap<NodeIndex, [usize; 2], ahash::RandomState>,
     /// Map of each qubit to the node that acts on it and the other qubit that node acts on, if this
     /// qubit is active (otherwise `None`).
     qubits: Vec<Option<(NodeIndex, usize)>>,
-    /// Tracking the insertion order of nodes, so iteration can always go through them in a
-    /// deterministic order.  This is important for reproducibility from a set seed - when building
-    /// up the extended set with a fixed, finite size, the iteration order through the nodes of the
-    /// front layer is important.  We need to maintain the insertion order even with removals from
-    /// the layer.
-    iteration_order: Vec<Option<NodeIndex>>,
-    /// The index of the first populated entry in the `iteration_order`.  If the iteration order is
-    /// empty, this will be 0.
-    iteration_start: usize,
-    /// The index one past the last populated entry in the `iteration_order`.  If the iteration
-    /// order is empty, this will be 0.
-    iteration_end: usize,
 }
 
 impl FrontLayer {
@@ -44,37 +34,20 @@ impl FrontLayer {
         FrontLayer {
             // This is the maximum capacity of the front layer, since each qubit must be one of a
             // pair, and can only have one gate in the layer.
-            nodes: HashMap::with_capacity(num_qubits / 2),
+            nodes: IndexMap::with_capacity_and_hasher(
+                num_qubits / 2,
+                ahash::RandomState::default(),
+            ),
             qubits: vec![None; num_qubits],
-            iteration_order: vec![None; num_qubits],
-            iteration_start: 0,
-            iteration_end: 0,
         }
     }
 
-    /// Add a node into the front layer, with the two qubits it operates on.  This usually has
-    /// constant-time complexity, except if the iteration-order buffer is full.
+    /// Add a node into the front layer, with the two qubits it operates on.
     pub fn insert(&mut self, index: NodeIndex, qubits: [usize; 2]) {
         let [a, b] = qubits;
         self.qubits[a] = Some((index, b));
         self.qubits[b] = Some((index, a));
         self.nodes.insert(index, qubits);
-
-        self.iteration_order[self.iteration_end] = Some(index);
-        self.iteration_end += 1;
-        if self.iteration_end == self.iteration_order.len() {
-            // Condense items back to the start of the vector.
-            let mut ptr = 0;
-            for i in self.iteration_start..self.iteration_end {
-                if let Some(value) = self.iteration_order[i] {
-                    self.iteration_order[i] = None;
-                    self.iteration_order[ptr] = Some(value);
-                    ptr += 1;
-                }
-            }
-            self.iteration_start = 0;
-            self.iteration_end = ptr;
-        }
     }
 
     /// Remove a node from the front layer.
@@ -82,33 +55,6 @@ impl FrontLayer {
         let [q0, q1] = self.nodes.remove(index).unwrap();
         self.qubits[q0] = None;
         self.qubits[q1] = None;
-
-        // If the element was at the start of the iteration order, advance the pointer.
-        match self.iteration_order[self.iteration_start] {
-            Some(a) if a == *index => {
-                self.iteration_order[self.iteration_start] = None;
-                if self.iteration_start + 1 == self.iteration_end {
-                    self.iteration_start = 0;
-                    self.iteration_end = 0;
-                }
-                while self.iteration_start < self.iteration_end
-                    && self.iteration_order[self.iteration_start].is_none()
-                {
-                    self.iteration_start += 1;
-                }
-            }
-            _ => (),
-        }
-        // Search through and remove the element.  We leave a gap and preserve the insertion order.
-        for i in (self.iteration_start + 1)..self.iteration_end {
-            match self.iteration_order[i] {
-                Some(a) if a == *index => {
-                    self.iteration_order[i] = None;
-                    break;
-                }
-                _ => (),
-            }
-        }
     }
 
     /// Query whether a qubit has an active node.
@@ -189,24 +135,17 @@ impl FrontLayer {
 
     /// Iterator over the nodes and the pair of qubits they act on.
     pub fn iter(&self) -> impl Iterator<Item = (&NodeIndex, &[usize; 2])> {
-        (&self.iteration_order)[self.iteration_start..self.iteration_end]
-            .iter()
-            .filter_map(move |node_opt| node_opt.as_ref().map(|node| (node, &self.nodes[node])))
+        self.nodes.iter()
     }
 
     /// Iterator over the nodes.
     pub fn iter_nodes(&self) -> impl Iterator<Item = &NodeIndex> {
-        (&self.iteration_order)[self.iteration_start..self.iteration_end]
-            .iter()
-            .filter_map(|node_opt| node_opt.as_ref())
+        self.nodes.keys()
     }
 
     /// Iterator over the qubits that have active nodes on them.
     pub fn iter_active(&self) -> impl Iterator<Item = &usize> {
-        (&self.iteration_order)[self.iteration_start..self.iteration_end]
-            .iter()
-            .filter_map(move |node_opt| node_opt.as_ref().map(|node| &self.nodes[node]))
-            .flatten()
+        self.nodes.values().flatten()
     }
 }
 

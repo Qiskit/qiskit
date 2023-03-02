@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """A gate to implement time-evolution of operators."""
+
+from __future__ import annotations
 
 from typing import Union, Optional
 import numpy as np
@@ -109,7 +111,6 @@ class PauliEvolutionGate(Gate):
 
         num_qubits = operator[0].num_qubits if isinstance(operator, list) else operator.num_qubits
         super().__init__(name="PauliEvolution", num_qubits=num_qubits, params=[time], label=label)
-
         self.operator = operator
         self.synthesis = synthesis
 
@@ -170,6 +171,8 @@ def _to_sparse_pauli_op(operator):
 
     if any(np.iscomplex(sparse_pauli.coeffs)):
         raise ValueError("Operator contains complex coefficients, which are not supported.")
+    if any(isinstance(coeff, ParameterExpression) for coeff in sparse_pauli.coeffs):
+        raise ValueError("Operator contains ParameterExpression, which are not supported.")
 
     return sparse_pauli
 

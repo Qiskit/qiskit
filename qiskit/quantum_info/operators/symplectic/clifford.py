@@ -86,8 +86,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     :class:`~qiskit.circuit.library.XGate`, :class:`~qiskit.circuit.library.YGate`,
     :class:`~qiskit.circuit.library.ZGate`, :class:`~qiskit.circuit.library.HGate`,
     :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
+    :class:`~qiskit.circuit.library.SXGate`, :class:`~qiskit.circuit.library.SXdgGate`,
     :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
-    :class:`~qiskit.circuit.library.SwapGate`.
+    :class:`~qiskit.circuit.library.CYGate`, :class:`~qiskit.circuit.library.DXGate`,
+    :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.iSwapGate`,
+    :class:`~qiskit.circuit.library.ECRGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this

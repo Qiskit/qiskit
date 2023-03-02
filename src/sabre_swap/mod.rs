@@ -80,14 +80,7 @@ fn obtain_swaps<'a>(
             .filter_map(move |&neighbor| {
                 let virtual_neighbor = layout.phys_to_logic[neighbor];
                 if virtual_neighbor > v || !front_layer.is_active(virtual_neighbor) {
-                    // This normalisation line is only necessary to ensure equal output in the
-                    // swap-sorting stage later to the previous version of this algorithm; it can be
-                    // removed when we break that matching.  It isn't needed for determinism.
-                    if v < virtual_neighbor {
-                        Some([v, virtual_neighbor])
-                    } else {
-                        Some([virtual_neighbor, v])
-                    }
+                    Some([v, virtual_neighbor])
                 } else {
                     None
                 }
@@ -563,9 +556,6 @@ fn choose_best_swap(
         } else if (score - min_score).abs() < BEST_EPSILON {
             best_swaps.push(swap);
         }
-    }
-    if best_swaps.len() > 1 {
-        best_swaps.sort_unstable();
     }
     *best_swaps.choose(rng).unwrap()
 }

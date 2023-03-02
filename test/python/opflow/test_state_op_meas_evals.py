@@ -13,7 +13,7 @@
 # pylint: disable=no-name-in-module
 
 
-""" Test Operator construction, including OpPrimitives and singletons. """
+"""Test Operator construction, including OpPrimitives and singletons."""
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
