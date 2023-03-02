@@ -35,7 +35,6 @@ class CircuitGradient(ConverterBase):
     DerivativeBase - uses classical techniques to differentiate operator flow data structures
     """
 
-    # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
         self,

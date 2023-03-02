@@ -1312,7 +1312,7 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_transpile_preserves_circuit_metadata(self, optimization_level):
         """Verify that transpile preserves circuit metadata in the output."""
-        circuit = QuantumCircuit(2, metadata=dict(experiment_id="1234", execution_number=4))
+        circuit = QuantumCircuit(2, metadata={"experiment_id": "1234", "execution_number": 4})
         circuit.h(0)
         circuit.cx(0, 1)
 
@@ -1897,5 +1897,5 @@ class TestTranspileParallel(QiskitTestCase):
         qcs_cal_added = pm.run(qc_copied)
         ref_cal = backend.target["sx"][(0,)].calibration
         for qc_test in qcs_cal_added:
-            added_cal = qc_test.calibrations["sx"][((0,), tuple())]
+            added_cal = qc_test.calibrations["sx"][((0,), ())]
             self.assertEqual(added_cal, ref_cal)
