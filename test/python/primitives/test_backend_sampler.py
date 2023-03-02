@@ -12,11 +12,11 @@
 
 """Tests for BackendSampler."""
 
-import logging
 import math
 import unittest
+from unittest.mock import patch
 from test import combine
-from test.python.transpiler._dummy_passes import DummyAP
+from test.python.transpiler._dummy_passes import DummyTP
 
 import numpy as np
 from ddt import ddt
@@ -31,19 +31,6 @@ from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
-
-logger = "LocalLogger"
-
-
-class LogPass(DummyAP):
-    """A dummy analysis pass that logs when executed"""
-
-    def __init__(self, message):
-        super().__init__()
-        self.message = message
-
-    def run(self, dag):
-        logging.getLogger(logger).info(self.message)
 
 
 @ddt
@@ -377,22 +364,19 @@ class TestBackendSampler(QiskitTestCase):
     def test_bound_pass_manager(self):
         """Test bound pass manager."""
 
-        bound_counter = LogPass("bound_pass_manager")
-        bound_pass = PassManager(bound_counter)
+        dummy_pass = DummyTP()
 
-        sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+        with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+            bound_pass = PassManager(dummy_pass)
+            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = sampler.run(self._circuit[0]).result()
+            self.assertTrue(mock_pass.call_count == 1)
 
-        with self.subTest("Test single circuit"):
-            with self.assertLogs(logger, level="INFO") as cm:
-                _ = sampler.run(self._circuit[0]).result()
-                expected = ["INFO:LocalLogger:bound_pass_manager"]
-                self.assertEqual(cm.output, expected)
-
-        with self.subTest("Test circuit batch"):
-            with self.assertLogs(logger, level="INFO") as cm:
-                _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
-                expected = ["INFO:LocalLogger:bound_pass_manager"] * 2
-                self.assertEqual(cm.output, expected)
+        with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+            bound_pass = PassManager(dummy_pass)
+            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
+            self.assertTrue(mock_pass.call_count == 2)
 
 
 if __name__ == "__main__":
