@@ -1,8 +1,6 @@
 ---
 fixes:
   - |
-    Fixed an issue with QPY deserialization via the :func:`.qpy.load` function
-    of the :class:`~.StatePreparation`.
-    Previously, a QPY file that contained this gate would error
-    when trying to load the file.
-    Fixed `#8297 <https://github.com/Qiskit/qiskit-terra/issues/8297>`.
+    QPY (using :func:`.qpy.load`) will now correctly deserialize :class:`~.StatePreparation`
+    instructions. Previously, QPY would error when attempting to load a file containing one.
+    Fixed `#8297 <https://github.com/Qiskit/qiskit-terra/issues/8297>`__.
