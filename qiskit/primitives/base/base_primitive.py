@@ -107,10 +107,10 @@ class BasePrimitive(ABC):
             parameter_values = [[parameter_values[parameter] for parameter in parameter_views[0]]]
         elif isinstance(parameter_values, Sequence):
             parameter_values = [
-                [_validate_and_getitem(value, parameter) for parameter in parameter_view]
+                [_validate_and_getitem(value, parameter, i) for parameter in parameter_view]
                 if isinstance(value, Mapping)
                 else value
-                for value, parameter_view in zip(parameter_values, parameter_views)
+                for i, (value, parameter_view) in enumerate(zip(parameter_values, parameter_views))
             ]
 
         # Validation
@@ -152,7 +152,9 @@ def _isreal(obj: Any) -> bool:
     return _isint(obj) or isinstance(obj, float_types) and float("-Inf") < obj < float("Inf")
 
 
-def _validate_and_getitem(parameter_dict, parameter):
+def _validate_and_getitem(parameter_dict, parameter, i):
     if parameter not in parameter_dict:
-        raise ValueError(f"Parameter {parameter} can not be found in {parameter_dict}.")
+        raise ValueError(
+            f"Parameter {parameter} in {i}-th circuit can not be found in {parameter_dict}."
+        )
     return parameter_dict[parameter]
