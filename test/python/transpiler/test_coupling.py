@@ -457,21 +457,43 @@ class CouplingTest(QiskitTestCase):
         )
         np.testing.assert_array_equal(expected, distance_matrix)
 
-    def test_get_component_subgraphs_connected_graph(self):
+    def test_components_connected_graph(self):
         cmap = CouplingMap.from_line(5)
         self.assertTrue(cmap.is_connected())
-        subgraphs = cmap.get_component_subgraphs()
+        subgraphs = cmap.components()
         self.assertEqual(len(subgraphs), 1)
         self.assertTrue(rx.is_isomorphic(cmap.graph, subgraphs[0].graph))
 
-    def test_get_component_subgraphs_disconnected_graph(self):
+    def test_components_disconnected_graph(self):
         cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
         self.assertFalse(cmap.is_connected())
-        subgraphs = cmap.get_component_subgraphs()
+        subgraphs = cmap.components()
         self.assertEqual(len(subgraphs), 2)
         expected_subgraph = CouplingMap([[0, 1], [1, 2]])
         self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[0].graph))
         self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[1].graph))
+
+    def test_strongly_connected_components_disconnected_graph(self):
+        cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
+        self.assertFalse(cmap.is_connected())
+        subgraphs = cmap.components(True)
+        self.assertEqual(len(subgraphs), 6)
+        expected_subgraph = CouplingMap()
+        expected_subgraph.add_physical_qubit(0)
+        for i in range(6):
+            self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[i].graph))
+
+    def test_components_disconnected_graph_cached(self):
+        cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
+        self.assertFalse(cmap.is_connected())
+        subgraphs = cmap.components()
+        self.assertEqual(subgraphs, cmap.components())
+
+    def test_strongly_connected_components_disconnected_graph_cached(self):
+        cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
+        self.assertFalse(cmap.is_connected())
+        subgraphs = cmap.components(True)
+        self.assertEqual(subgraphs, cmap.components(True))
 
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
