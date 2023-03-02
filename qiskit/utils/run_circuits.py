@@ -65,8 +65,7 @@ def find_regs_by_name(
 def _combine_result_objects(results: List[Result]) -> Result:
     """Temporary helper function.
 
-    TODO:
-        This function would be removed after Terra supports job with infinite circuits.
+    TODO: This function would be removed after Terra supports job with infinite circuits.
     """
     if len(results) == 1:
         return results[0]
