@@ -20,7 +20,7 @@ from test.python.transpiler._dummy_passes import DummyAP
 import numpy as np
 from ddt import ddt
 
-from qiskit.circuit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendEstimator, EstimatorResult
 from qiskit.providers import JobV1
