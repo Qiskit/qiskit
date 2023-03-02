@@ -243,6 +243,6 @@ def _possible_decomposers(basis_set):
         for euler_basis_name, gates in euler_basis_gates.items():
             if set(gates).issubset(basis_set):
                 decomposers.append(euler_basis_name)
-        if "U3" in basis_set and "U321" in basis_set:
+        if "U3" in decomposers and "U321" in decomposers:
             decomposers.remove("U3")
     return decomposers
