@@ -2271,7 +2271,7 @@ class QuantumCircuit:
         classical wire.
 
         In this example, a qubit is measured and the result of that measurement is stored in the
-        classical bit (usually expressed in diagrams as a double line)::
+        classical bit (usually expressed in diagrams as a double line):
 
         .. code-block::
 
