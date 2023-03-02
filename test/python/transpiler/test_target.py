@@ -1266,6 +1266,13 @@ Instructions:
         inst_map = target.instruction_schedule_map()
         self.assertFalse(inst_map.has_custom_gate())
 
+    def test_get_empty_target_calibration(self):
+        target = Target()
+        properties = {(0,): InstructionProperties(duration=100, error=0.1)}
+        target.add_instruction(XGate(), properties)
+
+        self.assertIsNone(target["x"][(0,)].calibration)
+
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):
     def setUp(self):

@@ -258,7 +258,6 @@ class TestSPSA(QiskitAlgorithmsTestCase):
 
     def test_point_sample(self):
         """Test point sample function in QNSPSA"""
-        # pylint: disable=invalid-name
 
         def fidelity(x, _y):
             x = np.asarray(x)
