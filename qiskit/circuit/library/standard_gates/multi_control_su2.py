@@ -34,12 +34,7 @@ class MCSU2Gate(Gate):
     the number of qubits is odd, or 20n - 42 CNOTs if the number of qubits is even.
     """
 
-    def __init__(
-        self,
-        su2_matrix,
-        num_ctrl_qubits,
-        ctrl_state: str=None
-    ):
+    def __init__(self, su2_matrix, num_ctrl_qubits, ctrl_state: str = None):
         _check_su2(su2_matrix)
 
         self.su2_matrix = su2_matrix
@@ -48,16 +43,17 @@ class MCSU2Gate(Gate):
 
         super().__init__("mcsu2", self.num_ctrl_qubits + 1, [], "mcsu2")
 
-
     def _define(self):
         controls = QuantumRegister(self.num_ctrl_qubits)
         target = QuantumRegister(1)
         self.definition = QuantumCircuit(controls, target)
 
-        is_main_diag_real = isclose(self.su2_matrix[0, 0].imag, 0.0) and \
-                            isclose(self.su2_matrix[1, 1].imag, 0.0)
-        is_secondary_diag_real = isclose(self.su2_matrix[0,1].imag, 0.0) and \
-                                 isclose(self.su2_matrix[1,0].imag, 0.0)
+        is_main_diag_real = isclose(self.su2_matrix[0, 0].imag, 0.0) and isclose(
+            self.su2_matrix[1, 1].imag, 0.0
+        )
+        is_secondary_diag_real = isclose(self.su2_matrix[0, 1].imag, 0.0) and isclose(
+            self.su2_matrix[1, 0].imag, 0.0
+        )
 
         if not is_main_diag_real and not is_secondary_diag_real:
             # U = V D V^-1, where the entries of the diagonal D are the eigenvalues
@@ -73,12 +69,7 @@ class MCSU2Gate(Gate):
                 x_vecs, z_vecs, controls, target, self.ctrl_state, inverse=True
             )
             self.linear_depth_mcv(
-                x_vals,
-                z_vals,
-                controls,
-                target,
-                self.ctrl_state,
-                general_su2_optimization=True
+                x_vals, z_vals, controls, target, self.ctrl_state, general_su2_optimization=True
             )
             self.half_linear_depth_mcv(x_vecs, z_vecs, controls, target, self.ctrl_state)
 
@@ -93,20 +84,18 @@ class MCSU2Gate(Gate):
             if not is_secondary_diag_real:
                 self.definition.h(target)
 
-
     @staticmethod
     def _get_x_z(su2):
-        is_secondary_diag_real = isclose(su2[0,1].imag, 0.0) and isclose(su2[1,0].imag, 0.0)
+        is_secondary_diag_real = isclose(su2[0, 1].imag, 0.0) and isclose(su2[1, 0].imag, 0.0)
 
         if is_secondary_diag_real:
-            x = su2[0,1]
-            z = su2[1,1]
+            x = su2[0, 1]
+            z = su2[1, 1]
         else:
-            x = -su2[0,1].real
-            z = su2[1,1] - su2[0,1].imag * 1.0j
+            x = -su2[0, 1].real
+            z = su2[1, 1] - su2[0, 1].imag * 1.0j
 
         return x, z
-
 
     def linear_depth_mcv(
         self,
@@ -114,34 +103,23 @@ class MCSU2Gate(Gate):
         z,
         controls: Union[QuantumRegister, List[Qubit]],
         target: Qubit,
-        ctrl_state: str=None,
-        general_su2_optimization=False
+        ctrl_state: str = None,
+        general_su2_optimization=False,
     ):
-        alpha_r = np.sqrt(
-            (np.sqrt((z.real + 1.) / 2.) + 1.) / 2.
-        )
-        alpha_i = z.imag / (2. * np.sqrt(
-                (z.real + 1.) * (np.sqrt((z.real + 1.) / 2.) + 1.)
-            )
-        )
-        alpha = alpha_r + 1.j * alpha_i
-        beta = x / (2. * np.sqrt(
-                (z.real + 1.) * (np.sqrt((z.real + 1.) / 2.) + 1.)
-            )
-        )
+        alpha_r = np.sqrt((np.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
+        alpha_i = z.imag / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        alpha = alpha_r + 1.0j * alpha_i
+        beta = x / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
 
-        s_op = np.array([
-            [alpha, -np.conj(beta)],
-            [beta, np.conj(alpha)]
-        ])
+        s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
 
         # S gate definition
         s_gate = QuantumCircuit(1)
         s_gate.unitary(s_op, 0)
 
         num_ctrl = len(controls)
-        k_1 = int(np.ceil(num_ctrl / 2.))
-        k_2 = int(np.floor(num_ctrl / 2.))
+        k_1 = int(np.ceil(num_ctrl / 2.0))
+        k_2 = int(np.floor(num_ctrl / 2.0))
 
         ctrl_state_k_1 = None
         ctrl_state_k_2 = None
@@ -152,11 +130,9 @@ class MCSU2Gate(Gate):
 
         if not general_su2_optimization:
             mcx_1 = MCXVChain(
-                num_ctrl_qubits=k_1,
-                dirty_ancillas=True,
-                ctrl_state=ctrl_state_k_1
+                num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1
             ).definition
-            self.definition.append(mcx_1, controls[:k_1] + [target] + controls[k_1:2*k_1 - 2])
+            self.definition.append(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
         self.definition.append(s_gate, [target])
 
         mcx_2 = MCXVChain(
@@ -166,27 +142,21 @@ class MCSU2Gate(Gate):
             # action_only=general_su2_optimization
         ).definition
         self.definition.append(
-            mcx_2.inverse(),
-            controls[k_1:] + [target] + controls[k_1 - k_2 + 2:k_1]
+            mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1]
         )
         self.definition.append(s_gate.inverse(), [target])
 
         mcx_3 = MCXVChain(
-            num_ctrl_qubits=k_1,
-            dirty_ancillas=True,
-            ctrl_state=ctrl_state_k_1
+            num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1
         ).definition
-        self.definition.append(mcx_3, controls[:k_1] + [target] + controls[k_1:2*k_1 - 2])
+        self.definition.append(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
         self.definition.append(s_gate, [target])
 
         mcx_4 = MCXVChain(
-            num_ctrl_qubits=k_2,
-            dirty_ancillas=True,
-            ctrl_state=ctrl_state_k_2
+            num_ctrl_qubits=k_2, dirty_ancillas=True, ctrl_state=ctrl_state_k_2
         ).definition
-        self.definition.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2:k_1])
+        self.definition.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
         self.definition.append(s_gate.inverse(), [target])
-
 
     def half_linear_depth_mcv(
         self,
@@ -194,19 +164,16 @@ class MCSU2Gate(Gate):
         z,
         controls: Union[QuantumRegister, List[Qubit]],
         target: Qubit,
-        ctrl_state: str=None,
-        inverse: bool=False
+        ctrl_state: str = None,
+        inverse: bool = False,
     ):
-        alpha_r = np.sqrt((z.real + 1.) / 2.)
-        alpha_i = z.imag / np.sqrt(2*(z.real + 1.))
-        alpha = alpha_r + 1.j * alpha_i
+        alpha_r = np.sqrt((z.real + 1.0) / 2.0)
+        alpha_i = z.imag / np.sqrt(2 * (z.real + 1.0))
+        alpha = alpha_r + 1.0j * alpha_i
 
-        beta = x / np.sqrt(2*(z.real + 1.))
+        beta = x / np.sqrt(2 * (z.real + 1.0))
 
-        s_op = np.array([
-            [alpha, -np.conj(beta)],
-            [beta, np.conj(alpha)]
-        ])
+        s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
 
         # S gate definition
         s_gate = QuantumCircuit(1)
@@ -214,11 +181,11 @@ class MCSU2Gate(Gate):
 
         # Hadamard equivalent definition
         h_gate = QuantumCircuit(1)
-        h_gate.unitary(np.array([[-1, 1], [1, 1]]) * 1/np.sqrt(2), 0)
+        h_gate.unitary(np.array([[-1, 1], [1, 1]]) * 1 / np.sqrt(2), 0)
 
         num_ctrl = len(controls)
-        k_1 = int(np.ceil(num_ctrl / 2.))
-        k_2 = int(np.floor(num_ctrl / 2.))
+        k_1 = int(np.ceil(num_ctrl / 2.0))
+        k_2 = int(np.floor(num_ctrl / 2.0))
 
         ctrl_state_k_1 = None
         ctrl_state_k_2 = None
@@ -237,7 +204,7 @@ class MCSU2Gate(Gate):
                 ctrl_state=ctrl_state_k_2,
                 # action_only=True
             ).definition
-            self.definition.append(mcx_2, controls[k_1:] + [target] + controls[k_1 - k_2 + 2:k_1])
+            self.definition.append(mcx_2, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
 
             self.definition.append(s_gate.inverse(), [target])
 
@@ -245,21 +212,17 @@ class MCSU2Gate(Gate):
 
         else:
             mcx_1 = MCXVChain(
-                num_ctrl_qubits=k_1,
-                dirty_ancillas=True,
-                ctrl_state=ctrl_state_k_1
+                num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1
             ).definition
-            self.definition.append(mcx_1, controls[:k_1] + [target] + controls[k_1:2*k_1 - 2])
+            self.definition.append(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
             self.definition.append(h_gate, [target])
 
             self.definition.append(s_gate, [target])
 
             mcx_2 = MCXVChain(
-                num_ctrl_qubits=k_2,
-                dirty_ancillas=True,
-                ctrl_state=ctrl_state_k_2
+                num_ctrl_qubits=k_2, dirty_ancillas=True, ctrl_state=ctrl_state_k_2
             ).definition
-            self.definition.append(mcx_2, controls[k_1:] + [target] + controls[k_1 - k_2 + 2:k_1])
+            self.definition.append(mcx_2, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
             self.definition.append(s_gate.inverse(), [target])
 
             self.definition.h(target)
