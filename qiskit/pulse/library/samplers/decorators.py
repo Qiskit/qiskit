@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-doc
 # ruff: noqa: D405
 
 """Sampler decorator module for sampling of continuous pulses to discrete pulses to be

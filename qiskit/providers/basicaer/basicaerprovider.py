@@ -59,7 +59,6 @@ class BasicAerProvider(ProviderV1):
         return super().get_backend(name=name, **kwargs)
 
     def backends(self, name=None, filters=None, **kwargs):
-        # pylint: disable=arguments-differ
         backends = self._backends.values()
 
         # Special handling of the `name` parameter, to support alias resolution

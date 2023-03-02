@@ -1039,7 +1039,6 @@ class StabilizerTable(PauliTable, AdjointMixin):
             array: if sparse=False.
             csr_matrix: if sparse=True.
         """
-        # pylint: disable=arguments-differ
         mat = PauliTable._to_matrix(pauli, sparse=sparse, real_valued=True)
         if phase:
             mat *= -1

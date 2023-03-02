@@ -87,7 +87,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
-    # pylint: disable=arguments-differ
     def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the composition of Paulis.
 

@@ -39,7 +39,7 @@ from qiskit.providers.fake_provider import FakeOurense
 from qiskit.tools import parallel_map
 
 
-def raise_if_parameter_table_invalid(circuit):  # pylint: disable=invalid-name
+def raise_if_parameter_table_invalid(circuit):
     """Validates the internal consistency of a ParameterTable and its
     containing QuantumCircuit. Intended for use in testing.
 

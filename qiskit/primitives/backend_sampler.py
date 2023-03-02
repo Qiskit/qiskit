@@ -79,7 +79,7 @@ class BackendSampler(BaseSampler):
     def __new__(  # pylint: disable=signature-differs
         cls,
         backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
+        **kwargs,
     ):
         self = super().__new__(cls)
         return self
