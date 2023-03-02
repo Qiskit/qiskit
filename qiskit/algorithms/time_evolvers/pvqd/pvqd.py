@@ -216,7 +216,6 @@ class PVQD(RealTimeEvolver):
         dt: float,
         current_parameters: np.ndarray,
     ) -> tuple[Callable[[np.ndarray], float], Callable[[np.ndarray], np.ndarray]] | None:
-
         """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
         Args:

@@ -50,7 +50,7 @@ def _get_backend_provider(backend):
 
 
 def has_ibmq():
-    """Check if IBMQ is installed"""
+    """Check if IBMQ is installed."""
     if not _PROVIDER_CHECK.checked_ibmq:
         try:
             from qiskit.providers.ibmq import IBMQFactory
@@ -67,7 +67,7 @@ def has_ibmq():
 
 
 def has_aer():
-    """check if Aer is installed"""
+    """Check if Aer is installed."""
     if not _PROVIDER_CHECK.checked_aer:
         try:
             from qiskit.providers.aer import AerProvider
