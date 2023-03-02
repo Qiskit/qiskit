@@ -289,7 +289,7 @@ fn circuit_psx_gen<F, P, X>(
 where
     F: FnMut(&mut OneQubitGateSequence),
     P: FnMut(&mut OneQubitGateSequence, f64),
-    X: FnMut(&mut OneQubitGateSequence),
+    X: FnOnce(&mut OneQubitGateSequence),
 {
     let mut phi = phi;
     let mut lam = lam;
@@ -338,7 +338,7 @@ where
     // emit circuit
     pfun(&mut circuit, lam);
     match xpifun {
-        Some(mut xpifun) if mod_2pi(theta).abs() < atol => xpifun(&mut circuit),
+        Some(xpifun) if mod_2pi(theta).abs() < atol => xpifun(&mut circuit),
         _ => {
             xfun(&mut circuit);
             pfun(&mut circuit, theta);
@@ -426,7 +426,7 @@ pub fn generate_circuit(
                 atol,
                 fnz,
                 fnx,
-                None::<Box<dyn FnMut(&mut OneQubitGateSequence)>>,
+                None::<Box<dyn FnOnce(&mut OneQubitGateSequence)>>,
             )
         }
         "ZSX" => {
@@ -456,7 +456,7 @@ pub fn generate_circuit(
                 atol,
                 fnz,
                 fnx,
-                None::<Box<dyn FnMut(&mut OneQubitGateSequence)>>,
+                None::<Box<dyn FnOnce(&mut OneQubitGateSequence)>>,
             )
         }
         "U1X" => {
@@ -486,7 +486,7 @@ pub fn generate_circuit(
                 atol,
                 fnz,
                 fnx,
-                None::<Box<dyn FnMut(&mut OneQubitGateSequence)>>,
+                None::<Box<dyn FnOnce(&mut OneQubitGateSequence)>>,
             )
         }
         "ZSXX" => {
