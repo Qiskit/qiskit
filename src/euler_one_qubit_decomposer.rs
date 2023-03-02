@@ -119,9 +119,9 @@ impl OneQubitGateSequence {
                     Err(PyIndexError::new_err(format!("Invalid index, {idx}")))
                 } else if idx < 0 {
                     let len = self.gates.len();
-                    Ok(self.gates[len - idx.unsigned_abs()].clone().into_py(py))
+                    Ok(self.gates[len - idx.unsigned_abs()].to_object(py))
                 } else {
-                    Ok(self.gates[idx as usize].clone().into_py(py))
+                    Ok(self.gates[idx as usize].to_object(py))
                 }
             }
         }
