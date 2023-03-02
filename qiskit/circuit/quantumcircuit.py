@@ -2268,10 +2268,10 @@ class QuantumCircuit:
         """Measure quantum bit (qubit) into classical bit (cbit).
 
         When a qubit is measured, its state collapses to a classical bit and copied to a
-        classical wire:
+        classical wire.
 
         In this example, a qubit is measured and the result of that measurement is stored in the
-        classical bit (usually expressed as a double line)
+        classical bit (usually expressed in diagrams as a double line)::
 
         .. code-block::
 
@@ -2326,8 +2326,8 @@ class QuantumCircuit:
              c: 2/═╩══╩═
                    0  1
 
-        Instead of lists, you can use :class:`~.QuantumRegister`s and :class:`~.ClassicalRegister`s
-        under the same logic.
+        Instead of lists, you can use :class:`~qiskit.circuit.QuantumRegister` and
+        :class:`~qiskit.circuit.ClassicalRegister` under the same logic.
 
         .. code-block::
 
