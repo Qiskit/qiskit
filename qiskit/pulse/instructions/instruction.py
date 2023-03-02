@@ -32,7 +32,7 @@ from qiskit.utils import optionals as _optionals
 from qiskit.utils.deprecation import deprecate_function
 
 
-# pylint: disable=missing-return-doc,bad-docstring-quotes
+# pylint: disable=bad-docstring-quotes
 
 
 class Instruction(ABC):

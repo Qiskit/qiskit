@@ -1367,17 +1367,17 @@ class QuantumCircuit:
             if len(regs) == 1 and isinstance(regs[0], int):
                 # QuantumCircuit with anonymous quantum wires e.g. QuantumCircuit(2)
                 if regs[0] == 0:
-                    regs = tuple()
+                    regs = ()
                 else:
                     regs = (QuantumRegister(regs[0], "q"),)
             elif len(regs) == 2 and all(isinstance(reg, int) for reg in regs):
                 # QuantumCircuit with anonymous wires e.g. QuantumCircuit(2, 3)
                 if regs[0] == 0:
-                    qregs = tuple()
+                    qregs = ()
                 else:
                     qregs = (QuantumRegister(regs[0], "q"),)
                 if regs[1] == 0:
-                    cregs = tuple()
+                    cregs = ()
                 else:
                     cregs = (ClassicalRegister(regs[1], "c"),)
                 regs = qregs + cregs
@@ -4642,7 +4642,7 @@ class QuantumCircuit:
         if params is not None:
             params = tuple(map(_format, params))
         else:
-            params = tuple()
+            params = ()
 
         self._calibrations[gate][(tuple(qubits), params)] = schedule
 

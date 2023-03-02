@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=attribute-defined-outside-init,invalid-name,missing-type-doc
-# pylint: disable=unused-argument,broad-except,bad-staticmethod-argument
-# pylint: disable=inconsistent-return-statements
+# pylint: disable=invalid-name
 
 """Base TestCases for the unit tests.
 
