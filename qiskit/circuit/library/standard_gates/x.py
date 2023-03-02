@@ -1409,8 +1409,8 @@ class MCXVChain(MCXGate):
         duration=None,
         unit="dt",
         _base_label=None,
-        relative_phase: bool = False,
-        action_only: bool = False,
+        relative_phase: bool = False, # pylint: disable=unused-argument
+        action_only: bool = False, # pylint: disable=unused-argument
     ):
         """Create a new MCX instance.
 
@@ -1451,6 +1451,8 @@ class MCXVChain(MCXGate):
         self._dirty_ancillas = dirty_ancillas
         self._relative_phase = relative_phase
         self._action_only = action_only
+        super().__init__(num_ctrl_qubits, label=label, ctrl_state=ctrl_state, _name="mcx_vchain")
+
 
 
     def inverse(self, annotated: bool = False):
@@ -1496,7 +1498,7 @@ class MCXVChain(MCXGate):
         if self._dirty_ancillas:
             if self.num_ctrl_qubits < 3:
                 definition.append(
-                    (MCXGate(self.num_ctrl_qubits, mode="noancilla"), [*q_controls, q_target], [])
+                    (MCXGate(self.num_ctrl_qubits), [*q_controls, q_target], [])
                 )
             elif not self._relative_phase and self.num_ctrl_qubits == 3:
                 definition.append((C3XGate(), [*q_controls, q_target], []))
