@@ -68,9 +68,8 @@ class UnrollForLoops(TransformationPass):
         """Checks if a circuit contains ``continue``s or ``break``s. Conditional bodies are inspected."""
         for inst in circuit.data:
             operation = inst.operation
-            for type_ in [ContinueLoopOp, BreakLoopOp]:
-                if isinstance(operation, type_):
-                    return True
+            if isinstance(operation, (ContinueLoopOp, BreakLoopOp)):
+                return True
             if isinstance(operation, IfElseOp):
                 for block in operation.params:
                     if UnrollForLoops.body_contains_continue_or_break(block):
