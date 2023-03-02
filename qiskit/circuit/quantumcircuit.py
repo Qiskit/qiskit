@@ -2290,7 +2290,7 @@ class QuantumCircuit:
              c: 1/══════╩═
                         0
 
-        It is possible to call ``measure`` with lists of qubits and cbits of the same size::
+        It is possible to call ``measure`` with lists of qubits and cbits of the same size:
 
         .. code-block::
 
