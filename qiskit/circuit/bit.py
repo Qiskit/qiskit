@@ -56,7 +56,7 @@ class Bit:
     def register(self):
         """Get the register of an old-style bit.
 
-        .. deprecated:: Qiskit Terra 0.17
+        .. deprecated:: 0.17
             Use :meth:`.QuantumCircuit.find_bit` instead.
 
         In modern Qiskit Terra (version 0.17+), bits are the fundamental object and registers are
@@ -81,7 +81,7 @@ class Bit:
     def index(self):
         """Get the index of an old-style bit in the register that owns it.
 
-        .. deprecated:: Qiskit Terra 0.17
+        .. deprecated:: 0.17
             Use :meth:`.QuantumCircuit.find_bit` instead.
 
         In modern Qiskit Terra (version 0.17+), bits are the fundamental object and registers are
