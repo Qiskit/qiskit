@@ -2308,7 +2308,7 @@ class QuantumCircuit:
              c: 2/═╩══╩═
                    0  1
 
-        It is also possible to do a one-to-many readout::
+        It is also possible to do a one-to-many readout:
 
         .. code-block::
 
