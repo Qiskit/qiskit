@@ -19,9 +19,9 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
+from typing import List
 import warnings
 
-import numpy as np
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
 
@@ -175,8 +175,6 @@ class CouplingMap:
         those or want to pre-generate it.
         """
         if self._dist_matrix is None:
-            if not self.is_connected():
-                raise CouplingError("coupling graph not connected")
             self._dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
 
     def distance(self, physical_qubit1, physical_qubit2):
@@ -197,7 +195,10 @@ class CouplingMap:
         if physical_qubit2 >= self.size():
             raise CouplingError("%s not in coupling graph" % physical_qubit2)
         self.compute_distance_matrix()
-        return int(self._dist_matrix[physical_qubit1, physical_qubit2])
+        res = int(self._dist_matrix[physical_qubit1, physical_qubit2])
+        if res == 0:
+            raise CouplingError(f"No path from {physical_qubit1} to {physical_qubit2}")
+        return res
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
@@ -268,9 +269,6 @@ class CouplingMap:
         Raises:
             CouplingError: Reduced coupling map must be connected.
         """
-        from scipy.sparse import coo_matrix, csgraph
-
-        reduced_qubits = len(mapping)
         inv_map = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
             inv_map[val] = idx
@@ -280,16 +278,6 @@ class CouplingMap:
         for edge in self.get_edges():
             if edge[0] in mapping and edge[1] in mapping:
                 reduced_cmap.append([inv_map[edge[0]], inv_map[edge[1]]])
-
-        # Verify coupling_map is connected
-        rows = np.array([edge[0] for edge in reduced_cmap], dtype=int)
-        cols = np.array([edge[1] for edge in reduced_cmap], dtype=int)
-        data = np.ones_like(rows)
-
-        mat = coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
-
-        if csgraph.connected_components(mat)[0] != 1:
-            raise CouplingError("coupling_map must be connected.")
 
         return CouplingMap(reduced_cmap)
 
@@ -402,6 +390,45 @@ class CouplingMap:
     def largest_connected_component(self):
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
+
+    def get_component_subgraphs(self, respect_direction: bool = False) -> List["CouplingMap"]:
+        """Separate a CouplingMap into subgraph Coupling Maps for each connected component.
+
+        This method will return a list of :class:`~.CouplingMap` objects for each connected
+        component in this :class:`~.CouplingMap`. The data payload of each node in the
+        :attr:`~.CouplingMap.graph` attribute will contain the qubit number in the original
+        graph. This will enables mapping the qubit index in a component subgraph to
+        the original qubit in the combined :class:`~.CouplingMap`. For example::
+
+            from qiskit.transpiler import CouplingMap
+
+            cmap = CouplingMap([[0, 1], [1, 2], [2, 0], [3, 4], [4, 5], [5, 3]])
+            component_cmaps = cmap.get_component_subgraphs()
+            print(component_cmaps[1].graph[0])
+
+        will print ``3`` as index ``0`` in the second component is qubit 3 in the original cmap.
+
+        Args:
+            respect_direction: If set to ``True`` the connected components will be strongly connected
+
+        Returns:
+            list: A list of :class:`~.CouplingMap` objects for each connected
+                components.
+        """
+
+        # Set payload to index
+        for node in self.graph.node_indices():
+            self.graph[node] = node
+        if not respect_direction:
+            components = rx.weakly_connected_components(self.graph)
+        else:
+            components = rx.strongly_connected_components(self.graph)
+        output_list = []
+        for component in components:
+            new_cmap = CouplingMap()
+            new_cmap.graph = self.graph.subgraph(list(sorted(component)))
+            output_list.append(new_cmap)
+        return output_list
 
     def __str__(self):
         """Return a string representation of the coupling graph."""

@@ -79,6 +79,11 @@ class DenseLayout(AnalysisPass):
             raise TranspilerError(
                 "A coupling_map or target with constrained qargs is necessary to run the pass."
             )
+        if not self.coupling_map.is_connected():
+            raise TranspilerError(
+                "Coupling Map is disjoint, this pass can't be used with a disconnected coupling "
+                "map."
+            )
         num_dag_qubits = len(dag.qubits)
         if num_dag_qubits > self.coupling_map.size():
             raise TranspilerError("Number of qubits greater than device.")

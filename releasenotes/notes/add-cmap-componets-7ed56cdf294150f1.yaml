@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Added support to the :class:`~.CouplingMap` object to have a disjoint
+    connectivity. Previously, a :class:`~.CouplingMap` could only be
+    constructed if the graph was connected. This will enable using
+    :class:`~.CouplingMap` to represent hardware with disjoint qubits.
+  - |
+    Added a new method :meth:`.CouplingMap.get_component_subgraphs` which
+    is used to get a list of :class:`~.CouplingMap` component subgraphs for
+    a disjoint :class:`~.CouplingMap`. If the :class:`~.CouplingMap` object
+    is connected this will just return a single :class:`~.CouplingMap`
+    equivalent to the original.

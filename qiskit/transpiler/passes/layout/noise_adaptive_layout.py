@@ -211,6 +211,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
 
     def run(self, dag):
         """Run the NoiseAdaptiveLayout pass on `dag`."""
+        if not self.coupling_map.is_connected():
+            raise TranspilerError(
+                "Coupling Map is disjoint, this pass can't be used with a disconnected coupling "
+                "map."
+            )
         self.swap_graph = rx.PyDiGraph()
         self.cx_reliability = {}
         self.readout_reliability = {}

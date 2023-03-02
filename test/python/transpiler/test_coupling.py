@@ -14,6 +14,9 @@
 
 import unittest
 
+import numpy as np
+import rustworkx as rx
+
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.providers.fake_provider import FakeRueschlikon
@@ -100,14 +103,6 @@ class CouplingTest(QiskitTestCase):
         out = coupling_map.reduce([12, 11, 10, 9]).get_edges()
         ans = [(1, 2), (3, 2), (0, 1)]
         self.assertEqual(set(out), set(ans))
-
-    def test_failed_reduced_map(self):
-        """Generate a bad disconnected reduced map"""
-        fake = FakeRueschlikon()
-        cmap = fake.configuration().coupling_map
-        coupling_map = CouplingMap(cmap)
-        with self.assertRaises(CouplingError):
-            coupling_map.reduce([12, 11, 10, 3])
 
     def test_symmetric_small_true(self):
         coupling_list = [[0, 1], [1, 0]]
@@ -447,6 +442,36 @@ class CouplingTest(QiskitTestCase):
         coupling = CouplingMap.from_line(3)
         expected = [(0, 1), (1, 0), (1, 2), (2, 1)]
         self.assertEqual(sorted(coupling), expected)
+
+    def test_disjoint_coupling_map(self):
+        cmap = CouplingMap([[0, 1], [1, 0], [2, 3], [3, 2]])
+        self.assertFalse(cmap.is_connected())
+        distance_matrix = cmap.distance_matrix
+        expected = np.array(
+            [
+                [0, 1, 0, 0],
+                [1, 0, 0, 0],
+                [0, 0, 0, 1],
+                [0, 0, 1, 0],
+            ]
+        )
+        np.testing.assert_array_equal(expected, distance_matrix)
+
+    def test_get_component_subgraphs_connected_graph(self):
+        cmap = CouplingMap.from_line(5)
+        self.assertTrue(cmap.is_connected())
+        subgraphs = cmap.get_component_subgraphs()
+        self.assertEqual(len(subgraphs), 1)
+        self.assertTrue(rx.is_isomorphic(cmap.graph, subgraphs[0].graph))
+
+    def test_get_component_subgraphs_disconnected_graph(self):
+        cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
+        self.assertFalse(cmap.is_connected())
+        subgraphs = cmap.get_component_subgraphs()
+        self.assertEqual(len(subgraphs), 2)
+        expected_subgraph = CouplingMap([[0, 1], [1, 2]])
+        self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[0].graph))
+        self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[1].graph))
 
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
