@@ -17,7 +17,7 @@ import unittest
 
 from ddt import ddt, data
 
-import retworkx as rx
+import rustworkx as rx
 from numpy import pi
 
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGInNode, DAGOutNode
@@ -304,7 +304,7 @@ class TestDagWireRemoval(QiskitTestCase):
             ``clbits`` before the comparison."""
         if excluding is None:
             excluding = set()
-        self.assertEqual(self.dag.clbits, list(b for b in clbits if b not in excluding))
+        self.assertEqual(self.dag.clbits, [b for b in clbits if b not in excluding])
 
     def test_remove_idle_creg(self):
         """Removing an idle classical register removes just the register."""
@@ -1427,26 +1427,6 @@ class TestDagEquivalence(QiskitTestCase):
         dag2 = circuit_to_dag(circ2)
 
         self.assertNotEqual(self.dag1, dag2)
-
-    def test_dag_from_networkx(self):
-        """Test DAG from networkx creates an expected DAGCircuit object."""
-        from copy import deepcopy
-        from collections import OrderedDict
-
-        with self.assertWarns(DeprecationWarning):
-            nx_graph = self.dag1.to_networkx()
-        with self.assertWarns(DeprecationWarning):
-            from_nx_dag = DAGCircuit.from_networkx(nx_graph)
-
-        # to_/from_networkx does not preserve Registers or bit indexing,
-        # so remove them from reference DAG.
-        dag = deepcopy(self.dag1)
-        dag.qregs = OrderedDict()
-        dag.cregs = OrderedDict()
-        dag.qubits = from_nx_dag.qubits
-        dag.clbits = from_nx_dag.clbits
-
-        self.assertEqual(dag, from_nx_dag)
 
     def test_node_params_equal_unequal(self):
         """Test node params are equal or unequal."""

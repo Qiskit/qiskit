@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.circuit.quantumcircuit import _qasm_escape_gate_name
+from qiskit.circuit.quantumcircuit import _qasm_escape_name
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -38,9 +38,9 @@ class UnitaryGate(Gate):
 
     Example:
 
-        We can create a unitary gate from a unitary matrix then add it
-        to a quantum circuit. The matrix can also be directly applied
-        to the quantum circuit, see :meth:`~qiskit.QuantumCircuit.unitary`.
+        We can create a unitary gate from a unitary matrix then add it to a
+        quantum circuit. The matrix can also be directly applied to the quantum
+        circuit, see :meth:`.QuantumCircuit.unitary`.
 
         .. code-block:: python
 
@@ -178,7 +178,7 @@ class UnitaryGate(Gate):
 
         # give this unitary a name
         self._qasm_name = (
-            _qasm_escape_gate_name(self.label) if self.label else "unitary" + str(id(self))
+            _qasm_escape_name(self.label, "gate_") if self.label else "unitary" + str(id(self))
         )
 
         qubit_to_qasm = {bit: f"p{i}" for i, bit in enumerate(self.definition.qubits)}
@@ -216,6 +216,18 @@ class UnitaryGate(Gate):
 
 def unitary(self, obj, qubits, label=None):
     """Apply unitary gate specified by ``obj`` to ``qubits``.
+
+    Args:
+        obj (matrix or Operator): unitary operator.
+        qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
+            transformation to.
+        label (str): unitary name for backend [Default: None].
+
+    Returns:
+        QuantumCircuit: The quantum circuit.
+
+    Raises:
+        ExtensionError: if input data is not an N-qubit unitary operator.
 
     Example:
 

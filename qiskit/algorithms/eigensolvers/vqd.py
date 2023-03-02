@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,11 +24,12 @@ from typing import Any
 
 import numpy as np
 
+from qiskit.algorithms.state_fidelities import BaseStateFidelity
 from qiskit.circuit import QuantumCircuit
-from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
-from qiskit.algorithms.state_fidelities import BaseStateFidelity
+from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info import SparsePauliOp
 
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, Minimizer, OptimizerResult
@@ -176,12 +177,12 @@ class VQD(VariationalAlgorithm, Eigensolver):
                 # try to set the number of qubits on the ansatz, if possible
                 try:
                     self.ansatz.num_qubits = operator.num_qubits
-                except AttributeError as ex:
+                except AttributeError as exc:
                     raise AlgorithmError(
                         "The number of qubits of the ansatz does not match the "
                         "operator, and the ansatz does not allow setting the "
                         "number of qubits using `num_qubits`."
-                    ) from ex
+                    ) from exc
 
     @classmethod
     def supports_aux_operators(cls) -> bool:
@@ -192,7 +193,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQDResult:
-
         super().compute_eigenvalues(operator, aux_operators)
 
         # this sets the size of the ansatz, so it must be called before the initial point
@@ -205,7 +205,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         # We need to handle the array entries being zero or Optional i.e. having value None
         if aux_operators:
-            zero_op = PauliSumOp.from_list([("I" * self.ansatz.num_qubits, 0)])
+            zero_op = SparsePauliOp.from_list([("I" * self.ansatz.num_qubits, 0)])
 
             # Convert the None and zero values when aux_operators is a list.
             # Drop None and convert zero values when aux_operators is a dict.
@@ -226,16 +226,19 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         if self.betas is None:
             if isinstance(operator, PauliSumOp):
-                upper_bound = abs(operator.coeff) * sum(
-                    abs(operation.coeff) for operation in operator
-                )
-                betas = [upper_bound * 10] * (self.k)
-                logger.info("beta autoevaluated to %s", betas[0])
-            else:
+                operator = operator.coeff * operator.primitive
+
+            try:
+                upper_bound = sum(np.abs(operator.coeffs))
+
+            except Exception as exc:
                 raise NotImplementedError(
-                    r"Beta autoevaluation is only supported for operators"
-                    f"of type PauliSumOp, found {type(operator)}."
-                )
+                    r"Beta autoevaluation is not supported for operators"
+                    f"of type {type(operator)}."
+                ) from exc
+
+            betas = [upper_bound * 10] * (self.k)
+            logger.info("beta autoevaluated to %s", betas[0])
         else:
             betas = self.betas
 
@@ -249,7 +252,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         prev_states = []
 
         for step in range(1, self.k + 1):
-
             # update list of optimal circuits
             if step > 1:
                 prev_states.append(self.ansatz.bind_parameters(result.optimal_points[-1]))
@@ -263,9 +265,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             # TODO: add gradient support after FidelityGradients are implemented
             if callable(self.optimizer):
-                opt_result = self.optimizer(  # pylint: disable=not-callable
-                    fun=energy_evaluation, x0=initial_point, bounds=bounds
-                )
+                opt_result = self.optimizer(fun=energy_evaluation, x0=initial_point, bounds=bounds)
             else:
                 # we always want to submit as many estimations per job as possible for minimal
                 # overhead on the hardware
@@ -334,6 +334,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         Args:
             step: level of energy being calculated. 0 for ground, 1 for first excited state...
             operator: The operator whose energy to evaluate.
+            betas: Beta parameters in the VQD paper.
             prev_states: List of optimal circuits from previous rounds of optimization.
 
         Returns:
@@ -359,32 +360,42 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self._check_operator_ansatz(operator)
 
         def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
+            # handle broadcasting: ensure parameters is of shape [array, array, ...]
+            if len(parameters.shape) == 1:
+                parameters = np.reshape(parameters, (-1, num_parameters))
+            batch_size = len(parameters)
+
+            estimator_job = self.estimator.run(
+                batch_size * [self.ansatz], batch_size * [operator], parameters
+            )
+
+            total_cost = np.zeros(batch_size)
+
+            if step > 1:
+                # compute overlap cost
+                batched_prev_states = [state for state in prev_states for _ in range(batch_size)]
+                fidelity_job = self.fidelity.run(
+                    batch_size * [self.ansatz] * (step - 1),
+                    batched_prev_states,
+                    np.tile(parameters, (step - 1, 1)),
+                )
+                costs = fidelity_job.result().fidelities
+
+                costs = np.reshape(costs, (step - 1, -1))
+                for state, cost in enumerate(costs):
+                    total_cost += np.real(betas[state] * cost)
 
             try:
-                estimator_job = self.estimator.run(
-                    circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
-                )
                 estimator_result = estimator_job.result()
-                values = estimator_result.values
 
             except Exception as exc:
                 raise AlgorithmError("The primitive job to evaluate the energy failed!") from exc
 
-            if step > 1:
-                # Compute overlap cost
-                fidelity_job = self.fidelity.run(
-                    [self.ansatz] * (step - 1),
-                    prev_states,
-                    [parameters] * (step - 1),
-                )
-                costs = fidelity_job.result().fidelities
-
-                for (state, cost) in zip(range(step - 1), costs):
-                    values += np.real(betas[state] * cost)
+            values = estimator_result.values + total_cost
 
             if self.callback is not None:
                 metadata = estimator_result.metadata
-                for params, value, meta in zip([parameters], values, metadata):
+                for params, value, meta in zip(parameters, values, metadata):
                     self._eval_count += 1
                     self.callback(self._eval_count, params, value, meta, step)
             else:
@@ -396,7 +407,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @staticmethod
     def _build_vqd_result() -> VQDResult:
-
         result = VQDResult()
         result.optimal_points = []
         result.optimal_parameters = []
@@ -410,7 +420,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @staticmethod
     def _update_vqd_result(result, opt_result, eval_time, ansatz) -> VQDResult:
-
         result.optimal_points.append(opt_result.x)
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
         result.optimal_values.append(opt_result.fun)

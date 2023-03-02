@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Translates gates to a target basis using a given equivalence library."""
 
@@ -21,17 +20,17 @@ import logging
 from itertools import zip_longest
 from collections import defaultdict
 
-import retworkx
+import rustworkx
 
 from qiskit.circuit import Gate, ParameterVector, QuantumRegister, ControlFlowOp, QuantumCircuit
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.converters import circuit_to_dag, dag_to_circuit
-from qiskit.circuit.equivalence import Key
+from qiskit.circuit.equivalence import Key, NodeData
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+    from functools import singledispatchmethod
 else:
     from singledispatchmethod import singledispatchmethod
 
@@ -99,7 +98,7 @@ class BasisTranslator(TransformationPass):
         self._target_basis = target_basis
         self._target = target
         self._non_global_operations = None
-        self._qargs_with_non_global_operation = {}  # pylint: disable=invalid-name
+        self._qargs_with_non_global_operation = {}
         if target is not None:
             self._non_global_operations = self._target.get_non_global_operation_names()
             self._qargs_with_non_global_operation = defaultdict(set)
@@ -364,23 +363,30 @@ class BasisTranslator(TransformationPass):
 
 
 class StopIfBasisRewritable(Exception):
-    """Custom exception that signals `retworkx.dijkstra_search` to stop."""
+    """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
-    """Handles events emitted during `retworkx.dijkstra_search`."""
+class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
+    """Handles events emitted during `rustworkx.dijkstra_search`."""
 
-    def __init__(self, graph, source_basis, target_basis, num_gates_for_rule):
+    def __init__(self, graph, source_basis, target_basis):
         self.graph = graph
         self.target_basis = set(target_basis)
         self._source_gates_remain = set(source_basis)
-        self._num_gates_remain_for_rule = dict(num_gates_for_rule)
+        self._num_gates_remain_for_rule = {}
+        save_index = -1
+        for edata in self.graph.edges():
+            if save_index == edata.index:
+                continue
+            self._num_gates_remain_for_rule[edata.index] = edata.num_gates
+            save_index = edata.index
+
         self._basis_transforms = []
-        self._predecessors = dict()
-        self._opt_cost_map = dict()
+        self._predecessors = {}
+        self._opt_cost_map = {}
 
     def discover_vertex(self, v, score):
-        gate = self.graph[v]
+        gate = self.graph[v].key
         self._source_gates_remain.discard(gate)
         self._opt_cost_map[gate] = score
         rule = self._predecessors.get(gate, None)
@@ -406,22 +412,21 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):  # pylint: disable=no-
         if edata is None:
             return
 
-        index = edata["index"]
-        self._num_gates_remain_for_rule[index] -= 1
+        self._num_gates_remain_for_rule[edata.index] -= 1
 
-        target = self.graph[target]
+        target = self.graph[target].key
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
-        if self._num_gates_remain_for_rule[index] > 0 or target in self.target_basis:
-            raise retworkx.visit.PruneSearch  # pylint: disable=no-member
+        if self._num_gates_remain_for_rule[edata.index] > 0 or target in self.target_basis:
+            raise rustworkx.visit.PruneSearch
 
     def edge_relaxed(self, edge):
         _, target, edata = edge
         if edata is not None:
-            gate = self.graph[target]
-            self._predecessors[gate] = edata["rule"]
+            gate = self.graph[target].key
+            self._predecessors[gate] = edata.rule
 
-    def edge_cost(self, edge):
+    def edge_cost(self, edge_data):
         """Returns the cost of an edge.
 
         This function computes the cost of this edge rule by summing
@@ -430,19 +435,17 @@ class BasisSearchVisitor(retworkx.visit.DijkstraVisitor):  # pylint: disable=no-
         will later add it.
         """
 
-        if edge is None:
+        if edge_data is None:
             # the target of the edge is a gate in the target basis,
             # so we return a default value of 1.
             return 1
 
         cost_tot = 0
-        rule = edge["rule"]
-        for instruction in rule.circuit:
+        for instruction in edge_data.rule.circuit:
             key = Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
             cost_tot += self._opt_cost_map[key]
 
-        source = edge["source"]
-        return cost_tot - self._opt_cost_map[source]
+        return cost_tot - self._opt_cost_map[edge_data.source]
 
     @property
     def basis_transforms(self):
@@ -477,62 +480,33 @@ def _basis_search(equiv_lib, source_basis, target_basis):
     if not source_basis:
         return []
 
-    all_gates_in_lib = set()
-
-    graph = retworkx.PyDiGraph()
-    nodes_to_indices = dict()
-    num_gates_for_rule = dict()
-
-    def lazy_setdefault(key):
-        if key not in nodes_to_indices:
-            nodes_to_indices[key] = graph.add_node(key)
-        return nodes_to_indices[key]
-
-    rcounter = 0  # running sum of the number of equivalence rules in the library.
-    for key in equiv_lib._get_all_keys():
-        target = lazy_setdefault(key)
-        all_gates_in_lib.add(key)
-        for equiv in equiv_lib._get_equivalences(key):
-            sources = {
-                Key(name=instruction.operation.name, num_qubits=len(instruction.qubits))
-                for instruction in equiv.circuit
-            }
-            all_gates_in_lib |= sources
-            edges = [
-                (
-                    lazy_setdefault(source),
-                    target,
-                    {"index": rcounter, "rule": equiv, "source": source},
-                )
-                for source in sources
-            ]
-
-            num_gates_for_rule[rcounter] = len(sources)
-            graph.add_edges_from(edges)
-            rcounter += 1
-
     # This is only neccessary since gates in target basis are currently reported by
     # their names and we need to have in addition the number of qubits they act on.
-    target_basis_keys = [
-        key
-        for gate in target_basis
-        for key in filter(lambda key, name=gate: key.name == name, all_gates_in_lib)
-    ]
+    target_basis_keys = [key for key in equiv_lib.keys() if key.name in target_basis]
 
-    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys, num_gates_for_rule)
+    graph = equiv_lib.graph
+    vis = BasisSearchVisitor(graph, source_basis, target_basis_keys)
+
     # we add a dummy node and connect it with gates in the target basis.
     # we'll start the search from this dummy node.
-    dummy = graph.add_node("dummy starting node")
-    graph.add_edges_from_no_data([(dummy, nodes_to_indices[key]) for key in target_basis_keys])
-    rtn = None
-    try:
-        retworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
-    except StopIfBasisRewritable:
-        rtn = vis.basis_transforms
+    dummy = graph.add_node(NodeData(key="key", equivs=[("dummy starting node", 0)]))
 
-        logger.debug("Transformation path:")
-        for gate_name, gate_num_qubits, params, equiv in rtn:
-            logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
+    try:
+        graph.add_edges_from_no_data(
+            [(dummy, equiv_lib.node_index(key)) for key in target_basis_keys]
+        )
+        rtn = None
+        try:
+            rustworkx.digraph_dijkstra_search(graph, [dummy], vis.edge_cost, vis)
+        except StopIfBasisRewritable:
+            rtn = vis.basis_transforms
+
+            logger.debug("Transformation path:")
+            for gate_name, gate_num_qubits, params, equiv in rtn:
+                logger.debug("%s/%s => %s\n%s", gate_name, gate_num_qubits, params, equiv)
+    finally:
+        # Remove dummy node in order to return graph to original state
+        graph.remove_node(dummy)
 
     return rtn
 

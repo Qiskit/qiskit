@@ -29,9 +29,7 @@ class AbsoluteAverage(LinearSystemObservable):
     For a vector :math:`x=(x_1,...,x_N)`, the absolute average is defined as
     :math:`\abs{\frac{1}{N}\sum_{i=1}^{N}x_i}`.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             import warnings
             import numpy as np
@@ -65,7 +63,8 @@ class AbsoluteAverage(LinearSystemObservable):
 
     @deprecate_function(
         "The AbsoluteAverage class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+        "and will be removed no sooner than 3 months after the release date.",
+        since="0.22.0",
     )
     def __init__(self) -> None:
         super().__init__()

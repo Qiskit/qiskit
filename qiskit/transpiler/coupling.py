@@ -22,8 +22,8 @@ onto a device with this coupling.
 import warnings
 
 import numpy as np
-import retworkx as rx
-from retworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
+import rustworkx as rx
+from rustworkx.visualization import graphviz_draw
 
 from qiskit.transpiler.exceptions import CouplingError
 
@@ -234,10 +234,13 @@ class CouplingMap:
         """
         Convert uni-directional edges into bi-directional.
         """
+        # TODO: replace with PyDiGraph.make_symmetric() after rustworkx
+        # 0.13.0 is released.
         edges = self.get_edges()
+        edge_set = set(edges)
         for src, dest in edges:
-            if (dest, src) not in edges:
-                self.add_edge(dest, src)
+            if (dest, src) not in edge_set:
+                self.graph.add_edge(dest, src, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
@@ -412,8 +415,8 @@ class CouplingMap:
     def draw(self):
         """Draws the coupling map.
 
-        This function calls the :func:`~retworkx.visualization.graphviz_draw` function from the
-        ``retworkx`` package to draw the :class:`CouplingMap` object.
+        This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
+        ``rustworkx`` package to draw the :class:`CouplingMap` object.
 
         Returns:
             PIL.Image: Drawn coupling map.

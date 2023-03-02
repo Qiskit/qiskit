@@ -18,7 +18,7 @@ import numpy as np
 from qiskit import ClassicalRegister
 from qiskit.test import QiskitTestCase
 
-from qiskit.circuit import QuantumRegister, Parameter
+from qiskit.circuit import QuantumRegister, Parameter, Qubit
 from qiskit.circuit import CommutationChecker
 from qiskit.circuit.library import (
     ZGate,
@@ -356,6 +356,12 @@ class TestCommutationChecker(QiskitTestCase):
         # These commute.
         res = comm_checker.commute(lf3, [0, 1, 2], [], lf4, [0, 1, 2], [])
         self.assertTrue(res)
+
+    def test_c7x_gate(self):
+        """Test wide gate works correctly."""
+        qargs = [Qubit() for _ in [None] * 8]
+        res = CommutationChecker().commute(XGate(), qargs[:1], [], XGate().control(7), qargs, [])
+        self.assertFalse(res)
 
 
 if __name__ == "__main__":

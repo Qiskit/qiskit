@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Fenced objects are wraps for raising TranspilerError when they are modified."""
+"""Fenced objects are wraps for raising TranspilerError when they are modified."""
 
 from .exceptions import TranspilerError
 

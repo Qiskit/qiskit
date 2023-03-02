@@ -56,7 +56,7 @@ def _run_circuits(
         metadata.append(circ.metadata)
         circ.metadata = {}
     if isinstance(backend, BackendV1):
-        max_circuits = backend.configuration().max_experiments
+        max_circuits = getattr(backend.configuration(), "max_experiments", None)
     elif isinstance(backend, BackendV2):
         max_circuits = backend.max_circuits
     if max_circuits:
@@ -97,7 +97,6 @@ class BackendEstimator(BaseEstimator):
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    # pylint: disable=missing-raises-doc
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
@@ -142,10 +141,13 @@ class BackendEstimator(BaseEstimator):
     def __new__(  # pylint: disable=signature-differs
         cls,
         backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
+        **kwargs,
     ):
         self = super().__new__(cls)
         return self
+
+    def __getnewargs__(self):
+        return (self._backend,)
 
     @property
     def transpile_options(self) -> Options:
@@ -389,7 +391,10 @@ class BackendEstimator(BaseEstimator):
         if self._bound_pass_manager is None:
             return circuits
         else:
-            return self._bound_pass_manager.run(circuits)
+            output = self._bound_pass_manager.run(circuits)
+            if not isinstance(output, list):
+                output = [output]
+            return output
 
 
 def _paulis2inds(paulis: PauliList) -> list[int]:

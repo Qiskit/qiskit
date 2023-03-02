@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,32 +14,23 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 """
 
 from __future__ import annotations
-from enum import Enum
 
 from typing import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
-from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
-from qiskit.primitives.utils import init_observable
+from qiskit.primitives.utils import init_observable, _circuit_key
 from qiskit.providers import Options
-from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import _make_lin_comb_gradient_circuit
+from .utils import DerivativeType, _make_lin_comb_gradient_circuit, _make_lin_comb_observables
 
-
-class DerivativeType(Enum):
-    """Types of derivative."""
-
-    REAL = "real"
-    IMAG = "imag"
-    COMPLEX = "complex"
+from ..exceptions import AlgorithmError
 
 
 class LinCombEstimatorGradient(BaseEstimatorGradient):
@@ -50,6 +41,29 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
     [1] Schuld et al., Evaluating analytic gradients on quantum hardware, 2018
     `arXiv:1811.11184 <https://arxiv.org/pdf/1811.11184.pdf>`_
     """
+
+    SUPPORTED_GATES = [
+        "rx",
+        "ry",
+        "rz",
+        "rzx",
+        "rzz",
+        "ryy",
+        "rxx",
+        "cx",
+        "cy",
+        "cz",
+        "ccx",
+        "swap",
+        "iswap",
+        "h",
+        "t",
+        "s",
+        "sdg",
+        "x",
+        "y",
+        "z",
+    ]
 
     def __init__(
         self,
@@ -64,130 +78,118 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``. Defaults to
                 ``DerivativeType.REAL``.
 
-                    - ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
-                    - ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[(dω⟨ψ(ω)|)O(θ)|ψ(ω)〉]`.
-                    - ``DerivativeType.COMPLEX`` computes :math:`2 (dω⟨ψ(ω)|)O(θ)|ψ(ω)〉`.
+                    - ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.COMPLEX`` computes :math:`2 ⟨ψ(ω)|O(θ)|dω ψ(ω)〉`.
 
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > gradient's
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting.
         """
-        self._gradient_circuits = {}
+        self._lin_comb_cache = {}
+        super().__init__(estimator, options, derivative_type=derivative_type)
+
+    @BaseEstimatorGradient.derivative_type.setter
+    def derivative_type(self, derivative_type: DerivativeType) -> None:
+        """Set the derivative type."""
         self._derivative_type = derivative_type
-        super().__init__(estimator, options)
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
-        for circuit, observable, parameter_values_, parameters_ in zip(
-            circuits, observables, parameter_values, parameters
+        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
+            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
+        )
+        results = self._run_unique(
+            g_circuits, observables, g_parameter_values, g_parameter_sets, **options
+        )
+        return self._postprocess(results, circuits, parameter_values, parameter_sets)
+
+    def _run_unique(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[Sequence[float]],
+        parameter_sets: Sequence[set[Parameter]],
+        **options,
+    ) -> EstimatorGradientResult:
+        """Compute the estimator gradients on the given circuits."""
+        job_circuits, job_observables, job_param_values, metadata = [], [], [], []
+        all_n = []
+        for circuit, observable, parameter_values_, parameter_set in zip(
+            circuits, observables, parameter_values, parameter_sets
         ):
-            # Make the observable as :class:`~qiskit.quantum_info.SparsePauliOp`.
-            observable = init_observable(observable)
-            # a set of parameters to be differentiated
-            if parameters_ is None:
-                param_set = set(circuit.parameters)
-            else:
-                param_set = set(parameters_)
-
-            meta = {"parameters": [p for p in circuit.parameters if p in param_set]}
-            meta["derivative_type"] = self._derivative_type
-            metadata_.append(meta)
-
-            # if derivative_type is DerivativeType.COMPLEX, sum the real and imaginary parts later
-            if self._derivative_type == DerivativeType.REAL:
-                op1 = SparsePauliOp.from_list([("Z", 1)])
-            elif self._derivative_type == DerivativeType.IMAG:
-                op1 = SparsePauliOp.from_list([("Y", -1)])
-            elif self._derivative_type == DerivativeType.COMPLEX:
-                op1 = SparsePauliOp.from_list([("Z", 1)])
-                op2 = SparsePauliOp.from_list([("Y", -1)])
-            else:
-                raise ValueError(f"Derivative type {self._derivative_type} is not supported.")
-
-            observable_1 = observable.expand(op1)
-
-            gradient_circuits_ = self._gradient_circuits.get(id(circuit))
-            if gradient_circuits_ is None:
-                gradient_circuits_ = _make_lin_comb_gradient_circuit(circuit)
-                self._gradient_circuits[id(circuit)] = gradient_circuits_
-
-            # only compute the gradients for parameters in the parameter set
-            gradient_circuits, result_indices, coeffs = [], [], []
-            result_idx = 0
-            for i, param in enumerate(circuit.parameters):
-                if param in param_set:
-                    gradient_circuits.extend(
-                        grad.gradient_circuit for grad in gradient_circuits_[param]
-                    )
-
-                    result_indices.extend(result_idx for _ in gradient_circuits_[param])
-                    result_idx += 1
-                    for grad_data in gradient_circuits_[param]:
-                        coeff = grad_data.coeff
-                        # if the parameter is a parameter expression, we need to substitute
-                        if isinstance(coeff, ParameterExpression):
-                            local_map = {
-                                p: parameter_values_[circuit.parameters.data.index(p)]
-                                for p in coeff.parameters
-                            }
-                            bound_coeff = float(coeff.bind(local_map))
-                        else:
-                            bound_coeff = coeff
-                        coeffs.append(bound_coeff)
-
+            # Prepare circuits for the gradient of the specified parameters.
+            meta = {"parameters": [p for p in circuit.parameters if p in parameter_set]}
+            circuit_key = _circuit_key(circuit)
+            if circuit_key not in self._lin_comb_cache:
+                self._lin_comb_cache[circuit_key] = _make_lin_comb_gradient_circuit(
+                    circuit, add_measurement=False
+                )
+            lin_comb_circuits = self._lin_comb_cache[circuit_key]
+            gradient_circuits = []
+            for param in circuit.parameters:
+                if param not in parameter_set:
+                    continue
+                gradient_circuits.append(lin_comb_circuits[param])
             n = len(gradient_circuits)
+            # Make the observable as :class:`~qiskit.quantum_info.SparsePauliOp` and
+            # add an ancillary operator to compute the gradient.
+            observable = init_observable(observable)
+            observable_1, observable_2 = _make_lin_comb_observables(
+                observable, self._derivative_type
+            )
+            # If its derivative type is `DerivativeType.COMPLEX`, calculate the gradient
+            # of the real and imaginary parts separately.
+            meta["derivative_type"] = self.derivative_type
+            metadata.append(meta)
+            # Combine inputs into a single job to reduce overhead.
             if self._derivative_type == DerivativeType.COMPLEX:
-                observable_2 = observable.expand(op2)
-                job = self._estimator.run(
-                    gradient_circuits * 2,
-                    [observable_1] * n + [observable_2] * n,
-                    [parameter_values_] * 2 * n,
-                    **options,
-                )
-                jobs.append(job)
+                job_circuits.extend(gradient_circuits * 2)
+                job_observables.extend([observable_1] * n + [observable_2] * n)
+                job_param_values.extend([parameter_values_] * 2 * n)
+                all_n.append(2 * n)
             else:
-                job = self._estimator.run(
-                    gradient_circuits, [observable_1] * n, [parameter_values_] * n, **options
-                )
-                jobs.append(job)
+                job_circuits.extend(gradient_circuits)
+                job_observables.extend([observable_1] * n)
+                job_param_values.extend([parameter_values_] * n)
+                all_n.append(n)
 
-            result_indices_all.append(result_indices)
-            coeffs_all.append(coeffs)
-
-        # combine the results
+        # Run the single job with all circuits.
+        job = self._estimator.run(
+            job_circuits,
+            job_observables,
+            job_param_values,
+            **options,
+        )
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except AlgorithmError as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
+        # Compute the gradients.
         gradients = []
-        for i, result in enumerate(results):
-            gradient_ = np.zeros(len(metadata_[i]["parameters"]), dtype="complex")
+        partial_sum_n = 0
+        for n in all_n:
+            # this disable is needed as Pylint does not understand derivative_type is a property if
+            # it is only defined in the base class and the getter is in the child
+            # pylint: disable=comparison-with-callable
+            if self.derivative_type == DerivativeType.COMPLEX:
+                gradient = np.zeros(n // 2, dtype="complex")
+                gradient.real = results.values[partial_sum_n : partial_sum_n + n // 2]
+                gradient.imag = results.values[partial_sum_n + n // 2 : partial_sum_n + n]
 
-            if metadata_[i]["derivative_type"] == DerivativeType.COMPLEX:
-                n = len(result.values) // 2  # is always a multiple of 2
-                for grad_, idx, coeff in zip(
-                    result.values[:n], result_indices_all[i], coeffs_all[i]
-                ):
-                    gradient_[idx] += coeff * grad_
-                for grad_, idx, coeff in zip(
-                    result.values[n:], result_indices_all[i], coeffs_all[i]
-                ):
-                    gradient_[idx] += complex(0, coeff * grad_)
             else:
-                for grad_, idx, coeff in zip(result.values, result_indices_all[i], coeffs_all[i]):
-                    gradient_[idx] += coeff * grad_
-                gradient_ = np.real(gradient_)
-            gradients.append(gradient_)
+                gradient = np.real(results.values[partial_sum_n : partial_sum_n + n])
+            partial_sum_n += n
+            gradients.append(gradient)
 
         opt = self._get_local_options(options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)

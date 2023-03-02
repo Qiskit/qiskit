@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Providers that support BackendV2 interface """
+"""Test Providers that support BackendV2 interface"""
 
 import unittest
 import warnings
@@ -23,6 +23,7 @@ from qiskit.algorithms import Shor, VQE, Grover, AmplificationProblem
 from qiskit.opflow import X, Z, I
 from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import TwoLocal
+from qiskit.test import slow_test
 
 
 class TestBackendV2(QiskitAlgorithmsTestCase):
@@ -34,6 +35,7 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
         self._qasm = FakeBackendSimple()
         self.seed = 50
 
+    @slow_test
     def test_shor_factoring(self):
         """shor factoring test"""
         n_v = 15

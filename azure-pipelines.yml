@@ -33,7 +33,7 @@ parameters:
   - name: "supportedPythonVersions"
     displayName: "All supported versions of Python"
     type: object
-    default: ["3.7", "3.8", "3.9", "3.10"]
+    default: ["3.7", "3.8", "3.9", "3.10", "3.11"]
 
   - name: "minimumPythonVersion"
     displayName: "Minimum supported version of Python"
@@ -43,12 +43,7 @@ parameters:
   - name: "maximumPythonVersion"
     displayName: "Maximum supported version of Python"
     type: string
-    default: "3.10"
-
-  - name: "minimumRustVersion"
-    displayName: "Minimum supported version of Rust"
-    type: string
-    default: "1.56.1"
+    default: "3.11"
 
   # These versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -106,6 +101,7 @@ stages:
               pythonVersion: ${{ version }}
               testQPY: false
               testImages: false
+              testRust: false
 
           - template: ".azure/test-macos.yml"
             parameters:
@@ -151,9 +147,9 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.minimumPythonVersion }}
-            testQPY: false
+            testRust: true
+            testQPY: true
             testImages: false
-            rustVersion: ${{ parameters.minimumRustVersion }}
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
@@ -171,7 +167,8 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
-            testQPY: true
+            testRust: false
+            testQPY: false
             testImages: true
             installFromSdist: true
 
@@ -199,6 +196,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.branchPushPythonVersion }}
+            testRust: true
             testQPY: true
             testImages: true
 

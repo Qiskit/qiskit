@@ -99,7 +99,8 @@ def plot_histogram(
         VisualizationError: Input must be Counts or a dict
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             # Plot two counts in the same figure with legends and colors specified.
 
@@ -113,8 +114,6 @@ def plot_histogram(
             plot_histogram([counts1, counts2], legend=legend, color=['crimson','midnightblue'],
                             title="New Histogram")
 
-        .. jupyter-execute::
-
             # You can sort the bitstrings using different methods.
 
             counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
@@ -126,9 +125,6 @@ def plot_histogram(
             # Sort by the hamming distance (the number of bit flips to change from
             # one bitstring to the other) from a target string.
             hist2 = plot_histogram(counts, sort='hamming', target_string='001')
-
-            display(hist1, hist2)
-
     """
     if not isinstance(data, list):
         data = [data]
@@ -214,7 +210,8 @@ def plot_distribution(
             match the input data.
 
     Examples:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             # Plot two counts in the same figure with legends and colors specified.
 
@@ -228,8 +225,6 @@ def plot_distribution(
             plot_distribution([counts1, counts2], legend=legend, color=['crimson','midnightblue'],
                             title="New Distribution")
 
-        .. jupyter-execute::
-
             # You can sort the bitstrings using different methods.
 
             counts = {'001': 596, '011': 211, '010': 50, '000': 117, '101': 33, '111': 8,
@@ -241,8 +236,6 @@ def plot_distribution(
             # Sort by the hamming distance (the number of bit flips to change from
             # one bitstring to the other) from a target string.
             dist2 = plot_distribution(counts, sort='hamming', target_string='001')
-
-            display(dist1, dist2)
 
     """
     return _plotting_core(
@@ -309,7 +302,7 @@ def _plotting_core(
     else:
         fig = None
 
-    labels = list(sorted(functools.reduce(lambda x, y: x.union(y.keys()), data, set())))
+    labels = sorted(functools.reduce(lambda x, y: x.union(y.keys()), data, set()))
     if number_to_keep is not None:
         labels.append("rest")
 
@@ -328,7 +321,7 @@ def _plotting_core(
                 for count in counts:
                     prev_count = combined_counts.get(count, 0)
                     combined_counts[count] = max(prev_count, counts[count])
-        labels = list(sorted(combined_counts.keys(), key=lambda key: combined_counts[key]))
+        labels = sorted(combined_counts.keys(), key=lambda key: combined_counts[key])
 
     length = len(data)
     width = 1 / (len(data) + 1)  # the width of the bars

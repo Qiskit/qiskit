@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Common preset passmanager generators."""
 
@@ -167,7 +166,7 @@ def generate_unroll_3q(
         target (Target): the :class:`~.Target` object representing the backend
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
-        approximation_degree (float): The heuristic approximation degree to
+        approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
         unitary_synthesis_method (str): The unitary synthesis method to use
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
@@ -347,7 +346,7 @@ def generate_translation_passmanager(
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
         method (str): The basis translation method to use
-        approximation_degree (float): The heuristic approximation degree to
+        approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
         coupling_map (CouplingMap): the coupling map of the backend
             in case synthesis is done on a physical circuit. The
@@ -371,7 +370,7 @@ def generate_translation_passmanager(
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
     if method == "unroller":
-        unroll = [Unroller(basis_gates)]
+        unroll = [Unroller(basis=basis_gates, target=target)]
     elif method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
@@ -407,7 +406,9 @@ def generate_translation_passmanager(
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
-            ConsolidateBlocks(basis_gates=basis_gates, target=target),
+            ConsolidateBlocks(
+                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+            ),
             UnitarySynthesis(
                 basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
@@ -424,7 +425,9 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
-def generate_scheduling(instruction_durations, scheduling_method, timing_constraints, inst_map):
+def generate_scheduling(
+    instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
+):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
     Args:
@@ -434,6 +437,7 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             ``'alap'``/``'as_late_as_possible'``
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
         inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
+        target (Target): The :class:`~.Target` object representing the backend
 
     Returns:
         PassManager: The scheduling pass manager
@@ -443,7 +447,7 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
     """
     scheduling = PassManager()
     if inst_map and inst_map.has_custom_gate():
-        scheduling.append(PulseGates(inst_map=inst_map))
+        scheduling.append(PulseGates(inst_map=inst_map, target=target))
     if scheduling_method:
         # Do scheduling after unit conversion.
         scheduler = {
@@ -452,9 +456,9 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             "asap": ASAPScheduleAnalysis,
             "as_soon_as_possible": ASAPScheduleAnalysis,
         }
-        scheduling.append(TimeUnitConversion(instruction_durations))
+        scheduling.append(TimeUnitConversion(instruction_durations, target=target))
         try:
-            scheduling.append(scheduler[scheduling_method](instruction_durations))
+            scheduling.append(scheduler[scheduling_method](instruction_durations, target=target))
         except KeyError as ex:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
     elif instruction_durations:
@@ -463,7 +467,9 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             return property_set["contains_delay"]
 
         scheduling.append(ContainsInstruction("delay"))
-        scheduling.append(TimeUnitConversion(instruction_durations), condition=_contains_delay)
+        scheduling.append(
+            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+        )
     if (
         timing_constraints.granularity != 1
         or timing_constraints.min_length != 1
@@ -510,9 +516,9 @@ def get_vf2_call_limit(
     vf2_call_limit = None
     if layout_method is None and initial_layout is None:
         if optimization_level == 1:
-            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with retworkx 0.10.2
+            vf2_call_limit = int(5e4)  # Set call limit to ~100ms with rustworkx 0.10.2
         elif optimization_level == 2:
-            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with retworkx 0.10.2
+            vf2_call_limit = int(5e6)  # Set call limit to ~10 sec with rustworkx 0.10.2
         elif optimization_level == 3:
-            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with retworkx 0.10.2
+            vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with rustworkx 0.10.2
     return vf2_call_limit
