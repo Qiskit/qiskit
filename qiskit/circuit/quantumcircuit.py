@@ -2270,92 +2270,93 @@ class QuantumCircuit:
         When a qubit is measured, its state collapses to a classical bit and copied to a
         classical wire.
 
-        In this example, a qubit is measured and the result of that measurement is stored in the
-        classical bit (usually expressed in diagrams as a double line):
+        Args:
+            qubit: qubit/s to measure.
+            cbit: classical bit/s to place the measurement in.
 
-        .. code-block::
+        Returns:
+            qiskit.circuit.InstructionSet: handle to the added instructions.
 
-           from qiskit import QuantumCircuit
-           circuit = QuantumCircuit(1,1)
-           circuit.h(0)
-           circuit.measure(0, 0)
-           circuit.draw()
+        Raises:
+            CircuitError: if arguments have bad format.
 
+        Examples:
+            In this example, a qubit is measured and the result of that measurement is stored in the
+            classical bit (usually expressed in diagrams as a double line):
 
-        .. parsed-literal::
+            .. code-block::
 
-                  ┌───┐┌─┐
-               q: ┤ H ├┤M├
-                  └───┘└╥┘
-             c: 1/══════╩═
-                        0
-
-        It is possible to call ``measure`` with lists of qubits and cbits of the same size:
-
-        .. code-block::
-
-           circuit = QuantumCircuit(2,2)
-           circuit.measure([0,1], [0,1])  # same as "circuit.measure(0,0); circuit.measure(1,1);"
+               from qiskit import QuantumCircuit
+               circuit = QuantumCircuit(1,1)
+               circuit.h(0)
+               circuit.measure(0, 0)
+               circuit.draw()
 
 
-        .. parsed-literal::
+            .. parsed-literal::
 
-                  ┌─┐
-             q_0: ┤M├───
-                  └╥┘┌─┐
-             q_1: ─╫─┤M├
-                   ║ └╥┘
-             c: 2/═╩══╩═
-                   0  1
+                      ┌───┐┌─┐
+                   q: ┤ H ├┤M├
+                      └───┘└╥┘
+                 c: 1/══════╩═
+                            0
 
-        It is also possible to do a one-to-many readout:
+            It is possible to call ``measure`` with lists of qubits and cbits of the same size:
 
-        .. code-block::
+            .. code-block::
 
-           circuit = QuantumCircuit(2,2)
-           circuit.measure(0, [0,1])  # same as "circuit.measure(0,0); circuit.measure(0,1);"
+               circuit = QuantumCircuit(2,2)
+               circuit.measure([0,1], [0,1])  # same as "circuit.measure(0,0); circuit.measure(1,1);"
 
 
-        .. parsed-literal::
+            .. parsed-literal::
 
-                  ┌─┐┌─┐
-             q_0: ┤M├┤M├
-                  └╥┘└╥┘
-             q_1: ─╫──╫─
-                   ║  ║
-             c: 2/═╩══╩═
-                   0  1
+                      ┌─┐
+                 q_0: ┤M├───
+                      └╥┘┌─┐
+                 q_1: ─╫─┤M├
+                       ║ └╥┘
+                 c: 2/═╩══╩═
+                       0  1
 
-        Instead of lists, you can use :class:`~qiskit.circuit.QuantumRegister` and
-        :class:`~qiskit.circuit.ClassicalRegister` under the same logic.
+            It is also possible to do a one-to-many readout:
 
-        .. code-block::
+            .. code-block::
 
-            from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-            qreg = QuantumRegister(1, "qreg")
-            creg = ClassicalRegister(2, "creg")
-            circuit = QuantumCircuit(qreg, creg)
-            circuit.measure(qreg, creg)
+               circuit = QuantumCircuit(2,2)
+               circuit.measure(0, [0,1])  # same as "circuit.measure(0,0); circuit.measure(0,1);"
 
 
-        .. parsed-literal::
+            .. parsed-literal::
 
-                    ┌─┐┌─┐
-              qreg: ┤M├┤M├
-                    └╥┘└╥┘
-            creg: 2/═╩══╩═
-                     0  1
+                      ┌─┐┌─┐
+                 q_0: ┤M├┤M├
+                      └╥┘└╥┘
+                 q_1: ─╫──╫─
+                       ║  ║
+                 c: 2/═╩══╩═
+                       0  1
+
+            Instead of lists, you can use :class:`~qiskit.circuit.QuantumRegister` and
+            :class:`~qiskit.circuit.ClassicalRegister` under the same logic.
+
+            .. code-block::
+
+                from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+                qreg = QuantumRegister(1, "qreg")
+                creg = ClassicalRegister(2, "creg")
+                circuit = QuantumCircuit(qreg, creg)
+                circuit.measure(qreg, creg)
 
 
-         Args:
-             qubit: qubit/s to measure.
-             cbit: classical bit/s to place the measurement in.
+            .. parsed-literal::
 
-         Returns:
-             qiskit.circuit.InstructionSet: handle to the added instructions.
+                        ┌─┐┌─┐
+                  qreg: ┤M├┤M├
+                        └╥┘└╥┘
+                creg: 2/═╩══╩═
+                         0  1
 
-         Raises:
-             CircuitError: if arguments have bad format.
         """
         return self.append(Measure(), [qubit], [cbit])
 
