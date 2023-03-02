@@ -379,7 +379,7 @@ def _run_circuits_on_backend(
     noise_config: Dict,
     run_config: Dict,
 ) -> Job:
-    """run on backend"""
+    """Run on backend."""
     run_kwargs = {}
     if is_aer_provider(backend) or is_basicaer_provider(backend):
         for key, value in backend_options.items():
