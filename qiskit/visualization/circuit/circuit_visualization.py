@@ -603,7 +603,6 @@ def _matplotlib_circuit_drawer(
     cregbundle=None,
     wire_order=None,
 ):
-
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
