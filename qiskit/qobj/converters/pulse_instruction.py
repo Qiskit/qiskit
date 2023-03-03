@@ -902,7 +902,7 @@ class QobjToInstructionConverter:
         try:
             pulse_name = instruction.label
         except AttributeError:
-            sorted_params = sorted(instruction.parameters.items(), key=lambda x: x[0])
+            sorted_params = sorted(instruction.parameters.keys())
             base_str = "{pulse}_{params}".format(
                 pulse=instruction.pulse_shape, params=str(sorted_params)
             )
