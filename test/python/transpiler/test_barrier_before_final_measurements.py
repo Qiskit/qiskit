@@ -12,6 +12,7 @@
 
 """Test the BarrierBeforeFinalMeasurements pass"""
 
+import random
 import unittest
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.converters import circuit_to_dag
@@ -391,6 +392,29 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
 
         pass_ = BarrierBeforeFinalMeasurements()
         self.assertEqual(expected, pass_(circuit))
+
+    def test_output_deterministic(self):
+        """Test that the output barriers have a deterministic ordering (independent of
+        PYTHONHASHSEED).  This is important to guarantee that any subsequent topological iterations
+        through the circuit are also deterministic; it's in general not possible for all transpiler
+        passes to produce identical outputs across all valid topological orderings, especially if
+        those passes have some stochastic element."""
+        measure_order = list(range(20))
+        random.Random(2023_02_10).shuffle(measure_order)
+        circuit = QuantumCircuit(20, 20)
+        circuit.barrier([5, 2, 3])
+        circuit.barrier([7, 11, 14, 2, 4])
+        circuit.measure(measure_order, measure_order)
+
+        # All the barriers should get merged together.
+        expected = QuantumCircuit(20, 20)
+        expected.barrier(range(20))
+        expected.measure(measure_order, measure_order)
+
+        output = BarrierBeforeFinalMeasurements()(circuit)
+        self.assertEqual(expected, output)
+        # This assertion is that the ordering of the arguments in the barrier is fixed.
+        self.assertEqual(list(output.data[0].qubits), list(output.qubits))
 
 
 if __name__ == "__main__":
