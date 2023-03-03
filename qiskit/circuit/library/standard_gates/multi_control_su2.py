@@ -16,7 +16,7 @@ Multi-controlled SU(2) gate.
 from typing import Union, List
 from cmath import isclose
 import numpy as np
-from qiskit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.library.standard_gates.x import MCXVChain
 from qiskit.circuit import Gate, Qubit
 
