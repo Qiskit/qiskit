@@ -116,6 +116,48 @@ def _rename_kwargs(
             kwargs[new_arg] = kwargs.pop(old_arg)
 
 
+# We insert deprecations in-between the description and Napoleon's meta sections. The below is from
+# https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html#docstring-sections.
+_NAPOLEON_META_LINES = frozenset(
+    {
+        "Args:",
+        "Arguments:",
+        "Attention:",
+        "Attributes:",
+        "Caution:",
+        "Danger:",
+        "Error:",
+        "Example:",
+        "Examples:",
+        "Hint:",
+        "Important:",
+        "Keyword args:",
+        "Keyword Args:",
+        "Keyword arguments:",
+        "Keyword Arguments:",
+        "Note:",
+        "Notes:",
+        "Other parameters:",
+        "Other Parameters:",
+        "Parameters:",
+        "Return:",
+        "Returns:",
+        "Raises:",
+        "References:",
+        "See also:",
+        "See Also:",
+        "Tip:",
+        "Todo:",
+        "Warning:",
+        "Warnings:",
+        "Warn:",
+        "Warns:",
+        "Yield:",
+        "Yields:",
+    }
+)
+
+
 def _add_deprecation_to_docstring(
     func: Callable, msg: str, *, since: Optional[str], pending: bool
 ) -> None:
@@ -135,26 +177,6 @@ def _add_deprecation_to_docstring(
     else:
         version_str = f"{since}_pending" if pending else since
 
-    # We insert deprecations in-between the description and the meta sections. The below is from
-    # https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html#docstring-sections.
-    # We only include what is used by Qiskit projects for functions/methods to avoid wasting
-    # computation.
-    meta_lines = {
-        "Args:",
-        "Arguments:",
-        "Example:",
-        "Examples:",
-        "Note:",
-        "Notes:",
-        "Parameters:",
-        "Return:",
-        "Returns:",
-        "Raises:",
-        "References:",
-        "Yield:",
-        "Yields:",
-    }
-
     indent = ""
     meta_index = None
     if func.__doc__:
@@ -171,9 +193,16 @@ def _add_deprecation_to_docstring(
                 indent = " " * num_leading_spaces
                 content_encountered = True
 
-            if stripped in meta_lines:
+            if stripped in _NAPOLEON_META_LINES:
                 meta_index = i
-                assert content_encountered is True
+                if content_encountered is not True:
+                    raise AssertionError(
+                        "The algorithm in _add_deprecation_to_docstring is broken for the "
+                        f"function {func.__qualname__}. We assumed that we would have already "
+                        "found where content starts before encountering a meta line. This is an "
+                        "issue with the algorithm, not your docstring. Please open "
+                        "a bug report at https://github.com/Qiskit/qiskit-terra/issues"
+                    )
                 # We can stop checking since we only care about the first meta line, and
                 # we've asserted content_encountered is True to determine the indent.
                 break

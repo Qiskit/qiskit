@@ -41,15 +41,15 @@ class TestDeprecationDecorators(QiskitTestCase):
         self.assertEqual(
             my_func.__doc__,
             dedent(
-                """\
+                f"""\
 
                 .. deprecated:: 9.99_pending
-                  TestDeprecationDecorators.test_deprecate_arguments_message.<locals>.my_func \
-keyword argument old_arg1 is deprecated and replaced with new_arg1.
+                  {my_func.__qualname__} keyword argument old_arg1 is deprecated and replaced with \
+new_arg1.
 
                 .. deprecated:: 9.99_pending
-                  TestDeprecationDecorators.test_deprecate_arguments_message.<locals>.my_func \
-keyword argument old_arg2 is deprecated and will in the future be removed.
+                  {my_func.__qualname__} keyword argument old_arg2 is deprecated and will in the \
+future be removed.
                 """
             ),
         )
@@ -81,12 +81,12 @@ keyword argument old_arg2 is deprecated and will in the future be removed.
         @deprecate_arguments({"arg1": None, "arg2": "new_arg2"}, since="9.99")
         def my_func(*, arg1: str = "a", new_arg2: str) -> None:
             del arg1
-            assert new_arg2 == "z"
+            self.assertEqual(new_arg2, "z")
 
         my_func(new_arg2="z")  # No warnings if no deprecated args used.
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(DeprecationWarning, "arg1"):
             my_func(arg1="a", new_arg2="z")
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(DeprecationWarning, "arg2"):
             # `arg2` should be converted into `new_arg2`.
             my_func(arg2="z")  # pylint: disable=missing-kwoa
 
@@ -97,7 +97,7 @@ keyword argument old_arg2 is deprecated and will in the future be removed.
         def my_func() -> None:
             pass
 
-        with self.assertWarns(DeprecationWarning):
+        with self.assertWarnsRegex(DeprecationWarning, "Stop using my_func!"):
             my_func()
 
 
@@ -110,16 +110,17 @@ class DeprecationExtensionTest(QiskitTestCase):
     ``conf.py``:
 
         def print_docstring(app, what, name, obj, options, lines):
-            if name != "FILL ME IN WITH QISKIT.MODULE.FUNCTION_NAME":
+            # INSTRUCTIONS: Change the below value to the function you're testing with it.
+            if name != "qiskit.providers.ibmq.credentials.Credentials.connection_parameters":
                 return
-            print("HERE")
+            print("HERE")  # Useful so that you can grep for "HERE" in the Sphinx output.
             print(obj.__doc__)
 
         def setup(app):
             app.connect('autodoc-process-docstring', print_docstring)
 
-    Then, choose a function and modify it's docstring. Update the extension with that function's
-    name. Build the docs and look at the output.
+    Then, use the function you set with the `name !=` line, and modify its docstring. Build the
+    docs and search for "HERE" to see the relevant output.
     """
 
     def assert_docstring(
