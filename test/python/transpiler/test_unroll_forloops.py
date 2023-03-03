@@ -20,7 +20,7 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler.passes.utils.unroll_forloops import UnrollForLoops
 
 
-class TestUnrool(QiskitTestCase):
+class TestUnrollForLoops(QiskitTestCase):
     """Test UnrollForLoops pass"""
 
     def test_range(self):
