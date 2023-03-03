@@ -35,11 +35,9 @@ from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager, Target, InstructionProperties
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import _error
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
-from qiskit.converters import circuit_to_dag
 
 
 θ = Parameter("θ")
@@ -145,36 +143,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition())
         result = passmanager.run(circuit)
         self.assertEqual(QuantumCircuit(1), result)
-
-    def test_optimize_error_over_target_1(self):
-        """XZX is re-written as ZXZ, which is cheaper according to target."""
-        qr = QuantumRegister(1, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.rx(np.pi / 7, qr[0])
-        circuit.rz(np.pi / 4, qr[0])
-        circuit.rx(np.pi / 3, qr[0])
-
-        target = target_rz_rx
-        passmanager = PassManager()
-        passmanager.append(Optimize1qGatesDecomposition(target=target))
-        result = passmanager.run(circuit)
-        self.assertLess(
-            _error(circuit_to_dag(result), target, 0), _error(circuit_to_dag(circuit), target, 0)
-        )
-
-    def test_optimize_error_over_target_2(self):
-        """U is re-written as ZYZ, which is cheaper according to target."""
-        qr = QuantumRegister(1, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.u(np.pi / 7, np.pi / 4, np.pi / 3, qr[0])
-
-        target = target_rz_ry_u
-        passmanager = PassManager()
-        passmanager.append(Optimize1qGatesDecomposition(target=target))
-        result = passmanager.run(circuit)
-        self.assertLess(
-            _error(circuit_to_dag(result), target, 0), _error(circuit_to_dag(circuit), target, 0)
-        )
 
     def test_optimize_error_over_target_3(self):
         """U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given."""

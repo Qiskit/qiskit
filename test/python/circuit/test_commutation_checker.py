@@ -34,7 +34,6 @@ from qiskit.circuit.library import (
 
 
 class TestCommutationChecker(QiskitTestCase):
-
     """Test CommutationChecker class."""
 
     def test_simple_gates(self):

@@ -42,29 +42,23 @@ significant bit and the right-most bit (`d`) is the least significant bit. The r
 Supplementary Information
 =========================
 
-.. container:: toggle
+Tweedledum
+----------
 
-   .. container:: header
+Tweedledum is a C++-17 header-only library that implements a large set of
+reversible (and quantum) synthesis, optimization, and mapping algorithms.
+The classical function compiler relies on it and its dependencies to both represent logic
+networks and synthesize them into quantum circuits.
 
-      **Tweedledum**
+ClassicalFunction data types
+----------------------------
 
-   Tweedledum is a C++-17 header-only library that implements a large set of
-   reversible (and quantum) synthesis, optimization, and mapping algorithms.
-   The classical function compiler relies on it and its dependencies to both represent logic
-   networks and synthesize them into quantum circuits.
+At the moment, the only type supported by the classical_function compilers is
+``qiskit.circuit.classicalfunction.types.Int1``. The classical function function
+to parse *must* include type hints (just ``Int1`` for now). The resulting gate
+will be a gate in the size of the sum of all the parameters and the return.
 
-.. container:: toggle
-
-   .. container:: header
-
-      **ClassicalFunction data types**
-
-   At the moment, the only type supported by the classical_function compilers is
-   ``qiskit.circuit.classicalfunction.types.Int1``. The classical function function
-   to parse *must* include type hints (just ``Int1`` for now). The resulting gate
-   will be a gate in the size of the sum of all the parameters and the return.
-
-   The type ``Int1`` means the classical function will only operate at bit level.
+The type ``Int1`` means the classical function will only operate at bit level.
 
 
 ClassicalFunction compiler API
