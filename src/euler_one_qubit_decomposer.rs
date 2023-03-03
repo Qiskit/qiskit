@@ -155,7 +155,7 @@ fn circuit_kak(
         // NOTE: The following normalization is safe, because the gphase correction below
         // fixes a particular diagonal entry to 1, which prevents any potential phase
         // slippage coming from _mod_2pi injecting multiples of 2pi.
-        lam = mod_2pi(lam);
+        lam = mod_2pi(lam, atol);
         if lam.abs() > atol {
             circuit.push((String::from(k_gate), vec![lam]));
             global_phase += lam / 2.;
@@ -170,18 +170,18 @@ fn circuit_kak(
         lam -= phi;
         phi = 0.;
     }
-    if mod_2pi(lam + PI).abs() < atol || mod_2pi(phi + PI).abs() < atol {
+    if mod_2pi(lam + PI, atol).abs() < atol || mod_2pi(phi + PI, atol).abs() < atol {
         lam += PI;
         theta = -theta;
         phi += PI;
     }
-    lam = mod_2pi(lam);
+    lam = mod_2pi(lam, atol);
     if lam.abs() > atol {
         global_phase += lam / 2.;
         circuit.push((String::from(k_gate), vec![lam]));
     }
     circuit.push((String::from(a_gate), vec![theta]));
-    phi = mod_2pi(phi);
+    phi = mod_2pi(phi, atol);
     if phi.abs() > atol {
         global_phase += phi / 2.;
         circuit.push((String::from(k_gate), vec![phi]));
@@ -201,12 +201,12 @@ fn circuit_u3(
     atol: Option<f64>,
 ) -> OneQubitGateSequence {
     let mut circuit = Vec::new();
-    let phi = mod_2pi(phi);
-    let lam = mod_2pi(lam);
     let atol = match atol {
         Some(atol) => atol,
         None => DEFAULT_ATOL,
     };
+    let phi = mod_2pi(phi, atol);
+    let lam = mod_2pi(lam, atol);
     if !simplify || theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
         circuit.push((String::from("u3"), vec![theta, phi, lam]));
     }
@@ -233,14 +233,20 @@ fn circuit_u321(
         atol = -1.0;
     }
     if theta.abs() < atol {
-        let tot = mod_2pi(phi + lam);
+        let tot = mod_2pi(phi + lam, atol);
         if tot.abs() > atol {
             circuit.push((String::from("u1"), vec![tot]));
         }
     } else if (theta - PI / 2.).abs() < atol {
-        circuit.push((String::from("u2"), vec![mod_2pi(phi), mod_2pi(lam)]));
+        circuit.push((
+            String::from("u2"),
+            vec![mod_2pi(phi, atol), mod_2pi(lam, atol)],
+        ));
     } else {
-        circuit.push((String::from("u3"), vec![theta, mod_2pi(phi), mod_2pi(lam)]));
+        circuit.push((
+            String::from("u3"),
+            vec![theta, mod_2pi(phi, atol), mod_2pi(lam, atol)],
+        ));
     }
     OneQubitGateSequence {
         gates: circuit,
@@ -264,8 +270,8 @@ fn circuit_u(
     if !simplify {
         atol = -1.0;
     }
-    let phi = mod_2pi(phi);
-    let lam = mod_2pi(lam);
+    let phi = mod_2pi(phi, atol);
+    let lam = mod_2pi(lam, atol);
     if theta.abs() > atol || phi.abs() > atol || lam.abs() > atol {
         circuit.push((String::from("u"), vec![theta, phi, lam]));
     }
@@ -323,7 +329,7 @@ where
         phi -= lam;
         lam = 0.;
     }
-    if mod_2pi(lam + PI).abs() < atol || mod_2pi(phi).abs() < atol {
+    if mod_2pi(lam + PI, atol).abs() < atol || mod_2pi(phi, atol).abs() < atol {
         lam += PI;
         theta = -theta;
         phi += PI;
@@ -338,7 +344,7 @@ where
     // emit circuit
     pfun(&mut circuit, lam);
     match xpifun {
-        Some(xpifun) if mod_2pi(theta).abs() < atol => xpifun(&mut circuit),
+        Some(xpifun) if mod_2pi(theta, atol).abs() < atol => xpifun(&mut circuit),
         _ => {
             xfun(&mut circuit);
             pfun(&mut circuit, theta);
@@ -372,9 +378,15 @@ fn circuit_rr(
         };
     }
     if (theta - PI).abs() > atol {
-        circuit.push((String::from("r"), vec![theta - PI, mod_2pi(PI / 2. - lam)]));
+        circuit.push((
+            String::from("r"),
+            vec![theta - PI, mod_2pi(PI / 2. - lam, atol)],
+        ));
     }
-    circuit.push((String::from("r"), vec![PI, mod_2pi(0.5 * (phi - lam + PI))]));
+    circuit.push((
+        String::from("r"),
+        vec![PI, mod_2pi(0.5 * (phi - lam + PI), atol)],
+    ));
     OneQubitGateSequence {
         gates: circuit,
         global_phase: phase,
@@ -408,7 +420,7 @@ pub fn generate_circuit(
                 inner_atol = -1.0;
             }
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
-                let phi = mod_2pi(phi);
+                let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
                     circuit.gates.push((String::from("p"), vec![phi]));
                 }
@@ -438,7 +450,7 @@ pub fn generate_circuit(
                 inner_atol = -1.0;
             }
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
-                let phi = mod_2pi(phi);
+                let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
                     circuit.gates.push((String::from("rz"), vec![phi]));
                     circuit.global_phase += phi / 2.;
@@ -468,7 +480,7 @@ pub fn generate_circuit(
                 inner_atol = -1.0;
             }
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
-                let phi = mod_2pi(phi);
+                let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
                     circuit.gates.push((String::from("u1"), vec![phi]));
                 }
@@ -498,7 +510,7 @@ pub fn generate_circuit(
                 inner_atol = -1.0;
             }
             let fnz = |circuit: &mut OneQubitGateSequence, phi: f64| {
-                let phi = mod_2pi(phi);
+                let phi = mod_2pi(phi, inner_atol);
                 if phi.abs() > inner_atol {
                     circuit.gates.push((String::from("rz"), vec![phi]));
                     circuit.global_phase += phi / 2.;
@@ -653,11 +665,16 @@ fn complex_phase(x: Complex64) -> f64 {
 }
 
 #[inline]
-fn mod_2pi(angle: f64) -> f64 {
+fn mod_2pi(angle: f64, atol: f64) -> f64 {
     // f64::rem_euclid() isn't exactly the same as Python's % operator, but because
     // the RHS here is a constant and positive it is effectively equivalent for
     // this case
-    (angle + PI).rem_euclid(2. * PI) - PI
+    let wrapped = (angle + PI).rem_euclid(2. * PI) - PI;
+    if (wrapped - PI).abs() < atol {
+        -PI
+    } else {
+        wrapped
+    }
 }
 
 fn params_zyz_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
@@ -725,8 +742,8 @@ fn params_xyx_inner(mat: ArrayView2<Complex64>) -> [f64; 4] {
         ],
     ]);
     let [theta, phi, lam, phase] = params_zyz_inner(mat_zyz.view());
-    let new_phi = mod_2pi(phi + PI);
-    let new_lam = mod_2pi(lam + PI);
+    let new_phi = mod_2pi(phi + PI, 0.);
+    let new_lam = mod_2pi(lam + PI, 0.);
     [
         theta,
         new_phi,
