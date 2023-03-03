@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""
-Quantum information utility functions for operators.
-"""
+"""Double commutator function."""
 
 from typing import TypeVar
 
@@ -21,53 +19,21 @@ from qiskit.quantum_info.operators.linear_op import LinearOp
 OperatorTypeT = TypeVar("OperatorTypeT", bound=LinearOp)
 
 
-def commutator(a: OperatorTypeT, b: OperatorTypeT) -> OperatorTypeT:
-    r"""Compute commutator of a and b.
-
-    .. math::
-
-        ab - ba.
-
-    Args:
-        a: Operator a.
-        b: Operator b.
-    Returns:
-        The commutator
-    """
-    return a @ b - b @ a
-
-
-def anti_commutator(a: OperatorTypeT, b: OperatorTypeT) -> OperatorTypeT:
-    r"""Compute anti-commutator of a and b.
-
-    .. math::
-
-        ab + ba.
-
-    Args:
-        a: Operator a.
-        b: Operator b.
-    Returns:
-        The anti-commutator
-    """
-    return a @ b + b @ a
-
-
 def double_commutator(
-    a: OperatorTypeT, b: OperatorTypeT, c: OperatorTypeT, *, commutes: bool = True
+    a: OperatorTypeT, b: OperatorTypeT, c: OperatorTypeT, *, commutator: bool = True
 ) -> OperatorTypeT:
     r"""Compute symmetric double commutator of a, b and c.
 
     See also Equation (13.6.18) in [1].
 
-    If `commutes` is `True`, it returns
+    If `commutator` is `True`, it returns
 
     .. math::
 
          [[A, B], C]/2 + [A, [B, C]]/2
          = (2ABC + 2CBA - BAC - CAB - ACB - BCA)/2.
 
-    If `commutes` is `False`, it returns
+    If `commutator` is `False`, it returns
 
     .. math::
          \lbrace[A, B], C\rbrace/2 + \lbrace A, [B, C]\rbrace/2
@@ -77,7 +43,7 @@ def double_commutator(
         a: Operator a.
         b: Operator b.
         c: Operator c.
-        commutes: ``True`` commutes, ``False`` anti-commutes.
+        commutator: True commutator, False anti-commutator.
 
     Returns:
         The double commutator
@@ -89,7 +55,7 @@ def double_commutator(
             2nd Edition, Academic Press, 1992.
             ISBN 0-12-486552-6.
     """
-    sign_num = -1 if commutes else 1
+    sign_num = -1 if commutator else 1
 
     ab = a @ b
     ba = b @ a
