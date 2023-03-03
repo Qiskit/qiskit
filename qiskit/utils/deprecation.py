@@ -167,8 +167,8 @@ def _add_deprecation_to_docstring(
             # first line, which corresponds to the format """Docstring.""", as it does not properly
             # capture the indentation of lines beneath it.
             if not content_encountered and i != 0 and stripped:
-                num_spaces = len(line) - len(line.lstrip())
-                indent = " " * num_spaces
+                num_leading_spaces = len(line) - len(line.lstrip())
+                indent = " " * num_leading_spaces
                 content_encountered = True
 
             if stripped in meta_lines:
