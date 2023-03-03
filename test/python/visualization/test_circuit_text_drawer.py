@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" `_text_circuit_drawer` "draws" a circuit in "ascii art" """
+"""`_text_circuit_drawer` draws a circuit in ascii art"""
 
 import pathlib
 import os

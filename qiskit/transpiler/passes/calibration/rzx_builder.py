@@ -14,7 +14,7 @@
 
 import enum
 import warnings
-from math import pi, erf  # pylint: disable=no-name-in-module
+from math import pi, erf
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -366,12 +366,8 @@ def _check_calibration_type(
     else:
         raise QiskitError(f"{repr(cr_sched)} native direction cannot be determined.")
 
-    cr_tones = list(
-        map(lambda t: t[1], filter_instructions(cr_sched, [_filter_cr_tone]).instructions)
-    )
-    comp_tones = list(
-        map(lambda t: t[1], filter_instructions(cr_sched, [_filter_comp_tone]).instructions)
-    )
+    cr_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_cr_tone]).instructions]
+    comp_tones = [t[1] for t in filter_instructions(cr_sched, [_filter_comp_tone]).instructions]
 
     if cal_type is None:
         if len(comp_tones) == 0:

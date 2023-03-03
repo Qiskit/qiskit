@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Factorizers Package """
+"""Factorizers Package"""
 
 from .shor import Shor, ShorResult
 

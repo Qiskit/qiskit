@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" A property set is maintained by the PassManager to keep information
+"""A property set is maintained by the PassManager to keep information
 about the current state of the circuit """
 
 

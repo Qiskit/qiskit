@@ -157,7 +157,7 @@ class Grover(AmplitudeAmplifier):
 
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
-            self._iterations = map(lambda x: int(growth_rate**x), itertools.count(1))
+            self._iterations = (int(growth_rate**x) for x in itertools.count(1))
         elif isinstance(iterations, int):
             self._iterations = [iterations]
         else:

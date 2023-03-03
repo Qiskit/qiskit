@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Evolution """
+"""Test Evolution"""
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
