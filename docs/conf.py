@@ -63,6 +63,7 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
+    "qiskit_ibm_runtime": ("https://qiskit.org/documentation/partners/qiskit_ibm_runtime/", None)
 }
 
 # -- Options for HTML output -------------------------------------------------

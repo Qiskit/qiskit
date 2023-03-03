@@ -111,6 +111,7 @@ Analysis
 
    hellinger_distance
    hellinger_fidelity
+   Z2Symmetries
 
 .. _quantum_info_synthesis:
 
@@ -172,4 +173,5 @@ from .synthesis import (
 from .analysis import (
     hellinger_distance,
     hellinger_fidelity,
+    Z2Symmetries
 )

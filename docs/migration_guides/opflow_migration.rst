@@ -16,6 +16,20 @@ the:mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qisk
     is also being deprecated. For more information on migrating the :class:`~qiskit.utils.QuantumInstance`, please
     read the `quantum instance migration guide <http://qisk.it/qi_migration>`_.
 
+..  attention::
+
+    Most references to the :class:`qiskit.primitives.Sampler` or :class:`qiskit.primitives.Estimator` in this guide
+    can be replaced with instances of the:
+
+    - Aer primitives (:class:`qiskit_aer.primitives.Sampler`, :class:`qiskit_aer.primitives.Estimator`)
+    - Runtime primitives (:class:`qiskit_ibm_runtime.Sampler`, :class:`qiskit_ibm_runtime.Estimator`)
+    - Terra backend primitives (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`)
+
+    Certain classes, such as the
+    :class:`~qiskit.opflow.expectations.AerPauliExpectation`, can only be replaced by a specific primitive instance
+    (in this case, :class:`qiskit_aer.primitives.Estimator`), or require a specific option configuration.
+    If this is the case, it will be explicitly indicated in the corresponding section.
+
 
 Background
 ==========
@@ -36,65 +50,29 @@ This guide traverses the opflow submodules and provides either a direct alternat
 
 The function equivalency can be roughly summarized as follows:
 
-.. |operator_globals| replace:: ``operator_globals``
-.. _operator_globals: https://qiskit.org/documentation/apidoc/opflow.html#operator-globals
-
 .. list-table::
    :header-rows: 1
 
    * - Opflow Module
      - Alternative
    * - Operators (:class:`~qiskit.opflow.OperatorBase`, :ref:`operator_globals`,
-       :mod:`~qiskit.opflow.primitive_ops`,
-       :mod:`~qiskit.opflow.list_ops`\)
+       :mod:`~qiskit.opflow.primitive_ops`, :mod:`~qiskit.opflow.list_ops`)
      - :ref:`qiskit.quantum_info Operators <quantum_info_operators>`
 
    * - :mod:`qiskit.opflow.state_fns`
-     - :mod:`qiskit.quantum_info` :ref:`quantum_info_states`
+     - :ref:`qiskit.quantum_info States <quantum_info_states>`
 
    * - :mod:`qiskit.opflow.converters`
      - :mod:`qiskit.primitives`
 
    * - :mod:`qiskit.opflow.evolutions`
-     - :mod:`qiskit.quantum_info` :ref:`quantum_info_synthesis`
+     - :ref:`qiskit.quantum_info Synthesis <quantum_info_synthesis>`
 
    * - :mod:`qiskit.opflow.expectations`
      - :class:`qiskit.primitives.Estimator`
 
    * - :mod:`qiskit.opflow.gradients`
      - :mod:`qiskit.algorithms.gradients`
-
-.. |qiskit_aer.primitives| replace:: ``qiskit_aer.primitives``
-.. _qiskit_aer.primitives: https://qiskit.org/documentation/locale/de_DE/apidoc/aer_primitives.html
-
-.. |qiskit_aer.primitives.Sampler| replace:: ``qiskit_aer.primitives.Sampler``
-.. _qiskit_aer.primitives.Sampler: https://qiskit.org/documentation/locale/de_DE/stubs/qiskit_aer.primitives.Sampler.html
-
-.. |qiskit_aer.primitives.Estimator| replace:: ``qiskit_aer.primitives.Estimator``
-.. _qiskit_aer.primitives.Estimator: https://qiskit.org/documentation/locale/de_DE/stubs/qiskit_aer.primitives.Estimator.html
-
-.. |qiskit_ibm_runtime| replace:: ``qiskit_ibm_runtime``
-.. _qiskit_ibm_runtime: https://qiskit.org/documentation/partners/qiskit_ibm_runtime/primitives.html
-
-.. |qiskit_ibm_runtime.Sampler| replace:: ``qiskit_ibm_runtime.Sampler``
-.. _qiskit_ibm_runtime.Sampler: https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.Sampler.html
-
-.. |qiskit_ibm_runtime.Estimator| replace:: ``qiskit_ibm_runtime.Estimator``
-.. _qiskit_ibm_runtime.Estimator: https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.Estimator.html
-
-..  attention::
-
-    Most references to the :class:`qiskit.primitives.Sampler` or :class:`qiskit.primitives.Estimator` in this guide
-    can be replaced with instances of the:
-
-    - Aer primitives (|qiskit_aer.primitives.Sampler|_, |qiskit_aer.primitives.Estimator|_)
-    - Runtime primitives (|qiskit_ibm_runtime.Sampler|_, |qiskit_ibm_runtime.Estimator|_ )
-    - Terra backend primitives (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`)
-
-    Certain classes, such as the
-    :class:`~qiskit.opflow.expectations.AerPauliExpectation`, can only be replaced by a specific primitive instance
-    (in this case, |qiskit_aer.primitives.Estimator|_ ), or require a specific option configuration.
-    If this is the case, it will be explicitly indicated in the corresponding section.
 
 Contents
 ========
@@ -123,11 +101,8 @@ Operator Base Class
 ===================
 *Back to* `Contents`_
 
-.. |qiskit.quantum_info.BaseOperator| replace:: ``qiskit.quantum_info.BaseOperator``
-.. _qiskit.quantum_info.BaseOperator: https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/quantum_info/operators/base_operator.py
-
-The :class:`qiskit.opflow.OperatorBase` abstract class can be replaced with |qiskit.quantum_info.BaseOperator|_ ,
-keeping in mind that |qiskit.quantum_info.BaseOperator|_ is more generic than its opflow counterpart.
+The :class:`qiskit.opflow.OperatorBase` abstract class can be replaced with :class:`qiskit.quantum_info.BaseOperator` ,
+keeping in mind that :class:`qiskit.quantum_info.BaseOperator` is more generic than its opflow counterpart.
 
 .. list-table::
    :header-rows: 1
@@ -135,23 +110,24 @@ keeping in mind that |qiskit.quantum_info.BaseOperator|_ is more generic than it
    * - Opflow
      - Alternative
    * - :class:`qiskit.opflow.OperatorBase`
-     - |qiskit.quantum_info.BaseOperator|_
+     - :class:`qiskit.quantum_info.BaseOperator`
 
 ..  attention::
 
     Despite the similar class names, :class:`qiskit.opflow.OperatorBase` and
-    |qiskit.quantum_info.BaseOperator|_ are not completely equivalent to each other, and the transition
+    :class:`qiskit.quantum_info.BaseOperator` are not completely equivalent to each other, and the transition
     should be handled with care. Namely:
 
     1. :class:`qiskit.opflow.OperatorBase` implements a broader algebra mixin. Some operator overloads that were
     commonly used :mod:`~qiskit.opflow` (for example ``~`` for ``.adjoint()``) are not defined for
-    |qiskit.quantum_info.BaseOperator|_. You might want to check the specific
+    :class:`qiskit.quantum_info.BaseOperator`. You might want to check the specific
     :mod:`~qiskit.quantum_info` subclass instead.
 
     2. :class:`qiskit.opflow.OperatorBase` also implements methods such as ``.to_matrix()`` or ``.to_spmatrix()``,
-    which are only found in some of the |qiskit.quantum_info.BaseOperator|_ subclasses.
+    which are only found in some of the :class:`qiskit.quantum_info.BaseOperator` subclasses.
 
-    See API reference for more information.
+    See :class:`~qiskit.opflow.OperatorBase` and :class:`~qiskit.quantum_info.BaseOperator` API references
+    for more information.
 
 
 Operator Globals
@@ -159,7 +135,7 @@ Operator Globals
 *Back to* `Contents`_
 
 Opflow provided shortcuts to define common single qubit states, operators, and non-parametrized gates in the
-|operator_globals|_ module.
+:ref:`operator_globals` module.
 
 These were mainly used for didactic purposes or quick prototyping, and can easily be replaced by their corresponding
 :mod:`~qiskit.quantum_info` class: :class:`~qiskit.quantum_info.Pauli`, :class:`~qiskit.quantum_info.Clifford` or
@@ -298,7 +274,7 @@ Common non-parametrized gates (Clifford)
 
    * - :class:`~qiskit.opflow.CX`, :class:`~qiskit.opflow.S`, :class:`~qiskit.opflow.H`, :class:`~qiskit.opflow.T`,
        :class:`~qiskit.opflow.CZ`, :class:`~qiskit.opflow.Swap`
-     - Append corresponding gate to :class:`~qiskit.circuit.QuantumCircuit`. 
+     - Append corresponding gate to :class:`~qiskit.circuit.QuantumCircuit`.
        :class:`qiskit.quantum_info.Operator`\s can be also directly constructed from quantum circuits.
        Another alternative is to wrap the circuit in :class:`~qiskit.quantum_info.Clifford` and call
        ``Clifford.to_operator()``.
@@ -518,10 +494,10 @@ are used "under the hood" in the original code:
    * - :class:`~qiskit.opflow.primitive_ops.TaperedPauliSumOp`
      - This class was used to combine a :class:`.PauliSumOp` with its identified symmetries in one object.
        This functionality is not currently used in any workflow, and has been deprecated without replacement.
-       See |qiskit.quantum_info.Z2Symmetries|_ example for updated workflow.
+       See :class:`qiskit.quantum_info.analysis.Z2Symmetries` example for updated workflow.
 
    * - :class:`qiskit.opflow.primitive_ops.Z2Symmetries`
-     - |qiskit.quantum_info.Z2Symmetries|_. See example below.
+     - :class:`qiskit.quantum_info.analysis.Z2Symmetries`. See example below.
 
 .. _pauli_sum_op:
 
@@ -611,7 +587,7 @@ are used "under the hood" in the original code:
 .. code-block:: python
 
     >>> from qiskit.quantum_info import SparsePauliOp
-    >>> from qiskit.quantum_info.analysis.z2_symmetries import Z2Symmetries
+    >>> from qiskit.quantum_info.analysis import Z2Symmetries
 
     >>> qubit_op = SparsePauliOp.from_list(
     ...    [
@@ -682,12 +658,8 @@ State Functions
 ===============
 *Back to* `Contents`_
 
-.. |qiskit.quantum_info.QuantumState| replace:: ``qiskit.quantum_info.QuantumState``
-.. _qiskit.quantum_info.QuantumState: https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/quantum_info/states/quantum_state.py
-
-
 The :mod:`~qiskit.opflow.state_fns` module can be generally replaced by subclasses of :mod:`~qiskit.quantum_info`\'s
-|qiskit.quantum_info.QuantumState|_.
+:class:`qiskit.quantum_info.QuantumState`.
 
 Similarly to :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`, :class:`~qiskit.opflow.state_fns.StateFn`
 acts as a factory to create the corresponding sub-class depending on the computational primitive used to initialize it.
@@ -1272,7 +1244,7 @@ Algorithm-Agnostic Expectations
      - No direct replacement. This class was used to create instances of one of the classes listed below.
 
    * - :class:`~qiskit.opflow.expectations.AerPauliExpectation`
-     - Use ``Estimator`` primitive from |qiskit_aer.primitives|_ with ``approximation=True`` and ``shots=None`` as ``run_options``.
+     - Use :class:`qiskit_aer.primitives.Estimator`  with ``approximation=True`` and ``shots=None`` as ``run_options``.
        See example below.
 
    * - :class:`~qiskit.opflow.expectations.MatrixExpectation`
@@ -1281,7 +1253,7 @@ Algorithm-Agnostic Expectations
 
    * - :class:`~qiskit.opflow.expectations.PauliExpectation`
      - Use any Estimator primitive (for :class:`qiskit.primitives.Estimator`, set ``shots!=None`` for a shot-based
-       simulation, for |qiskit_aer.primitives.Estimator|_ , this is the default).
+       simulation, for :class:`qiskit_aer.primitives.Estimator` , this is the default).
 
 
 .. _expect_state:
