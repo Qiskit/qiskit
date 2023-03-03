@@ -1497,9 +1497,7 @@ class MCXVChain(MCXGate):
 
         if self._dirty_ancillas:
             if self.num_ctrl_qubits < 3:
-                definition.append(
-                    (MCXGate(self.num_ctrl_qubits), [*q_controls, q_target], [])
-                )
+                definition.append((MCXGate(self.num_ctrl_qubits), [*q_controls, q_target], []))
             elif not self._relative_phase and self.num_ctrl_qubits == 3:
                 definition.append((C3XGate(), [*q_controls, q_target], []))
             else:
