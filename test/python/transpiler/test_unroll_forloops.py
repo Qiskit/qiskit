@@ -131,6 +131,21 @@ class TestUnrollForLoops(QiskitTestCase):
 
         self.assertEqual(result, qc)
 
+    def test_skip_continue_c_if(self):
+        """Unrolling should not be done when a break in the c_if in the body"""
+        circuit = QuantumCircuit(2, 1)
+        with circuit.for_loop(range(2)):
+            circuit.h(0)
+            circuit.cx(0, 1)
+            circuit.measure(0, 0)
+            circuit.break_loop().c_if(0, True)
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(result, circuit)
+
     def test_max_target_depth(self):
         """Unrolling should not be done when results over `max_target_depth`"""
 
