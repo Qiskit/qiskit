@@ -277,7 +277,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             self.assertAlmostEqual(result.phase, 0.5937, delta=0.001)
         with self.subTest("All eigenvalues"):
             phase_dict = result.filter_phases(0.1)
-            phases = sorted(list(phase_dict.keys()))
+            phases = sorted(phase_dict.keys())
             self.assertAlmostEqual(phases[0], -1.8551, delta=0.001)
             self.assertAlmostEqual(phases[1], -1.2376, delta=0.001)
             self.assertAlmostEqual(phases[2], -0.8979, delta=0.001)
@@ -290,7 +290,7 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             hamiltonian, state_preparation, evolution=MatrixExponential()
         )
         phase_dict = result.filter_phases(0.2, as_float=True)
-        phases = sorted(list(phase_dict.keys()))
+        phases = sorted(phase_dict.keys())
         self.assertAlmostEqual(phases[0], -0.090, delta=0.001)
         self.assertAlmostEqual(phases[1], 1.490, delta=0.001)
 

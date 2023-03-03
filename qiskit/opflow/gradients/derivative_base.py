@@ -48,7 +48,6 @@ class DerivativeBase(ConverterBase):
     DerivativeBase - uses classical techniques to differentiate opflow data structures
     """
 
-    # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
         self,

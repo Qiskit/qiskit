@@ -58,7 +58,7 @@ class HLSConfig:
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
         """
         self.use_default_on_unspecified = use_default_on_unspecified
-        self.methods = dict()
+        self.methods = {}
 
         for key, value in kwargs.items():
             self.set_methods(key, value)

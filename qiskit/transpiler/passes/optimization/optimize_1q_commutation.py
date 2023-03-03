@@ -165,7 +165,9 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         operator = run[0].op.to_matrix()
         for gate in run[1:]:
             operator = gate.op.to_matrix().dot(operator)
-        return self._optimize1q._resynthesize_run(operator, qubit)
+        return self._optimize1q._gate_sequence_to_dag(
+            self._optimize1q._resynthesize_run(operator, qubit)
+        )
 
     @staticmethod
     def _replace_subdag(dag, old_run, new_dag):
