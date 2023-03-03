@@ -49,7 +49,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
     def __init__(
         self,
         maxfun: int = 1000,
-        ftol: float = 10 * np.finfo(float).eps,  # noqa: B008
+        ftol: float = 10 * sys.float_info.epsilon,
         iprint: int = -1,
         max_processes: Optional[int] = None,
         options: Optional[dict] = None,
