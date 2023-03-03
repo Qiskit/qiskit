@@ -89,7 +89,7 @@ class CouplingTest(QiskitTestCase):
         graph = CouplingMap()
         graph.add_physical_qubit(0)
         graph.add_physical_qubit(1)
-        self.assertEqual(0., graph.distance(0, 0))
+        self.assertEqual(0.0, graph.distance(0, 0))
 
     def test_init_with_couplinglist(self):
         coupling_list = [[0, 1], [1, 2]]
