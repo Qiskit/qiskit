@@ -72,7 +72,7 @@ def get_platform_parallel_default():
         parallel_default = False
     # On macOS default false on Python >=3.8
     elif sys.platform == "darwin":
-        if sys.version_info >= (3, 8) and sys.version_info < (4,):
+        if (3, 8) <= sys.version_info < (4,):
             parallel_default = False
         else:
             parallel_default = True
