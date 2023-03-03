@@ -44,7 +44,7 @@ The function equivalency can be roughly summarized as follows:
    * - Operators (:class:`~qiskit.opflow.OperatorBase`, |operator_globals|_ ,
        :mod:`~qiskit.opflow.primitive_ops`,
        :mod:`~qiskit.opflow.list_ops`\)
-     - :mod:`qiskit.quantum_info` :ref:`quantum_info_operators`
+     - :ref:`qiskit.quantum_info Operators <quantum_info_operators>`
 
    * - :mod:`qiskit.opflow.state_fns`
      - :mod:`qiskit.quantum_info` :ref:`quantum_info_states`
@@ -295,8 +295,8 @@ Common non-parametrized gates (Clifford)
 
    * - :class:`~qiskit.opflow.CX`, :class:`~qiskit.opflow.S`, :class:`~qiskit.opflow.H`, :class:`~qiskit.opflow.T`,
        :class:`~qiskit.opflow.CZ`, :class:`~qiskit.opflow.Swap`
-     - Append corresponding gate to :class:`~qiskit.circuit.QuantumCircuit`. :mod:`~qiskit.quantum_info`
-       :class:`~qiskit.quantum_info.Operator`\s can be also directly constructed from quantum circuits.
+     - Append corresponding gate to :class:`~qiskit.circuit.QuantumCircuit`. 
+       :class:`qiskit.quantum_info.Operator`\s can be also directly constructed from quantum circuits.
        Another alternative is to wrap the circuit in :class:`~qiskit.quantum_info.Clifford` and call
        ``Clifford.to_operator()``.
 
@@ -386,7 +386,7 @@ Common non-parametrized gates (Clifford)
        ..  note::
 
            For efficient simulation of stabilizer states, :mod:`~qiskit.quantum_info` includes a
-           :class:`~qiskit.quantum_info.StabilizerState` class. See API ref. for more info.
+           :class:`~qiskit.quantum_info.StabilizerState` class. See API reference of :class:`~qiskit.quantum_info.StabilizerState` for more info.
 
 .. raw:: html
 
@@ -651,7 +651,7 @@ ListOps
 
 The :mod:`~qiskit.opflow.list_ops` module contained classes for manipulating lists of :mod:`~qiskit.opflow.primitive_ops`
 or :mod:`~qiskit.opflow.state_fns`. The :mod:`~qiskit.quantum_info` alternatives for this functionality are the
-:class:`~qiskit.quantum_info.PauliList`, :class:`~qiskit.quantum_info.SparsePauliOp` (for sums of :class:`~qiskit.quantum_info.Pauli`\s).
+:class:`~qiskit.quantum_info.PauliList` and :class:`~qiskit.quantum_info.SparsePauliOp` (for sums of :class:`~qiskit.quantum_info.Pauli`\s).
 
 .. list-table::
    :header-rows: 1
@@ -721,7 +721,7 @@ identify the sub-class that is being used, to then look for an alternative.
      - Alternative
 
    * - :class:`~qiskit.opflow.state_fns.StateFn`
-     - In most cases, :class:`~qiskit.quantum_info.Statevector`. Remember that this is a factory class.
+     - In most cases, :class:`~qiskit.quantum_info.Statevector`. However, please remember that :class:`~qiskit.opflow.state_fns.StateFn` is a factory class.
 
    * - :class:`~qiskit.opflow.state_fns.CircuitStateFn`
      - :class:`~qiskit.quantum_info.Statevector`
@@ -828,7 +828,7 @@ Converters
 
 *Back to* `Contents`_
 
-The role of this sub-module was to convert the operators into other opflow operator classes
+The role of the :class:`qiskit.opflow.converters` sub-module was to convert the operators into other opflow operator classes
 (:class:`~qiskit.opflow.converters.TwoQubitReduction`, :class:`~qiskit.opflow.converters.PauliBasisChange`...).
 In the case of the :class:`~qiskit.opflow.converters.CircuitSampler`, it traversed an operator and outputted
 approximations of its state functions using a quantum backend.
@@ -875,9 +875,9 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
 .. code-block:: python
 
-    >>> from qiskit_aer import Aer
     >>> from qiskit.circuit import QuantumCircuit, Parameter
     >>> from qiskit.opflow import ListOp, StateFn, CircuitSampler
+    >>> from qiskit_aer import AerSimulator
 
     >>> x, y = Parameter("x"), Parameter("y")
 
@@ -891,7 +891,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
     >>> bindings = {x: -0.4, y: 0.4}
     >>> listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
 
-    >>> sampler = CircuitSampler(Aer.get_backend("aer_simulator"))
+    >>> sampler = CircuitSampler(AerSimulator())
     >>> sampled = sampler.convert(listop, params=bindings).eval()
 
     >>> for s in sampled:
@@ -911,7 +911,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
     >>> circuit1 = QuantumCircuit(1)
     >>> circuit1.p(0.2, 0)
-    >>> circuit1.measure_all()     # Don't forget measurements!!!!!
+    >>> circuit1.measure_all()     # Sampler primitive requires measurement readout
     >>> circuit2 = QuantumCircuit(1)
     >>> circuit2.p(x, 0)
     >>> circuit2.measure_all()
@@ -945,7 +945,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
     >>> from qiskit import QuantumCircuit
     >>> from qiskit.opflow import X, Z, StateFn, CircuitStateFn, CircuitSampler
-    >>> from qiskit.providers.aer import AerSimulator
+    >>> from qiskit_aer import AerSimulator
 
     >>> qc = QuantumCircuit(1)
     >>> qc.h(0)
@@ -1135,10 +1135,10 @@ Other Evolution Classes
 
 .. code-block:: python
 
-    >>> from qiskit.quantum_info import SparsePauliOp
-    >>> from qiskit.synthesis import SuzukiTrotter
-    >>> from qiskit.circuit.library import PauliEvolutionGate
     >>> from qiskit import QuantumCircuit
+    >>> from qiskit.quantum_info import SparsePauliOp
+    >>> from qiskit.circuit.library import PauliEvolutionGate
+    >>> from qiskit.synthesis import SuzukiTrotter
 
     >>> hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
     >>> evol_gate = PauliEvolutionGate(hamiltonian, time=1, synthesis=SuzukiTrotter(reps=2))
@@ -1253,7 +1253,7 @@ Expectations
 *Back to* `Contents`_
 
 Expectations are converters which enable the computation of the expectation value of an observable with respect to some state function.
-This functionality can now be found in the Estimator primitive.
+This functionality can now be found in the :class:`~qiskit.primitives.Estimator` primitive.
 
 Algorithm-Agnostic Expectations
 -------------------------------
@@ -1273,7 +1273,7 @@ Algorithm-Agnostic Expectations
        See example below.
 
    * - :class:`~qiskit.opflow.expectations.MatrixExpectation`
-     - Use :class:`~qiskit.primitives.Estimator` primitive from :mod:`qiskit` (if no shots are set, it performs an exact Statevector calculation).
+     - Use :class:`qiskit.primitives.Estimator` primitive (if no shots are set, it performs an exact Statevector calculation).
        See example below.
 
    * - :class:`~qiskit.opflow.expectations.PauliExpectation`
@@ -1296,9 +1296,9 @@ Algorithm-Agnostic Expectations
 
     >>> from qiskit.opflow import X, Minus, StateFn, AerPauliExpectation, CircuitSampler
     >>> from qiskit.utils import QuantumInstance
-    >>> from qiskit_aer import Aer
+    >>> from qiskit_aer import AerSimulator
 
-    >>> backend = Aer.get_backend("aer_simulator")
+    >>> backend = AerSimulator()
     >>> q_instance = QuantumInstance(backend)
 
     >>> sampler = CircuitSampler(q_instance, attach_results=True)
@@ -1319,7 +1319,7 @@ Algorithm-Agnostic Expectations
 
     >>> from qiskit.quantum_info import SparsePauliOp
     >>> from qiskit import QuantumCircuit
-    >>> from qiskit_aer.primitives import Estimator as AerEstimator
+    >>> from qiskit_aer.primitives import Estimator
 
     >>> estimator = AerEstimator(run_options={"approximation": True, "shots": None})
 
@@ -1350,11 +1350,11 @@ Algorithm-Agnostic Expectations
 
 .. code-block:: python
 
-    >>> from qiskit_aer import Aer
     >>> from qiskit.opflow import X, H, I, MatrixExpectation, ListOp, StateFn
     >>> from qiskit.utils import QuantumInstance
+    >>> from qiskit_aer import AerSimulator
 
-    >>> backend = Aer.get_backend("statevector_simulator")
+    >>> backend = AerSimulator(method='statevector')
     >>> q_instance = QuantumInstance(backend)
     >>> sampler = CircuitSampler(q_instance, attach_results=True)
     >>> expect = MatrixExpectation()
