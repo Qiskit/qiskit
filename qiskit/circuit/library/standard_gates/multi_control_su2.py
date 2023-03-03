@@ -26,12 +26,13 @@ def _check_su2(matrix):
 
 
 class MCSU2Gate(Gate):
-    r"""
+    """
     Linear-depth multi-controlled gate for special unitary single-qubit gates.
 
     This decomposition for SU(2) gates with multiple controls does not use auxiliary qubits.
     An n-qubit gate implemented with this method will have at most 20n - 38 CNOTs if
     the number of qubits is odd, or 20n - 42 CNOTs if the number of qubits is even.
+    This scheme is described in https://arxiv.org/abs/2302.06377.
     """
 
     def __init__(self, su2_matrix, num_ctrl_qubits, ctrl_state: str = None):
@@ -104,8 +105,22 @@ class MCSU2Gate(Gate):
         controls: Union[QuantumRegister, List[Qubit]],
         target: Qubit,
         ctrl_state: str = None,
-        general_su2_optimization=False,
+        general_su2_optimization: bool = False,
     ):
+        """
+        Apply circuit for the diagonal matrix D of the eigendecomposition U = V D V^-1,
+        where U is in SU(2).
+
+        Args:
+            self (QuantumCircuit): The QuantumCircuit object to apply the diagonal operator on.
+            x (float): real parameter for the single-qubit operators
+            z (complex): complex parameter for the single-qubit operators
+            controls (QuantumRegister or list(Qubit)): The list of control qubits
+            target (Qubit): The target qubit
+            ctrl_state (str): control state of the operator SU(2) operator U
+            general_su2_optimization (bool): gate canceling in SU(2) gates with no real diagonal
+        """
+
         alpha_r = np.sqrt((np.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
         alpha_i = z.imag / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
         alpha = alpha_r + 1.0j * alpha_i
@@ -167,6 +182,20 @@ class MCSU2Gate(Gate):
         ctrl_state: str = None,
         inverse: bool = False,
     ):
+        """
+        Apply circuit for the eigenvector matrix V and its inverse from the eigendecomposition
+        U = V D V^-1, where U is in SU(2).
+
+        Args:
+            self (QuantumCircuit): The QuantumCircuit object to apply the diagonal operator on.
+            x (float): real parameter for the single-qubit operators
+            z (complex): complex parameter for the single-qubit operators
+            controls (QuantumRegister or list(Qubit)): The list of control qubits
+            target (Qubit): The target qubit
+            ctrl_state (str): control state of the operator SU(2) operator U
+            inverse (bool): apply the inverse operator V^-1
+        """
+
         alpha_r = np.sqrt((z.real + 1.0) / 2.0)
         alpha_i = z.imag / np.sqrt(2 * (z.real + 1.0))
         alpha = alpha_r + 1.0j * alpha_i
