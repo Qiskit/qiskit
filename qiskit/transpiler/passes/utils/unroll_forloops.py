@@ -52,7 +52,7 @@ class UnrollForLoops(TransformationPass):
                 continue
 
             # skip unroll when break_loop or continue_loop inside body
-            if UnrollForLoops.body_contains_continue_or_break(body):
+            if _body_contains_continue_or_break(body):
                 continue
 
             unrolled_dag = circuit_to_dag(body).copy_empty_like()
@@ -63,15 +63,15 @@ class UnrollForLoops(TransformationPass):
 
         return dag
 
-    @classmethod
-    def body_contains_continue_or_break(cls, circuit):
-        """Checks if a circuit contains ``continue``s or ``break``s. Conditional bodies are inspected."""
-        for inst in circuit.data:
-            operation = inst.operation
-            if isinstance(operation, (ContinueLoopOp, BreakLoopOp)):
-                return True
-            if isinstance(operation, IfElseOp):
-                for block in operation.params:
-                    if UnrollForLoops.body_contains_continue_or_break(block):
-                        return True
-        return False
+
+def _body_contains_continue_or_break(circuit):
+    """Checks if a circuit contains ``continue``s or ``break``s. Conditional bodies are inspected."""
+    for inst in circuit.data:
+        operation = inst.operation
+        if isinstance(operation, (ContinueLoopOp, BreakLoopOp)):
+            return True
+        if isinstance(operation, IfElseOp):
+            for block in operation.params:
+                if _body_contains_continue_or_break(block):
+                    return True
+    return False
