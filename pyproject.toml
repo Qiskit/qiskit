@@ -64,6 +64,7 @@ target-version = "py37"
 ignore = [
 "E741",  # Do not use variables named 'I', 'O', or 'l'
 "E731",  # Do not assign a `lambda` expression, use a `def`
+"F821",  # Undefined name
 "B905",  # zip-without-explicit-strict
 "C901",  # mccabe function too complex
 "UP015", # Unnecessary open mode parameters. For example, this removes "r".
