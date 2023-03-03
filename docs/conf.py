@@ -67,7 +67,7 @@ intersphinx_mapping = {
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "qiskit_sphinx_theme"  # use the theme in subdir 'theme'
+html_theme = "qiskit_sphinx_theme"
 html_last_updated_fmt = "%Y/%m/%d"
 html_theme_options = {
     "logo_only": True,
@@ -75,8 +75,6 @@ html_theme_options = {
     "prev_next_buttons_location": "bottom",
     "style_external_links": True,
 }
-html_static_path = ["_static"]
-html_css_files = []
 
 
 # -- Options for Autosummary and Autodoc -------------------------------------
