@@ -7,6 +7,9 @@ TL;DR
 The new :mod:`~qiskit.primitives`, in combination with the :mod:`~qiskit.quantum_info` module, have superseded
 functionality of :mod:`~qiskit.opflow`. Thus, the latter is being deprecated.
 
+In this migration guide, you will find instructions and code examples for how to migrate your code based on
+the:mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qiskit.quantum_info` modules.
+
 .. note::
 
     The use of :mod:`~qiskit.opflow` was tightly coupled to the :class:`~qiskit.utils.QuantumInstance` class, which
@@ -34,14 +37,14 @@ This guide traverses the opflow submodules and provides either a direct alternat
 The function equivalency can be roughly summarized as follows:
 
 .. |operator_globals| replace:: ``operator_globals``
-.. _operator_globals: https://qiskit.org/documentation/apidoc/opflow.html#operator-globals/
+.. _operator_globals: https://qiskit.org/documentation/apidoc/opflow.html#operator-globals
 
 .. list-table::
    :header-rows: 1
 
    * - Opflow Module
      - Alternative
-   * - Operators (:class:`~qiskit.opflow.OperatorBase`, |operator_globals|_ ,
+   * - Operators (:class:`~qiskit.opflow.OperatorBase`, :ref:`operator_globals`,
        :mod:`~qiskit.opflow.primitive_ops`,
        :mod:`~qiskit.opflow.list_ops`\)
      - :mod:`qiskit.quantum_info` :ref:`quantum_info_operators`
