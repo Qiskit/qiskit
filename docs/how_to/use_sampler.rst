@@ -8,7 +8,6 @@ Initialize quantum circuits
 ===========================
 
 The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` from which you want to obtain the probability distribution.
-For more details about this part check out :doc:`this guide <create_a_quantum_circuit>`.
 
 .. plot::
     :include-source:
@@ -94,7 +93,7 @@ Parameterized circuits with ``Sampler``
 =========================================
 
 The :class:`~qiskit.primitives.Sampler` primitive also has the option to include unbound parameterized circuits like the one below.
-You can also bind values to the parameters of the circuit like in :doc:`this guide <create_a_parameterized_circuit>` and follow the steps
+You can also bind values to the parameters of the circuit and follow the steps
 of the previous example.
 
 .. testcode::
