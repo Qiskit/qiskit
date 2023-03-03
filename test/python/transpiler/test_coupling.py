@@ -84,6 +84,13 @@ class CouplingTest(QiskitTestCase):
         graph.add_physical_qubit(1)
         self.assertRaises(CouplingError, graph.distance, 0, 1)
 
+    def test_distance_self_loop(self):
+        """Test distance between the same physical qubit."""
+        graph = CouplingMap()
+        graph.add_physical_qubit(0)
+        graph.add_physical_qubit(1)
+        self.assertEqual(0., graph.distance(0, 0))
+
     def test_init_with_couplinglist(self):
         coupling_list = [[0, 1], [1, 2]]
         coupling = CouplingMap(coupling_list)

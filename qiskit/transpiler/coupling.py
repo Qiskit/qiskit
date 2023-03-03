@@ -203,7 +203,7 @@ class CouplingMap:
             raise CouplingError("%s not in coupling graph" % physical_qubit2)
         self.compute_distance_matrix()
         res = int(self._dist_matrix[physical_qubit1, physical_qubit2])
-        if res == 0:
+        if res == 0 and physical_qubit1 != physical_qubit2:
             raise CouplingError(f"No path from {physical_qubit1} to {physical_qubit2}")
         return res
 
