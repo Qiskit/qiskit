@@ -8,7 +8,7 @@ This guide shows how to get the expected value of an observable for a given quan
 Initialize observable
 =====================
 
-The first step is to define the observable whose expected value you want to compute. This observable can be any `BaseOperator`, like the operators from :mod:`qiskit.quantum_info`.
+The first step is to define the observable whose expected value you want to compute. This observable can be any ``BaseOperator``, like the operators from :mod:`qiskit.quantum_info`.
 Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
 .. testcode::
@@ -86,3 +86,55 @@ whose ``i``-th element would be the expectation value corresponding to the ``i``
 .. testoutput::
 
     3.999999999999999
+
+Parameterized circuits with ``Estimator``
+=========================================
+
+The :class:`~qiskit.primitives.Estimator` primitive also has the option to include unbound parameterized circuits like the one below.
+You can also bind values to the parameters of the circuit like in :doc:`this guide <create_a_parameterized_circuit>` and follow the steps
+of the previous example.
+
+.. testcode::
+
+    from qiskit.circuit import Parameter
+
+    theta = Parameter('θ')
+    qc = QuantumCircuit(2)
+    qc.ry(theta, 0)
+    qc.cx(0,1)
+    print(qc.draw())
+
+.. testoutput::
+    :options: +NORMALIZE_WHITESPACE
+
+         ┌───────┐     
+    q_0: ┤ Ry(θ) ├──■──
+         └───────┘┌─┴─┐
+    q_1: ─────────┤ X ├
+                  └───┘
+
+The main difference from the previous case is that now you need to include the parameter values
+for which you want to evaluate the expectation value as a ``list`` of ``list``\ s of ``float``\ s.
+The idea is that the ``i``-th element of the bigger ``list`` is the set of parameter values
+that corresponds to the ``i``-th circuit and observable.
+
+.. testcode::
+
+    import numpy as np
+    
+    parameter_values = [[0], [np.pi/6], [np.pi/2]]
+
+    job = estimator.run([qc]*3, [obs]*3, parameter_values=parameter_values)
+    values = job.result().values
+
+    for i in range(3):
+        print(f"Parameter: {parameter_values[i][0]:.5f}\t Expectation value: {values[i]}")
+
+.. testoutput::
+    :options: +NORMALIZE_WHITESPACE
+
+    Parameter: 0.00000	 Expectation value: 2.0
+    Parameter: 0.52360	 Expectation value: 3.0
+    Parameter: 1.57080	 Expectation value: 4.0
+
+

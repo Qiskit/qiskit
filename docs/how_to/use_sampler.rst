@@ -63,7 +63,7 @@ Get the probability distribution
 
 From these results you can take the probability distributions with the attribute :attr:`~qiskit.primitives.SamplerResult.quasi_dists`.
 
-Even though there is only one circuit in this example, :attr:`~qiskit.primitives.SamplerResult.quasi_dists` returns a list of :class:`~qiskit.result.QuasiDistribution` s.
+Even though there is only one circuit in this example, :attr:`~qiskit.primitives.SamplerResult.quasi_dists` returns a list of :class:`~qiskit.result.QuasiDistribution`\ s.
 Generally ``result.quasi_dists[i]`` would be the quasi-probability distribution of the ``i``-th circuit.
 
 .. testcode::
@@ -89,3 +89,56 @@ If you prefer to see the outputs as binary strings instead of decimal, you can u
 .. testoutput::
 
     {'00': 0.4999999999999999, '11': 0.4999999999999999}
+
+Parameterized circuits with ``Sampler``
+=========================================
+
+The :class:`~qiskit.primitives.Sampler` primitive also has the option to include unbound parameterized circuits like the one below.
+You can also bind values to the parameters of the circuit like in :doc:`this guide <create_a_parameterized_circuit>` and follow the steps
+of the previous example.
+
+.. testcode::
+
+    from qiskit.circuit import Parameter
+
+    theta = Parameter('θ')
+    qc = QuantumCircuit(2)
+    qc.ry(theta, 0)
+    qc.cx(0,1)
+    qc.measure_all()
+    print(qc.draw())
+
+.. testoutput::
+    :options: +NORMALIZE_WHITESPACE
+
+            ┌───────┐      ░ ┌─┐   
+       q_0: ┤ Ry(θ) ├──■───░─┤M├───
+            └───────┘┌─┴─┐ ░ └╥┘┌─┐
+       q_1: ─────────┤ X ├─░──╫─┤M├
+                     └───┘ ░  ║ └╥┘
+    meas: 2/══════════════════╩══╩═
+                              0  1 
+
+The main difference from the previous case is that now you need to include the parameter values
+for which you want to evaluate the expectation value as a ``list`` of ``list``\ s of ``float``\ s.
+The idea is that the ``i``-th element of the bigger ``list`` is the set of parameter values
+that corresponds to the ``i``-th circuit.
+
+.. testcode::
+
+    import numpy as np
+
+    parameter_values = [[0], [np.pi/6], [np.pi/2]]
+
+    job = sampler.run([qc]*3, parameter_values=parameter_values)
+    dists = job.result().quasi_dists
+
+    for i in range(3):
+        print(f"Parameter: {parameter_values[i][0]:.5f}\t Probabilities: {dists[i]}")
+
+.. testoutput::
+    :options: +NORMALIZE_WHITESPACE
+
+    Parameter: 0.00000	 Probabilities: {0: 1.0}
+    Parameter: 0.52360	 Probabilities: {0: 0.9330127018922194, 3: 0.0669872981077807}
+    Parameter: 1.57080	 Probabilities: {0: 0.5000000000000001, 3: 0.4999999999999999}
