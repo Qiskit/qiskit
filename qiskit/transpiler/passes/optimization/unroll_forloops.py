@@ -45,7 +45,7 @@ class UnrollForLoops(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
         for forloop_op in dag.op_nodes(ForLoopOp):
-            (indexset, loop_parameter, body) = forloop_op.op.params
+            (indexset, loop_param, body) = forloop_op.op.params
 
             # skip unrolling if it results in bigger than max_target_depth
             if self.max_target_depth > 0 and len(indexset) * body.depth() > self.max_target_depth:
@@ -57,8 +57,8 @@ class UnrollForLoops(TransformationPass):
 
             unrolled_dag = circuit_to_dag(body).copy_empty_like()
             for index_value in indexset:
-                bound_body_dag = circuit_to_dag(body.bind_parameters({loop_parameter: index_value}))
-                unrolled_dag.compose(bound_body_dag, inplace=True)
+                bound_body = body.bind_parameters({loop_param: index_value}) if loop_param else body
+                unrolled_dag.compose(circuit_to_dag(bound_body), inplace=True)
             dag.substitute_node_with_dag(forloop_op, unrolled_dag)
 
         return dag

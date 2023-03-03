@@ -46,6 +46,28 @@ class TestUnrool(QiskitTestCase):
 
         self.assertEqual(result, expected)
 
+    def test_parameterless_range(self):
+        """Check simples unrolling case when there is not parameter"""
+        qreg, creg = QuantumRegister(5, "q"), ClassicalRegister(2, "c")
+
+        body = QuantumCircuit(3, 1)
+        indexset = range(0, 10, 2)
+
+        body.h([0, 1, 2])
+
+        circuit = QuantumCircuit(qreg, creg)
+        circuit.for_loop(indexset, None, body, [1, 2, 3], [1])
+
+        expected = QuantumCircuit(qreg, creg)
+        for _ in indexset:
+            expected.h([1, 2, 3])
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops())
+        result = passmanager.run(circuit)
+
+        self.assertEqual(result, expected)
+
     def test_skip_continue_loop(self):
         """Unrolling should not be done when a `continue;` in the body"""
         parameter = Parameter("x")
