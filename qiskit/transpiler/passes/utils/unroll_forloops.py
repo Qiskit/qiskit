@@ -19,13 +19,11 @@ from qiskit.converters import circuit_to_dag
 
 
 class UnrollForLoops(TransformationPass):
-    """UnrollForLoops transpilation pass unrolls for-loops when possible. Things like
-    `for x in {0, 3, 4} {rx(x) qr[1];}` will turn into `rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];`.
-    """
+    """UnrollForLoops transpilation pass unrolls for-loops when possible."""
 
     def __init__(self, max_target_depth=-1):
-        """UnrollForLoops transpilation pass unrolls for-loops when possible. Things like
-        `for x in {0, 3, 4} {rx(x) qr[1];}` will turn into `rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];`.
+        """Things like `for x in {0, 3, 4} {rx(x) qr[1];}` will turn into
+        `rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];`.
 
         Args:
             max_target_depth (int): Optional. Checks if the unrolled block is over a particular depth.
