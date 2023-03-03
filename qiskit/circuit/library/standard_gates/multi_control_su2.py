@@ -13,7 +13,7 @@
 Multi-controlled SU(2) gate.
 """
 
-from typing import Union, List
+from typing import Union, List, Optional
 from cmath import isclose
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -84,6 +84,40 @@ class MCSU2Gate(Gate):
 
             if not is_secondary_diag_real:
                 self.definition.h(target)
+
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
+        """
+        Controlled version of this gate.
+
+        Args:
+            num_ctrl_qubits (int): number of control qubits.
+            label (str or None): An optional label for the gate [Default: None]
+            ctrl_state (int or str or None): control state expressed as integer,
+                string (e.g. '110'), or None. If None, use all 1s.
+
+        Returns:
+            ControlledGate: controlled version of this gate.
+        """
+        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
+        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
+        gate = MCSU2Gate(
+            self.su2_matrix,
+            num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+            label=label,
+            ctrl_state=new_ctrl_state,
+        )
+        return gate
+
+    def inverse(self):
+        """
+        Returns inverted MCSU2 gate.
+        """
+        return MCSU2Gate(np.linalg.inv(su2_matrix), self.num_ctrl_qubits)
 
     @staticmethod
     def _get_x_z(su2):
