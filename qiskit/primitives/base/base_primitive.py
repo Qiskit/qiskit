@@ -157,4 +157,9 @@ def _validate_and_getitem(parameter_dict, parameter, i):
         raise ValueError(
             f"Parameter {parameter} in {i}-th circuit can not be found in {parameter_dict}."
         )
-    return parameter_dict[parameter]
+    value = parameter_dict[parameter]
+    if not _isreal(value):
+        raise ValueError(
+            f"The value of dict must be a real number, but {value} was given in {i}-th parameter_value."
+        )
+    return value
