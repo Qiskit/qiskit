@@ -46,7 +46,7 @@ class UnrollForLoops(TransformationPass):
             (indexset, loop_param, body) = forloop_op.op.params
 
             # skip unrolling if it results in bigger than max_target_depth
-            if self.max_target_depth > 0 and len(indexset) * body.depth() > self.max_target_depth:
+            if 0 < self.max_target_depth < len(indexset) * body.depth():
                 continue
 
             # skip unroll when break_loop or continue_loop inside body
