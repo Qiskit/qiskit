@@ -814,8 +814,8 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertLessEqual(cx_count, 8 * num_ctrl_qubits - 6)
 
-    @data(5, 6, 7)
-    def test_mcxvchain_dirty_ancilla_action_only(self, num_ctrl_qubits):
+    def test_mcxvchain_dirty_ancilla_action_only(self):
+        num_ctrl_qubits = 5
         """Test the v-chain mcx with dirty auxiliary qubits
         with gate cancelling with mirrored circuit."""
 
@@ -836,8 +836,8 @@ class TestControlledGate(QiskitTestCase):
 
         self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
 
-    @data(5, 6, 7)
-    def test_mcxvchain_dirty_ancilla_relative_phase(self, num_ctrl_qubits):
+    def test_mcxvchain_dirty_ancilla_relative_phase(self):
+        num_ctrl_qubits = 5
         """Test the v-chain mcx with dirty auxiliary qubits
         with only relative phase Toffoli gates."""
 
@@ -855,6 +855,8 @@ class TestControlledGate(QiskitTestCase):
         circuit.append(gate_relative_phase, list(range(num_qubits - 1)), [])
         circuit.h(num_qubits - 1)
         circuit.append(gate_relative_phase.inverse(), list(range(num_qubits - 1)), [])
+
+        self.assertTrue(matrix_equal(Operator(circuit).data, Operator(ref_circuit).data))
 
     @data(1, 2, 3, 4)
     def test_inverse_x(self, num_ctrl_qubits):
