@@ -68,6 +68,28 @@ class TestUnrool(QiskitTestCase):
 
         self.assertEqual(result, expected)
 
+    def test_nested_forloop(self):
+        """Test unrolls only one level of nested for-loops"""
+        circuit = QuantumCircuit(1)
+        twice = range(2)
+        with circuit.for_loop(twice):
+            with circuit.for_loop(twice):
+                circuit.h(0)
+
+        expected = QuantumCircuit(1)
+        for _ in twice:
+            for _ in twice:
+                expected.h(0)
+
+        passmanager = PassManager()
+        passmanager.append(UnrollForLoops())
+        result = passmanager.run(circuit)
+
+        # from qiskit.qasm3 import dumps
+        # print(dumps(result))
+        #
+        self.assertEqual(result, expected)
+
     def test_skip_continue_loop(self):
         """Unrolling should not be done when a `continue;` in the body"""
         parameter = Parameter("x")
