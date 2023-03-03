@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-function-args
 
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
 import os

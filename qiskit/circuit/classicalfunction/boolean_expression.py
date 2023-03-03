@@ -116,7 +116,7 @@ class BooleanExpression(ClassicalElement):
             expr_obj._tweedledum_bool_expression.num_inputs()
             + expr_obj._tweedledum_bool_expression.num_outputs()
         )
-        super(BooleanExpression, expr_obj).__init__(  # pylint: disable=no-value-for-parameter
+        super(BooleanExpression, expr_obj).__init__(
             name=basename(filename), num_qubits=num_qubits, params=[]
         )
         return expr_obj

@@ -47,6 +47,7 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 )
 from qiskit.providers.models import BackendProperties
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.exceptions import QiskitError
 
 
 KAK_GATE_NAMES = {
@@ -635,11 +636,19 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         decomposers = []
 
         def is_supercontrolled(gate):
-            kak = TwoQubitWeylDecomposition(Operator(gate).data)
+            try:
+                operator = Operator(gate)
+            except QiskitError:
+                return False
+            kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.a, pi / 4) and isclose(kak.c, 0.0)
 
         def is_controlled(gate):
-            kak = TwoQubitWeylDecomposition(Operator(gate).data)
+            try:
+                operator = Operator(gate)
+            except QiskitError:
+                return False
+            kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.b, 0.0) and isclose(kak.c, 0.0)
 
         # possible supercontrolled decomposers (i.e. TwoQubitBasisDecomposer)
@@ -725,7 +734,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         if unitary.shape == (2, 2):
             _decomposer1q = Optimize1qGatesDecomposition(basis_gates, target)
-            return _decomposer1q._resynthesize_run(unitary, qubits[0])  # already in dag format
+            return _decomposer1q._gate_sequence_to_dag(
+                _decomposer1q._resynthesize_run(unitary, qubits[0])
+            )
         elif unitary.shape == (4, 4):
             # select synthesizers that can lower to the target
             if target is not None:
