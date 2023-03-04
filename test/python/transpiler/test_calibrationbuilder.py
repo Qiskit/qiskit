@@ -12,7 +12,7 @@
 
 """Test the RZXCalibrationBuilderNoEcho."""
 
-from math import pi, erf  # pylint: disable=no-name-in-module
+from math import pi, erf
 
 import numpy as np
 from ddt import data, ddt

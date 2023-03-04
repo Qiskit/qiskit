@@ -29,7 +29,6 @@ from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
-# pylint: disable=invalid-name
 
 FilterType = Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
 

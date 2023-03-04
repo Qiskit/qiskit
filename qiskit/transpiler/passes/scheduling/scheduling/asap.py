@@ -44,7 +44,7 @@ class ASAPScheduleAnalysis(BaseScheduler):
         conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
-        node_start_time = dict()
+        node_start_time = {}
         idle_after = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         for node in dag.topological_op_nodes():
