@@ -204,6 +204,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return self._truncated_str(False)
 
     def _truncated_str(self, show_class):
+        if self._num_paulis == 0 and show_class:
+            return "PauliList(['" + ("I" * self.num_qubits) + "'])[:0]"
         stop = self._num_paulis
         if self.__truncate__ and self.num_qubits > 0:
             max_paulis = self.__truncate__ // self.num_qubits

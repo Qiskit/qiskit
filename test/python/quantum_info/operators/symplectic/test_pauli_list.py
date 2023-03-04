@@ -332,6 +332,14 @@ class TestPauliListProperties(QiskitTestCase):
         self.assertEqual(pauli1, pauli1)
         self.assertNotEqual(pauli1, pauli2)
 
+    def test_repr(self):
+        """Test __repr__ method."""
+        pauli = PauliList(["XXX", "iYYY"])
+        empty_pauli = pauli[:0]
+        self.assertEqual(repr(pauli), "PauliList(['XXX', 'iYYY'])")
+        self.assertEqual(len(empty_pauli), 0)
+        self.assertEqual(repr(empty_pauli), "PauliList(['III'])[:0]")
+
     def test_len_methods(self):
         """Test __len__ method."""
         for j in range(1, 10):
