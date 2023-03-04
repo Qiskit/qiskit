@@ -16,16 +16,18 @@ Multi-controlled SU(2) gate.
 from typing import Union, List, Optional
 from cmath import isclose
 import numpy as np
-from qiskit.circuit import QuantumCircuit, QuantumRegister
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates.x import MCXVChain
-from qiskit.circuit import Gate, Qubit
+from qiskit.exceptions import QiskitError
+from qiskit.circuit._utils import _ctrl_state_to_int
 
 
 def _check_su2(matrix):
     return isclose(np.linalg.det(matrix), 1.0)
 
 
-class MCSU2Gate(Gate):
+class MCSU2Gate(ControlledGate):
     """
     Linear-depth multi-controlled gate for special unitary single-qubit gates.
 
@@ -36,13 +38,29 @@ class MCSU2Gate(Gate):
     """
 
     def __init__(self, su2_matrix, num_ctrl_qubits, ctrl_state: str = None):
-        _check_su2(su2_matrix)
+        if su2_matrix.shape != (2, 2):
+            raise QiskitError("The dimension of the input matrix is not equal to (2,2)." + str(su2_matrix))
+        if not _check_su2(su2_matrix):
+            raise QiskitError("The 2*2 matrix is not special unitary.")
+
+        from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
 
         self.su2_matrix = su2_matrix
+        self.base_gate = SingleQubitUnitary(self.su2_matrix)
+        self._num_qubits = num_ctrl_qubits + 1
         self.num_ctrl_qubits = num_ctrl_qubits
         self.ctrl_state = ctrl_state
 
-        super().__init__("mcsu2", self.num_ctrl_qubits + 1, [], "mcsu2")
+        super().__init__(
+            name="mcsu2",
+            num_qubits=self._num_qubits,
+            params=[self.su2_matrix],
+            label="mcsu2",
+            num_ctrl_qubits=self.num_ctrl_qubits,
+            # definition=self.definition,
+            ctrl_state=self.ctrl_state,
+            base_gate=self.base_gate,
+        )
 
     def _define(self):
         controls = QuantumRegister(self.num_ctrl_qubits)
@@ -106,18 +124,22 @@ class MCSU2Gate(Gate):
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
         gate = MCSU2Gate(
-            self.su2_matrix,
+            su2_matrix=self.su2_matrix,
             num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-            label=label,
             ctrl_state=new_ctrl_state,
         )
+
         return gate
 
     def inverse(self):
         """
         Returns inverted MCSU2 gate.
         """
-        return MCSU2Gate(np.linalg.inv(su2_matrix), self.num_ctrl_qubits)
+        return MCSU2Gate(
+            su2_matrix=np.linalg.inv(su2_matrix),
+            num_ctrl_qubits=self.num_ctrl_qubits,
+            ctrl_state=self.ctrl_state,
+        )
 
     @staticmethod
     def _get_x_z(su2):
