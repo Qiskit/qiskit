@@ -287,8 +287,7 @@ def _plotting_core(
 
     if legend and len(legend) != len(data):
         raise VisualizationError(
-            "Length of legendL (%s) doesn't match "
-            "number of input executions: %s" % (len(legend), len(data))
+            f"Length of legend ({len(legend)}) doesn't match number of input executions ({len(data)})."
         )
 
     # Set bar colors
