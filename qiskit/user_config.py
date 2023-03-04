@@ -125,7 +125,7 @@ class UserConfig:
                 )
             except ValueError as err:
                 raise exceptions.QiskitUserConfigError(
-                    f"Value assigned to circuit_reverse_bits is not valid."
+                    "Value assigned to circuit_reverse_bits is not valid."
                 ) from err
             if circuit_reverse_bits is not None:
                 self.settings["circuit_reverse_bits"] = circuit_reverse_bits
