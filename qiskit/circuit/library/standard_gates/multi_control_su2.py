@@ -39,7 +39,9 @@ class MCSU2Gate(ControlledGate):
 
     def __init__(self, su2_matrix, num_ctrl_qubits, ctrl_state: str = None):
         if su2_matrix.shape != (2, 2):
-            raise QiskitError("The dimension of the input matrix is not equal to (2,2)." + str(su2_matrix))
+            raise QiskitError(
+                "The dimension of the input matrix is not equal to (2,2)." + str(su2_matrix)
+            )
         if not _check_su2(su2_matrix):
             raise QiskitError("The 2*2 matrix is not special unitary.")
 
@@ -136,7 +138,7 @@ class MCSU2Gate(ControlledGate):
         Returns inverted MCSU2 gate.
         """
         return MCSU2Gate(
-            su2_matrix=np.linalg.inv(su2_matrix),
+            su2_matrix=np.linalg.inv(self.su2_matrix),
             num_ctrl_qubits=self.num_ctrl_qubits,
             ctrl_state=self.ctrl_state,
         )

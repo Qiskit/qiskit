@@ -978,10 +978,9 @@ class TestControlledGate(QiskitTestCase):
         elif gate_class in [MCXGate]:
             free_params[0] = 3
         elif gate_class in [MCSU2Gate]:
-            free_params[0] = np.array([
-                [np.exp(-1.j * (np.pi / 2.)), 0.],
-                [0., np.exp(1.j * (np.pi / 2.))]
-            ])
+            free_params[0] = np.array(
+                [[np.exp(-1.0j * (np.pi / 2.0)), 0.0], [0.0, np.exp(1.0j * (np.pi / 2.0))]]
+            )
             free_params[1] = 3
 
         base_gate = gate_class(*free_params)
@@ -1114,10 +1113,9 @@ class TestControlledGate(QiskitTestCase):
                 elif gate_class in [MCXGate]:
                     free_params[0] = 3
                 elif gate_class in [MCSU2Gate]:
-                    free_params[0] = np.array([
-                        [np.exp(-1.j * (np.pi / 2.)), 0.],
-                        [0., np.exp(1.j * (np.pi / 2.))]
-                    ])
+                    free_params[0] = np.array(
+                        [[np.exp(-1.0j * (np.pi / 2.0)), 0.0], [0.0, np.exp(1.0j * (np.pi / 2.0))]]
+                    )
                     free_params[1] = 3
                 base_gate = gate_class(*free_params)
                 if base_gate.params:
