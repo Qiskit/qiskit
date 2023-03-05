@@ -22,9 +22,8 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info.states import StabilizerState
 from qiskit.quantum_info import random_clifford
-from qiskit.synthesis.stabilizer import synth_stabilizer_layers
-
-# from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
+from qiskit.synthesis.stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
+from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
 
 
 @ddt
@@ -40,7 +39,7 @@ class TestStabDecomposeLayers(QiskitTestCase):
         for _ in range(samples):
             cliff = random_clifford(num_qubits, seed=rng)
             stab = StabilizerState(cliff)
-            circ = synth_stabilizer_layers(stab)
+            circ = synth_stabilizer_layers(stab, validate=True)
             stab_target = StabilizerState(circ)
             # Verify that the two stabilizers generate the same state
             self.assertTrue(stab.equiv(stab_target))
@@ -52,6 +51,28 @@ class TestStabDecomposeLayers(QiskitTestCase):
             self.assertEqual(circ.data[2].operation.name, "CZ")
             self.assertEqual(circ.data[3].operation.name, "H1")
             self.assertEqual(circ.data[4].operation.name, "Pauli")
+
+    @combine(num_qubits=[4, 5, 6, 7])
+    def test_decompose_lnn_depth(self, num_qubits):
+        """Test stabilizer state decomposition for linear-nearest-neighbour (LNN) connectivity."""
+        rng = np.random.default_rng(1234)
+        samples = 10
+        for _ in range(samples):
+            cliff = random_clifford(num_qubits, seed=rng)
+            stab = StabilizerState(cliff)
+            circ = synth_stabilizer_depth_lnn(stab)
+            # Check that the Clifford circuit 2-qubit depth equals 2*n+2
+            depth2q = (circ.decompose()).depth(
+                filter_function=lambda x: x.operation.num_qubits == 2
+            )
+            self.assertTrue(depth2q == 2 * num_qubits + 2)
+            # Check that the Clifford circuit has linear nearest neighbour connectivity
+            self.assertTrue(check_lnn_connectivity(circ.decompose()))
+            stab_target = StabilizerState(circ)
+            # Verify that the two stabilizers generate the same state
+            self.assertTrue(stab.equiv(stab_target))
+            # Verify that the two stabilizers produce the same probabilities
+            self.assertEqual(stab.probabilities_dict(), stab_target.probabilities_dict())
 
 
 if __name__ == "__main__":

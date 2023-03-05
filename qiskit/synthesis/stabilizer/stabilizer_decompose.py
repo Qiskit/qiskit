@@ -17,10 +17,19 @@ Circuit synthesis for a stabilizer state preparation circuit.
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.states import StabilizerState
-from qiskit.synthesis.clifford.clifford_decompose_layers import synth_clifford_layers
+from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
+from qiskit.synthesis.clifford.clifford_decompose_layers import (
+    synth_clifford_layers,
+    _default_cz_synth_func,
+)
 
 
-def synth_stabilizer_layers(stab):
+def synth_stabilizer_layers(
+    stab,
+    cz_synth_func=_default_cz_synth_func,
+    cz_func_reverse_qubits=False,
+    validate=False,
+):
     """Synthesis of a stabilizer state into layers."""
 
     if not isinstance(stab, StabilizerState):
@@ -30,7 +39,12 @@ def synth_stabilizer_layers(stab):
     num_qubits = cliff.num_qubits
     qubit_list = list(range(num_qubits))
 
-    circ = synth_clifford_layers(cliff)
+    circ = synth_clifford_layers(
+        cliff,
+        cz_synth_func=cz_synth_func,
+        cz_func_reverse_qubits=cz_func_reverse_qubits,
+        validate=validate,
+    )
     H2_circ = circ.data[3]
     S1_circ = circ.data[4]
     CZ1_circ = circ.data[5]
@@ -45,3 +59,14 @@ def synth_stabilizer_layers(stab):
     stab_circuit.append(pauli_circ, qubit_list)
 
     return stab_circuit
+
+
+def synth_stabilizer_depth_lnn(stab):
+    """Synthesis of an n-qubit stabilizer state for LNN connectivity in depth 2n+2."""
+
+    circ = synth_stabilizer_layers(
+        stab,
+        cz_synth_func=synth_cz_depth_line_mr,
+        cz_func_reverse_qubits=True,
+    )
+    return circ

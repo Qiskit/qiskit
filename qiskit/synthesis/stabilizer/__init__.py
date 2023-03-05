@@ -12,4 +12,4 @@
 
 """Module containing stabilizer state preparation circuit synthesis."""
 
-from .stabilizer_decompose import synth_stabilizer_layers
+from .stabilizer_decompose import synth_stabilizer_layers, synth_stabilizer_depth_lnn

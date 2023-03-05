@@ -121,5 +121,5 @@ from .cnotdihedral import (
     synth_cnotdihedral_two_qubits,
     synth_cnotdihedral_general,
 )
-from .stabilizer import synth_stabilizer_layers
+from .stabilizer import synth_stabilizer_layers, synth_stabilizer_depth_lnn
 from .discrete_basis import SolovayKitaevDecomposition, generate_basic_approximations
