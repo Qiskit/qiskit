@@ -52,6 +52,7 @@ and thus this parameter framework gives greater scalability to the pulse module.
 """
 from copy import copy
 from typing import List, Dict, Set, Any, Union
+import warnings
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -231,6 +232,17 @@ class ParameterSetter(NodeVisitor):
                 pval = node._params[name]
                 if isinstance(pval, ParameterExpression):
                     new_val = self._assign_parameter_expression(pval)
+                    if isinstance(new_val, complex):
+                        warnings.warn(
+                            "Assignment of complex parameters to SymbolicPulse is now pending "
+                            "deprecation. As of Qiskit-Terra 0.23.0 all library pulses were "
+                            "converted from complex amplitude representation to real representation "
+                            "using two floats (amp,angle), as used in the ScalableSymbolicPulse "
+                            "class. This eliminated the need for complex parameters. Any custom-built "
+                            "pulses should be converted in a similar fashion to avoid the use of "
+                            "complex parameters.",
+                            PendingDeprecationWarning,
+                        )
                     node._params[name] = new_val
             node.validate_parameters()
 
