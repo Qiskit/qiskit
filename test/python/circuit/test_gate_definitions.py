@@ -244,18 +244,6 @@ class TestStandardGates(QiskitTestCase):
         elif class_name == "PauliGate":
             pauli_string = "IXYZ"
             gate = gate_class(pauli_string)
-        elif class_name == "MCSU2Gate":
-            num_ctrl_qubits = 7
-            alpha = np.random.rand() + 1.j * np.random.rand()
-            beta = np.random.rand() + 1.j * np.random.rand()
-
-            length = np.linalg.norm([alpha, beta])
-            su2 = np.array([
-                [alpha, -np.conj(beta)],
-                [beta, np.conj(alpha)]
-            ]) / length
-
-            gate = gate_class(su2, num_ctrl_qubits)
         else:
             gate = gate_class(*float_vector)
 
@@ -312,17 +300,6 @@ class TestGateEquivalenceEqual(QiskitTestCase):
             params = ["IXYZ"]
         if gate_class.__name__ in ["BooleanExpression"]:
             params = ["x | y"]
-        if gate_class.__name__ in ["MCSU2Gate"]:
-            alpha = np.random.rand() + 1.j * np.random.rand()
-            beta = np.random.rand() + 1.j * np.random.rand()
-
-            length = np.linalg.norm([alpha, beta])
-            su2 = np.array([
-                [alpha, -np.conj(beta)],
-                [beta, np.conj(alpha)]
-            ]) / length
-            params[0] = su2
-            params[1] = 7
 
         gate = gate_class(*params)
         equiv_lib_list = std_eqlib.get_entry(gate)
