@@ -1363,18 +1363,6 @@ class TestOpenControlledToMatrix(QiskitTestCase):
             free_params[1] = 3
         elif gate_class in [MCXGate]:
             free_params[0] = 3
-        elif gate_class in [MCSU2Gate]:
-            alpha = np.random.rand() + 1.j * np.random.rand()
-            beta = np.random.rand() + 1.j * np.random.rand()
-
-            length = np.linalg.norm([alpha, beta])
-            su2 = np.array([
-                [alpha, -np.conj(beta)],
-                [beta, np.conj(alpha)]
-            ]) / length
-            free_params[0] = su2
-            free_params[1] = 7
-
         cgate = gate_class(*free_params)
         cgate.ctrl_state = ctrl_state
 
@@ -1483,18 +1471,6 @@ class TestControlledStandardGates(QiskitTestCase):
             args[1] = 2
         elif issubclass(gate_class, MCXGate):
             args = [5]
-        elif gate_class in [MCSU2Gate]:
-            alpha = np.random.rand() + 1.j * np.random.rand()
-            beta = np.random.rand() + 1.j * np.random.rand()
-
-            length = np.linalg.norm([alpha, beta])
-            su2 = np.array([
-                [alpha, -np.conj(beta)],
-                [beta, np.conj(alpha)]
-            ]) / length
-            args[0] = su2
-            args[1] = 7
-
         gate = gate_class(*args)
 
         for ctrl_state in (ctrl_state_ones, ctrl_state_zeros, ctrl_state_mixed):
