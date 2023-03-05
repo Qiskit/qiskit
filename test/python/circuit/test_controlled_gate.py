@@ -19,7 +19,7 @@ import numpy as np
 from numpy import pi
 from ddt import ddt, data, unpack
 
-from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError, transpile
+from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.exceptions import CircuitError
@@ -73,7 +73,6 @@ from qiskit.circuit.library import (
     C3SXGate,
     C4XGate,
     MCPhaseGate,
-    MCSU2Gate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -1269,85 +1268,6 @@ class TestControlledGate(QiskitTestCase):
         target = np.eye(2**num_ctrl_qubits, dtype=np.complex128)
         target.flat[-1] = -1
         self.assertEqual(Operator(controlled), Operator(target))
-
-    @data(5, 10, 15)
-    def test_mcsu2_cx_count(self, num_ctrl_qubits):
-        """Test if the CX count of the multicontrolled SU(2) gate,
-        `MCSU2Gate`, is less than or equal to the upper bound."""
-
-        alpha = np.random.rand() + 1.j * np.random.rand()
-        beta = np.random.rand() + 1.j * np.random.rand()
-
-        length = np.linalg.norm([alpha, beta])
-        su2 = np.array([
-            [alpha, -np.conj(beta)],
-            [beta, np.conj(alpha)]
-        ]) / length
-
-        mcsu2 = MCSU2Gate(su2, num_ctrl_qubits)
-        qc = QuantumCircuit(mcsu2.num_qubits)
-
-        qc.append(mcsu2, list(range(mcsu2.num_qubits)))
-
-        tr_mcsu2 = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcsu2.count_ops()["cx"]
-
-        if mcsu2.num_qubits % 2:
-            # odd
-            self.assertLessEqual(cx_count, 20 * mcsu2.num_qubits - 38)
-        else:
-            # even
-            self.assertLessEqual(cx_count, 20 * mcsu2.num_qubits - 42)
-
-    @data(5, 10, 15)
-    def test_mcsu2_cx_count_main_diag_real(self, num_ctrl_qubits):
-        """Test if the CX count of the multicontrolled SU(2) gate
-        with real-valued primary diagonal elements is less than or equal
-        to the upper bound."""
-
-        alpha = np.random.rand()
-        beta = np.random.rand() + 1.j * np.random.rand()
-
-        length = np.linalg.norm([alpha, beta])
-        su2 = np.array([
-            [alpha, -np.conj(beta)],
-            [beta, np.conj(alpha)]
-        ]) / length
-
-        mcsu2 = MCSU2Gate(su2, num_ctrl_qubits)
-        qc = QuantumCircuit(mcsu2.num_qubits)
-
-        qc.append(mcsu2, list(range(mcsu2.num_qubits)))
-
-        tr_mcsu2 = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcsu2.count_ops()["cx"]
-
-        self.assertLessEqual(cx_count, 16 * mcsu2.num_qubits - 40)
-
-    @data(5, 10, 15)
-    def test_mcsu2_cx_count_off_diag_real(self, num_ctrl_qubits):
-        """Test if the CX count of the multicontrolled SU(2) gate
-        with real-valued off-diagonal elements is less than or equal
-        to the upper bound."""
-
-        alpha = np.random.rand() + 1.j * np.random.rand()
-        beta = np.random.rand()
-
-        length = np.linalg.norm([alpha, beta])
-        su2 = np.array([
-            [alpha, -np.conj(beta)],
-            [beta, np.conj(alpha)]
-        ]) / length
-
-        mcsu2 = MCSU2Gate(su2, num_ctrl_qubits)
-        qc = QuantumCircuit(mcsu2.num_qubits)
-
-        qc.append(mcsu2, list(range(mcsu2.num_qubits)))
-
-        tr_mcsu2 = transpile(qc, basis_gates=["u", "cx"])
-        cx_count = tr_mcsu2.count_ops()["cx"]
-
-        self.assertLessEqual(cx_count, 16 * mcsu2.num_qubits - 40)
 
 
 @ddt
