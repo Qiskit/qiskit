@@ -20,11 +20,6 @@ from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates.x import MCXVChain
 from qiskit.exceptions import QiskitError
-from qiskit.circuit._utils import _ctrl_state_to_int
-
-
-def _check_su2(matrix):
-    return isclose(np.linalg.det(matrix), 1.0)
 
 
 class MCSU2Gate(ControlledGate):
@@ -37,12 +32,12 @@ class MCSU2Gate(ControlledGate):
     This scheme is described in https://arxiv.org/abs/2302.06377.
     """
 
-    def __init__(self, su2_matrix, num_ctrl_qubits, ctrl_state: str = None):
+    def __init__(self, su2_matrix, num_ctrl_qubits, ctrl_state: Optional[Union[str, int]] = None):
         if su2_matrix.shape != (2, 2):
             raise QiskitError(
                 "The dimension of the input matrix is not equal to (2,2)." + str(su2_matrix)
             )
-        if not _check_su2(su2_matrix):
+        if not self._check_su2(su2_matrix):
             raise QiskitError("The 2*2 matrix is not special unitary.")
 
         from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
@@ -59,7 +54,6 @@ class MCSU2Gate(ControlledGate):
             params=[self.su2_matrix],
             label="mcsu2",
             num_ctrl_qubits=self.num_ctrl_qubits,
-            # definition=self.definition,
             ctrl_state=self.ctrl_state,
             base_gate=self.base_gate,
         )
@@ -105,34 +99,6 @@ class MCSU2Gate(ControlledGate):
             if not is_secondary_diag_real:
                 self.definition.h(target)
 
-    def control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
-    ):
-        """
-        Controlled version of this gate.
-
-        Args:
-            num_ctrl_qubits (int): number of control qubits.
-            label (str or None): An optional label for the gate [Default: None]
-            ctrl_state (int or str or None): control state expressed as integer,
-                string (e.g. '110'), or None. If None, use all 1s.
-
-        Returns:
-            ControlledGate: controlled version of this gate.
-        """
-        ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
-        new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCSU2Gate(
-            su2_matrix=self.su2_matrix,
-            num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-            ctrl_state=new_ctrl_state,
-        )
-
-        return gate
-
     def inverse(self):
         """
         Returns inverted MCSU2 gate.
@@ -142,6 +108,10 @@ class MCSU2Gate(ControlledGate):
             num_ctrl_qubits=self.num_ctrl_qubits,
             ctrl_state=self.ctrl_state,
         )
+
+    @staticmethod
+    def _check_su2(matrix):
+        return isclose(np.linalg.det(matrix), 1.0)
 
     @staticmethod
     def _get_x_z(su2):
@@ -198,8 +168,9 @@ class MCSU2Gate(ControlledGate):
         ctrl_state_k_2 = None
 
         if ctrl_state is not None:
-            ctrl_state_k_1 = ctrl_state[::-1][:k_1][::-1]
-            ctrl_state_k_2 = ctrl_state[::-1][k_1:][::-1]
+            str_ctrl_state = f"{ctrl_state:0{num_ctrl}b}"
+            ctrl_state_k_1 = str_ctrl_state[::-1][:k_1][::-1]
+            ctrl_state_k_2 = str_ctrl_state[::-1][k_1:][::-1]
 
         if not general_su2_optimization:
             mcx_1 = MCXVChain(
@@ -278,8 +249,9 @@ class MCSU2Gate(ControlledGate):
         ctrl_state_k_2 = None
 
         if ctrl_state is not None:
-            ctrl_state_k_1 = ctrl_state[::-1][:k_1][::-1]
-            ctrl_state_k_2 = ctrl_state[::-1][k_1:][::-1]
+            str_ctrl_state = f"{ctrl_state:0{num_ctrl}b}"
+            ctrl_state_k_1 = str_ctrl_state[::-1][:k_1][::-1]
+            ctrl_state_k_2 = str_ctrl_state[::-1][k_1:][::-1]
 
         if inverse:
             self.definition.h(target)
