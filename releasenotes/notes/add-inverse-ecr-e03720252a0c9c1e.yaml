@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add the method :class:`.ECRGate.inverse` that returns the same ECRGate,
+    since it is self inverse.
