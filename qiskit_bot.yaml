@@ -43,4 +43,8 @@ notifications:
         - "@kevinhartman"
     "(?!.*pulse.*)\\bvisualization\\b":
         - "@enavarro51"
+    "^docs/":
+        - "@javabster"
+        - "@HuangJunye"
+        - "@Eric-Arellano"
 always_notify: true
