@@ -1003,14 +1003,17 @@ class TestControlledGate(QiskitTestCase):
                 args = [2] * numargs
                 gate = gate(*args)
 
-                gate_inverse_control = gate.inverse().control(num_ctrl_qubits, ctrl_state=ctrl_state)
-                gate_control_inverse = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state).inverse()
-
+                gate_inverse_control = gate.inverse().control(
+                    num_ctrl_qubits, ctrl_state=ctrl_state
+                )
+                gate_control_inverse = gate.control(
+                    num_ctrl_qubits, ctrl_state=ctrl_state
+                ).inverse()
 
                 self.assertTrue(
                     np.allclose(
                         Operator(gate_inverse_control).to_matrix(),
-                        Operator(gate_control_inverse).to_matrix()
+                        Operator(gate_control_inverse).to_matrix(),
                     )
                 )
 

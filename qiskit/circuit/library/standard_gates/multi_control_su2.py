@@ -14,12 +14,10 @@ Multi-controlled SU(2) gate.
 """
 
 from typing import Union, List
-from cmath import isclose
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.library.standard_gates.x import MCXVChain
-from qiskit.exceptions import QiskitError
-from qiskit.circuit.library.standard_gates import HGate
+
 
 def linear_depth_mcv(
     circuit,
@@ -28,7 +26,6 @@ def linear_depth_mcv(
     controls: Union[QuantumRegister, List[Qubit]],
     target: Qubit,
     ctrl_state: str = None,
-    general_su2_optimization: bool = False,
 ):
     """
     Apply multi-controlled SU(2) gate [[z*, x],[-x, z]] with x real and z complex.
@@ -66,10 +63,8 @@ def linear_depth_mcv(
         ctrl_state_k_1 = str_ctrl_state[::-1][:k_1][::-1]
         ctrl_state_k_2 = str_ctrl_state[::-1][k_1:][::-1]
 
-    mcx_1 = MCXVChain(
-        num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1
-    )
-    circuit.append(mcx_1, controls[:k_1] + [target] + controls[k_1: 2 * k_1 - 2])
+    mcx_1 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
+    circuit.append(mcx_1, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
     circuit.append(s_gate, [target])
 
     mcx_2 = MCXVChain(
@@ -78,19 +73,13 @@ def linear_depth_mcv(
         ctrl_state=ctrl_state_k_2,
         # action_only=general_su2_optimization # Requires PR #9687
     )
-    circuit.append(
-        mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1]
-    )
+    circuit.append(mcx_2.inverse(), controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
     circuit.append(s_gate.inverse(), [target])
 
-    mcx_3 = MCXVChain(
-        num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1
-    )
-    circuit.append(mcx_3, controls[:k_1] + [target] + controls[k_1: 2 * k_1 - 2])
+    mcx_3 = MCXVChain(num_ctrl_qubits=k_1, dirty_ancillas=True, ctrl_state=ctrl_state_k_1)
+    circuit.append(mcx_3, controls[:k_1] + [target] + controls[k_1 : 2 * k_1 - 2])
     circuit.append(s_gate, [target])
 
-    mcx_4 = MCXVChain(
-        num_ctrl_qubits=k_2, dirty_ancillas=True, ctrl_state=ctrl_state_k_2
-    )
-    circuit.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2: k_1])
+    mcx_4 = MCXVChain(num_ctrl_qubits=k_2, dirty_ancillas=True, ctrl_state=ctrl_state_k_2)
+    circuit.append(mcx_4, controls[k_1:] + [target] + controls[k_1 - k_2 + 2 : k_1])
     circuit.append(s_gate.inverse(), [target])

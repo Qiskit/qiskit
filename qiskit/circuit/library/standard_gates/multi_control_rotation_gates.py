@@ -13,7 +13,7 @@
 Multiple-Controlled U3 gate. Not using ancillary qubits.
 """
 
-from math import pi
+from math import pi, sin, cos
 from typing import Optional, Union, Tuple, List
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.library.standard_gates.x import MCXGate
@@ -188,9 +188,9 @@ def mcry(
                 self, theta, 0, 0, control_qubits[0], target_qubit, use_basis_gates=use_basis_gates
             )
         else:
-            import numpy as np
-            x = -np.sin(theta / 2)
-            z = np.cos(theta / 2)
+
+            x = -sin(theta / 2)
+            z = cos(theta / 2)
             linear_depth_mcv(self, x, z, control_qubits, target_qubit)
     else:
         raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")

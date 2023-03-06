@@ -828,13 +828,7 @@ class TestCircuitOperations(QiskitTestCase):
         ref = QuantumCircuit(*c_qc.qregs)
         ref.append(cgate, ref.qubits)
 
-
-        self.assertTrue(
-            np.allclose(
-                Operator(ref).to_matrix(),
-                Operator(c_qc).to_matrix()
-            )
-        )
+        self.assertTrue(np.allclose(Operator(ref).to_matrix(), Operator(c_qc).to_matrix()))
 
     @data("gate", "instruction")
     def test_repeat_appended_type(self, subtype):
