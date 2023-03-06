@@ -117,43 +117,40 @@ def _rename_kwargs(
 
 
 # We insert deprecations in-between the description and Napoleon's meta sections. The below is from
-# https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html#docstring-sections.
+# https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html#docstring-sections. We use
+# lowercase because Napoleon is case-insensitive.
 _NAPOLEON_META_LINES = frozenset(
     {
-        "Args:",
-        "Arguments:",
-        "Attention:",
-        "Attributes:",
-        "Caution:",
-        "Danger:",
-        "Error:",
-        "Example:",
-        "Examples:",
-        "Hint:",
-        "Important:",
-        "Keyword args:",
-        "Keyword Args:",
-        "Keyword arguments:",
-        "Keyword Arguments:",
-        "Note:",
-        "Notes:",
-        "Other parameters:",
-        "Other Parameters:",
-        "Parameters:",
-        "Return:",
-        "Returns:",
-        "Raises:",
-        "References:",
-        "See also:",
-        "See Also:",
-        "Tip:",
-        "Todo:",
-        "Warning:",
-        "Warnings:",
-        "Warn:",
-        "Warns:",
-        "Yield:",
-        "Yields:",
+        "args:",
+        "arguments:",
+        "attention:",
+        "attributes:",
+        "caution:",
+        "danger:",
+        "error:",
+        "example:",
+        "examples:",
+        "hint:",
+        "important:",
+        "keyword args:",
+        "keyword arguments:",
+        "note:",
+        "notes:",
+        "other parameters:",
+        "parameters:",
+        "return:",
+        "returns:",
+        "raises:",
+        "references:",
+        "see also:",
+        "tip:",
+        "todo:",
+        "warning:",
+        "warnings:",
+        "warn:",
+        "warns:",
+        "yield:",
+        "yields:",
     }
 )
 
@@ -193,7 +190,7 @@ def _add_deprecation_to_docstring(
                 indent = " " * num_leading_spaces
                 content_encountered = True
 
-            if stripped in _NAPOLEON_META_LINES:
+            if stripped.lower() in _NAPOLEON_META_LINES:
                 meta_index = i
                 if content_encountered is not True:
                     raise AssertionError(
