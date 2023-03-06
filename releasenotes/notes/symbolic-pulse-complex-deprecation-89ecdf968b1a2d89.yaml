@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Assignment of complex values to `SymbolicPulse` instances now raises a
+    `PendingDeprecationWarning`. As of Qiskit-Terra 0.23.0 all library pulses
+    were converted from complex amplitude representation to real representation
+    using two floats (amp,angle), as used in the `ScalableSymbolicPulse` class.
+    This eliminated the need for complex parameters. Any custom-built pulses
+    should be converted in a similar fashion to avoid the use of complex parameters.
