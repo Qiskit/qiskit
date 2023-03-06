@@ -18,4 +18,4 @@ include test/python/notebooks/*.ipynb
 
 include Cargo.toml
 include Cargo.lock
-recursive-include src *
+recursive-include crates *
