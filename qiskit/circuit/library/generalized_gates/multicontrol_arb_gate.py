@@ -12,17 +12,16 @@
 
 """multicontrol single qubit unitary gate."""
 
-from typing import List
-from numpy import array, pi, allclose, eye
-from scipy.linalg import fractional_matrix_power
 from typing import Union, List, Optional
-from cmath import isclose
 import numpy
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from scipy.linalg import fractional_matrix_power
+from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.exceptions import QiskitError
 from qiskit.circuit._utils import _ctrl_state_to_int, _compute_control_matrix
 from qiskit.extensions.quantum_initializer.squ import SingleQubitUnitary
+
+
 class MCU2Gate(ControlledGate):
     """
     Gate to implement a multicontrol version of any single qubit unitary matrix (gate)
@@ -30,18 +29,24 @@ class MCU2Gate(ControlledGate):
     a quadratic CNOT gate count in the number of control qubits
 
     Args:
-        u2_matrix (array): two by two unitary matrix to implement as a control operation
+        u2_matrix (numpy.array): two by two unitary matrix to implement as a control operation
         num_ctrl_qubits (int): number of control qubits
         ctrl_state (optional): control state as string or integer
+        label (optional): string label for single qubit gate
 
     """
 
-    def __init__(self, u2_matrix, num_ctrl_qubits, ctrl_state: Optional[Union[str, int]] = None,
-                 label: Optional[str]='U(2)'):
-
+    def __init__(
+        self,
+        u2_matrix: Union[numpy.array, List[List[int]]],
+        num_ctrl_qubits: int,
+        ctrl_state: Optional[Union[str, int]] = None,
+        label: Optional[str] = "U(2)",
+    ):
+        u2_matrix = numpy.asarray(u2_matrix)
         if u2_matrix.shape != (2, 2):
             raise QiskitError(
-                "The dimension of the input matrix is not equal to (2,2)." + str(u2_matrix)
+                "The dimension of the input matrix is not equal to (2,2). \n " + str(u2_matrix)
             )
         if not self._check_unitary(u2_matrix):
             raise QiskitError("Single qubit input matrix is not unitary.")
@@ -60,7 +65,7 @@ class MCU2Gate(ControlledGate):
             name=self.base_gate.label,
             num_qubits=self._num_qubits,
             params=[self.u2_matrix],
-             label=None,
+            label=None,
             num_ctrl_qubits=self.num_ctrl_qubits,
             ctrl_state=self.ctrl_state,
             base_gate=self.base_gate,
@@ -75,7 +80,7 @@ class MCU2Gate(ControlledGate):
 
         control_circ = QuantumCircuit(controls, target)
         for q_ind, cntrol_bit in enumerate(cntrl_str):
-            if cntrol_bit == '0':
+            if cntrol_bit == "0":
                 control_circ.x(q_ind)
 
         cntrl_qbits = list(range(self.num_ctrl_qubits))
@@ -83,43 +88,46 @@ class MCU2Gate(ControlledGate):
 
         self.definition = control_circ
 
-        self.definition = self.definition.compose(multiconrol_single_qubit_gate(self.u2_matrix,
-                                                                                cntrl_qbits,
-                                                                                target_qbit).decompose()).compose(
-            control_circ)
+        self.definition = self.definition.compose(
+            multiconrol_single_qubit_gate(self.u2_matrix, cntrl_qbits, target_qbit).decompose()
+        ).compose(control_circ)
 
     def inverse(self):
         """
-        Returns inverted MCSU2 gate.
+        Returns inverted MCU2Gate.
         """
-        return MCU2Gate(numpy.linalg.inv(self.u2_matrix),
-                        self.num_ctrl_qubits,
-                        ctrl_state=self.ctrl_state,
-                        label=self.label)
+        return MCU2Gate(
+            numpy.linalg.inv(self.u2_matrix),
+            self.num_ctrl_qubits,
+            ctrl_state=self.ctrl_state,
+            label=self.label,
+        )
 
     @staticmethod
     def _check_unitary(matrix):
         return numpy.allclose(matrix @ matrix.conj().T, numpy.eye(2))
+
     def __array__(self, dtype=None):
         """
         Return numpy array for gate
         """
         mat = _compute_control_matrix(
-                    self.u2_matrix,
-                    self.num_ctrl_qubits,
-                    ctrl_state=self.ctrl_state)
+            self.u2_matrix, self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
         if dtype:
             mat = numpy.asarray(mat, dtype=dtype)
         return mat
+
+
 def multiconrol_single_qubit_gate(
-    single_q_unitary: array, control_list: List[int], target_q: int
+    single_q_unitary: numpy.array, control_list: List[int], target_q: int
 ) -> QuantumCircuit:
     """
     Generate a quantum circuit to implement a defined multicontrol single qubit unitary
     via approach proposed in  https://doi.org/10.1103/PhysRevA.106.042602
 
     Args:
-        single_q_unitary (array): two by two unitary matrix to implement as a control operation
+        single_q_unitary (numpy.array): two by two unitary matrix to implement as a control operation
         control_list (list): list of control qubit indices
         target_q (int): target qubit index
     Returns:
@@ -135,7 +143,7 @@ def multiconrol_single_qubit_gate(
     return circuit
 
 
-def cn_u(n_controls: int, single_q_unitary: array) -> QuantumCircuit:
+def cn_u(n_controls: int, single_q_unitary: numpy.array) -> QuantumCircuit:
     """
     Implement a multicontrol U gate according to https://doi.org/10.1103/PhysRevA.106.042602
 
@@ -146,7 +154,9 @@ def cn_u(n_controls: int, single_q_unitary: array) -> QuantumCircuit:
         circuit (QuantumCircuit): Quantum circuit implementing multicontrol unitary
     """
     assert single_q_unitary.shape == (2, 2), "input unitary is not a single qubit gate"
-    assert allclose(single_q_unitary @ single_q_unitary.conj().T, eye(2)), "input unitary is not unitary"
+    assert numpy.allclose(
+        single_q_unitary @ single_q_unitary.conj().T, numpy.eye(2)
+    ), "input unitary is not unitary"
 
     targ = n_controls + 1
     circuit = QuantumCircuit(targ)
@@ -191,18 +201,18 @@ def pn_gate(n_controls: int) -> QuantumCircuit:
     circuit = QuantumCircuit(n_controls + 1)
 
     for k in reversed(range(2, n_controls + 1)):
-        circuit.crx(pi / 2 ** (n_controls - k + 1), k - 1, n_controls)
+        circuit.crx(numpy.pi / 2 ** (n_controls - k + 1), k - 1, n_controls)
 
     return circuit
 
 
-def pnu_gate(n_controls: int, single_q_unitary: array) -> QuantumCircuit:
+def pnu_gate(n_controls: int, single_q_unitary: numpy.array) -> QuantumCircuit:
     """
     Pn(U) gate defined in equation 2 of https://doi.org/10.1103/PhysRevA.106.042602
 
     Args:
         n_controls (int): number of controls
-        single_q_unitary (array): two by two unitary matrix to implement as a control operation
+        single_q_unitary (numpy.array): two by two unitary matrix to implement as a control operation
     Returns:
         circuit (QuantumCircuit): quantum circuit of Pn(U) gate
     """
@@ -238,17 +248,17 @@ def qn_gate(n_controls: int) -> QuantumCircuit:
 
     if n_controls == 2:
         circuit = QuantumCircuit(n_controls + 1)
-        circuit.crx(pi, 0, 1)
+        circuit.crx(numpy.pi, 0, 1)
         return circuit
 
     circuit = QuantumCircuit(n_controls + 1)
 
     for j in reversed(range(2, n_controls)):
         circuit = circuit.compose(pn_gate(j))
-        circuit.crx(pi / (2 ** (j - 1)), 0, j)
+        circuit.crx(numpy.pi / (2 ** (j - 1)), 0, j)
 
     # Q2 gate in paper
-    circuit.crx(pi, 0, 1)
+    circuit.crx(numpy.pi, 0, 1)
     for k in range(2, n_controls):
         circuit = circuit.compose(pn_gate(k).inverse())
 

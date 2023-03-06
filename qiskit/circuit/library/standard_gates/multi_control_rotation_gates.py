@@ -13,12 +13,12 @@
 """multicontrol rotation gates around an axis in x,y and z planes."""
 
 from typing import Optional, Union, Tuple, List
+import numpy
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.library.generalized_gates import MCU2Gate
 from qiskit.circuit.library.standard_gates import XGate, YGate, ZGate, RXGate, RYGate, RZGate
-import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit._utils import _ctrl_state_to_int, _compute_control_matrix
 
@@ -54,10 +54,10 @@ def mcrx(
     if n_c <= 6:
         ncrx = ControlRotationGate(theta, n_c, axis="x")
     else:
-        rxgate = numpy.cos(theta / 2) * numpy.eye(2) - 1j * numpy.sin(theta / 2) * XGate().__array__()
-        ncrx = MCU2Gate(rxgate,
-                        n_c,
-                        label=f"Rx({theta:0.3f})")
+        rxgate = (
+            numpy.cos(theta / 2) * numpy.eye(2) - 1j * numpy.sin(theta / 2) * XGate().__array__()
+        )
+        ncrx = MCU2Gate(rxgate, n_c, label=f"Rx({theta:0.3f})")
 
     # if use_basis_gates:
     #     ncrx = transpile(ncrx, basis_gates=['cx','u', 'p'])
@@ -101,10 +101,10 @@ def mcry(
     if n_c <= 6:
         ncry = ControlRotationGate(theta, n_c, axis="y")
     else:
-        rygate = numpy.cos(theta / 2) * numpy.eye(2) - 1j * numpy.sin(theta / 2) * YGate().__array__()
-        ncry = MCU2Gate(rygate,
-                        n_c,
-                        label=f"Ry({theta:0.3f})")
+        rygate = (
+            numpy.cos(theta / 2) * numpy.eye(2) - 1j * numpy.sin(theta / 2) * YGate().__array__()
+        )
+        ncry = MCU2Gate(rygate, n_c, label=f"Ry({theta:0.3f})")
 
     # if use_basis_gates:
     #     ncry = transpile(ncry, basis_gates=['cx','u', 'p'])
@@ -145,9 +145,7 @@ def mcrz(
         ncrz = ControlRotationGate(lam, n_c, axis="z")
     else:
         rzgate = numpy.cos(lam / 2) * numpy.eye(2) - 1j * numpy.sin(lam / 2) * ZGate().__array__()
-        ncrz = MCU2Gate(rzgate,
-                        n_c,
-                        label=f"Rz({lam:0.3f})")
+        ncrz = MCU2Gate(rzgate, n_c, label=f"Rz({lam:0.3f})")
     # if use_basis_gates:
     #     ncrz = transpile(ncrz, basis_gates=['cx','u', 'p'])
 
@@ -175,21 +173,24 @@ class ControlRotationGate(ControlledGate):
 
     """
 
-    def __init__(self, angle: float,
-                 num_ctrl_qubits: int,
-                 axis: str,
-                 ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        angle: ParameterValueType,
+        num_ctrl_qubits: int,
+        axis: str,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
 
         assert axis in ["x", "y", "z"], f"can only rotated around x,y,z axis, not {axis}"
 
         self.axis = axis
         self.angle = angle
 
-        if self.axis == 'x':
+        if self.axis == "x":
             self.base_gate = RXGate(angle)
-        elif self.axis == 'y':
+        elif self.axis == "y":
             self.base_gate = RYGate(angle)
-        elif self.axis == 'z':
+        elif self.axis == "z":
             self.base_gate = RZGate(angle)
 
         self._num_qubits = num_ctrl_qubits + 1
@@ -212,10 +213,9 @@ class ControlRotationGate(ControlledGate):
     def _define(self):
 
         target_qbit = self.num_ctrl_qubits
-        rot_circuit = custom_mcrtl_rot(self.angle,
-                                       list(range(self.num_ctrl_qubits)),
-                                       target_qbit,
-                                       self.axis)
+        rot_circuit = custom_mcrtl_rot(
+            self.angle, list(range(self.num_ctrl_qubits)), target_qbit, self.axis
+        )
 
         controls = QuantumRegister(self.num_ctrl_qubits)
         target = QuantumRegister(1)
@@ -225,7 +225,7 @@ class ControlRotationGate(ControlledGate):
 
         control_circ = QuantumCircuit(controls, target)
         for q_ind, cntrol_bit in enumerate(cntrl_str):
-            if cntrol_bit == '0':
+            if cntrol_bit == "0":
                 control_circ.x(q_ind)
 
         self.definition = control_circ
@@ -235,22 +235,22 @@ class ControlRotationGate(ControlledGate):
         """
         Returns inverse rotation gate
         """
-        return ControlRotationGate(-1 * self.angle,
-                                   self.num_ctrl_qubits,
-                                   self.axis,
-                                   ctrl_state=self.ctrl_state)
+        return ControlRotationGate(
+            -1 * self.angle, self.num_ctrl_qubits, self.axis, ctrl_state=self.ctrl_state
+        )
 
     def __array__(self, dtype=None):
         """
         Return numpy array for gate
         """
         mat = _compute_control_matrix(
-            self.base_gate.to_matrix(),
-            self.num_ctrl_qubits,
-            ctrl_state=self.ctrl_state)
+            self.base_gate.to_matrix(), self.num_ctrl_qubits, ctrl_state=self.ctrl_state
+        )
         if dtype:
             mat = numpy.asarray(mat, dtype=dtype)
         return mat
+
+
 def custom_mcrtl_rot(
     angle: float, ctrl_list: List[int], target: int, axis: str = "y"
 ) -> QuantumCircuit:
