@@ -19,7 +19,7 @@ from collections.abc import MutableMapping
 class Options(MutableMapping):
     """Base options object
 
-    This class is the class that all backend options are based
+    This class is what all backend options are based
     on. The properties of the class are intended to be all dynamically
     adjustable so that a user can reconfigure the backend on demand. If a
     property is immutable to the user (eg something like number of qubits)
