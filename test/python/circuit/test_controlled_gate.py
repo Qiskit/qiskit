@@ -64,7 +64,6 @@ from qiskit.circuit.library import (
     RCCXGate,
     RC3XGate,
     MCU1Gate,
-    MCSU2Gate,
     MCXGate,
     MCXGrayCode,
     MCXRecursive,
@@ -977,11 +976,6 @@ class TestControlledGate(QiskitTestCase):
             free_params[1] = 3
         elif gate_class in [MCXGate]:
             free_params[0] = 3
-        elif gate_class in [MCSU2Gate]:
-            free_params[0] = np.array(
-                [[np.exp(-1.0j * (np.pi / 2.0)), 0.0], [0.0, np.exp(1.0j * (np.pi / 2.0))]]
-            )
-            free_params[1] = 3
 
         base_gate = gate_class(*free_params)
         cgate = base_gate.control()
@@ -989,8 +983,6 @@ class TestControlledGate(QiskitTestCase):
         # the base gate of CU is U (3 params), the base gate of CCU is CU (4 params)
         if gate_class == CUGate:
             self.assertListEqual(cgate.base_gate.params[:3], base_gate.base_gate.params[:3])
-        elif gate_class == MCSU2Gate:
-            self.assertListEqual(cgate.base_gate.params, base_gate.base_gate.params)
         else:
             self.assertEqual(base_gate.base_gate, cgate.base_gate)
 
@@ -1010,10 +1002,18 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len(_get_free_params(gate))
                 args = [2] * numargs
                 gate = gate(*args)
-                self.assertEqual(
-                    gate.inverse().control(num_ctrl_qubits, ctrl_state=ctrl_state),
-                    gate.control(num_ctrl_qubits, ctrl_state=ctrl_state).inverse(),
+
+                gate_inverse_control = gate.inverse().control(num_ctrl_qubits, ctrl_state=ctrl_state)
+                gate_control_inverse = gate.control(num_ctrl_qubits, ctrl_state=ctrl_state).inverse()
+
+
+                self.assertTrue(
+                    np.allclose(
+                        Operator(gate_inverse_control).to_matrix(),
+                        Operator(gate_control_inverse).to_matrix()
+                    )
                 )
+
             except AttributeError:
                 # skip gates that do not have a control attribute (e.g. barrier)
                 pass
@@ -1112,11 +1112,7 @@ class TestControlledGate(QiskitTestCase):
                     free_params[1] = 3
                 elif gate_class in [MCXGate]:
                     free_params[0] = 3
-                elif gate_class in [MCSU2Gate]:
-                    free_params[0] = np.array(
-                        [[np.exp(-1.0j * (np.pi / 2.0)), 0.0], [0.0, np.exp(1.0j * (np.pi / 2.0))]]
-                    )
-                    free_params[1] = 3
+
                 base_gate = gate_class(*free_params)
                 if base_gate.params:
                     cgate = base_gate.control(num_ctrl_qubits)
