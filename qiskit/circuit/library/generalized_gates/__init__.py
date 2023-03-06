@@ -20,4 +20,4 @@ from .gr import GR, GRX, GRY, GRZ
 from .pauli import PauliGate
 from .rv import RVGate
 from .linear_function import LinearFunction
-from .multicontrol_arb_gate import multiconrol_single_qubit_gate
+from .multicontrol_arb_gate import MCU2Gate
