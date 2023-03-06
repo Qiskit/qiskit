@@ -201,15 +201,14 @@ def add_deprecation_to_docstring(
             if stripped.lower() in _NAPOLEON_META_LINES:
                 meta_index = i
                 if content_encountered is not True:
-                    raise AssertionError(
-                        "The algorithm in add_deprecation_to_docstring is broken for the "
-                        f"function {func.__qualname__}. We assumed that we would have already "
-                        "found where content starts before encountering a meta line. This is an "
-                        "issue with the algorithm, not your docstring. Please open "
-                        "a bug report at https://github.com/Qiskit/qiskit-terra/issues"
+                    raise ValueError(
+                        "add_deprecation_to_docstring cannot currently handle when a Napoleon "
+                        "metadata line like 'Args' is the very first line of docstring, "
+                        f'e.g. `"""Args:`. So, it cannot process {func.__qualname__}. Instead, '
+                        f'move the metadata line to the second line, e.g.:\n\n"""\nArgs:'
                     )
                 # We can stop checking since we only care about the first meta line, and
-                # we've asserted content_encountered is True to determine the indent.
+                # we've validated content_encountered is True to determine the indent.
                 break
     else:
         original_lines = []
