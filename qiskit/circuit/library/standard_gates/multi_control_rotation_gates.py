@@ -194,7 +194,10 @@ class ControlRotationGate(ControlledGate):
 
         self._num_qubits = num_ctrl_qubits + 1
         self.num_ctrl_qubits = num_ctrl_qubits
-        self.ctrl_state = ctrl_state
+
+        cntrl_int = _ctrl_state_to_int(ctrl_state, self.num_ctrl_qubits)
+        cntrl_str = numpy.binary_repr(cntrl_int, width=self.num_ctrl_qubits)
+        self.ctrl_state = cntrl_str[::-1]
 
         self.label = self.base_gate.label
         super().__init__(
@@ -208,9 +211,6 @@ class ControlRotationGate(ControlledGate):
 
     def _define(self):
 
-        cntrl_int = _ctrl_state_to_int(self.ctrl_state, self.num_ctrl_qubits)
-        cntrl_str = numpy.binary_repr(cntrl_int, width=self.num_ctrl_qubits)[::-1]
-
         target_qbit = self.num_ctrl_qubits
         rot_circuit = custom_mcrtl_rot(self.angle,
                                        list(range(self.num_ctrl_qubits)),
@@ -220,11 +220,16 @@ class ControlRotationGate(ControlledGate):
         controls = QuantumRegister(self.num_ctrl_qubits)
         target = QuantumRegister(1)
 
+        cntrl_int = _ctrl_state_to_int(self.ctrl_state, self.num_ctrl_qubits)
+        cntrl_str = numpy.binary_repr(cntrl_int, width=self.num_ctrl_qubits)
+
         control_circ = QuantumCircuit(controls, target)
         for q_ind, cntrol_bit in enumerate(cntrl_str):
             if cntrol_bit == '0':
                 control_circ.x(q_ind)
-        self.definition = control_circ.compose(rot_circuit).compose(control_circ)
+
+        self.definition = control_circ
+        self.definition = self.definition.compose(rot_circuit).compose(control_circ)
 
     def inverse(self):
         """

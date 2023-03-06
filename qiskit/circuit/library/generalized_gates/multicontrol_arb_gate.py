@@ -17,7 +17,7 @@ from numpy import array, pi, allclose, eye
 from scipy.linalg import fractional_matrix_power
 from typing import Union, List, Optional
 from cmath import isclose
-import numpy as np
+import numpy
 from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.exceptions import QiskitError
@@ -51,7 +51,10 @@ class MCU2Gate(ControlledGate):
         self.base_gate.label = label
         self._num_qubits = num_ctrl_qubits + 1
         self.num_ctrl_qubits = num_ctrl_qubits
-        self.ctrl_state = ctrl_state
+
+        cntrl_int = _ctrl_state_to_int(ctrl_state, self.num_ctrl_qubits)
+        cntrl_str = numpy.binary_repr(cntrl_int, width=self.num_ctrl_qubits)
+        self.ctrl_state = cntrl_str[::-1]
 
         super().__init__(
             name=self.base_gate.label,
@@ -66,10 +69,9 @@ class MCU2Gate(ControlledGate):
     def _define(self):
         controls = QuantumRegister(self.num_ctrl_qubits)
         target = QuantumRegister(1)
-        self.definition = QuantumCircuit(controls, target)
 
         cntrl_int = _ctrl_state_to_int(self.ctrl_state, self.num_ctrl_qubits)
-        cntrl_str = np.binary_repr(cntrl_int, width=self.num_ctrl_qubits)[::-1]
+        cntrl_str = numpy.binary_repr(cntrl_int, width=self.num_ctrl_qubits)
 
         control_circ = QuantumCircuit(controls, target)
         for q_ind, cntrol_bit in enumerate(cntrl_str):
@@ -90,14 +92,14 @@ class MCU2Gate(ControlledGate):
         """
         Returns inverted MCSU2 gate.
         """
-        return MCU2Gate(np.linalg.inv(self.u2_matrix),
+        return MCU2Gate(numpy.linalg.inv(self.u2_matrix),
                         self.num_ctrl_qubits,
                         ctrl_state=self.ctrl_state,
                         label=self.label)
 
     @staticmethod
     def _check_unitary(matrix):
-        return np.allclose(matrix @ matrix.conj().T, np.eye(2))
+        return numpy.allclose(matrix @ matrix.conj().T, numpy.eye(2))
     def __array__(self, dtype=None):
         """
         Return numpy array for gate
@@ -107,7 +109,7 @@ class MCU2Gate(ControlledGate):
                     self.num_ctrl_qubits,
                     ctrl_state=self.ctrl_state)
         if dtype:
-            mat = np.asarray(mat, dtype=dtype)
+            mat = numpy.asarray(mat, dtype=dtype)
         return mat
 def multiconrol_single_qubit_gate(
     single_q_unitary: array, control_list: List[int], target_q: int
