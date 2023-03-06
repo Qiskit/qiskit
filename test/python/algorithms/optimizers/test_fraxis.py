@@ -23,7 +23,7 @@ from qiskit.quantum_info import SparsePauliOp
 from qiskit.utils import algorithm_globals
 
 
-class TestOptimizerNFT(QiskitAlgorithmsTestCase):
+class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
     """Test Fraxis optimizer with VQE"""
 
     def setUp(self):
@@ -39,9 +39,10 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
                 ("XX", 0.18093119978423156),
             ]
         )
+        self.expval = -1.857275
 
-    def test_nft(self):
-        """Test Fraxis optimizer by using it"""
+    def test_fraxis_default(self):
+        """Test Fraxis optimizer with default parameters"""
 
         vqe = VQE(
             estimator=Estimator(),
@@ -49,7 +50,105 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
             optimizer=Fraxis(),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
-        self.assertAlmostEqual(result.eigenvalue.real, -1.857275, places=6)
+        self.assertAlmostEqual(result.eigenvalue.real, self.expval, places=6)
+
+    def test_fraxis_maxiter(self):
+        """Test Fraxis optimizer with maxiter"""
+        maxiter = 20
+        vqe = VQE(
+            estimator=Estimator(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(maxiter=maxiter),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertAlmostEqual(result.eigenvalue.real, self.expval, places=6)
+        self.assertEqual(result.cost_function_evals, maxiter * 6)
+
+    def test_fraxis_xtol(self):
+        """Test Fraxis optimizer with xtol"""
+        xtol = 1e10
+        vqe = VQE(
+            estimator=Estimator(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(xtol=xtol),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertEqual(result.cost_function_evals, vqe.ansatz.num_parameters // 3 * 6)
+
+    def test_fraxis_maxiter_xtol_1(self):
+        """Test Fraxis optimizer with maxiter and xtol 1"""
+        maxiter = 20
+        xtol = 0
+        vqe = VQE(
+            estimator=Estimator(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(maxiter=maxiter, xtol=xtol),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertAlmostEqual(result.eigenvalue.real, self.expval, places=6)
+        self.assertEqual(result.cost_function_evals, maxiter * 6)
+
+    def test_fraxis_maxiter_xtol_2(self):
+        """Test Fraxis optimizer with maxiter and xtol 2"""
+        maxiter = 20
+        xtol = 1e10
+        vqe = VQE(
+            estimator=Estimator(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(maxiter=maxiter, xtol=xtol),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertEqual(result.cost_function_evals, vqe.ansatz.num_parameters // 3 * 6)
+
+    def test_fraxis_maxiter_xtol_3(self):
+        """Test Fraxis optimizer with maxiter and xtol 3"""
+        maxiter = 1000
+        xtol = 1e-2
+        vqe = VQE(
+            estimator=Estimator(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(maxiter=maxiter, xtol=xtol),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertAlmostEqual(result.eigenvalue.real, self.expval, places=6)
+        self.assertLess(result.cost_function_evals, maxiter * 6)
+
+    def test_fraxis_callback(self):
+        """Test Fraxis optimizer with callback"""
+        history = []
+
+        def callback(_, state):
+            history.append(state.fun)
+
+        vqe = VQE(
+            estimator=Estimator(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(callback=callback),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertAlmostEqual(result.eigenvalue.real, self.expval, places=6)
+        for fun1, fun2 in zip(history, history[1:]):
+            self.assertGreaterEqual(fun1, fun2)
+
+    def test_fraxis_callback_terminate(self):
+        """Test Fraxis optimizer with callback to terminate"""
+        maxiter = 10
+        count = 0
+
+        def callback(*_):
+            nonlocal count
+            count += 1
+            if count == maxiter:
+                return True
+            return False
+
+        vqe = VQE(
+            estimator=Estimator(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(callback=callback),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        self.assertEqual(result.cost_function_evals, maxiter * 6)
 
 
 if __name__ == "__main__":
