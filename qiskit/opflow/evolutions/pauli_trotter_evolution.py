@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliTrotterEvolution Class """
+"""PauliTrotterEvolution Class"""
 
 import logging
 from typing import Optional, Union, cast
@@ -119,7 +119,7 @@ class PauliTrotterEvolution(EvolutionBase):
                 evo = PauliEvolutionGate(
                     pauli, time=time, synthesis=self._get_evolution_synthesis()
                 )
-                return CircuitOp(evo.definition)
+                return CircuitOp(evo)
                 # operator = EvolvedOp(operator.primitive.to_pauli_op(), coeff=operator.coeff)
             if not {"Pauli"} == operator.primitive_strings():
                 logger.warning(

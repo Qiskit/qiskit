@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,18 +19,24 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_function
 
 from .observables.linear_system_observable import LinearSystemObservable
 from ..algorithm_result import AlgorithmResult
 
 
 class LinearSolverResult(AlgorithmResult):
-    """A base class for linear systems results.
+    """The deprecated base class for linear systems results.
 
     The linear systems algorithms return an object of the type ``LinearSystemsResult``
     with the information about the solution obtained.
     """
 
+    @deprecate_function(
+        "The LinearSolverResult class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date.",
+        since="0.22.0",
+    )
     def __init__(self) -> None:
         super().__init__()
 
@@ -93,7 +99,15 @@ class LinearSolverResult(AlgorithmResult):
 
 
 class LinearSolver(ABC):
-    """An abstract class for linear system solvers in Qiskit."""
+    """The deprecated abstract class for linear system solvers in Qiskit."""
+
+    @deprecate_function(
+        "The LinearSolver class is deprecated as of Qiskit Terra 0.22.0 "
+        "and will be removed no sooner than 3 months after the release date.",
+        since="0.22.0",
+    )
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def solve(

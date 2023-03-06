@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""MatrixOp Class """
+"""MatrixOp Class"""
 
 from typing import Dict, List, Optional, Set, Union, cast, get_type_hints
 
@@ -64,7 +64,7 @@ class MatrixOp(PrimitiveOp):
                 f"not '{primitive_orig.__class__.__name__}'"
             )
 
-        if not primitive.input_dims() == primitive.output_dims():
+        if primitive.input_dims() != primitive.output_dims():
             raise ValueError("Cannot handle non-square matrices yet.")
 
         super().__init__(primitive, coeff=coeff)
@@ -114,7 +114,7 @@ class MatrixOp(PrimitiveOp):
         return self.coeff * self.primitive == other.coeff * other.primitive
 
     def _expand_dim(self, num_qubits: int) -> "MatrixOp":
-        identity = np.identity(2 ** num_qubits, dtype=complex)
+        identity = np.identity(2**num_qubits, dtype=complex)
         return MatrixOp(self.primitive.tensor(Operator(identity)), coeff=self.coeff)
 
     def tensor(self, other: OperatorBase) -> Union["MatrixOp", TensoredOp]:

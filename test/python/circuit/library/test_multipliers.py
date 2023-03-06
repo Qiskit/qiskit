@@ -61,10 +61,10 @@ class TestMultiplier(QiskitTestCase):
         expectations = np.zeros_like(probabilities)
         num_bits_product = num_state_qubits * 2
         # iterate over all possible inputs
-        for x in range(2 ** num_state_qubits):
-            for y in range(2 ** num_state_qubits):
+        for x in range(2**num_state_qubits):
+            for y in range(2**num_state_qubits):
                 # compute the product
-                product = x * y % (2 ** num_result_qubits)
+                product = x * y % (2**num_result_qubits)
                 # compute correct index in statevector
                 bin_x = bin(x)[2:].zfill(num_state_qubits)
                 bin_y = bin(y)[2:].zfill(num_state_qubits)

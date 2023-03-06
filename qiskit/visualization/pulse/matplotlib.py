@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
+# pylint: disable=invalid-name,bad-docstring-quotes
 
 """Matplotlib classes for pulse visualization."""
 
@@ -19,8 +19,7 @@ from typing import Dict, List, Tuple, Callable, Union, Any
 
 import numpy as np
 
-from qiskit.visualization.matplotlib import HAS_MATPLOTLIB
-from qiskit.exceptions import MissingOptionalLibraryError
+from qiskit.utils import optionals as _optionals
 from qiskit.visualization.pulse.qcstyle import PulseStyle, SchedStyle
 from qiskit.visualization.pulse.interpolation import step_wise
 from qiskit.pulse.channels import (
@@ -45,11 +44,18 @@ from qiskit.pulse import (
     SetPhase,
 )
 from qiskit.pulse.schedule import ScheduleComponent
+from qiskit.utils.deprecation import deprecate_function
 
 
 class EventsOutputChannels:
     """Pulse dataset for channel."""
 
+    @deprecate_function(
+        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
+        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
+        " In no less than 6 months the old objects will be completely removed.",
+        since="0.23.0",
+    )
     def __init__(self, t0: int, tf: int):
         """Create new channel dataset.
 
@@ -83,7 +89,7 @@ class EventsOutputChannels:
             pulse = instruction.pulse
         else:
             pulse = instruction
-        if start_time in self.pulses.keys():
+        if start_time in self.pulses:
             self.pulses[start_time].append(pulse)
         else:
             self.pulses[start_time] = [pulse]
@@ -279,6 +285,12 @@ class EventsOutputChannels:
 class WaveformDrawer:
     """A class to create figure for sample pulse."""
 
+    @deprecate_function(
+        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
+        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
+        " In no less than 6 months the old objects will be completely removed.",
+        since="0.23.0",
+    )
     def __init__(self, style: PulseStyle):
         """Create new figure.
 
@@ -287,6 +299,7 @@ class WaveformDrawer:
         """
         self.style = style or PulseStyle()
 
+    @_optionals.HAS_MATPLOTLIB.require_in_call("waveform drawer")
     def draw(
         self,
         pulse: Waveform,
@@ -310,17 +323,10 @@ class WaveformDrawer:
         Raises:
             MissingOptionalLibraryError: If matplotlib is not installed
         """
-        # If these self.style.dpi or self.style.figsize are None, they will
-        # revert back to their default rcParam keys.
-        if not HAS_MATPLOTLIB:
-            raise MissingOptionalLibraryError(
-                libname="Matplotlib",
-                name="WaveformDrawer",
-                pip_install="pip install matplotlib",
-            )
-
         from matplotlib import pyplot as plt
 
+        # If these self.style.dpi or self.style.figsize are None, they will
+        # revert back to their default rcParam keys.
         figure = plt.figure(dpi=self.style.dpi, figsize=self.style.figsize)
 
         interp_method = interp_method or step_wise
@@ -376,9 +382,17 @@ class WaveformDrawer:
         return figure
 
 
+@_optionals.HAS_MATPLOTLIB.require_in_instance
 class ScheduleDrawer:
     """A class to create figure for schedule and channel."""
 
+    @deprecate_function(
+        "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
+        " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
+        " In no less than 6 months the old objects will be completely removed.",
+        stacklevel=3,
+        since="0.23.0",
+    )
     def __init__(self, style: SchedStyle):
         """Create new figure.
 
@@ -387,18 +401,10 @@ class ScheduleDrawer:
         Raises:
             MissingOptionalLibraryError: If matplotlib is not installed
         """
-        if not HAS_MATPLOTLIB:
-            raise MissingOptionalLibraryError(
-                libname="Matplotlib",
-                name="ScheduleDrawer",
-                pip_install="pip install matplotlib",
-            )
-
         from matplotlib import pyplot as plt
-
-        self.plt_mod = plt
         from matplotlib import gridspec
 
+        self.plt_mod = plt
         self.gridspec_mod = gridspec
         self.style = style or SchedStyle()
 

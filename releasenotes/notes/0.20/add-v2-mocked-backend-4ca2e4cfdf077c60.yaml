@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Added new fake backend classes from snapshots of the IBM Quantum systems
+    based on the :class:`~.BackendV2` interface and provided a
+    :class:`~qiskit.transpiler.Target` for each backend. :class:`~.BackendV2`
+    based versions of all the existing backends are added except for three old
+    backends ``FakeRueschlikon``, ``FakeTenerife`` and ``FakeTokyo`` as they
+    do not have snapshots files available which are required for creating
+    a new fake backend class based on :class:`~.BackendV2`.
+
+    These new V2 fake backends will enable testing and development of new
+    features introduced by :class:`~qiskit.providers.backend.BackendV2` and
+    :class:`~qiskit.transpiler.Target` such as improving the transpiler.

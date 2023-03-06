@@ -13,24 +13,20 @@
 """
 Driver for a synthesis routine which emits optimal XX-based circuits.
 """
-
+from __future__ import annotations
 import heapq
 import math
 from operator import itemgetter
-from typing import Callable, Optional
+from typing import Callable
 
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.library.standard_gates import RXXGate, RZXGate
 from qiskit.exceptions import QiskitError
-from qiskit.extensions import UnitaryGate
-from qiskit.quantum_info.operators import Operator, average_gate_fidelity
+from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.one_qubit_decompose import ONE_QUBIT_EULER_BASIS_GATES
 from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitWeylDecomposition
-from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
-    Optimize1qGatesDecomposition,
-)
 
 from .circuits import apply_reflection, apply_shift, canonical_xx_circuit
 from .utilities import EPSILON
@@ -62,6 +58,9 @@ class XXDecomposer:
     (i.e., each locally equivalent to CAN(alpha, 0, 0) for a possibly varying alpha).
 
     Args:
+        basis_fidelity: available strengths and fidelity of each.
+            Can be either (1) a dictionary mapping XX angle values to fidelity at that angle; or
+            (2) a single float f, interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
         euler_basis: Basis string provided to OneQubitEulerDecomposer for 1Q synthesis.
             Defaults to "U".
         embodiments: A dictionary mapping interaction strengths alpha to native circuits which
@@ -72,20 +71,35 @@ class XXDecomposer:
             applications of XX(pi/2), in which case standard synthesis methods provide lower
             1Q gate count.
 
-    NOTE: If embodiments is not passed, or if an entry is missing, it will be populated as needed
-        using the method _default_embodiment.
+    .. note::
+        If ``embodiments`` is not passed, or if an entry is missing, it will be populated as needed
+        using the method ``_default_embodiment``.
     """
 
     def __init__(
         self,
+        basis_fidelity: dict | float = 1.0,
         euler_basis: str = "U",
-        embodiments: Optional[dict] = None,
-        backup_optimizer: Optional[Callable] = None,
+        embodiments: dict[float, QuantumCircuit] | None = None,
+        backup_optimizer: Callable[..., QuantumCircuit] | None = None,
     ):
+        from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
+            Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
+        )
+
         self._decomposer1q = Optimize1qGatesDecomposition(ONE_QUBIT_EULER_BASIS_GATES[euler_basis])
-        self.gate = RZXGate(np.pi / 2)
         self.embodiments = embodiments if embodiments is not None else {}
         self.backup_optimizer = backup_optimizer
+        self.basis_fidelity = basis_fidelity
+
+        # expose one of the basis gates so others can know what this decomposer targets
+        embodiment_circuit = next(iter(self.embodiments.values()), QuantumCircuit())
+        for instruction in embodiment_circuit:
+            if len(instruction.qubits) == 2:
+                self.gate = instruction.operation
+                break
+        else:
+            self.gate = RZXGate(np.pi / 2)
 
         self._check_embodiments()
 
@@ -110,6 +124,8 @@ class XXDecomposer:
         Checks that `self.embodiments` is populated with legal circuit embodiments: the key-value
         pair (angle, circuit) satisfies Operator(circuit) approx RXX(angle).to_matrix().
         """
+        # pylint: disable=cyclic-import
+        from qiskit.quantum_info.operators.measures import average_gate_fidelity
 
         for angle, embodiment in self.embodiments.items():
             actual = Operator(RXXGate(angle))
@@ -177,7 +193,7 @@ class XXDecomposer:
     @staticmethod
     def _strength_to_infidelity(basis_fidelity, approximate=False):
         """
-        Converts a dictionary mapping ZX strengths to fidelities to a dictionary mapping ZX
+        Converts a dictionary mapping XX strengths to fidelities to a dictionary mapping XX
         strengths to infidelities. Also supports one of the other formats Qiskit uses: if only a
         lone float is supplied, it extends it from CX over CX/2 and CX/3 by linear decay.
         """
@@ -199,7 +215,12 @@ class XXDecomposer:
 
         raise TypeError("Unknown basis_fidelity payload.")
 
-    def __call__(self, unitary, basis_fidelity=1.0, approximate=True):
+    def __call__(
+        self,
+        unitary: Operator | np.ndarray,
+        basis_fidelity: dict | float | None = None,
+        approximate: bool = True,
+    ) -> QuantumCircuit:
         """
         Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation
         `unitary`, using the circuit templates supplied at initialization as `embodiments`.  The
@@ -212,14 +233,18 @@ class XXDecomposer:
             unitary (Operator or ndarray): 4x4 unitary to synthesize.
             basis_fidelity (dict or float): Fidelity of basis gates. Can be either (1) a dictionary
                 mapping XX angle values to fidelity at that angle; or (2) a single float f,
-                interpreted as {pi: f, pi/2: f/2, pi/3: f/3} .
+                interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
+                If given, overrides the basis_fidelity given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0 .
         Returns:
             QuantumCircuit: Synthesized circuit.
         """
+        basis_fidelity = basis_fidelity or self.basis_fidelity
         strength_to_infidelity = self._strength_to_infidelity(
             basis_fidelity, approximate=approximate
         )
+
+        from qiskit.extensions import UnitaryGate  # pylint: disable=cyclic-import
 
         # get the associated _positive_ canonical coordinate
         weyl_decomposition = TwoQubitWeylDecomposition(unitary)
@@ -238,8 +263,12 @@ class XXDecomposer:
         }
         circuit = canonical_xx_circuit(best_point, best_sequence, embodiments)
 
-        if best_sequence == [np.pi / 2, np.pi / 2, np.pi / 2] and self.backup_optimizer is not None:
-            return self.backup_optimizer(unitary, basis_fidelity=basis_fidelity)
+        if (
+            best_sequence in ([np.pi / 2, np.pi / 2, np.pi / 2], [np.pi / 2, np.pi / 2])
+            and self.backup_optimizer is not None
+        ):
+            pi2_fidelity = 1 - strength_to_infidelity[np.pi / 2]
+            return self.backup_optimizer(unitary, basis_fidelity=pi2_fidelity)
 
         # change to positive canonical coordinates
         if weyl_decomposition.c >= -EPSILON:

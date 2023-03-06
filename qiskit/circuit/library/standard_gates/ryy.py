@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-qubit YY-rotation gate."""
-
+import math
 from typing import Optional
 import numpy as np
 from qiskit.circuit.gate import Gate
@@ -23,6 +23,9 @@ class RYYGate(Gate):
     r"""A parametric 2-qubit :math:`Y \otimes Y` interaction (rotation about YY).
 
     This gate is symmetric, and is maximally entangling at :math:`\theta = \pi/2`.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ryy` method.
 
     **Circuit Symbol:**
 
@@ -40,12 +43,12 @@ class RYYGate(Gate):
 
         \newcommand{\th}{\frac{\theta}{2}}
 
-        R_{YY}(\theta) = exp(-i \th Y{\otimes}Y) =
+        R_{YY}(\theta) = \exp\left(-i \th Y{\otimes}Y\right) =
             \begin{pmatrix}
-                \cos(\th)   & 0           & 0           & i\sin(\th) \\
-                0           & \cos(\th)   & -i\sin(\th) & 0 \\
-                0           & -i\sin(\th) & \cos(\th)   & 0 \\
-                i\sin(\th)  & 0           & 0           & \cos(\th)
+                \cos\left(\th\right)   & 0           & 0           & i\sin\left(\th\right) \\
+                0           & \cos\left(\th\right)   & -i\sin\left(\th\right) & 0 \\
+                0           & -i\sin\left(\th\right) & \cos\left(\th\right)   & 0 \\
+                i\sin\left(\th\right)  & 0           & 0           & \cos\left(\th\right)
             \end{pmatrix}
 
     **Examples:**
@@ -60,7 +63,7 @@ class RYYGate(Gate):
 
         .. math::
 
-            R_{YY}(\theta = \frac{\pi}{2}) = \frac{1}{\sqrt{2}}
+            R_{YY}\left(\theta = \frac{\pi}{2}\right) = \frac{1}{\sqrt{2}}
                                     \begin{pmatrix}
                                         1 & 0 & 0 & i \\
                                         0 & 1 & -i & 0 \\
@@ -81,6 +84,11 @@ class RYYGate(Gate):
         from .rx import RXGate
         from .rz import RZGate
 
+        #      ┌─────────┐                   ┌──────────┐
+        # q_0: ┤ Rx(π/2) ├──■─────────────■──┤ Rx(-π/2) ├
+        #      ├─────────┤┌─┴─┐┌───────┐┌─┴─┐├──────────┤
+        # q_1: ┤ Rx(π/2) ├┤ X ├┤ Rz(0) ├┤ X ├┤ Rx(-π/2) ├
+        #      └─────────┘└───┘└───────┘└───┘└──────────┘
         q = QuantumRegister(2, "q")
         theta = self.params[0]
         qc = QuantumCircuit(q, name=self.name)
@@ -105,9 +113,14 @@ class RYYGate(Gate):
     def __array__(self, dtype=None):
         """Return a numpy.array for the RYY gate."""
         theta = float(self.params[0])
-        cos = np.cos(theta / 2)
-        isin = 1j * np.sin(theta / 2)
+        cos = math.cos(theta / 2)
+        isin = 1j * math.sin(theta / 2)
         return np.array(
             [[cos, 0, 0, isin], [0, cos, -isin, 0], [0, -isin, cos, 0], [isin, 0, 0, cos]],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return RYYGate(exponent * theta)

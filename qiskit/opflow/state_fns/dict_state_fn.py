@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DictStateFn Class """
+"""DictStateFn Class"""
 
 import itertools
 from typing import Dict, List, Optional, Set, Union, cast
@@ -182,12 +182,12 @@ class DictStateFn(StateFn):
 
     def to_density_matrix(self, massive: bool = False) -> np.ndarray:
         OperatorBase._check_massive("to_density_matrix", True, self.num_qubits, massive)
-        states = int(2 ** self.num_qubits)
+        states = int(2**self.num_qubits)
         return self.to_matrix(massive=massive) * np.eye(states) * self.coeff
 
     def to_matrix(self, massive: bool = False) -> np.ndarray:
         OperatorBase._check_massive("to_matrix", False, self.num_qubits, massive)
-        states = int(2 ** self.num_qubits)
+        states = int(2**self.num_qubits)
         probs = np.zeros(states) + 0.0j
         for k, v in self.primitive.items():
             probs[int(k, 2)] = v
@@ -209,7 +209,7 @@ class DictStateFn(StateFn):
         indices = [int(v, 2) for v in self.primitive.keys()]
         vals = np.array(list(self.primitive.values())) * self.coeff
         spvec = sparse.csr_matrix(
-            (vals, (np.zeros(len(indices), dtype=int), indices)), shape=(1, 2 ** self.num_qubits)
+            (vals, (np.zeros(len(indices), dtype=int), indices)), shape=(1, 2**self.num_qubits)
         )
         return spvec if not self.is_measurement else spvec.transpose()
 

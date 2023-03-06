@@ -1,0 +1,20 @@
+---
+upgrade:
+  - |
+    The previously deprecated methods:
+
+    * ``qiskit.algorithms.VQE.get_optimal_cost``
+    * ``qiskit.algorithms.VQE.get_optimal_circuit``
+    * ``qiskit.algorithms.VQE.get_optimal_vector``
+    * ``qiskit.algorithms.VQE.optimal_params``
+    * ``qiskit.algorithms.HamiltonianPhaseEstimationResult.most_likely_phase``
+    * ``qiskit.algorithms.PhaseEstimationResult.most_likely_phase``
+
+    which were originally deprecated in the Qiskit Terra 0.18.0 release have
+    been removed and will no longer work.
+
+  - |
+    The :class:`qiskit.algorithms.VariationalAlgorithm` class is now defined
+    as an abstract base class (``ABC``) which will require classes that inherit
+    from it to define both a :attr:`.VariationalAlgorithm.initial_point` getter
+    and setter method.

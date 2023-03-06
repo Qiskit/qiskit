@@ -14,8 +14,6 @@
 # https://github.com/Qiskit/qiskit-ignis/blob/b91066c72171bcd55a70e6e8993b813ec763cf41/qiskit/ignis/mitigation/measurement/fitters.py
 # it was migrated as qiskit-ignis is being deprecated
 
-# pylint: disable=cell-var-from-loop
-
 
 """
 Measurement correction fitters.
@@ -118,7 +116,7 @@ class CompleteMeasFitter:
 
         self._tens_fitt.add_data(new_results, rebuild_cal_matrix)
 
-    def subset_fitter(self, qubit_sublist=None):
+    def subset_fitter(self, qubit_sublist):
         """
         Return a fitter object that is a subset of the qubits in the original
         list.
@@ -393,7 +391,7 @@ class TensoredMeasFitter:
         # initialize the set of empty calibration matrices
         self._cal_matrices = []
         for list_size in self._qubit_list_sizes:
-            self._cal_matrices.append(np.zeros([2 ** list_size, 2 ** list_size], dtype=float))
+            self._cal_matrices.append(np.zeros([2**list_size, 2**list_size], dtype=float))
 
         # go through for each calibration experiment
         for result in self._result_list:
@@ -427,10 +425,58 @@ class TensoredMeasFitter:
 
         for mat_index, _ in enumerate(self._cal_matrices):
             sums_of_columns = np.sum(self._cal_matrices[mat_index], axis=0)
-            # pylint: disable=assignment-from-no-return
             self._cal_matrices[mat_index] = np.divide(
                 self._cal_matrices[mat_index],
                 sums_of_columns,
                 out=np.zeros_like(self._cal_matrices[mat_index]),
                 where=sums_of_columns != 0,
             )
+
+    def subset_fitter(self, qubit_sublist):
+        """Return a fitter object that is a subset of the qubits in the original list.
+
+        This is only a partial implementation of the ``subset_fitter`` method since only
+        mitigation patterns of length 1 are supported. This corresponds to patterns of the
+        form ``[[0], [1], [2], ...]``. Note however, that such patterns are a good first
+        approximation to mitigate readout errors on large quantum circuits.
+
+        Args:
+            qubit_sublist (list): must be a subset of qubit_list
+
+        Returns:
+            TensoredMeasFitter: A new fitter that has the calibration for a
+                subset of qubits
+
+        Raises:
+            QiskitError: If the calibration matrix is not initialized
+            QiskitError: If the mit pattern is not a tensor of single-qubit
+                measurement error mitigation.
+            QiskitError: If a qubit in the given ``qubit_sublist`` is not in the list of
+                qubits in the mit. pattern.
+        """
+        if self._cal_matrices is None:
+            raise QiskitError("Calibration matrices are not initialized.")
+
+        if qubit_sublist is None:
+            raise QiskitError("Qubit sublist must be specified.")
+
+        if not all(len(tensor) == 1 for tensor in self._mit_pattern):
+            raise QiskitError(
+                f"Each element in the mit pattern should have length 1. Found {self._mit_pattern}."
+            )
+
+        supported_qubits = {tensor[0] for tensor in self._mit_pattern}
+        for qubit in qubit_sublist:
+            if qubit not in supported_qubits:
+                raise QiskitError(f"Qubit {qubit} is not in the mit pattern {self._mit_pattern}.")
+
+        new_mit_pattern = [[idx] for idx in qubit_sublist]
+        new_substate_labels_list = [self._substate_labels_list[idx] for idx in qubit_sublist]
+
+        new_fitter = TensoredMeasFitter(
+            results=None, mit_pattern=new_mit_pattern, substate_labels_list=new_substate_labels_list
+        )
+
+        new_fitter.cal_matrices = [self._cal_matrices[idx] for idx in qubit_sublist]
+
+        return new_fitter

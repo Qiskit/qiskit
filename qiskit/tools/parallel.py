@@ -57,26 +57,38 @@ from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.tools.events.pubsub import Publisher
 from qiskit import user_config
 
+
+def get_platform_parallel_default():
+    """
+    Returns the default parallelism flag value for the current platform.
+
+    Returns:
+        parallel_default: The default parallelism flag value for the
+        current platform.
+
+    """
+    # Default False on Windows
+    if sys.platform == "win32":
+        parallel_default = False
+    # On macOS default false on Python >=3.8
+    elif sys.platform == "darwin":
+        if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
+            parallel_default = False
+        else:
+            parallel_default = True
+    # On linux (and other OSes) default to True
+    else:
+        parallel_default = True
+
+    return parallel_default
+
+
 CONFIG = user_config.get_config()
 
 if os.getenv("QISKIT_PARALLEL", None) is not None:
     PARALLEL_DEFAULT = os.getenv("QISKIT_PARALLEL", None).lower() == "true"
 else:
-    # Default False on Windows
-    if sys.platform == "win32":
-        PARALLEL_DEFAULT = False
-    # On python 3.9 default false to avoid deadlock issues
-    elif sys.version_info[0] == 3 and sys.version_info[1] == 9:
-        PARALLEL_DEFAULT = False
-    # On macOS default false on Python >=3.8
-    elif sys.platform == "darwin":
-        if sys.version_info[0] == 3 and sys.version_info[1] >= 8:
-            PARALLEL_DEFAULT = False
-        else:
-            PARALLEL_DEFAULT = True
-    # On linux (and other OSes) default to True
-    else:
-        PARALLEL_DEFAULT = True
+    PARALLEL_DEFAULT = get_platform_parallel_default()
 
 # Set parallel flag
 if os.getenv("QISKIT_IN_PARALLEL") is None:
@@ -94,7 +106,7 @@ def _task_wrapper(param):
 
 
 def parallel_map(  # pylint: disable=dangerous-default-value
-    task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT
+    task, values, task_args=(), task_kwargs={}, num_processes=CPU_COUNT
 ):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -125,6 +137,17 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         terra.parallel.start: The collection of parallel tasks are about to start.
         terra.parallel.update: One of the parallel task has finished.
         terra.parallel.finish: All the parallel tasks have finished.
+
+    Examples:
+
+        .. code-block:: python
+
+            import time
+            from qiskit.tools.parallel import parallel_map
+            def func(_):
+                    time.sleep(0.1)
+                    return 0
+            parallel_map(func, list(range(10)));
     """
     if len(values) == 0:
         return []
@@ -148,7 +171,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         try:
             results = []
             with ProcessPoolExecutor(max_workers=num_processes) as executor:
-                param = map(lambda value: (task, value, task_args, task_kwargs), values)
+                param = ((task, value, task_args, task_kwargs) for value in values)
                 future = executor.map(_task_wrapper, param)
 
             results = list(future)

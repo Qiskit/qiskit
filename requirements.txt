@@ -1,16 +1,19 @@
-retworkx>=0.10.1
+rustworkx>=0.12.0
 numpy>=1.17
 ply>=3.10
 psutil>=5
-scipy>=1.4
+scipy>=1.5
 sympy>=1.3
 dill>=0.3
-python-constraint>=1.4
 python-dateutil>=2.8.0
 stevedore>=3.0.0
-symengine>=0.8 ; platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'ppc64le' or platform_machine == 'amd64' or platform_machine == 'arm64'
-tweedledum>=1.1,<2.0
+symengine>=0.9 ; platform_machine == 'x86_64' or platform_machine == 'aarch64' or platform_machine == 'ppc64le' or platform_machine == 'amd64' or platform_machine == 'arm64'
+shared-memory38;python_version<'3.8'
+typing-extensions; python_version < '3.8'
+singledispatchmethod; python_version < '3.8'
 
-# remove these once support for python 3.6 is dropped
-dataclasses>=0.8;python_version<'3.7'
-contextvars>=2.4;python_version<'3.7'
+# Hack around stevedore being broken by importlib_metadata 5.0; we need to pin
+# the requirements rather than the constraints if we need to cut a release
+# before stevedore is fixed.  `importlib_metadata` is not (currently) a direct
+# requirement of Terra.
+importlib_metadata<5.0; python_version<'3.8'

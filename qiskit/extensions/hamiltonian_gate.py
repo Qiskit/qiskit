@@ -16,7 +16,6 @@ Gate described by the time evolution of a Hermitian Hamiltonian operator.
 
 from numbers import Number
 import numpy
-import scipy.linalg
 
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -28,16 +27,20 @@ from .unitary import UnitaryGate
 
 
 class HamiltonianGate(Gate):
-    """Class for representing evolution by a Hermitian Hamiltonian operator as a gate. This gate
-    resolves to a UnitaryGate U(t) = exp(-1j * t * H), which can be decomposed into basis gates if
-    it is 2 qubits or less, or simulated directly in Aer for more qubits."""
+    """Class for representing evolution by a Hamiltonian operator as a gate.
+
+    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
+    which can be decomposed into basis gates if it is 2 qubits or less, or
+    simulated directly in Aer for more qubits. Note that you can also directly
+    use :meth:`.QuantumCircuit.hamiltonian`.
+    """
 
     def __init__(self, data, time, label=None):
         """Create a gate from a hamiltonian operator and evolution time parameter t
 
         Args:
             data (matrix or Operator): a hermitian operator.
-            time (float): time evolution parameter.
+            time (float or ParameterExpression): time evolution parameter.
             label (str): unitary name for backend [Default: None].
 
         Raises:
@@ -62,7 +65,7 @@ class HamiltonianGate(Gate):
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
-        if input_dim != output_dim or 2 ** num_qubits != input_dim:
+        if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
         # Store instruction params
@@ -80,6 +83,8 @@ class HamiltonianGate(Gate):
     def __array__(self, dtype=None):
         """Return matrix for the unitary."""
         # pylint: disable=unused-argument
+        import scipy.linalg
+
         try:
             return scipy.linalg.expm(-1j * self.params[0] * float(self.params[1]))
         except TypeError as ex:
@@ -126,7 +131,25 @@ class HamiltonianGate(Gate):
 
 
 def hamiltonian(self, operator, time, qubits, label=None):
-    """Apply hamiltonian evolution to qubits."""
+    """Apply hamiltonian evolution to qubits.
+
+    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
+    which can be decomposed into basis gates if it is 2 qubits or less, or
+    simulated directly in Aer for more qubits.
+
+    Args:
+        operator (matrix or Operator): a hermitian operator.
+        time (float or ParameterExpression): time evolution parameter.
+        qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
+            transformation to.
+        label (str): unitary name for backend [Default: None].
+
+    Returns:
+        QuantumCircuit: The quantum circuit.
+
+    Raises:
+        ExtensionError: if input data is not an N-qubit unitary operator.
+    """
     if not isinstance(qubits, list):
         qubits = [qubits]
 

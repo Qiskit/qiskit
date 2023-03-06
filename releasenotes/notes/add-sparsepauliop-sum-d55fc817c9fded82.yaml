@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Added :meth:`~qiskit.quantum_info.SparsePauliOp.sum` as a specialized function of the builtin
-    function ``sum`` for a list of :class:`~qiskit.quantum_info.SparsePauliOp`.
-    This method has better scaling than repeated calls to :meth:`~qiskit.quantum_info.SparsePauliOp._add`.

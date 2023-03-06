@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The :class:`~.DenseLayout` transpiler pass is now multithreaded, which
+    greatly improves the runtime performance of the pass. By default, it will
+    use the number of logical CPUs on your local system, but you can control
+    the number of threads used by the pass by setting the
+    ``RAYON_NUM_THREADS`` environment variable to an integer value. For
+    example, setting ``RAYON_NUM_THREADS=4`` will run the
+    :class:`~.DenseLayout` pass with 4 threads.

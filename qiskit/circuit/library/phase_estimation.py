@@ -69,17 +69,16 @@ class PhaseEstimation(QuantumCircuit):
             The inverse QFT should not include a swap of the qubit order.
 
         Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit import QuantumCircuit
-                from qiskit.circuit.library import PhaseEstimation
-                import qiskit.tools.jupyter
-                unitary = QuantumCircuit(2)
-                unitary.x(0)
-                unitary.y(1)
-                circuit = PhaseEstimation(3, unitary)
-                %circuit_library_info circuit
+               from qiskit.circuit import QuantumCircuit
+               from qiskit.circuit.library import PhaseEstimation
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               unitary = QuantumCircuit(2)
+               unitary.x(0)
+               unitary.y(1)
+               circuit = PhaseEstimation(3, unitary)
+               _generate_circuit_library_visualization(circuit)
         """
         qr_eval = QuantumRegister(num_evaluation_qubits, "eval")
         qr_state = QuantumRegister(unitary.num_qubits, "q")
@@ -91,7 +90,7 @@ class PhaseEstimation(QuantumCircuit):
         circuit.h(qr_eval)  # hadamards on evaluation qubits
 
         for j in range(num_evaluation_qubits):  # controlled powers
-            circuit.compose(unitary.power(2 ** j).control(), qubits=[j] + qr_state[:], inplace=True)
+            circuit.compose(unitary.power(2**j).control(), qubits=[j] + qr_state[:], inplace=True)
 
         circuit.compose(iqft, qubits=qr_eval[:], inplace=True)  # final QFT
 

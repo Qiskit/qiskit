@@ -12,19 +12,26 @@
 
 """Synthesize UnitaryGates."""
 
-from math import pi, inf
-from typing import List, Union
+from math import pi, inf, isclose
+from typing import List, Union, Optional
 from copy import deepcopy
+from itertools import product
+from functools import partial
+import numpy as np
 
 from qiskit.converters import circuit_to_dag
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.synthesis import one_qubit_decompose
-from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer
-from qiskit.quantum_info.synthesis.two_qubit_decompose import TwoQubitBasisDecomposer
+from qiskit.quantum_info.synthesis.xx_decompose import XXDecomposer, XXEmbodiments
+from qiskit.quantum_info.synthesis.two_qubit_decompose import (
+    TwoQubitBasisDecomposer,
+    TwoQubitWeylDecomposition,
+)
+from qiskit.quantum_info import Operator
+from qiskit.circuit import ControlFlowOp, Gate
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
@@ -34,31 +41,39 @@ from qiskit.circuit.library.standard_gates import (
     ECRGate,
 )
 from qiskit.transpiler.passes.synthesis import plugin
+from qiskit.transpiler.passes.utils import control_flow
+from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
+    Optimize1qGatesDecomposition,
+)
 from qiskit.providers.models import BackendProperties
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.exceptions import QiskitError
+
+
+KAK_GATE_NAMES = {
+    "cx": CXGate(),
+    "cz": CZGate(),
+    "iswap": iSwapGate(),
+    "rxx": RXXGate(pi / 2),
+    "ecr": ECRGate(),
+    "rzx": RZXGate(pi / 4),  # typically pi/6 is also available
+}
+
+GateNameToGate = get_standard_gate_name_mapping()
 
 
 def _choose_kak_gate(basis_gates):
     """Choose the first available 2q gate to use in the KAK decomposition."""
-
-    kak_gate_names = {
-        "cx": CXGate(),
-        "cz": CZGate(),
-        "iswap": iSwapGate(),
-        "rxx": RXXGate(pi / 2),
-        "ecr": ECRGate(),
-        "rzx": RZXGate(pi / 4),  # typically pi/6 is also available
-    }
-
     kak_gate = None
-    kak_gates = set(basis_gates or []).intersection(kak_gate_names.keys())
+    kak_gates = set(basis_gates or []).intersection(KAK_GATE_NAMES.keys())
     if kak_gates:
-        kak_gate = kak_gate_names[kak_gates.pop()]
+        kak_gate = KAK_GATE_NAMES[kak_gates.pop()]
 
     return kak_gate
 
 
 def _choose_euler_basis(basis_gates):
-    """ "Choose the first available 1q basis to use in the Euler decomposition."""
+    """Choose the first available 1q basis to use in the Euler decomposition."""
     basis_set = set(basis_gates or [])
 
     for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
@@ -66,7 +81,17 @@ def _choose_euler_basis(basis_gates):
         if set(gates).issubset(basis_set):
             return basis
 
-    return None
+    return "U"
+
+
+def _find_matching_euler_bases(target, qubit):
+    """Find matching available 1q basis to use in the Euler decomposition."""
+    euler_basis_gates = []
+    basis_set = target.operation_names_for_qargs((qubit,))
+    for basis, gates in one_qubit_decompose.ONE_QUBIT_EULER_BASIS_GATES.items():
+        if set(gates).issubset(basis_set):
+            euler_basis_gates.append(basis)
+    return euler_basis_gates
 
 
 def _choose_bases(basis_gates, basis_dict=None):
@@ -87,21 +112,152 @@ def _choose_bases(basis_gates, basis_dict=None):
     return out_basis
 
 
-def _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=None):
+def _decomposer_2q_from_basis_gates(basis_gates, pulse_optimize=None, approximation_degree=None):
+    decomposer2q = None
     kak_gate = _choose_kak_gate(basis_gates)
     euler_basis = _choose_euler_basis(basis_gates)
-
+    basis_fidelity = approximation_degree or 1.0
     if isinstance(kak_gate, RZXGate):
         backup_optimizer = TwoQubitBasisDecomposer(
-            CXGate(), euler_basis=euler_basis, pulse_optimize=pulse_optimize
+            CXGate(),
+            basis_fidelity=basis_fidelity,
+            euler_basis=euler_basis,
+            pulse_optimize=pulse_optimize,
         )
-        return XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
+        decomposer2q = XXDecomposer(euler_basis=euler_basis, backup_optimizer=backup_optimizer)
     elif kak_gate is not None:
-        return TwoQubitBasisDecomposer(
-            kak_gate, euler_basis=euler_basis, pulse_optimize=pulse_optimize
+        decomposer2q = TwoQubitBasisDecomposer(
+            kak_gate,
+            basis_fidelity=basis_fidelity,
+            euler_basis=euler_basis,
+            pulse_optimize=pulse_optimize,
         )
-    else:
-        return None
+    return decomposer2q
+
+
+def _error(circuit, target=None, qubits=None):
+    """
+    Calculate a rough error for a `circuit` that runs on specific
+    `qubits` of `target`.
+
+    Use basis errors from target if available, otherwise use length
+    of circuit as a weak proxy for error.
+    """
+    if target is None:
+        return len(circuit)
+    gate_fidelities = []
+    gate_durations = []
+    for inst in circuit:
+        inst_qubits = tuple(qubits[circuit.find_bit(q).index] for q in inst.qubits)
+        try:
+            keys = target.operation_names_for_qargs(inst_qubits)
+            for key in keys:
+                target_op = target.operation_from_name(key)
+                if isinstance(target_op, type(inst.operation)) and (
+                    target_op.is_parameterized()
+                    or all(
+                        isclose(float(p1), float(p2))
+                        for p1, p2 in zip(target_op.params, inst.operation.params)
+                    )
+                ):
+                    inst_props = target[key].get(inst_qubits, None)
+                    if inst_props is not None:
+                        error = getattr(inst_props, "error", 0.0) or 0.0
+                        duration = getattr(inst_props, "duration", 0.0) or 0.0
+                        gate_fidelities.append(1 - error)
+                        gate_durations.append(duration)
+                    else:
+                        gate_fidelities.append(1.0)
+                        gate_durations.append(0.0)
+
+                    break
+            else:
+                raise KeyError
+        except KeyError as error:
+            raise TranspilerError(
+                f"Encountered a bad synthesis. "
+                f"Target has no {inst.operation} on qubits {qubits}."
+            ) from error
+    # TODO:return np.sum(gate_durations)
+    return 1 - np.product(gate_fidelities)
+
+
+def _preferred_direction(
+    decomposer2q, qubits, natural_direction, coupling_map=None, gate_lengths=None, gate_errors=None
+):
+    """
+    `decomposer2q` decomposes an SU(4) over `qubits`. A user sets `natural_direction`
+    to indicate whether they prefer synthesis in a hardware-native direction.
+    If yes, we return the `preferred_direction` here. If no hardware direction is
+    preferred, we raise an error (unless natural_direction is None).
+    We infer this from `coupling_map`, `gate_lengths`, `gate_errors`.
+
+    Returns [0, 1] if qubits are correct in the hardware-native direction.
+    Returns [1, 0] if qubits must be flipped to match hardware-native direction.
+    """
+    qubits_tuple = tuple(qubits)
+    reverse_tuple = qubits_tuple[::-1]
+
+    preferred_direction = None
+    if natural_direction in {None, True}:
+        # find native gate directions from a (non-bidirectional) coupling map
+        if coupling_map is not None:
+            neighbors0 = coupling_map.neighbors(qubits[0])
+            zero_one = qubits[1] in neighbors0
+            neighbors1 = coupling_map.neighbors(qubits[1])
+            one_zero = qubits[0] in neighbors1
+            if zero_one and not one_zero:
+                preferred_direction = [0, 1]
+            if one_zero and not zero_one:
+                preferred_direction = [1, 0]
+        # otherwise infer natural directions from gate durations or gate errors
+        if preferred_direction is None and (gate_lengths or gate_errors):
+            cost_0_1 = inf
+            cost_1_0 = inf
+            try:
+                cost_0_1 = next(
+                    duration
+                    for gate, duration in gate_lengths.get(qubits_tuple, [])
+                    if gate == decomposer2q.gate
+                )
+            except StopIteration:
+                pass
+            try:
+                cost_1_0 = next(
+                    duration
+                    for gate, duration in gate_lengths.get(reverse_tuple, [])
+                    if gate == decomposer2q.gate
+                )
+            except StopIteration:
+                pass
+            if not (cost_0_1 < inf or cost_1_0 < inf):
+                try:
+                    cost_0_1 = next(
+                        error
+                        for gate, error in gate_errors.get(qubits_tuple, [])
+                        if gate == decomposer2q.gate
+                    )
+                except StopIteration:
+                    pass
+                try:
+                    cost_1_0 = next(
+                        error
+                        for gate, error in gate_errors.get(reverse_tuple, [])
+                        if gate == decomposer2q.gate
+                    )
+                except StopIteration:
+                    pass
+            if cost_0_1 < cost_1_0:
+                preferred_direction = [0, 1]
+            elif cost_1_0 < cost_0_1:
+                preferred_direction = [1, 0]
+    if natural_direction is True and preferred_direction is None:
+        raise TranspilerError(
+            f"No preferred direction of gate on qubits {qubits} "
+            "could be determined from coupling map or "
+            "gate lengths / gate errors."
+        )
+    return preferred_direction
 
 
 class UnitarySynthesis(TransformationPass):
@@ -109,8 +265,8 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(
         self,
-        basis_gates: List[str],
-        approximation_degree: float = 1,
+        basis_gates: List[str] = None,
+        approximation_degree: Optional[float] = 1.0,
         coupling_map: CouplingMap = None,
         backend_props: BackendProperties = None,
         pulse_optimize: Union[bool, None] = None,
@@ -119,66 +275,80 @@ class UnitarySynthesis(TransformationPass):
         method: str = "default",
         min_qubits: int = None,
         plugin_config: dict = None,
+        target: Target = None,
     ):
         """Synthesize unitaries over some basis gates.
 
         This pass can approximate 2-qubit unitaries given some
-        approximation closeness measure (expressed as
-        approximation_degree). Other unitaries are synthesized
-        exactly.
+        gate fidelities (either via ``backend_props`` or ``target``).
+        More approximation can be forced by setting a heuristic dial
+        ``approximation_degree``.
 
         Args:
-            basis_gates (list[str]): List of gate names to target.
-            approximation_degree (float): Closeness of approximation
-                (0: lowest, 1: highest).
+            basis_gates (list[str]): List of gate names to target. If this is
+                not specified the ``target`` argument must be used. If both this
+                and the ``target`` are specified the value of ``target`` will
+                be used and this will be ignored.
+            approximation_degree (float): heuristic dial used for circuit approximation
+                (1.0=no approximation, 0.0=maximal approximation). Approximation can
+                make the synthesized circuit cheaper at the cost of straying from
+                the original unitary. If None, approximation is done based on gate fidelities.
             coupling_map (CouplingMap): the coupling map of the backend
                 in case synthesis is done on a physical circuit. The
                 directionality of the coupling_map will be taken into
-                account if pulse_optimize is True/None and natural_direction
-                is True/None.
+                account if ``pulse_optimize`` is ``True``/``None`` and ``natural_direction``
+                is ``True``/``None``.
             backend_props (BackendProperties): Properties of a backend to
                 synthesize for (e.g. gate fidelities).
             pulse_optimize (bool): Whether to optimize pulses during
-                synthesis. A value of None will attempt it but fall
-                back if it doesn't succeed. A value of True will raise
+                synthesis. A value of ``None`` will attempt it but fall
+                back if it does not succeed. A value of ``True`` will raise
                 an error if pulse-optimized synthesis does not succeed.
             natural_direction (bool): Whether to apply synthesis considering
                 directionality of 2-qubit gates. Only applies when
-                `pulse_optimize` is True or None. The natural direction is
+                ``pulse_optimize`` is ``True`` or ``None``. The natural direction is
                 determined by first checking to see whether the
                 coupling map is unidirectional.  If there is no
                 coupling map or the coupling map is bidirectional,
                 the gate direction with the shorter
                 duration from the backend properties will be used. If
                 set to True, and a natural direction can not be
-                determined, raises TranspileError. If set to None, no
+                determined, raises :class:`~TranspileError`. If set to None, no
                 exception will be raised if a natural direction can
                 not be determined.
             synth_gates (list[str]): List of gates to synthesize. If None and
-                `pulse_optimize` is False or None, default to
-                ['unitary']. If None and `pulse_optimzie` == True,
-                default to ['unitary', 'swap']
+                ``pulse_optimize`` is False or None, default to
+                ``['unitary']``. If ``None`` and ``pulse_optimize == True``,
+                default to ``['unitary', 'swap']``
             method (str): The unitary synthesis method plugin to use.
             min_qubits: The minimum number of qubits in the unitary to synthesize. If this is set
                 and the unitary is less than the specified number of qubits it will not be
                 synthesized.
-            plugin_config: Optional extra configuration arguments (as a dict)
+            plugin_config: Optional extra configuration arguments (as a ``dict``)
                 which are passed directly to the specified unitary synthesis
-                plugin. By default this will have no effect as the default
+                plugin. By default, this will have no effect as the default
                 plugin has no extra arguments. Refer to the documentation of
                 your unitary synthesis plugin on how to use this.
+            target: The optional :class:`~.Target` for the target device the pass
+                is compiling for. If specified this will supersede the values
+                set for ``basis_gates``, ``coupling_map``, and ``backend_props``.
         """
         super().__init__()
         self._basis_gates = set(basis_gates or ())
         self._approximation_degree = approximation_degree
         self._min_qubits = min_qubits
         self.method = method
-        self.plugins = plugin.UnitarySynthesisPluginManager()
+        self.plugins = None
+        if method != "default":
+            self.plugins = plugin.UnitarySynthesisPluginManager()
         self._coupling_map = coupling_map
         self._backend_props = backend_props
         self._pulse_optimize = pulse_optimize
         self._natural_direction = natural_direction
         self._plugin_config = plugin_config
+        self._target = target
+        if target is not None:
+            self._coupling_map = self._target.build_coupling_map()
         if synth_gates:
             self._synth_gates = synth_gates
         else:
@@ -190,7 +360,7 @@ class UnitarySynthesis(TransformationPass):
         self._synth_gates = set(self._synth_gates) - self._basis_gates
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
-        """Run the UnitarySynthesis pass on `dag`.
+        """Run the UnitarySynthesis pass on ``dag``.
 
         Args:
             dag: input dag.
@@ -199,22 +369,23 @@ class UnitarySynthesis(TransformationPass):
             Output dag with UnitaryGates synthesized to target basis.
 
         Raises:
-            TranspilerError: if a 'method' was specified for the class and is not
+            TranspilerError: if ``method`` was specified for the class and is not
                 found in the installed plugins list. The list of installed
                 plugins can be queried with
                 :func:`~qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
         """
-        if self.method not in self.plugins.ext_plugins:
+        if self.method != "default" and self.method not in self.plugins.ext_plugins:
             raise TranspilerError("Specified method: %s not found in plugin list" % self.method)
         # Return fast if we have no synth gates (ie user specified an empty
         # list or the synth gates are all in the basis
         if not self._synth_gates:
             return dag
-
-        plugin_method = self.plugins.ext_plugins[self.method].obj
+        if self.plugins:
+            plugin_method = self.plugins.ext_plugins[self.method].obj
+        else:
+            plugin_method = DefaultUnitarySynthesis()
         plugin_kwargs = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
-        dag_bit_indices = {}
 
         if self.method == "default":
             # If the method is the default, we only need to evaluate one set of keyword arguments.
@@ -234,28 +405,55 @@ class UnitarySynthesis(TransformationPass):
         for method, kwargs in method_list:
             if method.supports_basis_gates:
                 kwargs["basis_gates"] = self._basis_gates
-            if method.supports_coupling_map:
-                dag_bit_indices = dag_bit_indices or {bit: i for i, bit in enumerate(dag.qubits)}
             if method.supports_natural_direction:
                 kwargs["natural_direction"] = self._natural_direction
             if method.supports_pulse_optimize:
                 kwargs["pulse_optimize"] = self._pulse_optimize
             if method.supports_gate_lengths:
-                _gate_lengths = _gate_lengths or _build_gate_lengths(self._backend_props)
+                _gate_lengths = _gate_lengths or _build_gate_lengths(
+                    self._backend_props, self._target
+                )
                 kwargs["gate_lengths"] = _gate_lengths
             if method.supports_gate_errors:
-                _gate_errors = _gate_errors or _build_gate_errors(self._backend_props)
+                _gate_errors = _gate_errors or _build_gate_errors(self._backend_props, self._target)
                 kwargs["gate_errors"] = _gate_errors
             supported_bases = method.supported_bases
             if supported_bases is not None:
                 kwargs["matched_basis"] = _choose_bases(self._basis_gates, supported_bases)
+            if method.supports_target:
+                kwargs["target"] = self._target
 
         # Handle approximation degree as a special case for backwards compatibility, it's
         # not part of the plugin interface and only something needed for the default
         # pass.
+        # pylint: disable=attribute-defined-outside-init
         default_method._approximation_degree = self._approximation_degree
         if self.method == "default":
+            # pylint: disable=attribute-defined-outside-init
             plugin_method._approximation_degree = self._approximation_degree
+        return self._run_main_loop(
+            dag, plugin_method, plugin_kwargs, default_method, default_kwargs
+        )
+
+    def _run_main_loop(self, dag, plugin_method, plugin_kwargs, default_method, default_kwargs):
+        """Inner loop for the optimizer, after all DAG-independent set-up has been completed."""
+
+        def _recurse(dag):
+            # This isn't quite a trivially recursive call because we need to close over the
+            # arguments to the function.  The loop is sufficiently long that it's cleaner to do it
+            # in a separate method rather than define a helper closure within `self.run`.
+            return self._run_main_loop(
+                dag, plugin_method, plugin_kwargs, default_method, default_kwargs
+            )
+
+        for node in dag.op_nodes(ControlFlowOp):
+            node.op = control_flow.map_blocks(_recurse, node.op)
+
+        dag_bit_indices = (
+            {bit: i for i, bit in enumerate(dag.qubits)}
+            if plugin_method.supports_coupling_map or default_method.supports_coupling_map
+            else {}
+        )
 
         for node in dag.named_nodes(*self._synth_gates):
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
@@ -276,38 +474,73 @@ class UnitarySynthesis(TransformationPass):
                 )
             synth_dag = method.run(unitary, **kwargs)
             if synth_dag is not None:
-                if isinstance(synth_dag, tuple):
-                    dag.substitute_node_with_dag(node, synth_dag[0], wires=synth_dag[1])
-                else:
-                    dag.substitute_node_with_dag(node, synth_dag)
+                dag.substitute_node_with_dag(node, synth_dag)
         return dag
 
 
-def _build_gate_lengths(props):
+def _build_gate_lengths(props=None, target=None):
+    """
+    Builds a `gate_lengths` dictionary from either `props` (BackendV1)
+    or `target (BackendV2)`.
+
+    The dictionary has the form:
+    {(qubits): [Gate, duration]}
+    """
     gate_lengths = {}
-    if props:
-        for gate in props._gates:
-            gate_lengths[gate] = {}
-            for k, v in props._gates[gate].items():
-                length = v.get("gate_length")
-                if length:
-                    gate_lengths[gate][k] = length[0]
-            if not gate_lengths[gate]:
-                del gate_lengths[gate]
+    if target is not None and target.qargs is not None:
+        for qubits in target.qargs:
+            names = target.operation_names_for_qargs(qubits)
+            operation_and_durations = []
+            for name in names:
+                operation = target.operation_from_name(name)
+                duration = getattr(target[name].get(qubits, None), "duration", None)
+                if duration:
+                    operation_and_durations.append((operation, duration))
+            if operation_and_durations:
+                gate_lengths[qubits] = operation_and_durations
+    elif props is not None:
+        for gate_name, gate_props in props._gates.items():
+            gate = GateNameToGate[gate_name]
+            for qubits, properties in gate_props.items():
+                duration = properties.get("gate_length", [0.0])[0]
+                operation_and_durations = (gate, duration)
+                if qubits in gate_lengths:
+                    gate_lengths[qubits].append(operation_and_durations)
+                else:
+                    gate_lengths[qubits] = [operation_and_durations]
     return gate_lengths
 
 
-def _build_gate_errors(props):
+def _build_gate_errors(props=None, target=None):
+    """
+    Builds a `gate_error` dictionary from either `props` (BackendV1)
+    or `target (BackendV2)`.
+
+    The dictionary has the form:
+    {(qubits): [Gate, error]}
+    """
     gate_errors = {}
-    if props:
-        for gate in props._gates:
-            gate_errors[gate] = {}
-            for k, v in props._gates[gate].items():
-                error = v.get("gate_error")
+    if target is not None and target.qargs is not None:
+        for qubits in target.qargs:
+            names = target.operation_names_for_qargs(qubits)
+            operation_and_errors = []
+            for name in names:
+                operation = target.operation_from_name(name)
+                error = getattr(target[name].get(qubits, None), "error", None)
                 if error:
-                    gate_errors[gate][k] = error[0]
-            if not gate_errors[gate]:
-                del gate_errors[gate]
+                    operation_and_errors.append((operation, error))
+            if operation_and_errors:
+                gate_errors[qubits] = operation_and_errors
+    elif props is not None:
+        for gate_name, gate_props in props._gates.items():
+            gate = GateNameToGate[gate_name]
+            for qubits, properties in gate_props.items():
+                error = properties.get("gate_error", [0.0])[0]
+                operation_and_errors = (gate, error)
+                if qubits in gate_errors:
+                    gate_errors[qubits].append(operation_and_errors)
+                else:
+                    gate_errors[qubits] = [operation_and_errors]
     return gate_errors
 
 
@@ -350,12 +583,146 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
     def supported_bases(self):
         return None
 
+    @property
+    def supports_target(self):
+        return True
+
+    def __init__(self):
+        super().__init__()
+        self._decomposer_cache = {}
+
+    def _decomposer_2q_from_target(self, target, qubits, approximation_degree):
+        # we just need 2-qubit decomposers, in any direction.
+        # we'll fix the synthesis direction later.
+        qubits_tuple = tuple(sorted(qubits))
+        reverse_tuple = qubits_tuple[::-1]
+        if qubits_tuple in self._decomposer_cache:
+            return self._decomposer_cache[qubits_tuple]
+
+        # available instructions on this qubit pair, and their associated property.
+        available_2q_basis = {}
+        available_2q_props = {}
+        try:
+            keys = target.operation_names_for_qargs(qubits_tuple)
+            for key in keys:
+                op = target.operation_from_name(key)
+                if not isinstance(op, Gate):
+                    continue
+                available_2q_basis[key] = op
+                available_2q_props[key] = target[key][qubits_tuple]
+        except KeyError:
+            pass
+        try:
+            keys = target.operation_names_for_qargs(reverse_tuple)
+            for key in keys:
+                if key not in available_2q_basis:
+                    op = target.operation_from_name(key)
+                    if not isinstance(op, Gate):
+                        continue
+                    available_2q_basis[key] = op
+                    available_2q_props[key] = target[key][reverse_tuple]
+        except KeyError:
+            pass
+        if not available_2q_basis:
+            raise TranspilerError(
+                f"Target has no gates available on qubits {qubits} to synthesize over."
+            )
+        # available decomposition basis on each of the qubits of the pair
+        # NOTE: assumes both qubits have the same single-qubit gates
+        available_1q_basis = _find_matching_euler_bases(target, qubits_tuple[0])
+
+        # find all decomposers
+        # TODO: reduce number of decomposers here somehow
+        decomposers = []
+
+        def is_supercontrolled(gate):
+            try:
+                operator = Operator(gate)
+            except QiskitError:
+                return False
+            kak = TwoQubitWeylDecomposition(operator.data)
+            return isclose(kak.a, pi / 4) and isclose(kak.c, 0.0)
+
+        def is_controlled(gate):
+            try:
+                operator = Operator(gate)
+            except QiskitError:
+                return False
+            kak = TwoQubitWeylDecomposition(operator.data)
+            return isclose(kak.b, 0.0) and isclose(kak.c, 0.0)
+
+        # possible supercontrolled decomposers (i.e. TwoQubitBasisDecomposer)
+        supercontrolled_basis = {
+            k: v for k, v in available_2q_basis.items() if is_supercontrolled(v)
+        }
+        for basis_1q, basis_2q in product(available_1q_basis, supercontrolled_basis.keys()):
+            props = available_2q_props.get(basis_2q)
+            if props is None:
+                basis_2q_fidelity = 1.0
+            else:
+                basis_2q_fidelity = 1 - getattr(props, "error", 0.0)
+            if approximation_degree is not None:
+                basis_2q_fidelity *= approximation_degree
+            decomposer = TwoQubitBasisDecomposer(
+                supercontrolled_basis[basis_2q],
+                euler_basis=basis_1q,
+                basis_fidelity=basis_2q_fidelity,
+            )
+            decomposers.append(decomposer)
+
+        # possible controlled decomposers (i.e. XXDecomposer)
+        controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
+        basis_2q_fidelity = {}
+        embodiments = {}
+        pi2_basis = None
+        for k, v in controlled_basis.items():
+            strength = 2 * TwoQubitWeylDecomposition(Operator(v).data).a  # pi/2: fully entangling
+            # each strength has its own fidelity
+            props = available_2q_props.get(k)
+            if props is None:
+                basis_2q_fidelity[strength] = 1.0
+            else:
+                basis_2q_fidelity[strength] = 1 - getattr(props, "error", 0.0)
+            # rewrite XX of the same strength in terms of it
+            embodiment = XXEmbodiments[type(v)]
+            if len(embodiment.parameters) == 1:
+                embodiments[strength] = embodiment.bind_parameters([strength])
+            else:
+                embodiments[strength] = embodiment
+            # basis equivalent to CX are well optimized so use for the pi/2 angle if available
+            if isclose(strength, pi / 2) and k in supercontrolled_basis:
+                pi2_basis = v
+        # if we are using the approximation_degree knob, use it to scale already-given fidelities
+        if approximation_degree is not None:
+            basis_2q_fidelity = {k: v * approximation_degree for k, v in basis_2q_fidelity.items()}
+        for basis_1q in available_1q_basis:
+            if isinstance(pi2_basis, CXGate) and basis_1q == "ZSX":
+                pi2_decomposer = TwoQubitBasisDecomposer(
+                    pi2_basis,
+                    euler_basis=basis_1q,
+                    basis_fidelity=basis_2q_fidelity,
+                    pulse_optimize=True,
+                )
+                embodiments.update({pi / 2: XXEmbodiments[type(pi2_decomposer.gate)]})
+            else:
+                pi2_decomposer = None
+            decomposer = XXDecomposer(
+                basis_fidelity=basis_2q_fidelity,
+                euler_basis=basis_1q,
+                embodiments=embodiments,
+                backup_optimizer=pi2_decomposer,
+            )
+            decomposers.append(decomposer)
+
+        self._decomposer_cache[qubits_tuple] = decomposers
+        return decomposers
+
     def run(self, unitary, **options):
         # Approximation degree is set directly as an attribute on the
         # instance by the UnitarySynthesis pass here as it's not part of
         # plugin interface. However if for some reason it's not set assume
         # it's 1.
-        approximation_degree = getattr(self, "_approximation_degree", 1)
+        approximation_degree = getattr(self, "_approximation_degree", 1.0)
         basis_gates = options["basis_gates"]
         coupling_map = options["coupling_map"][0]
         natural_direction = options["natural_direction"]
@@ -363,117 +730,64 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         gate_lengths = options["gate_lengths"]
         gate_errors = options["gate_errors"]
         qubits = options["coupling_map"][1]
+        target = options["target"]
 
-        euler_basis = _choose_euler_basis(basis_gates)
-        if euler_basis is not None:
-            decomposer1q = one_qubit_decompose.OneQubitEulerDecomposer(euler_basis)
-        else:
-            decomposer1q = None
-
-        decomposer2q = _basis_gates_to_decomposer_2q(basis_gates, pulse_optimize=pulse_optimize)
-
-        synth_dag = None
-        wires = None
         if unitary.shape == (2, 2):
-            if decomposer1q is None:
-                return None
-            synth_dag = circuit_to_dag(decomposer1q._decompose(unitary))
+            _decomposer1q = Optimize1qGatesDecomposition(basis_gates, target)
+            return _decomposer1q._gate_sequence_to_dag(
+                _decomposer1q._resynthesize_run(unitary, qubits[0])
+            )
         elif unitary.shape == (4, 4):
-            if decomposer2q is None:
-                return None
-            synth_dag, wires = self._synth_natural_direction(
-                unitary,
-                coupling_map,
-                qubits,
-                decomposer2q,
-                gate_lengths,
-                gate_errors,
-                natural_direction,
-                approximation_degree,
-                pulse_optimize,
+            # select synthesizers that can lower to the target
+            if target is not None:
+                decomposers2q = self._decomposer_2q_from_target(
+                    target, qubits, approximation_degree
+                )
+            else:
+                decomposer2q = _decomposer_2q_from_basis_gates(
+                    basis_gates, pulse_optimize, approximation_degree
+                )
+                decomposers2q = [decomposer2q] if decomposer2q is not None else []
+            # choose the cheapest output among synthesized circuits
+            synth_circuits = []
+            for decomposer2q in decomposers2q:
+                preferred_direction = _preferred_direction(
+                    decomposer2q, qubits, natural_direction, coupling_map, gate_lengths, gate_errors
+                )
+                synth_circuit = self._synth_su4(
+                    unitary, decomposer2q, preferred_direction, approximation_degree
+                )
+                synth_circuits.append(synth_circuit)
+            synth_circuit = min(
+                synth_circuits,
+                key=partial(_error, target=target, qubits=tuple(qubits)),
+                default=None,
             )
         else:
-            synth_dag = circuit_to_dag(isometry.Isometry(unitary, 0, 0).definition)
-
-        return synth_dag, wires
-
-    def _synth_natural_direction(
-        self,
-        su4_mat,
-        coupling_map,
-        qubits,
-        decomposer2q,
-        gate_lengths,
-        gate_errors,
-        natural_direction,
-        approximation_degree,
-        pulse_optimize,
-    ):
-        preferred_direction = None
-        synth_direction = None
-        physical_gate_fidelity = None
-        wires = None
-        if natural_direction in {None, True} and coupling_map:
-            neighbors0 = coupling_map.neighbors(qubits[0])
-            zero_one = qubits[1] in neighbors0
-            neighbors1 = coupling_map.neighbors(qubits[1])
-            one_zero = qubits[0] in neighbors1
-            if zero_one and not one_zero:
-                preferred_direction = [0, 1]
-            if one_zero and not zero_one:
-                preferred_direction = [1, 0]
-        if (
-            natural_direction in {None, True}
-            and preferred_direction is None
-            and gate_lengths
-            and gate_errors
-        ):
-            len_0_1 = inf
-            len_1_0 = inf
-            twoq_gate_lengths = gate_lengths.get(decomposer2q.gate.name)
-            if twoq_gate_lengths:
-                len_0_1 = twoq_gate_lengths.get((qubits[0], qubits[1]), inf)
-                len_1_0 = twoq_gate_lengths.get((qubits[1], qubits[0]), inf)
-                if len_0_1 < len_1_0:
-                    preferred_direction = [0, 1]
-                elif len_1_0 < len_0_1:
-                    preferred_direction = [1, 0]
-                if preferred_direction:
-                    twoq_gate_errors = gate_errors.get("cx")
-                    gate_error = twoq_gate_errors.get(
-                        (qubits[preferred_direction[0]], qubits[preferred_direction[1]])
-                    )
-                    if gate_error:
-                        physical_gate_fidelity = 1 - gate_error
-        if natural_direction is True and preferred_direction is None:
-            raise TranspilerError(
-                f"No preferred direction of gate on qubits {qubits} "
-                "could be determined from coupling map or "
-                "gate lengths."
+            from qiskit.quantum_info.synthesis.qsd import (  # pylint: disable=cyclic-import
+                qs_decomposition,
             )
-        if approximation_degree is not None:
-            basis_fidelity = approximation_degree
-        else:
-            basis_fidelity = physical_gate_fidelity
-        synth_circ = decomposer2q(su4_mat, basis_fidelity=basis_fidelity)
-        synth_dag = circuit_to_dag(synth_circ)
 
-        # if a natural direction exists but the synthesis is in the opposite direction,
+            # only decompose if needed. TODO: handle basis better
+            synth_circuit = qs_decomposition(unitary) if (basis_gates or target) else None
+
+        synth_dag = circuit_to_dag(synth_circuit) if synth_circuit is not None else None
+        return synth_dag
+
+    def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree):
+        approximate = not approximation_degree == 1.0
+        synth_circ = decomposer2q(su4_mat, approximate=approximate)
+
+        # if the gates in synthesis are in the opposite direction of the preferred direction
         # resynthesize a new operator which is the original conjugated by swaps.
         # this new operator is doubly mirrored from the original and is locally equivalent.
-        synth_dag_qubit_index = {qubit: index for index, qubit in enumerate(synth_dag.qubits)}
-        if synth_dag.two_qubit_ops():
-            synth_direction = [
-                synth_dag_qubit_index[qubit] for qubit in synth_dag.two_qubit_ops()[0].qargs
-            ]
-        if (
-            preferred_direction
-            and pulse_optimize in {True, None}
-            and synth_direction != preferred_direction
-        ):
+        synth_direction = None
+        for inst in synth_circ:
+            if inst.operation.num_qubits == 2:
+                synth_direction = [synth_circ.find_bit(q).index for q in inst.qubits]
+        if preferred_direction and synth_direction != preferred_direction:
             su4_mat_mm = deepcopy(su4_mat)
             su4_mat_mm[[1, 2]] = su4_mat_mm[[2, 1]]
             su4_mat_mm[:, [1, 2]] = su4_mat_mm[:, [2, 1]]
-            synth_dag = circuit_to_dag(decomposer2q(su4_mat_mm, basis_fidelity=basis_fidelity))
-            wires = synth_dag.wires[::-1]
-        return synth_dag, wires
+            synth_circ = decomposer2q(su4_mat_mm, approximate=approximate).reverse_bits()
+        return synth_circ

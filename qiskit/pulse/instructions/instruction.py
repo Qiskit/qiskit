@@ -21,18 +21,18 @@ For example::
     sched = Schedule()
     sched += Delay(duration, channel)  # Delay is a specific subclass of Instruction
 """
-import warnings
-from abc import ABC, abstractproperty
-from collections import defaultdict
-from typing import Callable, Dict, Iterable, List, Optional, Set, Tuple, Any
+from abc import ABC, abstractmethod
+from typing import Callable, Iterable, List, Optional, Set, Tuple
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit import Parameter
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.utils import format_parameter_value, deprecated_functionality
+from qiskit.utils import optionals as _optionals
+
+from qiskit.utils.deprecation import deprecate_function
 
 
-# pylint: disable=missing-return-doc
+# pylint: disable=bad-docstring-quotes
 
 
 class Instruction(ABC):
@@ -43,46 +43,25 @@ class Instruction(ABC):
     def __init__(
         self,
         operands: Tuple,
-        duration: int = None,
-        channels: Tuple[Channel] = None,
         name: Optional[str] = None,
     ):
         """Instruction initializer.
 
         Args:
             operands: The argument list.
-            duration: Deprecated.
-            channels: Deprecated.
             name: Optional display name for this instruction.
-
-        Raises:
-            PulseError: If duration is negative.
-            PulseError: If the input ``channels`` are not all of
-                type :class:`Channel`.
         """
-        if duration is not None:
-            warnings.warn(
-                "Specifying duration in the constructor is deprecated. "
-                "Now duration is an abstract property rather than class variable. "
-                "All subclasses should implement ``duration`` accordingly. "
-                "See Qiskit-Terra #5679 for more information.",
-                DeprecationWarning,
-            )
-
-        if channels is not None:
-            warnings.warn(
-                "Specifying ``channels`` in the constructor is deprecated. "
-                "All channels should be stored in ``operands``.",
-                DeprecationWarning,
-            )
-
         self._operands = operands
         self._name = name
         self._hash = None
+        self._validate()
 
-        self._parameter_table = defaultdict(list)
-        self._initialize_parameter_table(operands)
+    def _validate(self):
+        """Called after initialization to validate instruction data.
 
+        Raises:
+            PulseError: If the input ``channels`` are not all of type :class:`Channel`.
+        """
         for channel in self.channels:
             if not isinstance(channel, Channel):
                 raise PulseError(f"Expected a channel, got {channel} instead.")
@@ -102,7 +81,8 @@ class Instruction(ABC):
         """Return instruction operands."""
         return self._operands
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def channels(self) -> Tuple[Channel]:
         """Returns the channels that this schedule uses."""
         raise NotImplementedError
@@ -171,17 +151,6 @@ class Instruction(ABC):
         """
         yield (time, self)
 
-    def flatten(self) -> "Instruction":
-        """Return itself as already single instruction."""
-
-        warnings.warn(
-            "`This method is being deprecated. Please use "
-            "`qiskit.pulse.transforms.flatten` function with this schedule.",
-            DeprecationWarning,
-        )
-
-        return self
-
     def shift(self, time: int, name: Optional[str] = None):
         """Return a new schedule shifted forward by `time`.
 
@@ -234,70 +203,33 @@ class Instruction(ABC):
     @property
     def parameters(self) -> Set:
         """Parameters which determine the instruction behavior."""
+
+        def _get_parameters_recursive(obj):
+            params = set()
+            if hasattr(obj, "parameters"):
+                for param in obj.parameters:
+                    if isinstance(param, Parameter):
+                        params.add(param)
+                    else:
+                        params |= _get_parameters_recursive(param)
+            return params
+
         parameters = set()
         for op in self.operands:
-            if hasattr(op, "parameters"):
-                for op_param in op.parameters:
-                    parameters.add(op_param)
+            parameters |= _get_parameters_recursive(op)
         return parameters
 
     def is_parameterized(self) -> bool:
         """Return True iff the instruction is parameterized."""
-        return any(chan.is_parameterized() for chan in self.channels)
+        return any(self.parameters)
 
-    def _initialize_parameter_table(self, operands: Tuple[Any]):
-        """A helper method to initialize parameter table.
-
-        Args:
-            operands: List of operands associated with this instruction.
-        """
-        for idx, op in enumerate(operands):
-            if isinstance(op, ParameterExpression):
-                for param in op.parameters:
-                    self._parameter_table[param].append(idx)
-            elif isinstance(op, Channel) and isinstance(op.index, ParameterExpression):
-                for param in op.index.parameters:
-                    self._parameter_table[param].append(idx)
-
-    @deprecated_functionality
-    def assign_parameters(
-        self, value_dict: Dict[ParameterExpression, ParameterValueType]
-    ) -> "Instruction":
-        """Modify and return self with parameters assigned according to the input.
-
-        Args:
-            value_dict: A mapping from Parameters to either numeric values or another
-                Parameter expression.
-
-        Returns:
-            Self with updated parameters.
-        """
-        new_operands = list(self.operands)
-
-        for parameter in self.parameters:
-            if parameter not in value_dict:
-                continue
-
-            value = value_dict[parameter]
-            op_indices = self._parameter_table[parameter]
-            for op_idx in op_indices:
-                param_expr = new_operands[op_idx]
-                new_operands[op_idx] = format_parameter_value(param_expr.assign(parameter, value))
-
-            # Update parameter table
-            entry = self._parameter_table.pop(parameter)
-            if isinstance(value, ParameterExpression):
-                for new_parameter in value.parameters:
-                    if new_parameter in self._parameter_table:
-                        new_entry = set(entry + self._parameter_table[new_parameter])
-                        self._parameter_table[new_parameter] = list(new_entry)
-                    else:
-                        self._parameter_table[new_parameter] = entry
-
-        self._operands = tuple(new_operands)
-
-        return self
-
+    @deprecate_function(
+        "Drawing individual pulses is deprecated since Terra 0.23, and will be removed in a future"
+        " version of the library.  No direct alternative is being provided, but instructions can"
+        " be visualized as part of a complete schedule using `qiskit.visualization.pulse_drawer`.",
+        since="0.23.0",
+    )
+    @_optionals.HAS_MATPLOTLIB.require_in_call
     def draw(
         self,
         dt: float = 1,
@@ -334,23 +266,29 @@ class Instruction(ABC):
             matplotlib.figure: A matplotlib figure object of the pulse schedule
         """
         # pylint: disable=cyclic-import
-        from qiskit import visualization
+        from qiskit.visualization.pulse.matplotlib import ScheduleDrawer
+        from qiskit.visualization.utils import matplotlib_close_if_inline
 
-        return visualization.pulse_drawer(
+        drawer = ScheduleDrawer(style=style)
+        image = drawer.draw(
             self,
             dt=dt,
-            style=style,
-            filename=filename,
             interp_method=interp_method,
             scale=scale,
-            plot_all=plot_all,
             plot_range=plot_range,
-            interactive=interactive,
+            plot_all=plot_all,
             table=table,
             label=label,
             framechange=framechange,
             channels=channels,
         )
+        if filename:
+            image.savefig(filename, dpi=drawer.style.dpi, bbox_inches="tight")
+
+        matplotlib_close_if_inline(image)
+        if image and interactive:
+            image.show()
+        return image
 
     def __eq__(self, other: "Instruction") -> bool:
         """Check if this Instruction is equal to the `other` instruction.

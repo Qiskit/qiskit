@@ -37,7 +37,8 @@ class ZZFeatureMap(PauliFeatureMap):
 
     Examples:
 
-        >>> prep = ZZFeatureMap(2, reps=2)
+        >>> from qiskit.circuit.library import ZZFeatureMap
+        >>> prep = ZZFeatureMap(2, reps=1)
         >>> print(prep)
              ┌───┐┌──────────────┐
         q_0: ┤ H ├┤ U1(2.0*x[0]) ├──■───────────────────────────────────────■──
@@ -50,11 +51,24 @@ class ZZFeatureMap(PauliFeatureMap):
         >>> classifier.num_parameters
         15
         >>> classifier.parameters  # 'x' for the data preparation, 'θ' for the SU2 parameters
-        {Parameter(θ[9]), Parameter(θ[4]), Parameter(θ[6]), Parameter(θ[1]), Parameter(x[2]),
-        Parameter(θ[7]), Parameter(x[1]), Parameter(θ[8]), Parameter(θ[2]), Parameter(θ[10]),
-        Parameter(θ[5]), Parameter(θ[0]), Parameter(θ[3]), Parameter(x[0]), Parameter(θ[11])}
+        ParameterView([
+            ParameterVectorElement(x[0]), ParameterVectorElement(x[1]),
+            ParameterVectorElement(x[2]), ParameterVectorElement(θ[0]),
+            ParameterVectorElement(θ[1]), ParameterVectorElement(θ[2]),
+            ParameterVectorElement(θ[3]), ParameterVectorElement(θ[4]),
+            ParameterVectorElement(θ[5]), ParameterVectorElement(θ[6]),
+            ParameterVectorElement(θ[7]), ParameterVectorElement(θ[8]),
+            ParameterVectorElement(θ[9]), ParameterVectorElement(θ[10]),
+            ParameterVectorElement(θ[11]), ParameterVectorElement(θ[12]),
+            ParameterVectorElement(θ[13]), ParameterVectorElement(θ[14]),
+            ParameterVectorElement(θ[15]), ParameterVectorElement(θ[16]),
+            ParameterVectorElement(θ[17]), ParameterVectorElement(θ[18]),
+            ParameterVectorElement(θ[19]), ParameterVectorElement(θ[20]),
+            ParameterVectorElement(θ[21]), ParameterVectorElement(θ[22]),
+            ParameterVectorElement(θ[23])
+        ])
         >>> classifier.count_ops()
-        OrderedDict([('u1', 12), ('cx', 12), ('ry', 12), ('cz', 9), ('h', 6)])
+        OrderedDict([('ZZFeatureMap', 1), ('EfficientSU2', 1)])
     """
 
     def __init__(
@@ -63,6 +77,7 @@ class ZZFeatureMap(PauliFeatureMap):
         reps: int = 2,
         entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "full",
         data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        parameter_prefix: str = "x",
         insert_barriers: bool = False,
         name: str = "ZZFeatureMap",
     ) -> None:
@@ -74,6 +89,7 @@ class ZZFeatureMap(PauliFeatureMap):
             entanglement: Specifies the entanglement structure. Refer to
                 :class:`~qiskit.circuit.library.NLocal` for detail.
             data_map_func: A mapping function for data x.
+            parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
 
@@ -92,6 +108,7 @@ class ZZFeatureMap(PauliFeatureMap):
             entanglement=entanglement,
             paulis=["Z", "ZZ"],
             data_map_func=data_map_func,
+            parameter_prefix=parameter_prefix,
             insert_barriers=insert_barriers,
             name=name,
         )

@@ -11,10 +11,12 @@
 # that they have been altered from the originals.
 
 """Scaling for Hamiltonian and eigenvalues to avoid phase wrapping"""
+from __future__ import annotations
+import numpy as np
 
-from typing import Union, Dict, List
-import numpy
-from qiskit.opflow import SummedOp
+from qiskit.opflow import SummedOp, PauliSumOp
+from qiskit.quantum_info import SparsePauliOp, Operator
+from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 
 class PhaseEstimationScale:
@@ -62,7 +64,7 @@ class PhaseEstimationScale:
         Returns:
             The scale factor.
         """
-        return numpy.pi / self._bound
+        return np.pi / self._bound
 
     def scale_phase(self, phi: float, id_coefficient: float = 0.0) -> float:
         r"""Convert a phase into an eigenvalue.
@@ -91,10 +93,7 @@ class PhaseEstimationScale:
         else:
             return (phi - 1) * w + id_coefficient
 
-    # pylint: disable=unsubscriptable-object
-    def scale_phases(
-        self, phases: Union[List, Dict], id_coefficient: float = 0.0
-    ) -> Union[Dict, List]:
+    def scale_phases(self, phases: list | dict, id_coefficient: float = 0.0) -> dict | list:
         """Convert a list or dict of phases to eigenvalues.
 
         The values in the list, or keys in the dict, are values of ``phi` and
@@ -116,7 +115,9 @@ class PhaseEstimationScale:
         return phases
 
     @classmethod
-    def from_pauli_sum(cls, pauli_sum: SummedOp) -> "PhaseEstimationScale":
+    def from_pauli_sum(
+        cls, pauli_sum: SummedOp | PauliSumOp | SparsePauliOp | Operator
+    ) -> "PhaseEstimationScale" | float:
         """Create a PhaseEstimationScale from a `SummedOp` representing a sum of Pauli Operators.
 
         It is assumed that the ``pauli_sum`` is the sum of ``PauliOp`` objects. The bound on
@@ -133,12 +134,27 @@ class PhaseEstimationScale:
         Returns:
             A ``PhaseEstimationScale`` object
         """
-        if pauli_sum.primitive_strings() != {"Pauli"}:
+        if isinstance(pauli_sum, PauliSumOp):
+            bound = abs(pauli_sum.coeff) * sum(abs(coeff) for coeff in pauli_sum.coeffs)
+            return PhaseEstimationScale(bound)
+        elif isinstance(pauli_sum, SparsePauliOp):
+            bound = sum(abs(coeff) for coeff in pauli_sum.coeffs)
+            return PhaseEstimationScale(bound)
+        elif isinstance(pauli_sum, Operator):
+            bound = np.sum(np.abs(np.eigvalsh(pauli_sum)))
+            return PhaseEstimationScale(bound)
+        elif isinstance(pauli_sum, BaseOperator):
             raise ValueError(
-                "`pauli_sum` must be a sum of Pauli operators. Got primitives {}.".format(
-                    pauli_sum.primitive_strings()
-                )
+                f"For the operator of type {type(pauli_sum)} the bound needs to be provided in the "
+                f"algorithm."
             )
+        else:
+            if pauli_sum.primitive_strings() != {"Pauli"}:
+                raise ValueError(
+                    "`pauli_sum` must be a sum of Pauli operators. Got primitives {}.".format(
+                        pauli_sum.primitive_strings()
+                    )
+                )
 
-        bound = abs(pauli_sum.coeff) * sum(abs(pauli.coeff) for pauli in pauli_sum)
+            bound = abs(pauli_sum.coeff) * sum(abs(pauli.coeff) for pauli in pauli_sum)
         return PhaseEstimationScale(bound)

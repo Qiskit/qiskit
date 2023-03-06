@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :meth:`.LocalReadoutMitigator.assignment_matrix`
+    method where it would previously reject an input value for the
+    ``qubits`` argument that wasn't a trivial sequence of qubits in the form:
+    ``[0, 1, 2, ..., n-1]``. This has been corrected so that now any list of
+    qubit indices to be measured are accepted by the method.

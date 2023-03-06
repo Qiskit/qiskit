@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Fixed an issue where calling :meth:`.QuantumCircuit.decompose()` on a
+    circuit containing an :class:`~qiskit.circuit.Instruction` whose
+    :attr:`~.Instruction.definition` attribute was empty would leave the
+    instruction in place, instead of decomposing it into zero operations. For
+    example, with a circuit::
+    
+        from qiskit.circuit import QuantumCircuit
+        empty = QuantumCircuit(1, name="decompose me!")
+        circuit = QuantumCircuit(1)
+        circuit.append(empty.to_gate(), [0])
+        
+    Previously, calling ``circuit.decompose()`` would not change the circuit.
+    Now, the decomposition will correct decompose ``empty`` into zero
+    instructions.
+    See `#6997 <https://github.com/Qiskit/qiskit-terra/pull/6997>`__ for more.

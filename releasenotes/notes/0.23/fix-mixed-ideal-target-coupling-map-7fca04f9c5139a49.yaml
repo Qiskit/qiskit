@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :meth:`.Target.build_coupling_map` method where
+    it would incorrectly return ``None`` for a :class:`~.Target` object
+    with a mix of ideal globally available instructions and instructions
+    that have qubit constraints. Now in such cases the
+    :meth:`.Target.build_coupling_map` will return a coupling map for the
+    constrained instruction (unless it's a 2 qubit operation which will
+    return ``None`` because globally there is no connectivity constraint).
+    Fixed `#8971 <https://github.com/Qiskit/qiskit-terra/issues/8971>`__
+  - |
+    Fixed an issue with the :attr:`.Target.qargs` attribute where it would
+    incorrectly return ``None`` for a :class:`~.Target` object that contained
+    any globally available ideal instruction.

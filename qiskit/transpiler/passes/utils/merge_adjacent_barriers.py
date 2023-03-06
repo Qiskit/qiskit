@@ -38,6 +38,17 @@ class MergeAdjacentBarriers(TransformationPass):
         circuit.barrier(qr[0])
         circuit.barrier(qr)
 
+    i.e,
+
+    .. parsed-literal::
+              ░  ░             ░  ░
+        q_0: ─░──░─      q_0: ─░──░─
+              ░  ░             ░  ░
+        q_1: ─░──░─  =>  q_1: ────░─
+              ░  ░                ░
+        q_2: ────░─      q_2: ────░─
+                 ░
+
     after one iteration of the pass. These two barriers were not merged by the
     first pass as they are not adjacent in the initial circuit.
 
@@ -46,6 +57,7 @@ class MergeAdjacentBarriers(TransformationPass):
 
     def run(self, dag):
         """Run the MergeAdjacentBarriers pass on `dag`."""
+        indices = {qubit: index for index, qubit in enumerate(dag.qubits)}
 
         # sorted to so that they are in the order they appear in the DAG
         # so ancestors/descendants makes sense
@@ -58,7 +70,7 @@ class MergeAdjacentBarriers(TransformationPass):
             return dag
 
         # add the merged barriers to a new DAG
-        new_dag = dag._copy_circuit_metadata()
+        new_dag = dag.copy_empty_like()
 
         # go over current nodes, and add them to the new dag
         for node in dag.topological_op_nodes():
@@ -66,7 +78,9 @@ class MergeAdjacentBarriers(TransformationPass):
                 if node in node_to_barrier_qubits:
                     qubits = node_to_barrier_qubits[node]
                     # qubits are stored as a set, need to convert to a list
-                    new_dag.apply_operation_back(Barrier(len(qubits)), qargs=list(qubits))
+                    new_dag.apply_operation_back(
+                        Barrier(len(qubits)), qargs=sorted(qubits, key=indices.get)
+                    )
             else:
                 # copy the condition over too
                 new_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)

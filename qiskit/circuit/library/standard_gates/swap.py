@@ -24,6 +24,9 @@ class SwapGate(Gate):
 
     This is a symmetric and Clifford gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.swap` method.
+
     **Circuit symbol:**
 
     .. parsed-literal::
@@ -112,15 +115,19 @@ class SwapGate(Gate):
 class CSwapGate(ControlledGate):
     r"""Controlled-SWAP gate, also known as the Fredkin gate.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cswap` and
+    :meth:`~qiskit.circuit.QuantumCircuit.fredkin` methods.
+
     **Circuit symbol:**
 
     .. parsed-literal::
 
-        q_0: ─X─
+        q_0: ─■─
               │
         q_1: ─X─
               │
-        q_2: ─■─
+        q_2: ─X─
 
 
     **Matrix representation:**
@@ -128,8 +135,8 @@ class CSwapGate(ControlledGate):
     .. math::
 
         CSWAP\ q_0, q_1, q_2 =
-            |0 \rangle \langle 0| \otimes I \otimes I +
-            |1 \rangle \langle 1| \otimes SWAP =
+            I \otimes I \otimes |0 \rangle \langle 0| +
+            SWAP \otimes |1 \rangle \langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
@@ -151,11 +158,11 @@ class CSwapGate(ControlledGate):
 
         .. parsed-literal::
 
-            q_0: ─■─
+            q_0: ─X─
                   │
             q_1: ─X─
                   │
-            q_2: ─X─
+            q_2: ─■─
 
         .. math::
 

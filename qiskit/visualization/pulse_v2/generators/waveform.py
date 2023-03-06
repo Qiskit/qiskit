@@ -44,7 +44,7 @@ from typing import Dict, Any, List, Union
 import numpy as np
 
 from qiskit import pulse, circuit
-from qiskit.pulse import instructions
+from qiskit.pulse import instructions, library
 from qiskit.visualization.exceptions import VisualizationError
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
@@ -105,10 +105,16 @@ def gen_filled_waveform_stepwise(
             if isinstance(pval, circuit.ParameterExpression):
                 unbound_params.append(pname)
 
+        pulse_data = data.inst.pulse
+        if isinstance(pulse_data, library.SymbolicPulse):
+            pulse_shape = pulse_data.pulse_type
+        else:
+            pulse_shape = "Waveform"
+
         return _draw_opaque_waveform(
             init_time=data.t0,
             duration=waveform_data.duration,
-            pulse_shape=data.inst.pulse.__class__.__name__,
+            pulse_shape=pulse_shape,
             pnames=unbound_params,
             meta=meta,
             channel=channel,
@@ -169,7 +175,14 @@ def gen_ibmq_latex_waveform_name(
         systematic_name = data.inst.name or "Delay"
         latex_name = None
     else:
-        systematic_name = data.inst.pulse.name or data.inst.pulse.__class__.__name__
+        pulse_data = data.inst.pulse
+        if pulse_data.name:
+            systematic_name = pulse_data.name
+        else:
+            if isinstance(pulse_data, library.SymbolicPulse):
+                systematic_name = pulse_data.pulse_type
+            else:
+                systematic_name = "Waveform"
 
         template = r"(?P<op>[A-Z]+)(?P<angle>[0-9]+)?(?P<sign>[pm])_(?P<ch>[dum])[0-9]+"
         match_result = re.match(template, systematic_name)
@@ -186,7 +199,7 @@ def gen_ibmq_latex_waveform_name(
                 angle_val = match_dict["angle"]
                 frac = Fraction(int(int(angle_val) / 2), 180)
                 if frac.numerator == 1:
-                    angle = fr"\pi/{frac.denominator:d}"
+                    angle = rf"\pi/{frac.denominator:d}"
                 else:
                     angle = r"{num:d}/{denom:d} \pi".format(
                         num=frac.numerator, denom=frac.denominator
@@ -200,12 +213,12 @@ def gen_ibmq_latex_waveform_name(
                 else:
                     frac = Fraction(int(angle_val), 180)
                     if frac.numerator == 1:
-                        angle = fr"\pi/{frac.denominator:d}"
+                        angle = rf"\pi/{frac.denominator:d}"
                     else:
                         angle = r"{num:d}/{denom:d} \pi".format(
                             num=frac.numerator, denom=frac.denominator
                         )
-            latex_name = fr"{op_name}({sign}{angle})"
+            latex_name = rf"{op_name}({sign}{angle})"
         else:
             latex_name = None
 
@@ -256,7 +269,7 @@ def gen_waveform_max_value(
     if isinstance(data.inst, instructions.Play):
         # pulse
         operand = data.inst.pulse
-        if isinstance(operand, pulse.ParametricPulse):
+        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
             pulse_data = operand.get_waveform()
         else:
             pulse_data = operand
@@ -386,7 +399,7 @@ def _draw_shaped_waveform(
             channels=channel,
             xvals=re_xvals,
             yvals=re_yvals,
-            fill=True,
+            fill=formatter["control.fill_waveform"],
             meta=re_meta,
             styles=re_style,
         )
@@ -412,7 +425,7 @@ def _draw_shaped_waveform(
             channels=channel,
             xvals=im_xvals,
             yvals=im_yvals,
-            fill=True,
+            fill=formatter["control.fill_waveform"],
             meta=im_meta,
             styles=im_style,
         )
@@ -544,18 +557,23 @@ def _parse_waveform(
     """
     inst = data.inst
 
-    meta = dict()
+    meta = {}
     if isinstance(inst, instructions.Play):
         # pulse
         operand = inst.pulse
-        if isinstance(operand, pulse.ParametricPulse):
+        if isinstance(operand, (pulse.ParametricPulse, pulse.SymbolicPulse)):
             # parametric pulse
             params = operand.parameters
             duration = params.pop("duration", None)
             if isinstance(duration, circuit.Parameter):
                 duration = None
 
-            meta.update({"waveform shape": operand.__class__.__name__})
+            if isinstance(operand, library.SymbolicPulse):
+                pulse_shape = operand.pulse_type
+            else:
+                pulse_shape = "Waveform"
+            meta["waveform shape"] = pulse_shape
+
             meta.update(
                 {
                     key: val.name if isinstance(val, circuit.Parameter) else val

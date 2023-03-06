@@ -13,6 +13,7 @@
 """Test library of QFT circuits."""
 
 import unittest
+import warnings
 import numpy as np
 from ddt import ddt, data, unpack
 
@@ -43,11 +44,11 @@ class TestQFT(QiskitTestCase):
         simulated = Operator(qft)
 
         num_qubits = num_qubits or qft.num_qubits
-        expected = np.empty((2 ** num_qubits, 2 ** num_qubits), dtype=complex)
-        for i in range(2 ** num_qubits):
+        expected = np.empty((2**num_qubits, 2**num_qubits), dtype=complex)
+        for i in range(2**num_qubits):
             i_index = int(bin(i)[2:].zfill(num_qubits), 2)
-            for j in range(i, 2 ** num_qubits):
-                entry = np.exp(2 * np.pi * 1j * i * j / 2 ** num_qubits) / 2 ** (num_qubits / 2)
+            for j in range(i, 2**num_qubits):
+                entry = np.exp(2 * np.pi * 1j * i * j / 2**num_qubits) / 2 ** (num_qubits / 2)
                 j_index = int(bin(j)[2:].zfill(num_qubits), 2)
                 expected[i_index, j_index] = entry
                 if i != j:
@@ -166,6 +167,43 @@ class TestQFT(QiskitTestCase):
 
         with self.subTest(msg="inverse as kwarg"):
             self.assertEqual(QFT(1, inverse=True).name, "IQFT")
+
+    def test_warns_if_too_large(self):
+        """Test that a warning is issued if the user tries to make a circuit that would need to
+        represent angles smaller than the smallest normal double-precision floating-point number.
+        It's too slow to actually let QFT construct a 1050+ qubit circuit for such a simple test, so
+        we temporarily prevent QuantumCircuits from being created in order to short-circuit the QFT
+        builder."""
+
+        class SentinelException(Exception):
+            """Dummy exception that raises itself as soon as it is created."""
+
+            def __init__(self, *_args, **_kwargs):
+                super().__init__()
+                raise self
+
+        # We don't want to issue a warning on mutation until we know that the values are
+        # finalised; this is because a user might want to mutate the number of qubits and the
+        # approximation degree.  In these cases, wait until we try to build the circuit.
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=RuntimeWarning,
+                module=r"qiskit\..*",
+                message=r".*precision loss in QFT.*",
+            )
+            qft = QFT()
+            # Even with the approximation this will trigger the warning.
+            qft.num_qubits = 1080
+            qft.approximation_degree = 20
+        self.assertFalse(caught_warnings)
+
+        # Short-circuit the build method so it exits after input validation, but without actually
+        # spinning the CPU to build a huge, useless object.
+        with unittest.mock.patch("qiskit.circuit.QuantumCircuit.__init__", SentinelException):
+            with self.assertWarnsRegex(RuntimeWarning, "precision loss in QFT"):
+                with self.assertRaises(SentinelException):
+                    qft._build()
 
 
 if __name__ == "__main__":

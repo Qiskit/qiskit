@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The basis search strategy in :class:`~.BasisTranslator` transpiler pass
+    has been modified into a variant of Dijkstra search which greatly improves
+    the runtime performance of the pass when attempting to target an unreachable
+    basis.

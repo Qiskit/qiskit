@@ -88,16 +88,16 @@ from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
 class ChannelEvents:
     """Channel event manager."""
 
-    _waveform_group = tuple(
-        (pulse.instructions.Play, pulse.instructions.Delay, pulse.instructions.Acquire)
+    _waveform_group = (
+        pulse.instructions.Play,
+        pulse.instructions.Delay,
+        pulse.instructions.Acquire,
     )
-    _frame_group = tuple(
-        (
-            pulse.instructions.SetFrequency,
-            pulse.instructions.ShiftFrequency,
-            pulse.instructions.SetPhase,
-            pulse.instructions.ShiftPhase,
-        )
+    _frame_group = (
+        pulse.instructions.SetFrequency,
+        pulse.instructions.ShiftFrequency,
+        pulse.instructions.SetPhase,
+        pulse.instructions.ShiftPhase,
     )
 
     def __init__(
@@ -135,7 +135,7 @@ class ChannelEvents:
         Returns:
             ChannelEvents: The channel event manager for the specified channel.
         """
-        waveforms = dict()
+        waveforms = {}
         frames = defaultdict(list)
 
         # parse instructions

@@ -265,13 +265,13 @@ class TestSuperOp(ChannelTestCase):
         chan2 = SuperOp(self.sopY)
         targ = SuperOp(self.sopZ)
         self.assertEqual(chan1.dot(chan2), targ)
-        self.assertEqual(chan1 * chan2, targ)
+        self.assertEqual(chan1 @ chan2, targ)
 
         # 50% depolarizing channel
         chan1 = SuperOp(self.depol_sop(0.5))
         targ = SuperOp(self.depol_sop(0.75))
         self.assertEqual(chan1.dot(chan1), targ)
-        self.assertEqual(chan1 * chan1, targ)
+        self.assertEqual(chan1 @ chan1, targ)
 
         # Random superoperator
         mat1 = self.rand_matrix(4, 4)
@@ -280,16 +280,18 @@ class TestSuperOp(ChannelTestCase):
         chan2 = SuperOp(mat2)
         targ = SuperOp(np.dot(mat2, mat1))
         self.assertEqual(chan2.dot(chan1), targ)
-        self.assertEqual(chan2 * chan1, targ)
         targ = SuperOp(np.dot(mat1, mat2))
-        self.assertEqual(chan1 * chan2, targ)
 
         # Compose different dimensions
         chan1 = SuperOp(self.rand_matrix(16, 4))
         chan2 = SuperOp(self.rand_matrix(4, 16))
         chan = chan1.dot(chan2)
         self.assertEqual(chan.dim, (4, 4))
+        chan = chan1 @ chan2
+        self.assertEqual(chan.dim, (4, 4))
         chan = chan2.dot(chan1)
+        self.assertEqual(chan.dim, (2, 2))
+        chan = chan2 @ chan1
         self.assertEqual(chan.dim, (2, 2))
 
     def test_compose_front(self):
@@ -396,40 +398,33 @@ class TestSuperOp(ChannelTestCase):
         full_op = SuperOp(mat_c).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op3, qargs=[0, 1, 2]), SuperOp(targ))
-        self.assertEqual(op * op3([0, 1, 2]), SuperOp(targ))
         # op3 qargs=[2, 1, 0]
         full_op = SuperOp(mat_a).tensor(SuperOp(mat_b)).tensor(SuperOp(mat_c))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op3, qargs=[2, 1, 0]), SuperOp(targ))
-        self.assertEqual(op * op3([2, 1, 0]), SuperOp(targ))
 
         # op2 qargs=[0, 1]
         full_op = iden.tensor(SuperOp(mat_b)).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op2, qargs=[0, 1]), SuperOp(targ))
-        self.assertEqual(op * op2([0, 1]), SuperOp(targ))
         # op2 qargs=[2, 0]
         full_op = SuperOp(mat_a).tensor(iden).tensor(SuperOp(mat_b))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op2, qargs=[2, 0]), SuperOp(targ))
-        self.assertEqual(op * op2([2, 0]), SuperOp(targ))
 
         # op1 qargs=[0]
         full_op = iden.tensor(iden).tensor(SuperOp(mat_a))
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[0]), SuperOp(targ))
-        self.assertEqual(op * op1([0]), SuperOp(targ))
         # op1 qargs=[1]
         full_op = iden.tensor(SuperOp(mat_a)).tensor(iden)
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[1]), SuperOp(targ))
-        self.assertEqual(op * op1([1]), SuperOp(targ))
 
         # op1 qargs=[2]
         full_op = SuperOp(mat_a).tensor(iden).tensor(iden)
         targ = np.dot(mat, full_op.data)
         self.assertEqual(op.dot(op1, qargs=[2]), SuperOp(targ))
-        self.assertEqual(op * op1([2]), SuperOp(targ))
 
     def test_compose_front_subsystem(self):
         """Test subsystem front compose method."""
@@ -527,7 +522,7 @@ class TestSuperOp(ChannelTestCase):
         depol = SuperOp(self.depol_sop(1 - p_id))
 
         # Compose 3 times
-        p_id3 = p_id ** 3
+        p_id3 = p_id**3
         chan3 = depol.power(3)
         targ3 = SuperOp(self.depol_sop(1 - p_id3))
         self.assertEqual(chan3, targ3)
@@ -546,7 +541,7 @@ class TestSuperOp(ChannelTestCase):
 
     def test_add_qargs(self):
         """Test add method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 
@@ -593,7 +588,7 @@ class TestSuperOp(ChannelTestCase):
 
     def test_sub_qargs(self):
         """Test subtract method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 
@@ -652,6 +647,8 @@ class TestSuperOp(ChannelTestCase):
         targ = SuperOp(val * self.sopI)
         self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        targ = SuperOp(self.sopI * val)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""

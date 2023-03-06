@@ -1,0 +1,81 @@
+---
+features:
+  - |
+    The :class:`~qiskit.transpiler.passes.BasisTranslator`,
+    :class:`~qiskit.transpiler.passes.GateDirection`, and
+    :class:`~qiskit.transpiler.passes.CheckGateDirection` transpiler passes have
+    a new ``target`` kwarg in their constructors, which can be used to set
+    a :class:`~qiskit.transpiler.Target` object as the target for the pass. If
+    it is set it will be used instead of the ``target_basis`` (in the case of
+    the :class:`~qiskit.transpiler.passes.BasisTranslator` pass) or
+    ``coupling_map`` (in the case of the
+    :class:`~qiskit.transpiler.passes.GateDirection` and
+    :class:`~qiskit.transpiler.passes.CheckGateDirection` passes) arguments.
+issues:
+  - |
+    When running the :class:`~qiskit.transpiler.passes.BasisTranslator` in
+    isolation with the ``target`` argument set to a
+    :class:`~qiskit.transpiler.Target` object, where some single-qubit gates
+    can only apply to non-overlapping sets of qubits, the output circuit might
+    incorrectly include operations on a qubit that are not allowed by the
+    :class:`~qiskit.transpiler.Target`.  For example, if you ran::
+
+        from qiskit.circuit import QuantumCircuit, Parameter
+        from qiskit.circuit.library import UGate, RZGate, XGate, SXGate, CXGate
+        from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
+        from qiskit.transpiler import PassManager, Target, InstructionProperties
+        from qiskit.transpiler.passes import BasisTranslator
+
+        gmap = Target()
+
+        # U gate in qubit 0.
+        theta = Parameter('theta')
+        phi = Parameter('phi')
+        lam = Parameter('lambda')
+        u_props = {
+            (0,): InstructionProperties(duration=5.23e-8, error=0.00038115),
+        }
+        gmap.add_instruction(UGate(theta, phi, lam), u_props)
+
+        # Rz gate in qubit 1.
+        phi = Parameter("phi")
+        rz_props = {
+            (1,): InstructionProperties(duration=0.0, error=0),
+        }
+        gmap.add_instruction(RZGate(phi), rz_props)
+
+        # X gate in qubit 1.
+        x_props = {
+            (1,): InstructionProperties(
+                duration=3.5555555555555554e-08, error=0.00020056469709026198
+            ),
+        }
+        gmap.add_instruction(XGate(), x_props)
+
+        # SX gate in qubit 1.
+        sx_props = {
+            (1,): InstructionProperties(
+                duration=3.5555555555555554e-08, error=0.00020056469709026198
+            ),
+        }
+        gmap.add_instruction(SXGate(), sx_props)
+
+        cx_props = {
+            (0, 1): InstructionProperties(duration=5.23e-7, error=0.00098115),
+            (1, 0): InstructionProperties(duration=4.52e-7, error=0.00132115),
+        }
+        gmap.add_instruction(CXGate(), cx_props)
+
+        bt_pass = BasisTranslator(sel, target_basis=None, target=gmap)
+
+        qc = QuantumCircuit(2)
+        qc.iswap(0, 1)
+        output = bt_pass(qc)
+
+    ``output`` will have :class:`.RZGate` and :class:`.SXGate` on qubit 0, even
+    though this is forbidden. To correct this you can normally run the basis
+    translator a second time (i.e.  ``output = bt_pass(output)`` in the above
+    example) to correct this. This should not affect the output of running the
+    :func:`~qiskit.compiler.transpile` function and is only an issue if you run
+    the pass by itself.

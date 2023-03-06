@@ -124,14 +124,26 @@ class InverseCancellation(TransformationPass):
             DAGCircuit: Transformed DAG.
         """
         for pair in inverse_gate_pairs:
-            gate_cancel_runs = dag.collect_runs([pair[0].name])
+            gate_cancel_runs = dag.collect_runs([pair[0].name, pair[1].name])
             for dag_nodes in gate_cancel_runs:
-                for i in range(len(dag_nodes) - 1):
-                    if dag_nodes[i].op == pair[0] and dag_nodes[i + 1].op == pair[1]:
+                i = 0
+                while i < len(dag_nodes) - 1:
+                    if (
+                        dag_nodes[i].qargs == dag_nodes[i + 1].qargs
+                        and dag_nodes[i].op == pair[0]
+                        and dag_nodes[i + 1].op == pair[1]
+                    ):
                         dag.remove_op_node(dag_nodes[i])
                         dag.remove_op_node(dag_nodes[i + 1])
-                    elif dag_nodes[i].op == pair[1] and dag_nodes[i + 1].op == pair[0]:
+                        i = i + 2
+                    elif (
+                        dag_nodes[i].qargs == dag_nodes[i + 1].qargs
+                        and dag_nodes[i].op == pair[1]
+                        and dag_nodes[i + 1].op == pair[0]
+                    ):
                         dag.remove_op_node(dag_nodes[i])
                         dag.remove_op_node(dag_nodes[i + 1])
-
+                        i = i + 2
+                    else:
+                        i = i + 1
         return dag

@@ -19,16 +19,13 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
-import io
 import warnings
 
 import numpy as np
-import scipy.sparse as sp
-import scipy.sparse.csgraph as cs
-import retworkx as rx
+import rustworkx as rx
+from rustworkx.visualization import graphviz_draw
 
 from qiskit.transpiler.exceptions import CouplingError
-from qiskit.exceptions import MissingOptionalLibraryError
 
 
 class CouplingMap:
@@ -36,8 +33,11 @@ class CouplingMap:
     Directed graph specifying fixed coupling.
 
     Nodes correspond to physical qubits (integers) and directed edges correspond
-    to permitted CNOT gates
+    to permitted CNOT gates, with source and destination corresponding to control
+    and target qubits, respectively.
     """
+
+    __slots__ = ("description", "graph", "_dist_matrix", "_qubit_list", "_size", "_is_symmetric")
 
     def __init__(self, couplinglist=None, description=None):
         """
@@ -59,7 +59,6 @@ class CouplingMap:
         self._qubit_list = None
         # number of qubits in the graph
         self._size = None
-        # a sorted list of physical qubits (integers) in this coupling map
         self._is_symmetric = None
 
         if couplinglist is not None:
@@ -79,6 +78,9 @@ class CouplingMap:
             Tuple(int,int): Each edge is a pair of physical qubits.
         """
         return self.graph.edge_list()
+
+    def __iter__(self):
+        return iter(self.graph.edge_list())
 
     def add_physical_qubit(self, physical_qubit):
         """Add a physical qubit to the coupling graph as a node.
@@ -159,19 +161,23 @@ class CouplingMap:
     @property
     def distance_matrix(self):
         """Return the distance matrix for the coupling map."""
-        if self._dist_matrix is None:
-            self._compute_distance_matrix()
+        self.compute_distance_matrix()
         return self._dist_matrix
 
-    def _compute_distance_matrix(self):
+    def compute_distance_matrix(self):
         """Compute the full distance matrix on pairs of nodes.
 
         The distance map self._dist_matrix is computed from the graph using
-        all_pairs_shortest_path_length.
+        all_pairs_shortest_path_length. This is normally handled internally
+        by the :attr:`~qiskit.transpiler.CouplingMap.distance_matrix`
+        attribute or the :meth:`~qiskit.transpiler.CouplingMap.distance` method
+        but can be called if you're accessing the distance matrix outside of
+        those or want to pre-generate it.
         """
-        if not self.is_connected():
-            raise CouplingError("coupling graph not connected")
-        self._dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
+        if self._dist_matrix is None:
+            if not self.is_connected():
+                raise CouplingError("coupling graph not connected")
+            self._dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
@@ -190,8 +196,7 @@ class CouplingMap:
             raise CouplingError("%s not in coupling graph" % physical_qubit1)
         if physical_qubit2 >= self.size():
             raise CouplingError("%s not in coupling graph" % physical_qubit2)
-        if self._dist_matrix is None:
-            self._compute_distance_matrix()
+        self.compute_distance_matrix()
         return int(self._dist_matrix[physical_qubit1, physical_qubit2])
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
@@ -229,10 +234,13 @@ class CouplingMap:
         """
         Convert uni-directional edges into bi-directional.
         """
+        # TODO: replace with PyDiGraph.make_symmetric() after rustworkx
+        # 0.13.0 is released.
         edges = self.get_edges()
+        edge_set = set(edges)
         for src, dest in edges:
-            if (dest, src) not in edges:
-                self.add_edge(dest, src)
+            if (dest, src) not in edge_set:
+                self.graph.add_edge(dest, src, None)
         self._dist_matrix = None  # invalidate
         self._is_symmetric = None  # invalidate
 
@@ -260,6 +268,8 @@ class CouplingMap:
         Raises:
             CouplingError: Reduced coupling map must be connected.
         """
+        from scipy.sparse import coo_matrix, csgraph
+
         reduced_qubits = len(mapping)
         inv_map = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
@@ -276,9 +286,9 @@ class CouplingMap:
         cols = np.array([edge[1] for edge in reduced_cmap], dtype=int)
         data = np.ones_like(rows)
 
-        mat = sp.coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
+        mat = coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
 
-        if cs.connected_components(mat)[0] != 1:
+        if csgraph.connected_components(mat)[0] != 1:
             raise CouplingError("coupling_map must be connected.")
 
         return CouplingMap(reduced_cmap)
@@ -405,36 +415,12 @@ class CouplingMap:
     def draw(self):
         """Draws the coupling map.
 
-        This function needs `pydot <https://github.com/erocarrera/pydot>`_,
-        which in turn needs `Graphviz <https://www.graphviz.org/>`_ to be
-        installed. Additionally, `pillow <https://python-pillow.org/>`_ will
-        need to be installed.
+        This function calls the :func:`~rustworkx.visualization.graphviz_draw` function from the
+        ``rustworkx`` package to draw the :class:`CouplingMap` object.
 
         Returns:
             PIL.Image: Drawn coupling map.
 
-        Raises:
-            MissingOptionalLibraryError: when pydot or pillow are not installed.
         """
-        try:
-            import pydot
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="pydot",
-                name="coupling map drawer",
-                pip_install="pip install pydot",
-            ) from ex
 
-        try:
-            from PIL import Image
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="pillow",
-                name="coupling map drawer",
-                pip_install="pip install pillow",
-            ) from ex
-        dot_str = self.graph.to_dot()
-        dot = pydot.graph_from_dot_data(dot_str)[0]
-        png = dot.create_png(prog="neato")
-
-        return Image.open(io.BytesIO(png))
+        return graphviz_draw(self.graph, method="neato")

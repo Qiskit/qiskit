@@ -27,22 +27,9 @@ from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.utils import optionals
 
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
-
-try:
-    import subprocess
-
-    with subprocess.Popen(["dot", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE) as _proc:
-        _proc.communicate()
-        if _proc.returncode != 0:
-            HAS_GRAPHVIZ = False
-        else:
-            HAS_GRAPHVIZ = True
-except Exception:  # pylint: disable=broad-except
-    # this is raised when the dot command cannot be found, which means GraphViz
-    # isn't installed
-    HAS_GRAPHVIZ = False
 
 
 class TestPassManagerDrawer(QiskitVisualizationTestCase):
@@ -68,7 +55,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.pass_manager.append(CXDirection(coupling_map))
         self.pass_manager.append(RemoveResetInZeroState())
 
-    @unittest.skipIf(not HAS_GRAPHVIZ, "Graphviz not installed.")
+    @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
         filename = "current_standard.dot"
@@ -77,7 +64,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.assertFilesAreEqual(filename, path_to_diagram_reference("pass_manager_standard.dot"))
         os.remove(filename)
 
-    @unittest.skipIf(not HAS_GRAPHVIZ, "Graphviz not installed.")
+    @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
     def test_pass_manager_drawer_style(self):
         """Test to see if the colours are updated when provided by the user"""
         # set colours for some passes, but leave others to take the default values

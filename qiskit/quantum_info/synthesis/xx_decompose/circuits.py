@@ -62,7 +62,7 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interact
         1
         / 2
         * safe_arccos(
-            cminus ** 2 * ca ** 2 + sminus ** 2 * sa ** 2 - np.cos(a_target - b_target) ** 2,
+            cminus**2 * ca**2 + sminus**2 * sa**2 - np.cos(a_target - b_target) ** 2,
             2 * cminus * ca * sminus * sa,
         )
     )
@@ -70,7 +70,7 @@ def decompose_xxyy_into_xxyy_xx(a_target, b_target, a_source, b_source, interact
         1
         / 2
         * safe_arccos(
-            cplus ** 2 * ca ** 2 + splus ** 2 * sa ** 2 - np.cos(a_target + b_target) ** 2,
+            cplus**2 * ca**2 + splus**2 * sa**2 - np.cos(a_target + b_target) ** 2,
             2 * cplus * ca * splus * sa,
         )
     )

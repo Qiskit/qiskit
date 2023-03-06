@@ -9,6 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+
 """
 ====================================================================
 ClassicalFunction compiler (:mod:`qiskit.circuit.classicalfunction`)
@@ -24,16 +25,16 @@ irreversible functions into quantum circuits.  Below is a simple example of
 how to synthesize a simple boolean function defined using Python into a
 QuantumCircuit:
 
-   .. jupyter-execute::
+   .. code-block::
 
-      from qiskit.circuit import classical_function,  Int1
+      from qiskit.circuit.classicalfunction import classical_function
+      from qiskit.circuit.classicalfunction.types import Int1
 
       @classical_function
       def grover_oracle(a: Int1, b: Int1, c: Int1, d: Int1) -> Int1:
           return (not a and b and not c and d)
 
       quantum_circuit = grover_oracle.synth()
-      quantum_circuit.draw()
 
 Following Qiskit's little-endian bit ordering convention, the left-most bit (`a`) is the most
 significant bit and the right-most bit (`d`) is the least significant bit. The resulting
@@ -41,29 +42,23 @@ significant bit and the right-most bit (`d`) is the least significant bit. The r
 Supplementary Information
 =========================
 
-.. container:: toggle
+Tweedledum
+----------
 
-   .. container:: header
+Tweedledum is a C++-17 header-only library that implements a large set of
+reversible (and quantum) synthesis, optimization, and mapping algorithms.
+The classical function compiler relies on it and its dependencies to both represent logic
+networks and synthesize them into quantum circuits.
 
-      **Tweedledum**
+ClassicalFunction data types
+----------------------------
 
-   Tweedledum is a C++-17 header-only library that implements a large set of
-   reversible (and quantum) synthesis, optimization, and mapping algorithms.
-   The classical function compiler relies on it and its dependencies to both represent logic
-   networks and synthesize them into quantum circuits.
+At the moment, the only type supported by the classical_function compilers is
+``qiskit.circuit.classicalfunction.types.Int1``. The classical function function
+to parse *must* include type hints (just ``Int1`` for now). The resulting gate
+will be a gate in the size of the sum of all the parameters and the return.
 
-.. container:: toggle
-
-   .. container:: header
-
-      **ClassicalFunction data types**
-
-   At the moment, the only type supported by the classical_function compilers is
-   ``qiskit.circuit.classicalfunction.types.Int1``. The classical function function
-   to parse *must* include type hints (just ``Int1`` for now). The resulting gate
-   will be a gate in the size of the sum of all the parameters and the return.
-
-   The type ``Int1`` means the classical function will only operate at bit level.
+The type ``Int1`` means the classical function will only operate at bit level.
 
 
 ClassicalFunction compiler API
@@ -95,6 +90,13 @@ Exceptions
    ClassicalFunctionCompilerTypeError
 
 """
+
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
+
+HAS_TWEEDLEDUM.require_now("classical function oracles")
+
+# pylint: disable=wrong-import-position
+
 from .classicalfunction import ClassicalFunction
 from .exceptions import (
     ClassicalFunctionParseError,

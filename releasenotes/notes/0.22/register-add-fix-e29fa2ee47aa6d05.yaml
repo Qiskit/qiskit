@@ -1,0 +1,26 @@
+---
+upgrade:
+  - |
+    The :meth:`.Layout.add` behavior when not specifying a ``physical_bit``
+    has changed from previous releases. In previous releases, a new physical
+    bit would be added based on the length of the :class:`~.Layout` object. For
+    example if you had a :class:`~.Layout` with the physical bits 1 and 3
+    successive calls to :meth:`~.Layout.add` would add physical bits 2, 4, 5, 6,
+    etc. While if the physical bits were 2 and 3 then successive calls would
+    add 4, 5, 6, 7, etc. This has changed so that instead :meth:`.Layout.add`
+    will first add any missing physical bits between 0 and the max physical bit
+    contained in the :class:`~.Layout`. So for the 1 and 3 example it now
+    adds 0, 2, 4, 5 and for the 2 and 3 example it adds 0, 1, 4, 5 to the
+    :class:`~.Layout`. This change was made for both increased predictability
+    of the outcome, and also to fix a class of bugs caused by the unexpected
+    behavior. As physical bits on a backend always are contiguous sequences from
+    0 to :math:`n` adding new bits when there are still unused physical bits
+    could potentially cause the layout to use more bits than available on the
+    backend. If you desire the previous behavior, you can specify the desired
+    physical bit manually when calling :meth:`.Layout.add`.
+fixes:
+  - |
+    Fixed the behavior of :meth:`.Layout.add` which was potentially causing the
+    output of :meth:`~.transpile` to be invalid and contain more Qubits than
+    what was available on the target backend. Fixed:
+    `#8667 <https://github.com/Qiskit/qiskit-terra/issues/8667>`__

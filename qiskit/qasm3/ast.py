@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name, abstract-method, super-init-not-called
+# pylint: disable=invalid-name, super-init-not-called
 
 """QASM3 AST Nodes"""
 
@@ -114,6 +114,27 @@ class QuantumInstruction(ASTNode):
         pass
 
 
+class ClassicalType(ASTNode):
+    """Information about a classical type.  This is just an abstract base for inheritance tests."""
+
+
+class FloatType(ClassicalType, enum.Enum):
+    """Allowed values for the width of floating-point types."""
+
+    HALF = 16
+    SINGLE = 32
+    DOUBLE = 64
+    QUAD = 128
+    OCT = 256
+
+
+class BitArrayType(ClassicalType):
+    """Type information for a sized number of classical bits."""
+
+    def __init__(self, size: int):
+        self.size = size
+
+
 class Identifier(ASTNode):
     """
     Identifier : FirstIdCharacter GeneralIdCharacter* ;
@@ -175,12 +196,23 @@ class SubscriptedIdentifier(Identifier):
         self.subscript = subscript
 
 
+class IndexSet(ASTNode):
+    """
+    A literal index set of values::
+
+        { Expression (, Expression)* }
+    """
+
+    def __init__(self, values: List[Expression]):
+        self.values = values
+
+
 class Constant(Expression, enum.Enum):
     """A constant value defined by the QASM 3 spec."""
 
-    pi = enum.auto()
-    euler = enum.auto()
-    tau = enum.auto()
+    PI = enum.auto()
+    EULER = enum.auto()
+    TAU = enum.auto()
 
 
 class QuantumMeasurement(ASTNode):
@@ -230,6 +262,24 @@ class Integer(Expression):
     """Integer : Digit+ ;"""
 
 
+class DurationUnit(enum.Enum):
+    """Valid values for the unit of durations."""
+
+    NANOSECOND = "ns"
+    MICROSECOND = "us"
+    MILLISECOND = "ms"
+    SECOND = "s"
+    SAMPLE = "dt"
+
+
+class DurationLiteral(Expression):
+    """Duration literal."""
+
+    def __init__(self, value: float, unit: DurationUnit):
+        self.value = value
+        self.unit = unit
+
+
 class Designator(ASTNode):
     """
     designator
@@ -240,17 +290,13 @@ class Designator(ASTNode):
         self.expression = expression
 
 
-class BitDeclaration(ASTNode):
-    """
-    bitDeclaration
-        : ( 'creg' Identifier designator? |   # NOT SUPPORTED
-            'bit' designator? Identifier ) equalsExpression?
-    """
+class ClassicalDeclaration(Statement):
+    """Declaration of a classical type, optionally initialising it to a value."""
 
-    def __init__(self, identifier: Identifier, designator=None, equalsExpression=None):
+    def __init__(self, type_: ClassicalType, identifier: Identifier, initializer=None):
+        self.type = type_
         self.identifier = identifier
-        self.designator = designator
-        self.equalsExpression = equalsExpression
+        self.initializer = initializer
 
 
 class QuantumDeclaration(ASTNode):
@@ -279,10 +325,10 @@ class AliasStatement(ASTNode):
 class QuantumGateModifierName(enum.Enum):
     """The names of the allowed modifiers of quantum gates."""
 
-    ctrl = enum.auto()
-    negctrl = enum.auto()
-    inv = enum.auto()
-    pow = enum.auto()
+    CTRL = enum.auto()
+    NEGCTRL = enum.auto()
+    INV = enum.auto()
+    POW = enum.auto()
 
 
 class QuantumGateModifier(ASTNode):
@@ -344,6 +390,14 @@ class QuantumReset(QuantumInstruction):
 
     def __init__(self, identifier: Identifier):
         self.identifier = identifier
+
+
+class QuantumDelay(QuantumInstruction):
+    """A built-in ``delay[duration] q0;`` statement."""
+
+    def __init__(self, duration: Expression, qubits: List[Identifier]):
+        self.duration = duration
+        self.qubits = qubits
 
 
 class ProgramBlock(ASTNode):
@@ -510,25 +564,68 @@ class BranchingStatement(Statement):
         : 'if' LPAREN booleanExpression RPAREN programBlock ( 'else' programBlock )?
     """
 
+    def __init__(self, condition: BooleanExpression, true_body: ProgramBlock, false_body=None):
+        self.condition = condition
+        self.true_body = true_body
+        self.false_body = false_body
+
+
+class ForLoopStatement(Statement):
+    """
+    AST node for ``for`` loops.
+
+    ::
+
+        ForLoop: "for" Identifier "in" SetDeclaration ProgramBlock
+        SetDeclaration:
+            | Identifier
+            | "{" Expression ("," Expression)* "}"
+            | "[" Range "]"
+    """
+
     def __init__(
-        self, booleanExpression: BooleanExpression, programTrue: ProgramBlock, programFalse=None
+        self,
+        indexset: Union[Identifier, IndexSet, Range],
+        parameter: Identifier,
+        body: ProgramBlock,
     ):
-        self.booleanExpression = booleanExpression
-        self.programTrue = programTrue
-        self.programFalse = programFalse
+        self.indexset = indexset
+        self.parameter = parameter
+        self.body = body
+
+
+class WhileLoopStatement(Statement):
+    """
+    AST node for ``while`` loops.
+
+    ::
+
+        WhileLoop: "while" "(" Expression ")" ProgramBlock
+    """
+
+    def __init__(self, condition: BooleanExpression, body: ProgramBlock):
+        self.condition = condition
+        self.body = body
+
+
+class BreakStatement(Statement):
+    """AST node for ``break`` statements.  Has no associated information."""
+
+
+class ContinueStatement(Statement):
+    """AST node for ``continue`` statements.  Has no associated information."""
 
 
 class IOModifier(enum.Enum):
     """IO Modifier object"""
 
-    input = enum.auto()
-    output = enum.auto()
+    INPUT = enum.auto()
+    OUTPUT = enum.auto()
 
 
-class IO(ASTNode):
-    """UNDEFINED in the grammar yet"""
+class IODeclaration(ClassicalDeclaration):
+    """A declaration of an IO variable."""
 
-    def __init__(self, modifier: IOModifier, input_type, input_variable):
+    def __init__(self, modifier: IOModifier, type_: ClassicalType, identifier: Identifier):
+        super().__init__(type_, identifier)
         self.modifier = modifier
-        self.type = input_type
-        self.variable = input_variable
