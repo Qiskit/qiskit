@@ -180,7 +180,7 @@ def _error(circuit, target, qubit):
         if isinstance(circuit, list):
             return len(circuit)
         else:
-            return len(circuit._multi_graph) - 2
+            return circuit.size()
     else:
         if isinstance(circuit, list):
             gate_fidelities = [
@@ -193,11 +193,10 @@ def _error(circuit, target, qubit):
             ]
         gate_error = 1 - np.product(gate_fidelities)
         if gate_error == 0.0:
+            # prefer shorter circuits among those with zero error
             if isinstance(circuit, list):
                 return -100 + len(circuit)
             else:
-                return -100 + len(
-                    circuit._multi_graph
-                )  # prefer shorter circuits among those with zero error
+                return -100 + circuit.size()
         else:
             return gate_error
