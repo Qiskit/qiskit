@@ -13,7 +13,6 @@
 """Tests for the functions in ``utils.deprecation``."""
 
 from textwrap import dedent
-from typing import Callable
 
 from qiskit.test import QiskitTestCase
 from qiskit.utils.deprecation import (
@@ -104,41 +103,10 @@ future be removed.
 class DeprecationExtensionTest(QiskitTestCase):
     """Test that we correctly insert the deprecation directive at the right location.
 
-    These test cases were manually created by changing the docstring of a function in
-    ``qiskit-ibmq-provider`` and building the docs to ensure that everything rendered correctly.
-    (Any Qiskit repo will do.) To get the ``expected`` lines, you can add this extension to
-    ``conf.py``:
-
-        def print_docstring(app, what, name, obj, options, lines):
-            # INSTRUCTIONS: Change the below value to the function you're testing with it.
-            if name != "qiskit.providers.ibmq.credentials.Credentials.connection_parameters":
-                return
-            print("HERE")  # Useful so that you can grep for "HERE" in the Sphinx output.
-            print(obj.__doc__)
-
-        def setup(app):
-            app.connect('autodoc-process-docstring', print_docstring)
-
-    Then, use the function you set with the `name !=` line, and modify its docstring. Build the
-    docs and search for "HERE" to see the relevant output.
+    When determining the ``expected`` output, manually modify the docstring of a function
+    (in any Qiskit repo) to have the same structure. Then, build the docs to make sure that it
+    renders correctly.
     """
-
-    def assert_docstring(
-        self,
-        func: Callable,
-        *,
-        expected: str,
-        msg: str = "Deprecated!",
-        pending: bool = False,
-        since_is_set: bool = True,
-        num_deprecations: int = 1,
-    ) -> None:
-        """Add docstring to ``func`` and check that it worked as expected."""
-        for _ in range(num_deprecations):
-            add_deprecation_to_docstring(
-                func, msg=msg, since="9.99" if since_is_set else None, pending=pending
-            )
-        self.assertEqual(func.__doc__, expected)
 
     def test_deprecation_docstring_added_to_end_when_no_meta_lines(self) -> None:
         """When no metadata lines like Args, the directive should be added to the end."""
@@ -146,9 +114,10 @@ class DeprecationExtensionTest(QiskitTestCase):
         def func1():
             pass
 
-        self.assert_docstring(
-            func1,
-            expected=dedent(
+        add_deprecation_to_docstring(func1, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func1.__doc__,
+            dedent(
                 """\
 
                 .. deprecated:: 9.99
@@ -160,9 +129,10 @@ class DeprecationExtensionTest(QiskitTestCase):
         def func2():
             """Docstring."""
 
-        self.assert_docstring(
-            func2,
-            expected=dedent(
+        add_deprecation_to_docstring(func2, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func2.__doc__,
+            dedent(
                 """\
                 Docstring.
 
@@ -178,9 +148,10 @@ class DeprecationExtensionTest(QiskitTestCase):
             """Docstring extending
             to a new line."""
 
-        self.assert_docstring(
-            func3,
-            expected=(
+        add_deprecation_to_docstring(func3, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func3.__doc__,
+            (
                 f"""Docstring extending
             to a new line.
 {indent}
@@ -195,9 +166,10 @@ class DeprecationExtensionTest(QiskitTestCase):
             Docstring starting on a new line.
             """
 
-        self.assert_docstring(
-            func4,
-            expected=(
+        add_deprecation_to_docstring(func4, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func4.__doc__,
+            (
                 f"""\
 
             Docstring starting on a new line.
@@ -218,9 +190,10 @@ class DeprecationExtensionTest(QiskitTestCase):
 
             """
 
-        self.assert_docstring(
-            func5,
-            expected=(
+        add_deprecation_to_docstring(func5, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func5.__doc__,
+            (
                 f"""\
 
             Paragraph 1, line 1.
@@ -245,9 +218,10 @@ class DeprecationExtensionTest(QiskitTestCase):
                 continued
             """
 
-        self.assert_docstring(
-            func6,
-            expected=(
+        add_deprecation_to_docstring(func6, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func6.__doc__,
+            (
                 f"""Blah.
 
             A list.
@@ -276,9 +250,10 @@ class DeprecationExtensionTest(QiskitTestCase):
                 SomeError
             """
 
-        self.assert_docstring(
-            func1,
-            expected=(
+        add_deprecation_to_docstring(func1, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func1.__doc__,
+            (
                 f"""\
 {indent}
             .. deprecated:: 9.99
@@ -301,9 +276,10 @@ class DeprecationExtensionTest(QiskitTestCase):
                 Content.
             """
 
-        self.assert_docstring(
-            func2,
-            expected=(
+        add_deprecation_to_docstring(func2, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func2.__doc__,
+            (
                 f"""Docstring.
 {indent}
             .. deprecated:: 9.99
@@ -326,9 +302,10 @@ class DeprecationExtensionTest(QiskitTestCase):
                 Content.
             """
 
-        self.assert_docstring(
-            func3,
-            expected=(
+        add_deprecation_to_docstring(func3, msg="Deprecated!", since="9.99", pending=False)
+        self.assertEqual(
+            func3.__doc__,
+            (
                 f"""\
 
             Docstring starting on a new line.
@@ -351,17 +328,18 @@ class DeprecationExtensionTest(QiskitTestCase):
         def func1():
             pass
 
-        self.assert_docstring(
-            func1,
-            num_deprecations=2,
-            expected=dedent(
+        add_deprecation_to_docstring(func1, msg="Deprecated #1!", since="9.99", pending=False)
+        add_deprecation_to_docstring(func1, msg="Deprecated #2!", since="9.99", pending=False)
+        self.assertEqual(
+            func1.__doc__,
+            dedent(
                 """\
 
                 .. deprecated:: 9.99
-                  Deprecated!
+                  Deprecated #1!
 
                 .. deprecated:: 9.99
-                  Deprecated!
+                  Deprecated #2!
                 """
             ),
         )
@@ -373,21 +351,22 @@ class DeprecationExtensionTest(QiskitTestCase):
             Docstring starting on a new line.
             """
 
-        self.assert_docstring(
-            func2,
-            num_deprecations=2,
-            expected=(
+        add_deprecation_to_docstring(func2, msg="Deprecated #1!", since="9.99", pending=False)
+        add_deprecation_to_docstring(func2, msg="Deprecated #2!", since="9.99", pending=False)
+        self.assertEqual(
+            func2.__doc__,
+            (
                 f"""\
 
             Docstring starting on a new line.
 {indent}
 {indent}
             .. deprecated:: 9.99
-              Deprecated!
+              Deprecated #1!
 {indent}
 {indent}
             .. deprecated:: 9.99
-              Deprecated!
+              Deprecated #2!
 {indent}"""
             ),
         )
@@ -399,18 +378,19 @@ class DeprecationExtensionTest(QiskitTestCase):
                 Content.
             """
 
-        self.assert_docstring(
-            func3,
-            num_deprecations=2,
-            expected=(
+        add_deprecation_to_docstring(func3, msg="Deprecated #1!", since="9.99", pending=False)
+        add_deprecation_to_docstring(func3, msg="Deprecated #2!", since="9.99", pending=False)
+        self.assertEqual(
+            func3.__doc__,
+            (
                 f"""Docstring.
 {indent}
             .. deprecated:: 9.99
-              Deprecated!
+              Deprecated #1!
 {indent}
 {indent}
             .. deprecated:: 9.99
-              Deprecated!
+              Deprecated #2!
 {indent}
 
             Yields:
@@ -425,10 +405,10 @@ class DeprecationExtensionTest(QiskitTestCase):
         def func():
             pass
 
-        self.assert_docstring(
-            func,
-            pending=True,
-            expected=dedent(
+        add_deprecation_to_docstring(func, msg="Deprecated!", since="9.99", pending=True)
+        self.assertEqual(
+            func.__doc__,
+            dedent(
                 """\
 
                 .. deprecated:: 9.99_pending
@@ -443,10 +423,10 @@ class DeprecationExtensionTest(QiskitTestCase):
         def func():
             pass
 
-        self.assert_docstring(
-            func,
-            since_is_set=False,
-            expected=dedent(
+        add_deprecation_to_docstring(func, msg="Deprecated!", since=None, pending=False)
+        self.assertEqual(
+            func.__doc__,
+            dedent(
                 """\
 
                 .. deprecated:: unknown
@@ -462,4 +442,15 @@ class DeprecationExtensionTest(QiskitTestCase):
             pass
 
         with self.assertRaises(ValueError):
-            self.assert_docstring(func, msg="line1\nline2", expected="doesnt matter")
+            add_deprecation_to_docstring(func, msg="line1\nline2", since="9.99", pending=False)
+
+    def test_deprecation_docstring_initial_metadata_line_banned(self) -> None:
+        """Test that the docstring cannot start with e.g. `Args:`."""
+
+        def func():
+            """Args:
+            Foo.
+            """
+
+        with self.assertRaises(ValueError):
+            add_deprecation_to_docstring(func, msg="Deprecated!", since="9.99", pending=False)
