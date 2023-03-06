@@ -98,7 +98,7 @@ If you'd like to contribute to Qiskit Terra, please take a look at our
 [contribution guidelines](CONTRIBUTING.md). This project adheres to Qiskit's [code of conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code.
 
 We use [GitHub issues](https://github.com/Qiskit/qiskit-terra/issues) for tracking requests and bugs. Please
-[join the Qiskit Slack community](https://ibm.co/joinqiskitslack)
+[join the Qiskit Slack community](https://qisk.it/join-slack)
 and use our [Qiskit Slack channel](https://qiskit.slack.com) for discussion and simple questions.
 For questions that are more suited for a forum we use the `qiskit` tag in the [Stack Exchange](https://quantumcomputing.stackexchange.com/questions/tagged/qiskit).
 
