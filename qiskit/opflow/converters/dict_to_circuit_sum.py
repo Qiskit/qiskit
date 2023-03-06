@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""DictToCircuitSum Class """
+"""DictToCircuitSum Class"""
 
 from qiskit.opflow.converters.converter_base import ConverterBase
 from qiskit.opflow.list_ops.list_op import ListOp

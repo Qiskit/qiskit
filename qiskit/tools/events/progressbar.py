@@ -157,19 +157,16 @@ class TextProgressBar(BaseProgressBar):
 
     def _init_subscriber(self):
         def _initialize_progress_bar(num_tasks):
-            """ """
             self.start(num_tasks)
 
         self.subscribe("terra.parallel.start", _initialize_progress_bar)
 
         def _update_progress_bar(progress):
-            """ """
             self.update(progress)
 
         self.subscribe("terra.parallel.done", _update_progress_bar)
 
         def _finish_progress_bar():
-            """ """
             self.unsubscribe("terra.parallel.start", _initialize_progress_bar)
             self.unsubscribe("terra.parallel.done", _update_progress_bar)
             self.unsubscribe("terra.parallel.finish", _finish_progress_bar)

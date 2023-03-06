@@ -726,7 +726,7 @@ class TestParametricPulses(QiskitTestCase):
 class TestFunctionalPulse(QiskitTestCase):
     """Waveform tests."""
 
-    # pylint: disable=invalid-name, unexpected-keyword-arg
+    # pylint: disable=invalid-name
     def test_gaussian(self):
         """Test gaussian pulse."""
 
