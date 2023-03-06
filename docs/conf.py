@@ -64,6 +64,9 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
+    "qiskit-ibm-runtime": ("https://qiskit.org/documentation/partners/qiskit_ibm_runtime/", None),
+    "qiskit": ("https://qiskit.org/documentation/", None),
+    # qiskit included because there isn't a separate page for aer.
 }
 
 # -- Options for HTML output -------------------------------------------------

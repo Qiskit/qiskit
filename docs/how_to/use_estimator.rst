@@ -4,6 +4,12 @@ Use the Estimator primitive
 
 This guide shows how to get the expected value of an observable for a given quantum circuit with the :class:`~qiskit.primitives.Estimator` primitive.
 
+.. note::
+
+    While this guide only uses Qiskit Terra's implementation of the ``Estimator`` primitive, there are other
+    implementations of this primitive like Qiskit Terra's :class:`~qiskit.primitives.BackendEstimator`, Qiskit Aer's :class:`~qiskit_aer.primitives.Estimator`
+    and Qiskit Runtime's :class:`~qiskit_ibm_runtime.Estimator`.
+
 
 Initialize observable
 =====================
