@@ -17,7 +17,7 @@ from typing import Callable
 
 from qiskit.test import QiskitTestCase
 from qiskit.utils.deprecation import (
-    _add_deprecation_to_docstring,
+    add_deprecation_to_docstring,
     deprecate_function,
     deprecate_arguments,
 )
@@ -135,7 +135,7 @@ class DeprecationExtensionTest(QiskitTestCase):
     ) -> None:
         """Add docstring to ``func`` and check that it worked as expected."""
         for _ in range(num_deprecations):
-            _add_deprecation_to_docstring(
+            add_deprecation_to_docstring(
                 func, msg=msg, since="9.99" if since_is_set else None, pending=pending
             )
         self.assertEqual(func.__doc__, expected)

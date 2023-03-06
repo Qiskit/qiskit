@@ -55,7 +55,7 @@ def deprecate_arguments(
             return func(*args, **kwargs)
 
         for msg in old_kwarg_to_msg.values():
-            _add_deprecation_to_docstring(
+            add_deprecation_to_docstring(
                 wrapper, msg, since=since, pending=issubclass(category, PendingDeprecationWarning)
             )
         return wrapper
@@ -91,7 +91,7 @@ def deprecate_function(
             warnings.warn(msg, category=category, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
-        _add_deprecation_to_docstring(
+        add_deprecation_to_docstring(
             wrapper, msg, since=since, pending=issubclass(category, PendingDeprecationWarning)
         )
         return wrapper
@@ -155,9 +155,17 @@ _NAPOLEON_META_LINES = frozenset(
 )
 
 
-def _add_deprecation_to_docstring(
+def add_deprecation_to_docstring(
     func: Callable, msg: str, *, since: Optional[str], pending: bool
 ) -> None:
+    """Dynamically insert the deprecation message into ``func``'s docstring.
+
+    Args:
+        func: The function to modify.
+        msg: The full deprecation message.
+        since: The version the deprecation started at.
+        pending: Is the deprecation still pending?
+    """
     if "\n" in msg:
         raise ValueError(
             "Deprecation messages cannot contain new lines (`\\n`), but the deprecation for "
@@ -194,7 +202,7 @@ def _add_deprecation_to_docstring(
                 meta_index = i
                 if content_encountered is not True:
                     raise AssertionError(
-                        "The algorithm in _add_deprecation_to_docstring is broken for the "
+                        "The algorithm in add_deprecation_to_docstring is broken for the "
                         f"function {func.__qualname__}. We assumed that we would have already "
                         "found where content starts before encountering a meta line. This is an "
                         "issue with the algorithm, not your docstring. Please open "
