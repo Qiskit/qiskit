@@ -20,6 +20,7 @@ from qiskit.circuit.library.standard_gates.x import MCXGate
 from qiskit.circuit.library.standard_gates.u3 import _generate_gray_code
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.exceptions import QiskitError
+from qiskit.circuit.library.standard_gates.multi_control_su2 import linear_depth_mcv
 
 
 def _apply_cu(circuit, theta, phi, lam, control, target, use_basis_gates=True):
@@ -187,16 +188,10 @@ def mcry(
                 self, theta, 0, 0, control_qubits[0], target_qubit, use_basis_gates=use_basis_gates
             )
         else:
-            theta_step = theta * (1 / (2 ** (n_c - 1)))
-            _apply_mcu_graycode(
-                self,
-                theta_step,
-                0,
-                0,
-                control_qubits,
-                target_qubit,
-                use_basis_gates=use_basis_gates,
-            )
+            import numpy as np
+            x = -np.sin(theta / 2)
+            z = np.cos(theta / 2)
+            linear_depth_mcv(self, x, z, control_qubits, target_qubit)
     else:
         raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
