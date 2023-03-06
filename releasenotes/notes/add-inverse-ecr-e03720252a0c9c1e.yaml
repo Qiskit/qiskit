@@ -1,5 +1,5 @@
 ---
-features:
+fixes:
   - |
-    Add the method :meth:`.ECRGate.inverse` that returns the same :class:`.ECRGate`,
-    since it is self inverse.
+    The method :meth:`.ECRGate.inverse` now returns another :class:`.ECRGate` instance
+    rather than a custom gate, since it is self inverse.
