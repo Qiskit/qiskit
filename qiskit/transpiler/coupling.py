@@ -417,7 +417,9 @@ class CouplingMap:
 
         Returns:
             list: A list of :class:`~.CouplingMap` objects for each connected
-                components.
+                components. The order of this list is deterministic but
+                implementation specific and shouldn't be relied upon as
+                part of the API.
         """
         # Set payload to index
         for node in self.graph.node_indices():
