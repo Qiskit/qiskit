@@ -23,7 +23,7 @@ import warnings
 
 import numpy as np
 import rustworkx as rx
-from rustworkx.visualization import graphviz_draw  # pylint: disable=no-name-in-module
+from rustworkx.visualization import graphviz_draw
 
 from qiskit.transpiler.exceptions import CouplingError
 
