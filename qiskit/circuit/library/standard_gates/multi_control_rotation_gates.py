@@ -122,16 +122,11 @@ def mcrx(
             use_basis_gates=use_basis_gates,
         )
     else:
-        theta_step = theta * (1 / (2 ** (n_c - 1)))
-        _apply_mcu_graycode(
-            self,
-            theta_step,
-            -pi / 2,
-            pi / 2,
-            control_qubits,
-            target_qubit,
-            use_basis_gates=use_basis_gates,
-        )
+        x = 0
+        z = cos(theta / 2) + sin(theta / 2) * 1.0j
+        self.h(target_qubit)
+        linear_depth_mcv(self, x, z, control_qubits, target_qubit)
+        self.h(target_qubit)
 
 
 def mcry(
