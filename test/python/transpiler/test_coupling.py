@@ -464,6 +464,20 @@ class CouplingTest(QiskitTestCase):
         )
         np.testing.assert_array_equal(expected, distance_matrix)
 
+    def test_disjoint_coupling_map_distance_no_path_qubits(self):
+        cmap = CouplingMap([[0, 1], [1, 0], [2, 3], [3, 2]])
+        self.assertFalse(cmap.is_connected())
+        with self.assertRaises(CouplingError):
+            cmap.distance(0, 3)
+
+    def test_component_mapping(self):
+        cmap = CouplingMap([[0, 1], [1, 0], [2, 3], [3, 2]])
+        components = cmap.components()
+        self.assertEqual(components[1].graph[0], 2)
+        self.assertEqual(components[1].graph[1], 3)
+        self.assertEqual(components[0].graph[0], 0)
+        self.assertEqual(components[0].graph[1], 1)
+
     def test_components_connected_graph(self):
         cmap = CouplingMap.from_line(5)
         self.assertTrue(cmap.is_connected())
