@@ -166,7 +166,7 @@ class BackendSampler(BaseSampler):
         probabilities = []
         metadata: list[dict[str, Any]] = [{}] * len(circuits)
         for count in counts:
-            prob_dist = {k: v / shots for k, v in count.int_outcomes().items()}
+            prob_dist = {k: v / shots for k, v in count.items()}
             probabilities.append(
                 QuasiDistribution(prob_dist, shots=shots, stddev_upper_bound=math.sqrt(1 / shots))
             )
