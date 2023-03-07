@@ -401,7 +401,7 @@ class CouplingMap:
     def components(self, respect_direction: bool = False) -> List["CouplingMap"]:
         """Separate a CouplingMap into subgraph Coupling Maps for each connected component.
 
-        This method will return a list of :class:`~.CouplingMap` objects for each connected
+        This method will return a list of :class:`~.CouplingMap` objects, one for each connected
         component in this :class:`~.CouplingMap`. The data payload of each node in the
         :attr:`~.CouplingMap.graph` attribute will contain the qubit number in the original
         graph. This will enables mapping the qubit index in a component subgraph to
