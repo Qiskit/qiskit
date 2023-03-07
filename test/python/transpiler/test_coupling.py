@@ -456,10 +456,10 @@ class CouplingTest(QiskitTestCase):
         distance_matrix = cmap.distance_matrix
         expected = np.array(
             [
-                [0, 1, 0, 0],
-                [1, 0, 0, 0],
-                [0, 0, 0, 1],
-                [0, 0, 1, 0],
+                [0, 1, np.inf, np.inf],
+                [1, 0, np.inf, np.inf],
+                [np.inf, np.inf, 0, 1],
+                [np.inf, np.inf, 1, 0],
             ]
         )
         np.testing.assert_array_equal(expected, distance_matrix)

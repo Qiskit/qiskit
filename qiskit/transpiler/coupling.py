@@ -19,6 +19,7 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
+import math
 from typing import List
 import warnings
 
@@ -167,7 +168,11 @@ class CouplingMap:
 
     @property
     def distance_matrix(self):
-        """Return the distance matrix for the coupling map."""
+        """Return the distance matrix for the coupling map.
+
+        For any qubits where there isn't a path available between them the value
+        in this position of the distance matrix will be ``math.inf``.
+        """
         self.compute_distance_matrix()
         return self._dist_matrix
 
@@ -182,7 +187,9 @@ class CouplingMap:
         those or want to pre-generate it.
         """
         if self._dist_matrix is None:
-            self._dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
+            self._dist_matrix = rx.digraph_distance_matrix(
+                self.graph, as_undirected=True, null_value=math.inf
+            )
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
@@ -202,10 +209,10 @@ class CouplingMap:
         if physical_qubit2 >= self.size():
             raise CouplingError("%s not in coupling graph" % physical_qubit2)
         self.compute_distance_matrix()
-        res = int(self._dist_matrix[physical_qubit1, physical_qubit2])
-        if res == 0 and physical_qubit1 != physical_qubit2:
+        res = self._dist_matrix[physical_qubit1, physical_qubit2]
+        if res == math.inf:
             raise CouplingError(f"No path from {physical_qubit1} to {physical_qubit2}")
-        return res
+        return int(res)
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
