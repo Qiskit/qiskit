@@ -26,6 +26,7 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
+from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
@@ -373,6 +374,26 @@ class TestBackendSampler(QiskitTestCase):
         result3 = sampler.run([qc, qc2]).result()
         self.assertDictAlmostEqual(result3.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result3.quasi_dists[1], {1: 1}, 0.1)
+
+    def test_outcome_bitstring_size(self):
+        """Test that the result bitstrings are properly padded.
+
+        E.g. measuring '0001' should not get truncated to '1'.
+        """
+        qc = QuantumCircuit(4)
+        qc.x(0)
+        qc.measure_all()
+
+        # We need a noise-free backend here (shot noise is fine) to ensure that
+        # the only bit string measured is "0001". With device noise, it could happen that
+        # strings with a leading 1 are measured and then the truncation cannot be tested.
+        sampler = BackendSampler(backend=QasmSimulatorPy())
+
+        result = sampler.run(qc).result()
+        probs = result.quasi_dists[0].binary_probabilities()
+
+        self.assertIn("0001", probs.keys())
+        self.assertEqual(len(probs), 1)
 
     def test_bound_pass_manager(self):
         """Test bound pass manager."""
