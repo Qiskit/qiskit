@@ -79,10 +79,10 @@ class BaseQiskitTestCase(BaseTestCase):
         super().setUp()
         if self.__setup_called:
             raise ValueError(
-                "In File: {}\n"
+                "In File: %s\n"
                 "TestCase.setUp was already called. Do not explicitly call "
                 "setUp from your tests. In your own setUp, use super to call "
-                "the base setUp.".format(sys.modules[self.__class__.__module__].__file__)
+                "the base setUp." % (sys.modules[self.__class__.__module__].__file__,)
             )
         self.__setup_called = True
 
@@ -90,10 +90,10 @@ class BaseQiskitTestCase(BaseTestCase):
         super().tearDown()
         if self.__teardown_called:
             raise ValueError(
-                "In File: {}\n"
+                "In File: %s\n"
                 "TestCase.tearDown was already called. Do not explicitly call "
                 "tearDown from your tests. In your own tearDown, use super to "
-                "call the base tearDown.".format(sys.modules[self.__class__.__module__].__file__)
+                "call the base tearDown." % (sys.modules[self.__class__.__module__].__file__,)
             )
         self.__teardown_called = True
 

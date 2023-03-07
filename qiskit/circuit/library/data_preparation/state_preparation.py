@@ -145,8 +145,8 @@ class StatePreparation(Gate):
         # Raise if number of bits is greater than num_qubits
         if len(intstr) > self.num_qubits:
             raise QiskitError(
-                "StatePreparation integer has {} bits, but this exceeds the"
-                " number of qubits in the circuit, {}.".format(len(intstr), self.num_qubits)
+                "StatePreparation integer has %s bits, but this exceeds the"
+                " number of qubits in the circuit, %s." % (len(intstr), self.num_qubits)
             )
 
         for qubit, bit in enumerate(intstr):

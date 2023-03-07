@@ -218,7 +218,7 @@ class RunningPassManager:
             else:
                 raise TranspilerError(
                     "Transformation passes should return a transformed dag."
-                    "The pass {} is returning a {}".format(type(pass_).__name__, type(new_dag))
+                    "The pass %s is returning a %s" % (type(pass_).__name__, type(new_dag))
                 )
             dag = new_dag
         elif pass_.is_analysis_pass:

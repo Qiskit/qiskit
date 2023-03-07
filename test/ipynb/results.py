@@ -185,8 +185,8 @@ class Results:
                     )
             else:
                 title = (
-                    'Download <a download="{}" href="{}">this image</a> to <tt>{}</tt>'
-                    " and add/push to the repo</td>".format(name, fullpath_name, fullpath_reference)
+                    'Download <a download="%s" href="%s">this image</a> to <tt>%s</tt>'
+                    " and add/push to the repo</td>" % (name, fullpath_name, fullpath_reference)
                 )
                 ret += Results.no_reference_html(fullpath_name, title)
         ret += "</div>"

@@ -248,10 +248,10 @@ def load(
     ):
         warnings.warn(
             "The qiskit version used to generate the provided QPY "
-            "file, {}, is newer than the current qiskit version {}. "
+            "file, %s, is newer than the current qiskit version %s. "
             "This may result in an error if the QPY file uses "
             "instructions not present in this current qiskit "
-            "version".format(".".join([str(x) for x in qiskit_version]), __version__)
+            "version" % (".".join([str(x) for x in qiskit_version]), __version__)
         )
 
     if data.qpy_version < 5:

@@ -41,8 +41,8 @@ class TestBasicAerBackends(providers.ProviderTestCase):
         deprecated_names = BasicAer._deprecated_backend_names()
         for oldname, newname in deprecated_names.items():
             expected = (
-                "WARNING:qiskit.providers.providerutils:Backend '{}' is deprecated. "
-                "Use '{}'.".format(oldname, newname)
+                "WARNING:qiskit.providers.providerutils:Backend '%s' is deprecated. "
+                "Use '%s'." % (oldname, newname)
             )
             with self.subTest(oldname=oldname, newname=newname):
                 with self.assertLogs("qiskit.providers.providerutils", level="WARNING") as context:

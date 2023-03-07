@@ -326,8 +326,8 @@ def _parse_common_args(
         raise QiskitError("Argument 'shots' should be of type 'int'")
     elif max_shots and max_shots < shots:
         raise QiskitError(
-            "Number of shots specified: {} exceeds max_shots property of the "
-            "backend: {}.".format(shots, max_shots)
+            "Number of shots specified: %s exceeds max_shots property of the "
+            "backend: %s." % (shots, max_shots)
         )
 
     dynamic_reprate_enabled = getattr(backend_config, "dynamic_reprate_enabled", False)

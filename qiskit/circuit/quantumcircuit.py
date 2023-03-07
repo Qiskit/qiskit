@@ -239,8 +239,8 @@ class QuantumCircuit:
 
             if not valid_reg_size:
                 raise CircuitError(
-                    "Circuit args must be Registers or integers. ({} '{}' was "
-                    "provided)".format([type(reg).__name__ for reg in regs], regs)
+                    "Circuit args must be Registers or integers. (%s '%s' was "
+                    "provided)" % ([type(reg).__name__ for reg in regs], regs)
                 )
 
             regs = tuple(int(reg) for reg in regs)  # cast to int
@@ -1385,7 +1385,7 @@ class QuantumCircuit:
                 raise CircuitError(
                     "QuantumCircuit parameters can be Registers or Integers."
                     " If Integers, up to 2 arguments. QuantumCircuit was called"
-                    " with {}.".format(regs)
+                    " with %s." % (regs,)
                 )
 
         for register in regs:
