@@ -16,6 +16,7 @@ from qiskit import QuantumRegister
 from qiskit.providers.backend import Backend
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMelbourne, FakeArmonk, FakeHanoi, FakeHanoiV2
+from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
@@ -70,6 +71,21 @@ class TestPassManagerConfig(QiskitTestCase):
             str(config.coupling_map), str(CouplingMap(backend.configuration().coupling_map))
         )
         self.assertEqual(config.initial_layout, initial_layout)
+
+    def test_from_backendv1_inst_map_is_none(self):
+        """Test that from_backend() works with backend that has defaults defined as None."""
+        backend = FakeHanoi()
+        backend.defaults = lambda: None
+        config = PassManagerConfig.from_backend(backend)
+        self.assertIsInstance(config, PassManagerConfig)
+        self.assertIsNone(config.inst_map)
+
+    def test_simulator_backend_v1(self):
+        """Test that from_backend() works with backendv1 simulator."""
+        backend = QasmSimulatorPy()
+        config = PassManagerConfig.from_backend(backend)
+        self.assertIsInstance(config, PassManagerConfig)
+        self.assertIsNone(config.inst_map)
 
     def test_invalid_user_option(self):
         """Test from_backend() with an invalid user option."""
