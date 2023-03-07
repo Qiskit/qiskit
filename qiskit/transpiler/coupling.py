@@ -398,7 +398,7 @@ class CouplingMap:
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
 
-    def components(self, respect_direction: bool = False) -> List["CouplingMap"]:
+    def components(self) -> List["CouplingMap"]:
         """Separate a CouplingMap into subgraph Coupling Maps for each connected component.
 
         This method will return a list of :class:`~.CouplingMap` objects, one for each connected
@@ -415,9 +415,6 @@ class CouplingMap:
 
         will print ``3`` as index ``0`` in the second component is qubit 3 in the original cmap.
 
-        Args:
-            respect_direction: If set to ``True`` the connected components will be strongly connected
-
         Returns:
             list: A list of :class:`~.CouplingMap` objects for each connected
                 components.
@@ -425,10 +422,7 @@ class CouplingMap:
         # Set payload to index
         for node in self.graph.node_indices():
             self.graph[node] = node
-        if not respect_direction:
-            components = rx.weakly_connected_components(self.graph)
-        else:
-            components = rx.strongly_connected_components(self.graph)
+        components = rx.weakly_connected_components(self.graph)
         output_list = []
         for component in components:
             new_cmap = CouplingMap()
