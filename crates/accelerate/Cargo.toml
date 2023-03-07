@@ -5,7 +5,7 @@ name = "qiskit_accelerate"
 version = "0.24.0"
 edition = "2021"
 rust-version = "1.61"
-license-file = "LICENSE.txt"
+license = "Apache-2.0"
 
 [lib]
 name = "qiskit_accelerate"

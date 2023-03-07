@@ -8,7 +8,7 @@ members = ["crates/*"]
 version = "0.24.0"
 edition = "2021"
 rust-version = "1.61"  # Keep in sync with README.md and rust-toolchain.toml.
-license-file = "LICENSE.txt"
+license = "Apache-2.0"
 
 [profile.release]
 lto = 'fat'
