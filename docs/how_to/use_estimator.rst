@@ -21,7 +21,7 @@ Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     from qiskit.quantum_info import SparsePauliOp
 
-    obs = SparsePauliOp(["II", "XX", "YY", "ZZ"], [1, 1, -1, 1])
+    obs = SparsePauliOp(["II", "XX", "YY", "ZZ"], coeffs=[1, 1, -1, 1])
 
 Initialize quantum circuits
 ===========================
