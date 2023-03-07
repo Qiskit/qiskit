@@ -45,11 +45,11 @@ def synth_stabilizer_layers(
         cz_func_reverse_qubits=cz_func_reverse_qubits,
         validate=validate,
     )
-    H2_circ = circ.data[3]
-    S1_circ = circ.data[4]
-    CZ1_circ = circ.data[5]
-    H1_circ = circ.data[6]
-    pauli_circ = circ.data[7]
+    H2_circ = circ.data[-5]
+    S1_circ = circ.data[-4]
+    CZ1_circ = circ.data[-3]
+    H1_circ = circ.data[-2]
+    pauli_circ = circ.data[-1]
 
     stab_circuit = QuantumCircuit(num_qubits)
     stab_circuit.append(H2_circ, qubit_list)
