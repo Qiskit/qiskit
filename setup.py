@@ -99,7 +99,9 @@ setup(
         "Documentation": "https://qiskit.org/documentation/",
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
-    rust_extensions=[RustExtension("qiskit._accelerate", "Cargo.toml", binding=Binding.PyO3)],
+    rust_extensions=[
+        RustExtension("qiskit._accelerate", "crates/accelerate/Cargo.toml", binding=Binding.PyO3)
+    ],
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
