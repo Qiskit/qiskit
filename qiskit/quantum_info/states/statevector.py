@@ -30,10 +30,8 @@ from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
 from qiskit.quantum_info.operators.op_shape import OpShape
 from qiskit.quantum_info.operators.predicates import matrix_equal
 
-from qiskit._accelerate.pauli_expval import (
-    expval_pauli_no_x,
-    expval_pauli_with_x,
-)
+from qiskit._accelerate.pauli_evolve import apply_pauli
+from qiskit._accelerate.pauli_expval import expval_pauli_no_x, expval_pauli_with_x
 
 
 class Statevector(QuantumState, TolerancesMixin):
@@ -384,6 +382,12 @@ class Statevector(QuantumState, TolerancesMixin):
             if self.num_qubits is None:
                 raise QiskitError("Cannot apply QuantumCircuit to non-qubit Statevector.")
             return self._evolve_instruction(ret, other, qargs=qargs)
+
+        # evolution by a Pauli Operator
+        if isinstance(other, Pauli):
+            if self.num_qubits is None:
+                raise QiskitError("Cannot apply QuantumCircuit to non-qubit Statevector.")
+            return self._evolve_pauli(ret, other, qargs=qargs)
 
         # Evolution by an Operator
         if not isinstance(other, Operator):
@@ -940,4 +944,12 @@ class Statevector(QuantumState, TolerancesMixin):
             else:
                 new_qargs = [qargs[qubits[tup]] for tup in instruction.qubits]
             Statevector._evolve_instruction(statevec, instruction.operation, qargs=new_qargs)
+        return statevec
+
+    @staticmethod
+    def _evolve_pauli(statevec, pauli, qargs=None):
+        """Update the current Statevector by applying a Pauli Operator."""
+        if qargs is None:
+            qargs = range(len(pauli))
+        apply_pauli(statevec.data, qargs, pauli.x, pauli.z, pauli._phase[0])
         return statevec

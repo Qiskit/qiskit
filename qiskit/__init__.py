@@ -39,6 +39,7 @@ sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochasti
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
 sys.modules["qiskit._accelerate.sabre_layout"] = qiskit._accelerate.sabre_layout
 sys.modules["qiskit._accelerate.pauli_expval"] = qiskit._accelerate.pauli_expval
+sys.modules["qiskit._accelerate.pauli_evolve"] = qiskit._accelerate.pauli_evolve
 sys.modules["qiskit._accelerate.dense_layout"] = qiskit._accelerate.dense_layout
 sys.modules["qiskit._accelerate.sparse_pauli_op"] = qiskit._accelerate.sparse_pauli_op
 sys.modules["qiskit._accelerate.results"] = qiskit._accelerate.results
