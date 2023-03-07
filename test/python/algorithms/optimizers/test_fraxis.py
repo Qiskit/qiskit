@@ -28,8 +28,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.seed = 50
-        algorithm_globals.random_seed = self.seed
+        algorithm_globals.random_seed = 50
         self.qubit_op = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
@@ -116,6 +115,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
     def test_fraxis_callback(self):
         """Test Fraxis optimizer with callback"""
         history = []
+        xtol = 1e-2
 
         def callback(_, state):
             history.append(state.fun)
@@ -123,7 +123,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
         vqe = VQE(
             estimator=Estimator(),
             ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
-            optimizer=Fraxis(callback=callback),
+            optimizer=Fraxis(xtol=xtol, callback=callback),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.expval, places=6)

@@ -17,8 +17,8 @@ from typing import Optional, Tuple
 import numpy as np
 from scipy.optimize import OptimizeResult
 
-from qiskit.quantum_info import OneQubitEulerDecomposer, Pauli
 from qiskit.circuit.library import UGate
+from qiskit.quantum_info import OneQubitEulerDecomposer, Pauli
 
 from .scipy_optimizer import SciPyOptimizer
 
