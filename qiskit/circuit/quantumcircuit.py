@@ -2271,8 +2271,8 @@ class QuantumCircuit:
         classical wire.
 
         Args:
-            qubit: qubit/s to measure.
-            cbit: classical bit/s to place the measurement in.
+            qubit: qubit(s) to measure.
+            cbit: classical bit(s) to place the measurement result(s) in.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
