@@ -7,7 +7,7 @@ features:
     :class:`~.CouplingMap` to represent hardware with disjoint qubits, such as hardware
     with qubits on multiple separate chips.
   - |
-    Added a new method :meth:`.CouplingMap.components` which
+    Added a new method :meth:`.CouplingMap.connected_components` which
     is used to get a list of :class:`~.CouplingMap` component subgraphs for
     a disjoint :class:`~.CouplingMap`. If the :class:`~.CouplingMap` object
     is connected this will just return a single :class:`~.CouplingMap`
