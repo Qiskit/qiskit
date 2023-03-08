@@ -91,12 +91,6 @@ Exceptions
 
 """
 
-from qiskit.utils.optionals import HAS_TWEEDLEDUM
-
-HAS_TWEEDLEDUM.require_now("classical function oracles")
-
-# pylint: disable=wrong-import-position
-
 from .classicalfunction import ClassicalFunction
 from .exceptions import (
     ClassicalFunctionParseError,
