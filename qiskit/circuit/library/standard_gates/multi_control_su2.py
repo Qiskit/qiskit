@@ -29,6 +29,7 @@ def linear_depth_mcv(
 ):
     """
     Apply multi-controlled SU(2) gate [[z*, x],[-x, z]] with x real and z complex.
+    https://arxiv.org/abs/2302.06377
 
     Args:
         circuit (QuantumCircuit): The QuantumCircuit object to apply the diagonal operator on.
