@@ -21,6 +21,7 @@ from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
 from qiskit.synthesis.clifford.clifford_decompose_layers import (
     synth_clifford_layers,
     _default_cz_synth_func,
+    _default_cx_synth_func,
 )
 
 
@@ -35,7 +36,7 @@ def synth_stabilizer_layers(
     It provides a similar decomposition to the synthesis described in Lemma 8 of Bravyi and Maslov,
     without the initial Hadamard-free sub-circuit which do not affect the stabilizer state.
 
-    For example, a 5-qubit Clifford circuit is decomposed into the following layers:
+    For example, a 5-qubit stabilizer state is decomposed into the following layers:
 
     .. parsed-literal::
              ┌─────┐┌─────┐┌─────┐┌─────┐┌────────┐
@@ -59,7 +60,7 @@ def synth_stabilizer_layers(
             since this function returns a circuit that reverts the order of qubits.
 
     Return:
-        QuantumCircuit: a circuit implementation of the Clifford.
+        QuantumCircuit: a circuit implementation of the stabilizer state.
 
     Raises:
         QiskitError: if the input is not a StabilizerState.
@@ -81,6 +82,7 @@ def synth_stabilizer_layers(
         cliff,
         cz_synth_func=cz_synth_func,
         cz_func_reverse_qubits=cz_func_reverse_qubits,
+        cx_synth_func=_default_cx_synth_func,
         validate=validate,
     )
     H2_circ = circ.data[-5]
@@ -101,13 +103,13 @@ def synth_stabilizer_layers(
 
 def synth_stabilizer_depth_lnn(stab):
     """Synthesis of an n-qubit stabilizer state for linear-nearest neighbour connectivity,
-    in 2-qubit depth 2*n+2, and two distinct CX layers.
+    in 2-qubit depth 2*n+2 and two distinct CX layers, using CX and phase gates (S, Sdg or Z).
 
     Args:
         stab (StabilizerState): a stabilizer state.
 
     Return:
-        QuantumCircuit: a circuit implementation of the Clifford.
+        QuantumCircuit: a circuit implementation of the stabilizer state.
 
     Reference:
         1. S. Bravyi, D. Maslov, *Hadamard-free circuits expose the
