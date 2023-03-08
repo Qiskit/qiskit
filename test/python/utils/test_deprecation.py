@@ -15,92 +15,10 @@
 from textwrap import dedent
 
 from qiskit.test import QiskitTestCase
-from qiskit.utils.deprecation import (
-    add_deprecation_to_docstring,
-    deprecate_function,
-    deprecate_arguments,
-)
+from qiskit.utils.deprecation import add_deprecation_to_docstring
 
 
-class TestDeprecationDecorators(QiskitTestCase):
-    """Test that the decorators in ``utils.deprecation`` correctly log warnings and get added to
-    docstring."""
-
-    def test_deprecate_arguments_message(self) -> None:
-        """Test that `@deprecate_arguments` adds the correct message to the docstring."""
-
-        @deprecate_arguments(
-            {"old_arg1": "new_arg1", "old_arg2": None},
-            category=PendingDeprecationWarning,
-            since="9.99",
-        )
-        def my_func() -> None:
-            pass
-
-        self.assertEqual(
-            my_func.__doc__,
-            dedent(
-                f"""\
-
-                .. deprecated:: 9.99_pending
-                  {my_func.__qualname__} keyword argument old_arg1 is deprecated and replaced with \
-new_arg1.
-
-                .. deprecated:: 9.99_pending
-                  {my_func.__qualname__} keyword argument old_arg2 is deprecated and will in the \
-future be removed.
-                """
-            ),
-        )
-
-    def test_deprecate_function_docstring(self) -> None:
-        """Test that `@deprecate_function` adds the correct message to the docstring."""
-
-        @deprecate_function("Stop using my_func!", since="9.99")
-        def my_func() -> None:
-            pass
-
-        self.assertEqual(
-            my_func.__doc__,
-            dedent(
-                """\
-
-                .. deprecated:: 9.99
-                  Stop using my_func!
-                """
-            ),
-        )
-
-    def test_deprecate_arguments_runtime_warning(self) -> None:
-        """Test that `@deprecate_arguments` warns whenever the arguments are used.
-
-        Also check that old arguments are passed in as their new alias.
-        """
-
-        @deprecate_arguments({"arg1": None, "arg2": "new_arg2"}, since="9.99")
-        def my_func(*, arg1: str = "a", new_arg2: str) -> None:
-            del arg1
-            self.assertEqual(new_arg2, "z")
-
-        my_func(new_arg2="z")  # No warnings if no deprecated args used.
-        with self.assertWarnsRegex(DeprecationWarning, "arg1"):
-            my_func(arg1="a", new_arg2="z")
-        with self.assertWarnsRegex(DeprecationWarning, "arg2"):
-            # `arg2` should be converted into `new_arg2`.
-            my_func(arg2="z")  # pylint: disable=missing-kwoa
-
-    def test_deprecate_function_runtime_warning(self) -> None:
-        """Test that `@deprecate_function` warns whenever the function is used."""
-
-        @deprecate_function("Stop using my_func!", since="9.99")
-        def my_func() -> None:
-            pass
-
-        with self.assertWarnsRegex(DeprecationWarning, "Stop using my_func!"):
-            my_func()
-
-
-class DeprecationExtensionTest(QiskitTestCase):
+class AddDeprecationDocstringTest(QiskitTestCase):
     """Test that we correctly insert the deprecation directive at the right location.
 
     When determining the ``expected`` output, manually modify the docstring of a function
@@ -108,7 +26,7 @@ class DeprecationExtensionTest(QiskitTestCase):
     renders correctly.
     """
 
-    def test_deprecation_docstring_added_to_end_when_no_meta_lines(self) -> None:
+    def test_add_deprecation_docstring_no_meta_lines(self) -> None:
         """When no metadata lines like Args, the directive should be added to the end."""
 
         def func1():
@@ -236,7 +154,7 @@ class DeprecationExtensionTest(QiskitTestCase):
             ),
         )
 
-    def test_deprecation_docstring_added_before_meta_lines(self) -> None:
+    def test_add_deprecation_docstring_meta_lines(self) -> None:
         """When there are metadata lines like Args, the directive should be inserted in-between the
         summary and those lines."""
         indent = "            "
@@ -322,7 +240,7 @@ class DeprecationExtensionTest(QiskitTestCase):
             ),
         )
 
-    def test_deprecation_docstring_multiple_entries(self) -> None:
+    def test_add_deprecation_docstring_multiple_entries(self) -> None:
         """Multiple entries are appended correctly."""
 
         def func1():
@@ -399,7 +317,7 @@ class DeprecationExtensionTest(QiskitTestCase):
             ),
         )
 
-    def test_deprecation_docstring_pending(self) -> None:
+    def test_add_deprecation_docstring_pending(self) -> None:
         """The version string should end in `_pending` when pending."""
 
         def func():
@@ -417,7 +335,7 @@ class DeprecationExtensionTest(QiskitTestCase):
             ),
         )
 
-    def test_deprecation_docstring_since_not_set(self) -> None:
+    def test_add_deprecation_docstring_since_not_set(self) -> None:
         """The version string should be `unknown` when ``None``."""
 
         def func():
@@ -435,7 +353,7 @@ class DeprecationExtensionTest(QiskitTestCase):
             ),
         )
 
-    def test_deprecation_docstring_newline_msg_banned(self) -> None:
+    def test_add_deprecation_docstring_newline_msg_banned(self) -> None:
         """Test that `\n` is banned in the deprecation message, as it breaks Sphinx rendering."""
 
         def func():
@@ -444,7 +362,7 @@ class DeprecationExtensionTest(QiskitTestCase):
         with self.assertRaises(ValueError):
             add_deprecation_to_docstring(func, msg="line1\nline2", since="9.99", pending=False)
 
-    def test_deprecation_docstring_initial_metadata_line_banned(self) -> None:
+    def test_add_deprecation_docstring_initial_metadata_line_banned(self) -> None:
         """Test that the docstring cannot start with e.g. `Args:`."""
 
         def func():
