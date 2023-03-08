@@ -1,8 +1,6 @@
 include LICENSE.txt
 include requirements.txt
 include qiskit/qasm/libs/*.inc
-include qiskit/schemas/*.json
-include qiskit/schemas/examples/*.json
 include qiskit/VERSION.txt
 recursive-include qiskit *.pyx
 recursive-include qiskit *.pxd
