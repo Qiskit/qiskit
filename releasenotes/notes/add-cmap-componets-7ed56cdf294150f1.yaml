@@ -5,7 +5,7 @@ features:
     connectivity. Previously, a :class:`~.CouplingMap` could only be
     constructed if the graph was connected. This will enable using
     :class:`~.CouplingMap` to represent hardware with disjoint qubits, such as hardware
-    with qubits on multiple separate chips?
+    with qubits on multiple separate chips.
   - |
     Added a new method :meth:`.CouplingMap.components` which
     is used to get a list of :class:`~.CouplingMap` component subgraphs for
