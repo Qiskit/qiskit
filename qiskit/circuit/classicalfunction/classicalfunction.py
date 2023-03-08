@@ -23,6 +23,7 @@ from .classical_function_visitor import ClassicalFunctionVisitor
 from .utils import tweedledum2qiskit
 
 
+@HAS_TWEEDLEDUM.require_in_instance
 class ClassicalFunction(ClassicalElement):
     """Represent a classical function and its logic network."""
 
@@ -94,7 +95,6 @@ class ClassicalFunction(ClassicalElement):
             ret.append({k: v[0] for k, v in scope.items()})
         return ret
 
-    @HAS_TWEEDLEDUM.require_in_call
     def simulate(self, bitstring: str) -> bool:
         """Evaluate the expression on a bitstring.
 
@@ -125,7 +125,6 @@ class ClassicalFunction(ClassicalElement):
         return "".join(reversed(result))
 
     @property
-    @HAS_TWEEDLEDUM.require_in_call
     def truth_table(self):
         """Returns (and computes) the truth table"""
         from tweedledum.classical import simulate  # pylint: disable=import-error
@@ -134,7 +133,6 @@ class ClassicalFunction(ClassicalElement):
             self._truth_table = simulate(self._network)
         return self._truth_table
 
-    @HAS_TWEEDLEDUM.require_in_call
     def synth(
         self,
         registerless: bool = True,
