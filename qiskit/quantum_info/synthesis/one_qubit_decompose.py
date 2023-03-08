@@ -272,11 +272,3 @@ class OneQubitEulerDecomposer:
     _params_xzx = staticmethod(euler_one_qubit_decomposer.params_xzx)
     _params_u3 = staticmethod(euler_one_qubit_decomposer.params_u3)
     _params_u1x = staticmethod(euler_one_qubit_decomposer.params_u1x)
-
-
-def _mod_2pi(angle: float, atol: float = 0):
-    """Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π"""
-    wrapped = (angle + np.pi) % (2 * np.pi) - np.pi
-    if abs(wrapped - np.pi) < atol:
-        wrapped = -np.pi
-    return wrapped
