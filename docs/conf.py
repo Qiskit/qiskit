@@ -85,4 +85,20 @@ html_theme_options = {
 
 autosummary_generate = True
 autosummary_generate_overwrite = False
+
+# The pulse library contains some names that differ only in capitalisation, during the changeover
+# surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
+# capitalisation, this causes problems when the documentation is built on an OS/filesystem that is
+# enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
+# from happening.
+autosummary_filename_map = {
+    "qiskit.pulse.library.Constant": "qiskit.pulse.library.Constant_class.rst",
+    "qiskit.pulse.library.Sawtooth": "qiskit.pulse.library.Sawtooth_class.rst",
+    "qiskit.pulse.library.Triangle": "qiskit.pulse.library.Triangle_class.rst",
+    "qiskit.pulse.library.Cos": "qiskit.pulse.library.Cos_class.rst",
+    "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
+    "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
+    "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
+}
+
 autoclass_content = "both"
