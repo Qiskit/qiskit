@@ -32,8 +32,8 @@ class TestStabDecomposeLayers(QiskitTestCase):
 
     @combine(num_qubits=[4, 5, 6, 7])
     def test_decompose_stab(self, num_qubits):
-        """Create layer decomposition for a Clifford U, and check that it
-        results in an equivalent Clifford."""
+        """Create layer decomposition for a stabilizer state, and check that it
+        results in an equivalent stabilizer state."""
         rng = np.random.default_rng(1234)
         samples = 10
         for _ in range(samples):
@@ -61,12 +61,12 @@ class TestStabDecomposeLayers(QiskitTestCase):
             cliff = random_clifford(num_qubits, seed=rng)
             stab = StabilizerState(cliff)
             circ = synth_stabilizer_depth_lnn(stab)
-            # Check that the Clifford circuit 2-qubit depth equals 2*n+2
+            # Check that the stabilizer state circuit 2-qubit depth equals 2*n+2
             depth2q = (circ.decompose()).depth(
                 filter_function=lambda x: x.operation.num_qubits == 2
             )
             self.assertTrue(depth2q == 2 * num_qubits + 2)
-            # Check that the Clifford circuit has linear nearest neighbour connectivity
+            # Check that the stabilizer state circuit has linear nearest neighbour connectivity
             self.assertTrue(check_lnn_connectivity(circ.decompose()))
             stab_target = StabilizerState(circ)
             # Verify that the two stabilizers generate the same state
