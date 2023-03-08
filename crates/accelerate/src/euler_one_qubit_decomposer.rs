@@ -664,6 +664,7 @@ fn complex_phase(x: Complex64) -> f64 {
     x.im.atan2(x.re)
 }
 
+/// Wrap angle into interval [-π,π). If within atol of the endpoint, clamp to -π
 #[inline]
 fn mod_2pi(angle: f64, atol: f64) -> f64 {
     // f64::rem_euclid() isn't exactly the same as Python's % operator, but because
