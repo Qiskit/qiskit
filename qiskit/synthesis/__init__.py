@@ -78,6 +78,15 @@ CNOTDihedral Synthesis
    synth_cnotdihedral_two_qubits
    synth_cnotdihedral_general
 
+Stabilizer State Synthesis
+==========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_stabilizer_layers
+   synth_stabilizer_depth_lnn
+
 Discrete Basis Synthesis
 ========================
 
