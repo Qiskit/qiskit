@@ -405,8 +405,34 @@ class CouplingMap:
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
 
-    def components(self) -> List["CouplingMap"]:
-        """Separate a CouplingMap into subgraph Coupling Maps for each connected component.
+    def connected_components(self) -> List["CouplingMap"]:
+        """Separate a :Class:`~.CouplingMap` into subgraph :class:`~.CouplingMap`
+        for each connected component.
+
+        The connected components of a :class:`~.CouplingMap` are the subgraphs
+        that are not part of any larger subgraph. For example, if you had a
+        coupling map that looked like::
+
+            0 --> 1   4 --> 5 ---> 6 --> 7
+            |     |
+            |     |
+            V     V
+            2 --> 3
+
+        then the connected components of that graph are the subgraphs::
+
+            0 --> 1
+            |     |
+            |     |
+            V     V
+            2 --> 3
+
+        and::
+
+            4 --> 5 ---> 6 --> 7
+
+        For a connected :class:`~.CouplingMap` object there is only a single connected
+        component, the entire :class:`~.CouplingMap`.
 
         This method will return a list of :class:`~.CouplingMap` objects, one for each connected
         component in this :class:`~.CouplingMap`. The data payload of each node in the

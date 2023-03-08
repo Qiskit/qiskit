@@ -472,7 +472,7 @@ class CouplingTest(QiskitTestCase):
 
     def test_component_mapping(self):
         cmap = CouplingMap([[0, 1], [1, 0], [2, 3], [3, 2]])
-        components = cmap.components()
+        components = cmap.connected_components()
         self.assertEqual(components[1].graph[0], 2)
         self.assertEqual(components[1].graph[1], 3)
         self.assertEqual(components[0].graph[0], 0)
@@ -481,14 +481,14 @@ class CouplingTest(QiskitTestCase):
     def test_components_connected_graph(self):
         cmap = CouplingMap.from_line(5)
         self.assertTrue(cmap.is_connected())
-        subgraphs = cmap.components()
+        subgraphs = cmap.connected_components()
         self.assertEqual(len(subgraphs), 1)
         self.assertTrue(rx.is_isomorphic(cmap.graph, subgraphs[0].graph))
 
     def test_components_disconnected_graph(self):
         cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
         self.assertFalse(cmap.is_connected())
-        subgraphs = cmap.components()
+        subgraphs = cmap.connected_components()
         self.assertEqual(len(subgraphs), 2)
         expected_subgraph = CouplingMap([[0, 1], [1, 2]])
         self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[0].graph))
