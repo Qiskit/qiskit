@@ -7,7 +7,6 @@ recursive-include qiskit/providers/fake_provider/backends *.json
 
 # Include the tests files.
 recursive-include test *.py
-include test/python/pickles/*.pickle
 include test/python/qasm/*.qasm
 include test/python/visualization/references/*.png
 include test/python/notebooks/*.ipynb
