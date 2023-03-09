@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The :meth:`.CouplingMap.__eq__`` method has been updated to check isomorphism of the underlying
+    graphs. Any code using ``CouplingMap() == CouplingMap()`` to check object equality should be
+    updated to ``CouplingMap() is CouplingMap()``.

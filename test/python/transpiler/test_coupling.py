@@ -451,12 +451,18 @@ class CouplingTest(QiskitTestCase):
     def test_equality(self):
         """Test that equality is based on graph isomorphism."""
 
+        # create two coupling maps with 4 nodes and the same edges
         coupling0 = CouplingMap([(0, 1), (0, 2), (2, 3)])
         coupling1 = CouplingMap([(0, 1), (0, 2), (2, 3)])
+
+        # create an additional coupling map with 5 nodes not equal to the previous 2
         coupling2 = CouplingMap([(0, 1), (0, 2), (2, 4)])
 
         self.assertTrue(coupling0 == coupling1)
         self.assertTrue(coupling0 != coupling2)
+
+        # additional test for comparison to a non-CouplingMap object
+        self.assertTrue(coupling0 != 1)
 
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
