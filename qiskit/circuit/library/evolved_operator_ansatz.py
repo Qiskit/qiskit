@@ -28,7 +28,7 @@ from qiskit.quantum_info import Operator
 
 from qiskit.synthesis.evolution import EvolutionSynthesis, LieTrotter
 
-from .evolution.pauli_evolution import PauliEvolutionGate
+from .pauli_evolution import PauliEvolutionGate
 
 from .n_local.n_local import NLocal
 
