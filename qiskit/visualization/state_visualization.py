@@ -187,7 +187,9 @@ def plot_state_hinton(
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
-def plot_bloch_vector(bloch, title="", ax=None, figsize=None, coord_type="cartesian", font_size=None):
+def plot_bloch_vector(
+    bloch, title="", ax=None, figsize=None, coord_type="cartesian", font_size=None
+):
     """Plot the Bloch sphere.
 
     Plot a Bloch sphere with the specified coordinates, that can be given in both
