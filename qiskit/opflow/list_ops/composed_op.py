@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ComposedOp Class """
+"""ComposedOp Class"""
 
 from functools import partial, reduce
 from typing import List, Optional, Union, cast, Dict
