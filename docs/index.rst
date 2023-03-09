@@ -119,7 +119,6 @@ Interested in quantum hardware design?
    intro_tutorial1
    tutorials
    API Reference <apidoc/terra>
-   Circuit Library <apidoc/circuit_library>
    release_notes
    configuration
    GitHub <https://github.com/Qiskit/qiskit-terra>
