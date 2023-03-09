@@ -579,7 +579,7 @@ class Statevector(QuantumState, TolerancesMixin):
             probs = probs.round(decimals=decimals)
 
         # to account for roundoff errors, we renormalize and clip
-        probs = np.clip(probs / np.linalg.norm(probs), a_min=0, a_max=1)
+        probs = np.clip(probs / np.sum(probs), a_min=0, a_max=1)
         return probs
 
     def reset(self, qargs=None):
