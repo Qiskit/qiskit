@@ -1202,6 +1202,13 @@ class TestDensityMatrix(QiskitTestCase):
             with self.subTest(msg=f"draw('{drawtype}')"):
                 dm.draw(drawtype)
 
+    def test_clip_probabilities(self):
+        """Test probabilities are clipped to [0, 1]."""
+        dm = DensityMatrix([[1.1, 0], [0, 0]])
+
+        self.assertTrue(np.allclose(dm.probabilities(), [1, 0], atol=0))
+        self.assertDictAlmostEqual(dm.probabilities_dict(), {"0": 1, "1": 0}, delta=0)
+
 
 if __name__ == "__main__":
     unittest.main()

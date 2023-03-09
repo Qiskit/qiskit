@@ -331,7 +331,6 @@ class StabilizerState(QuantumState):
             place = int(key, 2)
             probs[place] = value
 
-        probs = np.clip(probs, a_min=0, a_max=1)
         return probs
 
     def probabilities_dict(self, qargs=None, decimals=None):
@@ -367,8 +366,7 @@ class StabilizerState(QuantumState):
 
         if decimals is not None:
             for key, value in probs.items():
-                prob = np.clip(round(value, decimals), a_min=0, a_max=1)
-                probs[key] = prob
+                probs[key] = round(value, decimals)
 
         return probs
 

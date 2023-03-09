@@ -1308,6 +1308,13 @@ class TestStatevector(QiskitTestCase):
         self.assertEqual(len(empty_vector), len(empty_sv))
         self.assertEqual(len(dummy_vector), len(sv))
 
+    def test_clip_probabilities(self):
+        """Test probabilities are clipped to [0, 1]."""
+        sv = Statevector([1.1, 0])
+
+        self.assertTrue(np.allclose(sv.probabilities(), [1, 0], atol=0))
+        self.assertDictAlmostEqual(sv.probabilities_dict(), {"0": 1, "1": 0}, delta=0)
+
 
 if __name__ == "__main__":
     unittest.main()
