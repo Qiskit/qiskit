@@ -448,6 +448,16 @@ class CouplingTest(QiskitTestCase):
         expected = [(0, 1), (1, 0), (1, 2), (2, 1)]
         self.assertEqual(sorted(coupling), expected)
 
+    def test_equality(self):
+        """Test that equality is based on graph isomorphism."""
+
+        coupling0 = CouplingMap([(0, 1), (0, 2), (2, 3)])
+        coupling1 = CouplingMap([(0, 1), (0, 2), (2, 3)])
+        coupling2 = CouplingMap([(0, 1), (0, 2), (2, 4)])
+
+        self.assertTrue(coupling0 == coupling1)
+        self.assertTrue(coupling0 != coupling2)
+
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")

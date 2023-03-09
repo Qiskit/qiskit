@@ -412,6 +412,17 @@ class CouplingMap:
             string += "]"
         return string
 
+    def __eq__(self, other):
+        """Check if the graph in other is isomorphic to the graph in self.
+
+        Args:
+            other (CouplingMap): The other coupling map.
+
+        Returns:
+            bool: Whether or not other is isomorphic to self.
+        """
+        return rx.is_isomorphic(other.graph, self.graph)
+
     def draw(self):
         """Draws the coupling map.
 
