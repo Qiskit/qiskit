@@ -168,8 +168,4 @@ from .synthesis import (
     XXDecomposer,
 )
 
-from .analysis import (
-    hellinger_distance,
-    hellinger_fidelity,
-    Z2Symmetries
-)
+from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries

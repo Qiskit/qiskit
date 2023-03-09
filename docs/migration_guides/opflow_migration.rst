@@ -8,7 +8,7 @@ The new :mod:`~qiskit.primitives`, in combination with the :mod:`~qiskit.quantum
 functionality of :mod:`~qiskit.opflow`. Thus, the latter is being deprecated.
 
 In this migration guide, you will find instructions and code examples for how to migrate your code based on
-the:mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qiskit.quantum_info` modules.
+the :mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qiskit.quantum_info` modules.
 
 .. note::
 
