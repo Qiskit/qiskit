@@ -422,7 +422,7 @@ class CouplingMap:
             bool: Whether or not other is isomorphic to self.
         """
         if not isinstance(other, CouplingMap):
-            return False 
+            return False
         return rx.is_isomorphic(other.graph, self.graph)
 
     def draw(self):
