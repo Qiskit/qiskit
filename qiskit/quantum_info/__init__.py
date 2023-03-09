@@ -113,8 +113,6 @@ Analysis
    hellinger_fidelity
    Z2Symmetries
 
-.. _quantum_info_synthesis:
-
 Synthesis
 =========
 

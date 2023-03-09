@@ -16,6 +16,8 @@ the:mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qisk
     is also being deprecated. For more information on migrating the :class:`~qiskit.utils.QuantumInstance`, please
     read the `quantum instance migration guide <http://qisk.it/qi_migration>`_.
 
+.. _attention_primitives:
+
 ..  attention::
 
     Most references to the :class:`qiskit.primitives.Sampler` or :class:`qiskit.primitives.Estimator` in this guide
@@ -57,16 +59,16 @@ The function equivalency can be roughly summarized as follows:
      - Alternative
    * - Operators (:class:`~qiskit.opflow.OperatorBase`, :ref:`operator_globals`,
        :mod:`~qiskit.opflow.primitive_ops`, :mod:`~qiskit.opflow.list_ops`)
-     - :ref:`qiskit.quantum_info Operators <quantum_info_operators>`
+     - ``qiskit.quantum_info`` :ref:`Operators <quantum_info_operators>`
 
    * - :mod:`qiskit.opflow.state_fns`
-     - :ref:`qiskit.quantum_info States <quantum_info_states>`
+     - ``qiskit.quantum_info`` :ref:`States <quantum_info_states>`
 
    * - :mod:`qiskit.opflow.converters`
      - :mod:`qiskit.primitives`
 
    * - :mod:`qiskit.opflow.evolutions`
-     - :ref:`qiskit.quantum_info Synthesis <quantum_info_synthesis>`
+     - ``qiskit.synthesis`` :ref:`Evolution <evolution_synthesis>`
 
    * - :mod:`qiskit.opflow.expectations`
      - :class:`qiskit.primitives.Estimator`
@@ -466,7 +468,7 @@ are used "under the hood" in the original code:
        wrap in :class:`~qiskit.quantum_info.SparsePauliOp`.
 
    * - :class:`~qiskit.opflow.primitive_ops.PauliSumOp`
-     - :class:`~qiskit.quantum_info.SparsePauliOp`. See example below.
+     - :class:`~qiskit.quantum_info.SparsePauliOp`. See example :ref:`below <example_pauli_sum_op>`.
 
    * - :class:`~qiskit.opflow.primitive_ops.TaperedPauliSumOp`
      - This class was used to combine a :class:`.PauliSumOp` with its identified symmetries in one object.
@@ -474,9 +476,9 @@ are used "under the hood" in the original code:
        See :class:`qiskit.quantum_info.analysis.Z2Symmetries` example for updated workflow.
 
    * - :class:`qiskit.opflow.primitive_ops.Z2Symmetries`
-     - :class:`qiskit.quantum_info.analysis.Z2Symmetries`. See example below.
+     - :class:`qiskit.quantum_info.analysis.Z2Symmetries`. See example :ref:`below <example_z2_sym>`.
 
-.. _pauli_sum_op:
+.. _example_pauli_sum_op:
 
 .. dropdown:: Example 1: ``PauliSumOp``
     :animate: fade-in-slide-down
@@ -511,7 +513,7 @@ are used "under the hood" in the original code:
         SparsePauliOp(['XYZY'],
                       coeffs=[0.-6.j])
 
-.. _z2_sym:
+.. _example_z2_sym:
 
 .. dropdown:: Example 2: ``Z2Symmetries`` and ``TaperedPauliSumOp``
     :animate: fade-in-slide-down
@@ -787,10 +789,6 @@ In the case of the :class:`~qiskit.opflow.converters.CircuitSampler`, it travers
 approximations of its state functions using a quantum backend.
 Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
-.. |ParityMapper| replace:: ``ParityMapper``
-.. _ParityMapper: https://qiskit.org/documentation/nature/stubs/qiskit_nature.second_q.mappers.ParityMapper.html#qiskit_nature.second_q.mappers.ParityMapper
-
-
 .. list-table::
    :header-rows: 1
 
@@ -799,24 +797,25 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
    * - :class:`~qiskit.opflow.converters.CircuitSampler`
      - :class:`~qiskit.primitives.Sampler` or :class:`~qiskit.primitives.Estimator` if used with
-       :class:`~qiskit.oflow.expectations`. See examples below.
+       :class:`~qiskit.oflow.expectations`. See examples :ref:`below <example_convert_state>`.
    * - :class:`~qiskit.opflow.converters.AbelianGrouper`
      - This class allowed a sum a of Pauli operators to be grouped, a similar functionality can be achieved
        through the :meth:`~qiskit.quantum_info.SparsePauliOp.group_commuting` method of
        :class:`qiskit.quantum_info.SparsePauliOp`, although this is not a 1-1 replacement, as you can see
-       in the example below.
+       in the example :ref:`below <example_commuting>`.
    * - :class:`~qiskit.opflow.converters.DictToCircuitSum`
      - No direct replacement. This class was used to convert from :class:`~qiskit.opflow.state_fns.DictStateFn`\s or
        :class:`~qiskit.opflow.state_fns.VectorStateFn`\s to equivalent :class:`~qiskit.opflow.state_fns.CircuitStateFn`\s.
    * - :class:`~qiskit.opflow.converters.PauliBasisChange`
      - No direct replacement. This class was used for changing Paulis into other bases.
    * -  :class:`~qiskit.opflow.converters.TwoQubitReduction`
-     -  No direct replacement. This class implements a chemistry-specific reduction for the |ParityMapper|_ class in ``qiskit-nature``.
+     -  No direct replacement. This class implements a chemistry-specific reduction for the :class:`.ParityMapper`
+        class in :mod:`qiskit_nature`.
         The general symmetry logic this mapper depends on has been refactored to other classes in :mod:`~qiskit.quantum_info`,
         so this specific :mod:`~qiskit.opflow` implementation is no longer necessary.
 
 
-.. _convert_state:
+.. _example_convert_state:
 
 .. dropdown:: Example 1: ``CircuitSampler`` for sampling parametrized circuits
     :animate: fade-in-slide-down
@@ -934,6 +933,7 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
         [1.]
 
+.. _example_commuting:
 
 .. dropdown:: Example 3: ``AbelianGrouper`` for grouping operators
     :animate: fade-in-slide-down
@@ -988,7 +988,7 @@ Evolutions
 The :mod:`qiskit.opflow.evolutions` sub-module was created to provide building blocks for Hamiltonian simulation algorithms,
 including various methods for trotterization. The original opflow workflow for hamiltonian simulation did not allow for
 delayed synthesis of the gates or efficient transpilation of the circuits, so this functionality was migrated to the
-:mod:`qiskit.synthesis` evolution module.
+``qiskit.synthesis`` :ref:`Evolution <evolution_synthesis>` module.
 
 .. note::
 
@@ -1200,7 +1200,8 @@ Expectations
 *Back to* `Contents`_
 
 Expectations are converters which enable the computation of the expectation value of an observable with respect to some state function.
-This functionality can now be found in the :class:`~qiskit.primitives.Estimator` primitive.
+This functionality can now be found in the :class:`~qiskit.primitives.Estimator` primitive. Please remember that there
+are different ``Estimator`` implementations, as noted :ref:`here <attention_primitives>`
 
 Algorithm-Agnostic Expectations
 -------------------------------
