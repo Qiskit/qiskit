@@ -114,7 +114,6 @@ of the previous example.
     print(qc.draw())
 
 .. testoutput::
-    :options: +NORMALIZE_WHITESPACE
 
             ┌───────┐      ░ ┌─┐   
        q_0: ┤ Ry(θ) ├──■───░─┤M├───
@@ -142,7 +141,6 @@ that corresponds to the ``i``-th circuit.
         print(f"Parameter: {parameter_values[i][0]:.5f}\t Probabilities: {dists[i]}")
 
 .. testoutput::
-    :options: +NORMALIZE_WHITESPACE
 
     Parameter: 0.00000	 Probabilities: {0: 1.0}
     Parameter: 0.52360	 Probabilities: {0: 0.9330127018922194, 3: 0.0669872981077807}

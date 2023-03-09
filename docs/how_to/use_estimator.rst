@@ -110,7 +110,6 @@ of the previous example.
     print(qc.draw())
 
 .. testoutput::
-    :options: +NORMALIZE_WHITESPACE
 
          ┌───────┐     
     q_0: ┤ Ry(θ) ├──■──
@@ -136,7 +135,6 @@ that corresponds to the ``i``-th circuit and observable.
         print(f"Parameter: {parameter_values[i][0]:.5f}\t Expectation value: {values[i]}")
 
 .. testoutput::
-    :options: +NORMALIZE_WHITESPACE
 
     Parameter: 0.00000	 Expectation value: 2.0
     Parameter: 0.52360	 Expectation value: 3.0

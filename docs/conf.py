@@ -92,3 +92,18 @@ html_css_files = []
 autosummary_generate = True
 autosummary_generate_overwrite = False
 autoclass_content = "both"
+
+# -- Options for Doctest --------------------------------------------------------
+
+import sphinx.ext.doctest
+
+# This option will make doctest ignore whitespace when testing code.
+# It's specially important for circuit representation as it gives an
+# error otherwise
+doctest_default_flags = sphinx.ext.doctest.doctest.NORMALIZE_WHITESPACE
+
+# Leaving this string empty disables testing of doctest blocks from docstrings.
+# Doctest blocks are structures like this one:
+# >> code
+# output
+doctest_test_doctest_blocks = ""
