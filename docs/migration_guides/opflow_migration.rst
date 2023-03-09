@@ -173,80 +173,79 @@ directly creating a corresponding :class:`~qiskit.quantum_info.SparsePauliOp`, a
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import X
+        from qiskit.opflow import X
 
-        >>> operator = X ^ X
+        operator = X ^ X
+        print(repr(operator))
 
-    .. code-block:: python
+    .. testoutput::
 
-        >>> operator
         PauliOp(Pauli('XX'), coeff=1.0)
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import Pauli, SparsePauliOp
+        from qiskit.quantum_info import Pauli, SparsePauliOp
 
-        >>> X = Pauli('X')
-        >>> operator = X ^ X
-        >>> operator
-        Pauli('XX')
+        operator = Pauli('XX')
 
         # equivalent to:
-        >>> operator = Pauli('XX')
-        >>> operator
-        Pauli('XX')
+        X = Pauli('X')
+        operator = X ^ X
+        print("As Pauli Op: ", repr(operator))
 
-        # equivalent to:
-        >>> operator = SparsePauliOp('XX')
-        >>> operator
-        SparsePauliOp(['XX'],
+        # another alternative is:
+        operator = SparsePauliOp('XX')
+        print("As Sparse Pauli Op: ", repr(operator))
+
+    .. testoutput::
+
+        As Pauli Op:  Pauli('XX')
+        As Sparse Pauli Op:  SparsePauliOp(['XX'],
                       coeffs=[1.+0.j])
 
 .. dropdown:: Example 2: Defining a more complex operator
     :animate: fade-in-slide-down
 
-
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import I, X, Z, PauliSumOp
+        from qiskit.opflow import I, X, Z, PauliSumOp
 
-        >>> operator = 0.39 * (I ^ Z ^ I) + 0.5 * (I ^ X ^ X)
-        >>> operator
-        PauliSumOp(SparsePauliOp(['IZI', 'IXX'],
-                      coeffs=[0.39+0.j, 0.5 +0.j]), coeff=1.0)
+        operator = 0.39 * (I ^ Z ^ I) + 0.5 * (I ^ X ^ X)
 
-        # or ...
-        >>> operator = PauliSumOp.from_list([("IZI", 0.39), ("IXX", 0.5)])
-        >>> operator
+        # equivalent to:
+        operator = PauliSumOp.from_list([("IZI", 0.39), ("IXX", 0.5)])
+
+        print(repr(operator))
+
+    .. testoutput::
+
         PauliSumOp(SparsePauliOp(['IZI', 'IXX'],
                       coeffs=[0.39+0.j, 0.5 +0.j]), coeff=1.0)
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import SparsePauliOp
+        from qiskit.quantum_info import SparsePauliOp
 
-        >>> operator = SparsePauliOp(["IZI", "IXX"], coeffs = [0.39, 0.5])
-        >>> operator
-        SparsePauliOp(['IZI', 'IXX'],
-                      coeffs=[0.39+0.j, 0.5 +0.j])
+        operator = SparsePauliOp(["IZI", "IXX"], coeffs = [0.39, 0.5])
 
-        # or...
-        >>> operator = SparsePauliOp.from_list([("IZI", 0.39), ("IXX", 0.5)])
-        >>> operator
-        SparsePauliOp(['IZI', 'IXX'],
-                      coeffs=[0.39+0.j, 0.5 +0.j])
+        # equivalent to:
+        operator = SparsePauliOp.from_list([("IZI", 0.39), ("IXX", 0.5)])
 
-        # or...
-        >>> operator = SparsePauliOp.from_sparse_list([("Z", [1], 0.39), ("XX", [0,1], 0.5)], num_qubits = 3)
-        >>> operator
+        # equivalent to:
+        operator = SparsePauliOp.from_sparse_list([("Z", [1], 0.39), ("XX", [0,1], 0.5)], num_qubits = 3)
+
+        print(repr(operator))
+
+    .. testoutput::
+
         SparsePauliOp(['IZI', 'IXX'],
                       coeffs=[0.39+0.j, 0.5 +0.j])
 
@@ -262,8 +261,8 @@ Common non-parametrized gates (Clifford)
 
    * - :class:`~qiskit.opflow.CX`, :class:`~qiskit.opflow.S`, :class:`~qiskit.opflow.H`, :class:`~qiskit.opflow.T`,
        :class:`~qiskit.opflow.CZ`, :class:`~qiskit.opflow.Swap`
-     - Append corresponding gate to :class:`~qiskit.circuit.QuantumCircuit`.
-       :class:`qiskit.quantum_info.Operator`\s can be also directly constructed from quantum circuits.
+     - Append corresponding gate to :class:`~qiskit.circuit.QuantumCircuit`. If necessary,
+       :class:`qiskit.quantum_info.Operator`\s can be directly constructed from quantum circuits.
        Another alternative is to wrap the circuit in :class:`~qiskit.quantum_info.Clifford` and call
        ``Clifford.to_operator()``.
 
@@ -277,12 +276,15 @@ Common non-parametrized gates (Clifford)
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import H
+        from qiskit.opflow import H
 
-        >>> operator = H ^ H
-        >>> print(operator)
+        operator = H ^ H
+        print(operator)
+
+    .. testoutput::
+
              ┌───┐
         q_0: ┤ H ├
              ├───┤
@@ -291,42 +293,43 @@ Common non-parametrized gates (Clifford)
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.quantum_info import Clifford, Operator
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import Clifford, Operator
 
-        >>> qc = QuantumCircuit(2)
-        >>> qc.h(0)
-        >>> qc.h(1)
-        >>> operator = Clifford(qc).to_operator()
-        >>> operator
-        Operator([[ 0.5+0.j,  0.5+0.j,  0.5+0.j,  0.5+0.j],
-                  [ 0.5+0.j, -0.5+0.j,  0.5+0.j, -0.5+0.j],
-                  [ 0.5+0.j,  0.5+0.j, -0.5+0.j, -0.5+0.j],
-                  [ 0.5+0.j, -0.5+0.j, -0.5+0.j,  0.5+0.j]],
-                 input_dims=(2, 2), output_dims=(2, 2))
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.h(1)
+        print(qc)
+
+    .. testoutput::
+
+             ┌───┐
+        q_0: ┤ H ├
+             ├───┤
+        q_1: ┤ H ├
+             └───┘
+
+    If we want to turn this circuit into an operator, we can do:
+
+    .. testcode::
+
+        operator = Clifford(qc).to_operator()
 
         # or, directly
-        >>> operator = Operator(qc)
-        >>> operator
+        operator = Operator(qc)
+
+        print(operator)
+
+    .. testoutput::
+
         Operator([[ 0.5+0.j,  0.5+0.j,  0.5+0.j,  0.5+0.j],
                   [ 0.5+0.j, -0.5+0.j,  0.5+0.j, -0.5+0.j],
                   [ 0.5+0.j,  0.5+0.j, -0.5+0.j, -0.5+0.j],
                   [ 0.5+0.j, -0.5+0.j, -0.5+0.j,  0.5+0.j]],
                  input_dims=(2, 2), output_dims=(2, 2))
 
-        # or...
-        >>> qc = QuantumCircuit(1)
-        >>> qc.h(0)
-        >>> H = Clifford(qc).to_operator()
-        >>> operator = H ^ H
-        >>> operator
-        Operator([[ 0.5+0.j,  0.5+0.j,  0.5+0.j,  0.5+0.j],
-                  [ 0.5+0.j, -0.5+0.j,  0.5+0.j, -0.5+0.j],
-                  [ 0.5+0.j,  0.5+0.j, -0.5+0.j, -0.5+0.j],
-                  [ 0.5+0.j, -0.5+0.j, -0.5+0.j,  0.5-0.j]],
-                 input_dims=(2, 2), output_dims=(2, 2))
 
 1-Qubit States
 --------------
@@ -351,19 +354,21 @@ Common non-parametrized gates (Clifford)
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import Zero, One, Plus, Minus
+        from qiskit.opflow import Zero, One, Plus, Minus
 
         # Zero, One, Plus, Minus are all stabilizer states
-        >>> state1 = Zero ^ One
-        >>> state2 = Plus ^ Minus
+        state1 = Zero ^ One
+        state2 = Plus ^ Minus
 
-        >>> state1
-        DictStateFn({'01': 1}, coeff=1.0, is_measurement=False)
+        print("State 1: ", state1)
+        print("State 2: ", state2)
 
-        >>> print(state2)
-        CircuitStateFn(
+    .. testoutput::
+
+        State 1:  DictStateFn({'01': 1})
+        State 2:  CircuitStateFn(
              ┌───┐┌───┐
         q_0: ┤ X ├┤ H ├
              ├───┤└───┘
@@ -373,29 +378,29 @@ Common non-parametrized gates (Clifford)
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.quantum_info import StabilizerState, Statevector
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import StabilizerState, Statevector
 
-        >>> qc_zero = QuantumCircuit(1)
-        >>> qc_one = qc_zero.copy()
-        >>> qc_one.x(0)
-        >>> state1 = Statevector(qc_zero) ^ Statevector(qc_one)
+        qc_zero = QuantumCircuit(1)
+        qc_one = qc_zero.copy()
+        qc_one.x(0)
+        state1 = Statevector(qc_zero) ^ Statevector(qc_one)
+        print("State 1: ", state1)
 
-        >>> qc_plus = qc_zero.copy()
-        >>> qc_plus.h(0)
-        >>> qc_minus = qc_one.copy()
-        >>> qc_minus.h(0)
-        >>> state2 = StabilizerState(qc_plus) ^ StabilizerState(qc_minus)
+        qc_plus = qc_zero.copy()
+        qc_plus.h(0)
+        qc_minus = qc_one.copy()
+        qc_minus.h(0)
+        state2 = StabilizerState(qc_plus) ^ StabilizerState(qc_minus)
+        print("State 2: ", state2)
 
-        >>> state1
-        Statevector([0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
+    .. testoutput::
+
+        State 1:  Statevector([0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
                     dims=(2, 2))
-
-        >>> state2
-        StabilizerState(StabilizerTable: ['-IX', '+XI'])
-
+        State 2:  StabilizerState(StabilizerTable: ['-IX', '+XI'])
 
 Primitive and List Ops
 ======================
@@ -479,27 +484,32 @@ are used "under the hood" in the original code:
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import PauliSumOp
-        >>> from qiskit.quantum_info import SparsePauliOp, Pauli
+        from qiskit.opflow import PauliSumOp
+        from qiskit.quantum_info import SparsePauliOp, Pauli
 
-        >>> qubit_op = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=-3j)
-        >>> qubit_op
+        qubit_op = PauliSumOp(SparsePauliOp(Pauli("XYZY"), coeffs=[2]), coeff=-3j)
+        print(repr(qubit_op))
+
+    .. testoutput::
+
         PauliSumOp(SparsePauliOp(['XYZY'],
                       coeffs=[2.+0.j]), coeff=(-0-3j))
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import SparsePauliOp, Pauli
+        from qiskit.quantum_info import SparsePauliOp, Pauli
 
-        >>> qubit_op = SparsePauliOp(Pauli("XYZY"), coeffs=[-6j])
-        >>> qubit_op
+        qubit_op = SparsePauliOp(Pauli("XYZY"), coeffs=[-6j])
+        print(repr(qubit_op))
+
+    .. testoutput::
+
         SparsePauliOp(['XYZY'],
                       coeffs=[0.-6.j])
-
 
 .. _z2_sym:
 
@@ -508,26 +518,31 @@ are used "under the hood" in the original code:
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import PauliSumOp, Z2Symmetries, TaperedPauliSumOp
+        from qiskit.opflow import PauliSumOp, Z2Symmetries, TaperedPauliSumOp
 
-        >>> qubit_op = PauliSumOp.from_list(
-        ...    [
-        ...    ("II", -1.0537076071291125),
-        ...    ("IZ", 0.393983679438514),
-        ...    ("ZI", -0.39398367943851387),
-        ...    ("ZZ", -0.01123658523318205),
-        ...    ("XX", 0.1812888082114961),
-        ...    ]
-        ... )
-        >>> z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
-        >>> tapered_op = z2_symmetries.taper(qubit_op)
+        qubit_op = PauliSumOp.from_list(
+            [
+            ("II", -1.0537076071291125),
+            ("IZ", 0.393983679438514),
+            ("ZI", -0.39398367943851387),
+            ("ZZ", -0.01123658523318205),
+            ("XX", 0.1812888082114961),
+            ]
+        )
+        z2_symmetries = Z2Symmetries.find_Z2_symmetries(qubit_op)
+        print(z2_symmetries)
+
+        tapered_op = z2_symmetries.taper(qubit_op)
+        print("Tapered Op from Z2 symmetries: ", tapered_op)
 
         # can be represented as:
-        >>> tapered_op = TaperedPauliSumOp(qubit_op.primitive, z2_symmetries)
+        tapered_op = TaperedPauliSumOp(qubit_op.primitive, z2_symmetries)
+        print("Tapered PauliSumOp: ", tapered_op)
 
-        >>> print(z2_symmetries)
+    .. testoutput::
+
         Z2 symmetries:
         Symmetries:
         ZZ
@@ -540,32 +555,44 @@ are used "under the hood" in the original code:
         [0]
         Tapering values:
           - Possible values: [1], [-1]
+        Tapered Op from Z2 symmetries:  ListOp([
+          -1.0649441923622942 * I
+          + 0.18128880821149604 * X,
+          -1.0424710218959303 * I
+          - 0.7879673588770277 * Z
+          - 0.18128880821149604 * X
+        ])
+        Tapered PauliSumOp:  -1.0537076071291125 * II
+        + 0.393983679438514 * IZ
+        - 0.39398367943851387 * ZI
+        - 0.01123658523318205 * ZZ
+        + 0.1812888082114961 * XX
 
-        >>> tapered_op
-        TaperedPauliSumOp(SparsePauliOp(['II', 'IZ', 'ZI', 'ZZ', 'XX'],
-                      coeffs=[-1.05370761+0.j,  0.39398368+0.j, -0.39398368+0.j, -0.01123659+0.j,
-          0.18128881+0.j]), coeff=1.0)
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import SparsePauliOp
-        >>> from qiskit.quantum_info.analysis import Z2Symmetries
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.quantum_info.analysis import Z2Symmetries
 
-        >>> qubit_op = SparsePauliOp.from_list(
-        ...    [
-        ...    ("II", -1.0537076071291125),
-        ...    ("IZ", 0.393983679438514),
-        ...    ("ZI", -0.39398367943851387),
-        ...    ("ZZ", -0.01123658523318205),
-        ...    ("XX", 0.1812888082114961),
-        ...    ]
-        ... )
-        >>> z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
-        >>> tapered_op = z2_symmetries.taper(qubit_op)
+        qubit_op = SparsePauliOp.from_list(
+            [
+            ("II", -1.0537076071291125),
+            ("IZ", 0.393983679438514),
+            ("ZI", -0.39398367943851387),
+            ("ZZ", -0.01123658523318205),
+            ("XX", 0.1812888082114961),
+            ]
+        )
+        z2_symmetries = Z2Symmetries.find_z2_symmetries(qubit_op)
+        print(z2_symmetries)
 
-        >>> print(z2_symmetries)
+        tapered_op = z2_symmetries.taper(qubit_op)
+        print("Tapered Op from Z2 symmetries: ", tapered_op)
+
+    .. testoutput::
+
         Z2 symmetries:
         Symmetries:
         ZZ
@@ -578,12 +605,9 @@ are used "under the hood" in the original code:
         [0]
         Tapering values:
           - Possible values: [1], [-1]
-
-        >>> tapered_op
-        [SparsePauliOp(['I', 'X'],
+        Tapered Op from Z2 symmetries:  [SparsePauliOp(['I', 'X'],
                       coeffs=[-1.06494419+0.j,  0.18128881+0.j]), SparsePauliOp(['I', 'Z', 'X'],
                       coeffs=[-1.04247102+0.j, -0.78796736+0.j, -0.18128881+0.j])]
-
 
 ListOps
 --------
@@ -687,20 +711,26 @@ identify the sub-class that is being used, to then look for an alternative.
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import StateFn, X, Y
+        from qiskit.opflow import StateFn, X, Y
+        from qiskit import QuantumCircuit
 
-        >>> qc = QuantumCircuit(2)
-        >>> qc.x(0)
-        >>> qc.z(1)
-        >>> op = X ^ Y
-        >>> state = StateFn(qc)
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.z(1)
+        op = X ^ Y
+        state = StateFn(qc)
 
-        >>> comp = ~op @ state
-        >>> eval = comp.eval()
+        comp = ~op @ state
+        eval = comp.eval()
 
-        >>> print(state)
+        print(state)
+        print(comp)
+        print(repr(eval))
+
+    .. testoutput::
+
         CircuitStateFn(
              ┌───┐
         q_0: ┤ X ├
@@ -708,9 +738,6 @@ identify the sub-class that is being used, to then look for an alternative.
         q_1: ┤ Z ├
              └───┘
         )
-
-
-        >>> print(comp)
         CircuitStateFn(
              ┌───┐┌────────────┐
         q_0: ┤ X ├┤0           ├
@@ -718,32 +745,31 @@ identify the sub-class that is being used, to then look for an alternative.
         q_1: ┤ Z ├┤1           ├
              └───┘└────────────┘
         )
-
-
-        >>> print(eval)
         VectorStateFn(Statevector([ 0.0e+00+0.j,  0.0e+00+0.j, -6.1e-17-1.j,  0.0e+00+0.j],
-                    dims=(2, 2)))
+                    dims=(2, 2)), coeff=1.0, is_measurement=False)
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.quantum_info import SparsePauliOp, Statevector
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import SparsePauliOp, Statevector
 
-        >>> qc = QuantumCircuit(2)
-        >>> qc.x(0)
-        >>> qc.z(1)
-        >>> op = SparsePauliOp("XY")
-        >>> state = Statevector(qc)
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.z(1)
+        op = SparsePauliOp("XY")
+        state = Statevector(qc)
 
-        >>> print(state)
+        eval = state.evolve(op)
+
+        print(state)
+        print(eval)
+
+    .. testoutput::
+
         Statevector([0.+0.j, 1.+0.j, 0.+0.j, 0.+0.j],
                     dims=(2, 2))
-
-        >>> eval = state.evolve(op)
-
-        >>> print(eval)
         Statevector([0.+0.j, 0.+0.j, 0.-1.j, 0.+0.j],
                     dims=(2, 2))
 
@@ -797,59 +823,65 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.circuit import QuantumCircuit, Parameter
-        >>> from qiskit.opflow import ListOp, StateFn, CircuitSampler
-        >>> from qiskit_aer import AerSimulator
+        from qiskit.circuit import QuantumCircuit, Parameter
+        from qiskit.opflow import ListOp, StateFn, CircuitSampler
+        from qiskit_aer import AerSimulator
 
-        >>> x, y = Parameter("x"), Parameter("y")
+        x, y = Parameter("x"), Parameter("y")
 
-        >>> circuit1 = QuantumCircuit(1)
-        >>> circuit1.p(0.2, 0)
-        >>> circuit2 = QuantumCircuit(1)
-        >>> circuit2.p(x, 0)
-        >>> circuit3 = QuantumCircuit(1)
-        >>> circuit3.p(y, 0)
+        circuit1 = QuantumCircuit(1)
+        circuit1.p(0.2, 0)
+        circuit2 = QuantumCircuit(1)
+        circuit2.p(x, 0)
+        circuit3 = QuantumCircuit(1)
+        circuit3.p(y, 0)
 
-        >>> bindings = {x: -0.4, y: 0.4}
-        >>> listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
+        bindings = {x: -0.4, y: 0.4}
+        listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
 
-        >>> sampler = CircuitSampler(AerSimulator())
-        >>> sampled = sampler.convert(listop, params=bindings).eval()
+        sampler = CircuitSampler(AerSimulator())
+        sampled = sampler.convert(listop, params=bindings).eval()
 
-        >>> for s in sampled:
-        ...     print(s)
-        SparseVectorStateFn(  (0, 0)       1.0)
-        SparseVectorStateFn(  (0, 0)       1.0)
-        SparseVectorStateFn(  (0, 0)       1.0)
+        for s in sampled:
+          print(s)
+
+    .. testoutput::
+
+        SparseVectorStateFn(  (0, 0)	1.0)
+        SparseVectorStateFn(  (0, 0)	1.0)
+        SparseVectorStateFn(  (0, 0)	1.0)
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.circuit import QuantumCircuit, Parameter
-        >>> from qiskit.primitives import Sampler
+        from qiskit.circuit import QuantumCircuit, Parameter
+        from qiskit.primitives import Sampler
 
-        >>> x, y = Parameter("x"), Parameter("y")
+        x, y = Parameter("x"), Parameter("y")
 
-        >>> circuit1 = QuantumCircuit(1)
-        >>> circuit1.p(0.2, 0)
-        >>> circuit1.measure_all()     # Sampler primitive requires measurement readout
-        >>> circuit2 = QuantumCircuit(1)
-        >>> circuit2.p(x, 0)
-        >>> circuit2.measure_all()
-        >>> circuit3 = QuantumCircuit(1)
-        >>> circuit3.p(y, 0)
-        >>> circuit3.measure_all()
+        circuit1 = QuantumCircuit(1)
+        circuit1.p(0.2, 0)
+        circuit1.measure_all()     # Sampler primitive requires measurement readout
+        circuit2 = QuantumCircuit(1)
+        circuit2.p(x, 0)
+        circuit2.measure_all()
+        circuit3 = QuantumCircuit(1)
+        circuit3.p(y, 0)
+        circuit3.measure_all()
 
-        >>> circuits = [circuit1, circuit2, circuit3]
-        >>> param_values = [[], [-0.4], [0.4]]
+        circuits = [circuit1, circuit2, circuit3]
+        param_values = [[], [-0.4], [0.4]]
 
-        >>> sampler = Sampler()
-        >>> sampled = sampler.run(circuits, param_values).result().quasi_dists
+        sampler = Sampler()
+        sampled = sampler.run(circuits, param_values).result().quasi_dists
 
-        >>> print(sampled)
+        print(sampled)
+
+    .. testoutput::
+
         [{0: 1.0}, {0: 1.0}, {0: 1.0}]
 
 
@@ -858,43 +890,49 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.opflow import X, Z, StateFn, CircuitStateFn, CircuitSampler
-        >>> from qiskit_aer import AerSimulator
+        from qiskit import QuantumCircuit
+        from qiskit.opflow import X, Z, StateFn, CircuitStateFn, CircuitSampler
+        from qiskit_aer import AerSimulator
 
-        >>> qc = QuantumCircuit(1)
-        >>> qc.h(0)
-        >>> state = CircuitStateFn(qc)
-        >>> hamiltonian = X + Z
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        state = CircuitStateFn(qc)
+        hamiltonian = X + Z
 
-        >>> expr = StateFn(hamiltonian, is_measurement=True).compose(state)
-        >>> backend = AerSimulator(method="statevector")
-        >>> sampler = CircuitSampler(backend)
-        >>> expectation = sampler.convert(expr)
-        >>> expectation_value = expectation.eval().real
+        expr = StateFn(hamiltonian, is_measurement=True).compose(state)
+        backend = AerSimulator(method="statevector")
+        sampler = CircuitSampler(backend)
+        expectation = sampler.convert(expr)
+        expectation_value = expectation.eval().real
 
-        >>> expectation_value
+        print(expectation_value)
+
+    .. testoutput::
+
         1.0000000000000002
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.primitives import Estimator
-        >>> from qiskit.quantum_info import SparsePauliOp
+        from qiskit import QuantumCircuit
+        from qiskit.primitives import Estimator
+        from qiskit.quantum_info import SparsePauliOp
 
-        >>> state = QuantumCircuit(1)
-        >>> state.h(0)
-        >>> hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
+        state = QuantumCircuit(1)
+        state.h(0)
+        hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
 
-        >>> estimator = Estimator()
-        >>> expectation_value = estimator.run(state, hamiltonian).result().values.real
+        estimator = Estimator()
+        expectation_value = estimator.run(state, hamiltonian).result().values.real
 
-        >>> expectation_value
-        array([1.])
+        print(expectation_value)
+
+    .. testoutput::
+
+        [1.]
 
 
 .. dropdown:: Example 3: ``AbelianGrouper`` for grouping operators
@@ -902,15 +940,18 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import PauliSumOp, AbelianGrouper
+        from qiskit.opflow import PauliSumOp, AbelianGrouper
 
-        >>> op = PauliSumOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
+        op = PauliSumOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
 
-        >>> grouped_sum = AbelianGrouper.group_subops(op)
+        grouped_sum = AbelianGrouper.group_subops(op)
 
-        >>> grouped_sum
+        print(repr(grouped_sum))
+
+    .. testoutput::
+
         SummedOp([PauliSumOp(SparsePauliOp(['XX'],
                       coeffs=[2.+0.j]), coeff=1.0), PauliSumOp(SparsePauliOp(['YY'],
                       coeffs=[1.+0.j]), coeff=1.0), PauliSumOp(SparsePauliOp(['IZ', 'ZZ'],
@@ -918,21 +959,23 @@ Notably, this functionality has been replaced by the :mod:`~qiskit.primitives`.
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import SparsePauliOp
+        from qiskit.quantum_info import SparsePauliOp
 
-        >>> op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
+        op = SparsePauliOp.from_list([("XX", 2), ("YY", 1), ("IZ",2j), ("ZZ",1j)])
 
-        >>> grouped = op.group_commuting()
-        >>> grouped_sum = op.group_commuting(qubit_wise=True)
+        grouped = op.group_commuting()
+        grouped_sum = op.group_commuting(qubit_wise=True)
 
-        >>> grouped
+        print(repr(grouped))
+        print(repr(grouped_sum))
+
+    .. testoutput::
+
         [SparsePauliOp(['IZ', 'ZZ'],
                       coeffs=[0.+2.j, 0.+1.j]), SparsePauliOp(['XX', 'YY'],
                       coeffs=[2.+0.j, 1.+0.j])]
-
-        >>> grouped_sum
         [SparsePauliOp(['XX'],
                       coeffs=[2.+0.j]), SparsePauliOp(['YY'],
                       coeffs=[1.+0.j]), SparsePauliOp(['IZ', 'ZZ'],
@@ -1020,35 +1063,41 @@ Other Evolution Classes
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import Trotter, PauliTrotterEvolution, PauliSumOp
+        from qiskit.opflow import Trotter, PauliTrotterEvolution, PauliSumOp
 
-        >>> hamiltonian = PauliSumOp.from_list([('X', 1), ('Z',1)])
-        >>> evolution = PauliTrotterEvolution(trotter_mode=Trotter(), reps=2)
-        >>> evol_result = evolution.convert(hamiltonian.exp_i())
-        >>> evolved_state = evol_result.to_circuit()
+        hamiltonian = PauliSumOp.from_list([('X', 1), ('Z',1)])
+        evolution = PauliTrotterEvolution(trotter_mode=Trotter(), reps=2)
+        evol_result = evolution.convert(hamiltonian.exp_i())
+        evolved_state = evol_result.to_circuit()
 
-        >>> print(evolved_state)
+        print(evolved_state)
+
+    .. testoutput::
+
            ┌─────────────────────┐
         q: ┤ exp(-it (X + Z))(1) ├
            └─────────────────────┘
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.quantum_info import SparsePauliOp
-        >>> from qiskit.circuit.library import PauliEvolutionGate
-        >>> from qiskit.synthesis import SuzukiTrotter
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit.library import PauliEvolutionGate
+        from qiskit.synthesis import SuzukiTrotter
 
-        >>> hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
-        >>> evol_gate = PauliEvolutionGate(hamiltonian, time=1, synthesis=SuzukiTrotter(reps=2))
-        >>> evolved_state = QuantumCircuit(1)
-        >>> evolved_state.append(evol_gate, [0])
+        hamiltonian = SparsePauliOp.from_list([('X', 1), ('Z',1)])
+        evol_gate = PauliEvolutionGate(hamiltonian, time=1, synthesis=SuzukiTrotter(reps=2))
+        evolved_state = QuantumCircuit(1)
+        evolved_state.append(evol_gate, [0])
 
-        >>> print(evolved_state)
+        print(evolved_state)
+
+    .. testoutput::
+
            ┌─────────────────────┐
         q: ┤ exp(-it (X + Z))(1) ├
            └─────────────────────┘
@@ -1058,39 +1107,45 @@ Other Evolution Classes
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import Trotter, PauliTrotterEvolution, PauliSumOp
-        >>> from qiskit.circuit import Parameter
+        from qiskit.opflow import Trotter, PauliTrotterEvolution, PauliSumOp
+        from qiskit.circuit import Parameter
 
-        >>> time = Parameter('t')
-        >>> hamiltonian = PauliSumOp.from_list([('X', 1), ('Y',1)])
-        >>> evolution = PauliTrotterEvolution(trotter_mode=Trotter(), reps=1)
-        >>> evol_result = evolution.convert((time * hamiltonian).exp_i())
-        >>> evolved_state = evol_result.to_circuit()
+        time = Parameter('t')
+        hamiltonian = PauliSumOp.from_list([('X', 1), ('Y',1)])
+        evolution = PauliTrotterEvolution(trotter_mode=Trotter(), reps=1)
+        evol_result = evolution.convert((time * hamiltonian).exp_i())
+        evolved_state = evol_result.to_circuit()
 
-        >>> print(evolved_state)
+        print(evolved_state)
+
+    .. testoutput::
+
            ┌─────────────────────────┐
         q: ┤ exp(-it (X + Y))(1.0*t) ├
            └─────────────────────────┘
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import SparsePauliOp
-        >>> from qiskit.synthesis import LieTrotter
-        >>> from qiskit.circuit.library import PauliEvolutionGate
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.circuit import Parameter
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.synthesis import LieTrotter
+        from qiskit.circuit.library import PauliEvolutionGate
+        from qiskit import QuantumCircuit
+        from qiskit.circuit import Parameter
 
-        >>> time = Parameter('t')
-        >>> hamiltonian = SparsePauliOp.from_list([('X', 1), ('Y',1)])
-        >>> evol_gate = PauliEvolutionGate(hamiltonian, time=time, synthesis=LieTrotter())
-        >>> evolved_state = QuantumCircuit(1)
-        >>> evolved_state.append(evol_gate, [0])
+        time = Parameter('t')
+        hamiltonian = SparsePauliOp.from_list([('X', 1), ('Y',1)])
+        evol_gate = PauliEvolutionGate(hamiltonian, time=time, synthesis=LieTrotter())
+        evolved_state = QuantumCircuit(1)
+        evolved_state.append(evol_gate, [0])
 
-        >>> print(evolved_state)
+        print(evolved_state)
+
+    .. testoutput::
+
            ┌─────────────────────┐
         q: ┤ exp(-it (X + Y))(t) ├
            └─────────────────────┘
@@ -1102,33 +1157,39 @@ Other Evolution Classes
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import MatrixEvolution, MatrixOp
+        from qiskit.opflow import MatrixEvolution, MatrixOp
 
-        >>> hamiltonian = MatrixOp([[0, 1], [1, 0]])
-        >>> evolution = MatrixEvolution()
-        >>> evol_result = evolution.convert(hamiltonian.exp_i())
-        >>> evolved_state = evol_result.to_circuit()
+        hamiltonian = MatrixOp([[0, 1], [1, 0]])
+        evolution = MatrixEvolution()
+        evol_result = evolution.convert(hamiltonian.exp_i())
+        evolved_state = evol_result.to_circuit()
 
-        >>> print(evolved_state.decompose().decompose())
+        print(evolved_state.decompose().decompose())
+
+    .. testoutput::
+
            ┌────────────────┐
         q: ┤ U3(2,-π/2,π/2) ├
            └────────────────┘
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import SparsePauliOp
-        >>> from qiskit.extensions import HamiltonianGate
-        >>> from qiskit import QuantumCircuit
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.extensions import HamiltonianGate
+        from qiskit import QuantumCircuit
 
-        >>> evol_gate = HamiltonianGate([[0, 1], [1, 0]], 1)
-        >>> evolved_state = QuantumCircuit(1)
-        >>> evolved_state.append(evol_gate, [0])
+        evol_gate = HamiltonianGate([[0, 1], [1, 0]], 1)
+        evolved_state = QuantumCircuit(1)
+        evolved_state.append(evol_gate, [0])
 
-        >>> print(evolved_state.decompose().decompose())
+        print(evolved_state.decompose().decompose())
+
+    .. testoutput::
+
            ┌────────────────┐
         q: ┤ U3(2,-π/2,π/2) ├
            └────────────────┘
@@ -1174,45 +1235,51 @@ Algorithm-Agnostic Expectations
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import X, Minus, StateFn, AerPauliExpectation, CircuitSampler
-        >>> from qiskit.utils import QuantumInstance
-        >>> from qiskit_aer import AerSimulator
+        from qiskit.opflow import X, Minus, StateFn, AerPauliExpectation, CircuitSampler
+        from qiskit.utils import QuantumInstance
+        from qiskit_aer import AerSimulator
 
-        >>> backend = AerSimulator()
-        >>> q_instance = QuantumInstance(backend)
+        backend = AerSimulator()
+        q_instance = QuantumInstance(backend)
 
-        >>> sampler = CircuitSampler(q_instance, attach_results=True)
-        >>> expectation = AerPauliExpectation()
+        sampler = CircuitSampler(q_instance, attach_results=True)
+        expectation = AerPauliExpectation()
 
-        >>> state = Minus
-        >>> operator = 1j * X
+        state = Minus
+        operator = 1j * X
 
-        >>> converted_meas = expectation.convert(StateFn(operator, is_measurement=True) @ state)
-        >>> expectation_value = sampler.convert(converted_meas).eval()
+        converted_meas = expectation.convert(StateFn(operator, is_measurement=True) @ state)
+        expectation_value = sampler.convert(converted_meas).eval()
 
-        >>> print(expectation_value)
+        print(expectation_value)
+
+    .. testoutput::
+
         -1j
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import SparsePauliOp
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit_aer.primitives import Estimator
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit import QuantumCircuit
+        from qiskit_aer.primitives import Estimator
 
-        >>> estimator = AerEstimator(run_options={"approximation": True, "shots": None})
+        estimator = Estimator(run_options={"approximation": True, "shots": None})
 
-        >>> op = SparsePauliOp.from_list([("X", 1j)])
-        >>> states_op = QuantumCircuit(1)
-        >>> states_op.x(0)
-        >>> states_op.h(0)
+        op = SparsePauliOp.from_list([("X", 1j)])
+        states_op = QuantumCircuit(1)
+        states_op.x(0)
+        states_op.h(0)
 
-        >>> expectation_value = estimator.run(states_op, op).result().values
+        expectation_value = estimator.run(states_op, op).result().values
 
-        >>> print(expectation_value)
+        print(expectation_value)
+
+    .. testoutput::
+
         [0.-1.j]
 
 
@@ -1223,48 +1290,54 @@ Algorithm-Agnostic Expectations
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import X, H, I, MatrixExpectation, ListOp, StateFn
-        >>> from qiskit.utils import QuantumInstance
-        >>> from qiskit_aer import AerSimulator
+        from qiskit.opflow import X, H, I, MatrixExpectation, ListOp, StateFn
+        from qiskit.utils import QuantumInstance
+        from qiskit_aer import AerSimulator
 
-        >>> backend = AerSimulator(method='statevector')
-        >>> q_instance = QuantumInstance(backend)
-        >>> sampler = CircuitSampler(q_instance, attach_results=True)
-        >>> expect = MatrixExpectation()
+        backend = AerSimulator(method='statevector')
+        q_instance = QuantumInstance(backend)
+        sampler = CircuitSampler(q_instance, attach_results=True)
+        expect = MatrixExpectation()
 
-        >>> mixed_ops = ListOp([X.to_matrix_op(), H])
-        >>> converted_meas = expect.convert(~StateFn(mixed_ops))
+        mixed_ops = ListOp([X.to_matrix_op(), H])
+        converted_meas = expect.convert(~StateFn(mixed_ops))
 
-        >>> plus_mean = converted_meas @ Plus
-        >>> values_plus = sampler.convert(plus_mean).eval()
+        plus_mean = converted_meas @ Plus
+        values_plus = sampler.convert(plus_mean).eval()
 
-        >>> values_plus
+        print(values_plus)
+
+    .. testoutput::
+
         [(1+0j), (0.7071067811865476+0j)]
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.primitives import Estimator
-        >>> from qiskit.quantum_info import SparsePauliOp
-        >>> from qiskit.quantum_info import Clifford
+        from qiskit.primitives import Estimator
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit.quantum_info import Clifford
 
-        >>> X = SparsePauliOp("X")
+        X = SparsePauliOp("X")
 
-        >>> qc = QuantumCircuit(1)
-        >>> qc.h(0)
-        >>> H = Clifford(qc).to_operator()
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        H = Clifford(qc).to_operator()
 
-        >>> plus = QuantumCircuit(1)
-        >>> plus.h(0)
+        plus = QuantumCircuit(1)
+        plus.h(0)
 
-        >>> estimator = Estimator()
-        >>> values_plus = estimator.run([plus, plus], [X, H]).result().values
+        estimator = Estimator()
+        values_plus = estimator.run([plus, plus], [X, H]).result().values
 
-        >>> values_plus
-        array([1.        , 0.70710678])
+        print(values_plus)
+
+    .. testoutput::
+
+        [1.         0.70710678]
 
 
 CVaRExpectation
@@ -1287,46 +1360,52 @@ CVaRExpectation
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.opflow import CVaRExpectation, PauliSumOp
+        from qiskit.opflow import CVaRExpectation, PauliSumOp
 
-        >>> from qiskit.algorithms import VQE
-        >>> from qiskit.algorithms.optimizers import SLSQP
-        >>> from qiskit.circuit.library import TwoLocal
-        >>> from qiskit_aer import AerSimulator
+        from qiskit.algorithms import VQE
+        from qiskit.algorithms.optimizers import SLSQP
+        from qiskit.circuit.library import TwoLocal
+        from qiskit_aer import AerSimulator
 
-        >>> backend = AerSimulator(method="statevector")
-        >>> ansatz = TwoLocal(2, 'ry', 'cz')
-        >>> op = PauliSumOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
-        >>> alpha = 0.2
-        >>> cvar_expectation = CVaRExpectation(alpha=alpha)
-        >>> opt = SLSQP(maxiter=1000)
-        >>> vqe = VQE(ansatz, expectation=cvar_expectation, optimizer=opt, quantum_instance=backend)
-        >>> result = vqe.compute_minimum_eigenvalue(op)
+        backend = AerSimulator(method="statevector")
+        ansatz = TwoLocal(2, 'ry', 'cz')
+        op = PauliSumOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
+        alpha = 0.2
+        cvar_expectation = CVaRExpectation(alpha=alpha)
+        opt = SLSQP(maxiter=1000)
+        vqe = VQE(ansatz, expectation=cvar_expectation, optimizer=opt, quantum_instance=backend)
+        result = vqe.compute_minimum_eigenvalue(op)
 
-        >>> print(result.eigenvalue)
+        print(result.eigenvalue)
+
+    .. testoutput::
+
         (-1+0j)
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.quantum_info import SparsePauliOp
+        from qiskit.quantum_info import SparsePauliOp
 
-        >>> from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
-        >>> from qiskit.algorithms.optimizers import SLSQP
-        >>> from qiskit.circuit.library import TwoLocal
-        >>> from qiskit.primitives import Sampler
+        from qiskit.algorithms.minimum_eigensolvers import SamplingVQE
+        from qiskit.algorithms.optimizers import SLSQP
+        from qiskit.circuit.library import TwoLocal
+        from qiskit.primitives import Sampler
 
-        >>> ansatz = TwoLocal(2, 'ry', 'cz')
-        >>> op = SparsePauliOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
-        >>> opt = SLSQP(maxiter=1000)
-        >>> alpha = 0.2
-        >>> vqe = SamplingVQE(Sampler(), ansatz, opt, aggregation=alpha)
-        >>> result = vqe.compute_minimum_eigenvalue(op)
+        ansatz = TwoLocal(2, 'ry', 'cz')
+        op = SparsePauliOp.from_list([('ZZ',1), ('IZ',1), ('II',1)])
+        opt = SLSQP(maxiter=1000)
+        alpha = 0.2
+        vqe = SamplingVQE(Sampler(), ansatz, opt, aggregation=alpha)
+        result = vqe.compute_minimum_eigenvalue(op)
 
-        >>> print(result.eigenvalue)
+        print(result.eigenvalue)
+
+    .. testoutput::
+
         -1.0
 
 
@@ -1460,70 +1539,77 @@ list:
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.circuit import Parameter, QuantumCircuit
-        >>> from qiskit.opflow import Gradient, X, Z, StateFn, CircuitStateFn
-        >>> import numpy as np
+        from qiskit.circuit import Parameter, QuantumCircuit
+        from qiskit.opflow import Gradient, X, Z, StateFn, CircuitStateFn
+        import numpy as np
 
-        >>> ham = 0.5 * X - 1 * Z
+        ham = 0.5 * X - 1 * Z
 
-        >>> a = Parameter("a")
-        >>> b = Parameter("b")
-        >>> c = Parameter("c")
-        >>> params = [a,b,c]
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
+        params = [a,b,c]
 
-        >>> qc = QuantumCircuit(1)
-        >>> qc.h(0)
-        >>> qc.u(a, b, c, 0)
-        >>> qc.h(0)
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.u(a, b, c, 0)
+        qc.h(0)
 
-        >>> op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
         # the gradient class acted similarly opflow converters,
         # with a .convert() step and an .eval() step
-        >>> state_grad = Gradient(grad_method="param_shift").convert(operator=op, params=params)
+        state_grad = Gradient(grad_method="param_shift").convert(operator=op, params=params)
 
         # the old workflow did not allow for batched evaluation of parameter values
-        >>> values_dict = [{a: np.pi / 4, b: 0, c: 0}, {a: np.pi / 4, b: np.pi / 4, c: np.pi / 4}]
-        >>> gradients = []
-        >>> for i, value_dict in enumerate(values_dict):
-        ...     gradients.append(state_grad.assign_parameters(value_dict).eval())
+        values_dict = [{a: np.pi / 4, b: 0, c: 0}, {a: np.pi / 4, b: np.pi / 4, c: np.pi / 4}]
+        gradients = []
+        for i, value_dict in enumerate(values_dict):
+             gradients.append(state_grad.assign_parameters(value_dict).eval())
 
-        >>> print(gradients)
+        print(gradients)
+
+    .. testoutput::
+
         [[(0.35355339059327356+0j), (-1.182555756156289e-16+0j), (-1.6675e-16+0j)], [(0.10355339059327384+0j), (0.8535533905932734+0j), (1.103553390593273+0j)]]
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.circuit import Parameter, QuantumCircuit
-        >>> from qiskit.primitives import Estimator
-        >>> from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
-        >>> from qiskit.quantum_info import SparsePauliOp
+        from qiskit.circuit import Parameter, QuantumCircuit
+        from qiskit.primitives import Estimator
+        from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
+        from qiskit.quantum_info import SparsePauliOp
+        import numpy as np
 
-        >>> ham = SparsePauliOp.from_list([("X", 0.5), ("Z", -1)])
+        ham = SparsePauliOp.from_list([("X", 0.5), ("Z", -1)])
 
-        >>> a = Parameter("a")
-        >>> b = Parameter("b")
-        >>> c = Parameter("c")
+        a = Parameter("a")
+        b = Parameter("b")
+        c = Parameter("c")
 
-        >>> qc = QuantumCircuit(1)
-        >>> qc.h(0)
-        >>> qc.u(a, b, c, 0)
-        >>> qc.h(0)
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.u(a, b, c, 0)
+        qc.h(0)
 
-        >>> estimator = Estimator()
-        >>> gradient = ParamShiftEstimatorGradient(estimator)
+        estimator = Estimator()
+        gradient = ParamShiftEstimatorGradient(estimator)
 
         # the new workflow follows an interface close to the primitives'
-        >>> param_list = [[np.pi / 4, 0, 0], [np.pi / 4, np.pi / 4, np.pi / 4]]
+        param_list = [[np.pi / 4, 0, 0], [np.pi / 4, np.pi / 4, np.pi / 4]]
 
         # for batched evaluations, the number of circuits must match the
         # number of parameter value sets
-        >>> gradients = gradient.run([qc] * 2, [ham] * 2, param_list).result().gradients
+        gradients = gradient.run([qc] * 2, [ham] * 2, param_list).result().gradients
 
-        >>> print(gradients)
+        print(gradients)
+
+    .. testoutput::
+
         [array([ 3.53553391e-01,  0.00000000e+00, -1.80411242e-16]), array([0.10355339, 0.85355339, 1.10355339])]
 
 
@@ -1532,54 +1618,62 @@ list:
 
     **Opflow**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.circuit import Parameter, QuantumCircuit
-        >>> from qiskit.opflow import QFI, CircuitStateFn
+        from qiskit.circuit import Parameter, QuantumCircuit
+        from qiskit.opflow import QFI, CircuitStateFn
+        import numpy as np
 
         # create the circuit
-        >>> a, b = Parameter("a"), Parameter("b")
-        >>> qc = QuantumCircuit(1)
-        >>> qc.h(0)
-        >>> qc.rz(a, 0)
-        >>> qc.rx(b, 0)
+        a, b = Parameter("a"), Parameter("b")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.rz(a, 0)
+        qc.rx(b, 0)
 
         # convert the circuit to a QFI object
-        >>> op = CircuitStateFn(qc)
-        >>> qfi = QFI(qfi_method="lin_comb_full").convert(operator=op)
+        op = CircuitStateFn(qc)
+        qfi = QFI(qfi_method="lin_comb_full").convert(operator=op)
 
         # bind parameters and evaluate
-        >>> values_dict = {a: np.pi / 4, b: 0.1}
-        >>> qfi = qfi.bind_parameters(values_dict).eval()
+        values_dict = {a: np.pi / 4, b: 0.1}
+        qfi = qfi.bind_parameters(values_dict).eval()
 
-        >>> print(qfi)
+        print(qfi)
+
+    .. testoutput::
+
         [[ 1.00000000e+00+0.j -3.63575685e-16+0.j]
          [-3.63575685e-16+0.j  5.00000000e-01+0.j]]
 
     **Alternative**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.circuit import Parameter, QuantumCircuit
-        >>> from qiskit.primitives import Estimator
-        >>> from qiskit.algorithms.gradients import LinCombQGT, QFI
+        from qiskit.circuit import Parameter, QuantumCircuit
+        from qiskit.primitives import Estimator
+        from qiskit.algorithms.gradients import LinCombQGT, QFI
+        import numpy as np
 
         # create the circuit
-        >>> a, b = Parameter("a"), Parameter("b")
-        >>> qc = QuantumCircuit(1)
-        >>> qc.h(0)
-        >>> qc.rz(a, 0)
-        >>> qc.rx(b, 0)
+        a, b = Parameter("a"), Parameter("b")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.rz(a, 0)
+        qc.rx(b, 0)
 
         # initialize QFI
-        >>> estimator = Estimator()
-        >>> qgt = LinCombQGT(estimator)
-        >>> qfi = QFI(qgt)
+        estimator = Estimator()
+        qgt = LinCombQGT(estimator)
+        qfi = QFI(qgt)
 
         # evaluate
-        >>> values_list = [[np.pi / 4, 0.1]]
-        >>> qfi = qfi.run(qc, values_list).result().qfis
+        values_list = [[np.pi / 4, 0.1]]
+        qfi = qfi.run(qc, values_list).result().qfis
 
-        >>> print(qfi)
+        print(qfi)
+
+    .. testoutput::
+
         [array([[ 1.00000000e+00, -1.50274614e-16],
                [-1.50274614e-16,  5.00000000e-01]])]
