@@ -163,7 +163,7 @@ class PadDynamicalDecoupling(BasePadding):
         self._spacing = spacing
         self._extra_slack_distribution = extra_slack_distribution
 
-        self._dd_sequence_lengths = dict()
+        self._dd_sequence_lengths = {}
         self._sequence_phase = 0
         if target is not None:
             self._durations = target.durations()

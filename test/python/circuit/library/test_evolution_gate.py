@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -286,6 +286,11 @@ class TestEvolutionGate(QiskitTestCase):
         """Test an operator with complex coefficient raises an error."""
         with self.assertRaises(ValueError):
             _ = PauliEvolutionGate(Pauli("iZ"))
+
+    def test_paramtrized_op_raises(self):
+        """Test an operator with parametrized coefficient raises an error."""
+        with self.assertRaises(ValueError):
+            _ = PauliEvolutionGate(SparsePauliOp("Z", np.array(Parameter("t"))))
 
     @data(LieTrotter, MatrixExponential)
     def test_inverse(self, synth_cls):

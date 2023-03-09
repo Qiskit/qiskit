@@ -13,7 +13,7 @@
 """Test evolver problem class."""
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-from ddt import data, ddt, unpack
+from ddt import data, ddt
 from numpy.testing import assert_raises
 from qiskit import QuantumCircuit
 from qiskit.algorithms import TimeEvolutionProblem
@@ -79,13 +79,6 @@ class TestTimeEvolutionProblem(QiskitAlgorithmsTestCase):
         self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
         self.assertEqual(evo_problem.t_param, expected_t_param)
         self.assertEqual(evo_problem.param_value_map, expected_param_value_dict)
-
-    @data([Y, -1, One], [Y, -1.2, One], [Y, 0, One])
-    @unpack
-    def test_init_errors(self, hamiltonian, time, initial_state):
-        """Tests expected errors are thrown on invalid time argument."""
-        with assert_raises(ValueError):
-            _ = TimeEvolutionProblem(hamiltonian, time, initial_state)
 
     def test_validate_params(self):
         """Tests expected errors are thrown on parameters mismatch."""

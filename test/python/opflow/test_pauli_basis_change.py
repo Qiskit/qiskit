@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Pauli Change of Basis Converter """
+"""Test Pauli Change of Basis Converter"""
 
 import itertools
 import unittest

@@ -14,7 +14,9 @@
 
 import math
 import unittest
+from unittest.mock import patch
 from test import combine
+from test.python.transpiler._dummy_passes import DummyTP
 
 import numpy as np
 from ddt import ddt
@@ -25,6 +27,7 @@ from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
@@ -357,6 +360,23 @@ class TestBackendSampler(QiskitTestCase):
         result3 = sampler.run([qc, qc2]).result()
         self.assertDictAlmostEqual(result3.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result3.quasi_dists[1], {1: 1}, 0.1)
+
+    def test_bound_pass_manager(self):
+        """Test bound pass manager."""
+
+        dummy_pass = DummyTP()
+
+        with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+            bound_pass = PassManager(dummy_pass)
+            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = sampler.run(self._circuit[0]).result()
+            self.assertTrue(mock_pass.call_count == 1)
+
+        with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+            bound_pass = PassManager(dummy_pass)
+            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
+            self.assertTrue(mock_pass.call_count == 2)
 
 
 if __name__ == "__main__":

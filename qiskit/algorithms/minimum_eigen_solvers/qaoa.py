@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" The Quantum Approximate Optimization Algorithm. """
+"""The Quantum Approximate Optimization Algorithm."""
 
 from typing import List, Callable, Optional, Union
 import warnings
@@ -65,6 +65,7 @@ class QAOA(VQE):
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def __init__(
         self,
