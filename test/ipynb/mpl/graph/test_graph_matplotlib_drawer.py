@@ -376,8 +376,8 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         and https://github.com/Qiskit/qiskit-terra/pull/7264.
         """
         circuit = QuantumCircuit(3)
-        circ.h(1)
-        circ.sxdg(2)
+        circuit.h(1)
+        circuit.sxdg(2)
 
         # getting the state using backend
         backend = BasicAer.get_backend("statevector_simulator")
@@ -387,12 +387,12 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         self.graph_state_drawer(
             state=state,
             output="bloch",
-            figsize=(3,2),
+            figsize=(3, 2),
             font_size=10,
             title="|0+R> state",
             title_font_size=14,
             title_pad=8,
-            filename="bloch_multivector_figsize_improvements.png"
+            filename="bloch_multivector_figsize_improvements.png",
         )
 
 
