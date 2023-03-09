@@ -1,6 +1,6 @@
-###########################
-Use the Estimator primitive
-###########################
+###############################################
+Compute an expectation value with ``Estimator``
+###############################################
 
 This guide shows how to get the expected value of an observable for a given quantum circuit with the :class:`~qiskit.primitives.Estimator` primitive.
 

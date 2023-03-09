@@ -1,6 +1,6 @@
-#########################
-Use the Sampler primitive
-#########################
+#####################################################
+Compute circuit output probabilities with ``Sampler``
+#####################################################
 
 This guide shows how to get the probability distribution of a quantum circuit with the :class:`~qiskit.primitives.Sampler` primitive.
 
