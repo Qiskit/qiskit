@@ -420,8 +420,6 @@ class DensityMatrix(QuantumState, TolerancesMixin):
                 if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                 values. If None no rounding is done (Default: None).
-            clip (bool): if ``True``, clip the probabilities to ``[0, 1]``
-                to account for possible roundoff errors (Default: ``True``).
 
         Returns:
             np.array: The Numpy vector array of probabilities.
@@ -484,8 +482,8 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         )
         if decimals is not None:
             probs = probs.round(decimals=decimals)
-        if clip:
-            probs = np.clip(probs, a_min=0, a_max=1)
+
+        probs = np.clip(probs, a_min=0, a_max=1)
         return probs
 
     def reset(self, qargs=None):

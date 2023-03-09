@@ -196,7 +196,7 @@ class QuantumState:
         pass
 
     @abstractmethod
-    def probabilities(self, qargs=None, decimals=None, clip=False):
+    def probabilities(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability vector.
 
         Measurement probabilities are with respect to measurement in the
@@ -207,15 +207,13 @@ class QuantumState:
                 if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                 values. If None no rounding is done (Default: None).
-            clip (bool): if ``True``, clip the probabilities to ``[0, 1]``
-                to account for possible roundoff errors (Default: ``True``).
 
         Returns:
             np.array: The Numpy vector array of probabilities.
         """
         pass
 
-    def probabilities_dict(self, qargs=None, decimals=None, clip=False):
+    def probabilities_dict(self, qargs=None, decimals=None):
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -231,14 +229,12 @@ class QuantumState:
                 if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                 values. If None no rounding is done (Default: None).
-            clip (bool): if ``True``, clip the probabilities to ``[0, 1]``
-                to account for possible roundoff errors (Default: ``True``).
 
         Returns:
             dict: The measurement probabilities in dict (ket) form.
         """
         return self._vector_to_dict(
-            self.probabilities(qargs=qargs, decimals=decimals, clip=clip),
+            self.probabilities(qargs=qargs, decimals=decimals),
             self.dims(qargs),
             string_labels=True,
         )
