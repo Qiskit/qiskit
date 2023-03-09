@@ -38,7 +38,9 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
+    "sphinx.ext.doctest"
 ]
+
 templates_path = ["_templates"]
 
 # Number figures, tables and code-blocks if they have a caption.
@@ -89,3 +91,7 @@ html_css_files = []
 autosummary_generate = True
 autosummary_generate_overwrite = False
 autoclass_content = "both"
+
+# -- Options for doctest -------------------------------------
+
+doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL | doctest.DONT_ACCEPT_TRUE_FOR_1
