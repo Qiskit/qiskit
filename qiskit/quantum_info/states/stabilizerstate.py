@@ -318,6 +318,8 @@ class StabilizerState(QuantumState):
                 if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                 values. If None no rounding is done (Default: None).
+            clip (bool): if ``True``, clip the probabilities to ``[0, 1]``
+                to account for possible roundoff errors (Default: ``True``).
 
         Returns:
             np.array: The Numpy vector array of probabilities.
@@ -331,9 +333,12 @@ class StabilizerState(QuantumState):
             place = int(key, 2)
             probs[place] = value
 
+        if clip:
+            probs = np.clip(probs, a_min=0, a_max=1)
+
         return probs
 
-    def probabilities_dict(self, qargs=None, decimals=None):
+    def probabilities_dict(self, qargs=None, decimals=None, clip=False):
         """Return the subsystem measurement probability dictionary.
 
         Measurement probabilities are with respect to measurement in the
@@ -349,6 +354,8 @@ class StabilizerState(QuantumState):
                 if None return for all subsystems (Default: None).
             decimals (None or int): the number of decimal places to round
                 values. If None no rounding is done (Default: None).
+            clip (bool): if ``True``, clip the probabilities to ``[0, 1]``
+                to account for possible roundoff errors (Default: ``True``).
 
         Returns:
             dict: The measurement probabilities in dict (ket) form.
@@ -366,7 +373,11 @@ class StabilizerState(QuantumState):
 
         if decimals is not None:
             for key, value in probs.items():
-                probs[key] = round(value, decimals)
+                prob = round(value, decimals)
+                if clip:
+                    prob = np.clip(prob, a_min=0, a_max=1)
+
+                probs[key] = prob
 
         return probs
 
