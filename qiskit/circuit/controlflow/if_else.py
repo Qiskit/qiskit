@@ -555,7 +555,7 @@ def _unify_circuit_resources(
     return _unify_circuit_registers(true_body, false_body)
 
 
-def _unify_circuit_resources_rebuild(  # pylint: disable=invalid-name  # (it's too long?!)
+def _unify_circuit_resources_rebuild(
     true_body: QuantumCircuit, false_body: QuantumCircuit
 ) -> Tuple[QuantumCircuit, QuantumCircuit]:
     """

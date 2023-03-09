@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test of scikit-quant optimizers. """
+"""Test of scikit-quant optimizers."""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
