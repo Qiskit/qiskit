@@ -21,7 +21,7 @@ Among them it is preferable to use :class:`~qiskit.quantum_info.SparsePauliOp`.
 
     from qiskit.quantum_info import SparsePauliOp
 
-    obs = SparsePauliOp(["II", "XX", "YY", "ZZ"], coeffs=[1, 1, -1, 1])
+    observable = SparsePauliOp(["II", "XX", "YY", "ZZ"], coeffs=[1, 1, -1, 1])
 
 Initialize quantum circuits
 ===========================
@@ -66,7 +66,7 @@ the results with the :meth:`~qiskit.providers.JobV1.result` method.
 
 .. testcode::
 
-    job = estimator.run(qc, obs)
+    job = estimator.run(qc, observable)
     result = job.result()
     print(result)
 
@@ -104,10 +104,10 @@ of the previous example.
     from qiskit.circuit import Parameter
 
     theta = Parameter('θ')
-    qc = QuantumCircuit(2)
-    qc.ry(theta, 0)
-    qc.cx(0,1)
-    print(qc.draw())
+    param_qc = QuantumCircuit(2)
+    param_qc.ry(theta, 0)
+    param_qc.cx(0,1)
+    print(param_qc.draw())
 
 .. testoutput::
 
@@ -128,7 +128,7 @@ that corresponds to the ``i``-th circuit and observable.
     
     parameter_values = [[0], [np.pi/6], [np.pi/2]]
 
-    job = estimator.run([qc]*3, [obs]*3, parameter_values=parameter_values)
+    job = estimator.run([param_qc]*3, [observable]*3, parameter_values=parameter_values)
     values = job.result().values
 
     for i in range(3):
@@ -140,4 +140,110 @@ that corresponds to the ``i``-th circuit and observable.
     Parameter: 0.52360	 Expectation value: 3.0
     Parameter: 1.57080	 Expectation value: 4.0
 
+Change run options
+==================
 
+It is also possible that you may want to change any other option.
+
+For example, in the previous sections the :class:`~qiskit.primitives.Estimator`
+is :class:`~qiskit.quantum_info.Statevector`-based but it can be changed
+to shot-based by setting a number of ``shots``. For reproducibility purposes, in this
+guide a ``seed`` will also be set.
+
+There are two main ways of doing this:
+
+* Setting keyword arguments in the :meth:`~qiskit.primitives.Estimator.run` method.
+* Modify :class:`~qiskit.primitives.Estimator` options.
+
+Set keyword arguments for :meth:`~qiskit.primitives.Estimator.run`
+------------------------------------------------------------------
+
+If you only want to change the settings for a specific run, it can be more convenient to
+set the options inside the :meth:`~qiskit.primitives.Estimator.run` method. You can do this by
+passing them as keyword arguments.
+
+.. testcode::
+
+    job = estimator.run(qc, observable, shots=2048, seed=123)
+    result = job.result()
+    print(result)
+
+.. testoutput::
+
+    EstimatorResult(values=array([4.]), metadata=[{'variance': 3.552713678800501e-15, 'shots': 2048}])
+
+.. testcode::
+
+    print(result.values[0])
+
+.. testoutput::
+
+    3.999999998697238
+
+Change :class:`~qiskit.primitives.Estimator` options
+-----------------------------------------------------
+
+If you want to keep some configuration values for several runs, it can be better to
+change the :class:`~qiskit.primitives.Estimator` options. That way you can use the same 
+:class:`~qiskit.primitives.Estimator` object as many times as you wish without having to
+rewrite the configuration values every time you use :meth:`~qiskit.primitives.Estimator.run`.
+
+Modify existing :class:`~qiskit.primitives.Estimator`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you prefer to change the options of an already-defined :class:`~qiskit.primitives.Estimator`, you can use
+:meth:`~qiskit.primitives.Estimator.set_options` and introduce the new options as keyword arguments.
+
+.. testcode::
+
+    estimator.set_options(shots=2048, seed=123)
+
+    job = estimator.run(qc, observable)
+    result = job.result()
+    print(result)
+
+.. testoutput::
+
+    EstimatorResult(values=array([4.]), metadata=[{'variance': 3.552713678800501e-15, 'shots': 2048}])
+
+.. testcode::
+
+    print(result.values[0])
+
+.. testoutput::
+
+    3.999999998697238
+
+
+Define a new :class:`~qiskit.primitives.Estimator` with the options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you prefer to define a new :class:`~qiskit.primitives.Estimator` with new options, you need to
+define a ``dict`` like this one:
+
+.. testcode::
+
+    options = {"shots": 2048, "seed": 123}
+
+And then you can introduce it into your new :class:`~qiskit.primitives.Estimator` with the
+``options`` argument.
+
+.. testcode::
+
+    estimator = Estimator(options=options)
+
+    job = estimator.run(qc, observable)
+    result = job.result()
+    print(result)
+
+.. testoutput::
+
+    EstimatorResult(values=array([4.]), metadata=[{'variance': 3.552713678800501e-15, 'shots': 2048}])
+
+.. testcode::
+
+    print(result.values[0])
+
+.. testoutput::
+
+    3.999999998697238
