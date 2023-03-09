@@ -14,8 +14,7 @@
 
 import os
 import re
-import sys
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
 
@@ -100,7 +99,14 @@ setup(
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
     rust_extensions=[
-        RustExtension("qiskit._accelerate", "crates/accelerate/Cargo.toml", binding=Binding.PyO3)
+        RustExtension(
+            "qiskit._accelerate",
+            "crates/accelerate/Cargo.toml",
+            binding=Binding.PyO3,
+            # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior
+            # of whether it's an editable installation.
+            debug=True if os.getenv("RUST_DEBUG") == 1 else None,
+        )
     ],
     zip_safe=False,
     entry_points={
