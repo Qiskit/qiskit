@@ -1,9 +1,16 @@
 ---
 features:
   - |
-    A new method :meth:`.CalibrationEntry.get_duration` has been added to
-    calibration entries. This method returns duration of calibration
-    in units of dt when available, otherwise returns None.
+    A new method :meth:`.CalibrationEntry.user_provided` has been added to
+    calibration entries. This method can be called to check whether the entry
+    is defined by an end user or backend.
+  - |
+    New method :meth:`.Target.calibration_supported` and
+    :meth:`.Target.get_calibration` have been added to provide
+    convenient access to the calibration of instruction.
+    The getter method can be called with parameter args and kwargs, and
+    it returns a pulse schedule built with parameters when the calibration
+    is templated with parameters.
 upgrade:
   - |
     :meth:`.Target.update_from_instruction_schedule_map` no longer raises
@@ -12,3 +19,7 @@ upgrade:
     In the former case, it just ignores the inst map definition for undefined qubits.
     In the latter case, gate mapping is pulled from the standard Qiskit gates
     and finally custom :class:`.Gate` object is defined from the schedule name.
+fixes:
+  - |
+    A bug that a custom calibration in :class:`.InstructionScheduleMap` is ignored
+    when it is set to transpile with :class:`.BackendV2` instance.
