@@ -2265,7 +2265,7 @@ class QuantumCircuit:
         return self.append(Reset(), [qubit], [])
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
-        """Measure in Z basis a quantum bit (``qubit``) into a classical bit (``cbit``).
+        r"""Measure in Z basis a quantum bit (``qubit``) into a classical bit (``cbit``).
 
         When quantum state is measured a qubit is project in the computational (Pauli Z) basis to
         either :math:`|0\rangle` or :math:`|1\rangle`. The classical bit ``cbit`` indicates the result
