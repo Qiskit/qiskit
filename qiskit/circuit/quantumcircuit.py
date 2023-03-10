@@ -2265,7 +2265,7 @@ class QuantumCircuit:
         return self.append(Reset(), [qubit], [])
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
-        """Measure quantum bit (qubit) into classical bit (cbit).
+        """Measure a quantum bit (``qubit``) into a classical bit (``cbit``).
 
         When a qubit is measured, its state collapses to a classical bit and copied to a
         classical wire.
