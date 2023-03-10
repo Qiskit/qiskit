@@ -465,7 +465,7 @@ class CouplingTest(QiskitTestCase):
         self.assertNotEqual(coupling0, coupling3)
 
         # additional test for comparison to a non-CouplingMap object
-        self.assertTrue(coupling0 != 1)
+        self.assertNotEqual(coupling0, 1)
 
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
