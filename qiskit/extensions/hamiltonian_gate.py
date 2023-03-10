@@ -17,31 +17,34 @@ Gate described by the time evolution of a Hermitian Hamiltonian operator.
 from numbers import Number
 import numpy
 
-from qiskit.circuit import Gate, QuantumCircuit, ParameterExpression
+from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister, ParameterExpression
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.predicates import is_hermitian_matrix
-from qiskit.extensions.unitary import UnitaryGate
+from qiskit.extensions.exceptions import ExtensionError
 from qiskit.circuit.exceptions import CircuitError
+
+from .unitary import UnitaryGate
 
 
 class HamiltonianGate(Gate):
     """Class for representing evolution by a Hamiltonian operator as a gate.
 
-    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = \exp(-i t H)`,
+    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
     which can be decomposed into basis gates if it is 2 qubits or less, or
     simulated directly in Aer for more qubits. Note that you can also directly
     use :meth:`.QuantumCircuit.hamiltonian`.
     """
 
     def __init__(self, data, time, label=None):
-        """
+        """Create a gate from a hamiltonian operator and evolution time parameter t
+
         Args:
             data (matrix or Operator): a hermitian operator.
             time (float or ParameterExpression): time evolution parameter.
             label (str): unitary name for backend [Default: None].
 
         Raises:
-            ValueError: if input data is not an N-qubit unitary operator.
+            ExtensionError: if input data is not an N-qubit unitary operator.
         """
         if hasattr(data, "to_matrix"):
             # If input is Gate subclass or some other class object that has
@@ -56,14 +59,14 @@ class HamiltonianGate(Gate):
         data = numpy.array(data, dtype=complex)
         # Check input is unitary
         if not is_hermitian_matrix(data):
-            raise ValueError("Input matrix is not Hermitian.")
+            raise ExtensionError("Input matrix is not Hermitian.")
         if isinstance(time, Number) and time != numpy.real(time):
-            raise ValueError("Evolution time is not real.")
+            raise ExtensionError("Evolution time is not real.")
         # Check input is N-qubit matrix
         input_dim, output_dim = data.shape
         num_qubits = int(numpy.log2(input_dim))
         if input_dim != output_dim or 2**num_qubits != input_dim:
-            raise ValueError("Input matrix is not an N-qubit operator.")
+            raise ExtensionError("Input matrix is not an N-qubit operator.")
 
         # Store instruction params
         super().__init__("hamiltonian", num_qubits, [data, time], label=label)
@@ -108,13 +111,14 @@ class HamiltonianGate(Gate):
 
     def _define(self):
         """Calculate a subcircuit that implements this unitary."""
-        qc = QuantumCircuit(self.num_qubits, name=self.name)
-        qc._append(UnitaryGate(self.to_matrix()), qc.qubits, [])
+        q = QuantumRegister(self.num_qubits, "q")
+        qc = QuantumCircuit(q, name=self.name)
+        qc._append(UnitaryGate(self.to_matrix()), q[:], [])
         self.definition = qc
 
     def qasm(self):
         """Raise an error, as QASM is not defined for the HamiltonianGate."""
-        raise ValueError("HamiltonianGate has no QASM definition.")
+        raise ExtensionError("HamiltonianGate has no QASM definition.")
 
     def validate_parameter(self, parameter):
         """Hamiltonian parameter has to be an ndarray, operator or float."""

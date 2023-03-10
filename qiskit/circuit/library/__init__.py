@@ -322,15 +322,6 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
-
-Time Evolution Gates
-====================
-
-.. autosummary::
-   :toctree: ../stubs/
-   :template: autosummary/class_no_inherited_members.rst
-
-   HamiltonianGate
    PauliEvolutionGate
 
 
@@ -521,10 +512,7 @@ from .generalized_gates import (
     PauliGate,
     LinearFunction,
 )
-from .evolution import (
-    HamiltonianGate,
-    PauliEvolutionGate,
-)
+from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,
