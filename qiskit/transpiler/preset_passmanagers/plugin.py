@@ -165,7 +165,7 @@ Plugin API
 """
 
 import abc
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import stevedore
 
@@ -304,14 +304,26 @@ def list_stage_plugins(stage_name: str) -> List[str]:
         raise TranspilerError(f"Invalid stage name: {stage_name}")
 
 
-def passmanager_stage_plugins(stage: str):
-    """Return the class type of an entry point.
+def passmanager_stage_plugins(stage: str) -> Dict[str, PassManagerStagePlugin]:
+    """Return a dict with, for each stage name, the class type of the plugin.
+
+    This function is useful for getting more information about a plugin:
+
+        from qiskit.transpiler.preset_passmanagers.plugin import passmanager_stage_plugins
+        routing_plugins = passmanager_stage_plugins('routing')
+        basic_plugin = routing_plugins['basic']
+        ?basic_plugin
+
+        Type:        BasicSwapPassManager
+        String form: <...builtin_plugins.BasicSwapPassManager object at 0xdeadbeef>
+        File:        .../qiskit/transpiler/preset_passmanagers/builtin_plugins.py
+        Docstring:   Plugin class for routing stage with :class:`~.BasicSwap`
 
     Args:
-        stage: The stage name to get the entrypoint for
+        stage: The stage name to get
 
     Returns:
-        dict Type: TODO
+        dict: the key is the name of the plugin and the value is the class type for each.
 
     Raises:
        TranspilerError: If an invalid stage name is specified.
