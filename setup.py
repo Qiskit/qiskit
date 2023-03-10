@@ -105,7 +105,7 @@ setup(
             binding=Binding.PyO3,
             # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior
             # of whether it's an editable installation.
-            debug=True if os.getenv("RUST_DEBUG") == 1 else None,
+            debug=True if os.getenv("RUST_DEBUG") == "1" else None,
         )
     ],
     zip_safe=False,
