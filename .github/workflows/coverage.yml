@@ -45,8 +45,8 @@ jobs:
           stestr run
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`
-          # keeping the `src/*` files; we don't care about coverage in dependencies.
-          grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'src/*'
+          # keeping the `crates/*` files; we don't care about coverage in dependencies.
+          grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'crates/*'
         env:
           QISKIT_TEST_CAPTURE_STREAMS: 1
           QISKIT_PARALLEL: FALSE
