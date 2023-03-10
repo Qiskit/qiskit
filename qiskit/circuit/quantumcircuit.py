@@ -2265,7 +2265,7 @@ class QuantumCircuit:
         return self.append(Reset(), [qubit], [])
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
-        """Measure a quantum bit (``qubit``) into a classical bit (``cbit``).
+        """Measure in Z basis a quantum bit (``qubit``) into a classical bit (``cbit``).
 
         When quantum state is measured a qubit is project in the computational (Pauli Z) basis to
         either :math:`|0\rangle` or :math:`|1\rangle`. The classical bit ``cbit`` indicates the result
@@ -2302,8 +2302,8 @@ class QuantumCircuit:
                  c: 1/══════╩═
                             0
 
-            It is possible to call ``measure`` with lists of qubits and cbits of the same size, as a
-            shortcut. These two forms produce identical output::
+            It is possible to call ``measure`` with lists of ``qubits`` and ``cbits`` as a shortcut
+            for one-to-one measurement. These two forms produce identical results::
 
             .. code-block::
 
@@ -2316,27 +2316,13 @@ class QuantumCircuit:
                circuit.measure(0, 0)
                circuit.measure(1, 1)
 
-            It is also possible to do a one-to-many readout. These two forms produce identical output::
-
-            .. code-block::
-
-               circuit = QuantumCircuit(2,2)
-               circuit.measure(0, [0,1])
-
-            .. code-block::
-
-               circuit = QuantumCircuit(2, 2)
-               circuit.measure(0, 0)
-               circuit.measure(0, 1)
-
-
             Instead of lists, you can use :class:`~qiskit.circuit.QuantumRegister` and
             :class:`~qiskit.circuit.ClassicalRegister` under the same logic.
 
             .. code-block::
 
                 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
-                qreg = QuantumRegister(1, "qreg")
+                qreg = QuantumRegister(2, "qreg")
                 creg = ClassicalRegister(2, "creg")
                 circuit = QuantumCircuit(qreg, creg)
                 circuit.measure(qreg, creg)
@@ -2347,7 +2333,7 @@ class QuantumCircuit:
 
                 circuit = QuantumCircuit(qreg, creg)
                 circuit.measure(qreg[0], creg[0])
-                circuit.measure(qreg[0], creg[1])
+                circuit.measure(qreg[1], creg[1])
 
         """
         return self.append(Measure(), [qubit], [cbit])
