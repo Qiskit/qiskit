@@ -21,15 +21,11 @@ import numpy as np
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
-
 from qiskit.exceptions import QiskitError
-
 from qiskit.quantum_info import Operator
-
-from qiskit.synthesis.evolution import EvolutionSynthesis, LieTrotter
+from qiskit.synthesis.evolution import LieTrotter
 
 from .pauli_evolution import PauliEvolutionGate
-
 from .n_local.n_local import NLocal
 
 
@@ -170,7 +166,7 @@ class EvolvedOperatorAnsatz(NLocal):
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
     def _evolve_operator(self, operator, time):
-        from qiskit.opflow import OperatorBase
+        from qiskit.opflow import OperatorBase, EvolutionBase
         from qiskit.extensions import HamiltonianGate
 
         if isinstance(operator, OperatorBase):
