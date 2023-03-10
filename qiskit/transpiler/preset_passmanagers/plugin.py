@@ -304,31 +304,22 @@ def list_stage_plugins(stage_name: str) -> List[str]:
         raise TranspilerError(f"Invalid stage name: {stage_name}")
 
 
-def entry_point_obj(stage_name: str, plugin_name: str) -> abc.ABCMeta:
+def passmanager_stage_plugins(stage: str):
     """Return the class type of an entry point.
 
     Args:
-        stage_name: The stage name to get the entrypoint for
-        plugin_name: The plugin name to get the entrypoint for
+        stage: The stage name to get the entrypoint for
 
     Returns:
-        Type: Class of the entrypoint
+        dict Type: TODO
 
     Raises:
        TranspilerError: If an invalid stage name is specified.
     """
     plugin_mgr = PassManagerStagePluginManager()
-    if stage_name == "init":
-        return plugin_mgr.init_plugins[plugin_name].obj
-    elif stage_name == "layout":
-        return plugin_mgr.layout_plugins[plugin_name].obj
-    elif stage_name == "routing":
-        return plugin_mgr.routing_plugins[plugin_name].obj
-    elif stage_name == "translation":
-        return plugin_mgr.translation_plugins[plugin_name].obj
-    elif stage_name == "optimization":
-        return plugin_mgr.optimization_plugins[plugin_name].obj
-    elif stage_name == "scheduling":
-        return plugin_mgr.scheduling_plugins[plugin_name].obj
-    else:
-        raise TranspilerError(f"Invalid stage name: {stage_name}")
+    try:
+        manager = getattr(plugin_mgr, f"{stage}_plugins")
+    except AttributeError as exc:
+        raise TranspilerError(f"Passmanager stage {stage} not found") from exc
+
+    return {name: manager[name].obj for name in manager.names()}
