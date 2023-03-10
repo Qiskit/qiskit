@@ -22,6 +22,407 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.42.0
+*************
+
+Terra 0.23.2
+============
+
+No change
+
+Aer 0.12.0
+==========
+
+.. _Release Notes_0.12.0_Aer_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/0.12/prepare-0.12-0da477fc0492ca5d.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+The Qiskit Aer 0.12.0 release highlights are:
+
+  * Added a new GPU tensor network simulator based on
+    `cuTensorNet <https://docs.nvidia.com/cuda/cuquantum/cutensornet/index.html>`__
+  * Added a new :class:`~.AerDensityMatrix` class to the :mod:`qiskit_aer.quantum_info` module
+  * Greatly improving the runtime performance of the :class:`~.AerSimulator` and the legacy
+    :class:`~.QasmSimulator`, :class:`~.StatevectorSimulator`, and :class:`~.UnitarySimulator`
+    classes by directly converting the input :class:`~.QuantumCircuit` objects to an internal
+    C++ representation instead of first serializing the circuit to a :class:`~.QasmQobj`. This
+    improvement will be most noticeable for circuits with a small number of qubits or parameterized
+    circuits using the ``parameter_binds`` keyword argument.
+
+
+.. _Release Notes_0.12.0_Aer_New Features:
+
+New Features
+------------
+
+.. releasenotes/notes/0.12/add-NoiseModel-from_backendproperties-1a3d6d976133a661.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Added a new class method :meth:`~.NoiseModel.from_backend_properties` to
+  the :class:`NoiseModel`. This enables constructing a new :class:`~.NoiseModel`
+  from a :class:`~qiskit.providers.BackendProperties` object. Similar functionality used
+  to be present in the :meth:`.NoiseModel.from_backend` constructor,
+  however it was removed since a :class:`~qiskit.providers.BackendProperties` object alone
+  doesn't contain sufficient information to create a :class:`~.NoiseModel`
+  object.
+
+.. releasenotes/notes/0.12/add-aer-density-matrix-e2439120b24c91c9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Added a new class, :class:`~.AerDensityMatrix`, to the :mod:`qiskit_aer.quantum_info`
+  module. This class is used to provide the same interface to the
+  upstream :class:`~qiskit.quantum_info.DensityMatrix` class in Qiskit but backed by
+  Qiskit Aer's simulation.
+
+.. releasenotes/notes/0.12/add-grouping-fcc4fad69ccdac26.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Added a new keyword argument, ``abelian_grouping``, to
+  the :class:`~.Estimator`. This argument is used to control whether the
+  :class:`~.Estimator` will group the input observables into qubit-wise
+  commutable observables which reduces the number of circuit executions
+  required to compute the expectation value and improves the runtime
+  performance of the :class:`~.Estimator`. By default this is set to
+  ``True``.
+
+.. releasenotes/notes/0.12/add_initialize_density_matrix-a72b1a614b09726e.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- ``AerState`` has a new method ``initialize_density_matrix()`` that sets a density matrix
+  to ``AER::QV::DensityMatrix``. This method will be called in ``q.i.states.DensityMatrix``
+  to initialize its data with ``ndarray``. ``initialize_density_matrix()`` has a boolean
+  argument that specifies copy or share of ``ndarray`` data. If the data is shared with
+  C++ and python, the data must not be collected in python while C++ accesses it.
+
+.. releasenotes/notes/0.12/own_assembler-0c76e67a054bd12c.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The overhead for running simulations with :meth:`~.AerSimulator.run`
+  (for all simulator backend classess) has been greatly reduced. This was
+  accomplished by no longer internally serializing
+  :class:`~qiskit.circuit.QuantumCircuit` objects into
+  :class:`~qiskit.qobj.QasmQobj` and instead the
+  :class:`~qiskit.circuit.QuantumCircuit` object directly to
+  an internal C++  circuit structure used for simulation. This improvement
+  is most noticeable for simulations of circuts with a small number of qubits
+  or parameterized circuits using the ``parameter_binds`` keyword argument
+  of :meth:`~.AerSimulator.run`.
+  Note that pulse simualation (via the now deprecated :class:`~.PulseSimulator`)
+  and DASK-based simulation still use the internal serialization and will
+  not see this performance improvement.
+
+.. releasenotes/notes/0.12/own_assembler-0c76e67a054bd12c.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Added a new method to the :class:`~.AerJob`, :meth:`~.AerJob.circuits`, which
+  returns  a list of :class:`~qiskit.circuit.QuantumCircuit` objects. This method returns
+  ``None`` if Qobj is used for simulation.
+
+.. releasenotes/notes/0.12/support_kraus-ec31e636c6793b8c.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- :class:`.AerState` and :class:`.AerStatevector` now support applying :class:`~qiskit.quantum_info.Kraus` operators.
+  In :class:`.AerStatevector`, one of the Kraus operators is applied randomly to the quantum state based on the error probabilities.
+
+.. releasenotes/notes/0.12/tensor_network_gpu-e8eb3e40be3c35f7.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Added a new simulation method based on NVIDIA's `cuTensorNet <https://docs.nvidia.com/cuda/cuquantum/cutensornet/index.html>`__
+  APIs of cuQuantum SDK. This provides a GPU accelerated general tensor
+  network simulator that can simulate any quantum circuit, by internally
+  translating the circuit into a tensor network to perform the simulation.
+  To use this simulation method, set ``method="tensor_network"`` and
+  ``device="GPU"`` when initializing an :class:`~.AerSimulator` object.
+  For example::
+
+      from qiskit_aer import AerSimulator
+
+      tensor_net_sim = AerSimulator(method="tensor_network", device="GPU")
+
+  This method supports both statevector and density matrix simulations.
+  Noise simulation can also be done with a density matrix single shot
+  simulation if there are not any :class:`~.SaveStatevector` operations
+  in the circuit.
+
+  This new simulation method also supports parallelization with multiple GPUs and
+  MPI processes by using tensor network slicing technique. However, this type of
+  simulation will likely take a very long time if the input circuits are
+  complicated.
+
+.. releasenotes/notes/0.12/use_specified_bla_vendor-ca0322e993378048.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The ``BLA_VENDOR`` environment variable can now be specified to use a
+  different BLAS library when building Qiskit Aer from source. By default
+  if this is not specified OpenBLAS will be used by default. If
+  the BLAS library specified in `BLA_VENDOR`` can not be found then the
+  Cmake build process will stop.
+
+
+.. _Release Notes_0.12.0_Aer_Known Issues:
+
+Known Issues
+------------
+
+.. releasenotes/notes/0.12/use_conan_1.x-f12570e2cfc8bb26.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- This release of Qiskit Aer is not compatible with the Conan 2.X release
+  series. If you are building Qiskit Aer from source manually ensure that
+  you are using a Conan 1.x release. Compatibility with newer versions
+  of Conan will be fixed in a future release. You can refer to
+  issue `#1730 <https://github.com/Qiskit/qiskit-aer/issues/1730>`__ for
+  more details.
+
+
+.. _Release Notes_0.12.0_Aer_Upgrade Notes:
+
+Upgrade Notes
+-------------
+
+.. releasenotes/notes/0.12/add-grouping-fcc4fad69ccdac26.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The default behavior of the :class:`~.Estimator` primitive will now
+  group the input observable into qubit-wise commutable observables.
+  The grouping reduces the number of circuits to be executed and improves
+  the performance. If you desire the previous behavior you can initialize
+  your :class:`~.Estimator` instance with the keyword argument
+  ``abelian_grouping=False``.
+
+.. releasenotes/notes/0.12/delete-args-and-methods-in-primitives-8013546db867e849.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Removed the usage of primitives with the context manager and the initialization with circuits,
+  (observables only for Estimator), and parameters
+  which has been deprecated in the Qiskit Terra 0.22.0 release in October 2022.
+
+.. releasenotes/notes/0.12/own_assembler-0c76e67a054bd12c.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The behavior of :meth:`~.AerSimulator.run` method has changed when invalid
+  or otherwise unsimulatable :class:`~.QuantumCircuit` objects are passed as
+  an input. Previously, in these cases the :meth:`~.AerSimulator.run` method
+  would return an :class:`~.AerJob` whose :meth:`~.AerJob.result` method would
+  return a :class:`~.Result` with the ``ERROR`` or ``PARTIAL COMPLETED``
+  (depending on whether all the circuit inputs or only some were invalid or not).
+  Starting in this release instead of returning a result object with these statuses
+  an exception will be raised instead. This change was necessary because
+  of the performance improvements by no longer internally serializing the
+  :class:`~.QuantumCircuit` objects to a Qobj before passing it to C++, instead
+  the direct conversion from :class:`~.QuantumCircuit` now errors directly when
+  trying to simulate a circuit Qiskit Aer is unable to execute. If you desire the
+  previous behavior you can build Qiskit Aer in standalone mode and manually
+  serialize your :class:`~.QuantumCircuit` objects to a JSON representation of
+  the :class:`~.QasmQobj` which you then pass to the standalone Aer binary
+  which will retain the previous behavior.
+
+.. releasenotes/notes/0.12/remove-deprecated-noise-functions-52128d161d3327e9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- A deprecated method :meth:`add_nonlocal_quantum_error` in :class:`~.NoiseModel` has been
+  removed. No alternative method is available. If you want to add non-local quantum errors,
+  you should write a transpiler pass that inserts your own quantum error into a circuit,
+  and run the pass just before running the circuit on Aer simulator.
+
+.. releasenotes/notes/0.12/remove-deprecated-noise-functions-52128d161d3327e9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The :meth:`.NoiseModel.from_backend` now has changed not to accept ``BackendProperties``
+  object as a ``backend`` argument. Use newly added :meth:`.NoiseModel.from_backend_properties`
+  method instead.
+
+.. releasenotes/notes/0.12/remove-deprecated-noise-functions-52128d161d3327e9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- A deprecated ``standard_gates`` argument broadly used in several methods and functions
+  (listed below) across :mod:`~.noise` module has been removed.
+
+  * :meth:`NoiseModel.from_backend` and :func:`noise.device.basic_device_gate_errors`
+  * :func:`kraus_error`, :func:`mixed_unitary_error`, :func:`pauli_error` and
+    :func:`depolarizing_error` in :mod:`noise.errors.standard_errors`
+  * :meth:`QuantumError.__init__`
+
+  No alternative means are available because the user should be agnostic about
+  how the simulator represents noises (quantum errors) internally.
+
+.. releasenotes/notes/0.12/remove-deprecated-noise-functions-52128d161d3327e9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The constructor of :class:`~.QuantumError` has now dropped the support of deprecated
+  json-like input for ``noise_ops`` argument.
+  Use the new styple input for ``noise_ops`` argument instead, for example,
+
+  .. code-block:: python
+
+    from qiskit.circuit.library import IGate, XGate
+    from qiskit_aer.noise import QuantumError
+
+    error = QuantumError([
+        ((IGate(), [1]), 0.9),
+        ((XGate(), [1]), 0.1),
+    ])
+
+    # json-like input is no longer accepted (the following code fails)
+    #  error = QuantumError([
+    #      ([{"name": "I", "qubits": [1]}], 0.9),
+    #      ([{"name": "X", "qubits": [1]}], 0.1),
+    #  ])
+
+  Also it has dropped deprecated arguments:
+
+  * ``number_of_qubits``: Use ``QuantumCircuit`` to define ``noise_ops`` instead.
+  * ``atol``: Use :attr:`QuantumError.atol` attribute instead.
+  * ``standard_gates``: No alternative is available (users should not too much care about
+    internal representation of quantum errors).
+
+.. releasenotes/notes/0.12/remove-deprecated-noise-functions-52128d161d3327e9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The deprecated :mod:`noise.errors.errorutils` module has been entirely removed
+  and no alternatives are available.
+  All functions in the module were helper functions meant to be used
+  only for implementing functions in :mod:`~.noise.errors.standard_errors`
+  (i.e. they should have been provided as private functions)
+  and no longer used in it.
+
+.. releasenotes/notes/0.12/remove-deprecated-noise-functions-52128d161d3327e9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The deprecated :mod:`utils.noise_remapper` have been entirely removed and no alternatives
+  are available since the C++ code now automatically truncates and remaps noise models
+  if it truncates circuits.
+
+.. releasenotes/notes/0.12/remove-deprecated-noise-functions-52128d161d3327e9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- All deprecated functions (:func:`pauli_operators` and :func:`reset_operators`)
+  and class (:class:`NoiseTransformer`) in :mod:`utils.noise_transformation` module
+  have been removed, and no alternatives are available.
+  They were in fact private functions/class used only for implementing
+  :func:`approximate_quantum_error` and should not have been public.
+
+.. releasenotes/notes/0.12/remove-qobj-684e68e99b212973.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The previously deprecated ``qobj`` argument name of the
+  :class:`~.AerSimulator` and :class:`~.PulseSimulator` classes'
+  :meth:`~.AerSimulator.run` method has now been removed. This argument
+  name was deprecated as part of the Qiskit Aer 0.8.0 release and has
+  been by the ``circuits`` and ``schedules`` argument name respectively.
+
+.. releasenotes/notes/0.12/remove-setup_requires-751a406e2782885e.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Aer's ``setup.py`` has been updated to no longer attempt to make calls to ``pip`` to
+  install build requirements, both manually and via the ``setup_requires`` option in
+  ``setuptools.setup``.  The preferred way to build Aer is to use a `PEP 517 <https://peps.python.org/pep-0517/>`__-compatible
+  builder such as:
+
+  .. code-block:: text
+
+    pip install .
+
+  This change means that a direct call to ``setup.py`` will no longer work if the
+  build requirements are not installed.  This is inline with modern Python packaging
+  guidelines.
+
+
+.. _Release Notes_0.12.0_Aer_Deprecation Notes:
+
+Deprecation Notes
+-----------------
+
+.. releasenotes/notes/0.12/deprecate-37-b3ec705b9f469b0b.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Support for running Qiskit Aer with Python 3.7 support has been deprecated
+  and will be removed in a future release. This means
+  starting in a future release you will need to upgrade the Python
+  version you're using to Python 3.8 or above.
+
+.. releasenotes/notes/0.12/deprecate-pulse-simulator-27cde3ece112c346.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The :class:`~.PulseSimulator` backend has been deprecated and will be
+  removed in a future release. If you're using the :class:`~.PulseSimulator`
+  backend to perform pulse level simulation, instead you should use the
+  `Qiskit Dynamics <https://qiskit.org/documentation/dynamics/>`__ library
+  instead to perform the simulation. Qiskit Dynamics provides a more
+  flexible and robust pulse level simulation framework than the
+  :class:`~.PulseSimulator` backend.
+
+.. releasenotes/notes/0.12/own_assembler-0c76e67a054bd12c.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The :meth:`~.AerJob.qobj` method of the :class:`AerJob` class is
+  now deprecated and will be removed in a future release. The use of
+  the qobj format as input to :meth:`~.AerSimulator.run` has been
+  deprecated since qiskit-aer 0.9.0 and in most cases this method
+  would return ``None`` now anyway. If you'd like to get the input
+  to the ``run()`` method now you can use the :meth:`~.AerJob.circuits`
+  method instead, which will return the :class:`~.QuantumCircuit`
+  objects that were simulated in the job.
+
+.. releasenotes/notes/0.12/remove-deprecated-noise-functions-52128d161d3327e9.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- A ``warnings`` argument broadly used in several methods and functions
+  across :mod:`~.noise` module has been deprecated in favor of
+  the use of filtering functions in Python's standard ``warnings`` library.
+
+
+.. _Release Notes_0.12.0_Aer_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/0.12/fix-ndarray-contiguity-e903d0fda4744100.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Fixed an issue when creating a new :class:`~.AerStatevector` instance
+  from a ``numpy.ndarray`` that had non-contiguous memory. Previously,
+  this would result in unexpected behavior (and a potential error) as
+  the :class:`~.AerStatevector` assumed the input array was contiguous. This
+  has been fixed so that memory layout is checked and the ``numpy.ndarray``
+  will be copied internally as a contiguous array before using it.
+
+.. releasenotes/notes/0.12/fix-split-cregs-5b5494a92c4903e7.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Fixed an issue with the :class:`.Sampler` class where it would previously
+  fail if the input :class:`~.QuantumCircuit` contained multiple
+  multiple classical registers.
+  Fixed `#1679 <https://github.com/Qiskit/qiskit-aer/issues/1679>`__
+
+.. releasenotes/notes/0.12/fix_batch_execution-da4d88dbee26731b.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The bits count of classical register used on the GPU was not set before
+  calculating free available memory for chunks that causes infinite loop.
+  So this fix set bits count before allocating chunks if batch shots
+  execution is enabled.
+
+.. releasenotes/notes/0.12/fix_tensor_network_not_installed-a23b8ef65e6e643e.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Fix build errors and test errors when enabling GPU but disabling cuQuantum.
+
+.. releasenotes/notes/0.12/mps_fix_apply_measure-84c29a728ae0e717.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- Fixed an issue in the matrix product state simulation method (i.e.
+  setting the keyword argument ``method="matrix_product_state"`` when
+  initializing an :class:`~.AerSimulator` object) where the simulator
+  would incorrectly sort the qubits prior to performing measurment
+  potentially resulting in an infinite loop. This has been fixed so
+  the measurement of the qubits occurs in the order of the current MPS
+  structure and then sorting afterwards as a post-processing step. This also
+  will likely improve the performance of the simulation method and enable
+  more accurate representation of entangled states.
+  Fixed `#1694 <https://github.com/Qiskit/qiskit-aer/issues/1694>`__
+
+.. releasenotes/notes/0.12/support_break_and_continue_gates-bf30316fcacd4b6b.yaml @ b'2377d2efb48d18aab73df121924a1446310297de'
+
+- The :class:`.AerSimulator` backend with methods:
+
+  * ``statevector``
+  * ``density_matrix``
+  * ``matrix_product_state``
+  * ``stabilizer``
+
+  now report that they support ``break_loop`` and ``continue_loop`` instructions when used
+  as backends for the Terra :func:`~qiskit.compiler.transpile` function.  The simulators
+  already did support these, but had just not been reporting it.
+
+.. _Release Notes_IBMQ_0.20.2:
+
+IBM Q Provider 0.20.2
+=====================
+
+This release removes the overly restrictive version constraints set in the
+requirements for the package added in 0.20.1. For the 0.20.1 the only dependency
+that was intended to have a version cap was the ``requests-ntlm`` package as its
+new release was the only dependency which currently has an incompatibility with
+``qiskit-ibmq-provider``. The other version caps which were added as part of
+0.20.1 were causing installation issues in several environments because it made
+the ``qiskit-ibmq-provider`` package incompatible with the dependency versions
+used in other packages.
+
+
+*************
 Qiskit 0.41.1
 *************
 
