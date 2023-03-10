@@ -113,7 +113,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     # Set the max number of qubits * paulis before string truncation
     __truncate__ = 2000
 
-    def __init__(self, data):
+    def __init__(self, data, *, num_qubits=None):
         """Initialize the PauliList.
 
         Args:
@@ -128,16 +128,18 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             can share the same underlying array.
         """
         if isinstance(data, BasePauli):
+            if num_qubits is not None and num_qubits != data.num_qubits:
+                raise ValueError("Provided num_qubits does not match the input.")
             base_z, base_x, base_phase = data._z, data._x, data._phase
         elif isinstance(data, StabilizerTable):
             # Conversion from legacy StabilizerTable
-            base_z, base_x, base_phase = self._from_array(data.Z, data.X, 2 * data.phase)
+            base_z, base_x, base_phase = self._from_array(data.Z, data.X, 2 * data.phase, num_qubits=num_qubits)
         elif isinstance(data, PauliTable):
             # Conversion from legacy PauliTable
-            base_z, base_x, base_phase = self._from_array(data.Z, data.X)
+            base_z, base_x, base_phase = self._from_array(data.Z, data.X, num_qubits=num_qubits)
         else:
             # Conversion as iterable of Paulis
-            base_z, base_x, base_phase = self._from_paulis(data)
+            base_z, base_x, base_phase = self._from_paulis(data, num_qubits=num_qubits)
 
         # Initialize BasePauli
         super().__init__(base_z, base_x, base_phase)
@@ -149,7 +151,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
     @property
     def settings(self):
         """Return settings."""
-        return {"data": self.to_labels()}
+        return {"data": self.to_labels(), "num_qubits": self.num_qubits}
 
     def __array__(self, dtype=None):
         """Convert to numpy array"""
@@ -161,7 +163,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return ret
 
     @staticmethod
-    def _from_paulis(data):
+    def _from_paulis(data, *, num_qubits=None):
         """Construct a PauliList from a list of Pauli data.
 
         Args:
@@ -177,19 +179,22 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         if not isinstance(data, (list, tuple, set, np.ndarray)):
             data = [data]
         num_paulis = len(data)
-        if num_paulis == 0:
-            raise QiskitError("Input Pauli list is empty.")
         paulis = []
         for i in data:
             if not isinstance(i, Pauli):
                 paulis.append(Pauli(i))
             else:
                 paulis.append(i)
-        num_qubits = paulis[0].num_qubits
+        if num_qubits is None:
+            if num_paulis == 0:
+                raise QiskitError("Input Pauli list is empty; cannot infer num_qubits.")
+            num_qubits = paulis[0].num_qubits
         base_z = np.zeros((num_paulis, num_qubits), dtype=bool)
         base_x = np.zeros((num_paulis, num_qubits), dtype=bool)
         base_phase = np.zeros(num_paulis, dtype=int)
         for i, pauli in enumerate(paulis):
+            if pauli.num_qubits != num_qubits:
+                raise ValueError("num_qubits of Pauli does not match.")
             base_z[i] = pauli._z
             base_x[i] = pauli._x
             base_phase[i] = pauli._phase
@@ -204,6 +209,8 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         return self._truncated_str(False)
 
     def _truncated_str(self, show_class):
+        if self._num_paulis == 0 and show_class:
+            return f"PauliList([], num_qubits={self.num_qubits})"
         stop = self._num_paulis
         if self.__truncate__ and self.num_qubits > 0:
             max_paulis = self.__truncate__ // self.num_qubits

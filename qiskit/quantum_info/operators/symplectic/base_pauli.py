@@ -362,7 +362,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         raise QiskitError("Pauli can only be multiplied by 1, -1j, -1, 1j.")
 
     @staticmethod
-    def _from_array(z, x, phase=0):
+    def _from_array(z, x, phase=0, *, num_qubits=None):
         """Convert array data to BasePauli data."""
         if isinstance(z, np.ndarray) and z.dtype == bool:
             base_z = z
@@ -384,6 +384,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         if base_z.shape != base_x.shape:
             raise QiskitError("z and x vectors are different size.")
+
+        if num_qubits is not None and base_z.shape[1] != num_qubits:
+            raise ValueError("Provided num_qubits does not match input data.")
 
         # Convert group phase convention to internal ZX-phase conversion.
         dtype = getattr(phase, "dtype", None)

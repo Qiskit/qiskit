@@ -198,6 +198,40 @@ class TestPauliListInit(QiskitTestCase):
             np.testing.assert_equal(pauli_list.z, z)
             np.testing.assert_equal(pauli_list.x, x)
 
+        with self.subTest(msg='str init "Z" with num_qubits'):
+            pauli_list = PauliList("Z", num_qubits=1)
+            z = np.array([[True]])
+            x = np.array([[False]])
+            np.testing.assert_equal(pauli_list.z, z)
+            np.testing.assert_equal(pauli_list.x, x)
+
+        with self.subTest(msg='str init "Z" with wrong num_qubits'):
+            with self.assertRaises(ValueError):
+                PauliList("Z", num_qubits=2)
+
+        with self.subTest(msg='str init "IZ" with wrong num_qubits'):
+            with self.assertRaises(ValueError):
+                PauliList("IZ", num_qubits=3)
+
+    def test_pauli_init(self):
+        """Test initialization from Pauli."""
+        with self.subTest(msg="Pauli"):
+            pauli = Pauli("IX")
+            target = PauliList(["IX"])
+            value = PauliList(pauli)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="Pauli with num_qubits"):
+            pauli = Pauli("IX")
+            target = PauliList(["IX"])
+            value = PauliList(pauli, num_qubits=2)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="Pauli with wrong num_qubits"):
+            pauli = Pauli("IX")
+            with self.assertRaises(ValueError):
+                value = PauliList(pauli, num_qubits=3)
+
     def test_list_init(self):
         """Test list initialization."""
         with self.subTest(msg="PauliList"):
@@ -211,6 +245,15 @@ class TestPauliListInit(QiskitTestCase):
             value[0] = "-iII"
             self.assertEqual(value, target)
 
+        with self.subTest(msg="PauliList with num_qubits"):
+            target = PauliList(["iXI", "IX", "IZ"], num_qubits=2)
+            value = PauliList(target)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="PauliList with wrong num_qubits"):
+            with self.assertRaises(ValueError):
+                PauliList(["iXI", "IX", "IZ"], num_qubits=3)
+
     def test_pauli_table_init(self):
         """Test table initialization."""
         with self.subTest(msg="PauliTable"):
@@ -223,6 +266,16 @@ class TestPauliListInit(QiskitTestCase):
             value = PauliList(target)
             value[0] = "II"
             self.assertEqual(value, target)
+
+        with self.subTest(msg="PauliTable with num_qubits"):
+            target = PauliTable.from_labels(["XI", "IX", "IZ"])
+            value = PauliList(target, num_qubits=2)
+            self.assertEqual(value, target)
+
+        with self.subTest(msg="PauliTable with wrong num_qubits"):
+            target = PauliTable.from_labels(["XI", "IX", "IZ"])
+            with self.assertRaises(ValueError):
+                PauliList(target, num_qubits=3)
 
     def test_stabilizer_table_init(self):
         """Test table initialization."""
@@ -239,9 +292,15 @@ class TestPauliListInit(QiskitTestCase):
 
     def test_init_from_settings(self):
         """Test initializing from the settings dictionary."""
-        pauli_list = PauliList(["IX", "-iYZ", "YY"])
-        from_settings = PauliList(**pauli_list.settings)
-        self.assertEqual(pauli_list, from_settings)
+        with self.subTest(msg="From settings"):
+            pauli_list = PauliList(["IX", "-iYZ", "YY"])
+            from_settings = PauliList(**pauli_list.settings)
+            self.assertEqual(pauli_list, from_settings)
+
+        with self.subTest(msg="From settings, without any elements"):
+            pauli_list = PauliList([], num_qubits=2)
+            from_settings = PauliList(**pauli_list.settings)
+            self.assertEqual(pauli_list, from_settings)
 
 
 @ddt
@@ -331,6 +390,13 @@ class TestPauliListProperties(QiskitTestCase):
         pauli2 = PauliList(["XI", "II"])
         self.assertEqual(pauli1, pauli1)
         self.assertNotEqual(pauli1, pauli2)
+
+    def test_repr(self):
+        """Test __repr__ method."""
+        pauli = PauliList(["XXX", "iYYY"])
+        empty_pauli = pauli[:0]
+        self.assertEqual(repr(pauli), "PauliList(['XXX', 'iYYY'])")
+        self.assertEqual(repr(empty_pauli), "PauliList([], num_qubits=3)")
 
     def test_len_methods(self):
         """Test __len__ method."""
