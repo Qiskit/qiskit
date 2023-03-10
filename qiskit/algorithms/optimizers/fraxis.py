@@ -58,7 +58,7 @@ class Fraxis(SciPyOptimizer):
                 the optimizer is considered to have converged.
                 This check is invoked at every first parameterized U gate.
                 Formally, the convergence is determined if ``|x0 - x0_prev| < xtol * |x0_prev|``,
-                where ``x_prev`` is ``x0`` value at the first parameterized U gate in the last loop.
+                where ``x0_prev`` is ``x0`` value at the first parameterized U gate in the last loop.
                 Will default to None. If None, no convergence check is invoked.
             options: A dictionary of solver options.
             kwargs: additional kwargs for scipy.optimize.minimize.
@@ -111,7 +111,7 @@ def fraxis(fun, x0, args=(), maxiter=None, xtol=None, callback=None, **_):
             the optimizer is considered to have converged.
             This check is invoked at every first parameterized U gate.
             Formally, the convergence is determined if ``|x0 - x0_prev| < xtol * |x0_prev|``,
-            where ``x_prev`` is ``x0`` value at the first parameterized U gate in the last loop.
+            where ``x0_prev`` is ``x0`` value at the first parameterized U gate in the last loop.
             Will default to None. If None, no convergence check is invoked.
         **_ : additional options
         callback (callable, optional):
