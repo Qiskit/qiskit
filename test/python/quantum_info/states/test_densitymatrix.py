@@ -1209,6 +1209,18 @@ class TestDensityMatrix(QiskitTestCase):
         self.assertTrue(np.allclose(dm.probabilities(), [1, 0], atol=0))
         self.assertDictAlmostEqual(dm.probabilities_dict(), {"0": 1, "1": 0}, delta=0)
 
+    def test_round_probabilities(self):
+        """Test probabilities are correctly rounded.
+
+        This is good to test to ensure clipping, renormalizing and rounding work together.
+        """
+        p = np.sqrt(1 / 3)
+        amplitudes = [p, p, p, 0]
+        dm = DensityMatrix(np.outer(amplitudes, amplitudes))
+        expected = [0.33, 0.33, 0.33, 0]
+
+        self.assertTrue(np.allclose(dm.probabilities(decimals=2), expected))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -480,11 +480,13 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         probs = self._subsystem_probabilities(
             np.abs(self.data.diagonal()), self._op_shape.dims_l(), qargs=qargs
         )
-        if decimals is not None:
-            probs = probs.round(decimals=decimals)
 
         # to account for roundoff errors, we renormalize and clip
         probs = np.clip(probs / np.sum(probs), a_min=0, a_max=1)
+
+        if decimals is not None:
+            probs = probs.round(decimals=decimals)
+
         return probs
 
     def reset(self, qargs=None):
