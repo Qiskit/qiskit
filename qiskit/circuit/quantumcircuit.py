@@ -2267,8 +2267,9 @@ class QuantumCircuit:
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
         """Measure a quantum bit (``qubit``) into a classical bit (``cbit``).
 
-        When a qubit is measured, its state collapses to a classical bit and copied to a
-        classical wire.
+        When quantum state is measured a qubit is project in the computational (Pauli Z) basis to
+        either :math:`|0\rangle` or :math:`|1\rangle`. The classical bit ``cbit`` indicates the result
+        of that projection as a ``0`` or a ``1`` respectively. This operation is non-reversible.
 
         Args:
             qubit: qubit(s) to measure.
