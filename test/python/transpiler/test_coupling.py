@@ -458,7 +458,7 @@ class CouplingTest(QiskitTestCase):
 
         # coupling map with 5 nodes not equal to the previous 2
         coupling2 = CouplingMap([(0, 1), (0, 2), (2, 4)])
-        self.assertTrue(coupling0 != coupling2)
+        self.assertNotEqual(coupling0, coupling2)
 
         # coupling map isomorphic to coupling0, but with cyclically shifted labels
         coupling3 = CouplingMap([(1, 2), (1, 3), (3, 0)])
