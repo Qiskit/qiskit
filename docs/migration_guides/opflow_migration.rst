@@ -444,9 +444,6 @@ to initialize it.
 Thus, when migrating opflow code, it is important to look for alternatives to replace the specific subclasses that
 are used "under the hood" in the original code:
 
-.. |qiskit.quantum_info.Z2Symmetries| replace:: ``qiskit.quantum_info.Z2Symmetries``
-.. _qiskit.quantum_info.Z2Symmetries: https://github.com/Qiskit/qiskit-terra/blob/main/qiskit/quantum_info/analysis/z2_symmetries.py
-
 .. list-table::
    :header-rows: 1
 
