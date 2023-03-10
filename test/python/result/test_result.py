@@ -127,8 +127,7 @@ class TestResultOperations(QiskitTestCase):
         self.assertEqual(expected, repr(result))
 
     def test_multiple_circuits_counts(self):
-        """ "
-        Test that counts are returned either as a list or a single item.
+        """Test that counts are returned either as a list or a single item.
 
         Counts are returned as a list when multiple experiments are executed
         and get_counts() is called with no arguments. In all the other cases
