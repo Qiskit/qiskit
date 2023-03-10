@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added an optimizer :class:`.Fraxis` following the paper
+    `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__.
+    Fraxis is a generalized version of :class:`.NFT` and rotosolve/rotoselct.
+    Fraxis can optimize only circuits with :class:`.UGate` as parameterized gates.
+    See `#9528 <https://github.com/Qiskit/qiskit-terra/issues/9528>`__
+    for the comparison with other optimizers.
+upgrade:
+  - |
+    Extended :class:`.TwoLocal` to allow :class:`.UGate` as ``rotation_blocks``.
