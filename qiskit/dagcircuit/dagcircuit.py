@@ -185,7 +185,7 @@ class DAGCircuit:
         if params is not None:
             params = tuple(map(_format, params))
         else:
-            params = tuple()
+            params = ()
 
         self._calibrations[gate][(tuple(qubits), params)] = schedule
 
@@ -530,7 +530,8 @@ class DAGCircuit:
         """The DAGCircuit._copy_circuit_metadata method is deprecated as of 0.20.0. It will be removed
         no earlier than 3 months after the release date. You should use the DAGCircuit.copy_empty_like
         method instead, which acts identically.
-        """
+        """,
+        since="0.20.0",
     )
     def _copy_circuit_metadata(self):
         """DEPRECATED"""
@@ -831,8 +832,8 @@ class DAGCircuit:
                     edge_map, getattr(nd.op, "condition", None), dag.cregs.values()
                 )
                 dag._check_condition(nd.op.name, condition)
-                m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
-                m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
+                m_qargs = [edge_map.get(x, x) for x in nd.qargs]
+                m_cargs = [edge_map.get(x, x) for x in nd.cargs]
                 op = nd.op.copy()
                 if condition and not isinstance(op, Instruction):
                     raise DAGCircuitError("Cannot add a condition on a generic Operation.")

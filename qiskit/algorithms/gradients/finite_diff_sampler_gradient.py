@@ -30,7 +30,7 @@ from .sampler_gradient_result import SamplerGradientResult
 from ..exceptions import AlgorithmError
 
 if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
+    # pylint: disable=ungrouped-imports
     from typing import Literal
 else:
     from typing_extensions import Literal

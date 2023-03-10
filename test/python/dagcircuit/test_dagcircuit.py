@@ -288,7 +288,8 @@ class TestDagWireRemoval(QiskitTestCase):
         Args:
             cregs (Iterable(ClassicalRegister)): the classical registers to expect
             excluding (Set(ClassicalRegister)): classical registers to remove from
-            ``cregs`` before the comparison."""
+            ``cregs`` before the comparison.
+        """
         if excluding is None:
             excluding = set()
         self.assertEqual(
@@ -301,10 +302,11 @@ class TestDagWireRemoval(QiskitTestCase):
         Args:
             clbits (Iterable(Clbit)): the classical bits to expect
             excluding (Set(ClassicalRegister)): classical bits to remove from
-            ``clbits`` before the comparison."""
+            ``clbits`` before the comparison.
+        """
         if excluding is None:
             excluding = set()
-        self.assertEqual(self.dag.clbits, list(b for b in clbits if b not in excluding))
+        self.assertEqual(self.dag.clbits, [b for b in clbits if b not in excluding])
 
     def test_remove_idle_creg(self):
         """Removing an idle classical register removes just the register."""

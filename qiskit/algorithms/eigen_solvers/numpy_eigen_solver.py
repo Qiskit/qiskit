@@ -28,9 +28,6 @@ from ..list_or_dict import ListOrDict
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
-
 class NumPyEigensolver(Eigensolver):
     r"""
     Pending deprecation: NumPy Eigensolver algorithm.
@@ -55,6 +52,7 @@ class NumPyEigensolver(Eigensolver):
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def __init__(
         self,

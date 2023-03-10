@@ -8,7 +8,7 @@ such as basic error mitigation strategies.
 
 The functionality of :class:`~qiskit.utils.QuantumInstance.execute` has
 now been delegated to the different implementations of the :mod:`~qiskit.primitives` base classes,
-while the explicit transpilation has been left to the :meth:`~qiskit.transpiler` module (see table below).
+while the explicit transpilation has been left to the :mod:`~qiskit.transpiler` module (see table below).
 Thus, the :class:`~qiskit.utils.QuantumInstance` is being deprecated.
 
 Summary of migration alternatives for the :class:`~qiskit.utils.QuantumInstance` class:
@@ -128,8 +128,8 @@ primitives **expose a similar setting through their interface**:
    * - Transpiler settings: ``seed_transpiler``, ``optimization_level``
      - No
      - No
-     - Yes (via ``options``)
-     - Yes (via ``set_transpile_options``)
+     - Yes (via ``options``) (*)
+     - Yes (via ``.set_transpile_options()``)
    * - Set unbound ``pass_manager``
      - No
      - No
@@ -158,7 +158,7 @@ primitives **expose a similar setting through their interface**:
      - No
 
 
-(*) For more information on error mitigation options on Runtime Primitives, visit
+(*) For more information on error mitigation and setting options on Runtime Primitives, visit
 `this link <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.options.Options.html#qiskit_ibm_runtime.options.Options>`_.
 
 (**) For more information on Runtime sessions, visit `this how-to <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/how_to/run_session.html>`_.

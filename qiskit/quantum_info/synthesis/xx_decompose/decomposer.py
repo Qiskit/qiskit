@@ -93,9 +93,7 @@ class XXDecomposer:
         self.basis_fidelity = basis_fidelity
 
         # expose one of the basis gates so others can know what this decomposer targets
-        embodiment_circuit: list | QuantumCircuit = next(iter(self.embodiments.items()), ([], []))[
-            1
-        ]
+        embodiment_circuit = next(iter(self.embodiments.values()), QuantumCircuit())
         for instruction in embodiment_circuit:
             if len(instruction.qubits) == 2:
                 self.gate = instruction.operation
