@@ -454,7 +454,7 @@ class CouplingTest(QiskitTestCase):
         # two coupling maps with 4 nodes and the same edges
         coupling0 = CouplingMap([(0, 1), (0, 2), (2, 3)])
         coupling1 = CouplingMap([(0, 1), (0, 2), (2, 3)])
-        self.assertTrue(coupling0 == coupling1)
+        self.assertEqual(coupling0, coupling1)
 
         # coupling map with 5 nodes not equal to the previous 2
         coupling2 = CouplingMap([(0, 1), (0, 2), (2, 4)])
