@@ -199,7 +199,7 @@ def add_deprecation_to_docstring(
 
             if stripped.lower() in _NAPOLEON_META_LINES:
                 meta_index = i
-                if content_encountered is not True:
+                if not content_encountered:
                     raise ValueError(
                         "add_deprecation_to_docstring cannot currently handle when a Napoleon "
                         "metadata line like 'Args' is the very first line of docstring, "
