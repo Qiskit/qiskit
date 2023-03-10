@@ -335,7 +335,7 @@ class SparsePauliOp(LinearOp):
     def _tensor(cls, a, b):
         paulis = a.paulis.tensor(b.paulis)
         coeffs = np.kron(a.coeffs, b.coeffs)
-        return SparsePauliOp(paulis, coeffs, copy=False)
+        return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _add(self, other, qargs=None):
         if qargs is None:
@@ -482,7 +482,7 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp argsort.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -512,6 +512,18 @@ class SparsePauliOp(LinearOp):
             print('Weight sorted')
             print(srt)
 
+        .. parsed-literal::
+
+            Initial Ordering
+            SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
+                          coeffs=[2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j])
+            Lexicographically sorted
+            [4 7 0 1 2 6 5 3]
+            Lexicographically sorted
+            [4 7 0 1 2 6 5 3]
+            Weight sorted
+            [4 7 3 0 1 2 6 5]
+
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
             By using the weight kwarg the output can additionally be sorted
@@ -539,7 +551,7 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp sort.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -568,6 +580,21 @@ class SparsePauliOp(LinearOp):
             srt = spo.sort(weight=True)
             print('Weight sorted')
             print(srt)
+
+        .. parsed-literal::
+
+            Initial Ordering
+            SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
+                          coeffs=[2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j])
+            Lexicographically sorted
+            SparsePauliOp(['II', 'XI', 'XX', 'XX', 'XX', 'XY', 'XZ', 'YI'],
+                          coeffs=[4.+0.j, 7.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j, 3.+0.j])
+            Lexicographically sorted
+            SparsePauliOp(['II', 'XI', 'XX', 'XX', 'XX', 'XY', 'XZ', 'YI'],
+                          coeffs=[4.+0.j, 7.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j, 3.+0.j])
+            Weight sorted
+            SparsePauliOp(['II', 'XI', 'YI', 'XX', 'XX', 'XX', 'XY', 'XZ'],
+                          coeffs=[4.+0.j, 7.+0.j, 3.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j])
 
         Args:
             weight (bool): optionally sort by weight if True (Default: False).

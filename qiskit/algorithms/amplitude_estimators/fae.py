@@ -25,7 +25,6 @@ from qiskit.algorithms.exceptions import AlgorithmError
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
-from .ae_utils import _probabilities_from_sampler_result
 
 
 class FasterAmplitudeEstimation(AmplitudeEstimator):
@@ -115,6 +114,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation; Get the quantum instance.
@@ -130,6 +130,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation; Set quantum instance.
@@ -156,10 +157,14 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             if shots is None:
                 shots = 1
             self._num_oracle_calls += (2 * k + 1) * shots
+
             # sum over all probabilities where the objective qubits are 1
-            prob = _probabilities_from_sampler_result(
-                circuit.num_qubits, result, estimation_problem
-            )
+            prob = 0
+            for bit, probabilities in result.quasi_dists[0].binary_probabilities().items():
+                # check if it is a good state
+                if estimation_problem.is_good_state(bit):
+                    prob += probabilities
+
             cos_estimate = 1 - 2 * prob
         elif self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, k, measurement=False)

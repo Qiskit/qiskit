@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Measurement Error Mitigation """
+"""Test Measurement Error Mitigation"""
 
 import unittest
 
@@ -221,6 +221,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_transpiler=algorithm_globals.random_seed,
             noise_model=noise_model,
             measurement_error_mitigation_cls=CompleteMeasFitter,
+            shots=10000,
         )
 
         qaoa = QAOA(

@@ -51,7 +51,6 @@ class Gate(Instruction):
                 exception will be raised when this base class method is called.
         """
         if hasattr(self, "__array__"):
-            # pylint: disable=no-member
             return self.__array__(dtype=complex)
         raise CircuitError(f"to_matrix not defined for this {type(self)}")
 
@@ -86,6 +85,9 @@ class Gate(Instruction):
         # Then reconstruct the resulting gate.
         unitary_power = unitary @ np.diag(decomposition_power) @ unitary.conj().T
         return UnitaryGate(unitary_power, label=f"{self.name}^{exponent}")
+
+    def __pow__(self, exponent: float) -> "Gate":
+        return self.power(exponent)
 
     def _return_repeat(self, exponent: float) -> "Gate":
         return Gate(name=f"{self.name}*{exponent}", num_qubits=self.num_qubits, params=self.params)

@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-function-args
 
 """VF2PostLayout pass to find a layout after transpile using subgraph isomorphism"""
 import os
@@ -163,7 +162,7 @@ class VF2PostLayout(AnalysisPass):
         if result is None:
             self.property_set["VF2PostLayout_stop_reason"] = VF2PostLayoutStopReason.MORE_THAN_2Q
             return
-        im_graph, im_graph_node_map, reverse_im_graph_node_map = result
+        im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
 
         if self.target is not None:
             # If qargs is None then target is global and ideal so no
@@ -322,6 +321,13 @@ class VF2PostLayout(AnalysisPass):
         if chosen_layout is None:
             stop_reason = VF2PostLayoutStopReason.NO_SOLUTION_FOUND
         else:
+            chosen_layout = vf2_utils.map_free_qubits(
+                free_nodes,
+                chosen_layout,
+                cm_graph.num_nodes(),
+                reverse_im_graph_node_map,
+                self.avg_error_map,
+            )
             existing_layout = self.property_set["layout"]
             # If any ancillas in initial layout map them back to the final layout output
             if existing_layout is not None and len(existing_layout) > len(chosen_layout):

@@ -14,8 +14,7 @@
 
 import os
 import re
-import sys
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
 
@@ -33,6 +32,9 @@ with open(README_PATH) as readme_file:
     )
 
 
+qasm3_import_extras = [
+    "qiskit-qasm3-import>=0.1.0",
+]
 visualization_extras = [
     "matplotlib>=3.3",
     "ipywidgets>=7.3.0",
@@ -51,7 +53,7 @@ toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
-    version="0.23.0",
+    version="0.24.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -81,6 +83,7 @@ setup(
     include_package_data=True,
     python_requires=">=3.7",
     extras_require={
+        "qasm3-import": qasm3_import_extras,
         "visualization": visualization_extras,
         "bip-mapper": bip_requirements,
         "crosstalk-pass": z3_requirements,
@@ -88,23 +91,37 @@ setup(
         "toqm": toqm_requirements,
         # Note: 'all' only includes extras that are stable and work on the majority of Python
         # versions and OSes supported by Terra. You have to ask for anything else explicitly.
-        "all": visualization_extras + z3_requirements + csp_requirements,
+        "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
         "Documentation": "https://qiskit.org/documentation/",
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
-    rust_extensions=[RustExtension("qiskit._accelerate", "Cargo.toml", binding=Binding.PyO3)],
+    rust_extensions=[
+        RustExtension(
+            "qiskit._accelerate",
+            "crates/accelerate/Cargo.toml",
+            binding=Binding.PyO3,
+            # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior
+            # of whether it's an editable installation.
+            debug=True if os.getenv("RUST_DEBUG") == "1" else None,
+        )
+    ],
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
             "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
             "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
+            "sk = qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis",
         ],
         "qiskit.synthesis": [
             "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
             "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
+            "permutation.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
+            "permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
+            "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
+            "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
         ],
         "qiskit.transpiler.routing": [
             "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",

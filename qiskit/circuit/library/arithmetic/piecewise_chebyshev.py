@@ -34,7 +34,8 @@ class PiecewiseChebyshev(BlueprintCircuit):
 
     Examples:
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             import numpy as np
             from qiskit import QuantumCircuit

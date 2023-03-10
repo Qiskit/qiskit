@@ -46,9 +46,7 @@ class TrotterQRTE(RealEvolver):
 
     Type of Trotterization is defined by a ProductFormula provided.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             from qiskit.opflow import X, Z, Zero
             from qiskit.algorithms import EvolutionProblem, TrotterQRTE
@@ -72,6 +70,7 @@ class TrotterQRTE(RealEvolver):
         "This class will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def __init__(
         self,

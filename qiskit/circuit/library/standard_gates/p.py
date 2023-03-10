@@ -125,6 +125,11 @@ class PhaseGate(Gate):
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, exp(1j * lam)]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return PhaseGate(exponent * theta)
+
 
 class CPhaseGate(ControlledGate):
     r"""Controlled-Phase gate.
@@ -195,10 +200,10 @@ class CPhaseGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         #      ┌────────┐
-        # q_0: ┤ P(λ/2) ├──■──────────────■────────────
-        #      └────────┘┌─┴─┐┌────────┐┌─┴─┐┌────────┐
-        # q_1: ──────────┤ X ├┤ P(λ/2) ├┤ X ├┤ P(λ/2) ├
-        #                └───┘└────────┘└───┘└────────┘
+        # q_0: ┤ P(λ/2) ├──■───────────────■────────────
+        #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
+        # q_1: ──────────┤ X ├┤ P(-λ/2) ├┤ X ├┤ P(λ/2) ├
+        #                └───┘└─────────┘└───┘└────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         qc.p(self.params[0] / 2, 0)
@@ -243,6 +248,11 @@ class CPhaseGate(ControlledGate):
                 [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, eith]], dtype=dtype
             )
         return numpy.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return CPhaseGate(exponent * theta)
 
 
 class MCPhaseGate(ControlledGate):

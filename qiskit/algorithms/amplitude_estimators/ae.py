@@ -98,7 +98,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
             self.quantum_instance = quantum_instance
 
         # get parameters
-        self._m = num_eval_qubits  # pylint: disable=invalid-name
+        self._m = num_eval_qubits
         self._M = 2**num_eval_qubits  # pylint: disable=invalid-name
 
         self._iqft = iqft
@@ -129,6 +129,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation; Get the quantum instance.
@@ -144,6 +145,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         "This property will be deprecated in a future release and subsequently "
         "removed after that.",
         category=PendingDeprecationWarning,
+        since="0.23.0",
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation; Set quantum instance.
@@ -387,15 +389,12 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
                 shots = ret.metadata[0].get("shots")
                 if shots is None:
-                    result.circuit_results = {
-                        np.binary_repr(k, circuit.num_qubits): v
-                        for k, v in ret.quasi_dists[0].items()
-                    }
+                    result.circuit_results = ret.quasi_dists[0].binary_probabilities()
                     shots = 1
                 else:
                     result.circuit_results = {
-                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
-                        for k, v in ret.quasi_dists[0].items()
+                        k: round(v * shots)
+                        for k, v in ret.quasi_dists[0].binary_probabilities().items()
                     }
 
         # store shots

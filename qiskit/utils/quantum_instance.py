@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Quantum Instance module """
+"""Quantum Instance module"""
 
 from typing import Optional, List, Union, Dict, Callable, Tuple
 from enum import Enum
@@ -619,13 +619,18 @@ class QuantumInstance:
                 else:
                     circuits[0:0] = cal_circuits
                     prepended_calibration_circuits = len(cal_circuits)
+                    if hasattr(self.run_config, "parameterizations"):
+                        cal_run_config = copy.deepcopy(self.run_config)
+                        cal_run_config.parameterizations[0:0] = [[]] * len(cal_circuits)
+                    else:
+                        cal_run_config = self.run_config
                     result = run_circuits(
                         circuits,
                         self._backend,
                         qjob_config=self.qjob_config,
                         backend_options=self.backend_options,
                         noise_config=self._noise_config,
-                        run_config=self.run_config.to_dict(),
+                        run_config=cal_run_config.to_dict(),
                         job_callback=self._job_callback,
                         max_job_retries=self._max_job_retries,
                     )
@@ -835,12 +840,12 @@ class QuantumInstance:
             self._max_job_retries = new_value
 
     @property
-    def measurement_error_mitigation_cls(self):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_cls(self):
         """returns measurement error mitigation cls"""
         return self._meas_error_mitigation_cls
 
     @measurement_error_mitigation_cls.setter
-    def measurement_error_mitigation_cls(self, new_value):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_cls(self, new_value):
         """sets measurement error mitigation cls"""
         self._meas_error_mitigation_cls = new_value
 
@@ -855,12 +860,12 @@ class QuantumInstance:
         self._cals_matrix_refresh_period = new_value
 
     @property
-    def measurement_error_mitigation_shots(self):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_shots(self):
         """returns measurement error mitigation shots"""
         return self._meas_error_mitigation_shots
 
     @measurement_error_mitigation_shots.setter
-    def measurement_error_mitigation_shots(self, new_value):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_shots(self, new_value):
         """sets measurement error mitigation shots"""
         self._meas_error_mitigation_shots = new_value
 
