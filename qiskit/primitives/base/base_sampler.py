@@ -83,7 +83,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
 
-from ..utils import _circuit_key
 from .base_primitive import BasePrimitive
 
 
