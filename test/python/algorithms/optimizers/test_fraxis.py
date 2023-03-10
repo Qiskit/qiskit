@@ -150,6 +150,44 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertEqual(result.cost_function_evals, maxiter * 6)
 
+    def test_fraxis_restart(self):
+        """Test Fraxis optimizer with restart"""
+        history = []
+        maxiter = 10
+
+        def callback(_, state):
+            history.append(state.fun)
+
+        vqe = VQE(
+            estimator=Estimator(),
+            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            optimizer=Fraxis(maxiter=maxiter, callback=callback),
+        )
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+
+        # restart with the previous VQE result
+        vqe.initial_point = result.optimal_point
+        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+
+        self.assertAlmostEqual(result.eigenvalue.real, self.expval, places=6)
+        for fun1, fun2 in zip(history, history[1:]):
+            self.assertGreaterEqual(fun1, fun2)
+
+    def test_fraxis_errors(self):
+        """Test Fraxis optimizer with errors"""
+        ansatzes = [
+            TwoLocal(rotation_blocks="ry", entanglement_blocks="cx", reps=3),
+            TwoLocal(rotation_blocks="u", entanglement_blocks="crx", reps=2),
+        ]
+        for ansatz in ansatzes:
+            with self.assertRaises(ValueError):
+                vqe = VQE(
+                    estimator=Estimator(),
+                    ansatz=ansatz,
+                    optimizer=Fraxis(),
+                )
+                _ = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+
 
 if __name__ == "__main__":
     unittest.main()
