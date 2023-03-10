@@ -417,12 +417,11 @@ class Instruction(Operation):
         Copy of the instruction.
 
         Args:
-          name (str): name to be given to the copied circuit,
-            if None then the name stays the same.
+            name (str): name to be given to the copied circuit, if ``None`` then the name stays the same.
 
         Returns:
-          qiskit.circuit.Instruction: a copy of the current instruction, with the name updated if it
-          was provided
+            qiskit.circuit.Instruction: a copy of the current instruction, with the name updated if it
+            was provided
         """
         cpy = self.__deepcopy__()
 
