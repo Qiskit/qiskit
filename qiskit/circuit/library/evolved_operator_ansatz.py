@@ -174,7 +174,7 @@ class EvolvedOperatorAnsatz(NLocal):
         from qiskit.extensions import HamiltonianGate
 
         if isinstance(operator, OperatorBase):
-            if isinstance(self.evolution, EvolutionSynthesis):
+            if not isinstance(self.evolution, EvolutionBase):
                 raise QiskitError(
                     "If qiskit.opflow operators are evolved the evolution must be a "
                     f"qiskit.opflow.EvolutionBase, not a {type(self.evolution)}."
