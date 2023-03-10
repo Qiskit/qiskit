@@ -147,7 +147,8 @@ class Pauli(BasePauli):
     # Set the max Pauli string size before truncation
     __truncate__ = 50
 
-    _VALID_LABEL_PATTERN = re.compile(r"^[+-]?1?[ij]?[IXYZ]+$")
+    _VALID_LABEL_PATTERN = re.compile(r"(?P<coeff>[+-]?1?[ij]?)(?P<pauli>[IXYZ]*)")
+    _CANONICAL_PHASE_LABEL = {"": 0, "-i": 1, "-": 2, "i": 3}
 
     def __init__(self, data=None, x=None, *, z=None, label=None):
         """Initialize the Pauli.
@@ -613,17 +614,15 @@ class Pauli(BasePauli):
         Raises:
             QiskitError: if Pauli string is not valid.
         """
-        if Pauli._VALID_LABEL_PATTERN.match(label) is None:
+        match_ = Pauli._VALID_LABEL_PATTERN.fullmatch(label)
+        if match_ is None:
             raise QiskitError(f'Pauli string label "{label}" is not valid.')
-
-        # Split string into coefficient and Pauli
-        pauli, coeff = _split_pauli_label(label)
-
-        # Convert coefficient to phase
-        phase = 0 if not coeff else _phase_from_label(coeff)
+        phase = Pauli._CANONICAL_PHASE_LABEL[
+            (match_["coeff"] or "").replace("1", "").replace("+", "").replace("j", "i")
+        ]
 
         # Convert to Symplectic representation
-        pauli_bytes = np.frombuffer(pauli.encode("ascii"), dtype=np.uint8)[::-1]
+        pauli_bytes = np.frombuffer(match_["pauli"].encode("ascii"), dtype=np.uint8)[::-1]
         ys = pauli_bytes == ord("Y")
         base_x = np.logical_or(pauli_bytes == ord("X"), ys).reshape(1, -1)
         base_z = np.logical_or(pauli_bytes == ord("Z"), ys).reshape(1, -1)
@@ -696,34 +695,6 @@ class Pauli(BasePauli):
                     qargs = [tup.index for tup in inner.qubits]
                     ret = ret.compose(next_instr, qargs=qargs)
         return ret._z, ret._x, ret._phase
-
-
-# ---------------------------------------------------------------------
-# Label parsing helper functions
-# ---------------------------------------------------------------------
-
-
-def _split_pauli_label(label):
-    """Split Pauli label into unsigned group label and coefficient label"""
-    span = re.search(r"[IXYZ]+", label).span()
-    pauli = label[span[0] :]
-    coeff = label[: span[0]]
-    if span[1] != len(label):
-        invalid = set(re.sub(r"[IXYZ]+", "", label[span[0] :]))
-        raise QiskitError(
-            f"Pauli string contains invalid characters {invalid} ∉ ['I', 'X', 'Y', 'Z']"
-        )
-    return pauli, coeff
-
-
-def _phase_from_label(label):
-    """Return the phase from a label"""
-    # Returns None if label is invalid
-    label = label.replace("+", "", 1).replace("1", "", 1).replace("j", "i", 1)
-    phases = {"": 0, "-i": 1, "-": 2, "i": 3}
-    if label not in phases:
-        raise QiskitError(f"Invalid Pauli phase label '{label}'")
-    return phases[label]
 
 
 # Update docstrings for API docs
