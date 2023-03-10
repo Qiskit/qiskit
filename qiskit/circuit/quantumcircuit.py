@@ -2288,7 +2288,7 @@ class QuantumCircuit:
             .. code-block::
 
                from qiskit import QuantumCircuit
-               circuit = QuantumCircuit(1,1)
+               circuit = QuantumCircuit(1, 1)
                circuit.h(0)
                circuit.measure(0, 0)
                circuit.draw()
@@ -2302,41 +2302,33 @@ class QuantumCircuit:
                  c: 1/══════╩═
                             0
 
-            It is possible to call ``measure`` with lists of qubits and cbits of the same size:
+            It is possible to call ``measure`` with lists of qubits and cbits of the same size, as a
+            shortcut. These two forms produce identical output::
+
+            .. code-block::
+
+               circuit = QuantumCircuit(2, 2)
+               circuit.measure([0,1], [0,1])
+
+            .. code-block::
+
+               circuit = QuantumCircuit(2, 2)
+               circuit.measure(0, 0)
+               circuit.measure(1, 1)
+
+            It is also possible to do a one-to-many readout. These two forms produce identical output::
 
             .. code-block::
 
                circuit = QuantumCircuit(2,2)
-               circuit.measure([0,1], [0,1])  # same as "circuit.measure(0,0); circuit.measure(1,1);"
-
-
-            .. parsed-literal::
-
-                      ┌─┐
-                 q_0: ┤M├───
-                      └╥┘┌─┐
-                 q_1: ─╫─┤M├
-                       ║ └╥┘
-                 c: 2/═╩══╩═
-                       0  1
-
-            It is also possible to do a one-to-many readout:
+               circuit.measure(0, [0,1])
 
             .. code-block::
 
-               circuit = QuantumCircuit(2,2)
-               circuit.measure(0, [0,1])  # same as "circuit.measure(0,0); circuit.measure(0,1);"
+               circuit = QuantumCircuit(2, 2)
+               circuit.measure(0, 0)
+               circuit.measure(0, 1)
 
-
-            .. parsed-literal::
-
-                      ┌─┐┌─┐
-                 q_0: ┤M├┤M├
-                      └╥┘└╥┘
-                 q_1: ─╫──╫─
-                       ║  ║
-                 c: 2/═╩══╩═
-                       0  1
 
             Instead of lists, you can use :class:`~qiskit.circuit.QuantumRegister` and
             :class:`~qiskit.circuit.ClassicalRegister` under the same logic.
@@ -2349,14 +2341,13 @@ class QuantumCircuit:
                 circuit = QuantumCircuit(qreg, creg)
                 circuit.measure(qreg, creg)
 
+            This is equivalent to::
 
-            .. parsed-literal::
+            .. code-block::
 
-                        ┌─┐┌─┐
-                  qreg: ┤M├┤M├
-                        └╥┘└╥┘
-                creg: 2/═╩══╩═
-                         0  1
+                circuit = QuantumCircuit(qreg, creg)
+                circuit.measure(qreg[0], creg[0])
+                circuit.measure(qreg[0], creg[1])
 
         """
         return self.append(Measure(), [qubit], [cbit])
