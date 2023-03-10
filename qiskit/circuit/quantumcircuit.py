@@ -2303,7 +2303,7 @@ class QuantumCircuit:
                             0
 
             It is possible to call ``measure`` with lists of ``qubits`` and ``cbits`` as a shortcut
-            for one-to-one measurement. These two forms produce identical results::
+            for one-to-one measurement. These two forms produce identical results:
 
             .. code-block::
 
@@ -2327,7 +2327,7 @@ class QuantumCircuit:
                 circuit = QuantumCircuit(qreg, creg)
                 circuit.measure(qreg, creg)
 
-            This is equivalent to::
+            This is equivalent to:
 
             .. code-block::
 
