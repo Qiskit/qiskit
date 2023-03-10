@@ -462,7 +462,7 @@ class CouplingTest(QiskitTestCase):
 
         # coupling map isomorphic to coupling0, but with cyclically shifted labels
         coupling3 = CouplingMap([(1, 2), (1, 3), (3, 0)])
-        self.assertTrue(coupling0 != coupling3)
+        self.assertNotEqual(coupling0, coupling3)
 
         # additional test for comparison to a non-CouplingMap object
         self.assertTrue(coupling0 != 1)
