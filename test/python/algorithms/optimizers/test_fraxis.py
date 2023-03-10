@@ -39,13 +39,14 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
             ]
         )
         self.expval = -1.857275
+        self.ansatz = TwoLocal(rotation_blocks="u", entanglement_blocks="cx")
 
     def test_fraxis_default(self):
         """Test Fraxis optimizer with default parameters"""
 
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -56,7 +57,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
         maxiter = 20
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(maxiter=maxiter),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -68,7 +69,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
         xtol = 1e10
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(xtol=xtol),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -80,7 +81,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
         xtol = 0
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(maxiter=maxiter, xtol=xtol),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -93,7 +94,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
         xtol = 1e10
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(maxiter=maxiter, xtol=xtol),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -105,7 +106,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
         xtol = 1e-2
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(maxiter=maxiter, xtol=xtol),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -122,7 +123,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
 
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(xtol=xtol, callback=callback),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -144,7 +145,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
 
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(callback=callback),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
@@ -160,7 +161,7 @@ class TestOptimizerFraxis(QiskitAlgorithmsTestCase):
 
         vqe = VQE(
             estimator=Estimator(),
-            ansatz=TwoLocal(rotation_blocks="u", entanglement_blocks="cx"),
+            ansatz=self.ansatz,
             optimizer=Fraxis(maxiter=maxiter, callback=callback),
         )
         result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
