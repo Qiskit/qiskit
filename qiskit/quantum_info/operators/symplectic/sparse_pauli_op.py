@@ -335,7 +335,7 @@ class SparsePauliOp(LinearOp):
     def _tensor(cls, a, b):
         paulis = a.paulis.tensor(b.paulis)
         coeffs = np.kron(a.coeffs, b.coeffs)
-        return SparsePauliOp(paulis, coeffs, copy=False)
+        return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _add(self, other, qargs=None):
         if qargs is None:

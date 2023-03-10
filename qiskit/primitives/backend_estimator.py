@@ -97,7 +97,6 @@ class BackendEstimator(BaseEstimator):
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    # pylint: disable=missing-raises-doc
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
@@ -379,7 +378,10 @@ class BackendEstimator(BaseEstimator):
         if self._bound_pass_manager is None:
             return circuits
         else:
-            return self._bound_pass_manager.run(circuits)
+            output = self._bound_pass_manager.run(circuits)
+            if not isinstance(output, list):
+                output = [output]
+            return output
 
 
 def _paulis2inds(paulis: PauliList) -> list[int]:

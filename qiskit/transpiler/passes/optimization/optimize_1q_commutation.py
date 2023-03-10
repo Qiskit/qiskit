@@ -152,18 +152,22 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
         else:
             return list(run_clone), list(commuted)
 
-    def _resynthesize(self, new_run):
+    def _resynthesize(self, run, qubit):
         """
-        Synthesizes an efficient circuit from a sequence `new_run` of `DAGOpNode`s.
+        Synthesizes an efficient circuit from a sequence `run` of `DAGOpNode`s.
 
         NOTE: Returns None when resynthesis is not possible.
         """
-        if len(new_run) == 0:
+        if len(run) == 0:
             dag = DAGCircuit()
             dag.add_qreg(QuantumRegister(1))
             return dag
-
-        return self._optimize1q._resynthesize_run(new_run)
+        operator = run[0].op.to_matrix()
+        for gate in run[1:]:
+            operator = gate.op.to_matrix().dot(operator)
+        return self._optimize1q._gate_sequence_to_dag(
+            self._optimize1q._resynthesize_run(operator, qubit)
+        )
 
     @staticmethod
     def _replace_subdag(dag, old_run, new_dag):
@@ -214,9 +218,10 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 )
 
             # re-synthesize
-            new_preceding_run = self._resynthesize(preceding_run + commuted_preceding)
-            new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run)
-            new_run = self._resynthesize(run_clone)
+            qubit = qubit_indices[run[0].qargs[0]]
+            new_preceding_run = self._resynthesize(preceding_run + commuted_preceding, qubit)
+            new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run, qubit)
+            new_run = self._resynthesize(run_clone, qubit)
 
             # perform the replacement if it was indeed a good idea
             if self._optimize1q._substitution_checks(

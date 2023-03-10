@@ -31,8 +31,8 @@ def pass_manager_drawer(pass_manager, filename=None, style=None, raw=False):
     """
     Draws the pass manager.
 
-    This function needs `pydot <https://github.com/erocarrera/pydot>`, which in turn needs
-    Graphviz <https://www.graphviz.org/>` to be installed.
+    This function needs `pydot <https://github.com/erocarrera/pydot>`__, which in turn needs
+    `Graphviz <https://www.graphviz.org/>`__ to be installed.
 
     Args:
         pass_manager (PassManager): the pass manager to be drawn
@@ -261,7 +261,7 @@ def make_output(graph, raw, filename):
 
     if not _optionals.HAS_PIL and filename:
         # pylint says this isn't a method - it is
-        graph.write_png(filename)  # pylint: disable=no-member
+        graph.write_png(filename)
         return None
 
     _optionals.HAS_PIL.require_now("pass manager drawer")
@@ -272,7 +272,7 @@ def make_output(graph, raw, filename):
         tmppath = os.path.join(tmpdirname, "pass_manager.png")
 
         # pylint says this isn't a method - it is
-        graph.write_png(tmppath)  # pylint: disable=no-member
+        graph.write_png(tmppath)
 
         image = Image.open(tmppath)
         os.remove(tmppath)
