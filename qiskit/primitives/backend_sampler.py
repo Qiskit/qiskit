@@ -79,7 +79,7 @@ class BackendSampler(BaseSampler):
     def __new__(  # pylint: disable=signature-differs
         cls,
         backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
+        **kwargs,
     ):
         self = super().__new__(cls)
         return self
@@ -165,7 +165,7 @@ class BackendSampler(BaseSampler):
         probabilities = []
         metadata: list[dict[str, Any]] = [{} for _ in range(len(circuits))]
         for count in counts:
-            prob_dist = {k: v / shots for k, v in count.int_outcomes().items()}
+            prob_dist = {k: v / shots for k, v in count.items()}
             probabilities.append(
                 QuasiDistribution(prob_dist, shots=shots, stddev_upper_bound=math.sqrt(1 / shots))
             )

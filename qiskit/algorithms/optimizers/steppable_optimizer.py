@@ -59,7 +59,7 @@ class OptimizerState:
 
     """
 
-    x: POINT  # pylint: disable=invalid-name
+    x: POINT
     """Current optimization parameters."""
     fun: Optional[Callable[[POINT], float]]
     """Function being  optimized."""

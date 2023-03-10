@@ -624,6 +624,37 @@ class TestLoadFromQPY(QiskitTestCase):
         )
         self.assertDeprecatedBitProperties(qc, new_circ)
 
+    def test_statepreparation(self):
+        """Test that state preparation with a complex statevector and qft work."""
+        k = 5
+        state = (1 / np.sqrt(8)) * np.array(
+            [
+                np.exp(-1j * 2 * np.pi * k * (0) / 8),
+                np.exp(-1j * 2 * np.pi * k * (1) / 8),
+                np.exp(-1j * 2 * np.pi * k * (2) / 8),
+                np.exp(-1j * 2 * np.pi * k * 3 / 8),
+                np.exp(-1j * 2 * np.pi * k * 4 / 8),
+                np.exp(-1j * 2 * np.pi * k * 5 / 8),
+                np.exp(-1j * 2 * np.pi * k * 6 / 8),
+                np.exp(-1j * 2 * np.pi * k * 7 / 8),
+            ]
+        )
+
+        qubits = 3
+        qc = QuantumCircuit(qubits, qubits)
+        qc.prepare_state(state)
+        qc.append(QFT(qubits), range(qubits))
+        qc.measure(range(qubits), range(qubits))
+        qpy_file = io.BytesIO()
+        dump(qc, qpy_file)
+        qpy_file.seek(0)
+        new_circ = load(qpy_file)[0]
+        self.assertEqual(qc, new_circ)
+        self.assertEqual(
+            [x.operation.label for x in qc.data], [x.operation.label for x in new_circ.data]
+        )
+        self.assertDeprecatedBitProperties(qc, new_circ)
+
     def test_single_bit_teleportation(self):
         """Test a teleportation circuit with single bit conditions."""
         qr = QuantumRegister(1)
@@ -900,7 +931,7 @@ class TestLoadFromQPY(QiskitTestCase):
         class CustomSerializer(json.JSONEncoder):
             """Custom json encoder to handle CustomObject."""
 
-            def default(self, o):  # pylint: disable=invalid-name
+            def default(self, o):
                 if isinstance(o, CustomObject):
                     return {"__type__": "Custom", "value": o.string}
                 return json.JSONEncoder.default(self, o)
@@ -1045,7 +1076,7 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_empty_tuple_param(self):
         """Test qpy with an instruction that contains an empty tuple."""
-        inst = Instruction("empty_tuple_test", 1, 0, [tuple()])
+        inst = Instruction("empty_tuple_test", 1, 0, [()])
         qc = QuantumCircuit(1)
         qc.append(inst, [0])
         qpy_file = io.BytesIO()

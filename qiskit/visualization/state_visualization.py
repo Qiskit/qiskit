@@ -740,7 +740,7 @@ def lex_index(n, k, lst):
     """
     if len(lst) != k:
         raise VisualizationError("list should have length k")
-    comb = list(map(lambda x: n - 1 - x, lst))
+    comb = [n - 1 - x for x in lst]
     dualm = sum(n_choose_k(comb[k - 1 - i], i + 1) for i in range(k))
     return int(dualm)
 
