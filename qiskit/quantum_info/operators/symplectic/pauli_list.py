@@ -133,7 +133,9 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             base_z, base_x, base_phase = data._z, data._x, data._phase
         elif isinstance(data, StabilizerTable):
             # Conversion from legacy StabilizerTable
-            base_z, base_x, base_phase = self._from_array(data.Z, data.X, 2 * data.phase, num_qubits=num_qubits)
+            base_z, base_x, base_phase = self._from_array(
+                data.Z, data.X, 2 * data.phase, num_qubits=num_qubits
+            )
         elif isinstance(data, PauliTable):
             # Conversion from legacy PauliTable
             base_z, base_x, base_phase = self._from_array(data.Z, data.X, num_qubits=num_qubits)
