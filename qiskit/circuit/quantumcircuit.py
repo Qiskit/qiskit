@@ -2840,7 +2840,7 @@ class QuantumCircuit:
         qarg: Optional[QubitSpecifier] = None,
         unit: str = "dt",
     ) -> InstructionSet:
-        """Apply :class:`~.~qiskit.circuit.library.Delay`. If qarg is ``None``, applies to all qubits.
+        """Apply :class:`~.circuit.Delay`. If qarg is ``None``, applies to all qubits.
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
