@@ -170,7 +170,7 @@ def add_deprecation_to_docstring(
             "Deprecation messages cannot contain new lines (`\\n`), but the deprecation for "
             f'{func.__qualname__} had them. Usually this happens when using `"""` multiline '
             f"strings; instead, use string concatenation.\n\n"
-            "This is a simplification to facilitate deprecation messages being added to our "
+            "This is a simplification to facilitate deprecation messages being added to the "
             "documentation. If you have a compelling reason to need "
             "new lines, feel free to improve this function or open a request at "
             "https://github.com/Qiskit/qiskit-terra/issues."
