@@ -17,7 +17,7 @@ A target object represents the minimum set of information the transpiler needs
 from a backend
 """
 import warnings
-from typing import Union
+from typing import Tuple, Union
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
@@ -28,6 +28,7 @@ import inspect
 import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
@@ -91,7 +92,7 @@ class InstructionProperties:
     def calibration(self, calibration: Union[Schedule, ScheduleBlock, CalibrationEntry]):
         if isinstance(calibration, (Schedule, ScheduleBlock)):
             new_entry = ScheduleDef()
-            new_entry.define(calibration)
+            new_entry.define(calibration, user_provided=True)
         else:
             new_entry = calibration
         self._calibration = new_entry
@@ -441,6 +442,8 @@ class Target(Mapping):
             this dictionary. If one is not found in ``error_dict`` then
             ``None`` will be used.
         """
+        get_calibration = getattr(inst_map, "_get_calibration_entry")
+
         for inst_name in inst_map.instructions:
             out_props = {}
             for qargs in inst_map.qubits_with_instruction(inst_name):
@@ -448,29 +451,36 @@ class Target(Mapping):
                     qargs = tuple(qargs)
                 except TypeError:
                     qargs = (qargs,)
-                entry = inst_map._get_calibration_entry(inst_name, qargs)
-                if inst_name in self._gate_map and qargs in self._gate_map[inst_name]:
-                    default_entry = self._gate_map[inst_name][qargs]._calibration
-                    if entry == default_entry:
-                        # Skip parsing existing entry, e.g. backend calibrated schedule.
-                        continue
-                if self.dt is not None:
-                    duration = entry.get_schedule().duration * self.dt
-                else:
-                    duration = None
-                if inst_name in self._gate_map and error_dict is not None:
-                    error_inst = error_dict.get(inst_name)
-                    if error_inst:
-                        error = error_inst.get(qargs)
+                try:
+                    props = self._gate_map[inst_name][qargs]
+                except (KeyError, TypeError):
+                    props = None
+
+                entry = get_calibration(inst_name, qargs)
+                if entry.user_provided and getattr(props, "_calibration", None) != entry:
+                    # It only copies user-provided calibration from the inst map.
+                    # Backend defined entry must already exist in Target.
+                    if self.dt is not None:
+                        duration = entry.get_schedule().duration * self.dt
                     else:
-                        error = None
+                        duration = None
+                    props = InstructionProperties(
+                        duration=duration,
+                        calibration=entry,
+                    )
                 else:
-                    error = None
-                out_props[qargs] = InstructionProperties(
-                    duration=duration,
-                    error=error,
-                    calibration=entry,
-                )
+                    if props is None:
+                        # Edge case. Calibration is backend defined, but this is not
+                        # registered in the backend target. Ignore this entry.
+                        continue
+                try:
+                    # Update gate error if provided.
+                    props.error = error_dict[inst_name][qargs]
+                except (KeyError, TypeError):
+                    pass
+                out_props[qargs] = props
+            if not out_props:
+                continue
             if inst_name not in self._gate_map:
                 if inst_name_map is None:
                     inst_name_map = get_standard_gate_name_mapping()
@@ -796,6 +806,55 @@ class Target(Mapping):
                         x < self.num_qubits for x in qargs
                     )
         return False
+
+    def calibration_supported(
+        self,
+        operation_name: str,
+        qargs: Tuple[int, ...],
+    ) -> bool:
+        """Return whether the instruction (operation + qubits) defines a calibration.
+
+        Args:
+            operation_name: The name of the operation for the instruction.
+            qargs: The tuple of qubit indices for the instruction.
+
+        Returns:
+            Returns ``True`` if the calibration is supported and ``False`` if it isn't.
+        """
+        qargs = tuple(qargs)
+        if operation_name not in self._gate_map:
+            return False
+        if qargs not in self._gate_map[operation_name]:
+            return False
+        return getattr(self._gate_map[operation_name][qargs], "_calibration") is not None
+
+    def get_calibration(
+        self,
+        operation_name: str,
+        qargs: Tuple[int, ...],
+        *args: ParameterValueType,
+        **kwargs: ParameterValueType,
+    ) -> Union[Schedule, ScheduleBlock]:
+        """Get calibrated pulse schedule for the instruction.
+
+        If calibration is templated with parameters, one can also provide those values
+        to build a schedule with assigned parameters.
+
+        Args:
+            operation_name: The name of the operation for the instruction.
+            qargs: The tuple of qubit indices for the instruction.
+            args: Parameter values to build schedule if any.
+            kwargs: Parameter values with name to build schedule if any.
+
+        Returns:
+            Calibrated pulse schedule of corresponding instruction.
+        """
+        if not self.calibration_supported(operation_name, qargs):
+            raise KeyError(
+                f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
+            )
+        cal_entry = getattr(self._gate_map[operation_name][qargs], "_calibration")
+        return cal_entry.get_schedule(*args, **kwargs)
 
     @property
     def operation_names(self):

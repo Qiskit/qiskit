@@ -35,7 +35,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.calibration_entries import CalibrationPublisher
+from qiskit.pulse.calibration_entries import CalibrationPublisher, ScheduleDef
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -1272,6 +1272,33 @@ Instructions:
         target.add_instruction(XGate(), properties)
 
         self.assertIsNone(target["x"][(0,)].calibration)
+
+    def test_loading_legacy_ugate_instmap(self):
+        # This is typical IBM backend situation.
+        # IBM provider used to have u1, u2, u3 in the basis gates and
+        # these have been replaced with sx and rz.
+        # However, IBM provider still provides calibration of these u gates,
+        # and the inst map loads them as backend calibrations.
+        # Target is implicitly updated with inst map when it is set in transpile.
+        # If u gates are not excluded, they may appear in the transpiled circuit.
+        # These gates are no longer supported by hardware.
+        entry = ScheduleDef()
+        entry.define(pulse.Schedule(name="fake_u3"), user_provided=False)  # backend provided
+        instmap = InstructionScheduleMap()
+        instmap._add("u3", (0,), entry)
+
+        # Today's standard IBM backend target with sx, rz basis
+        target = Target()
+        target.add_instruction(SXGate(), {(0,): InstructionProperties()})
+        target.add_instruction(RZGate(Parameter("θ")), {(0,): InstructionProperties()})
+        target.add_instruction(Measure(), {(0,): InstructionProperties()})
+        names_before = set(target.operation_names)
+
+        target.update_from_instruction_schedule_map(instmap)
+        names_after = set(target.operation_names)
+
+        # Otherwise u3 and sx-rz basis conflict in 1q decomposition.
+        self.assertSetEqual(names_before, names_after)
 
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):

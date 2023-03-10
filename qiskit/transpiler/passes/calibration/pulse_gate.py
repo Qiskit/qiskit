@@ -80,7 +80,7 @@ class PulseGates(CalibrationBuilder):
         Returns:
             Return ``True`` is calibration can be provided.
         """
-        return self.target.instruction_supported(operation_name=node_op.name, qargs=qubits)
+        return self.target.calibration_supported(node_op.name, tuple(qubits))
 
     def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
         """Gets the calibrated schedule for the given instruction and qubits.
@@ -95,18 +95,4 @@ class PulseGates(CalibrationBuilder):
         Raises:
             TranspilerError: When node is parameterized and calibration is raw schedule object.
         """
-        inst_property = self.target[node_op.name][tuple(qubits)]
-        if not node_op.params:
-            return inst_property.calibration
-        try:
-            # CircuitInstruction doesn't preserve parameter name after parameter binding.
-            # Thus schedule cannot generate bind dictionary.
-            # Use CalibraionEntry to utilize inspected signature object.
-            calibration_entry = inst_property._calibration
-            return calibration_entry.get_schedule(*node_op.params)
-        except AttributeError as ex:
-            raise TranspilerError(
-                f"Calibraton for {node_op.name} of {qubits} is not a CalibraryEntry instance. "
-                f"Mapping from parameter values {node_op.params} to parameter objects "
-                f"in the schedule cannot be identified."
-            ) from ex
+        return self.target.get_calibration(node_op.name, tuple(qubits), *node_op.params)

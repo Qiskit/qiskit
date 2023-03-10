@@ -15,9 +15,9 @@
 import ddt
 
 from qiskit import pulse, circuit, transpile
-from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeAthens, FakeAthensV2
 from qiskit.quantum_info.random import random_unitary
+from qiskit.test import QiskitTestCase
 
 
 @ddt.ddt
@@ -350,8 +350,11 @@ class TestPulseGate(QiskitTestCase):
 
         Test case from Qiskit/qiskit-terra/#9489
         """
+        with pulse.build(name="custom") as rabi12:
+            pulse.play(pulse.Constant(100, 0.4), pulse.DriveChannel(0))
+
         instmap = FakeAthens().defaults().instruction_schedule_map
-        instmap.add("rabi12", (0,), self.custom_sx_q0)
+        instmap.add("rabi12", (0,), rabi12)
 
         gate = circuit.Gate("rabi12", 1, [])
         qc = circuit.QuantumCircuit(1)
@@ -367,7 +370,7 @@ class TestPulseGate(QiskitTestCase):
         )
         ref_calibration = {
             "rabi12": {
-                ((0,), ()): self.custom_sx_q0,
+                ((0,), ()): rabi12,
             }
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
