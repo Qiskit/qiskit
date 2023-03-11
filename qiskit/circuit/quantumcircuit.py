@@ -130,10 +130,10 @@ class QuantumCircuit:
     A circuit is a list of instructions bound to some registers.
 
     Args:
-        regs (list(:class:`.Register`) or list(``int``) or list(list(:class:`.Bit`))): The
+        regs (list(:class:`~.register.Register`) or list(``int``) or list(list(:class:`.Bit`))): The
             registers to be included in the circuit.
 
-            * If a list of :class:`.Register` objects, represents the :class:`.QuantumRegister`
+            * If a list of :class:`~.register.Register` objects, represents the :class:`.QuantumRegister`
               and/or :class:`.ClassicalRegister` objects to include in the circuit.
 
               For example:
@@ -1217,8 +1217,7 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if the operation passed is not an instance of
-                :class:`~.circuit.Instruction`.
+            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction` .
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
@@ -2803,7 +2802,7 @@ class QuantumCircuit:
                         self._rebind_definition(inner.operation, parameter, value)
 
     def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.Barrier`. If ``qargs`` is empty, applies to all qubits
+        """Apply :class:`~.circuit.Barrier`. If ``qargs`` is empty, applies to all qubits
         in the circuit.
 
         Args:
@@ -4306,10 +4305,10 @@ class QuantumCircuit:
 
         There are two forms for calling this function.  If called with all its arguments (with the
         possible exception of ``label``), it will create a
-        :class:`~.ForLoopOp` with the given ``body``.  If ``body`` (and
+        :class:`~qiskit.circuit.ForLoopOp` with the given ``body``.  If ``body`` (and
         ``qubits`` and ``clbits``) are *not* passed, then this acts as a context manager, which,
         when entered, provides a loop variable (unless one is given, in which case it will be
-        reused) and will automatically build a :class:`~.ForLoopOp` when the
+        reused) and will automatically build a :class:`~qiskit.circuit.ForLoopOp` when the
         scope finishes.  In this form, you do not need to keep track of the qubits or clbits you are
         using, because the scope will handle it for you.
 
@@ -4491,7 +4490,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         label: Optional[str] = None,
     ) -> InstructionSet:
-        """Apply :class:`~.IfElseOp`.
+        """Apply :class:`~qiskit.circuit.IfElseOp`.
 
         .. note::
 
@@ -4536,7 +4535,7 @@ class QuantumCircuit:
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
     def break_loop(self) -> InstructionSet:
-        """Apply :class:`~.BreakLoopOp`.
+        """Apply :class:`~qiskit.circuit.BreakLoopOp`.
 
         .. warning::
 
@@ -4566,7 +4565,7 @@ class QuantumCircuit:
         return self.append(BreakLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits)
 
     def continue_loop(self) -> InstructionSet:
-        """Apply :class:`~.ContinueLoopOp`.
+        """Apply :class:`~qiskit.circuit.ContinueLoopOp`.
 
         .. warning::
 
@@ -4576,8 +4575,8 @@ class QuantumCircuit:
             determined.  This would quickly lead to invalid circuits, and so if you are trying to
             construct a reusable loop body (without the context managers), you must also use the
             non-context-manager form of :meth:`.if_test` and :meth:`.if_else`.  Take care that the
-            :obj:`.ContinueLoopOp` instruction must span all the resources of its containing loop,
-            not just the immediate scope.
+            :class:`~qiskit.circuit.ContinueLoopOp` instruction must span all the resources of its
+            containing loop, not just the immediate scope.
 
         Returns:
             A handle to the instruction created.
