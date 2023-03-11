@@ -130,10 +130,10 @@ class QuantumCircuit:
     A circuit is a list of instructions bound to some registers.
 
     Args:
-        regs (list(:class:`~.register.Register`) or list(``int``) or list(list(:class:`.Bit`))): The
+        regs (list(:class:`~.Register`) or list(``int``) or list(list(:class:`~.Bit`))): The
             registers to be included in the circuit.
 
-            * If a list of :class:`~.register.Register` objects, represents the :class:`.QuantumRegister`
+            * If a list of :class:`~.Register` objects, represents the :class:`.QuantumRegister`
               and/or :class:`.ClassicalRegister` objects to include in the circuit.
 
               For example:
@@ -2799,7 +2799,7 @@ class QuantumCircuit:
                         self._rebind_definition(inner.operation, parameter, value)
 
     def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
-        """Apply :class:`~.circuit.Barrier`. If ``qargs`` is empty, applies to all qubits
+        """Apply :class:`~.library.Barrier`. If ``qargs`` is empty, applies to all qubits
         in the circuit.
 
         Args:
@@ -4400,7 +4400,7 @@ class QuantumCircuit:
 
         There are two forms for calling this function.  If called with all its arguments (with the
         possible exception of ``label``), it will create a
-        :obj:`~qiskit.circuit.controlflow.IfElseOp` with the given ``true_body``, and there will be
+        :obj:`~qiskit.circuit.IfElseOp` with the given ``true_body``, and there will be
         no branch for the ``false`` condition (see also the :meth:`.if_else` method).  However, if
         ``true_body`` (and ``qubits`` and ``clbits``) are *not* passed, then this acts as a context
         manager, which can be used to build ``if`` statements.  The return value of the ``with``

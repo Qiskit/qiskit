@@ -263,6 +263,8 @@ Quantum Circuit Construction
    AncillaRegister
    AncillaQubit
    CircuitInstruction
+   Register
+   Bit
 
 Gates and Instructions
 ----------------------
