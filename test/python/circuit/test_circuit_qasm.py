@@ -19,7 +19,7 @@ import re
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate
-from qiskit.circuit.library import C3SXGate, CCZGate, CSGate, CSdgGate, RZXGate
+from qiskit.circuit.library import CCZGate, CSGate, CSdgGate, RZXGate
 from qiskit.qasm.exceptions import QasmError
 
 # Regex pattern to match valid OpenQASM identifiers
