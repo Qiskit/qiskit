@@ -712,7 +712,7 @@ class TestObservableValidation(QiskitTestCase):
             def _run(self_, circuits, observables, parameter_values, **run_options):
                 self.assertEqual(observables, expected)
 
-            def _call():
+            def _call(self_, circuits, observables, parameters_values, **run_options):
                 pass
 
         qc = QuantumCircuit(4)
