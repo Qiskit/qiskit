@@ -33,7 +33,7 @@ from qiskit.qobj.utils import MeasLevel
 from qiskit.utils.deprecation import deprecate_function
 
 if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+    from functools import singledispatchmethod
 else:
     from singledispatchmethod import singledispatchmethod
 

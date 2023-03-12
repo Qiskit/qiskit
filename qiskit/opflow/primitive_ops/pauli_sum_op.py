@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""PauliSumOp Class """
+"""PauliSumOp Class"""
 
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
@@ -401,7 +401,6 @@ class PauliSumOp(PrimitiveOp):
         """
         return len(self.primitive)
 
-    # pylint: disable=arguments-differ
     def reduce(self, atol: Optional[float] = None, rtol: Optional[float] = None) -> "PauliSumOp":
         """Simplify the primitive ``SparsePauliOp``.
 

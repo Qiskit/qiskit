@@ -35,7 +35,6 @@ class LinCombFull(CircuitQFI):
     See also :class:`~qiskit.opflow.QFI`.
     """
 
-    # pylint: disable=signature-differs, arguments-differ
     def __init__(
         self,
         aux_meas_op: OperatorBase = Z,
