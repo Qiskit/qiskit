@@ -683,6 +683,10 @@ class TestObservableValidation(QiskitTestCase):
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
         (
+            [PauliList(["IXYZ", "IZIZ"]), PauliList("ZYXI")],
+            (SparsePauliOp(["IXYZ", "IZIZ"]), SparsePauliOp("ZYXI")),
+        ),
+        (
             [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
@@ -690,11 +694,30 @@ class TestObservableValidation(QiskitTestCase):
             [PauliSumOp(SparsePauliOp("IXYZ")), PauliSumOp(SparsePauliOp("ZYXI"))],
             (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
         ),
+        (
+            PauliList(["IXYZ", "ZYXI"]),
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
     )
     @unpack
     def test_validate_observables(self, obsevables, expected):
         """Test obsevables standardization."""
         self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
+
+    def test_deprecated_paulilist_multiple_as_single_observable(self):
+        observables = PauliList(["IXYZ", "ZYXI"])
+        expected = (SparsePauliOp(["IXYZ", "ZYXI"]),)
+
+        class MockEstimator(BaseEstimator):
+            def _run(self_, circuits, observables, parameter_values, **run_options):
+                self.assertEqual(observables, expected)
+
+            def _call():
+                pass
+
+        qc = QuantumCircuit(4)
+        with self.assertWarns(DeprecationWarning):
+            MockEstimator().run(qc, observables)
 
     @data(None, "ERROR")
     def test_qiskit_error(self, observables):

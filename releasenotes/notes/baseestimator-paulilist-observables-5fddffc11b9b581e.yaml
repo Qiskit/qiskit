@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    ``BaseEstimator`` can now accept multiple observables in the form
+    of a ``PauliList``.  Previously, it was necessary to convert the
+    ``PauliList`` to a ``list`` before passing it to a
+    ``BaseEstimator`` subclass; otherwise it would be interpreted as a
+    single ``SparsePauliOp`` observable.
+deprecations:
+  - |
+    ``BaseEstimator``'s implicit conversion of ``observables`` in the
+    form of a ``PauliList`` with multiple elements to a single
+    ``SparsePauliOp`` is deprecated as of Qiskit Terra 0.24.0 and will
+    be removed no sooner than 3 months after the release date.  If a
+    single observable is desired from a ``PauliList`` with multiple
+    elements, convert it to a ``SparsePauliOp`` before calling the
+    ``Estimator``.
+other:
+  - |
+    ``PauliList`` is now registered with ``collections.abc`` as a
+    ``Sequence``.

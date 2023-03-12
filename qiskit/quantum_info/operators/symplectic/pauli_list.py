@@ -14,6 +14,7 @@ Optimized list of Pauli operators
 """
 
 from collections import defaultdict
+from collections.abc import Sequence
 
 import numpy as np
 import rustworkx as rx
@@ -1181,3 +1182,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         for idx, color in coloring_dict.items():
             groups[color].append(idx)
         return [self[group] for group in groups.values()]
+
+
+Sequence.register(PauliList)

@@ -92,7 +92,7 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import JobV1 as Job
-from qiskit.quantum_info.operators import SparsePauliOp
+from qiskit.quantum_info.operators import SparsePauliOp, PauliList
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
 
@@ -218,6 +218,17 @@ class BaseEstimator(BasePrimitive):
         """
         # Singular validation
         circuits = self._validate_circuits(circuits)
+        if len(circuits) == 1 and len(observables) > 1 and isinstance(observables, PauliList):
+            warn(
+                "BaseEstimator's implicit conversion of a single PauliList to a "
+                "SparsePauliOp is deprecated as of Qiskit Terra 0.24.0 and will be "
+                "removed no sooner than 3 months after the release date.  If a single "
+                "observable is desired from a ``PauliList`` with multiple elements, "
+                "convert it to a SparsePauliOp before calling the Estimator.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            observables = SparsePauliOp(observables)
         observables = self._validate_observables(observables)
         parameter_values = self._validate_parameter_values(
             parameter_values,
