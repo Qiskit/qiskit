@@ -1153,7 +1153,7 @@ class Target(Mapping):
             granularity=granularity,
             min_length=min_length,
             pulse_alignment=pulse_alignment,
-            aquire_alignment=acquire_alignment,
+            acquire_alignment=acquire_alignment,
             qubit_properties=qubit_properties,
         )
         name_mapping = get_standard_gate_name_mapping()

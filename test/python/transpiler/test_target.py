@@ -1780,7 +1780,7 @@ class TestTargetFromConfiguration(QiskitTestCase):
         self.assertEqual(target.granularity, constraints.granularity)
         self.assertEqual(target.min_length, constraints.min_length)
         self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
-        self.assertEqual(target.aquire_alignment, constraints.acquire_alignment)
+        self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
 
     def test_custom_basis_gates(self):
         basis_gates = ["my_x", "cx"]
