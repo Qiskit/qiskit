@@ -31,7 +31,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitWeylDecomposition,
 )
 from qiskit.quantum_info import Operator
-from qiskit.circuit import ControlFlowOp
+from qiskit.circuit import ControlFlowOp, Gate
 from qiskit.circuit.library.standard_gates import (
     iSwapGate,
     CXGate,
@@ -47,6 +47,7 @@ from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
 )
 from qiskit.providers.models import BackendProperties
 from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
+from qiskit.exceptions import QiskitError
 
 
 KAK_GATE_NAMES = {
@@ -152,18 +153,23 @@ def _error(circuit, target=None, qubits=None):
             keys = target.operation_names_for_qargs(inst_qubits)
             for key in keys:
                 target_op = target.operation_from_name(key)
-                # pylint: disable=unidiomatic-typecheck
-                if type(target_op) == type(inst.operation) and (
+                if isinstance(target_op, type(inst.operation)) and (
                     target_op.is_parameterized()
                     or all(
                         isclose(float(p1), float(p2))
                         for p1, p2 in zip(target_op.params, inst.operation.params)
                     )
                 ):
-                    error = getattr(target[key][inst_qubits], "error", 0.0) or 0.0
-                    duration = getattr(target[key][inst_qubits], "duration", 0.0) or 0.0
-                    gate_fidelities.append(1 - error)
-                    gate_durations.append(duration)
+                    inst_props = target[key].get(inst_qubits, None)
+                    if inst_props is not None:
+                        error = getattr(inst_props, "error", 0.0) or 0.0
+                        duration = getattr(inst_props, "duration", 0.0) or 0.0
+                        gate_fidelities.append(1 - error)
+                        gate_durations.append(duration)
+                    else:
+                        gate_fidelities.append(1.0)
+                        gate_durations.append(0.0)
+
                     break
             else:
                 raise KeyError
@@ -599,7 +605,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         try:
             keys = target.operation_names_for_qargs(qubits_tuple)
             for key in keys:
-                available_2q_basis[key] = target.operation_from_name(key)
+                op = target.operation_from_name(key)
+                if not isinstance(op, Gate):
+                    continue
+                available_2q_basis[key] = op
                 available_2q_props[key] = target[key][qubits_tuple]
         except KeyError:
             pass
@@ -607,7 +616,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             keys = target.operation_names_for_qargs(reverse_tuple)
             for key in keys:
                 if key not in available_2q_basis:
-                    available_2q_basis[key] = target.operation_from_name(key)
+                    op = target.operation_from_name(key)
+                    if not isinstance(op, Gate):
+                        continue
+                    available_2q_basis[key] = op
                     available_2q_props[key] = target[key][reverse_tuple]
         except KeyError:
             pass
@@ -624,11 +636,19 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         decomposers = []
 
         def is_supercontrolled(gate):
-            kak = TwoQubitWeylDecomposition(Operator(gate).data)
+            try:
+                operator = Operator(gate)
+            except QiskitError:
+                return False
+            kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.a, pi / 4) and isclose(kak.c, 0.0)
 
         def is_controlled(gate):
-            kak = TwoQubitWeylDecomposition(Operator(gate).data)
+            try:
+                operator = Operator(gate)
+            except QiskitError:
+                return False
+            kak = TwoQubitWeylDecomposition(operator.data)
             return isclose(kak.b, 0.0) and isclose(kak.c, 0.0)
 
         # possible supercontrolled decomposers (i.e. TwoQubitBasisDecomposer)
@@ -636,7 +656,14 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             k: v for k, v in available_2q_basis.items() if is_supercontrolled(v)
         }
         for basis_1q, basis_2q in product(available_1q_basis, supercontrolled_basis.keys()):
-            basis_2q_fidelity = 1 - getattr(available_2q_props[basis_2q], "error", 0.0)
+            props = available_2q_props.get(basis_2q)
+            if props is None:
+                basis_2q_fidelity = 1.0
+            else:
+                error = getattr(props, "error", 0.0)
+                if error is None:
+                    error = 0.0
+                basis_2q_fidelity = 1 - error
             if approximation_degree is not None:
                 basis_2q_fidelity *= approximation_degree
             decomposer = TwoQubitBasisDecomposer(
@@ -654,7 +681,14 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         for k, v in controlled_basis.items():
             strength = 2 * TwoQubitWeylDecomposition(Operator(v).data).a  # pi/2: fully entangling
             # each strength has its own fidelity
-            basis_2q_fidelity[strength] = 1 - getattr(available_2q_props[k], "error", 0.0)
+            props = available_2q_props.get(k)
+            if props is None:
+                basis_2q_fidelity[strength] = 1.0
+            else:
+                error = getattr(props, "error", 0.0)
+                if error is None:
+                    error = 0.0
+                basis_2q_fidelity[strength] = 1 - error
             # rewrite XX of the same strength in terms of it
             embodiment = XXEmbodiments[type(v)]
             if len(embodiment.parameters) == 1:
@@ -706,7 +740,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         if unitary.shape == (2, 2):
             _decomposer1q = Optimize1qGatesDecomposition(basis_gates, target)
-            return _decomposer1q._resynthesize_run(unitary, qubits[0])  # already in dag format
+            return _decomposer1q._gate_sequence_to_dag(
+                _decomposer1q._resynthesize_run(unitary, qubits[0])
+            )
         elif unitary.shape == (4, 4):
             # select synthesizers that can lower to the target
             if target is not None:
