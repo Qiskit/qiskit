@@ -1623,7 +1623,6 @@ class QuantumCircuit:
             "sx",
             "sxdg",
             "cz",
-            "ccz",
             "cy",
             "swap",
             "ch",
@@ -1636,8 +1635,6 @@ class QuantumCircuit:
             "cp",
             "cu3",
             "csx",
-            "cs",
-            "csdg",
             "cu",
             "rxx",
             "rzz",
@@ -2947,7 +2944,7 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
 
-        See also:
+        See Also:
             QuantumCircuit.i: the same function.
         """
         return self.i(qubit)

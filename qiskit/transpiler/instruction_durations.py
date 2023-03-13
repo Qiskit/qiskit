@@ -74,15 +74,17 @@ class InstructionDurations:
         """
         # All durations in seconds in gate_length
         instruction_durations = []
-        for gate, insts in backend.properties()._gates.items():
-            for qubits, props in insts.items():
-                if "gate_length" in props:
-                    gate_length = props["gate_length"][0]  # Throw away datetime at index 1
-                    instruction_durations.append((gate, qubits, gate_length, "s"))
-        for q, props in backend.properties()._qubits.items():
-            if "readout_length" in props:
-                readout_length = props["readout_length"][0]  # Throw away datetime at index 1
-                instruction_durations.append(("measure", [q], readout_length, "s"))
+        backend_properties = backend.properties()
+        if hasattr(backend_properties, "_gates"):
+            for gate, insts in backend_properties._gates.items():
+                for qubits, props in insts.items():
+                    if "gate_length" in props:
+                        gate_length = props["gate_length"][0]  # Throw away datetime at index 1
+                        instruction_durations.append((gate, qubits, gate_length, "s"))
+            for q, props in backend.properties()._qubits.items():
+                if "readout_length" in props:
+                    readout_length = props["readout_length"][0]  # Throw away datetime at index 1
+                    instruction_durations.append(("measure", [q], readout_length, "s"))
 
         try:
             dt = backend.configuration().dt
