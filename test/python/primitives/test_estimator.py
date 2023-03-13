@@ -705,14 +705,20 @@ class TestObservableValidation(QiskitTestCase):
         self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
 
     def test_deprecated_paulilist_multiple_as_single_observable(self):
+        """Test deprecated interpretation of PauliList as single observable."""
         observables = PauliList(["IXYZ", "ZYXI"])
         expected = (SparsePauliOp(["IXYZ", "ZYXI"]),)
+        self_ = self
 
         class MockEstimator(BaseEstimator):
-            def _run(self_, circuits, observables, parameter_values, **run_options):
-                self.assertEqual(observables, expected)
+            """Mock Estimator for testing deprecated PauliList as single observable."""
 
-            def _call(self_, circuits, observables, parameters_values, **run_options):
+            def _run(self, circuits, observables, parameter_values, **run_options):
+                """Override _run for the test."""
+                self_.assertEqual(observables, expected)
+
+            def _call(self, circuits, observables, parameter_values, **run_options):
+                """Override _call so abstract base class does not complain."""
                 pass
 
         qc = QuantumCircuit(4)
