@@ -15,18 +15,17 @@
 import ast
 from typing import Callable, Optional
 
-from tweedledum.classical import simulate  # pylint: disable=import-error
-from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
-
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.exceptions import QiskitError
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .classical_element import ClassicalElement
 from .classical_function_visitor import ClassicalFunctionVisitor
 from .utils import tweedledum2qiskit
 
 
+@HAS_TWEEDLEDUM.require_in_instance
 class ClassicalFunction(ClassicalElement):
-    """Represent a classical function function and its logic network."""
+    """Represent a classical function and its logic network."""
 
     def __init__(self, source, name=None):
         """Creates a ``ClassicalFunction`` from Python source code in ``source``.
@@ -107,6 +106,8 @@ class ClassicalFunction(ClassicalElement):
         Returns:
             bool: result of the evaluation.
         """
+        from tweedledum.classical import simulate  # pylint: disable=import-error
+
         return simulate(self._network, bitstring)
 
     def simulate_all(self):
@@ -126,6 +127,8 @@ class ClassicalFunction(ClassicalElement):
     @property
     def truth_table(self):
         """Returns (and computes) the truth table"""
+        from tweedledum.classical import simulate  # pylint: disable=import-error
+
         if self._truth_table is None:
             self._truth_table = simulate(self._network)
         return self._truth_table
@@ -152,6 +155,8 @@ class ClassicalFunction(ClassicalElement):
 
         if synthesizer:
             return synthesizer(self)
+
+        from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
 
         return tweedledum2qiskit(pkrm_synth(self.truth_table[0]), name=self.name, qregs=qregs)
 

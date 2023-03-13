@@ -720,7 +720,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             )
         return PauliList(super().compose(other, qargs=qargs, front=front, inplace=inplace))
 
-    # pylint: disable=arguments-differ
     def dot(self, other, qargs=None, inplace=False):
         """Return the composition other∘self for each Pauli in the list.
 

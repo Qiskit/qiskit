@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-type-doc
-
 """Qiskit pulse drawer.
 
 This module provides a common user interface for the pulse drawer.
