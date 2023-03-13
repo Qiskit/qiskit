@@ -482,6 +482,33 @@ class TestGateDirection(QiskitTestCase):
         with self.assertRaisesRegex(TranspilerError, "'my_2q_gate'.*not supported on qubits .*"):
             pass_(circuit)
 
+    def test_allows_calibrated_gates_coupling_map(self):
+        """Test that the gate direction pass allows a gate that's got a calibration to pass through
+        without error."""
+        cm = CouplingMap([(1, 0)])
+
+        gate = Gate("my_2q_gate", 2, [])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (0, 1))
+        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+
+        pass_ = GateDirection(cm)
+        self.assertEqual(pass_(circuit), circuit)
+
+    def test_allows_calibrated_gates_target(self):
+        """Test that the gate direction pass allows a gate that's got a calibration to pass through
+        without error."""
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), properties={(0, 1): None})
+
+        gate = Gate("my_2q_gate", 2, [])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (0, 1))
+        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+
+        pass_ = GateDirection(None, target)
+        self.assertEqual(pass_(circuit), circuit)
+
 
 if __name__ == "__main__":
     unittest.main()
