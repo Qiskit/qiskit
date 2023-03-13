@@ -24,7 +24,7 @@ from qiskit.providers.jobstatus import JobStatus
 class FakeJob(JobV1):
     """Fake simulator job"""
 
-    _executor = futures.ThreadPoolExecutor()  # pylint: disable=consider-using-with
+    _executor = futures.ThreadPoolExecutor()
 
     def __init__(self, backend, job_id, fn):
         super().__init__(backend, job_id)
@@ -37,7 +37,6 @@ class FakeJob(JobV1):
         self._future = self._executor.submit(self._future_callback)
 
     def result(self, timeout=None):
-        # pylint: disable=arguments-differ
         return self._future.result(timeout=timeout)
 
     def cancel(self):
