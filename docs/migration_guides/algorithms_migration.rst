@@ -6,7 +6,7 @@ TL;DR
 -----
 
 The :mod:`qiskit.algorithms` module has been fully refactored to use the :mod:`~qiskit.primitives` instead of the
-:class:`~qiskit.utils.QuantumInstance` for circuit execution.
+:class:`~qiskit.utils.QuantumInstance`, which is now deprecated, for circuit execution.
 
 There have been **3 types of refactoring**:
 
@@ -168,7 +168,7 @@ The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.VQE` class has now be
 .. note::
 
     The new :class:`~qiskit.algorithms.minimum_eigensolvers.VQEResult` class does not include the state anymore, as
-    this output was only useful in the case of diagonal operators. However, if it is available as part of the new
+    this output was only useful in the case of diagonal operators. However, it is available as part of the new
     :class:`~qiskit.algorithms.minimum_eigensolvers.SamplingVQE` :class:`~qiskit.algorithms.minimum_eigensolvers.SamplingVQEResult`.
 
 .. raw:: html
