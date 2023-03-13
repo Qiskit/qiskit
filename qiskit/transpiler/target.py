@@ -21,7 +21,6 @@ from __future__ import annotations
 
 
 import warnings
-from typing import Union
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime

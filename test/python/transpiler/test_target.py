@@ -48,9 +48,8 @@ from qiskit.providers.fake_provider import (
     FakeMumbaiFractionalCX,
     FakeVigo,
     FakeNairobi,
-    FakeGeneva
+    FakeGeneva,
 )
-
 
 
 class TestTarget(QiskitTestCase):
