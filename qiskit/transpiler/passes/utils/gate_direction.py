@@ -166,6 +166,8 @@ class GateDirection(TransformationPass):
                 continue
             if len(node.qargs) != 2:
                 continue
+            if dag.has_calibration_for(node):
+                continue
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             if qargs not in edges and (qargs[1], qargs[0]) not in edges:
                 raise TranspilerError(
@@ -208,6 +210,8 @@ class GateDirection(TransformationPass):
                 )
                 continue
             if len(node.qargs) != 2:
+                continue
+            if dag.has_calibration_for(node):
                 continue
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             swapped = (qargs[1], qargs[0])
