@@ -1759,10 +1759,24 @@ class TestParameterExpressions(QiskitTestCase):
     def test_bound_expression_is_real(self):
         """Test is_real on bound parameters."""
         x = Parameter("x")
+        self.assertEqual(x.is_real(), None)
+        self.assertEqual((1j * x).is_real(), None)
+
         expr = 1j * x
         bound = expr.bind({x: 2})
+        self.assertEqual(bound.is_real(), False)
 
-        self.assertFalse(bound.is_real())
+        bound = x.bind({x: 0 + 0j})
+        self.assertEqual(bound.is_real(), True)
+
+        bound = x.bind({x: 0 + 1j})
+        self.assertEqual(bound.is_real(), False)
+
+        bound = x.bind({x: 1 + 0j})
+        self.assertEqual(bound.is_real(), True)
+
+        bound = x.bind({x: 1 + 1j})
+        self.assertEqual(bound.is_real(), False)
 
 
 class TestParameterEquality(QiskitTestCase):
