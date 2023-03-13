@@ -195,8 +195,9 @@ class GateDirection(TransformationPass):
                     dag.substitute_node_with_dag(node, self._rzz_dag(*node.op.params))
                 else:
                     raise TranspilerError(
-                        f"Flipping of gate direction is only supported "
-                        f"for {list(self._KNOWN_REPLACEMENTS)} at this time, not '{node.name}'."
+                        f"'{node.name}' would be supported on '{qargs}' if the direction were"
+                        f" swapped, but no rules are known to do that."
+                        f" {list(self._KNOWN_REPLACEMENTS)} can be automatically flipped."
                     )
         return dag
 
@@ -295,8 +296,9 @@ class GateDirection(TransformationPass):
                 _swap_node_qargs(node)
             ):
                 raise TranspilerError(
-                    f"Flipping of gate direction is only supported "
-                    f"for {list(self._KNOWN_REPLACEMENTS)} at this time, not '{node.name}'."
+                    f"'{node.name}' would be supported on '{qargs}' if the direction were"
+                    f" swapped, but no rules are known to do that."
+                    f" {list(self._KNOWN_REPLACEMENTS)} can be automatically flipped."
                 )
             else:
                 raise TranspilerError(

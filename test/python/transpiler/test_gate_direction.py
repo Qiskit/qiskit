@@ -450,7 +450,7 @@ class TestGateDirection(QiskitTestCase):
         circuit.append(gate, (1, 0))
 
         pass_ = GateDirection(None, target)
-        with self.assertRaisesRegex(TranspilerError, "Flipping of gate direction.*"):
+        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
             pass_(circuit)
 
     def test_target_cannot_flip_message_calibrated(self):
@@ -465,7 +465,7 @@ class TestGateDirection(QiskitTestCase):
         circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
 
         pass_ = GateDirection(None, target)
-        with self.assertRaisesRegex(TranspilerError, "Flipping of gate direction.*"):
+        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
             pass_(circuit)
 
     def test_target_unknown_gate_message(self):
