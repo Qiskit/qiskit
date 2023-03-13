@@ -17,8 +17,8 @@ from math import pi
 
 import ddt
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.circuit import Parameter
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, pulse
+from qiskit.circuit import Parameter, Gate
 from qiskit.circuit.library import CXGate, CZGate, ECRGate, RXXGate, RYYGate, RZXGate, RZZGate
 from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerError, CouplingMap, Target
@@ -429,6 +429,33 @@ class TestGateDirection(QiskitTestCase):
         target.add_instruction(RZXGate(Parameter("a")), {(1, 2): None})
         pass_ = GateDirection(None, target)
         self.assertEqual(pass_(circuit), expected)
+
+    def test_allows_calibrated_gates_coupling_map(self):
+        """Test that the gate direction pass allows a gate that's got a calibration to pass through
+        without error."""
+        cm = CouplingMap([(1, 0)])
+
+        gate = Gate("my_2q_gate", 2, [])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (0, 1))
+        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+
+        pass_ = GateDirection(cm)
+        self.assertEqual(pass_(circuit), circuit)
+
+    def test_allows_calibrated_gates_target(self):
+        """Test that the gate direction pass allows a gate that's got a calibration to pass through
+        without error."""
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), properties={(0, 1): None})
+
+        gate = Gate("my_2q_gate", 2, [])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (0, 1))
+        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+
+        pass_ = GateDirection(None, target)
+        self.assertEqual(pass_(circuit), circuit)
 
 
 if __name__ == "__main__":
