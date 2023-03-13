@@ -90,6 +90,16 @@ class XXMinusYYGate(Gate):
                     -i\sin\left(\th\right)e^{-i\beta} & 0 & 0 & \cos\left(\th\right)
                 \end{pmatrix}
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(
         self,

@@ -72,6 +72,16 @@ class XGate(Gate):
         |0\rangle \rightarrow |1\rangle \\
         |1\rangle \rightarrow |0\rangle
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new X gate."""
@@ -187,6 +197,19 @@ class CXGate(ControlledGate):
     .. math::
         `|a, b\rangle \rightarrow |a, a \oplus b\rangle`
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CX gate."""
@@ -325,6 +348,19 @@ class CCXGate(ControlledGate):
                 \end{pmatrix}
 
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CCX gate."""
@@ -428,6 +464,17 @@ class RCCXGate(Gate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
+
     def __init__(self, label: Optional[str] = None):
         """Create a new simplified CCX gate."""
         super().__init__("rccx", 3, [], label=label)
@@ -492,6 +539,20 @@ class C3SXGate(ControlledGate):
     References:
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
     """
+
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(
         self,
@@ -589,6 +650,19 @@ class C3XGate(ControlledGate):
 
     This implementation uses :math:`\sqrt{T}` and 14 CNOT gates.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(
         self,
@@ -724,6 +798,17 @@ class RC3XGate(Gate):
     with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
 
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
+
     def __init__(self, label: Optional[str] = None):
         """Create a new RC3X gate."""
         super().__init__("rcccx", 4, [], label=label)
@@ -816,6 +901,20 @@ class C4XGate(ControlledGate):
         [1] Barenco et al., 1995. https://arxiv.org/pdf/quant-ph/9503016.pdf
         [2] Maslov, 2015. https://arxiv.org/abs/1508.03273
     """
+
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create a new 4-qubit controlled X gate."""
@@ -916,6 +1015,20 @@ class MCXGate(ControlledGate):
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
     with the :meth:`~qiskit.circuit.QuantumCircuit.mcx` method.
     """
+
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __new__(
         cls,
@@ -1024,6 +1137,19 @@ class MCXGrayCode(MCXGate):
 
     This delegates the implementation to the MCU1 gate, since :math:`X = H \cdot U1(\pi) \cdot H`.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __new__(
         cls,
@@ -1075,6 +1201,20 @@ class MCXRecursive(MCXGate):
     four sub-registers. This is done until we reach the 3- or 4-controlled X gate since
     for these we have a concrete implementation that do not require ancillas.
     """
+
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(
         self,
@@ -1137,6 +1277,20 @@ class MCXRecursive(MCXGate):
 
 class MCXVChain(MCXGate):
     """Implement the multi-controlled X gate using a V-chain of CX gates."""
+
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __new__(
         cls,

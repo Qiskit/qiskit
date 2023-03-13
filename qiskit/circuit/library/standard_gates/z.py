@@ -70,6 +70,16 @@ class ZGate(Gate):
         |0\rangle \rightarrow |0\rangle \\
         |1\rangle \rightarrow -|1\rangle
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new Z gate."""
@@ -159,6 +169,19 @@ class CZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubit is in the :math:`|1\rangle` state.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CZ gate."""
@@ -238,6 +261,19 @@ class CCZGate(ControlledGate):
     In the computational basis, this gate flips the phase of
     the target qubit if the control qubits are in the :math:`|11\rangle` state.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CCZ gate."""

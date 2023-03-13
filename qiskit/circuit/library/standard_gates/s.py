@@ -52,6 +52,16 @@ class SGate(Gate):
 
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new S gate."""
@@ -116,6 +126,16 @@ class SdgGate(Gate):
 
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
@@ -179,6 +199,20 @@ class CSGate(ControlledGate):
                 0 & 0 & 0 & i
             \end{pmatrix}
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
+
     # Define class constants. This saves future allocation time.
     _matrix1 = numpy.array(
         [
@@ -253,6 +287,19 @@ class CSdgGate(ControlledGate):
                 0 & 0 & 0 & -i
             \end{pmatrix}
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
     # Define class constants. This saves future allocation time.
     _matrix1 = numpy.array(
         [

@@ -83,6 +83,16 @@ class RZZGate(Gate):
                                         0 & 0 & 0 & 1-i
                                     \end{pmatrix}
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RZZ gate."""

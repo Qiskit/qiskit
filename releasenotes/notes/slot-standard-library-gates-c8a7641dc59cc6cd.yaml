@@ -1,0 +1,95 @@
+---
+upgrade:
+  - |
+    The standard library gate classes in :mod:`qiskit.circuit.library` no longer have a
+    ``__dict__`` attribute and no longer accept adding arbitrary attributes being added to
+    instances of the classes. The specific gate classes effected by this change are:
+
+      * :class:`~.DCXGate`
+      * :class:`~.ECRGate`
+      * :class:`~.HGate`
+      * :class:`~.CHGate`
+      * :class:`~.IGate`
+      * :class:`~.iSwapGate`
+      * :class:`~.PhaseGate`
+      * :class:`~.CPhaseGate`
+      * :class:`~.MCPhaseGate`
+      * :class:`~.RGate`
+      * :class:`~.RXGate`
+      * :class:`~.CRXGate`
+      * :class:`~.RXXGate`
+      * :class:`~.RYGate`
+      * :class:`~.CRYGate`
+      * :class:`~.RYYGate`
+      * :class:`~.RZGate`
+      * :class:`~.CRZGate`
+      * :class:`~.RZZGate`
+      * :class:`~.SGate`
+      * :class:`~.SdgGate`
+      * :class:`~.CSGate`
+      * :class:`~.CSdgGate`
+      * :class:`~.SwapGate`
+      * :class:`~.CSwapGate`
+      * :class:`~.SXGate`
+      * :class:`~.SXdgGate`
+      * :class:`~.CSXGate`
+      * :class:`~.TGate`
+      * :class:`~.TdgGate`
+      * :class:`~.UGate`
+      * :class:`~.CUGate`
+      * :class:`~.U1Gate`
+      * :class:`~.CU1Gate`
+      * :class:`~.MCU1Gate`
+      * :class:`~.U2Gate`
+      * :class:`~.U3Gate`
+      * :class:`~.CU3Gate`
+      * :class:`~.XGate`
+      * :class:`~.CXGate`
+      * :class:`~.CCXGate`
+      * :class:`~.RCCXGate`
+      * :class:`~.C3SXGate`
+      * :class:`~.C3XGate`
+      * :class:`~.RC3XGate`
+      * :class:`~.C4XGate`
+      * :class:`~.MCXGate`
+      * :class:`~.MCXGrayCode`
+      * :class:`~.MCXRecursive`
+      * :class:`~.MCXVChain`
+      * :class:`~.XXMinusYYGate`
+      * :class:`~.XXPlusYYGate`
+      * :class:`~.YGate`
+      * :class:`~.CYGate`
+      * :class:`~.ZGate`
+      * :class:`~.CZGate`
+      * :class:`~.CCZGate`
+
+    If you were using either ``__dict__`` or assigning extra attributes to instances of these
+    classes you can create a subclass to retrain this functionality. For example, if you were
+    previously doing something like::
+
+        from qiskit.circuit.library import CXGate
+
+        gate = CXGate()
+        gate.my_special_attribute = True
+
+    to perfrom the same task you will now have to do something like::
+
+      from qiskit.circuit.library import CXGate
+
+      class MySpecialCXGate(CXGate):
+
+          def __init__(self):
+              super().__init__()
+              self.my_special_attribute = True
+
+      gate = MySpecialCXGate()
+
+    or::
+
+      from qiskit.circuit.library import CXGate
+
+      class MySpecialCXGate(CXGate):
+          pass
+
+      gate = MySpecialCXGate()
+      gate.my_special_attribute = True

@@ -78,6 +78,16 @@ class U3Gate(Gate):
 
         U3(\theta, 0, 0) = RY(\theta)
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(
         self,
@@ -200,6 +210,19 @@ class CU3Gate(ControlledGate):
                     0 & 0   & e^{i\phi}\sin(\th) & e^{i(\phi+\lambda)}\cos(\th)
                 \end{pmatrix}
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(
         self,

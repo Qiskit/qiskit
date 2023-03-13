@@ -52,6 +52,16 @@ class TGate(Gate):
 
     Equivalent to a :math:`\pi/4` radian rotation about the Z axis.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new T gate."""
@@ -116,6 +126,16 @@ class TdgGate(Gate):
 
     Equivalent to a :math:`-\pi/4` radian rotation about the Z axis.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new Tdg gate."""

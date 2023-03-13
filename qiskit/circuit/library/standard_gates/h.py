@@ -51,6 +51,17 @@ class HGate(Gate):
             \end{pmatrix}
     """
 
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
+
     def __init__(self, label: Optional[str] = None):
         """Create new H gate."""
         super().__init__("h", 1, [], label=label)
@@ -161,6 +172,20 @@ class CHGate(ControlledGate):
                     0 & 0 & \frac{1}{\sqrt{2}} & -\frac{1}{\sqrt{2}}
                 \end{pmatrix}
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
+
     # Define class constants. This saves future allocation time.
     _sqrt2o2 = 1 / sqrt(2)
     _matrix1 = numpy.array(

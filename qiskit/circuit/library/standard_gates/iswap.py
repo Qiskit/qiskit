@@ -82,6 +82,16 @@ class iSwapGate(Gate):
                 0 & 0 & 0 & 1
             \end{pmatrix}
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""

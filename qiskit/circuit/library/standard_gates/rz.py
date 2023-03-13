@@ -59,6 +59,17 @@ class RZGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
+
     def __init__(self, phi: ParameterValueType, label: Optional[str] = None):
         """Create new RZ gate."""
         super().__init__("rz", 1, [phi], label=label)
@@ -186,6 +197,19 @@ class CRZGate(ControlledGate):
         of U1 and RZ, CU1 and CRZ are different gates with a relative
         phase difference.
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
 
     def __init__(
         self,

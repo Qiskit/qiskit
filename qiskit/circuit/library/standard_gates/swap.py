@@ -53,6 +53,16 @@ class SwapGate(Gate):
 
         |a, b\rangle \rightarrow |b, a\rangle
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new SWAP gate."""
@@ -188,6 +198,19 @@ class CSwapGate(ControlledGate):
         |0, b, c\rangle \rightarrow |0, b, c\rangle
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
     # Define class constants. This saves future allocation time.
     _matrix1 = numpy.array(
         [

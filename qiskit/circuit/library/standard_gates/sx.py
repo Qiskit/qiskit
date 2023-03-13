@@ -57,6 +57,16 @@ class SXGate(Gate):
                     = e^{-i pi/4} \sqrt{X}
 
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new SX gate."""
@@ -140,6 +150,16 @@ class SXdgGate(Gate):
                     = e^{-i pi/4} \sqrt{X}^{\dagger}
 
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+    )
 
     def __init__(self, label: Optional[str] = None):
         """Create new SXdg gate."""
@@ -225,6 +245,19 @@ class CSXGate(ControlledGate):
                 \end{pmatrix}
 
     """
+    __slots__ = (
+        "_definition",
+        "_num_qubits",
+        "_num_clbits",
+        "_name",
+        "_params",
+        "condition",
+        "_duration",
+        "_unit",
+        "base_gate",
+        "_num_ctrl_qubits",
+        "_ctrl_state",
+    )
     # Define class constants. This saves future allocation time.
     _matrix1 = numpy.array(
         [
