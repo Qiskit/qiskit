@@ -19,7 +19,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit import QuantumRegister, ControlFlowOp
-from qiskit.dagcircuit import DAGCircuit
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
 from qiskit.circuit.library.standard_gates import (
     RYGate,
     HGate,
@@ -32,6 +32,10 @@ from qiskit.circuit.library.standard_gates import (
     RZXGate,
     SwapGate,
 )
+
+
+def _swap_node_qargs(node):
+    return DAGOpNode(node.op, node.qargs[::-1], node.cargs)
 
 
 class GateDirection(TransformationPass):
@@ -57,6 +61,8 @@ class GateDirection(TransformationPass):
         q_1: ┤1     ├     q_1: ┤ H ├┤0     ├┤ H ├
              └──────┘          └───┘└──────┘└───┘
     """
+
+    _KNOWN_REPLACEMENTS = frozenset(["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])
 
     def __init__(self, coupling_map, target=None):
         """GateDirection pass.
@@ -99,6 +105,8 @@ class GateDirection(TransformationPass):
         self._swap_dag.add_qreg(qr)
         self._swap_dag.apply_operation_back(SwapGate(), [qr[1], qr[0]], [])
 
+        # If adding more replacements (either static or dynamic), also update the class variable
+        # `_KNOWN_REPLACMENTS` to include them in the error messages.
         self._static_replacements = {
             "cx": self._cx_dag,
             "cz": self._cz_dag,
@@ -186,7 +194,7 @@ class GateDirection(TransformationPass):
                 else:
                     raise TranspilerError(
                         f"Flipping of gate direction is only supported "
-                        f"for {list(self._static_replacements)} at this time, not '{node.name}'."
+                        f"for {list(self._KNOWN_REPLACEMENTS)} at this time, not '{node.name}'."
                     )
         return dag
 
@@ -277,11 +285,21 @@ class GateDirection(TransformationPass):
                         f"The circuit requires a connection between physical qubits {qargs}"
                         f" for {node.name}"
                     )
-            else:
+            elif self.target.instruction_supported(node.name, qargs):
+                continue
+            elif self.target.instruction_supported(node.name, swapped) or dag.has_calibration_for(
+                _swap_node_qargs(node)
+            ):
                 raise TranspilerError(
                     f"Flipping of gate direction is only supported "
-                    f"for {list(self._static_replacements)} at this time, not '{node.name}'."
+                    f"for {list(self._KNOWN_REPLACEMENTS)} at this time, not '{node.name}'."
                 )
+            else:
+                raise TranspilerError(
+                    f"'{node.name}' with parameters '{node.op.params}' is not supported on qubits"
+                    f" '{qargs}' in either direction."
+                )
+
         return dag
 
     def run(self, dag):
