@@ -660,7 +660,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             if props is None:
                 basis_2q_fidelity = 1.0
             else:
-                basis_2q_fidelity = 1 - getattr(props, "error", 0.0)
+                error = getattr(props, "error", 0.0)
+                if error is None:
+                    error = 0.0
+                basis_2q_fidelity = 1 - error
             if approximation_degree is not None:
                 basis_2q_fidelity *= approximation_degree
             decomposer = TwoQubitBasisDecomposer(
@@ -682,7 +685,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             if props is None:
                 basis_2q_fidelity[strength] = 1.0
             else:
-                basis_2q_fidelity[strength] = 1 - getattr(props, "error", 0.0)
+                error = getattr(props, "error", 0.0)
+                if error is None:
+                    error = 0.0
+                basis_2q_fidelity[strength] = 1 - error
             # rewrite XX of the same strength in terms of it
             embodiment = XXEmbodiments[type(v)]
             if len(embodiment.parameters) == 1:
