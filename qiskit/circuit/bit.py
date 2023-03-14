@@ -19,7 +19,13 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class Bit:
-    """Implement a generic bit."""
+    """Implement a generic bit.
+
+    .. note::
+        This class should be instantiated directly, but just a super class
+        for :class:`~.Clbit` and :class:`~.Qubit`.
+
+    """
 
     __slots__ = {"_register", "_index", "_hash", "_repr"}
 
