@@ -31,8 +31,24 @@ class HLSConfig:
     of higher-level-objects. A higher-level object is an object of type
     :class:`~.Operation` (e.g., "clifford", "linear_function", etc.), and the list
     of applicable synthesis methods is strictly tied to the name of the operation.
-    In the config, each method is represented by a pair consisting of a name of the synthesis
-    algorithm and of a dictionary providing additional arguments for this algorithm.
+    In the config, each method is specified as a tuple consisting of the name of the
+    synthesis algorithm and of a dictionary providing additional arguments for this
+    algorithm. Additionally, a synthesis method can be specified as a tuple consisting
+    of an instance of :class:`.HighLevelSynthesisPlugin` and additional arguments.
+    Moreover, when there are no additional arguments, a synthesis
+    method can be specified simply by name or by an instance
+    of :class:`.HighLevelSynthesisPlugin`. The following example illustrates different
+    ways how a config file can be created::
+
+        from qiskit.circuit.library.generalized_gates import PermutationGate
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import ACGSynthesisPermutation
+
+        # All the ways to specify hls_config are equivalent
+        hls_config = HLSConfig(permutation=[("acg", {})])
+        hls_config = HLSConfig(permutation=["acg"])
+        hls_config = HLSConfig(permutation=[(ACGSynthesisPermutation(), {})])
+        hls_config = HLSConfig(permutation=[ACGSynthesisPermutation()])
 
     The names of the synthesis algorithms should be declared in ``entry_points`` for
     ``qiskit.synthesis`` in ``setup.py``, in the form
@@ -44,7 +60,7 @@ class HLSConfig:
 
     To avoid synthesizing a given higher-level-object, one can give it an empty list of methods.
 
-    For an explicit example of creating and using such config files, refer to the
+    For an explicit example of using such config files, refer to the
     documentation for :class:`~.HighLevelSynthesis`.
     """
 
@@ -73,9 +89,10 @@ class HLSConfig:
 
 
 class HighLevelSynthesis(TransformationPass):
-    """Synthesize higher-level objects by choosing the appropriate synthesis method
-    based on the object's name and the high-level-synthesis config of type
-    :class:`~.HLSConfig` (if provided).
+    """Synthesize higher-level objects using synthesis plugins.
+
+    Synthesis plugins apply synthesis methods specified in the high-level-synthesis
+    config (refer to the documentation for :class:`~.HLSConfig`).
 
     As an example, let us assume that ``op_a`` and ``op_b`` are names of two higher-level objects,
     that ``op_a``-objects have two synthesis methods ``default`` which does require any additional
