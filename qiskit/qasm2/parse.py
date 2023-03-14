@@ -16,8 +16,6 @@ import dataclasses
 import math
 from typing import Iterable, Callable, Tuple
 
-from typing_extensions import Unpack
-
 from qiskit.circuit import (
     Barrier,
     CircuitInstruction,
@@ -96,7 +94,9 @@ class CustomInstruction:
     name: str
     num_params: int
     num_qubits: int
-    constructor: Callable[[Unpack[Tuple[float, ...]]], Instruction]
+    # This should be `(float*) -> Instruction`, but the older version of Sphinx we're constrained to
+    # use in the Python 3.9 docs build chokes on it, so relax the hint.
+    constructor: Callable[..., Instruction]
     builtin: bool = False
 
 
