@@ -1,9 +1,9 @@
-==========================
+##########################
 Algorithms Migration Guide
-==========================
+##########################
 
 TL;DR
------
+=====
 
 The :mod:`qiskit.algorithms` module has been fully refactored to use the :mod:`~qiskit.primitives` instead of the
 :class:`~qiskit.utils.QuantumInstance`, which is now deprecated, for circuit execution.
@@ -41,7 +41,8 @@ There have been **3 types of refactoring**:
     - `Factorizers (Shor) <https://qiskit.org/textbook/ch-algorithms/shor.html>`_
 
 Background
-----------
+==========
+
 *Back to* `TL;DR`_
 
 The :mod:`qiskit.algorithms` module was originally built on top of the :mod:`qiskit.opflow` library and the
@@ -67,7 +68,7 @@ For further background and detailed migration steps, see the:
 
 
 How to Choose a Primitive Configuration for your Algorithm
-------------------------------------------------------------
+==========================================================
 
 *Back to* `TL;DR`_
 
@@ -151,7 +152,7 @@ In this guide, we will cover 3 different common configurations for algorithms th
 
 
 Minimum Eigensolvers
---------------------
+====================
 *Back to* `TL;DR`_
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.minimum_eigensolvers` are now initialized
@@ -168,7 +169,7 @@ on the algorithm. The legacy classes can still be found in :mod:`qiskit.algorith
     * New import path (Primitives): ``from qiskit.algorithms.minimum_eigensolvers import VQE, SamplingVQE, QAOA, NumPyMinimumEigensolver``
 
 VQE
-~~~
+---
 
 The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.VQE` class has now been split according to the use-case:
 
@@ -353,7 +354,7 @@ For complete code examples, see the following updated tutorials:
 - `VQE with Aer Primitives <https://qiskit.org/documentation/tutorials/algorithms/03_vqe_simulation_with_noise.html>`_
 
 QAOA
-~~~~
+----
 
 The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.QAOA` class used to extend
 :class:`qiskit.algorithms.minimum_eigen_solvers.VQE`, but now, :class:`qiskit.algorithms.minimum_eigensolvers.QAOA`
@@ -457,7 +458,8 @@ For complete code examples, see the following updated tutorials:
 - `QAOA <https://qiskit.org/documentation/tutorials/algorithms/05_qaoa.html>`_
 
 NumPyMinimumEigensolver
-~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------
+
 Because this is a classical solver, the workflow has not changed between the old and new implementation.
 The import has however changed from :class:`qiskit.algorithms.minimum_eigen_solvers.NumPyMinimumEigensolver`
 to :class:`qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver` for consistency.
@@ -516,7 +518,7 @@ For complete code examples, see the following updated tutorials:
 - `VQE, Callback, Gradients, Initial Point <https://qiskit.org/documentation/tutorials/algorithms/02_vqe_advanced_options.html>`_
 
 Eigensolvers
-------------
+============
 *Back to* `TL;DR`_
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.eigensolvers` are now initialized
@@ -534,7 +536,7 @@ in :mod:`qiskit.algorithms.eigen_solvers`.
     * New import path (Primitives): ``from qiskit.algorithms.eigensolvers import VQD, NumPyEigensolver``
 
 VQD
-~~~~
+---
 
 The new :class:`qiskit.algorithms.eigensolvers.VQD` class is initialized with an :class:`~qiskit.primitives.Estimator`
 primitive, as well as a :class:`~qiskit.primitives.Sampler`-based fidelity class
@@ -642,7 +644,7 @@ For complete code examples, see the following updated tutorials:
 - `VQD <https://qiskit.org/documentation/tutorials/algorithms/04_vqd.html>`_
 
 NumPyEigensolver
-~~~~~~~~~~~~~~~~~
+----------------
 Similarly to its minimum eigensolver counterpart, because this is a classical solver, the workflow has not changed
 between the old and new implementation.
 The import has however changed from :class:`qiskit.algorithms.eigen_solvers.NumPyEigensolver`
@@ -698,7 +700,7 @@ to :class:`qiskit.algorithms.eigensolvers.MinimumEigensolver` for consistency.
         [-1.41421356 -1.41421356]
 
 Time Evolvers
--------------
+=============
 *Back to* `TL;DR`_
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.time_evolvers` are now initialized
@@ -709,7 +711,7 @@ On top of the migration, the module has been substantially expanded to include *
 (:class:`~qiskit.algorithms.time_evolvers.VarQTE`\) solvers.
 
 TrotterQRTE
-~~~~~~~~~~~~
+-----------
 .. attention::
 
     For the :class:`qiskit.algorithms.time_evolvers.TrotterQRTE` class, depending on the import path,
@@ -796,7 +798,7 @@ TrotterQRTE
            └───────────┘└───────────┘
 
 Amplitude Amplifiers
----------------------
+====================
 *Back to* `TL;DR`_
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.amplitude_amplifiers` are now initialized
@@ -835,7 +837,7 @@ For complete code examples, see the following updated tutorials:
 - `Grover Examples <https://qiskit.org/documentation/tutorials/algorithms/07_grover_examples.html>`_
 
 Amplitude Estimators
---------------------
+====================
 *Back to* `TL;DR`_
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.amplitude_estimators` are now initialized
@@ -880,7 +882,7 @@ For complete code examples, see the following updated tutorials:
 - `Amplitude Estimation <https://qiskit.org/documentation/finance/tutorials/00_amplitude_estimation.html>`_
 
 Phase Estimators
-----------------
+================
 *Back to* `TL;DR`_
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.phase_estimators` are now initialized
