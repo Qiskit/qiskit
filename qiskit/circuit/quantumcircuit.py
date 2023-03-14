@@ -2265,10 +2265,10 @@ class QuantumCircuit:
         return self.append(Reset(), [qubit], [])
 
     def measure(self, qubit: QubitSpecifier, cbit: ClbitSpecifier) -> InstructionSet:
-        r"""Measure in Z basis a quantum bit (``qubit``) into a classical bit (``cbit``).
+        r"""Measure a quantum bit (``qubit``) in the Z basis into a classical bit (``cbit``).
 
-        When quantum state is measured a qubit is project in the computational (Pauli Z) basis to
-        either :math:`\lvert 0 \rangle` or :math:`\lvert 1 \rangle`. The classical bit ``cbit``
+        When a quantum state is measured, a qubit is projected in the computational (Pauli Z) basis
+        to either :math:`\lvert 0 \rangle` or :math:`\lvert 1 \rangle`. The classical bit ``cbit``
         indicates the result
         of that projection as a ``0`` or a ``1`` respectively. This operation is non-reversible.
 
