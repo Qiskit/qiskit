@@ -36,7 +36,6 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_autodoc_typehints",
     "reno.sphinxext",
-    "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
 ]
 templates_path = ["_templates"]
