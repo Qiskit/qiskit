@@ -84,6 +84,7 @@ Local Optimizers
    SciPyOptimizer
    UMDA
    Fraxis
+   FQS
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -123,6 +124,7 @@ from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
 from .fraxis import Fraxis
+from .fqs import FQS
 from .gradient_descent import GradientDescent, GradientDescentState
 from .gsls import GSLS
 from .imfil import IMFIL
@@ -182,4 +184,5 @@ __all__ = [
     "IMFIL",
     "UMDA",
     "Fraxis",
+    "FQS",
 ]
