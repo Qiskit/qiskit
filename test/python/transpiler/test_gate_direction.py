@@ -430,6 +430,49 @@ class TestGateDirection(QiskitTestCase):
         pass_ = GateDirection(None, target)
         self.assertEqual(pass_(circuit), expected)
 
+    def test_target_cannot_flip_message(self):
+        """A suitable error message should be emitted if the gate would be supported if it were
+        flipped."""
+        gate = Gate("my_2q_gate", 2, [])
+        target = Target(num_qubits=2)
+        target.add_instruction(gate, properties={(0, 1): None})
+
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (1, 0))
+
+        pass_ = GateDirection(None, target)
+        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
+            pass_(circuit)
+
+    def test_target_cannot_flip_message_calibrated(self):
+        """A suitable error message should be emitted if the gate would be supported if it were
+        flipped."""
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), properties={(0, 1): None})
+
+        gate = Gate("my_2q_gate", 2, [])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (1, 0))
+        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+
+        pass_ = GateDirection(None, target)
+        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
+            pass_(circuit)
+
+    def test_target_unknown_gate_message(self):
+        """A suitable error message should be emitted if the gate isn't valid in either direction on
+        the target."""
+        gate = Gate("my_2q_gate", 2, [])
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), properties={(0, 1): None})
+
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (0, 1))
+
+        pass_ = GateDirection(None, target)
+        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate'.*not supported on qubits .*"):
+            pass_(circuit)
+
     def test_allows_calibrated_gates_coupling_map(self):
         """Test that the gate direction pass allows a gate that's got a calibration to pass through
         without error."""
