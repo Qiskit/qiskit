@@ -412,6 +412,22 @@ class CouplingMap:
             string += "]"
         return string
 
+    def __eq__(self, other):
+        """Check if the graph in ``other`` has the same node labels and edges as the graph in
+        ``self``.
+
+        This function assumes that the graphs in :class:`.CouplingMap` instances are connected.
+
+        Args:
+            other (CouplingMap): The other coupling map.
+
+        Returns:
+            bool: Whether or not other is isomorphic to self.
+        """
+        if not isinstance(other, CouplingMap):
+            return False
+        return set(self.graph.edge_list()) == set(other.graph.edge_list())
+
     def draw(self):
         """Draws the coupling map.
 
