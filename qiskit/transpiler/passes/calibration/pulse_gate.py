@@ -80,7 +80,7 @@ class PulseGates(CalibrationBuilder):
         Returns:
             Return ``True`` is calibration can be provided.
         """
-        return self.target.calibration_supported(node_op.name, tuple(qubits))
+        return self.target.has_calibration(node_op.name, tuple(qubits))
 
     def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
         """Gets the calibrated schedule for the given instruction and qubits.

@@ -444,6 +444,11 @@ class Target(Mapping):
         """
         get_calibration = getattr(inst_map, "_get_calibration_entry")
 
+        # Expand name mapping with custom gate name provided by user.
+        qiskit_inst_name_map = get_standard_gate_name_mapping()
+        if inst_name_map is not None:
+            qiskit_inst_name_map.update(inst_name_map)
+
         for inst_name in inst_map.instructions:
             out_props = {}
             for qargs in inst_map.qubits_with_instruction(inst_name):
@@ -482,11 +487,9 @@ class Target(Mapping):
             if not out_props:
                 continue
             if inst_name not in self._gate_map:
-                if inst_name_map is None:
-                    inst_name_map = get_standard_gate_name_mapping()
-                if inst_name in inst_name_map:
+                if inst_name in qiskit_inst_name_map:
                     # Remove qargs with length that doesn't match with instruction qubit number
-                    inst_obj = inst_name_map[inst_name]
+                    inst_obj = qiskit_inst_name_map[inst_name]
                     normalized_props = {}
                     for qargs, prop in out_props.items():
                         if len(qargs) != inst_obj.num_qubits:
@@ -807,7 +810,7 @@ class Target(Mapping):
                     )
         return False
 
-    def calibration_supported(
+    def has_calibration(
         self,
         operation_name: str,
         qargs: Tuple[int, ...],
@@ -849,7 +852,7 @@ class Target(Mapping):
         Returns:
             Calibrated pulse schedule of corresponding instruction.
         """
-        if not self.calibration_supported(operation_name, qargs):
+        if not self.has_calibration(operation_name, qargs):
             raise KeyError(
                 f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
             )

@@ -19,7 +19,3 @@ upgrade:
     In the former case, it just ignores the inst map definition for undefined qubits.
     In the latter case, gate mapping is pulled from the standard Qiskit gates
     and finally custom :class:`.Gate` object is defined from the schedule name.
-fixes:
-  - |
-    A bug that a custom calibration in :class:`.InstructionScheduleMap` is ignored
-    when it is set to transpile with :class:`.BackendV2` instance.
