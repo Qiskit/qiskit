@@ -96,7 +96,7 @@ In this guide, we will cover 3 different common configurations for algorithms th
 
             from qiskit.primitives import Sampler, Estimator
 
-        - Aer Primitives **with statevector simulator**:
+        - Aer Primitives **with statevector simulator** (see `QAOA`_ example):
 
         .. code-block:: python
 
@@ -400,7 +400,8 @@ For this reason, **the new QAOA only supports diagonal operators**.
 
         # exact statevector simulation
         backend = AerSimulator()
-        qi = QuantumInstance(backend=backend,
+        qi = QuantumInstance(backend=backend, shots=None,
+                seed_simulator = 42, seed_transpiler = 42,
                 backend_options={"method": "statevector"})
 
         optimizer = COBYLA()
@@ -435,7 +436,8 @@ For this reason, **the new QAOA only supports diagonal operators**.
         sampler = Sampler()
 
         # another option
-        sampler = AerSampler(backend_options={"method": "statevector"})
+        sampler = AerSampler(backend_options={"method": "statevector"},
+                             run_options={"shots": None, "seed": 42})
 
         optimizer = COBYLA()
         qaoa = QAOA(sampler, optimizer, reps=2)
@@ -448,7 +450,7 @@ For this reason, **the new QAOA only supports diagonal operators**.
 
     .. testoutput::
 
-        -4.0
+        -3.999999832366272
 
 For complete code examples, see the following updated tutorials:
 
@@ -571,7 +573,7 @@ from :mod:`qiskit.algorithms.state_fidelities`.
 
     .. testcode::
 
-        from qiskit_ibm_provider import IBMProvider
+        from qiskit import IBMQ
         from qiskit.algorithms import VQD
         from qiskit.algorithms.optimizers import SLSQP
         from qiskit.circuit.library import TwoLocal
@@ -579,15 +581,15 @@ from :mod:`qiskit.algorithms.state_fidelities`.
         from qiskit.utils import QuantumInstance
 
         ansatz = TwoLocal(3, rotation_blocks=["ry", "rz"], entanglement_blocks="cz", reps=1)
-        optimizer = SLSQP()
-        hamiltonian = PauliSumOp.from_list([("XXZ", 1), ("XYI", 1)]
+        optimizer = SLSQP(maxiter=10)
+        hamiltonian = PauliSumOp.from_list([("XXZ", 1), ("XYI", 1)])
 
         # example executing in cloud simulator
-        provider = IBMProvider()
+        provider = IBMQ.load_account()
         backend = provider.get_backend("ibmq_qasm_simulator")
         qi = QuantumInstance(backend=backend)
 
-        vqd = VQD(ansatz, optimizer, k=3, quantum_instance=qi)
+        vqd = VQD(ansatz, k=3, optimizer=optimizer, quantum_instance=qi)
         result = vqd.compute_eigenvalues(operator=hamiltonian)
 
         print(result.eigenvalues)
@@ -595,7 +597,7 @@ from :mod:`qiskit.algorithms.state_fidelities`.
     .. testoutput::
         :options: +SKIP
 
-        5.5
+        [ 0.01765114+0.0e+00j -0.58507654+0.0e+00j -0.15003642-2.8e-17j]
 
     **[Updated] Using Primitives:**
 
@@ -606,7 +608,7 @@ from :mod:`qiskit.algorithms.state_fidelities`.
 
     .. testcode::
 
-        from qiskit_ibm_runtime import Sampler, Estimator, QiskitRuntimeService
+        from qiskit_ibm_runtime import Sampler, Estimator, QiskitRuntimeService, Session
         from qiskit.algorithms.eigensolvers import VQD
         from qiskit.algorithms.optimizers import SLSQP
         from qiskit.algorithms.state_fidelities import ComputeUncompute
@@ -614,8 +616,8 @@ from :mod:`qiskit.algorithms.state_fidelities`.
         from qiskit.quantum_info import SparsePauliOp
 
         ansatz = TwoLocal(3, rotation_blocks=["ry", "rz"], entanglement_blocks="cz", reps=1)
-        optimizer = SLSQP()
-        hamiltonian = SparsePauliOp.from_list([("XXZ", 1), ("XYI", 1)]
+        optimizer = SLSQP(maxiter=10)
+        hamiltonian = SparsePauliOp.from_list([("XXZ", 1), ("XYI", 1)])
 
         # example executing in cloud simulator
         service = QiskitRuntimeService(channel="ibm_quantum")
@@ -633,7 +635,7 @@ from :mod:`qiskit.algorithms.state_fidelities`.
     .. testoutput::
         :options: +SKIP
 
-        5.5
+        [ 0.01765114+0.0e+00j -0.58507654+0.0e+00j -0.15003642-2.8e-17j]
 
 For complete code examples, see the following updated tutorials:
 
@@ -651,31 +653,49 @@ to :class:`qiskit.algorithms.eigensolvers.MinimumEigensolver` for consistency.
 
     **[Legacy]:**
 
-    .. code-block:: python
+    .. testsetup::
 
-        from qiskit.algorithms import NumpyEigensolver
-        from qiskit.algorithms.optimizers import SLSQP
+        from qiskit.utils import algorithm_globals
+        algorithm_globals.random_seed = 42
+
+    .. testcode::
+
+        from qiskit.algorithms import NumPyEigensolver
         from qiskit.opflow import PauliSumOp
 
-        opt = SLSQP(maxiter=1000)
-        solver = NumpyEigensolver(optimizer=opt, k=2)
+        solver = NumPyEigensolver(k=2)
 
-        hamiltonian = PauliSumOp.from_list([("XX", 1), ("XY", 1)]
+        hamiltonian = PauliSumOp.from_list([("XX", 1), ("XY", 1)])
         result = solver.compute_eigenvalues(hamiltonian)
+
+        print(result.eigenvalues)
+
+    .. testoutput::
+
+        [-1.41421356 -1.41421356]
 
     **[Updated]:**
 
-    .. code-block:: python
+    .. testsetup::
 
-        from qiskit.algorithms.eigensolvers import NumpyEigensolver
-        from qiskit.algorithms.optimizers import SLSQP
+        from qiskit.utils import algorithm_globals
+        algorithm_globals.random_seed = 42
+
+    .. testcode::
+
+        from qiskit.algorithms.eigensolvers import NumPyEigensolver
         from qiskit.quantum_info import SparsePauliOp
 
-        opt = SLSQP(maxiter=1000)
-        solver = NumpyEigensolver(optimizer=opt, k=2)
+        solver = NumPyEigensolver(k=2)
 
-        hamiltonian = SparsePauliOp.from_list([("XX", 1), ("XY", 1)]
+        hamiltonian = SparsePauliOp.from_list([("XX", 1), ("XY", 1)])
         result = solver.compute_eigenvalues(hamiltonian)
+
+        print(result.eigenvalues)
+
+    .. testoutput::
+
+        [-1.41421356 -1.41421356]
 
 Time Evolvers
 -------------
@@ -714,7 +734,7 @@ TrotterQRTE
 
     **[Legacy] Using Quantum Instance:**
 
-    .. code-block:: python
+    .. testcode::
 
         from qiskit.algorithms import EvolutionProblem, TrotterQRTE
         from qiskit.circuit import QuantumCircuit
@@ -736,12 +756,21 @@ TrotterQRTE
         trotter_qrte = TrotterQRTE(expectation=expectation, quantum_instance=quantum_instance)
         evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
 
+        print(evolved_state)
+
+    .. testoutput::
+
+        CircuitStateFn(
+           ┌─────────────────────┐
+        q: ┤ exp(-it (X + Z))(1) ├
+           └─────────────────────┘
+        )
+
     **[Updated] Using Primitives:**
 
-    .. code-block:: python
+    .. testcode::
 
-        # note new import!!!
-        from qiskit.algorithms.time_evolvers import EvolutionProblem, TrotterQRTE
+        from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, TrotterQRTE  # note new import!!!
         from qiskit.circuit import QuantumCircuit
         from qiskit.quantum_info import SparsePauliOp
         from qiskit_aer.primitives import Estimator as AerEstimator
@@ -749,14 +778,22 @@ TrotterQRTE
         operator = SparsePauliOp.from_list([("X", 1),("Z", 1)])
         initial_state = QuantumCircuit(1) # zero
         time = 1
-        evolution_problem = EvolutionProblem(operator, 1, initial_state)
+        evolution_problem = TimeEvolutionProblem(operator, 1, initial_state)
 
         # Aer simulator using custom instruction
         estimator = AerEstimator(run_options={"approximation": True, "shots": None})
 
         # LieTrotter with 1 rep
-        trotter_qrte = TrotterQRTE(expectation=expectation, quantum_instance=quantum_instance)
+        trotter_qrte = TrotterQRTE(estimator=estimator)
         evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
+
+        print(evolved_state.decompose())
+
+    .. testoutput::
+
+           ┌───────────┐┌───────────┐
+        q: ┤ exp(it X) ├┤ exp(it Z) ├
+           └───────────┘└───────────┘
 
 Amplitude Amplifiers
 ---------------------
@@ -822,7 +859,7 @@ using any instance of the :mod:`qiskit.primitives.Sampler` primitive.
         iae = IterativeAmplitudeEstimation(
             epsilon_target=0.01,  # target accuracy
             alpha=0.05,  # width of the confidence interval
-            quantum_instance=qi,
+            quantum_instance=qi
         )
 
     **[Updated] Using Primitives:**
@@ -835,7 +872,7 @@ using any instance of the :mod:`qiskit.primitives.Sampler` primitive.
         iae = IterativeAmplitudeEstimation(
             epsilon_target=0.01,  # target accuracy
             alpha=0.05,  # width of the confidence interval
-            sampler=Sampler(),
+            sampler=Sampler()
         )
 
 For complete code examples, see the following updated tutorials:
@@ -853,34 +890,32 @@ using any instance of the :mod:`qiskit.primitives.Sampler` primitive.
    The full :mod:`qiskit.algorithms.phase_estimators` module has been refactored in place. No need to
    change import paths.
 
-.. dropdown:: IQPE Example
+.. dropdown:: IPE Example
     :animate: fade-in-slide-down
 
     **[Legacy] Using Quantum Instance:**
 
     .. code-block:: python
 
-        from qiskit.algorithms import IterativeAmplitudeEstimation
+        from qiskit.algorithms import IterativePhaseEstimation
         from qiskit.utils import QuantumInstance
 
         qi = QuantumInstance(backend=backend)
-        iae = IterativeAmplitudeEstimation(
-            epsilon_target=0.01,  # target accuracy
-            alpha=0.05,  # width of the confidence interval
-            quantum_instance=qi,
+        ipe = IterativePhaseEstimation(
+            num_iterations=num_iter,
+            quantum_instance=qi
         )
 
     **[Updated] Using Primitives:**
 
     .. code-block:: python
 
-        from qiskit.algorithms import IterativeAmplitudeEstimation
+        from qiskit.algorithms import IterativePhaseEstimation
         from qiskit.primitives import Sampler
 
-        iae = IterativeAmplitudeEstimation(
-            epsilon_target=0.01,  # target accuracy
-            alpha=0.05,  # width of the confidence interval
-            sampler=Sampler(),
+        ipe = IterativePhaseEstimation(
+            num_iterations=num_iter,
+            sampler=Sampler()
         )
 
 For complete code examples, see the following updated tutorials:
