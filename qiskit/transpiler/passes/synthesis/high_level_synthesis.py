@@ -40,7 +40,6 @@ class HLSConfig:
     of :class:`.HighLevelSynthesisPlugin`. The following example illustrates different
     ways how a config file can be created::
 
-        from qiskit.circuit.library.generalized_gates import PermutationGate
         from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
         from qiskit.transpiler.passes.synthesis.high_level_synthesis import ACGSynthesisPermutation
 
