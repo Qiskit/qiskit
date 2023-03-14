@@ -12,9 +12,13 @@ There have been **3 types of refactoring**:
 
 1. Algorithms refactored in a new location to support :mod:`~qiskit.primitives`. These algorithms have the same
    class names as the :class:`~qiskit.utils.QuantumInstance`\-based ones but are in a new namespace.
-   **Careful with import paths!!** The legacy algorithms are still importable directly from
-   :mod:`qiskit.algorithms`, until these are removed, this convenience import is not available for the
-   refactored algorithms. To import the refactored algorithms you must always **speficy the full import path**.
+
+    .. attention::
+
+       **Careful with import paths!!** The legacy algorithms are still importable directly from
+       :mod:`qiskit.algorithms`. Until the legacy imports are removed, this convenience import is not available
+       for the refactored algorithms. Thus, to import the refactored algorithms you must always
+       **speficy the full import path** (i.e ``from qiskit.algorithms.eigensolvers import VQD``)
 
     - `Minimum Eigensolvers`_
     - `Eigensolvers`_
@@ -71,10 +75,11 @@ The classes in :mod:`qiskit.algorithms` state the base class primitive type (``S
 they require for their initialization. Once the primitive type is known, you can choose between
 four different primitive implementations, depending on how you want to configure your execution:
 
-a. Using **local** statevector simulators for quick prototyping: **Reference Primitives** in :mod:`qiskit.primitives`
-b. Using **local** Aer simulators for finer algorithm tuning: **Aer Primitives** in :mod:`qiskit_aer.primitives`
-c. Accessing backends using the **Qiskit Runtime Service**: **Runtime Primitives** in :mod:`qiskit_ibm_runtime`
-d. Accessing backends using a **non-Runtime-enabled provider**: **Backend Primitives** in :mod:`qiskit.primitives`
+    a. Using **local** statevector simulators for quick prototyping: **Reference Primitives** in :mod:`qiskit.primitives`
+    b. Using **local** Aer simulators for finer algorithm tuning: **Aer Primitives** in :mod:`qiskit_aer.primitives`
+    c. Accessing backends using the **Qiskit Runtime Service**: **Runtime Primitives** in :mod:`qiskit_ibm_runtime`
+    d. Accessing backends using a **non-Runtime-enabled provider**: **Backend Primitives** in :mod:`qiskit.primitives`
+
 
 For more detailed information and examples, particularly on the use of the **Backend Primitives**, please refer to
 the `Quantum Instance migration guide <https://qisk.it/qi_migration>`_.
@@ -100,7 +105,7 @@ In this guide, we will cover 3 different common configurations for algorithms th
             sampler = Sampler(backend_options={"method": "statevector"}.
             estimator = Estimator(backend_options={"method": "statevector"})
 
-2. Running an algorithm using a "qasm" simulator/device with shot noise
+2. Running an algorithm using a simulator/device with shot noise
    (i.e. using :mod:`qiskit.opflow`\'s legacy :class:`.PauliExpectation`):
 
         - Reference Primitives **with shots** (see `VQE`_ examples):
@@ -119,17 +124,17 @@ In this guide, we will cover 3 different common configurations for algorithms th
             estimator = Estimator()
             job = estimator.run(circuits, observables, shots=100)
 
-        - Runtime Primitives with default configuration (see `VQD`_ example):
-
-        .. code-block:: python
-
-            from qiskit_ibm_runtime import Sampler, Estimator
-
         - Aer Primitives with default configuration (see `VQE`_ examples):
 
         .. code-block:: python
 
             from qiskit_aer.primitives import Sampler, Estimator
+
+        - Runtime Primitives with default configuration (see `VQD`_ example):
+
+        .. code-block:: python
+
+            from qiskit_ibm_runtime import Sampler, Estimator
 
 
 3. Running an algorithm on an Aer simulator using a custom instruction (ie. using :mod:`qiskit.opflow`\'s legacy
@@ -144,13 +149,14 @@ In this guide, we will cover 3 different common configurations for algorithms th
             sampler = Sampler(run_options={"approximation": True, "shots": None})
             estimator = Estimator(run_options={"approximation": True, "shots": None})
 
+
 Minimum Eigensolvers
 --------------------
 *Back to* `TL;DR`_
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.minimum_eigensolvers` are now initialized
 using an instance of the :mod:`~qiskit.primitives.Sampler` or :mod:`~qiskit.primitives.Estimator` primitive, depending
-on the algorithm.
+on the algorithm. The legacy classes can still be found in :mod:`qiskit.algorithms.minimum_eigen_solvers`.
 
 .. attention::
 
@@ -356,6 +362,19 @@ For this reason, **the new QAOA only supports diagonal operators**.
 
 .. note::
 
+    In addition to taking in an :mod:`~qiskit.primitives.Sampler` instance instead of a :class:`~qiskit.utils.QuantumInstance`,
+    the new :class:`~qiskit.algorithms.minimum_eigensolvers.QAOA` signature has undergone the following changes:
+
+    1. The ``expectation`` and ``include_custom`` parameters have been removed. In return, the ``aggregation``
+       parameter has been added (it used to be defined through a custom ``expectation``).
+    2. The ``gradient`` parameter now takes in an instance of a primitive-based gradient class from
+       :mod:`qiskit.algorithms.gradients` instead of the legacy :mod:`qiskit.opflow.gradients.Gradient` class.
+    3. The ``max_evals_grouped`` parameter has been removed, as it can be set directly on the optimizer class.
+    4. The ``sampler`` and ``optimizer`` are the only parameters that can be defined positionally
+       (and in this order), all others have become keyword-only arguments.
+
+.. note::
+
     If you want to run QAOA on a non-diagonal operator, you can use the :class:`.QAOAAnsatz` with
     :class:`qiskit.algorithms.minimum_eigensolvers.VQE`, but bear in mind there will be no state result.
     If your application requires the final probability distribution, you can instantiate a ``Sampler``
@@ -488,7 +507,7 @@ to :class:`qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver` for c
 
     .. testoutput::
 
-        -1.4142135623730951
+        -1.414213562373095
 
 For complete code examples, see the following updated tutorials:
 
@@ -500,7 +519,8 @@ Eigensolvers
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.eigensolvers` are now initialized
 using an instance of the :class:`~qiskit.primitives.Sampler` or :class:`~qiskit.primitives.Estimator` primitive, or
-**a primitive-based subroutine**, depending on the algorithm.
+**a primitive-based subroutine**, depending on the algorithm. The legacy classes can still be found
+in :mod:`qiskit.algorithms.eigen_solvers`.
 
 .. attention::
 
@@ -515,8 +535,22 @@ VQD
 ~~~~
 
 The new :class:`qiskit.algorithms.eigensolvers.VQD` class is initialized with an :class:`~qiskit.primitives.Estimator`
-primitive, as well as a :class:`~qiskit.primitives.Sampler`\-based fidelity class
+primitive, as well as a :class:`~qiskit.primitives.Sampler`-based fidelity class
 from :mod:`qiskit.algorithms.state_fidelities`.
+
+.. note::
+
+    In addition to taking in an :mod:`~qiskit.primitives.Estimator` instance instead of a :class:`~qiskit.utils.QuantumInstance`,
+    the new :class:`~qiskit.algorithms.eigensolvers.VQD` signature has undergone the following changes:
+
+    1. The ``expectation`` and ``include_custom`` parameters have been removed, as this functionality is now
+       defined at the ``Estimator`` level.
+    2. The custom ``fidelity`` parameter has been added, and the custom ``gradient`` parameter has
+       been removed, as current classes in :mod:`qiskit.algorithms.gradients` cannot deal with state fidelity
+       gradients.
+    3. The ``max_evals_grouped`` parameter has been removed, as it can be set directly on the optimizer class.
+    4. The ``estimator``, ``fidelity``, ``ansatz`` and ``optimizer`` are the only parameters that can be defined positionally
+       (and in this order), all others have become keyword-only arguments.
 
 .. note::
 
@@ -524,12 +558,18 @@ from :mod:`qiskit.algorithms.state_fidelities`.
     the state anymore. If your application requires the final probability distribution, you can instantiate
     a ``Sampler`` and run it with the optimal circuit after :class:`~qiskit.algorithms.eigensolvers.VQD`.
 
+
 .. dropdown:: VQD Example
     :animate: fade-in-slide-down
 
     **[Legacy] Using Quantum Instance:**
 
-    .. code-block:: python
+    .. testsetup::
+
+        from qiskit.utils import algorithm_globals
+        algorithm_globals.random_seed = 42
+
+    .. testcode::
 
         from qiskit_ibm_provider import IBMProvider
         from qiskit.algorithms import VQD
@@ -550,9 +590,21 @@ from :mod:`qiskit.algorithms.state_fidelities`.
         vqd = VQD(ansatz, optimizer, k=3, quantum_instance=qi)
         result = vqd.compute_eigenvalues(operator=hamiltonian)
 
+        print(result.eigenvalues)
+
+    .. testoutput::
+        :options: +SKIP
+
+        5.5
+
     **[Updated] Using Primitives:**
 
-    .. code-block:: python
+    .. testsetup::
+
+        from qiskit.utils import algorithm_globals
+        algorithm_globals.random_seed = 42
+
+    .. testcode::
 
         from qiskit_ibm_runtime import Sampler, Estimator, QiskitRuntimeService
         from qiskit.algorithms.eigensolvers import VQD
@@ -568,12 +620,20 @@ from :mod:`qiskit.algorithms.state_fidelities`.
         # example executing in cloud simulator
         service = QiskitRuntimeService(channel="ibm_quantum")
         backend = service.backend("ibmq_qasm_simulator")
+
         with Session(service=service, backend=backend) as session:
             estimator = Estimator()
             sampler = Sampler()
             fidelity = ComputeUncompute(sampler)
             vqd = VQD(estimator, fidelity, ansatz, optimizer, k=3)
             result = vqd.compute_eigenvalues(operator=hamiltonian)
+
+        print(result.eigenvalues)
+
+    .. testoutput::
+        :options: +SKIP
+
+        5.5
 
 For complete code examples, see the following updated tutorials:
 
@@ -622,8 +682,8 @@ Time Evolvers
 *Back to* `TL;DR`_
 
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.time_evolvers` are now initialized
-using an instance of the :class:`~qiskit.primitives.Sampler` or :class:`~qiskit.primitives.Estimator` primitive,
-depending on the algorithm.
+using an instance of the :class:`~qiskit.primitives.Estimator` primitive. The legacy classes can still be found
+in :mod:`qiskit.algorithms.evolvers`.
 
 On top of the migration, the module has been substantially expanded to include **Variational Quantum Time Evolution**
 (:class:`~qiskit.algorithms.time_evolvers.VarQTE`\) solvers.
@@ -638,6 +698,16 @@ TrotterQRTE
 
     * Old import path (Quantum Instance): ``from qiskit.algorithms import TrotterQRTE``
     * New import path (Primitives): ``from qiskit.algorithms.time_evolvers import TrotterQRTE``
+
+.. note::
+
+    In addition to taking in an :mod:`~qiskit.primitives.Estimator` instance instead of a :class:`~qiskit.utils.QuantumInstance`,
+    the new :class:`~qiskit.algorithms.eigensolvers.VQD` signature has undergone the following changes:
+
+    1. The ``expectation`` parameter has been removed, as this functionality is now
+       defined at the ``Estimator`` level.
+    2. The ``num_timesteps`` parameters has been added, to allow to define the number of steps the full evolution
+       time is divided into.
 
 .. dropdown:: TrotterQRTE Example
     :animate: fade-in-slide-down
