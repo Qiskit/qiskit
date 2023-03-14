@@ -15,9 +15,9 @@ Multi-controlled SU(2) gate.
 
 from typing import Union, List
 import numpy as np
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Qubit
+from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.library.standard_gates.x import MCXVChain
-
+from qiskit.extensions import UnitaryGate
 
 def linear_depth_mcv(
     circuit,
@@ -48,10 +48,8 @@ def linear_depth_mcv(
     s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
 
     # S gate definition
-    s_gate = QuantumCircuit(1)
-    s_gate.unitary(s_op, 0)
-    s_gate = s_gate.to_gate()
-
+    s_gate = UnitaryGate(s_op)
+    
     num_ctrl = len(controls)
     k_1 = int(np.ceil(num_ctrl / 2.0))
     k_2 = int(np.floor(num_ctrl / 2.0))
