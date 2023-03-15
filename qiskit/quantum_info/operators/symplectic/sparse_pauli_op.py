@@ -28,7 +28,6 @@ from qiskit._accelerate.sparse_pauli_op import unordered_unique
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametertable import ParameterView
-from qiskit.circuit.quantumcircuit import ParameterValueType
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -1025,7 +1024,8 @@ class SparsePauliOp(LinearOp):
 
     def assign_parameters(
         self,
-        parameters: Mapping[Parameter, ParameterValueType] | Sequence[ParameterValueType],
+        parameters: Mapping[Parameter, complex | ParameterExpression]
+        | Sequence[complex | ParameterExpression],
         inplace: bool = False,
     ) -> "SparsePauliOp" | None:
         """Bind the free ``Parameter``\s in the coefficients to provided values.
