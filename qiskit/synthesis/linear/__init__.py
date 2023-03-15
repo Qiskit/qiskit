@@ -12,7 +12,7 @@
 
 """Module containing cnot circuits"""
 
-from .graysynth import graysynth, synth_cnot_count_full_pmh
+from .cnot_synth import synth_cnot_count_full_pmh
 from .linear_depth_lnn import synth_cnot_depth_line_kms
 from .linear_matrix_utils import (
     random_invertible_binary_matrix,
