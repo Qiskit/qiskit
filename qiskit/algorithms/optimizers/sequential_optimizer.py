@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Free-Axis Selection (Fraxis) algorithm."""
+"""Sequential optimizer."""
 
 from abc import abstractmethod
 from typing import List, Optional, Tuple
@@ -39,18 +39,15 @@ _ZX = (_Z + _X) / np.sqrt(2)
 
 class SequentialOptimizer(SciPyOptimizer):
     """
-    Free-Axis Selection (Fraxis) algorithm [1].
+    Base class for sequential optimizer.
 
-    More precisely, this class implements π-Fraxis algorithm in Algorithm 1 of [1].
+    This family of optimizers optimizes parameterized U gates one by one in the order they are included in the ansatz.
+    Once the last parameterized U gate is optimized, it returns to the first one.
+    It may evaluate energy function multiple times to optimize a parameterized U gate.
 
     .. note::
 
         This optimizer only works with U gates as parameterized gates.
-
-    References:
-      [1] "Optimizing Parameterized Quantum Circuits with Free-Axis Selection,"
-          HC. Watanabe, R. Raymond, Y. Ohnishi, E. Kaminishi, M. Sugawara
-          `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__
     """
 
     _OPTIONS = ["maxiter", "xtol"]
@@ -199,6 +196,26 @@ class SequentialOptimizer(SciPyOptimizer):
 
 
 class FQS(SequentialOptimizer):
+    """
+    Free Quaternion Selection (FQS) algorithm [1].
+
+    This optimizer optimizes parameterized U gates one by one in the order they are included in the ansatz.
+    Once the last parameterized U gate is optimized, it returns to the first one.
+
+    .. note::
+
+        This optimizer only works with U gates as parameterized gates.
+
+    .. note::
+
+        This optimizer evaluates the energy function 10 times for each U gate.
+
+    References:
+      [1] "Sequential optimal selection of a single-qubit gate and its relation to barren plateau in parameterized
+          quantum circuits,"
+          K. Wada, R. Raymond, Y. Sato, H.C. Watanabe,
+          `arXiv:2209.08535 <https://arxiv.org/abs/2209.08535>`__
+    """
 
     _MATRICES = [_I, _X, _Y, _Z, _IX, _IY, _IZ, _XY, _YZ, _ZX]
     _ANGLES = [_DECOMPOSER.angles(mat) for mat in _MATRICES]
@@ -230,14 +247,20 @@ class Fraxis(SequentialOptimizer):
     Free-Axis Selection (Fraxis) algorithm [1].
 
     More precisely, this class implements π-Fraxis algorithm in Algorithm 1 of [1].
+    This optimizer optimizes parameterized U gates one by one in the order they are included in the ansatz.
+    Once the last parameterized U gate is optimized, it returns to the first one.
 
     .. note::
 
         This optimizer only works with U gates as parameterized gates.
 
+    .. note::
+
+        This optimizer evaluates the energy function 6 times for each U gate.
+
     References:
       [1] "Optimizing Parameterized Quantum Circuits with Free-Axis Selection,"
-          HC. Watanabe, R. Raymond, Y. Ohnishi, E. Kaminishi, M. Sugawara
+          H.C. Watanabe, R. Raymond, Y. Ohnishi, E. Kaminishi, M. Sugawara
           `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__
     """
 
