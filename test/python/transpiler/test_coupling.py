@@ -494,6 +494,25 @@ class CouplingTest(QiskitTestCase):
         self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[0].graph))
         self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[1].graph))
 
+    def test_equality(self):
+        """Test that equality checks that the graphs have the same nodes, node labels, and edges."""
+
+        # two coupling maps with 4 nodes and the same edges
+        coupling0 = CouplingMap([(0, 1), (0, 2), (2, 3)])
+        coupling1 = CouplingMap([(0, 1), (0, 2), (2, 3)])
+        self.assertEqual(coupling0, coupling1)
+
+        # coupling map with 5 nodes not equal to the previous 2
+        coupling2 = CouplingMap([(0, 1), (0, 2), (2, 4)])
+        self.assertNotEqual(coupling0, coupling2)
+
+        # coupling map isomorphic to coupling0, but with cyclically shifted labels
+        coupling3 = CouplingMap([(1, 2), (1, 3), (3, 0)])
+        self.assertNotEqual(coupling0, coupling3)
+
+        # additional test for comparison to a non-CouplingMap object
+        self.assertNotEqual(coupling0, 1)
+
 
 class CouplingVisualizationTest(QiskitVisualizationTestCase):
     @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")

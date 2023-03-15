@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added the function ``qiskit.util.deprecation.add_deprecation_to_docstring()``.
+    It will rewrite the function's docstring to include a Sphinx ``.. deprecated::` directive
+    so that the deprecation shows up in docs and with ``help()``. The deprecation decorators
+    from ``qiskit.util.deprecation`` call ``add_deprecation_to_docstring()`` already for you;
+    but you can call it directly if you are using different mechanisms for deprecations.
