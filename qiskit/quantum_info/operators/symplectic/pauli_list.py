@@ -401,7 +401,7 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         Args:
             ind (int): index to insert at.
             value (PauliList): values to insert.
-            qubit (bool): if True delete qubit columns, otherwise delete
+            qubit (bool): if True insert qubit columns, otherwise insert
                           Pauli rows (Default: False).
 
         Returns:
