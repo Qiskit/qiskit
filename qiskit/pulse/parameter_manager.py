@@ -232,17 +232,6 @@ class ParameterSetter(NodeVisitor):
                 pval = node._params[name]
                 if isinstance(pval, ParameterExpression):
                     new_val = self._assign_parameter_expression(pval)
-                    if isinstance(new_val, complex):
-                        warnings.warn(
-                            "Assignment of complex parameters to SymbolicPulse is now pending "
-                            "deprecation. As of Qiskit-Terra 0.23.0 all library pulses were "
-                            "converted from complex amplitude representation to real representation "
-                            "using two floats (amp,angle), as used in the ScalableSymbolicPulse "
-                            "class. This eliminated the need for complex parameters. Any custom-built "
-                            "pulses should be converted in a similar fashion to avoid the use of "
-                            "complex parameters.",
-                            PendingDeprecationWarning,
-                        )
                     node._params[name] = new_val
             node.validate_parameters()
 
@@ -268,8 +257,21 @@ class ParameterSetter(NodeVisitor):
         updated = param_expr.parameters & self._param_map.keys()
         for param in updated:
             new_value = new_value.assign(param, self._param_map[param])
-
-        return format_parameter_value(new_value)
+        new_value = format_parameter_value(new_value)
+        if isinstance(new_value, complex):
+            warnings.warn(
+                "Assignment of complex values to ParameterExpression in Qiskit Pulse objects is "
+                "now pending deprecation. This will align the Pulse module with other modules "
+                "where such assignment wasn't possible to begin with. The typical use case for complex "
+                "parameters in the module was the SymbolicPulse library. As of Qiskit-Terra "
+                "0.23.0 all library pulses were converted from complex amplitude representation"
+                " to real representation using two floats (amp,angle), as used in the "
+                "ScalableSymbolicPulse class. This eliminated the need for complex parameters. "
+                "Any use of complex parameters (and particularly custom-built pulses) should be "
+                "converted in a similar fashion to avoid the use of complex parameters.",
+                PendingDeprecationWarning,
+            )
+        return new_value
 
     def _update_parameter_manager(self, node: Union[Schedule, ScheduleBlock]):
         """A helper function to update parameter manager of pulse program."""
