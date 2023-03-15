@@ -9,4 +9,4 @@ deprecations:
     representation to real representation using two floats (amp,angle), as used in the
     ``ScalableSymbolicPulse`` class. This eliminated the need for complex parameters.
     Any use of complex parameters (and particularly custom-built pulses) should be
-    converted in a similar fashion to avoid the use of complex parameters."
+    converted in a similar fashion to avoid the use of complex parameters.
