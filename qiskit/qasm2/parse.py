@@ -14,7 +14,7 @@
 
 import dataclasses
 import math
-from typing import Iterable, Callable, Tuple
+from typing import Iterable, Callable
 
 from qiskit.circuit import (
     Barrier,
