@@ -41,7 +41,7 @@ class Register:
     """Implement a generic register.
 
     .. note::
-        This class should be instantiated directly, but just a super class
+        This class should not be instantiated directly. This is just a superclass
         for :class:`~.ClassicalRegister` and :class:`~.QuantumRegister`.
 
     """
