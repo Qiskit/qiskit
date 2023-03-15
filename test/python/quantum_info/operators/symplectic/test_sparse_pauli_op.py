@@ -947,6 +947,21 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         iz = SparsePauliOp("Z", 1j)
         self.assertEqual(x.dot(y), iz)
 
+    def test_assign_parameters(self):
+        """Test assign parameters."""
+        x, y = Parameter("x"), Parameter("y")
+        op = SparsePauliOp(["X", "Y", "Z"], coeffs=[1, x, x * y])
+
+        # partial binding inplace
+        op.assign_parameters({y: 2}, inplace=True)
+        with self.subTest(msg="partial binding"):
+            self.assertListEqual(op.coeffs.tolist(), [1, x, 2 * x])
+
+        # bind via array
+        bound = op.assign_parameters([3])
+        with self.subTest(msg="fully bound"):
+            self.assertTrue(np.allclose(bound.coeffs.astype(complex), [1, 3, 6]))
+
 
 if __name__ == "__main__":
     unittest.main()
