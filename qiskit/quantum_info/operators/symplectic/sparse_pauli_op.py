@@ -1027,7 +1027,7 @@ class SparsePauliOp(LinearOp):
         parameters: Mapping[Parameter, complex | ParameterExpression]
         | Sequence[complex | ParameterExpression],
         inplace: bool = False,
-    ) -> "SparsePauliOp" | None:
+    ) -> SparsePauliOp | None:
         """Bind the free ``Parameter``\s in the coefficients to provided values.
 
         Args:
