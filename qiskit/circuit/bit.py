@@ -22,7 +22,7 @@ class Bit:
     """Implement a generic bit.
 
     .. note::
-        This class should be instantiated directly, but just a super class
+        This class should not be instantiated directly. This is just a superclass
         for :class:`~.Clbit` and :class:`~.Qubit`.
 
     """
