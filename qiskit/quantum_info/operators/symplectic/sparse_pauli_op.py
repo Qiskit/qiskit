@@ -123,7 +123,6 @@ class SparsePauliOp(LinearOp):
             dtype = object
         elif coeffs is not None:
             if not isinstance(coeffs, (np.ndarray, Sequence)):
-                print("not sequence!", coeffs, type(coeffs))
                 coeffs = [coeffs]
             if any(isinstance(coeff, ParameterExpression) for coeff in coeffs):
                 dtype = object
