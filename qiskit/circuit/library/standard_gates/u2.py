@@ -87,7 +87,6 @@ class U2Gate(Gate):
         using two X90 pulses.
     """
     num_params = 2
-    num_qubits = 1
 
     def __init__(
         self, phi: ParameterValueType, lam: ParameterValueType, label: Optional[str] = None

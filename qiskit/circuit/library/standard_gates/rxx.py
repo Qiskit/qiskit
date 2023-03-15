@@ -72,7 +72,6 @@ class RXXGate(Gate):
                                     \end{pmatrix}
     """
     num_params = 1
-    num_qubits = 2
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RXX gate."""

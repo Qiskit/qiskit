@@ -49,7 +49,6 @@ class RYGate(Gate):
             \end{pmatrix}
     """
     num_params = 1
-    num_qubits = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new RY gate."""
@@ -171,7 +170,6 @@ class CRYGate(ControlledGate):
                 \end{pmatrix}
     """
     num_params = 1
-    num_qubits = 2
 
     def __init__(
         self,

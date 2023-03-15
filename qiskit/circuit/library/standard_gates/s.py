@@ -53,7 +53,6 @@ class SGate(Gate):
     Equivalent to a :math:`\pi/2` radian rotation about the Z axis.
     """
     num_params = 0
-    num_qubits = 1
 
     def __init__(self, label: Optional[str] = None):
         """Create new S gate."""
@@ -119,7 +118,6 @@ class SdgGate(Gate):
     Equivalent to a :math:`-\pi/2` radian rotation about the Z axis.
     """
     num_params = 0
-    num_qubits = 1
 
     def __init__(self, label: Optional[str] = None):
         """Create new Sdg gate."""
@@ -184,7 +182,6 @@ class CSGate(ControlledGate):
             \end{pmatrix}
     """
     num_params = 0
-    num_qubits = 2
 
     # Define class constants. This saves future allocation time.
     _matrix1 = numpy.array(
@@ -261,7 +258,6 @@ class CSdgGate(ControlledGate):
             \end{pmatrix}
     """
     num_params = 0
-    num_qubits = 2
 
     # Define class constants. This saves future allocation time.
     _matrix1 = numpy.array(

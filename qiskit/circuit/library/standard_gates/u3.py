@@ -79,7 +79,6 @@ class U3Gate(Gate):
         U3(\theta, 0, 0) = RY(\theta)
     """
     num_params = 3
-    num_qubits = 1
 
     def __init__(
         self,
@@ -203,7 +202,6 @@ class CU3Gate(ControlledGate):
                 \end{pmatrix}
     """
     num_params = 3
-    num_qubits = 2
 
     def __init__(
         self,

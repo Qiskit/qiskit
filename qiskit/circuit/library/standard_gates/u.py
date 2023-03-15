@@ -67,7 +67,6 @@ class UGate(Gate):
         U(\theta, 0, 0) = RY(\theta)
     """
     num_params = 3
-    num_qubits = 1
 
     def __init__(
         self,
@@ -191,7 +190,6 @@ class CUGate(ControlledGate):
                 \end{pmatrix}
     """
     num_params = 4
-    num_qubits = 2
 
     def __init__(
         self,

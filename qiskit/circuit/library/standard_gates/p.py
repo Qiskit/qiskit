@@ -74,7 +74,6 @@ class PhaseGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
     num_params = 1
-    num_qubits = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new Phase gate."""
@@ -173,7 +172,6 @@ class CPhaseGate(ControlledGate):
         phase difference.
     """
     num_params = 1
-    num_qubits = 2
 
     def __init__(
         self,

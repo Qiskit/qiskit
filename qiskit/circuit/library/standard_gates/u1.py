@@ -92,7 +92,6 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
     num_params = 1
-    num_qubits = 1
 
     def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
         """Create new U1 gate."""
@@ -186,7 +185,6 @@ class CU1Gate(ControlledGate):
         phase difference.
     """
     num_params = 1
-    num_qubits = 2
 
     def __init__(
         self,
@@ -301,7 +299,6 @@ class MCU1Gate(ControlledGate):
         The singly-controlled-version of this gate.
     """
     num_params = 1
-    num_qubits = None
 
     def __init__(
         self,

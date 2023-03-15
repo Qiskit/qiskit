@@ -379,6 +379,7 @@ class TestStandardEquivalenceLibrary(QiskitTestCase):
         self.assertTrue(any(equiv == param_qc.decompose() for equiv in param_entry))
         self.assertTrue(any(equiv == float_qc.decompose() for equiv in float_entry))
 
+
 @ddt
 class TestStandardGateAttributes(QiskitTestCase):
     """Standard gate static attributes test"""
@@ -431,10 +432,3 @@ class TestStandardGateAttributes(QiskitTestCase):
         float_gate_instance = gate_class(*float_vector)
 
         self.assertEqual(gate_class.num_params, n_params)
-        self.assertEqual(gate_class.num_qubits, param_gate_instance._num_qubits)
-        self.assertEqual(gate_class.name, param_gate_instance._name)
-        self.assertEqual(gate_class.num_qubits, float_gate_instance._num_qubits)
-        self.assertEqual(gate_class.name, float_gate_instance._name)
-
-
-        

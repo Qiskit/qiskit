@@ -82,7 +82,6 @@ class XXPlusYYGate(Gate):
             \end{pmatrix}
     """
     num_params = 2
-    num_qubits = 2
 
     def __init__(
         self,
