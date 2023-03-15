@@ -706,7 +706,7 @@ class TestControlledGate(QiskitTestCase):
         control_qubits = circuit.qubits[:3]
         target_qubit = circuit.qubits[3]
         additional_qubits = circuit.qubits[4:]
-        circuit.mcry(0.2, control_qubits, target_qubit, additional_qubits)
+        circuit.mcry(0.2, control_qubits, target_qubit, additional_qubits, mode=None)
 
         # If the v-chain mode is selected, all qubits are used. If the noancilla mode would be
         # selected, the bottom qubit would remain unused.
@@ -1016,18 +1016,9 @@ class TestControlledGate(QiskitTestCase):
                 args = [2] * numargs
                 gate = gate(*args)
 
-                gate_inverse_control = gate.inverse().control(
-                    num_ctrl_qubits, ctrl_state=ctrl_state
-                )
-                gate_control_inverse = gate.control(
-                    num_ctrl_qubits, ctrl_state=ctrl_state
-                ).inverse()
-
-                self.assertTrue(
-                    np.allclose(
-                        Operator(gate_inverse_control).to_matrix(),
-                        Operator(gate_control_inverse).to_matrix(),
-                    )
+                self.assertEqual(
+                    gate.inverse().control(num_ctrl_qubits, ctrl_state=ctrl_state),
+                    gate.control(num_ctrl_qubits, ctrl_state=ctrl_state).inverse(),
                 )
 
             except AttributeError:

@@ -101,10 +101,19 @@ def linear_depth_mcv(
         controls (QuantumRegister or list(Qubit)): The list of control qubits
         target (Qubit): The target qubit
         ctrl_state (str): control state of the operator SU(2) operator U
+
+    Raises:
+        QiskitError: parameter errors
     """
     # pylint: disable=cyclic-import
     from qiskit.circuit.library import MCXVChain
     from qiskit.extensions import UnitaryGate
+
+    if np.iscomplex(x):
+        raise QiskitError("Parameter x in function linear_depth_mcv must be real.")
+
+    if not np.allclose(np.abs(z) ** 2 + x**2, 1):
+        raise QiskitError("Matrix [[z*, x],[-x, z]] in function linear_depth_mcv must be SU(2)")
 
     alpha_r = np.sqrt((np.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
     alpha_i = z.imag / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
@@ -202,7 +211,7 @@ def mcry(
     q_controls: Union[QuantumRegister, List[Qubit]],
     q_target: Qubit,
     q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
-    mode: str = None,
+    mode: str = "noancilla",
     use_basis_gates=False,
 ):
     """
