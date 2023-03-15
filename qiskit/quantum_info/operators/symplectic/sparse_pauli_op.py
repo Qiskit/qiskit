@@ -1014,12 +1014,21 @@ class SparsePauliOp(LinearOp):
             groups[color].append(idx)
         return [self[group] for group in groups.values()]
 
+    @property
+    def parameters(self) -> ParameterView:
+        """Return the free ``Parameter``\s in the coefficients."""
+        ret = set()
+        for coeff in self.coeffs:
+            if isinstance(coeff, ParameterExpression):
+                ret |= coeff.parameters
+        return ParameterView(ret)
+
     def assign_parameters(
         self,
         parameters: Mapping[Parameter, ParameterValueType] | Sequence[ParameterValueType],
         inplace: bool = False,
     ) -> "SparsePauliOp" | None:
-        """Binds free ``Parameter``\s in a numpy array to provided values.
+        """Bind the free ``Parameter``\s in the coefficients to provided values.
 
         Args:
             parameters: The values to bind the parameters to.
@@ -1037,7 +1046,7 @@ class SparsePauliOp(LinearOp):
 
         # turn the parameters to a dictionary
         if isinstance(parameters, Sequence):
-            free_parameters = _get_parameters(bound.coeffs)
+            free_parameters = bound.parameters
             if len(parameters) != len(free_parameters):
                 raise ValueError(
                     f"Mismatching number of values ({len(parameters)}) and parameters "
@@ -1055,15 +1064,6 @@ class SparsePauliOp(LinearOp):
                 bound.coeffs[i] = coeff
 
         return None if inplace else bound
-
-
-def _get_parameters(array: np.ndarray) -> ParameterView:
-    """Retrieves parameters from a numpy array as a ``ParameterView``."""
-    ret = set()
-    for a in array:
-        if isinstance(a, ParameterExpression):
-            ret |= a.parameters
-    return ParameterView(ret)
 
 
 # Update docstrings for API docs

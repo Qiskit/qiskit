@@ -21,6 +21,7 @@ from ddt import ddt
 
 from qiskit import QiskitError
 from qiskit.circuit import Parameter, ParameterVector
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.quantum_info.operators import Operator, Pauli, PauliList, PauliTable, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
@@ -946,6 +947,18 @@ class TestSparsePauliOpMethods(QiskitTestCase):
         y = SparsePauliOp("Y", np.array([1]))
         iz = SparsePauliOp("Z", 1j)
         self.assertEqual(x.dot(y), iz)
+
+    def test_get_parameters(self):
+        """Test getting the parameters."""
+        x, y = Parameter("x"), Parameter("y")
+        op = SparsePauliOp(["X", "Y", "Z"], coeffs=[1, x, x * y])
+
+        with self.subTest(msg="all parameters"):
+            self.assertEqual(ParameterView([x, y]), op.parameters)
+
+        op.assign_parameters({y: 2}, inplace=True)
+        with self.subTest(msg="after partial binding"):
+            self.assertEqual(ParameterView([x]), op.parameters)
 
     def test_assign_parameters(self):
         """Test assign parameters."""

@@ -26,8 +26,6 @@ from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.synthesis import ProductFormula, LieTrotter
 
-from qiskit.algorithms.utils.assign_params import _assign_parameters, _get_parameters
-
 
 class TrotterQRTE(RealTimeEvolver):
     """Quantum Real Time Evolution using Trotterization.
@@ -165,16 +163,24 @@ class TrotterQRTE(RealTimeEvolver):
                 "The time evolution problem contained ``aux_operators`` but no estimator was "
                 "provided. The algorithm continues without calculating these quantities. "
             )
+
+        # ensure the hamiltonian is a sparse pauli op
         hamiltonian = evolution_problem.hamiltonian
         if not isinstance(hamiltonian, (Pauli, PauliSumOp, SparsePauliOp)):
             raise ValueError(
                 f"TrotterQRTE only accepts Pauli | PauliSumOp, {type(hamiltonian)} provided."
             )
+        if isinstance(hamiltonian, PauliSumOp):
+            hamiltonian = hamiltonian.primitive
+        elif isinstance(hamiltonian, Pauli):
+            hamiltonian = SparsePauliOp(hamiltonian)
+
         t_param = evolution_problem.t_param
-        if t_param is not None and _get_parameters(hamiltonian.coeffs) != ParameterView([t_param]):
+        free_parameters = hamiltonian.parameters
+        if t_param is not None and free_parameters != ParameterView([t_param]):
             raise ValueError(
-                "Hamiltonian time parameter does not match evolution_problem.t_param "
-                "or contains multiple parameters"
+                f"Hamiltonian time parameters ({free_parameters}) do not match "
+                f"evolution_problem.t_param ({t_param})."
             )
 
         # make sure PauliEvolutionGate does not implement more than one Trotter step
@@ -213,9 +219,9 @@ class TrotterQRTE(RealTimeEvolver):
             # evolution for next step
             if t_param is not None:
                 time_value = (n + 1) * dt
-                bound_coeffs = _assign_parameters(hamiltonian.coeffs, [time_value])
+                bound_hamiltonian = hamiltonian.assign_parameters([time_value])
                 single_step_evolution_gate = PauliEvolutionGate(
-                    SparsePauliOp(hamiltonian.paulis, bound_coeffs),
+                    bound_hamiltonian,
                     dt,
                     synthesis=self.product_formula,
                 )

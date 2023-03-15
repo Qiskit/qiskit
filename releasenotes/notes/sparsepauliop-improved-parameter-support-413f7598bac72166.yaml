@@ -1,6 +1,6 @@
 features:
   - |
-    Natively support the construction of :class:`.SparsePauliOp` objects with 
+    Natively support the construction of :class:`.SparsePauliOp` objects with
     :class:`.ParameterExpression` coefficients, without requiring the explicit construction
     of an object-array. Now the following is supported::
 
@@ -11,7 +11,8 @@ features:
       op = SparsePauliOp(["Z", "X"], coeffs=[1, x])
 
   - |
-    Added the :meth:`.SparsePauliOp.assign_parameters` method to assign unbound parameters
+    Added the :meth:`.SparsePauliOp.assign_parameters` method and
+    :attr:`.SparsePauliOp.parameters` attribute to assign and query unbound parameters
     inside a :class:`.SparsePauliOp`. This function can for example be used as::
 
       from qiskit.circuit import Parameter
@@ -20,5 +21,8 @@ features:
       x = Parameter("x")
       op = SparsePauliOp(["Z", "X"], coeffs=[1, x])
 
+      # free_params will be: ParameterView([x])
+      free_params = op.parameters
+
       # assign the value 2 to the parameter x
-      bound = op.assign_parameters([2]) 
+      bound = op.assign_parameters([2])
