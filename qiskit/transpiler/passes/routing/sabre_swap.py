@@ -273,11 +273,18 @@ def process_swaps(
     canonical_register,
     fake_run,
     qubit_indices,
+    swap_qubit_mapping=None,
 ):
     """Process swaps from SwapMap."""
     if node._node_id in swap_map:
         for swap in swap_map[node._node_id]:
-            swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
+            if swap_qubit_mapping:
+                swap_qargs = [
+                    canonical_register[swap_qubit_mapping[swap[0]]],
+                    canonical_register[swap_qubit_mapping[swap[1]]],
+                ]
+            else:
+                swap_qargs = [canonical_register[swap[0]], canonical_register[swap[1]]]
             apply_gate(
                 mapped_dag,
                 DAGOpNode(op=SwapGate(), qargs=swap_qargs),
@@ -286,7 +293,12 @@ def process_swaps(
                 fake_run,
                 qubit_indices,
             )
-            current_layout.swap_logical(*swap)
+            if swap_qubit_mapping:
+                current_layout.swap_logical(
+                    swap_qubit_mapping[swap[0]], swap_qubit_mapping[swap[1]]
+                )
+            else:
+                current_layout.swap_logical(*swap)
 
 
 def apply_gate(mapped_dag, node, current_layout, canonical_register, fake_run, qubit_indices):
