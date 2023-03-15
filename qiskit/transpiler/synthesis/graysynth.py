@@ -21,7 +21,8 @@ for optimal synthesis of linear (CNOT-only) reversible circuits.
 
 # Redirect getattrs to modules new location
 # TODO: Deprecate in 0.24.0 and remove in 0.26.0
-from qiskit.synthesis.linear.graysynth import *
+from qiskit.synthesis.linear.cnot_synth import *
+from qiskit.synthesis.linear_phase.cnot_phase_synth import *
 
 
 def cnot_synth(state, section_size=2):
@@ -52,3 +53,8 @@ def cnot_synth(state, section_size=2):
            `arXiv:quant-ph/0302002 [quant-ph] <https://arxiv.org/abs/quant-ph/0302002>`_
     """
     return synth_cnot_count_full_pmh(state, section_size=section_size)
+
+
+def graysynth(cnots, angles, section_size=2):
+    """Synthesize a cnot-phase circuit."""
+    return synth_cnot_phase_aam(cnots, angles, section_size=section_size)
