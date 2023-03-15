@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" backend utility functions """
+"""backend utility functions"""
 
 import logging
 from qiskit.utils.deprecation import deprecate_function_msg
@@ -58,7 +58,7 @@ def _get_backend_provider(backend):
     url="https://qisk.it/qi_migration",
 )
 def has_ibmq():
-    """Check if IBMQ is installed"""
+    """Check if IBMQ is installed."""
     if not _PROVIDER_CHECK.checked_ibmq:
         try:
             from qiskit.providers.ibmq import IBMQFactory
@@ -82,7 +82,7 @@ def has_ibmq():
     url="https://qisk.it/qi_migration",
 )
 def has_aer():
-    """check if Aer is installed"""
+    """Check if Aer is installed."""
     if not _PROVIDER_CHECK.checked_aer:
         try:
             from qiskit.providers.aer import AerProvider

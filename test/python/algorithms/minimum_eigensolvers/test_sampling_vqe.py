@@ -33,7 +33,7 @@ from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.utils import algorithm_globals
 
 
-# pylint: disable=invalid-name, unused-argument
+# pylint: disable=invalid-name
 def _mock_optimizer(fun, x0, jac=None, bounds=None, inputs=None):
     """A mock of a callable that can be used as minimizer in the VQE.
 

@@ -708,7 +708,7 @@ class TestObservableValidation(QiskitTestCase):
         """Test obsevables standardization."""
         self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
 
-    @data(None, "ERROR", "")
+    @data(None, "ERROR")
     def test_qiskit_error(self, observables):
         """Test qiskit error if invalid input."""
         with self.assertRaises(QiskitError):

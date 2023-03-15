@@ -36,6 +36,7 @@ class LinCombFull(CircuitQFI):
     See also :class:`~qiskit.opflow.QFI`.
     """
 
+
     # pylint: disable=signature-differs, arguments-differ
     @deprecate_function_msg(
         version="0.24.0",
@@ -43,6 +44,7 @@ class LinCombFull(CircuitQFI):
         old_name="LinCombFull",
         url="https://qisk.it/opflow_migration",
     )
+
     def __init__(
         self,
         aux_meas_op: OperatorBase = Z,

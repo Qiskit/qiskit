@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Providers that support BackendV1 interface """
+"""Test Providers that support BackendV1 interface"""
 
 import unittest
 import warnings

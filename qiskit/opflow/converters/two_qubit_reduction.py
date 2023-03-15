@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Z2 Symmetry Tapering Converter Class """
+"""Z2 Symmetry Tapering Converter Class"""
 
 import logging
 from typing import List, Tuple, Union, cast

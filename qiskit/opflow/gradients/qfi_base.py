@@ -36,6 +36,7 @@ class QFIBase(DerivativeBase):
         old_name="QFIBase",
         url="https://qisk.it/opflow_migration",
     )
+
     def __init__(self, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
         r"""
         Args:

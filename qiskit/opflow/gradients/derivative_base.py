@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DerivativeBase Class """
+"""DerivativeBase Class"""
 
 import warnings
 from abc import abstractmethod
@@ -55,6 +55,7 @@ class DerivativeBase(ConverterBase):
         old_name="DerivativeBase",
         url="https://qisk.it/opflow_migration",
     )
+
     def __init__(self) -> None:
         super().__init__()
 

@@ -478,7 +478,7 @@ class TensoredMeasFitter:
                 f"Each element in the mit pattern should have length 1. Found {self._mit_pattern}."
             )
 
-        supported_qubits = set(tensor[0] for tensor in self._mit_pattern)
+        supported_qubits = {tensor[0] for tensor in self._mit_pattern}
         for qubit in qubit_sublist:
             if qubit not in supported_qubits:
                 raise QiskitError(f"Qubit {qubit} is not in the mit pattern {self._mit_pattern}.")

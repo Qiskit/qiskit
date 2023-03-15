@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Measurement error mitigation """
+"""Measurement error mitigation"""
 
 import copy
 from typing import List, Optional, Tuple, Dict, Callable
@@ -28,8 +28,6 @@ from qiskit.utils.mitigation import (
     TensoredMeasFitter,
 )
 from qiskit.utils.deprecation import deprecate_function_msg
-
-# pylint: disable=invalid-name
 
 
 @deprecate_function_msg(

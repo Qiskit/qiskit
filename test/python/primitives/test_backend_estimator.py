@@ -13,7 +13,9 @@
 """Tests for Estimator."""
 
 import unittest
+from unittest.mock import patch
 from test import combine
+from test.python.transpiler._dummy_passes import DummyTP
 
 import numpy as np
 from ddt import ddt
@@ -25,6 +27,7 @@ from qiskit.providers import JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
@@ -276,7 +279,7 @@ class TestBackendEstimator(QiskitTestCase):
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
         estimator = BackendEstimator(backend=backend)
-        with unittest.mock.patch.object(backend, "run") as run_mock:
+        with patch.object(backend, "run") as run_mock:
             estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
 
@@ -293,7 +296,7 @@ class TestBackendEstimator(QiskitTestCase):
         params_array = np.random.rand(k, qc.num_parameters)
         params_list = params_array.tolist()
         estimator = BackendEstimator(backend=backend)
-        with unittest.mock.patch.object(backend, "run") as run_mock:
+        with patch.object(backend, "run") as run_mock:
             estimator.run([qc] * k, [op] * k, params_list).result()
         self.assertEqual(run_mock.call_count, 10)
 
@@ -321,6 +324,28 @@ class TestBackendEstimator(QiskitTestCase):
             result = estimator.run([qc] * k, [op] * k, params_list_array).result()
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values, rtol=0.2, atol=0.2)
+
+    def test_bound_pass_manager(self):
+        """Test bound pass manager."""
+
+        dummy_pass = DummyTP()
+
+        qc = QuantumCircuit(2)
+        op = SparsePauliOp.from_list([("II", 1)])
+
+        with self.subTest("Test single circuit"):
+            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+                bound_pass = PassManager(dummy_pass)
+                estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+                _ = estimator.run(qc, op).result()
+                self.assertTrue(mock_pass.call_count == 1)
+
+        with self.subTest("Test circuit batch"):
+            with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+                bound_pass = PassManager(dummy_pass)
+                estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+                _ = estimator.run([qc, qc], [op, op]).result()
+                self.assertTrue(mock_pass.call_count == 2)
 
 
 if __name__ == "__main__":

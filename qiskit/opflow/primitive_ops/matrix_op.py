@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""MatrixOp Class """
+"""MatrixOp Class"""
 
 from typing import Dict, List, Optional, Set, Union, cast, get_type_hints
 import numpy as np
