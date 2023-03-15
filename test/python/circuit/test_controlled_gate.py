@@ -706,7 +706,7 @@ class TestControlledGate(QiskitTestCase):
         control_qubits = circuit.qubits[:3]
         target_qubit = circuit.qubits[3]
         additional_qubits = circuit.qubits[4:]
-        circuit.mcry(0.2, control_qubits, target_qubit, additional_qubits, mode=None)
+        circuit.mcry(0.2, control_qubits, target_qubit, additional_qubits)
 
         # If the v-chain mode is selected, all qubits are used. If the noancilla mode would be
         # selected, the bottom qubit would remain unused.

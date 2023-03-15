@@ -211,7 +211,7 @@ def mcry(
     q_controls: Union[QuantumRegister, List[Qubit]],
     q_target: Qubit,
     q_ancillae: Optional[Union[QuantumRegister, Tuple[QuantumRegister, int]]] = None,
-    mode: str = "noancilla",
+    mode: str = None,
     use_basis_gates=False,
 ):
     """
