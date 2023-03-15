@@ -18,31 +18,36 @@ from typing import List, Optional, Tuple
 import numpy as np
 from scipy.optimize import OptimizeResult
 
-from qiskit.circuit.library import UGate
 from qiskit.quantum_info import OneQubitEulerDecomposer, Pauli
 
 from .scipy_optimizer import SciPyOptimizer
 
-# Constants
-_DECOMPOSER = OneQubitEulerDecomposer()
-_I = Pauli("I").to_matrix()
-_X = Pauli("X").to_matrix()
-_Y = Pauli("Y").to_matrix()
-_Z = Pauli("Z").to_matrix()
-_IX = (_I + 1j * _X) / np.sqrt(2)
-_IY = (_I + 1j * _Y) / np.sqrt(2)
-_IZ = (_I + 1j * _Z) / np.sqrt(2)
-_XY = (_X + _Y) / np.sqrt(2)
-_YZ = (_Y + _Z) / np.sqrt(2)
-_ZX = (_Z + _X) / np.sqrt(2)
+
+class _Paulis:
+    DECOMPOSER = OneQubitEulerDecomposer()
+    I = Pauli("I").to_matrix()
+    X = Pauli("X").to_matrix()
+    Y = Pauli("Y").to_matrix()
+    Z = Pauli("Z").to_matrix()
+    IX = (I + 1j * X) / np.sqrt(2)
+    IY = (I + 1j * Y) / np.sqrt(2)
+    IZ = (I + 1j * Z) / np.sqrt(2)
+    XY = (X + Y) / np.sqrt(2)
+    YZ = (Y + Z) / np.sqrt(2)
+    ZX = (Z + X) / np.sqrt(2)
+
+    @classmethod
+    def _vec2angles(cls, vec: np.ndarray) -> Tuple[float, float, float]:
+        r_d = cls.I * vec[0] + 1j * (cls.X * vec[1] + cls.Y * vec[2] + cls.Z * vec[3])
+        return cls.DECOMPOSER.angles(r_d)
 
 
 class SequentialOptimizer(SciPyOptimizer):
     """
     Base class for sequential optimizer.
 
-    This family of optimizers optimizes parameterized U gates one by one in the order they are included in the ansatz.
-    Once the last parameterized U gate is optimized, it returns to the first one.
+    This family of optimizers optimizes parameterized U gates one by one in the order they appear
+    in the ansatz. Once the last parameterized U gate is optimized, it returns to the first one.
     It may evaluate energy function multiple times to optimize a parameterized U gate.
 
     .. note::
@@ -81,15 +86,11 @@ class SequentialOptimizer(SciPyOptimizer):
                 options[k] = v
         super().__init__(method=self._minimize, options=options, **kwargs)
 
-    def _default_maxiter(self, x0: np.ndarray) -> int:
-        return x0.size * 2
+    def _default_maxiter(self, x_0: np.ndarray) -> int:
+        return x_0.size * 2
 
-    def _initialize(self, x0: np.ndarray) -> np.ndarray:
-        return x0
-
-    def _vec2angles(self, vec: np.ndarray) -> Tuple[float, float, float]:
-        r_d = _I * vec[0] + 1j * (_X * vec[1] + _Y * vec[2] + _Z * vec[3])
-        return _DECOMPOSER.angles(r_d)
+    def _initialize(self, x_0: np.ndarray) -> np.ndarray:
+        return x_0
 
     @property
     @abstractmethod
@@ -117,7 +118,8 @@ class SequentialOptimizer(SciPyOptimizer):
                 Extra arguments passed to the objective function.
             maxiter (int, optional):
                 Maximum number of iterations to perform. Will default to None.
-                If None, it is interpreted as N*2, where N is the number of parameters in the input circuit.
+                If None, it is interpreted as N*2, where N is the number of parameters in the input
+                circuit.
             xtol (float, optional):
                 If the norm of the parameter update is smaller than this threshold,
                 the optimizer is considered to have converged.
@@ -174,7 +176,7 @@ class SequentialOptimizer(SciPyOptimizer):
             eigvals, eigvecs = np.linalg.eigh(mat)
 
             # use the eigenvector `eigvecs[:, 0]` with the minimum eigenvalue
-            x0[idx : idx + 3] = self._vec2angles(eigvecs[:, 0])
+            x0[idx : idx + 3] = _Paulis._vec2angles(eigvecs[:, 0])
 
             niter += 1
 
@@ -193,107 +195,3 @@ class SequentialOptimizer(SciPyOptimizer):
         return OptimizeResult(
             fun=fun(x0, *args), x=x0, nit=niter, nfev=funcalls, success=(niter > 1)
         )
-
-
-class FQS(SequentialOptimizer):
-    """
-    Free Quaternion Selection (FQS) algorithm [1].
-
-    This optimizer optimizes parameterized U gates one by one in the order they are included in the ansatz.
-    Once the last parameterized U gate is optimized, it returns to the first one.
-
-    .. note::
-
-        This optimizer only works with U gates as parameterized gates.
-
-    .. note::
-
-        This optimizer evaluates the energy function 10 times for each U gate.
-
-    References:
-      [1] "Sequential optimal selection of a single-qubit gate and its relation to barren plateau in parameterized
-          quantum circuits,"
-          K. Wada, R. Raymond, Y. Sato, H.C. Watanabe,
-          `arXiv:2209.08535 <https://arxiv.org/abs/2209.08535>`__
-    """
-
-    _MATRICES = [_I, _X, _Y, _Z, _IX, _IY, _IZ, _XY, _YZ, _ZX]
-    _ANGLES = [_DECOMPOSER.angles(mat) for mat in _MATRICES]
-
-    @property
-    def _angles(self) -> List[Tuple[float, float, float]]:
-        return self._ANGLES
-
-    def _cost_matrix(self, vals: list[float]) -> np.ndarray:
-        r_id, r_x, r_y, r_z, r_ix, r_iy, r_iz, r_xy, r_yz, r_zx = vals
-        mat = np.array(
-            [
-                [
-                    r_id / 2,
-                    r_ix - r_x / 2 - r_id / 2,
-                    r_iy - r_y / 2 - r_id / 2,
-                    r_iz - r_z / 2 - r_id / 2,
-                ],
-                [0, r_x / 2, r_xy - r_x / 2 - r_y / 2, r_zx - r_x / 2 - r_z / 2],
-                [0, 0, r_y / 2, r_yz - r_y / 2 - r_z / 2],
-                [0, 0, 0, r_z / 2],
-            ]
-        )
-        return mat + mat.T
-
-
-class Fraxis(SequentialOptimizer):
-    """
-    Free-Axis Selection (Fraxis) algorithm [1].
-
-    More precisely, this class implements π-Fraxis algorithm in Algorithm 1 of [1].
-    This optimizer optimizes parameterized U gates one by one in the order they are included in the ansatz.
-    Once the last parameterized U gate is optimized, it returns to the first one.
-
-    .. note::
-
-        This optimizer only works with U gates as parameterized gates.
-
-    .. note::
-
-        This optimizer evaluates the energy function 6 times for each U gate.
-
-    References:
-      [1] "Optimizing Parameterized Quantum Circuits with Free-Axis Selection,"
-          H.C. Watanabe, R. Raymond, Y. Ohnishi, E. Kaminishi, M. Sugawara
-          `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__
-    """
-
-    _MATRICES = [_X, _Y, _Z, _XY, _YZ, _ZX]
-    _ANGLES = [_DECOMPOSER.angles(mat) for mat in _MATRICES]
-
-    def _initialize(self, x0: np.ndarray):
-        for idx in range(0, x0.size, 3):
-            # Fraxis cannot handle some U3 rotations such as identity(=U3(0,0,0)).
-            # The following converts such rotations into ones that Fraxis can handle.
-            mat = UGate(*x0[idx : idx + 3]).to_matrix()
-            n_x = mat[1, 0].real
-            n_y = mat[1, 0].imag
-            n_z = mat[0, 0]
-            vec = np.array([0, n_x, n_y, n_z])
-            if np.allclose(vec, 0):
-                vec[0] = 1
-            vec /= np.linalg.norm(vec)
-            x0[idx : idx + 3] = self._vec2angles(vec)
-        return x0
-
-    @property
-    def _angles(self) -> List[Tuple[float, float, float]]:
-        return self._ANGLES
-
-    def _cost_matrix(self, vals: list[float]) -> np.ndarray:
-        r_x, r_y, r_z, r_xy, r_yz, r_zx = vals
-        mat = np.array(
-            [
-                [0, 0, 0, 0],
-                [0, r_x / 2, r_xy - r_x / 2 - r_y / 2, r_zx - r_x / 2 - r_z / 2],
-                [0, 0, r_y / 2, r_yz - r_y / 2 - r_z / 2],
-                [0, 0, 0, r_z / 2],
-            ]
-        )
-        return mat + mat.T
