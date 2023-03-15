@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Improved the typing annotations on the top-level `transpile` function.
+    The return type is now narrowed correctly depending on the whether a
+    single circuit or a list of circuit was passed.
