@@ -277,7 +277,7 @@ class QNSPSA(SPSA):
             F(\theta, \phi) = \big|\langle 0 | U^\dagger(\theta) U(\phi) |0\rangle  \big|^2.
 
         The output of this function can be used as input for the ``fidelity`` to the
-        :class:~`qiskit.algorithms.optimizers.QNSPSA` optimizer.
+        :class:`~.QNSPSA` optimizer.
 
         Args:
             circuit: The circuit preparing the parameterized ansatz.
