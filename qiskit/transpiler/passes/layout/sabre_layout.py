@@ -216,8 +216,8 @@ class SabreLayout(TransformationPass):
             _swap_map,
             _dag,
         ) in layout_components:
-            initial_layout_dict |= {k: component_map[v] for k, v in layout_dict.items()}
-            final_layout_dict |= {component_map[k]: component_map[v] for k, v in final_dict}
+            initial_layout_dict.update({k: component_map[v] for k, v in layout_dict.items()})
+            final_layout_dict.update({component_map[k]: component_map[v] for k, v in final_dict})
         self.property_set["layout"] = Layout(initial_layout_dict)
         # If skip_routing is set then return the layout in the property set
         # and throwaway the extra work we did to compute the swap map
