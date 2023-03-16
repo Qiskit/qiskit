@@ -1312,8 +1312,9 @@ class TestStatevector(QiskitTestCase):
         """Test probabilities are clipped to [0, 1]."""
         sv = Statevector([1.1, 0])
 
-        self.assertTrue(np.allclose(sv.probabilities(), [1, 0], atol=0))
-        self.assertDictAlmostEqual(sv.probabilities_dict(), {"0": 1, "1": 0}, delta=0)
+        self.assertEqual(list(sv.probabilities()), [1.0, 0.0])
+        # The "1" key should be zero and therefore omitted.
+        self.assertEqual(sv.probabilities_dict(), {"0": 1.0})
 
     def test_round_probabilities(self):
         """Test probabilities are correctly rounded.
@@ -1323,8 +1324,7 @@ class TestStatevector(QiskitTestCase):
         p = np.sqrt(1 / 3)
         sv = Statevector([p, p, p, 0])
         expected = [0.33, 0.33, 0.33, 0]
-
-        self.assertTrue(np.allclose(sv.probabilities(decimals=2), expected))
+        self.assertEqual(list(sv.probabilities(decimals=2)), expected)
 
 
 if __name__ == "__main__":
