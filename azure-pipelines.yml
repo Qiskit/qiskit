@@ -8,6 +8,7 @@ trigger:
     include:
       - 'main'
       - 'stable/*'
+      - 'gh-readonly-queue/*'
   tags:
     include:
       - '*'
@@ -127,7 +128,7 @@ stages:
                 comment: Nightly test job failed at commit $(Build.SourceVersion).  View the logs at $(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId).
 
   # Full PR suite.
-  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+  - ${{ if or(eq(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.SourceBranch'], 'gh-readonly-queue')) }}:
     # The preliminary stage should be small in both total runtime (including
     # provisioning) and resources required.  About half of PR commits result in
     # a CI failure, and over 90% of these are in linting, documention or a test
