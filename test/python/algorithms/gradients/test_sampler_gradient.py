@@ -43,7 +43,7 @@ gradient_factories = [
     LinCombSamplerGradient,
 ]
 
-
+# pylint: disable=no-self-use
 @ddt
 class TestSamplerGradient(QiskitTestCase):
     """Test Sampler Gradient"""

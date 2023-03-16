@@ -295,8 +295,8 @@ class BaseQGT(ABC):
             options=results.options,
         )
 
+    @staticmethod
     def _validate_arguments(
-        self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
         parameters: Sequence[Sequence[Parameter]],
