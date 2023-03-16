@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliBasisChange Class """
+"""PauliBasisChange Class"""
 
 from functools import partial, reduce
 from typing import Callable, List, Optional, Tuple, Union, cast

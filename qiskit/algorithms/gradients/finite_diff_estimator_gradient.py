@@ -31,7 +31,6 @@ from .estimator_gradient_result import EstimatorGradientResult
 from ..exceptions import AlgorithmError
 
 if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
     from typing import Literal
 else:
     from typing_extensions import Literal
