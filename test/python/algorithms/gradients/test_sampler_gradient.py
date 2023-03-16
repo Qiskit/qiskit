@@ -43,6 +43,7 @@ gradient_factories = [
     LinCombSamplerGradient,
 ]
 
+
 @ddt
 class TestSamplerGradient(QiskitTestCase):
     """Test Sampler Gradient"""
