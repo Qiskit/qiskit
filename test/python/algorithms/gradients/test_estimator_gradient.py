@@ -46,7 +46,6 @@ gradient_factories = [
     lambda estimator: ReverseEstimatorGradient(),  # does not take an estimator!
 ]
 
-# pylint: disable=no-self-use
 @ddt
 class TestEstimatorGradient(QiskitTestCase):
     """Test Estimator Gradient"""

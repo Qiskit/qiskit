@@ -6,6 +6,7 @@ features:
     Example:
 
     .. code-block:: python
+
         from qiskit.algorithms.gradients import ParamShiftEstimatorGradient
         from qiskit.circuit import QuantumCircuit, Parameter
         from qiskit.primitives import Estimator
