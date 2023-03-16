@@ -264,6 +264,7 @@ class SabreLayout(TransformationPass):
                     False,
                     initial_layout_dict,
                 )
+        disjoint_utils.combine_barriers(mapped_dag, retain_uuid=False)
         return mapped_dag
 
     def _inner_run(self, dag, coupling_map):

@@ -14,10 +14,11 @@
 
 from collections import defaultdict
 from typing import List, Callable, TypeVar, Dict
+import uuid
 
 import rustworkx as rx
 
-from qiskit.circuit import Qubit
+from qiskit.circuit import Qubit, Barrier
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagnode import DAGInNode, DAGOpNode, DAGOutNode
 from qiskit.transpiler.coupling import CouplingMap
@@ -30,14 +31,13 @@ def run_pass_over_connected_components(
     dag: DAGCircuit,
     coupling_map: CouplingMap,
     run_func: Callable[[DAGCircuit, CouplingMap], T],
-    remove_barrier: bool = True,
 ) -> List[T]:
     """Run a transpiler pass inner function over mapped components."""
     cmap_components = coupling_map.connected_components()
     # If graph is connected we only need to run the pass once
     if len(cmap_components) == 1:
         return [run_func(dag, cmap_components[0])]
-    dag_components = separate_dag(dag, remove_barrier)
+    dag_components = separate_dag(dag)
     mapped_components = map_components(dag_components, cmap_components)
     out_component_pairs = []
     for cmap_index, dags in mapped_components.items():
@@ -77,11 +77,47 @@ def map_components(
     return out_mapping
 
 
-def separate_dag(dag: DAGCircuit, barrier_before_measure=True) -> List[DAGCircuit]:
+def split_barriers(dag):
+    """Mutate an input dag to split barriers into single qubit barriers."""
+    for node in dag.op_nodes(Barrier):
+        num_qubits = len(node.qargs)
+        if num_qubits == 1:
+            continue
+        barrier_uuid = uuid.uuid4()
+        split_dag = DAGCircuit()
+        split_dag.add_qubits([Qubit() for _ in range(num_qubits)])
+        for i in range(num_qubits):
+            split_dag.apply_operation_back(
+                Barrier(1, label=barrier_uuid), qargs=[split_dag.qubits[i]]
+            )
+        dag.substitute_node_with_dag(node, split_dag)
+
+
+def combine_barriers(dag, retain_uuid=True):
+    """Mutate input dag to combine barriers with UUID labels into a single barrier."""
+    qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+    uuid_map = {}
+    for node in dag.op_nodes(Barrier):
+        if isinstance(node.op.label, uuid.UUID):
+            barrier_uuid = node.op.label
+            if barrier_uuid in uuid_map:
+                other_node = uuid_map[node.op.label]
+                num_qubits = len(other_node.qargs) + len(node.qargs)
+                new_op = Barrier(num_qubits, label=barrier_uuid)
+                new_node = dag.replace_block_with_op([node, other_node], new_op, qubit_indices)
+                uuid_map[barrier_uuid] = new_node
+            else:
+                uuid_map[barrier_uuid] = node
+    if not retain_uuid:
+        for node in dag.op_nodes(Barrier):
+            if isinstance(node.op.label, uuid.UUID):
+                node.op.label = None
+
+
+def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
     """Separate a dag circuit into it's connected components."""
-    # TODO: Fix support for barriers by splitting and reconsituting them
-    # this will mean this function always lives as a separate entity
-    # from DAGCircuit.seperable_circuits
+    # Split barriers into single qubit barrieries before connected components
+    split_barriers(dag)
     connected_components = rx.weakly_connected_components(dag._multi_graph)
     disconnected_subgraphs = []
     for components in connected_components:
@@ -101,17 +137,22 @@ def separate_dag(dag: DAGCircuit, barrier_before_measure=True) -> List[DAGCircui
                     subgraph_is_classical = False
             if not isinstance(node, DAGOpNode):
                 continue
-            if barrier_before_measure and node.op.name == "barrier":
-                continue
             new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
             # Ignore DAGs created for empty clbits
             if not subgraph_is_classical:
                 continue
         idle_qubits = []
-        for qubit, node in new_dag.input_map.items():
-            if isinstance(next(new_dag.successors(node)), DAGOutNode):
-                idle_qubits.append(qubit)
+        idle_clbits = []
+        for bit, node in new_dag.input_map.items():
+            succ_node = next(new_dag.successors(node))
+            if isinstance(succ_node, DAGOutNode):
+                if isinstance(succ_node.wire, Qubit):
+                    idle_qubits.append(bit)
+                else:
+                    idle_clbits.append(bit)
         new_dag.remove_qubits(*idle_qubits)
+        new_dag.remove_clbits(*idle_clbits)
+        combine_barriers(new_dag)
         decomposed_dags.append(new_dag)
 
     return decomposed_dags
