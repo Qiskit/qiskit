@@ -1,0 +1,19 @@
+---
+name: Main CI
+on:
+  pull_request:
+    branches: [ main ]
+  merge_group:
+    branches: [ main ]
+concurrency:
+  group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Azure/pipelines@v1.2
+        with:
+          azure-devops-project-url: 'https://dev.azure.com/qiskit-ci/qiskit-terra'
+          azure-pipeline-name: 'Qiskit.qiskit-terra'
+          azure-devops-token: '${{ secrets.AZURE_DEVOPS_TOKEN }}'
