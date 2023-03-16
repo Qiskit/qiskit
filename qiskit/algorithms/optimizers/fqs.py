@@ -16,7 +16,7 @@ from typing import List, Tuple
 
 import numpy as np
 
-from .sequential_optimizer import SequentialOptimizer, _Paulis
+from .sequential_optimizer import SequentialOptimizer, _Angles
 
 
 class FQS(SequentialOptimizer):
@@ -41,25 +41,22 @@ class FQS(SequentialOptimizer):
           `arXiv:2209.08535 <https://arxiv.org/abs/2209.08535>`__
     """
 
-    _MATRICES = [
-        _Paulis.I,
-        _Paulis.X,
-        _Paulis.Y,
-        _Paulis.Z,
-        _Paulis.IX,
-        _Paulis.IY,
-        _Paulis.IZ,
-        _Paulis.XY,
-        _Paulis.YZ,
-        _Paulis.ZX,
-    ]
-    _ANGLES = [_Paulis.DECOMPOSER.angles(mat) for mat in _MATRICES]
-
     @property
     def _angles(self) -> List[Tuple[float, float, float]]:
-        return self._ANGLES
+        return [
+            _Angles.I,
+            _Angles.X,
+            _Angles.Y,
+            _Angles.Z,
+            _Angles.IX,
+            _Angles.IY,
+            _Angles.IZ,
+            _Angles.XY,
+            _Angles.YZ,
+            _Angles.ZX,
+        ]
 
-    def _cost_matrix(self, vals: list[float]) -> np.ndarray:
+    def _energy_matrix(self, vals: List[float]) -> np.ndarray:
         r_id, r_x, r_y, r_z, r_ix, r_iy, r_iz, r_xy, r_yz, r_zx = vals
         mat = np.array(
             [

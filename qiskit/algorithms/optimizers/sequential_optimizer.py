@@ -13,7 +13,7 @@
 """Sequential optimizer."""
 
 from abc import abstractmethod
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 from scipy.optimize import OptimizeResult
@@ -29,17 +29,34 @@ class _Paulis:
     X = Pauli("X").to_matrix()
     Y = Pauli("Y").to_matrix()
     Z = Pauli("Z").to_matrix()
-    IX = (I + 1j * X) / np.sqrt(2)
-    IY = (I + 1j * Y) / np.sqrt(2)
-    IZ = (I + 1j * Z) / np.sqrt(2)
-    XY = (X + Y) / np.sqrt(2)
-    YZ = (Y + Z) / np.sqrt(2)
-    ZX = (Z + X) / np.sqrt(2)
 
     @classmethod
-    def _vec2angles(cls, vec: np.ndarray) -> Tuple[float, float, float]:
-        r_d = cls.I * vec[0] + 1j * (cls.X * vec[1] + cls.Y * vec[2] + cls.Z * vec[3])
+    def angles(cls, vec: Sequence[float]) -> Tuple[float, float, float]:
+        """Return the Euler angles for an input vector.
+
+        Args:
+            vec: a vector with 4 elements ``(n_i, n_x, n_y, n_z)`` representing
+                a matrix ``n_i * I - 1j * (n_x * X + n_y * Y + n_z * Z)``.
+
+        Returns:
+            tuple: (theta, phi, lambda).
+        """
+        r_d = cls.I * vec[0] - 1j * (cls.X * vec[1] + cls.Y * vec[2] + cls.Z * vec[3])
         return cls.DECOMPOSER.angles(r_d)
+
+
+class _Angles:
+    e = 1 / np.sqrt(2)
+    I = _Paulis.angles([1, 0, 0, 0])
+    X = _Paulis.angles([0, 1, 0, 0])
+    Y = _Paulis.angles([0, 0, 1, 0])
+    Z = _Paulis.angles([0, 0, 0, 1])
+    IX = _Paulis.angles([e, e, 0, 0])
+    IY = _Paulis.angles([e, 0, e, 0])
+    IZ = _Paulis.angles([e, 0, 0, e])
+    XY = _Paulis.angles([0, e, e, 0])
+    YZ = _Paulis.angles([0, 0, e, e])
+    ZX = _Paulis.angles([0, e, 0, e])
 
 
 class SequentialOptimizer(SciPyOptimizer):
@@ -66,6 +83,12 @@ class SequentialOptimizer(SciPyOptimizer):
         **kwargs,
     ) -> None:
         """
+        .. note::
+
+            ``kwargs`` accepts ``callback``, which is a callable with the signature:
+            ``callback(xk, OptimizeResult state) -> bool``.
+            If callback returns True, the algorithm execution is terminated.
+
         Args:
             maxiter: Maximum number of iterations to perform. Will default to None.
                 If None, it is interpreted as N*2, where N is the number of parameters
@@ -98,8 +121,8 @@ class SequentialOptimizer(SciPyOptimizer):
         raise NotImplementedError("_angles method is not implemented")
 
     @abstractmethod
-    def _cost_matrix(self, vals: List[float]) -> np.ndarray:
-        raise NotImplementedError("_cost_matrix method is not implemented")
+    def _energy_matrix(self, vals: List[float]) -> np.ndarray:
+        raise NotImplementedError("_energy_matrix method is not implemented")
 
     # pylint: disable=invalid-name
     def _minimize(self, fun, x0, args=(), maxiter=None, xtol=None, callback=None, **_):
@@ -129,7 +152,9 @@ class SequentialOptimizer(SciPyOptimizer):
                 Will default to None. If None, no convergence check is invoked.
             **_ : additional options
             callback (callable, optional):
-                Called after each iteration.
+                Called after each iteration. It is a callable with the signature:
+                ``callback(xk, OptimizeResult state) -> bool``.
+                If callback returns True, the algorithm execution is terminated.
         Returns:
             OptimizeResult:
                 The optimization result represented as a ``OptimizeResult`` object.
@@ -171,17 +196,16 @@ class SequentialOptimizer(SciPyOptimizer):
                 xs.append(p)
 
             vals = fun(xs, *args)
-            funcalls += len(xs)
-            mat = self._cost_matrix(vals)
+            mat = self._energy_matrix(vals)
             eigvals, eigvecs = np.linalg.eigh(mat)
-
             # use the eigenvector `eigvecs[:, 0]` with the minimum eigenvalue
-            x0[idx : idx + 3] = _Paulis._vec2angles(eigvecs[:, 0])
+            x0[idx : idx + 3] = _Paulis.angles(eigvecs[:, 0])
 
+            funcalls += len(xs)
             niter += 1
 
             if callback is not None:
-                # pass x0 values and the estimated energy value fun(x0) to the callback
+                # eigvals[0] is the estimated energy value fun(x0)
                 state = OptimizeResult(
                     fun=eigvals[0], x=x0, nit=niter, nfev=funcalls, success=(niter > 1)
                 )

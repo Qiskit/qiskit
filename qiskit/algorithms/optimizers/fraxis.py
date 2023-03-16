@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit.library import UGate
 
-from .sequential_optimizer import SequentialOptimizer, _Paulis
+from .sequential_optimizer import SequentialOptimizer, _Angles, _Paulis
 
 
 class Fraxis(SequentialOptimizer):
@@ -43,9 +43,6 @@ class Fraxis(SequentialOptimizer):
           `arXiv:2104.14875 <https://arxiv.org/abs/2104.14875>`__
     """
 
-    _MATRICES = [_Paulis.X, _Paulis.Y, _Paulis.Z, _Paulis.XY, _Paulis.YZ, _Paulis.ZX]
-    _ANGLES = [_Paulis.DECOMPOSER.angles(mat) for mat in _MATRICES]
-
     def _initialize(self, x0: np.ndarray) -> np.ndarray:
         for idx in range(0, x0.size, 3):
             # Fraxis cannot handle some U3 rotations such as identity(=U3(0,0,0)).
@@ -58,14 +55,14 @@ class Fraxis(SequentialOptimizer):
             if np.allclose(vec, 0):
                 vec[0] = 1
             vec /= np.linalg.norm(vec)
-            x0[idx : idx + 3] = _Paulis._vec2angles(vec)
+            x0[idx : idx + 3] = _Paulis.angles(vec)
         return x0
 
     @property
     def _angles(self) -> List[Tuple[float, float, float]]:
-        return self._ANGLES
+        return [_Angles.X, _Angles.Y, _Angles.Z, _Angles.XY, _Angles.YZ, _Angles.ZX]
 
-    def _cost_matrix(self, vals: list[float]) -> np.ndarray:
+    def _energy_matrix(self, vals: List[float]) -> np.ndarray:
         r_x, r_y, r_z, r_xy, r_yz, r_zx = vals
         mat = np.array(
             [

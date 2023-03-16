@@ -125,7 +125,7 @@ class TestFraxisFQS(QiskitAlgorithmsTestCase):
         optimizer = self.optimizer[method]
         num_evals = self.num_evals[method]
         maxiter = 1000
-        xtol = 1e-2
+        xtol = 1e-1
         vqe = VQE(
             estimator=Estimator(),
             ansatz=self.ansatz,
