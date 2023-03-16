@@ -263,6 +263,8 @@ Quantum Circuit Construction
    AncillaRegister
    AncillaQubit
    CircuitInstruction
+   Register
+   Bit
 
 Gates and Instructions
 ----------------------
@@ -328,6 +330,8 @@ from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
+from .bit import Bit
+from .register import Register
 from . import library
 from .commutation_checker import CommutationChecker
 
