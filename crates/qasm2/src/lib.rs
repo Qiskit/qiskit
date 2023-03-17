@@ -78,14 +78,14 @@ impl CustomClassical {
 #[pyfunction]
 fn bytecode_from_string(
     string: String,
-    include_path: Vec<std::ffi::OsString>,
+    include_path: Vec<std::path::PathBuf>,
     custom_instructions: Vec<CustomInstruction>,
     custom_classical: Vec<CustomClassical>,
     strict: bool,
 ) -> PyResult<bytecode::BytecodeIterator> {
     bytecode::BytecodeIterator::new(
         lex::TokenStream::from_string(string, strict),
-        include_path.iter().map(|x| x.into()).collect(),
+        include_path,
         &custom_instructions,
         &custom_classical,
         strict,
@@ -98,14 +98,14 @@ fn bytecode_from_string(
 #[pyfunction]
 fn bytecode_from_file(
     path: std::ffi::OsString,
-    include_path: Vec<std::ffi::OsString>,
+    include_path: Vec<std::path::PathBuf>,
     custom_instructions: Vec<CustomInstruction>,
     custom_classical: Vec<CustomClassical>,
     strict: bool,
 ) -> PyResult<bytecode::BytecodeIterator> {
     bytecode::BytecodeIterator::new(
         lex::TokenStream::from_path(path, strict)?,
-        include_path.iter().map(|x| x.into()).collect(),
+        include_path,
         &custom_instructions,
         &custom_classical,
         strict,
