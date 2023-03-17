@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Natural Gradient. """
+"""Natural Gradient."""
 
 from collections.abc import Iterable
 from typing import List, Tuple, Callable, Optional, Union

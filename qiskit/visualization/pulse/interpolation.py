@@ -30,6 +30,7 @@ from qiskit.utils.deprecation import deprecate_function
     " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer_v2`."
     " In no less than 6 months, `pulse_drawer_v2` will become `pulse_drawer`, and these old"
     " objects will be completely removed.",
+    since="0.23.0",
 )
 def interp1d(
     time: np.ndarray, samples: np.ndarray, nop: int, kind: str = "linear"
@@ -68,6 +69,7 @@ def interp1d(
     " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer_v2`."
     " In no less than 6 months, `pulse_drawer_v2` will become `pulse_drawer`, and these old"
     " objects will be completely removed.",
+    since="0.23.0",
 )
 def step_wise(
     time: np.ndarray, samples: np.ndarray, nop: int

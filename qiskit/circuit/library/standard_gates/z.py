@@ -58,10 +58,10 @@ class ZGate(Gate):
         .. math::
 
             RZ(\pi) = \begin{pmatrix}
-                        -1 & 0 \\
-                        0 & 1
+                        -i & 0 \\
+                        0 & i
                       \end{pmatrix}
-                    = -Z
+                    = -i Z
 
     The gate is equivalent to a phase flip.
 

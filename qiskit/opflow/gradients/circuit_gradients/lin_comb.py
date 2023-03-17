@@ -99,7 +99,7 @@ class LinComb(CircuitGradient):
         "z",
     }
 
-    # pylint: disable=signature-differs, arguments-differ
+    # pylint: disable=signature-differs
     def __init__(self, aux_meas_op: OperatorBase = Z):
         """
         Args:
