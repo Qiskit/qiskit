@@ -13,10 +13,10 @@
 """Container class for backend options."""
 
 import io
-from collections.abc import MutableMapping
+from collections.abc import Mapping
 
 
-class Options(MutableMapping):
+class Options(Mapping):
     """Base options object
 
     This class is what all backend options are based
@@ -26,7 +26,7 @@ class Options(MutableMapping):
     that should be a configuration of the backend class itself instead of the
     options.
 
-    Instances of this class behave like mutable dictionaries. Accessing an
+    Instances of this class behave like dictionaries. Accessing an
     option with a default value can be done with the `get()` method:
 
     >>> options = Options(opt1=1, opt2=2)
@@ -35,7 +35,7 @@ class Options(MutableMapping):
     >>> options.get("opt3", default="hello")
     'hello'
 
-    Key-value pairs for all options can be retrived using the `items()` method:
+    Key-value pairs for all options can be retrieved using the `items()` method:
 
     >>> list(options.items())
     [('opt1', 1), ('opt2', 2)]
@@ -100,22 +100,21 @@ class Options(MutableMapping):
 
     __slots__ = ("_fields", "validator")
 
-    # implementation of the MutableMapping ABC:
+    # implementation of the Mapping ABC:
 
     def __getitem__(self, key):
         return self._fields[key]
-
-    def __setitem__(self, key, value):
-        self.update_options(**{key: value})
-
-    def __delitem__(self, key):
-        del self._fields[key]
 
     def __iter__(self):
         return iter(self._fields)
 
     def __len__(self):
         return len(self._fields)
+
+    # Allow modifying the options (validated)
+
+    def __setitem__(self, key, value):
+        self.update_options(**{key: value})
 
     # backwards-compatibilty with Qiskit Experiments:
 
@@ -136,6 +135,7 @@ class Options(MutableMapping):
         except KeyError as ex:
             raise AttributeError(f"Option {name} is not defined") from ex
 
+    # setting options with the namespace interface is not validated
     def __setattr__(self, key, value):
         self._fields[key] = value
 

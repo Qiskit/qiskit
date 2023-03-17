@@ -2,8 +2,9 @@
 features:
   - |
     The :class:`qiskit.providers.options.Options` class now implements the
-    :class`MutableMapping`. :class:`Options` instances therefore now offer the
-    same interface as standard dictionaries.
+    :class`Mapping` and `__setitem__`. :class:`Options` instances therefore
+    now offer the same interface as standard dictionaries, except for the
+    deletion methods (`__delitem__`, `pop`, `clear`).
     Key assignments are validated by the registered validators, if any.
     See `#9686 <https://github.com/Qiskit/qiskit-terra/issues/9686>`.
 upgrade:
