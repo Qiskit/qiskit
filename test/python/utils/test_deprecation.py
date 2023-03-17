@@ -15,7 +15,89 @@
 from textwrap import dedent
 
 from qiskit.test import QiskitTestCase
-from qiskit.utils.deprecation import add_deprecation_to_docstring
+from qiskit.utils.deprecation import (
+    add_deprecation_to_docstring,
+    deprecate_function,
+    deprecate_arguments,
+)
+
+
+class TestDeprecationDecorators(QiskitTestCase):
+    """Test that the decorators in ``utils.deprecation`` correctly log warnings and get added to
+    docstring."""
+
+    def test_deprecate_arguments_message(self) -> None:
+        """Test that `@deprecate_arguments` adds the correct message to the docstring."""
+
+        @deprecate_arguments(
+            {"old_arg1": "new_arg1", "old_arg2": None},
+            category=PendingDeprecationWarning,
+            since="9.99",
+        )
+        def my_func() -> None:
+            pass
+
+        self.assertEqual(
+            my_func.__doc__,
+            dedent(
+                f"""\
+
+                .. deprecated:: 9.99_pending
+                  {my_func.__qualname__} keyword argument old_arg1 is deprecated and replaced with \
+new_arg1.
+
+                .. deprecated:: 9.99_pending
+                  {my_func.__qualname__} keyword argument old_arg2 is deprecated and will in the \
+future be removed.
+                """
+            ),
+        )
+
+    def test_deprecate_function_docstring(self) -> None:
+        """Test that `@deprecate_function` adds the correct message to the docstring."""
+
+        @deprecate_function("Stop using my_func!", since="9.99")
+        def my_func() -> None:
+            pass
+
+        self.assertEqual(
+            my_func.__doc__,
+            dedent(
+                """\
+
+                .. deprecated:: 9.99
+                  Stop using my_func!
+                """
+            ),
+        )
+
+    def test_deprecate_arguments_runtime_warning(self) -> None:
+        """Test that `@deprecate_arguments` warns whenever the arguments are used.
+
+        Also check that old arguments are passed in as their new alias.
+        """
+
+        @deprecate_arguments({"arg1": None, "arg2": "new_arg2"}, since="9.99")
+        def my_func(*, arg1: str = "a", new_arg2: str) -> None:
+            del arg1
+            self.assertEqual(new_arg2, "z")
+
+        my_func(new_arg2="z")  # No warnings if no deprecated args used.
+        with self.assertWarnsRegex(DeprecationWarning, "arg1"):
+            my_func(arg1="a", new_arg2="z")
+        with self.assertWarnsRegex(DeprecationWarning, "arg2"):
+            # `arg2` should be converted into `new_arg2`.
+            my_func(arg2="z")  # pylint: disable=missing-kwoa
+
+    def test_deprecate_function_runtime_warning(self) -> None:
+        """Test that `@deprecate_function` warns whenever the function is used."""
+
+        @deprecate_function("Stop using my_func!", since="9.99")
+        def my_func() -> None:
+            pass
+
+        with self.assertWarnsRegex(DeprecationWarning, "Stop using my_func!"):
+            my_func()
 
 
 class AddDeprecationDocstringTest(QiskitTestCase):
