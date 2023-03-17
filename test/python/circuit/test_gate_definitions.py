@@ -425,10 +425,5 @@ class TestStandardGateAttributes(QiskitTestCase):
     def test_static_attributes(self, gate_class):
         """Verify name, num_qubits and num_params static attributes."""
         n_params = len(_get_free_params(gate_class))
-        param_vector = ParameterVector("th", n_params)
-        float_vector = [0.1 * i for i in range(n_params)]
-
-        param_gate_instance = gate_class(*param_vector)
-        float_gate_instance = gate_class(*float_vector)
 
         self.assertEqual(gate_class.num_params, n_params)
