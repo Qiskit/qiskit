@@ -16,7 +16,7 @@
 //! operator-precedence parser.
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::prelude::*;
+use pyo3::prelude::{PyResult, PyObject};
 
 use crate::bytecode::InternalBytecode;
 use crate::error::{

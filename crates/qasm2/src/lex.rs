@@ -24,7 +24,7 @@
 //! real-number tokenisation.
 
 use hashbrown::HashMap;
-use pyo3::prelude::*;
+use pyo3::prelude::PyResult;
 
 use std::path::Path;
 

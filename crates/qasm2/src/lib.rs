@@ -77,7 +77,6 @@ impl CustomClassical {
 /// the entire token and parse tree into memory at once.
 #[pyfunction]
 fn bytecode_from_string(
-    _py: Python<'_>,
     string: String,
     include_path: Vec<std::ffi::OsString>,
     custom_instructions: Vec<CustomInstruction>,
@@ -98,7 +97,6 @@ fn bytecode_from_string(
 /// without loading the entire token and parse tree into memory at once.
 #[pyfunction]
 fn bytecode_from_file(
-    _py: Python<'_>,
     path: std::ffi::OsString,
     include_path: Vec<std::ffi::OsString>,
     custom_instructions: Vec<CustomInstruction>,
