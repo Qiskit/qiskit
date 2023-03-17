@@ -71,8 +71,7 @@ pub fn message_incorrect_requirement(
 }
 
 /// Shorthand form for creating an error message when a particular type of token was required, but
-/// the input ended unexpectedly.  The `owner` [Token] is whatever the token was that caused us to
-/// know something else was required.
+/// the input ended unexpectedly.
 pub fn message_bad_eof(position: Option<&Position>, required: &str) -> String {
     message_generic(
         position,

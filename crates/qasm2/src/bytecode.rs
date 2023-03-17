@@ -142,12 +142,12 @@ pub enum BinaryOpCode {
 /// just to communicate to Python as concisely as possible what it needs to do.  We want to have as
 /// little work to do in Python space as possible, since everything is slower there.
 ///
-/// In various enumeration items, we use numeric keys to identify the object rather than its name.
-/// This is much more efficient in Python-space; rather than needing to build and lookup things in
-/// a hashmap, we can just build Python lists and index them directly, which also has the advantage
-/// of not needing to pass strings to Python for each gate.  It also gives us consistency with how
-/// qubits and clbits are tracked; there is no need to track both the register name and the index
-/// separately when we can use a simple single index.
+/// In various enumeration items, we use zero-indexed numeric keys to identify the object rather
+/// than its name.  This is much more efficient in Python-space; rather than needing to build and
+/// lookup things in a hashmap, we can just build Python lists and index them directly, which also
+/// has the advantage of not needing to pass strings to Python for each gate.  It also gives us
+/// consistency with how qubits and clbits are tracked; there is no need to track both the register
+/// name and the index separately when we can use a simple single index.
 pub enum InternalBytecode {
     Gate {
         id: usize,
