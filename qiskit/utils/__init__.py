@@ -26,6 +26,7 @@ Utilities (:mod:`qiskit.utils`)
    deprecate_arguments
    deprecate_func
    deprecate_function
+   remove_sphinx_from_runtime_deprecation_warning
    local_hardware_info
    is_main_process
    apply_prefix
@@ -73,6 +74,7 @@ from .deprecation import (
     deprecate_arguments,
     deprecate_func,
     deprecate_function,
+    remove_sphinx_from_runtime_deprecation_warning,
 )
 from .multiprocessing import local_hardware_info
 from .multiprocessing import is_main_process
@@ -106,6 +108,7 @@ __all__ = [
     "deprecate_arguments",
     "deprecate_func",
     "deprecate_function",
+    "remove_sphinx_from_runtime_deprecation_warning",
     "local_hardware_info",
     "is_main_process",
     "apply_prefix",

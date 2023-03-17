@@ -13,6 +13,7 @@
 """Deprecation utilities"""
 
 import functools
+import re
 import warnings
 from typing import Any, Callable, Dict, Optional, Type, Tuple, Union
 
@@ -263,7 +264,11 @@ def deprecate_function(
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            warnings.warn(msg, category=category, stacklevel=stacklevel)
+            warnings.warn(
+                remove_sphinx_from_runtime_deprecation_warning(msg),
+                category=category,
+                stacklevel=stacklevel,
+            )
             return func(*args, **kwargs)
 
         add_deprecation_to_docstring(
@@ -290,7 +295,11 @@ def _maybe_warn_and_rename_kwarg(
         raise TypeError(f"{func_name} received both {new_alias} and {old_arg} (deprecated).")
     if predicate and not predicate(kwargs[old_arg]):
         return
-    warnings.warn(warning_msg, category=category, stacklevel=3)
+    warnings.warn(
+        remove_sphinx_from_runtime_deprecation_warning(warning_msg),
+        category=category,
+        stacklevel=3,
+    )
     if new_alias is not None:
         kwargs[new_alias] = kwargs.pop(old_arg)
 
@@ -434,3 +443,29 @@ def add_deprecation_to_docstring(
     else:
         original_lines.extend(new_lines)
     func.__doc__ = "\n".join(original_lines)
+
+
+def remove_sphinx_from_runtime_deprecation_warning(msg: str) -> str:
+    """Remove Sphinx-isms from ``msg`` so that it's more readable in runtime warnings.
+
+    This function is useful so that you can write deprecation messages using Sphinx syntax like
+    ``:class:`` references, so that the deprecation renders more nicely in docs. But, that syntax
+    is not very readable when we show the same message as a runtime warning, so this function
+    allows you to strip it before calling ``warnings.warn()``.
+
+    This function will:
+
+    * Replace `` with `
+    * Remove roles like `:ref:`, `:class:`, and `:py:func:`.
+
+    Feel free to continue improving this function to do more normalization.
+
+    Args:
+        msg: The deprecation message.
+
+    Returns:
+        The original ``msg`, but normalized.
+    """
+    msg = msg.replace("``", "`")
+    # Match both `:role:` and `:py:role:`.
+    return re.sub(r":[a-z]+:([a-z]+:)?", "", msg)

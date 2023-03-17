@@ -21,6 +21,7 @@ from qiskit.utils.deprecation import (
     deprecate_arguments,
     deprecate_func,
     deprecate_function,
+    remove_sphinx_from_runtime_deprecation_warning,
 )
 
 
@@ -632,3 +633,25 @@ class AddDeprecationDocstringTest(QiskitTestCase):
 
         with self.assertRaises(ValueError):
             add_deprecation_to_docstring(func, msg="Deprecated!", since="9.99", pending=False)
+
+
+class RemoveSphinxFromDeprecationTest(QiskitTestCase):
+    """Test that ``remove_sphinx_from_runtime_deprecation_warning`` removes Sphinx-isms."""
+
+    def test_remove_sphinx_normalize_code_ticks(self) -> None:
+        """Test that `` gets replaced by `."""
+        self.assertEqual(
+            remove_sphinx_from_runtime_deprecation_warning(
+                "Some ``code``, `italic`, and ``broken code` ```reference``."
+            ),
+            "Some `code`, `italic`, and `broken code` ``reference`.",
+        )
+
+    def test_remove_sphinx_roles(self) -> None:
+        """Test that roles like `:ref:` and `:py:func` are removed."""
+        self.assertEqual(
+            remove_sphinx_from_runtime_deprecation_warning(
+                ":ref:blah, :py:class:MyClass, :func:`groovy()`"
+            ),
+            "blah, MyClass, `groovy()`",
+        )
