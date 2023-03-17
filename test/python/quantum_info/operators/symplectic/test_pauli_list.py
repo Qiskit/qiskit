@@ -198,6 +198,10 @@ class TestPauliListInit(QiskitTestCase):
             np.testing.assert_equal(pauli_list.z, z)
             np.testing.assert_equal(pauli_list.x, x)
 
+        with self.subTest(msg="str init prevent broadcasting"):
+            with self.assertRaises(ValueError):
+                PauliList(["XYZ", "I"])
+
         with self.subTest(msg='str init "Z" with num_qubits'):
             pauli_list = PauliList("Z", num_qubits=1)
             z = np.array([[True]])

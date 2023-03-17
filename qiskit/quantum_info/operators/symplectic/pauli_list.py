@@ -196,7 +196,10 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         base_phase = np.zeros(num_paulis, dtype=int)
         for i, pauli in enumerate(paulis):
             if pauli.num_qubits != num_qubits:
-                raise ValueError("num_qubits of Pauli does not match.")
+                raise ValueError(
+                    f"The {i}th Pauli is defined over {pauli.num_qubits} qubits, "
+                    f"but num_qubits == {num_qubits} was expected."
+                )
             base_z[i] = pauli._z
             base_x[i] = pauli._x
             base_phase[i] = pauli._phase
