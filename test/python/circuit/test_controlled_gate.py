@@ -16,7 +16,7 @@
 import unittest
 from test import combine
 import numpy as np
-from numpy import pi, sin, cos
+from numpy import pi
 from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
@@ -76,7 +76,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import linear_depth_mcv
+from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import mcsu2_real_diagonal
 
 from .gate_utils import _get_free_params
 
@@ -579,14 +579,13 @@ class TestControlledGate(QiskitTestCase):
         self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
 
     def test_linear_depth_mcv(self):
-        """Test linear_depth_mcv"""
+        """Test mcsu2_real_diagonal"""
         num_ctrls = 6
         theta = 0.3
         qc = QuantumCircuit(num_ctrls + 1)
-        x = -sin(theta / 2)
-        z = cos(theta / 2)
-        linear_depth_mcv(qc, x, z, list(range(num_ctrls)), num_ctrls)
         ry_matrix = RYGate(theta).to_matrix()
+        mcsu2_real_diagonal(qc, ry_matrix, list(range(num_ctrls)), num_ctrls)
+
         mcry_matrix = _compute_control_matrix(ry_matrix, 6)
         self.assertTrue(np.allclose(mcry_matrix, Operator(qc).to_matrix()))
 
