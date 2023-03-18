@@ -77,7 +77,7 @@ QELIB1 = (
 )
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class CustomInstruction:
     """Information about a custom instruction that should be defined during the parse.
 
