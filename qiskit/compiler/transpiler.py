@@ -50,8 +50,8 @@ from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.target import Target, target_to_backend_properties
 
 if sys.version_info >= (3, 8):
-    from multiprocessing.shared_memory import SharedMemory  # pylint: disable=no-name-in-module
-    from multiprocessing.managers import SharedMemoryManager  # pylint: disable=no-name-in-module
+    from multiprocessing.shared_memory import SharedMemory
+    from multiprocessing.managers import SharedMemoryManager
 else:
     from shared_memory import SharedMemory, SharedMemoryManager
 
@@ -645,6 +645,11 @@ def _parse_transpile_args(
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
+    # If target is not specified and any hardware constraint object is
+    # manually specified then do not use the target from the backend as
+    # it is invalidated by a custom basis gate list or a custom coupling map
+    elif basis_gates is None and coupling_map is None:
+        target = _parse_target(backend, target)
 
     basis_gates = _parse_basis_gates(basis_gates, backend)
     initial_layout = _parse_initial_layout(initial_layout, circuits)
@@ -658,7 +663,6 @@ def _parse_transpile_args(
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
-    target = _parse_target(backend, target)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"

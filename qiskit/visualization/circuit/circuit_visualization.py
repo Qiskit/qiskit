@@ -363,16 +363,12 @@ def _text_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         reverse_bits=reverse_bits,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
         encoding=encoding,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
-        circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -603,7 +599,6 @@ def _matplotlib_circuit_drawer(
     cregbundle=None,
     wire_order=None,
 ):
-
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
