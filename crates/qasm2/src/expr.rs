@@ -25,7 +25,7 @@ use crate::error::{
     message_bad_eof, message_generic, message_incorrect_requirement, Position, QASM2ParseError,
 };
 use crate::lex::{Token, TokenContext, TokenStream, TokenType};
-use crate::parse::{GateSymbol, GlobalSymbol};
+use crate::parse::{GateSymbol, GlobalSymbol, ParamId};
 
 /// Enum representation of the builtin OpenQASM 2 functions.  The built-in Qiskit parser adds the
 /// inverse trigonometric functions, but these are an extension to the version as given in the
@@ -125,7 +125,7 @@ enum Atom {
     CustomFunction(PyObject, usize),
     Op(Op),
     Const(f64),
-    Parameter(usize),
+    Parameter(ParamId),
 }
 
 /// A tree representation of parameter expressions in OpenQASM 2.  The expression
@@ -135,7 +135,7 @@ enum Atom {
 /// of which parameter it is.
 pub enum Expr {
     Constant(f64),
-    Parameter(usize),
+    Parameter(ParamId),
     Negate(Box<Expr>),
     Add(Box<Expr>, Box<Expr>),
     Subtract(Box<Expr>, Box<Expr>),

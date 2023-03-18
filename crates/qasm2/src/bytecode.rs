@@ -16,6 +16,7 @@ use crate::error::QASM2ParseError;
 use crate::expr::Expr;
 use crate::lex;
 use crate::parse;
+use crate::parse::{ClbitId, CregId, GateId, ParamId, QubitId};
 use crate::{CustomClassical, CustomInstruction};
 
 /// The Rust parser produces an iterator of these `Bytecode` instructions, which comprise an opcode
@@ -71,7 +72,7 @@ pub struct ExprConstant {
 #[derive(Clone)]
 pub struct ExprArgument {
     #[pyo3(get)]
-    pub index: usize,
+    pub index: ParamId,
 }
 
 /// A unary operation acting on some other part of the expression tree.  This includes the `+` and
@@ -150,37 +151,37 @@ pub enum BinaryOpCode {
 /// name and the index separately when we can use a simple single index.
 pub enum InternalBytecode {
     Gate {
-        id: usize,
+        id: GateId,
         arguments: Vec<f64>,
-        qubits: Vec<usize>,
+        qubits: Vec<QubitId>,
     },
     ConditionedGate {
-        id: usize,
+        id: GateId,
         arguments: Vec<f64>,
-        qubits: Vec<usize>,
-        creg: usize,
+        qubits: Vec<QubitId>,
+        creg: CregId,
         value: usize,
     },
     Measure {
-        qubit: usize,
-        clbit: usize,
+        qubit: QubitId,
+        clbit: ClbitId,
     },
     ConditionedMeasure {
-        qubit: usize,
-        clbit: usize,
-        creg: usize,
+        qubit: QubitId,
+        clbit: ClbitId,
+        creg: CregId,
         value: usize,
     },
     Reset {
-        qubit: usize,
+        qubit: QubitId,
     },
     ConditionedReset {
-        qubit: usize,
-        creg: usize,
+        qubit: QubitId,
+        creg: CregId,
         value: usize,
     },
     Barrier {
-        qubits: Vec<usize>,
+        qubits: Vec<QubitId>,
     },
     DeclareQreg {
         name: String,
@@ -195,9 +196,9 @@ pub enum InternalBytecode {
         num_qubits: usize,
     },
     GateInBody {
-        id: usize,
+        id: GateId,
         arguments: Vec<Expr>,
-        qubits: Vec<usize>,
+        qubits: Vec<QubitId>,
     },
     EndDeclareGate {},
     DeclareOpaque {

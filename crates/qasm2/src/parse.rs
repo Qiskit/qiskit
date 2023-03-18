@@ -16,7 +16,7 @@
 //! operator-precedence parser.
 
 use hashbrown::{HashMap, HashSet};
-use pyo3::prelude::{PyObject, PyResult};
+use pyo3::prelude::{PyObject, PyResult, Python};
 
 use crate::bytecode::InternalBytecode;
 use crate::error::{
@@ -69,22 +69,62 @@ lazy_static! {
     };
 }
 
+/// Define a simple newtype that just has a single non-public `usize` field, has a `new`
+/// constructor, and implements `Copy` and `IntoPy`.  The first argument is the name of the type,
+/// the second is whether to also define addition to make offsetting the newtype easier.
+macro_rules! newtype_id {
+    ($id:ident, false) => {
+        #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+        pub struct $id(usize);
+
+        impl $id {
+            pub fn new(value: usize) -> Self {
+                Self(value)
+            }
+        }
+
+        impl pyo3::IntoPy<PyObject> for $id {
+            fn into_py(self, py: Python<'_>) -> PyObject {
+                self.0.into_py(py)
+            }
+        }
+    };
+
+    ($id:ident, true) => {
+        newtype_id!($id, false);
+
+        impl std::ops::Add<usize> for $id {
+            type Output = Self;
+
+            fn add(self, rhs: usize) -> Self {
+                Self::new(self.0 + rhs)
+            }
+        }
+    };
+}
+
+newtype_id!(GateId, false);
+newtype_id!(CregId, false);
+newtype_id!(ParamId, false);
+newtype_id!(QubitId, true);
+newtype_id!(ClbitId, true);
+
 /// A symbol in the global symbol table.  Parameters and individual qubits can't be in the global
 /// symbol table, as there is no way for them to be defined.
 pub enum GlobalSymbol {
     Qreg {
         size: usize,
-        start: usize,
+        start: QubitId,
     },
     Creg {
         size: usize,
-        start: usize,
-        index: usize,
+        start: ClbitId,
+        index: CregId,
     },
     Gate {
         num_params: usize,
         num_qubits: usize,
-        index: usize,
+        index: GateId,
         custom: bool,
         defined: bool,
     },
@@ -108,8 +148,8 @@ impl GlobalSymbol {
 /// A symbol in the scope of a single gate definition.  This only includes the symbols that are
 /// specifically gate-scoped.  The rest are part of [GlobalSymbol].
 pub enum GateSymbol {
-    Qubit { index: usize },
-    Parameter { index: usize },
+    Qubit { index: QubitId },
+    Parameter { index: ParamId },
 }
 
 impl GateSymbol {
@@ -125,9 +165,9 @@ impl GateSymbol {
 /// occur in the `measure` operation.  `Single` variants are what we mostly expect to see; these
 /// happen in gate definitions (always), and in regular applications when registers are indexed.
 /// The `Range` operand only occurs when a register is used as an operation target.
-enum Operand {
-    Single(usize),
-    Range(usize, usize),
+enum Operand<T> {
+    Single(T),
+    Range(usize, T),
 }
 
 /// The available types for the arrays of parameters in a gate call.  The `Constant` variant is for
@@ -143,7 +183,7 @@ enum GateParameters {
 /// An equality condition from an `if` statement.  These can condition gate applications, measures
 /// and resets, although in practice they're basically only ever used on gates.
 struct Condition {
-    creg: usize,
+    creg: CregId,
     value: usize,
 }
 
@@ -228,7 +268,7 @@ impl State {
                     GlobalSymbol::Gate {
                         num_params: inst.num_params,
                         num_qubits: inst.num_qubits,
-                        index: state.num_gates,
+                        index: GateId::new(state.num_gates),
                         custom: true,
                         defined: inst.name == "U" || inst.name == "CX" || inst.builtin,
                     },
@@ -398,7 +438,7 @@ impl State {
     /// register, or isn't defined.  This can also be an error if the subscript is opened, but
     /// cannot be completely resolved due to a typing error or other invalid parse.  `Ok(None)` is
     /// returned if the next token in the stream does not match a possible quantum argument.
-    fn accept_qarg(&mut self) -> PyResult<Option<Operand>> {
+    fn accept_qarg(&mut self) -> PyResult<Option<Operand<QubitId>>> {
         let (name, name_token) = match self.accept(TokenType::Id)? {
             None => return Ok(None),
             Some(token) => (token.id(&self.context), token),
@@ -436,7 +476,7 @@ impl State {
 
     /// Take a complete quantum argument from the stream, if it matches.  This is for use within
     /// gates, and so the only valid type of quantum argument is a single qubit.
-    fn accept_qarg_gate(&mut self) -> PyResult<Option<Operand>> {
+    fn accept_qarg_gate(&mut self) -> PyResult<Option<Operand<QubitId>>> {
         let (name, name_token) = match self.accept(TokenType::Id)? {
             None => return Ok(None),
             Some(token) => (token.id(&self.context), token),
@@ -477,7 +517,7 @@ impl State {
 
     /// Take a complete quantum argument from the token stream, returning an error message if one
     /// is not present.
-    fn require_qarg(&mut self, instruction: &Token) -> PyResult<Operand> {
+    fn require_qarg(&mut self, instruction: &Token) -> PyResult<Operand<QubitId>> {
         match self.peek_token()?.map(|tok| tok.ttype) {
             Some(TokenType::Id) => self.accept_qarg().map(Option::unwrap),
             Some(_) => {
@@ -506,7 +546,7 @@ impl State {
     /// opened, but cannot be completely resolved due to a typing error or other invalid parse.
     /// `Ok(None)` is returned if the next token in the stream does not match a possible classical
     /// argument.
-    fn accept_carg(&mut self) -> PyResult<Option<Operand>> {
+    fn accept_carg(&mut self) -> PyResult<Option<Operand<ClbitId>>> {
         let (name, name_token) = match self.accept(TokenType::Id)? {
             None => return Ok(None),
             Some(token) => (token.id(&self.context), token),
@@ -544,7 +584,7 @@ impl State {
 
     /// Take a complete classical argument from the token stream, returning an error message if one
     /// is not present.
-    fn require_carg(&mut self, instruction: &Token) -> PyResult<Operand> {
+    fn require_carg(&mut self, instruction: &Token) -> PyResult<Operand<ClbitId>> {
         match self.peek_token()?.map(|tok| tok.ttype) {
             Some(TokenType::Id) => self.accept_carg().map(Option::unwrap),
             Some(_) => {
@@ -569,12 +609,15 @@ impl State {
     /// Evaluate a possible subscript on a register into a final [Operand], consuming the tokens
     /// (if present) from the stream.  Can return error variants if the subscript cannot be
     /// completed or if there is a parse error while reading the subscript.
-    fn complete_operand(
+    fn complete_operand<T>(
         &mut self,
         name: &str,
         register_size: usize,
-        register_start: usize,
-    ) -> PyResult<Operand> {
+        register_start: T,
+    ) -> PyResult<Operand<T>>
+    where
+        T: std::ops::Add<usize, Output = T>,
+    {
         let lbracket_token = match self.accept(TokenType::LBracket)? {
             Some(token) => token,
             None => return Ok(Operand::Range(register_size, register_start)),
@@ -644,7 +687,9 @@ impl State {
                 let param_name = param_token.id(&self.context);
                 if let Some(symbol) = self.gate_symbols.insert(
                     param_name.to_owned(),
-                    GateSymbol::Parameter { index: num_params },
+                    GateSymbol::Parameter {
+                        index: ParamId::new(num_params),
+                    },
                 ) {
                     return Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(
@@ -675,7 +720,9 @@ impl State {
             let qubit_name = qubit_token.id(&self.context).to_owned();
             if let Some(symbol) = self.gate_symbols.insert(
                 qubit_name.to_owned(),
-                GateSymbol::Qubit { index: num_qubits },
+                GateSymbol::Qubit {
+                    index: QubitId::new(num_qubits),
+                },
             ) {
                 return Err(QASM2ParseError::new_err(message_generic(
                     Some(&Position::new(
@@ -869,7 +916,7 @@ impl State {
             ))),
         }?;
         let parameters = self.expect_gate_parameters(&name_token, num_params, in_gate)?;
-        let mut qargs = Vec::<Operand>::with_capacity(num_qubits);
+        let mut qargs = Vec::<Operand<QubitId>>::with_capacity(num_qubits);
         let mut comma = None;
         if in_gate {
             while let Some(qarg) = self.accept_qarg_gate()? {
@@ -1023,9 +1070,9 @@ impl State {
         &self,
         bc: &mut Vec<Option<InternalBytecode>>,
         instruction: &Token,
-        gate_id: usize,
+        gate_id: GateId,
         parameters: GateParameters,
-        qargs: &[Operand],
+        qargs: &[Operand<QubitId>],
         condition: Option<Condition>,
     ) -> PyResult<usize> {
         // Fast path for most common gate patterns that don't need broadcasting.
@@ -1058,7 +1105,7 @@ impl State {
         };
         // If we're here we either have to broadcast or it's a 3+q gate - either way, we're not as
         // worried about performance.
-        let mut qubits = HashSet::<usize>::with_capacity(qargs.len());
+        let mut qubits = HashSet::<QubitId>::with_capacity(qargs.len());
         let mut broadcast_length = 0usize;
         for qarg in qargs {
             match qarg {
@@ -1085,8 +1132,8 @@ impl State {
                             "cannot resolve broadcast in gate application",
                         )));
                     }
-                    for index in *start..*start + *size {
-                        if !qubits.insert(index) {
+                    for offset in 0..*size {
+                        if !qubits.insert(*start + offset) {
                             return Err(QASM2ParseError::new_err(message_generic(
                                 Some(&Position::new(
                                     self.current_filename(),
@@ -1156,9 +1203,9 @@ impl State {
     fn emit_single_global_gate(
         &self,
         bc: &mut Vec<Option<InternalBytecode>>,
-        gate_id: usize,
+        gate_id: GateId,
         arguments: Vec<f64>,
-        qubits: Vec<usize>,
+        qubits: Vec<QubitId>,
         condition: &Option<Condition>,
     ) -> PyResult<usize> {
         if let Some(condition) = condition {
@@ -1184,9 +1231,9 @@ impl State {
     fn emit_single_gate_gate(
         &self,
         bc: &mut Vec<Option<InternalBytecode>>,
-        gate_id: usize,
+        gate_id: GateId,
         arguments: Vec<Expr>,
-        qubits: Vec<usize>,
+        qubits: Vec<QubitId>,
     ) -> PyResult<usize> {
         bc.push(Some(InternalBytecode::GateInBody {
             id: gate_id,
@@ -1266,7 +1313,7 @@ impl State {
         let barrier_token = self.expect_known(TokenType::Barrier);
         let qubits = if !self.next_is(TokenType::Semicolon)? {
             let mut qubits = Vec::new();
-            let mut used = HashSet::<usize>::new();
+            let mut used = HashSet::<QubitId>::new();
             let mut comma = None;
             while let Some(qarg) = if num_gate_qubits.is_some() {
                 self.accept_qarg_gate()?
@@ -1279,9 +1326,14 @@ impl State {
                             qubits.push(index)
                         }
                     }
-                    Operand::Range(size, start) => {
-                        qubits.extend((start..start + size).filter(|value| used.insert(*value)))
-                    }
+                    Operand::Range(size, start) => qubits.extend((0..size).filter_map(|offset| {
+                        let index = start + offset;
+                        if used.insert(index) {
+                            Some(index)
+                        } else {
+                            None
+                        }
+                    })),
                 }
                 comma = self.accept(TokenType::Comma)?;
                 if comma.is_none() {
@@ -1291,9 +1343,9 @@ impl State {
             self.check_trailing_comma(comma.as_ref())?;
             qubits
         } else if let Some(num_gate_qubits) = num_gate_qubits {
-            (0..num_gate_qubits).collect::<Vec<usize>>()
+            (0..num_gate_qubits).map(QubitId::new).collect::<Vec<_>>()
         } else {
-            (0..self.num_qubits).collect::<Vec<usize>>()
+            (0..self.num_qubits).map(QubitId::new).collect::<Vec<_>>()
         };
         self.expect(TokenType::Semicolon, "';'", &barrier_token)?;
         if qubits.is_empty() {
@@ -1403,8 +1455,12 @@ impl State {
                     Ok(1)
                 }
                 Operand::Range(size, start) => {
-                    bc.extend((start..start + size).map(|qubit| {
-                        Some(InternalBytecode::ConditionedReset { qubit, creg, value })
+                    bc.extend((0..size).map(|offset| {
+                        Some(InternalBytecode::ConditionedReset {
+                            qubit: start + offset,
+                            creg,
+                            value,
+                        })
                     }));
                     Ok(size)
                 }
@@ -1416,9 +1472,11 @@ impl State {
                     Ok(0)
                 }
                 Operand::Range(size, start) => {
-                    bc.extend(
-                        (start..start + size).map(|qubit| Some(InternalBytecode::Reset { qubit })),
-                    );
+                    bc.extend((0..size).map(|offset| {
+                        Some(InternalBytecode::Reset {
+                            qubit: start + offset,
+                        })
+                    }));
                     Ok(size)
                 }
             }
@@ -1442,8 +1500,8 @@ impl State {
             name.clone(),
             GlobalSymbol::Creg {
                 size,
-                start: self.num_clbits,
-                index: self.num_cregs,
+                start: ClbitId::new(self.num_clbits),
+                index: CregId::new(self.num_cregs),
             },
         ) {
             None | Some(GlobalSymbol::Gate { defined: false, .. }) => {
@@ -1480,7 +1538,7 @@ impl State {
             name.clone(),
             GlobalSymbol::Qreg {
                 size,
-                start: self.num_qubits,
+                start: QubitId::new(self.num_qubits),
             },
         ) {
             None | Some(GlobalSymbol::Gate { defined: false, .. }) => {
@@ -1576,7 +1634,7 @@ impl State {
                     GlobalSymbol::Gate {
                         num_params,
                         num_qubits,
-                        index: self.num_gates,
+                        index: GateId::new(self.num_gates),
                         custom: false,
                         defined: true,
                     },
