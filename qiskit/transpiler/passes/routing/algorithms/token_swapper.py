@@ -96,6 +96,7 @@ class ApproximateTokenSwapper:
         Returns:
           The swaps to implement the mapping
         """
+        return rx.graph_token_swapper(self.graph, mapping, 4, 4)
         tokens = dict(mapping)
         digraph = rx.PyDiGraph()
         sub_digraph = rx.PyDiGraph()  # Excludes self-loops in digraph.
