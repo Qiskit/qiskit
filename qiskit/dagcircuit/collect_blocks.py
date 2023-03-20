@@ -254,22 +254,30 @@ class BlockCollapser:
         then uses collapse_fn to collapse this circuit into a single operation.
         """
         global_index_map = {wire: idx for idx, wire in enumerate(self.dag.qubits)}
+        global_index_map.update({wire: idx for idx, wire in enumerate(self.dag.clbits)})
+
         for block in blocks:
-            # Find the set of qubits used in this block (which might be much smaller than
-            # the set of all qubits).
+            # Find the sets of qubits/clbits used in this block (which might be much smaller
+            # than the set of all qubits/clbits).
             cur_qubits = set()
+            cur_clbits = set()
             for node in block:
                 cur_qubits.update(node.qargs)
+                cur_clbits.update(node.cargs)
 
-            # For reproducibility, order these qubits compatibly with the global order.
+            # For reproducibility, order these qubits/clbits compatibly with the global order.
             sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
+            sorted_clbits = sorted(cur_clbits, key=lambda x: global_index_map[x])
 
             # Construct a quantum circuit from the nodes in the block, remapping the qubits.
             wire_pos_map = {qb: ix for ix, qb in enumerate(sorted_qubits)}
-            qc = QuantumCircuit(len(cur_qubits))
+            wire_pos_map.update({qb: ix for ix, qb in enumerate(sorted_clbits)})
+
+            qc = QuantumCircuit(len(cur_qubits), len(cur_clbits))
             for node in block:
                 remapped_qubits = [wire_pos_map[qarg] for qarg in node.qargs]
-                qc.append(CircuitInstruction(node.op, remapped_qubits, node.cargs))
+                remapped_clbits = [wire_pos_map[carg] for carg in node.cargs]
+                qc.append(CircuitInstruction(node.op, remapped_qubits, remapped_clbits))
 
             # Collapse this quantum circuit into an operation.
             op = collapse_fn(qc)

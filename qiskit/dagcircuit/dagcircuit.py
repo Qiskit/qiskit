@@ -1134,8 +1134,7 @@ class DAGCircuit:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
-                block_cargs |= set(nd.cargs)
+            block_cargs |= set(nd.cargs)
 
         # Create replacement node
         new_node = DAGOpNode(
