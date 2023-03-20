@@ -129,15 +129,27 @@ def deprecate_arguments(
         Callable: The decorated callable.
     """
 
-    del since  # Will be used in a followup to add deprecations to our docs site.
-
     def decorator(func):
+        func_name = func.__qualname__
+        old_kwarg_to_msg = {}
+        for old_arg, new_arg in kwarg_map.items():
+            msg_suffix = (
+                "will in the future be removed." if new_arg is None else f"replaced with {new_arg}."
+            )
+            old_kwarg_to_msg[
+                old_arg
+            ] = f"{func_name} keyword argument {old_arg} is deprecated and {msg_suffix}"
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             if kwargs:
-                _rename_kwargs(func.__name__, kwargs, kwarg_map, category)
+                _rename_kwargs(func_name, kwargs, old_kwarg_to_msg, kwarg_map, category)
             return func(*args, **kwargs)
 
+        for msg in old_kwarg_to_msg.values():
+            add_deprecation_to_docstring(
+                wrapper, msg, since=since, pending=issubclass(category, PendingDeprecationWarning)
+            )
         return wrapper
 
     return decorator
@@ -165,14 +177,15 @@ def deprecate_function(
         Callable: The decorated, deprecated callable.
     """
 
-    del since  # Will be used in a followup to add deprecations to our docs site.
-
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             warnings.warn(msg, category=category, stacklevel=stacklevel)
             return func(*args, **kwargs)
 
+        add_deprecation_to_docstring(
+            wrapper, msg, since=since, pending=issubclass(category, PendingDeprecationWarning)
+        )
         return wrapper
 
     return decorator
@@ -181,30 +194,18 @@ def deprecate_function(
 def _rename_kwargs(
     func_name: str,
     kwargs: Dict[str, Any],
-    kwarg_map: Dict[str, str],
+    old_kwarg_to_msg: Dict[str, str],
+    kwarg_map: Dict[str, Optional[str]],
     category: Type[Warning] = DeprecationWarning,
 ) -> None:
     for old_arg, new_arg in kwarg_map.items():
-        if old_arg in kwargs:
-            if new_arg in kwargs:
-                raise TypeError(f"{func_name} received both {new_arg} and {old_arg} (deprecated).")
-
-            if new_arg is None:
-                warnings.warn(
-                    f"{func_name} keyword argument {old_arg} is deprecated and "
-                    "will in future be removed.",
-                    category=category,
-                    stacklevel=3,
-                )
-            else:
-                warnings.warn(
-                    f"{func_name} keyword argument {old_arg} is deprecated and "
-                    f"replaced with {new_arg}.",
-                    category=category,
-                    stacklevel=3,
-                )
-
-                kwargs[new_arg] = kwargs.pop(old_arg)
+        if old_arg not in kwargs:
+            continue
+        if new_arg in kwargs:
+            raise TypeError(f"{func_name} received both {new_arg} and {old_arg} (deprecated).")
+        warnings.warn(old_kwarg_to_msg[old_arg], category=category, stacklevel=3)
+        if new_arg is not None:
+            kwargs[new_arg] = kwargs.pop(old_arg)
 
 
 # We insert deprecations in-between the description and Napoleon's meta sections. The below is from
