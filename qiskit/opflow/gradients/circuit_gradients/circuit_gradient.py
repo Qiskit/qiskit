@@ -42,7 +42,6 @@ class CircuitGradient(ConverterBase):
         old_name="CircuitGradient",
         url="https://qisk.it/opflow_migration",
     )
-
     def __init__(self) -> None:
         super().__init__()
 

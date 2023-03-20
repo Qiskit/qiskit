@@ -55,7 +55,6 @@ class DerivativeBase(ConverterBase):
         old_name="DerivativeBase",
         url="https://qisk.it/opflow_migration",
     )
-
     def __init__(self) -> None:
         super().__init__()
 

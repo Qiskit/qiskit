@@ -108,6 +108,7 @@ def deprecate_function_msg(
     )
     return deprecate_function(msg, stacklevel, category)
 
+
 def deprecate_arguments(
     kwarg_map: Dict[str, Optional[str]],
     category: Type[Warning] = DeprecationWarning,
