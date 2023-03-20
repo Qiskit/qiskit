@@ -19,7 +19,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from numbers import Number
 from typing import Dict, Optional
-import copy
+from copy import deepcopy
 
 import numpy as np
 import rustworkx as rx
@@ -1014,7 +1014,7 @@ class SparsePauliOp(LinearOp):
 
     @property
     def parameters(self) -> ParameterView:
-        """Return the free ``Parameter``\s in the coefficients."""
+        r"""Return the free ``Parameter``\s in the coefficients."""
         ret = set()
         for coeff in self.coeffs:
             if isinstance(coeff, ParameterExpression):
@@ -1027,7 +1027,7 @@ class SparsePauliOp(LinearOp):
         | Sequence[complex | ParameterExpression],
         inplace: bool = False,
     ) -> SparsePauliOp | None:
-        """Bind the free ``Parameter``\s in the coefficients to provided values.
+        r"""Bind the free ``Parameter``\s in the coefficients to provided values.
 
         Args:
             parameters: The values to bind the parameters to.
@@ -1041,7 +1041,7 @@ class SparsePauliOp(LinearOp):
         if inplace:
             bound = self
         else:
-            bound = copy.deepcopy(self)
+            bound = deepcopy(self)
 
         # turn the parameters to a dictionary
         if isinstance(parameters, Sequence):
