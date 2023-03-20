@@ -23,7 +23,7 @@ def dag_to_circuit(dag, copy_operations=True):
         dag (DAGCircuit): the input dag.
         copy_operations (bool): Deep copy the operation objects
             in the :class:`~DAGCircuit` for the output :class:`~.QuantumCircuit`.
-            This should only be set to ``False if the input :class:`~.DAGCircuit`
+            This should only be set to ``False`` if the input :class:`~.DAGCircuit`
             will not be used anymore as the operations in the output
             :class:`~.QuantumCircuit` will be shared instances and
             modifications to operations in the :class:`~.DAGCircuit` will
