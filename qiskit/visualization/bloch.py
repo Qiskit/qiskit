@@ -149,7 +149,9 @@ class Bloch:
             Positions of +z and -z labels respectively.
     """
 
-    def __init__(self, fig=None, axes=None, view=None, figsize=None, background=False):
+    def __init__(
+        self, fig=None, axes=None, view=None, figsize=None, background=False, font_size=20
+    ):
 
         # Figure and axes
         self._ext_fig = False
@@ -194,7 +196,7 @@ class Bloch:
         # Color of fonts, default = 'black'
         self.font_color = plt.rcParams["axes.labelcolor"]
         # Size of fonts, default = 20
-        self.font_size = 20
+        self.font_size = font_size
 
         # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
