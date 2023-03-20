@@ -621,7 +621,7 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             ],
             dtype=np.float64,
         )
-        (theta, phi, lam) = decomposer.angles_and_phase(input_matrix)
+        (theta, phi, lam) = decomposer.angles(input_matrix)
         expected_theta = 1.5707963267948966
         expected_phi = 0.0
         expected_lam = 3.141592653589793
