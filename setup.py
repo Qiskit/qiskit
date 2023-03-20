@@ -50,6 +50,7 @@ z3_requirements = [
 bip_requirements = ["cplex", "docplex"]
 csp_requirements = ["python-constraint>=1.4"]
 toqm_requirements = ["qiskit-toqm>=0.1.0"]
+sat_requirements = ["pysat"]
 
 setup(
     name="qiskit-terra",
@@ -89,6 +90,7 @@ setup(
         "crosstalk-pass": z3_requirements,
         "csp-layout-pass": csp_requirements,
         "toqm": toqm_requirements,
+        "sat": sat_requirements,
         # Note: 'all' only includes extras that are stable and work on the majority of Python
         # versions and OSes supported by Terra. You have to ask for anything else explicitly.
         "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,

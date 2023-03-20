@@ -163,7 +163,10 @@ class Commuting2qGateRouter(TransformationPass):
 
         new_dag = dag.copy_empty_like()
 
-        current_layout = Layout.generate_trivial_layout(*dag.qregs.values())
+        if self.property_set["layout"]:
+            current_layout = self.property_set["layout"].copy()
+        else:
+            current_layout = Layout.generate_trivial_layout(*dag.qregs.values())
 
         # Used to keep track of nodes that do not decompose using swap strategies.
         accumulator = new_dag.copy_empty_like()
@@ -226,9 +229,11 @@ class Commuting2qGateRouter(TransformationPass):
         Returns:
             The position in the coupling map of the virtual qubits j and k as a tuple.
         """
-        bit0 = self._bit_indices[layout.get_physical_bits()[j]]
-        bit1 = self._bit_indices[layout.get_physical_bits()[k]]
-
+        for vq, pq in layout.get_virtual_bits().items():
+            if vq.index == j:
+                bit0 = pq
+            if vq.index == k:
+                bit1 = pq
         return bit0, bit1
 
     def _build_sub_layers(self, current_layer: Dict[tuple, Gate]) -> List[Dict[tuple, Gate]]:
@@ -334,10 +339,8 @@ class Commuting2qGateRouter(TransformationPass):
             if i < max_distance:
                 for swap in swap_strategy.swap_layer(i):
                     (j, k) = [trivial_layout.get_physical_bits()[vertex] for vertex in swap]
-
                     circuit_with_swap.swap(j, k)
-                    current_layout.swap(j, k)
-
+                    current_layout.swap(swap[0], swap[1])
         return circuit_to_dag(circuit_with_swap)
 
     def _make_op_layers(
