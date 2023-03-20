@@ -20,7 +20,7 @@ import os
 import pickle
 import sys
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
+from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable, TypeVar
 import warnings
 
 from qiskit import user_config
@@ -57,9 +57,11 @@ else:
 
 logger = logging.getLogger(__name__)
 
+_CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
+
 
 def transpile(
-    circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+    circuits: _CircuitT,
     backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
     inst_map: Optional[List[InstructionScheduleMap]] = None,
@@ -79,13 +81,13 @@ def transpile(
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
     unitary_synthesis_method: str = "default",
-    unitary_synthesis_plugin_config: dict = None,
-    target: Target = None,
+    unitary_synthesis_plugin_config: Optional[dict] = None,
+    target: Optional[Target] = None,
     hls_config: Optional[HLSConfig] = None,
-    init_method: str = None,
-    optimization_method: str = None,
+    init_method: Optional[str] = None,
+    optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
-) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     .. deprecated:: 0.23.0
