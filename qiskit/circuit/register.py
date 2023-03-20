@@ -38,7 +38,13 @@ class _NameFormat:
 
 
 class Register:
-    """Implement a generic register."""
+    """Implement a generic register.
+
+    .. note::
+        This class should not be instantiated directly. This is just a superclass
+        for :class:`~.ClassicalRegister` and :class:`~.QuantumRegister`.
+
+    """
 
     __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
 
