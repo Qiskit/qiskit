@@ -591,6 +591,44 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsxx).data))
 
+    def test_float_input_angles_and_phase(self):
+        """Test angles and phase with float input."""
+        decomposer = OneQubitEulerDecomposer("PSX")
+        input_matrix = np.array(
+            [
+                [0.70710678, 0.70710678],
+                [0.70710678, -0.70710678],
+            ],
+            dtype=np.float64,
+        )
+        (theta, phi, lam, gamma) = decomposer.angles_and_phase(input_matrix)
+        expected_theta = 1.5707963267948966
+        expected_phi = 0.0
+        expected_lam = 3.141592653589793
+        expected_gamma = -0.7853981633974483
+        self.assertAlmostEqual(theta, expected_theta)
+        self.assertAlmostEqual(phi, expected_phi)
+        self.assertAlmostEqual(lam, expected_lam)
+        self.assertAlmostEqual(gamma, expected_gamma)
+
+    def test_float_input_angles(self):
+        """Test angles with float input."""
+        decomposer = OneQubitEulerDecomposer("PSX")
+        input_matrix = np.array(
+            [
+                [0.70710678, 0.70710678],
+                [0.70710678, -0.70710678],
+            ],
+            dtype=np.float64,
+        )
+        (theta, phi, lam) = decomposer.angles_and_phase(input_matrix)
+        expected_theta = 1.5707963267948966
+        expected_phi = 0.0
+        expected_lam = 3.141592653589793
+        self.assertAlmostEqual(theta, expected_theta)
+        self.assertAlmostEqual(phi, expected_phi)
+        self.assertAlmostEqual(lam, expected_lam)
+
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(CheckDecompositions):

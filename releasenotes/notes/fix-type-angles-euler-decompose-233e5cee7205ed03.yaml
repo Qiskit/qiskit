@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`~.OneQubitEulerDecomposer` class's methods
+    :meth:`~.OneQubitEulerDecomposer.angles` and :meth:`~.OneQubitEulerDecomposer.angles_and_phase`
+    would error if the input matrix was of a dtype other than ``complex``/``np.cdouble``. While
+    only a complex matrix can be unitary if the imaginary component is 0 for
+    all elements it could be represented by a different data type. In earlier
+    releases this worked fine but this stopped working in Qiskit Terra 0.23.0
+    when the internals of :class:`~.OneQubitEulerDecomposer` were re-written
+    in Rust.
+    Fixed `#9827 <https://github.com/Qiskit/qiskit-terra/issues/9827>`__
