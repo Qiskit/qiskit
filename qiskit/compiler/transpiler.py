@@ -559,7 +559,7 @@ def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubi
     dag_circuit = circuit_to_dag(circuit)
     apply_layout_pass = ApplyLayout()
     apply_layout_pass.property_set["layout"] = Layout(physical_layout_dict)
-    circuit = dag_to_circuit(apply_layout_pass.run(dag_circuit))
+    circuit = dag_to_circuit(apply_layout_pass.run(dag_circuit), copy_operations=False)
     circuit._layout = new_layout
     return circuit
 

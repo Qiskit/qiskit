@@ -16,11 +16,18 @@ import copy
 from qiskit.circuit import QuantumCircuit, CircuitInstruction
 
 
-def dag_to_circuit(dag):
+def dag_to_circuit(dag, copy_operations=True):
     """Build a ``QuantumCircuit`` object from a ``DAGCircuit``.
 
     Args:
         dag (DAGCircuit): the input dag.
+        copy_operations (bool): Deep copy the operation objects
+            in the :class:`~DAGCircuit` for the output :class:`~.QuantumCircuit`.
+            This should only be set to ``False if the input :class:`~.DAGCircuit`
+            will not be used anymore as the operations in the output
+            :class:`~.QuantumCircuit` will be shared instances and
+            modifications to operations in the :class:`~.DAGCircuit` will
+            be reflected in the :class:`~.QuantumCircuit` (and vice versa).
 
     Return:
         QuantumCircuit: the circuit representing the input dag.
@@ -60,7 +67,10 @@ def dag_to_circuit(dag):
     circuit.calibrations = dag.calibrations
 
     for node in dag.topological_op_nodes():
-        circuit._append(CircuitInstruction(copy.deepcopy(node.op), node.qargs, node.cargs))
+        op = node.op
+        if copy_operations:
+            op = copy.deepcopy(op)
+        circuit._append(CircuitInstruction(op, node.qargs, node.cargs))
 
     circuit.duration = dag.duration
     circuit.unit = dag.unit
