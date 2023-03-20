@@ -598,6 +598,18 @@ qreg q[4];
 permutation__2_1_0_ q[0],q[1],q[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
 
+    def test_circuit_qasm_with_reset(self):
+        """Test circuit qasm() method with Reset."""
+        qc = QuantumCircuit(2)
+        qc.reset([0, 1])
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+reset q[0];
+reset q[1];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
 
 if __name__ == "__main__":
     unittest.main()
