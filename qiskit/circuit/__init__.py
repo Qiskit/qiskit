@@ -308,6 +308,14 @@ Random Circuits
    :toctree: ../stubs/
 
    random.random_circuit
+
+Commutation Utilities
+---------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   CommutationChecker
 """
 from .quantumcircuit import QuantumCircuit
 from .classicalregister import ClassicalRegister, Clbit
