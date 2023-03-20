@@ -252,6 +252,7 @@ class OneQubitEulerDecomposer:
         Returns:
             tuple: (theta, phi, lambda).
         """
+        unitary = np.asarray(unitary, dtype=complex)
         theta, phi, lam, _ = self._params(unitary)
         return theta, phi, lam
 
@@ -264,6 +265,7 @@ class OneQubitEulerDecomposer:
         Returns:
             tuple: (theta, phi, lambda, phase).
         """
+        unitary = np.asarray(unitary, dtype=complex)
         return self._params(unitary)
 
     _params_zyz = staticmethod(euler_one_qubit_decomposer.params_zyz)
