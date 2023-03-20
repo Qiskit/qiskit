@@ -52,7 +52,6 @@ and thus this parameter framework gives greater scalability to the pulse module.
 """
 from copy import copy
 from typing import List, Dict, Set, Any, Union
-import warnings
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
@@ -258,19 +257,6 @@ class ParameterSetter(NodeVisitor):
         for param in updated:
             new_value = new_value.assign(param, self._param_map[param])
         new_value = format_parameter_value(new_value)
-        if isinstance(new_value, complex):
-            warnings.warn(
-                "Assignment of complex values to ParameterExpression in Qiskit Pulse objects is "
-                "now pending deprecation. This will align the Pulse module with other modules "
-                "where such assignment wasn't possible to begin with. The typical use case for complex "
-                "parameters in the module was the SymbolicPulse library. As of Qiskit-Terra "
-                "0.23.0 all library pulses were converted from complex amplitude representation"
-                " to real representation using two floats (amp,angle), as used in the "
-                "ScalableSymbolicPulse class. This eliminated the need for complex parameters. "
-                "Any use of complex parameters (and particularly custom-built pulses) should be "
-                "converted in a similar fashion to avoid the use of complex parameters.",
-                PendingDeprecationWarning,
-            )
         return new_value
 
     def _update_parameter_manager(self, node: Union[Schedule, ScheduleBlock]):
