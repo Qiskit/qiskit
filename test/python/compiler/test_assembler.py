@@ -593,7 +593,7 @@ class TestCircuitAssembler(QiskitTestCase):
 
     def test_assemble_adds_circuit_metadata_to_experiment_header(self):
         """Verify that any circuit metadata is added to the exeriment header."""
-        circ = QuantumCircuit(2, metadata=dict(experiment_type="gst", execution_number="1234"))
+        circ = QuantumCircuit(2, metadata={"experiment_type": "gst", "execution_number": "1234"})
         qobj = assemble(circ, shots=100, memory=False, seed_simulator=6)
         self.assertEqual(
             qobj.experiments[0].header.metadata,

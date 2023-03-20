@@ -210,7 +210,6 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         start_time = time()
 
         if callable(self.optimizer):
-            # pylint: disable=not-callable
             optimizer_result = self.optimizer(fun=evaluate_energy, x0=initial_point, bounds=bounds)
         else:
             # we always want to submit as many estimations per job as possible for minimal
