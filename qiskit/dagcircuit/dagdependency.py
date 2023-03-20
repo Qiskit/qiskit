@@ -655,8 +655,7 @@ class DAGDependency:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if nd.op.condition:
-                block_cargs |= set(nd.cargs)
+            block_cargs |= set(nd.cargs)
 
         # Create replacement node
         new_node = self._create_op_node(

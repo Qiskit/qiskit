@@ -20,6 +20,7 @@ from qiskit.converters import (
     circuit_to_dagdependency,
     circuit_to_instruction,
     dag_to_circuit,
+    dagdependency_to_circuit,
 )
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit, Measure
@@ -485,6 +486,50 @@ class TestCollectBlocks(QiskitTestCase):
         # Collapse block with measures into a single "COLLAPSED" block
         dag = BlockCollapser(dag).collapse_to_operation(blocks_meas, _collapse_fn)
         collapsed_qc = dag_to_circuit(dag)
+
+        self.assertIn("COLLAPSED", collapsed_qc.count_ops().keys())
+        self.assertNotIn("measure", collapsed_qc.count_ops().keys())
+        self.assertEqual(collapsed_qc.count_ops()["COLLAPSED"], 1)
+
+        # Decompose the circuit
+        decomposed_qc = collapsed_qc.decompose()
+
+        self.assertNotIn("COLLAPSED", decomposed_qc.count_ops().keys())
+        self.assertIn("measure", decomposed_qc.count_ops().keys())
+        self.assertEqual(decomposed_qc.count_ops()["measure"], 3)
+
+    def test_collect_blocks_with_clbits_dagdepency(self):
+        """Test collecting and collapsing blocks with classical bits
+        using DAGDependency."""
+
+        qc = QuantumCircuit(3)
+        qc.h(0)
+        qc.h(1)
+        qc.h(2)
+        qc.measure_all()
+
+        dag = circuit_to_dagdependency(qc)
+
+        # Collect all measure instructions
+        blocks_meas = BlockCollector(dag).collect_all_matching_blocks(
+            lambda node: isinstance(node.op, Measure), split_blocks=False, min_block_size=1
+        )
+
+        # We should have a single block consisting of 3 measures
+        self.assertEqual(len(blocks_meas), 1)
+        self.assertEqual(len(blocks_meas[0]), 3)
+        self.assertEqual(blocks_meas[0][0].op, Measure())
+        self.assertEqual(blocks_meas[0][1].op, Measure())
+        self.assertEqual(blocks_meas[0][2].op, Measure())
+
+        def _collapse_fn(block):
+            op = circuit_to_instruction(block)
+            op.name = "COLLAPSED"
+            return op
+
+        # Collapse block with measures into a single "COLLAPSED" block
+        dag = BlockCollapser(dag).collapse_to_operation(blocks_meas, _collapse_fn)
+        collapsed_qc = dagdependency_to_circuit(dag)
 
         self.assertIn("COLLAPSED", collapsed_qc.count_ops().keys())
         self.assertNotIn("measure", collapsed_qc.count_ops().keys())

@@ -4,5 +4,6 @@ fixes:
     Fixed a bug in :class:`~BlockCollapser` where classical bits were ignored when collapsing
     a block of nodes.
   - |
-    Fixed a bug in :meth:`~qiskit.dagcircuit.DAGCircuit.replace_block_with_op` that led to
-    ignoring classical bits.
+    Fixed a bug in :meth:`~qiskit.dagcircuit.DAGCircuit.replace_block_with_op` and
+    :meth:`~qiskit.dagcircuit.DAGDependency.replace_block_with_op`
+    that led to ignoring classical bits.
