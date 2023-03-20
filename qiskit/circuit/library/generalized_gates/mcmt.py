@@ -229,6 +229,7 @@ class MCMTVChain(MCMT):
         Raises:
             QiskitError: If an insufficient number of ancilla qubits was provided.
         """
+        # TODO: should it actually return anyting?
         if len(ancilla_qubits) == 0:
             return
 

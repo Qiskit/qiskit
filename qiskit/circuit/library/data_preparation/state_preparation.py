@@ -514,4 +514,4 @@ def prepare_state(self, state, qubits=None, label=None):
     return self.append(StatePreparation(state, num_qubits, label=label), qubits)
 
 
-QuantumCircuit.prepare_state = prepare_state
+QuantumCircuit.prepare_state = prepare_state  # type:ignore[attr-defined]

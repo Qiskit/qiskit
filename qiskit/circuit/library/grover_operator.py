@@ -12,8 +12,11 @@
 
 """The Grover operator."""
 
+from __future__ import annotations
 from typing import List, Optional, Union
 import numpy
+from qiskit.circuit.bit import Bit
+
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector, Operator, DensityMatrix
@@ -292,7 +295,7 @@ def _zero_reflection(
 
     num_ancillas = MCXGate.get_num_ancilla_qubits(len(qubits) - 1, mcx_mode)
     if num_ancillas > 0:
-        qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
+        qr_ancilla: AncillaRegister | list[Bit] = AncillaRegister(num_ancillas, "ancilla")
         reflection.add_register(qr_ancilla)
     else:
         qr_ancilla = []

@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Add control to operation if supported."""
-
-from typing import Union, Optional
+from __future__ import annotations
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
@@ -20,10 +19,10 @@ from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
 
 
 def add_control(
-    operation: Union[Gate, ControlledGate],
+    operation: Gate | ControlledGate,
     num_ctrl_qubits: int,
-    label: Union[str, None],
-    ctrl_state: Union[int, str, None],
+    label: str | None,
+    ctrl_state: str | int | None,
 ) -> ControlledGate:
     """For standard gates, if the controlled version already exists in the
     library, it will be returned (e.g. XGate.control() = CnotGate().
@@ -62,10 +61,10 @@ def add_control(
 
 
 def control(
-    operation: Union[Gate, ControlledGate],
-    num_ctrl_qubits: Optional[int] = 1,
-    label: Optional[Union[None, str]] = None,
-    ctrl_state: Optional[Union[None, int, str]] = None,
+    operation: Gate | ControlledGate,
+    num_ctrl_qubits: int | None = 1,
+    label: str | None = None,
+    ctrl_state: str | int | None = None,
 ) -> ControlledGate:
     """Return controlled version of gate using controlled rotations. This function
     first checks the name of the operation to see if it knows of a method from which
@@ -218,7 +217,8 @@ def control(
     if isinstance(operation, controlledgate.ControlledGate):
         operation.ctrl_state = original_ctrl_state
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
+        # TODO: what if ctrl_state is str?
+        new_ctrl_state: str | int | None = operation.ctrl_state << num_ctrl_qubits | ctrl_state
         base_name = operation.base_gate.name
         base_gate = operation.base_gate
     else:

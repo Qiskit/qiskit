@@ -12,7 +12,8 @@
 
 """A class implementing a (piecewise-) linear function on qubit amplitudes."""
 
-from typing import Optional, List, Union, Tuple
+from __future__ import annotations
+from typing import cast, List
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 
@@ -77,12 +78,12 @@ class LinearAmplitudeFunction(QuantumCircuit):
     def __init__(
         self,
         num_state_qubits: int,
-        slope: Union[float, List[float]],
-        offset: Union[float, List[float]],
-        domain: Tuple[float, float],
-        image: Tuple[float, float],
+        slope: float | list[float],
+        offset: float | list[float],
+        domain: tuple[float, float],
+        image: tuple[float, float],
         rescaling_factor: float = 1,
-        breakpoints: Optional[List[float]] = None,
+        breakpoints: list[float] | None = None,
         name: str = "F",
     ) -> None:
         r"""
@@ -102,8 +103,10 @@ class LinearAmplitudeFunction(QuantumCircuit):
         """
         if not hasattr(slope, "__len__"):
             slope = [slope]
+        slope = cast(List[float], slope)
         if not hasattr(offset, "__len__"):
             offset = [offset]
+        offset = cast(List[float], offset)
 
         # ensure that the breakpoints include the first point of the domain
         if breakpoints is None:

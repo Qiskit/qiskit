@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 
 """Compute the sum of two qubit registers using Classical Addition."""
+from __future__ import annotations
+from qiskit.circuit.bit import Bit
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister, AncillaRegister
 
@@ -78,9 +80,9 @@ class VBERippleCarryAdder(Adder):
         super().__init__(num_state_qubits, name=name)
 
         # define the input registers
-        registers = []
+        registers: list[QuantumRegister | list[Bit]] = []
         if kind == "full":
-            qr_cin = QuantumRegister(1, name="cin")
+            qr_cin: QuantumRegister | list[Bit] = QuantumRegister(1, name="cin")
             registers.append(qr_cin)
         else:
             qr_cin = []
@@ -91,7 +93,7 @@ class VBERippleCarryAdder(Adder):
         registers += [qr_a, qr_b]
 
         if kind in ["half", "full"]:
-            qr_cout = QuantumRegister(1, name="cout")
+            qr_cout: QuantumRegister | list[Bit] = QuantumRegister(1, name="cout")
             registers.append(qr_cout)
         else:
             qr_cout = []
@@ -99,7 +101,9 @@ class VBERippleCarryAdder(Adder):
         self.add_register(*registers)
 
         if num_state_qubits > 1:
-            qr_help = AncillaRegister(num_state_qubits - 1, name="helper")
+            qr_help: AncillaRegister | list[Bit] = AncillaRegister(
+                num_state_qubits - 1, name="helper"
+            )
             self.add_register(qr_help)
         else:
             qr_help = []
