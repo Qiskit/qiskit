@@ -93,10 +93,8 @@ class SATLayoutForCommutingGateRouter(AnalysisPass):
         # 1. Construct program graph from the Commuting2qBlock
         program_graph = self._build_program_graph(dag)
         nx.draw(program_graph, with_labels=True)
-
         # 2. Binary search over the connectivity graph.
         sat_results = self.binary_sat_search(program_graph, swap_strategy)
-
         # 3. Build the layout from the SAT results and set it in the property set.
         layout = self._build_layout(sat_results, dag.qregs)
         self.property_set["layout"] = layout
