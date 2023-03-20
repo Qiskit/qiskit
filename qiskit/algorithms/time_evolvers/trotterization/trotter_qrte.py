@@ -168,7 +168,8 @@ class TrotterQRTE(RealTimeEvolver):
         hamiltonian = evolution_problem.hamiltonian
         if not isinstance(hamiltonian, (Pauli, PauliSumOp, SparsePauliOp)):
             raise ValueError(
-                f"TrotterQRTE only accepts Pauli | PauliSumOp | SparsePauliOp, {type(hamiltonian)} provided."
+                f"TrotterQRTE only accepts Pauli | PauliSumOp | SparsePauliOp, {type(hamiltonian)} "
+                "provided."
             )
         if isinstance(hamiltonian, PauliSumOp):
             hamiltonian = hamiltonian.primitive * hamiltonian.coeff
