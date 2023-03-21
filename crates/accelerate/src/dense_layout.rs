@@ -198,7 +198,6 @@ pub fn best_subset(
             .reduce(reduce_identity_fn, reduce_fn)
     } else {
         (0..coupling_shape[0])
-            .into_iter()
             .map(map_fn)
             .reduce(reduce_fn)
             .unwrap()

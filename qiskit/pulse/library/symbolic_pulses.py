@@ -159,7 +159,7 @@ class LambdifiedExpression:
                 the target expression to evaluate.
         """
         self.attribute = attribute
-        self.lambda_funcs = dict()
+        self.lambda_funcs = {}
 
     def __get__(self, instance, owner) -> Callable:
         expr = getattr(instance, self.attribute, None)

@@ -22,3 +22,72 @@ environment = 'RUSTUP_TOOLCHAIN="stable"'
 [tool.cibuildwheel.linux]
 before-all = "yum install -y wget && {package}/tools/install_rust.sh"
 environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable"'
+
+[tool.pylint.main]
+extension-pkg-allow-list = ["retworkx", "numpy", "tweedledum", "qiskit._accelerate", "rustworkx"]
+load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
+py-version = "3.7"  # update it when bumping minimum supported python version
+
+[tool.pylint.basic]
+good-names = ["a", "b", "i", "j", "k", "d", "n", "m", "ex", "v", "w", "x", "y", "z", "Run", "_", "logger", "q", "c", "r", "qr", "cr", "qc", "nd", "pi", "op", "b", "ar", "br", "p", "cp", "ax", "dt", "__unittest", "iSwapGate", "mu"]
+method-rgx = "(([a-z_][a-z0-9_]{2,49})|(assert[A-Z][a-zA-Z0-9]{2,43})|(test_[_a-zA-Z0-9]{2,}))$"
+variable-rgx = "[a-z_][a-z0-9_]{1,30}$"
+
+[tool.pylint.format]
+max-line-length = 105  # default 100
+
+[tool.pylint."messages control"]
+disable = [
+# intentionally disabled:
+    "spelling",  # too noisy
+    "fixme", # disabled as TODOs would show up as warnings
+    "protected-access", # disabled as we don't follow the public vs private convention strictly
+    "duplicate-code", # disabled as it is too verbose
+    "redundant-returns-doc", # for @abstractmethod, it cannot interpret "pass"
+    "too-many-lines", "too-many-branches", "too-many-locals", "too-many-nested-blocks", "too-many-statements",
+    "too-many-instance-attributes", "too-many-arguments", "too-many-public-methods", "too-few-public-methods", "too-many-ancestors",
+    "unnecessary-pass", # allow for methods with just "pass", for clarity
+    "no-else-return",  # relax "elif" after a clause with a return
+    "docstring-first-line-empty", # relax docstring style
+    "import-outside-toplevel", "import-error", # overzealous with our optionals/dynamic packages
+# TODO(#9614): these were added in modern Pylint. Decide if we want to enable them. If so,
+#  remove from here and fix the issues. Else, move it above this section and add a comment
+#  with the rationale
+    "arguments-renamed",
+    "broad-exception-raised",
+    "consider-iterating-dictionary",
+    "consider-using-dict-items",
+    "consider-using-enumerate",
+    "consider-using-f-string",
+    "consider-using-from-import",
+    "modified-iterating-list",
+    "nested-min-max",
+    "no-member",
+    "no-value-for-parameter",
+    "non-ascii-name",
+    "not-context-manager",
+    "pointless-exception-statement",
+    "superfluous-parens",
+    "unknown-option-value",
+    "unexpected-keyword-arg",
+    "unnecessary-dict-index-lookup",
+    "unnecessary-direct-lambda-call",
+    "unnecessary-dunder-call",
+    "unnecessary-ellipsis",
+    "unnecessary-lambda-assignment",
+    "unnecessary-list-index-lookup",
+    "unspecified-encoding",
+    "unsupported-assignment-operation",
+    "use-dict-literal",
+    "use-list-literal",
+    "use-implicit-booleaness-not-comparison",
+    "use-maxsplit-arg",
+    "used-before-assignment",
+]
+
+enable = [
+    "use-symbolic-message-instead"
+]
+
+[tool.pylint.spelling]
+spelling-private-dict-file = ".local-spellings"

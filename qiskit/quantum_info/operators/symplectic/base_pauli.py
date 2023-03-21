@@ -91,7 +91,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
-    # pylint: disable=arguments-differ
     def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the composition of Paulis.
 
@@ -283,7 +282,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
-
         """Heisenberg picture evolution of a Pauli by a Clifford."""
 
         if frame == "s":

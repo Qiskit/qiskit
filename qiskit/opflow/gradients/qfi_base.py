@@ -19,7 +19,6 @@ from .circuit_qfis import CircuitQFI
 
 
 class QFIBase(DerivativeBase):
-
     r"""Base class for Quantum Fisher Information (QFI).
 
     Compute the Quantum Fisher Information (QFI) given a pure, parameterized quantum state.

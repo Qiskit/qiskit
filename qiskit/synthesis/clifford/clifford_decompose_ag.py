@@ -12,7 +12,6 @@
 """
 Circuit synthesis for the Clifford class.
 """
-# pylint: disable=invalid-name
 
 
 # ---------------------------------------------------------------------

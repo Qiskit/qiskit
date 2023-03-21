@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Quantum Instance module """
+"""Quantum Instance module"""
 
 from typing import Optional, List, Union, Dict, Callable, Tuple
 from enum import Enum
@@ -840,12 +840,12 @@ class QuantumInstance:
             self._max_job_retries = new_value
 
     @property
-    def measurement_error_mitigation_cls(self):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_cls(self):
         """returns measurement error mitigation cls"""
         return self._meas_error_mitigation_cls
 
     @measurement_error_mitigation_cls.setter
-    def measurement_error_mitigation_cls(self, new_value):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_cls(self, new_value):
         """sets measurement error mitigation cls"""
         self._meas_error_mitigation_cls = new_value
 
@@ -860,12 +860,12 @@ class QuantumInstance:
         self._cals_matrix_refresh_period = new_value
 
     @property
-    def measurement_error_mitigation_shots(self):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_shots(self):
         """returns measurement error mitigation shots"""
         return self._meas_error_mitigation_shots
 
     @measurement_error_mitigation_shots.setter
-    def measurement_error_mitigation_shots(self, new_value):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_shots(self, new_value):
         """sets measurement error mitigation shots"""
         self._meas_error_mitigation_shots = new_value
 
