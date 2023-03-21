@@ -158,7 +158,9 @@ class BackendSampler(BaseSampler):
         result, _metadata = _run_circuits(bound_circuits, self._backend, **run_options)
         return self._postprocessing(result, bound_circuits)
 
-    def _postprocessing(self, result: Result, circuits: list[QuantumCircuit]) -> SamplerResult:
+    def _postprocessing(
+        self, result: Sequence[Result], circuits: list[QuantumCircuit]
+    ) -> SamplerResult:
         counts = _prepare_counts(result)
         shots = sum(counts[0].values())
 

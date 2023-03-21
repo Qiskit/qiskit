@@ -15,8 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast, Union, Sequence
 
 import numpy as np
 
@@ -84,22 +83,29 @@ class BasePrimitive(ABC):
 
         # Support numpy ndarray
         if isinstance(parameter_values, np.ndarray):
+            parameter_values = cast(np.ndarray, parameter_values)
             parameter_values = parameter_values.tolist()
         elif isinstance(parameter_values, Sequence):
+            parameter_values = cast(
+                Union[Sequence[Sequence[float]], Sequence[float]], parameter_values
+            )
             parameter_values = tuple(
-                vector.tolist() if isinstance(vector, np.ndarray) else vector
+                cast(np.ndarray, vector).tolist() if isinstance(vector, np.ndarray) else vector
                 for vector in parameter_values
             )
 
         # Allow single value
         if _isreal(parameter_values):
+            parameter_values = cast(float, parameter_values)
             parameter_values = ((parameter_values,),)
         elif isinstance(parameter_values, Sequence) and not any(
             isinstance(vector, Sequence) for vector in parameter_values
         ):
+            parameter_values = cast(Sequence[float], parameter_values)
             parameter_values = (parameter_values,)
 
         # Validation
+        parameter_values = cast(Sequence[Sequence[float]], parameter_values)
         if (
             not isinstance(parameter_values, Sequence)
             or not all(isinstance(vector, Sequence) for vector in parameter_values)
@@ -132,7 +138,7 @@ def _isint(obj: Any) -> bool:
     return isinstance(obj, int_types) and not isinstance(obj, bool)
 
 
-def _isreal(obj: Any) -> bool:
+def _isreal(obj: Any) -> bool | np.bool_:
     """Check if object is a real number: int or float except ``±Inf`` and ``NaN``."""
     float_types = (float, np.floating)
     return _isint(obj) or isinstance(obj, float_types) and float("-Inf") < obj < float("Inf")
