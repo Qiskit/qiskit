@@ -151,7 +151,7 @@ class LinearFunction(Gate):
         """
         return self.params[1]
 
-    def is_permutation(self) -> bool | np.bool_:
+    def is_permutation(self) -> bool:
         """Returns whether this linear function is a permutation,
         that is whether every row and every column of the n x n matrix
         has exactly one 1.
