@@ -162,7 +162,7 @@ class PiecewiseLinearPauliRotations(FunctionalPauliRotations):
         return mapped_offsets
 
     @property
-    def contains_zero_breakpoint(self) -> bool:
+    def contains_zero_breakpoint(self) -> bool | np.bool_:
         """Whether 0 is the first breakpoint.
 
         Returns:

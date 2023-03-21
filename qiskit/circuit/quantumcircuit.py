@@ -26,7 +26,6 @@ import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
-    List,
     Optional,
     Type,
     TypeVar,
@@ -36,7 +35,6 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
-    cast,
 )
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -879,10 +877,8 @@ class QuantumCircuit:
         if not isinstance(other, QuantumCircuit):
             if qubits is None:
                 qubits = self.qubits[: other.num_qubits]
-            qubits = cast(List[Qubit], qubits)
             if clbits is None:
                 clbits = self.clbits[: other.num_clbits]
-            clbits = cast(List[Clbit], clbits)
             if front:
                 # Need to keep a reference to the data for use after we've emptied it.
                 old_data = list(dest.data)
@@ -928,8 +924,8 @@ class QuantumCircuit:
         mapped_instrs: list[CircuitInstruction] = []
         condition_register_map = {}
         for instr in other.data:
-            n_qargs: list[Qubit] = [cast(Qubit, edge_map[qarg]) for qarg in instr.qubits]
-            n_cargs: list[Clbit] = [cast(Clbit, edge_map[carg]) for carg in instr.clbits]
+            n_qargs: list[Qubit] = [edge_map[qarg] for qarg in instr.qubits]
+            n_cargs: list[Clbit] = [edge_map[carg] for carg in instr.clbits]
             n_op = instr.operation.copy()
 
             # Map their registers over to ours, adding an extra one if there's no exact match.
@@ -3972,9 +3968,6 @@ class QuantumCircuit:
             # convert ancilla qubits to a list if they were passed as int or qubit
             if not hasattr(ancilla_qubits, "__len__"):
                 ancilla_qubits = [ancilla_qubits]
-            ancilla_qubits = cast(
-                Union[QuantumRegister, Sequence[Qubit], Sequence[int]], ancilla_qubits
-            )
 
             if len(ancilla_qubits) < required:
                 actually = len(ancilla_qubits)
@@ -4710,7 +4703,6 @@ class QuantumCircuit:
             params = tuple(map(_format, params))
         else:
             params = ()
-        gate = cast(str, gate)
 
         self._calibrations[gate][(tuple(qubits), params)] = schedule
 

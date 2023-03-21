@@ -217,8 +217,9 @@ def control(
     if isinstance(operation, controlledgate.ControlledGate):
         operation.ctrl_state = original_ctrl_state
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        # TODO: what if ctrl_state is str?
-        new_ctrl_state: str | int | None = operation.ctrl_state << num_ctrl_qubits | ctrl_state
+        new_ctrl_state = (
+            operation.ctrl_state << num_ctrl_qubits | ctrl_state
+        )  # TODO: should convert ctrl_state to int
         base_name = operation.base_gate.name
         base_gate = operation.base_gate
     else:

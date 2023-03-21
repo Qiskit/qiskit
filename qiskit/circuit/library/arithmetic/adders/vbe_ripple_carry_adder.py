@@ -101,12 +101,10 @@ class VBERippleCarryAdder(Adder):
         self.add_register(*registers)
 
         if num_state_qubits > 1:
-            qr_help: AncillaRegister | list[Bit] = AncillaRegister(
-                num_state_qubits - 1, name="helper"
-            )
+            qr_help = AncillaRegister(num_state_qubits - 1, name="helper")
             self.add_register(qr_help)
         else:
-            qr_help = []
+            qr_help = AncillaRegister(0)
 
         # the code is simplified a lot if we create a list of all carries and helpers
         carries = qr_cin[:] + qr_help[:] + qr_cout[:]

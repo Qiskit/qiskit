@@ -14,8 +14,6 @@
 """Implementations of boolean logic quantum circuits."""
 from __future__ import annotations
 
-from qiskit.circuit.bit import Bit
-
 from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister
 from qiskit.circuit.library.standard_gates import MCXGate
 
@@ -84,10 +82,10 @@ class AND(QuantumCircuit):
         # determine the number of ancillas
         num_ancillas = MCXGate.get_num_ancilla_qubits(len(control_qubits), mode=mcx_mode)
         if num_ancillas > 0:
-            qr_ancilla: AncillaRegister | list[Bit] = AncillaRegister(num_ancillas, "ancilla")
+            qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
             circuit.add_register(qr_ancilla)
         else:
-            qr_ancilla = []
+            qr_ancilla = AncillaRegister(0)
 
         if len(flip_qubits) > 0:
             circuit.x(flip_qubits)

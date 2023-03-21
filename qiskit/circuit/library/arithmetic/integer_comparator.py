@@ -57,9 +57,9 @@ class IntegerComparator(BlueprintCircuit):
         """
         super().__init__(name=name)
 
-        self._value: int | None = None
-        self._geq: bool | None = None
-        self._num_state_qubits: int | None = None
+        self._value = None
+        self._geq = None
+        self._num_state_qubits = None
 
         self.value = value
         self.geq = geq

@@ -13,7 +13,7 @@
 """Piecewise polynomial Chebyshev approximation to a given f(x)."""
 
 from __future__ import annotations
-from typing import Callable, cast
+from typing import Callable
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 
@@ -249,7 +249,6 @@ class PiecewiseChebyshev(BlueprintCircuit):
                     # Append directly to list of polynomials
                     polynomials.append([self.f_x])
                 else:
-                    self.f_x = cast(Callable[[int], float], self.f_x)
                     poly = Chebyshev.interpolate(
                         self.f_x, self.degree, domain=[breakpoints[i], breakpoints[i + 1]]
                     )

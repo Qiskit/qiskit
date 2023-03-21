@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import typing
-from typing import Union, List, Optional, Any, Sequence, Callable, Mapping, cast
+from typing import Union, Optional, Any, Sequence, Callable, Mapping
 from itertools import combinations
 
 import numpy
@@ -238,7 +238,6 @@ class NLocal(BlueprintCircuit):
         # cannot check for the attribute ``'__len__'`` because a circuit also has this attribute
         if not isinstance(blocks, (list, numpy.ndarray)):
             blocks = [blocks]
-        blocks = cast(Union[List[QuantumCircuit], List[Instruction]], blocks)
 
         self._invalidate()
         self._rotation_blocks = [self._convert_to_block(block) for block in blocks]
@@ -264,7 +263,6 @@ class NLocal(BlueprintCircuit):
         # cannot check for the attribute ``'__len__'`` because a circuit also has this attribute
         if not isinstance(blocks, (list, numpy.ndarray)):
             blocks = [blocks]
-        blocks = cast(Union[List[QuantumCircuit], List[Instruction]], blocks)
 
         self._invalidate()
         self._entanglement_blocks = [self._convert_to_block(block) for block in blocks]
@@ -738,7 +736,6 @@ class NLocal(BlueprintCircuit):
             entanglement = [list(range(block.num_qubits))]
         elif isinstance(entanglement, list) and not isinstance(entanglement[0], list):
             entanglement = [entanglement]
-        entanglement = cast(Union[List[List[int]], str], entanglement)
         if front:
             self._prepended_blocks += [block]
             self._prepended_entanglement += [entanglement]
@@ -887,7 +884,6 @@ class NLocal(BlueprintCircuit):
             layer = QuantumCircuit(*self.qregs)
             if isinstance(ent, str):
                 ent = get_entangler_map(block.num_qubits, self.num_qubits, ent)
-            ent = cast(Sequence[Sequence[int]], ent)
             for indices in ent:
                 layer.compose(block, indices, inplace=True)
 

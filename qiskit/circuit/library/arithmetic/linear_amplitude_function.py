@@ -13,7 +13,6 @@
 """A class implementing a (piecewise-) linear function on qubit amplitudes."""
 
 from __future__ import annotations
-from typing import cast, List
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 
@@ -103,10 +102,8 @@ class LinearAmplitudeFunction(QuantumCircuit):
         """
         if not hasattr(slope, "__len__"):
             slope = [slope]
-        slope = cast(List[float], slope)
         if not hasattr(offset, "__len__"):
             offset = [offset]
-        offset = cast(List[float], offset)
 
         # ensure that the breakpoints include the first point of the domain
         if breakpoints is None:

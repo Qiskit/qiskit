@@ -12,7 +12,7 @@
 
 """Multiple-Control, Multiple-Target Gate."""
 
-from typing import Union, Callable, List, Tuple
+from typing import Union, Callable, List
 
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -212,7 +212,7 @@ class MCMTVChain(MCMT):
         control_qubits: Union[QuantumRegister, List[Qubit]],
         ancilla_qubits: Union[QuantumRegister, List[Qubit]],
         reverse: bool = False,
-    ) -> List[Tuple[Gate, List[Qubit], List]]:
+    ) -> None:
         """Get the rule for the CCX V-chain.
 
         The CCX V-chain progressively computes the CCX of the control qubits and puts the final
@@ -229,7 +229,6 @@ class MCMTVChain(MCMT):
         Raises:
             QiskitError: If an insufficient number of ancilla qubits was provided.
         """
-        # TODO: should it actually return anyting?
         if len(ancilla_qubits) == 0:
             return
 

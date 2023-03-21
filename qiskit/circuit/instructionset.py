@@ -97,7 +97,7 @@ class InstructionSet:
 
     def __init__(
         self,
-        circuit_cregs=None,
+        circuit_cregs: list[ClassicalRegister] | None = None,
         *,
         resource_requester: Callable[..., ClassicalRegister | Clbit] | None = None,
     ):
