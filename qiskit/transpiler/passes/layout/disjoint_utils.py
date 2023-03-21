@@ -47,7 +47,7 @@ def run_pass_over_connected_components(
             out_dag.add_qubits(dag.qubits)
             out_dag.add_clbits(dag.clbits)
             out_dag.add_qreg(dag.qregs)
-            out_dag.add_clbits(dag.cregs)
+            out_dag.add_cregs(dag.cregs)
             out_dag.compose(dag, qubits=dag.qubits, clbits=dag.clbits)
         out_component_pairs.append((out_dag, cmap_components[cmap_index]))
     res = [run_func(out_dag, cmap) for out_dag, cmap in out_component_pairs]
@@ -61,8 +61,12 @@ def map_components(
     free_qubits = {index: len(cmap.graph) for index, cmap in enumerate(cmap_components)}
     out_mapping = defaultdict(list)
 
-    for dag_index, dag in enumerate(sorted(dag_components, key=lambda x: x.num_qubits())):
-        for cmap_index in range(len(cmap_components)):
+    for dag_index, dag in sorted(
+        enumerate(dag_components), key=lambda x: x[1].num_qubits(), reverse=True
+    ):
+        for cmap_index in sorted(
+            range(len(cmap_components)), key=lambda index: free_qubits[index], reverse=True
+        ):
             # TODO: Improve heuristic to involve connectivity and estimate
             # swap cost
             if dag.num_qubits() <= free_qubits[cmap_index]:
@@ -77,7 +81,7 @@ def map_components(
     return out_mapping
 
 
-def split_barriers(dag):
+def split_barriers(dag: DAGCircuit):
     """Mutate an input dag to split barriers into single qubit barriers."""
     for node in dag.op_nodes(Barrier):
         num_qubits = len(node.qargs)
@@ -93,7 +97,7 @@ def split_barriers(dag):
         dag.substitute_node_with_dag(node, split_dag)
 
 
-def combine_barriers(dag, retain_uuid=True):
+def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
     """Mutate input dag to combine barriers with UUID labels into a single barrier."""
     qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
     uuid_map = {}

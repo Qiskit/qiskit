@@ -275,7 +275,6 @@ class SabreLayout(TransformationPass):
             coupling_map = copy.deepcopy(coupling_map)
             coupling_map.make_symmetric()
         neighbor_table = NeighborTable(rx.adjacency_matrix(coupling_map.graph))
-
         dist_matrix = coupling_map.distance_matrix
         original_qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         original_clbit_indices = {bit: index for index, bit in enumerate(dag.clbits)}
