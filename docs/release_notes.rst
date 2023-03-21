@@ -22,6 +22,142 @@ Notable Changes
 ###############
 
 *************
+Qiskit 0.42.1
+*************
+
+.. _Release Notes_Terra_0.23.3:
+
+Terra 0.23.3
+============
+
+.. _Release Notes_Terra_0.23.3_Prelude:
+
+Prelude
+-------
+
+.. releasenotes/notes/prepare-0.23.3-bf51a905756c4876.yaml @ b'7dc7a1cc7111b80f6cb7eea6de867e36db3ab1a8'
+
+Qiskit Terra 0.23.3 is a minor bugfix release.
+
+
+.. _Release Notes_Terra_0.23.3_Bug Fixes:
+
+Bug Fixes
+---------
+
+.. releasenotes/notes/0.23/fix-transpiler-optimize-1q-decomposition-score-e79ea05c3cf1b6fa.yaml @ b'7dc7a1cc7111b80f6cb7eea6de867e36db3ab1a8'
+
+- Fixes a bug in the :class:`.Optimize1qGatesDecomposition` transformation pass
+  where the score for substitutions was wrongly calculated when the gate
+  errors are zero.
+
+.. releasenotes/notes/add-inverse-ecr-e03720252a0c9c1e.yaml @ b'3d91d02a23fcdce22f3f47c105a5327087911ff2'
+
+- The method :meth:`.ECRGate.inverse` now returns another :class:`.ECRGate` instance
+  rather than a custom gate, since it is self inverse.
+
+.. releasenotes/notes/clip-quantumstate-probabilities-5c9ce05ffa699a63.yaml @ b'7dc7a1cc7111b80f6cb7eea6de867e36db3ab1a8'
+
+- Clip probabilities in the :meth:`.QuantumState.probabilities` and
+  :meth:`.QuantumState.probabilities_dict` methods to the interval ``[0, 1]``.
+  This fixes roundoff errors where probabilities could e.g. be larger than 1, leading
+  to errors in the shot emulation of the sampler.
+  Fixed `#9761 <https://github.com/Qiskit/qiskit-terra/issues/9761>`__.
+
+.. releasenotes/notes/fix-backendsampler-padding-ed959e6dc3deb3f3.yaml @ b'50f5f5f43cb21a60404960533f7cb84af994956e'
+
+- Fixed a bug in the :class:`.BackendSampler` where the binary probability bitstrings
+  were truncated to the minimal number of bits required to represent the largest outcome
+  as integer. That means that if e.g. ``{"0001": 1.0}`` was measured, the result was truncated
+  to ``{"1": 1.0}``.
+
+.. releasenotes/notes/fix-backendv1-pm-config-from-backend-914869dd6e1c06be.yaml @ b'7c43efc318b0832f2626b20b4a4b5eb9990de092'
+
+- Fixed an issue with the :meth:`.PassManagerConfig.from_backend`
+  constructor method when it was used with a :class:`~.BackendV1` based
+  simulator backend. For some simulator backends which did not populate
+  some optional fields the constructor would error.
+  Fixed `#9265 <https://github.com/Qiskit/qiskit-terra/issues/9265>`__ and
+  `#8546 <https://github.com/Qiskit/qiskit-terra/issues/8546>`__
+
+.. releasenotes/notes/fix-bound-pm-backend-primitives-98fd11c5e852501c.yaml @ b'7dc7a1cc7111b80f6cb7eea6de867e36db3ab1a8'
+
+- Fixed the :class:`.BackendSampler` and :class:`.BackendEstimator` to run successfully
+  with a custom ``bound_pass_manager``. Previously, the execution for single circuits with
+  a ``bound_pass_manager`` would raise a ``ValueError`` because a list was not returned
+  in one of the steps.
+
+.. releasenotes/notes/fix-gate-direction-calibration-c51202358d86e18f.yaml @ b'44cda51974e29fc72fa7e428a14b00af48b32562'
+
+- The :class:`.GateDirection` transpiler pass will no longer reject gates that have been given
+  explicit calibrations, but do not exist in the generic coupling map or target.
+
+.. releasenotes/notes/fix-memory-commutation-checker-dbb441de68706b6f.yaml @ b'7dc7a1cc7111b80f6cb7eea6de867e36db3ab1a8'
+
+- Fixed an issue with the :class:`.CommutationChecker` class where it would
+  attempt to internally allocate an array for :math:`2^{n}` qubits when it
+  only needed an array to represent :math:`n` qubits. This could cause
+  an excessive amount of memory for wide gates, for example a 4 qubit
+  gate would require 32 gigabytes instead of 2 kilobytes.
+  Fixed `#9197 <https://github.com/Qiskit/qiskit-terra/issues/9197>`__
+
+.. releasenotes/notes/fix-missing-instproperty-calibration-e578052819592a0b.yaml @ b'938994d02a301a7751d1785f687421a6f269c368'
+
+- Getting empty calibration from :class:`.InstructionProperties` raises
+  AttributeError has been fixed. Now it returns ``None``.
+
+.. releasenotes/notes/fix-qasm-reset-ef7b07bf55875be7.yaml @ b'c14f52856c76686cd2f9cc32a21165a9a6705985'
+
+- Fixed :meth:`~.QuantumCircuit.qasm` so that it appends ``;`` after ``reset`` instruction.
+
+.. releasenotes/notes/fix-qasm3-name-escape-43a8b0e5ec59a471.yaml @ b'd63dc4ed00668bb28c231b1158f4295acfffafaf'
+
+- Register and parameter names will now be escaped during the OpenQASM 3 export
+  (:func:`.qasm3.dumps`) if they are not already valid identifiers.  Fixed `#9658
+  <https://github.com/Qiskit/qiskit-terra/issues/9658>`__.
+
+.. releasenotes/notes/fix-qpy-import-StatePreparation-e20f8ab07bfe39a3.yaml @ b'ac9f9b96d4df9fc88a71aa51833764fa4b8820df'
+
+- QPY (using :func:`.qpy.load`) will now correctly deserialize :class:`~.StatePreparation`
+  instructions. Previously, QPY would error when attempting to load a file containing one.
+  Fixed `#8297 <https://github.com/Qiskit/qiskit-terra/issues/8297>`__.
+
+.. releasenotes/notes/fix-random-circuit-conditional-6067272319986c63.yaml @ b'215aa22d22fa6c9f95b8f3af9c2062e70bc646ca'
+
+- Fixed a bug in :func:`.random_circuit` with 64 or more qubits and ``conditional=True``, where
+  the resulting circuit could have an incorrectly typed value in its condition, causing a variety
+  of failures during transpilation or other circuit operations.  Fixed `#9649
+  <https://github.com/Qiskit/qiskit-terra/issues/9649>`__.
+
+.. releasenotes/notes/fix-type-angles-euler-decompose-233e5cee7205ed03.yaml @ b'36807d1d6e957585053d6a6d29c63e72f122c7bb'
+
+- Fixed an issue with the :class:`~.OneQubitEulerDecomposer` class's methods
+  :meth:`~.OneQubitEulerDecomposer.angles` and :meth:`~.OneQubitEulerDecomposer.angles_and_phase`
+  would error if the input matrix was of a dtype other than ``complex``/``np.cdouble``. In earlier
+  releases this worked fine but this stopped working in Qiskit Terra 0.23.0
+  when the internals of :class:`~.OneQubitEulerDecomposer` were re-written
+  in Rust.
+  Fixed `#9827 <https://github.com/Qiskit/qiskit-terra/issues/9827>`__
+
+.. releasenotes/notes/fix_9559-ec05304e52ff841f.yaml @ b'881e0d9eed2d7d621243358d78b67f62c122305e'
+
+- The Qiskit gates :class:`~.CCZGate`, :class:`~.CSGate`, :class:`~.CSdgGate` are not defined in
+  ``qelib1.inc`` and, therefore, when dump as OpenQASM 2.0, their definition should be inserted in the file.
+  Fixes `#9559 <https://github.com/Qiskit/qiskit-terra/issues/9559>`__,
+  `#9721 <https://github.com/Qiskit/qiskit-terra/issues/9721>`__, and
+  `#9722 <https://github.com/Qiskit/qiskit-terra/issues/9722>`__.
+
+Aer 0.12.0
+==========
+
+No change
+
+IBM Q Provider 0.20.2
+=====================
+
+No change
+
+*************
 Qiskit 0.42.0
 *************
 
