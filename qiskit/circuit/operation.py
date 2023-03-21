@@ -43,19 +43,19 @@ class Operation(ABC):
 
     __slots__ = ()
 
-    @property  # type: ignore
+    @property
     @abstractmethod
     def name(self):
         """Unique string identifier for operation type."""
         raise NotImplementedError
 
-    @property  # type: ignore
+    @property
     @abstractmethod
     def num_qubits(self):
         """Number of qubits."""
         raise NotImplementedError
 
-    @property  # type: ignore
+    @property
     @abstractmethod
     def num_clbits(self):
         """Number of classical bits."""
