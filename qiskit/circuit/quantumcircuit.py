@@ -231,7 +231,7 @@ class QuantumCircuit:
             # check if inputs are integers, but also allow e.g. 2.0
 
             try:
-                valid_reg_size = all(reg == int(reg) for reg in regs)  # type:ignore[arg-type]
+                valid_reg_size = all(reg == int(reg) for reg in regs)
             except (ValueError, TypeError):
                 valid_reg_size = False
 
