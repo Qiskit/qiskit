@@ -46,8 +46,10 @@ def run_pass_over_connected_components(
             dag = dag_components[dag_index]
             out_dag.add_qubits(dag.qubits)
             out_dag.add_clbits(dag.clbits)
-            out_dag.add_qreg(dag.qregs)
-            out_dag.add_cregs(dag.cregs)
+            for qreg in dag.qregs:
+                out_dag.add_qreg(qreg)
+            for creg in dag.cregs:
+                out_dag.add_cregs(creg)
             out_dag.compose(dag, qubits=dag.qubits, clbits=dag.clbits)
         out_component_pairs.append((out_dag, cmap_components[cmap_index]))
     res = [run_func(out_dag, cmap) for out_dag, cmap in out_component_pairs]
