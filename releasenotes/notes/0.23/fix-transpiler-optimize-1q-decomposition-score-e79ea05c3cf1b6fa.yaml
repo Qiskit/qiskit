@@ -1,6 +1,6 @@
 ---
 fixes:
   - |
-    Fixes a bug in the :class:`Optimize1qGatesDecomposition` transformation pass
+    Fixes a bug in the :class:`.Optimize1qGatesDecomposition` transformation pass
     where the score for substitutions was wrongly calculated when the gate
     errors are zero.

@@ -14,6 +14,7 @@
 
 from .statevector import Statevector
 from .stabilizerstate import StabilizerState
+from .quantum_state import QuantumState
 from .densitymatrix import DensityMatrix
 from .utils import partial_trace, shannon_entropy
 from .measures import (
