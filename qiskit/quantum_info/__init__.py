@@ -42,6 +42,7 @@ States
    Statevector
    DensityMatrix
    StabilizerState
+   QuantumState
 
 Channels
 ========
@@ -128,7 +129,7 @@ from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
 from .operators.measures import process_fidelity, average_gate_fidelity, gate_error, diamond_norm
 from .operators.dihedral import CNOTDihedral
 
-from .states import Statevector, DensityMatrix, StabilizerState
+from .states import Statevector, DensityMatrix, StabilizerState, QuantumState
 from .states import (
     partial_trace,
     state_fidelity,

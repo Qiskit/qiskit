@@ -28,13 +28,13 @@ def _identity_op(num_qubits):
     )
 
 
+# This code is essentially copy-pasted from commutative_analysis.py.
+# This code cleverly hashes commutativity and non-commutativity results between DAG nodes and seems
+# quite efficient for large Clifford circuits.
+# They may be other possible efficiency improvements: using rule-based commutativity analysis,
+# evicting from the cache less useful entries, etc.
 class CommutationChecker:
-    """This code is essentially copy-pasted from commutative_analysis.py.
-    This code cleverly hashes commutativity and non-commutativity results between DAG nodes and seems
-    quite efficient for large Clifford circuits.
-    They may be other possible efficiency improvements: using rule-based commutativity analysis,
-    evicting from the cache less useful entries, etc.
-    """
+    """Checks if two Operations commute."""
 
     def __init__(self):
         super().__init__()
