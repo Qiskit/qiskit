@@ -1686,7 +1686,7 @@ class QuantumCircuit:
                     bit_labels[clbit],
                 )
             elif operation.name == "reset":
-                string_temp += f"reset {bit_labels[instruction.qubits[0]]}\n"
+                string_temp += f"reset {bit_labels[instruction.qubits[0]]};\n"
             elif operation.name == "barrier":
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 string_temp += "barrier;\n" if not qargs else f"barrier {qargs};\n"
