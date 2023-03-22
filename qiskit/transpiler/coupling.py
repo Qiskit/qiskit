@@ -23,6 +23,7 @@ import math
 from typing import List
 import warnings
 
+import numpy as np
 import rustworkx as rx
 from rustworkx.visualization import graphviz_draw
 
