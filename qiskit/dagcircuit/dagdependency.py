@@ -19,6 +19,7 @@ from collections import OrderedDict, defaultdict
 
 import rustworkx as rx
 
+from qiskit.circuit.controlflow.condition import condition_bits
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
@@ -656,6 +657,9 @@ class DAGDependency:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
+            cond = getattr(nd.op, "condition", None)
+            if cond is not None:
+                block_cargs.update(condition_bits(cond))
 
         # Create replacement node
         new_node = self._create_op_node(

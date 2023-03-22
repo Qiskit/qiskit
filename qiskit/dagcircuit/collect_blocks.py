@@ -14,7 +14,8 @@
 """Various ways to divide a DAG into blocks of nodes, to split blocks of nodes
 into smaller sub-blocks, and to consolidate blocks."""
 
-from qiskit.circuit import QuantumCircuit, CircuitInstruction
+from qiskit.circuit import QuantumCircuit, CircuitInstruction, Clbit
+from qiskit.circuit.controlflow.condition import condition_bits
 from . import DAGOpNode, DAGCircuit, DAGDependency
 from .exceptions import DAGCircuitError
 
@@ -261,9 +262,10 @@ class BlockCollapser:
             # than the set of all qubits/clbits).
             cur_qubits = set()
             cur_clbits = set()
+
             for node in block:
                 cur_qubits.update(node.qargs)
-                cur_clbits.update(node.cargs)
+                cur_clbits.update(_get_node_cargs(node))
 
             # For reproducibility, order these qubits/clbits compatibly with the global order.
             sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
@@ -273,11 +275,17 @@ class BlockCollapser:
             wire_pos_map = {qb: ix for ix, qb in enumerate(sorted_qubits)}
             wire_pos_map.update({qb: ix for ix, qb in enumerate(sorted_clbits)})
 
-            qc = QuantumCircuit(len(cur_qubits), len(cur_clbits))
+            qc = QuantumCircuit(sorted_qubits, sorted_clbits)
             for node in block:
-                remapped_qubits = [wire_pos_map[qarg] for qarg in node.qargs]
-                remapped_clbits = [wire_pos_map[carg] for carg in node.cargs]
-                qc.append(CircuitInstruction(node.op, remapped_qubits, remapped_clbits))
+                instructions = qc.append(CircuitInstruction(node.op, node.qargs, node.cargs))
+                cond = getattr(node.op, "condition", None)
+                if cond is not None:
+                    if not isinstance(cond[0], Clbit):
+                        raise DAGCircuitError(
+                            "Conditional gates must be conditioned on individual Clbits, "
+                            "not ClassicalRegisters to be able to collapse."
+                        )
+                    instructions.c_if(*cond)
 
             # Collapse this quantum circuit into an operation.
             op = collapse_fn(qc)
@@ -286,3 +294,14 @@ class BlockCollapser:
             # (the function replace_block_with_op is implemented both in DAGCircuit and DAGDependency).
             self.dag.replace_block_with_op(block, op, wire_pos_map, cycle_check=False)
         return self.dag
+
+
+def _get_node_cargs(node):
+    """Get cargs for possibly conditional node"""
+    # Fix because DAG circuits hide conditional node cargs in
+    # node.op.condition
+    cargs = set(node.cargs)
+    cond = getattr(node.op, "condition", None)
+    if cond is not None:
+        cargs.update(condition_bits(cond))
+    return cargs

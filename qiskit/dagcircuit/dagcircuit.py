@@ -30,6 +30,7 @@ import numpy as np
 import rustworkx as rx
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp
+from qiskit.circuit.controlflow.condition import condition_bits
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -1135,6 +1136,9 @@ class DAGCircuit:
         for nd in node_block:
             block_qargs |= set(nd.qargs)
             block_cargs |= set(nd.cargs)
+            cond = getattr(nd.op, "condition", None)
+            if cond is not None:
+                block_cargs.update(condition_bits(cond))
 
         # Create replacement node
         new_node = DAGOpNode(
