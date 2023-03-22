@@ -395,11 +395,8 @@ class DAGDependency:
                 #   (1) cindices_list are specific to template optimization and should not be computed
                 #       in this place.
                 #   (2) Template optimization pass needs currently does not handle general conditions.
-                if isinstance(operation.condition[0], Clbit):
-                    condition_bits = [operation.condition[0]]
-                else:
-                    condition_bits = operation.condition[0]
-                cindices_list = [self.clbits.index(clbit) for clbit in condition_bits]
+                cond_bits = condition_bits(operation.condition)
+                cindices_list = [self.clbits.index(clbit) for clbit in cond_bits]
             else:
                 cindices_list = []
         else:
