@@ -140,7 +140,6 @@ def mcsu2_real_diagonal(
 
         # S gate definition
         s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
-        print(s_op)
 
     s_gate = UnitaryGate(s_op)
 
