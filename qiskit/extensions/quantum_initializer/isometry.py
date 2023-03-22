@@ -14,7 +14,6 @@
 # pylint: disable=unused-variable
 # pylint: disable=missing-param-doc
 # pylint: disable=missing-type-doc
-# pylint: disable=no-member
 
 """
 Generic isometries from m to n qubits.

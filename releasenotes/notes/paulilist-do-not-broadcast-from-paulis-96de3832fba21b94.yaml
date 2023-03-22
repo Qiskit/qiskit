@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    A bug has been fixed which had allowed broadcasting when a
+    :class:`.PauliList` is initialized from :class:`.Pauli`\ s or labels.  For
+    instance, the code ``PauliList(["XXX", "Z"])`` now raises a
+    ``ValueError`` rather than constructing the equivalent of
+    ``PauliList(["XXX", "ZZZ"])``.

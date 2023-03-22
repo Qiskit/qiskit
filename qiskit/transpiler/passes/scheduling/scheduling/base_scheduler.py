@@ -55,7 +55,7 @@ class BaseScheduler(AnalysisPass):
                 "The output of previous scheduling pass will be overridden.",
                 UserWarning,
             )
-        self.property_set["node_start_time"] = dict()
+        self.property_set["node_start_time"] = {}
 
     @staticmethod
     def _get_node_duration(
