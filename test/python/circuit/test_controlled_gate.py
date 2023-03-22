@@ -621,9 +621,7 @@ class TestControlledGate(QiskitTestCase):
                     use_basis_gates=use_basis_gates,
                 )
             else:  # case 'x' or 'z' only support the noancilla mode and do not have this keyword
-                getattr(qc, "mcr" + base_gate_name)(
-                    theta, q_controls, q_target[0], use_basis_gates=use_basis_gates
-                )
+                getattr(qc, "mcr" + base_gate_name)(theta, q_controls, q_target[0])
 
             for idx, bit in enumerate(bitstr):
                 if bit == "0":
@@ -637,7 +635,7 @@ class TestControlledGate(QiskitTestCase):
             elif base_gate_name == "y":
                 rot_mat = RYGate(theta).to_matrix()
             else:  # case 'z'
-                rot_mat = U1Gate(theta).to_matrix()
+                rot_mat = RZGate(theta).to_matrix()
 
             expected = _compute_control_matrix(rot_mat, num_controls, ctrl_state=ctrl_state)
             with self.subTest(msg=f"control state = {ctrl_state}"):

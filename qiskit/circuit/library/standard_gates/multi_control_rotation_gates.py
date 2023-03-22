@@ -130,13 +130,18 @@ def mcsu2_real_diagonal(
         x = -unitary[0, 1].real
         z = unitary[1, 1] - unitary[0, 1].imag * 1.0j
 
-    alpha_r = np.sqrt((np.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
-    alpha_i = z.imag / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
-    alpha = alpha_r + 1.0j * alpha_i
-    beta = x / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+    if np.isclose(z, -1):
+        s_op = [[1.0, 0.0], [0.0, 1.0j]]
+    else:
+        alpha_r = np.sqrt((np.sqrt((z.real + 1.0) / 2.0) + 1.0) / 2.0)
+        alpha_i = z.imag / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
+        alpha = alpha_r + 1.0j * alpha_i
+        beta = x / (2.0 * np.sqrt((z.real + 1.0) * (np.sqrt((z.real + 1.0) / 2.0) + 1.0)))
 
-    # S gate definition
-    s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
+        # S gate definition
+        s_op = np.array([[alpha, -np.conj(beta)], [beta, np.conj(alpha)]])
+        print(s_op)
+
     s_gate = UnitaryGate(s_op)
 
     num_ctrl = len(controls)
@@ -308,11 +313,7 @@ def mcry(
 
 
 def mcrz(
-    self,
-    lam: ParameterValueType,
-    q_controls: Union[QuantumRegister, List[Qubit]],
-    q_target: Qubit,
-    use_basis_gates: bool = False,
+    self, lam: ParameterValueType, q_controls: Union[QuantumRegister, List[Qubit]], q_target: Qubit
 ):
     """
     Apply Multiple-Controlled Z rotation gate
@@ -322,11 +323,12 @@ def mcrz(
         lam (float): angle lambda
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
-        use_basis_gates (bool): use p, u, cx
 
     Raises:
         QiskitError: parameter errors
     """
+    from .rz import CRZGate, RZGate
+
     control_qubits = self.qbit_argument_conversion(q_controls)
     target_qubit = self.qbit_argument_conversion(q_target)
     if len(target_qubit) != 1:
@@ -336,13 +338,11 @@ def mcrz(
     self._check_dups(all_qubits)
 
     n_c = len(control_qubits)
-    if n_c == 1:  # cu
-        _apply_cu(self, 0, 0, lam, control_qubits[0], target_qubit, use_basis_gates=use_basis_gates)
+    if n_c == 1:
+        self.compose(CRZGate(lam), control_qubits + [target_qubit], inplace=True)
     else:
-        lam_step = lam * (1 / (2 ** (n_c - 1)))
-        _apply_mcu_graycode(
-            self, 0, 0, lam_step, control_qubits, target_qubit, use_basis_gates=use_basis_gates
-        )
+        # self.append(u1_gate.control(n_c), control_qubits + [target_qubit])
+        mcsu2_real_diagonal(self, RZGate(lam).to_matrix(), control_qubits, target_qubit)
 
 
 QuantumCircuit.mcrx = mcrx
