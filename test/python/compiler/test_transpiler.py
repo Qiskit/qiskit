@@ -69,6 +69,7 @@ from qiskit.tools import parallel
 from qiskit.pulse import InstructionScheduleMap
 from qiskit.providers.backend import BackendV2
 from qiskit.providers.options import Options
+from qiskit.test import slow_test
 
 
 class CustomCX(Gate):
@@ -2109,6 +2110,8 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             self.assertIn(qubits, self.backend.target[op_name])
 
     # Add level 0 and 1 when TrivialLayout supports disjoint coupling maps
+    # Tagged as slow until #9834 is fixed
+    @slow_test
     @data(2, 3)
     def test_six_component_circuit(self, opt_level):
         """Test input circuit with more than 1 component per backend component."""
