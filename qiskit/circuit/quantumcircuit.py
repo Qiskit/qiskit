@@ -1295,7 +1295,7 @@ class QuantumCircuit:
 
     def _append(
         self,
-        instruction,
+        instruction: CircuitInstruction | Instruction,
         qargs: Sequence[Qubit] | None = None,
         cargs: Sequence[Clbit] | None = None,
     ):
