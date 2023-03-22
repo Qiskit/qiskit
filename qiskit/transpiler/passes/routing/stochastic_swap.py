@@ -28,6 +28,7 @@ from qiskit.transpiler.target import Target
 from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp, Instruction
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 from qiskit._accelerate import nlayout
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 from .utils import get_swap_map_dag
 
@@ -103,6 +104,8 @@ class StochasticSwap(TransformationPass):
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
+
+        disjoint_utils.check_layout_isolated_to_component(dag, self.coupling_map)
 
         self.rng = np.random.default_rng(self.seed)
 

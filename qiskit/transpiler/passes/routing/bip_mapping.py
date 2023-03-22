@@ -24,6 +24,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
 from qiskit.transpiler.target import target_to_backend_properties, Target
 from qiskit.utils.deprecation import deprecate_func
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 logger = logging.getLogger(__name__)
 
@@ -166,6 +167,7 @@ class BIPMapping(TransformationPass):
                 "BIPMapping requires the number of virtual and physical qubits to be the same. "
                 "Supply 'qubit_subset' to specify physical qubits to use."
             )
+        disjoint_utils.check_layout_isolated_to_component(dag, self.coupling_map)
 
         original_dag = dag
 
