@@ -111,6 +111,14 @@ class CouplingTest(QiskitTestCase):
         ans = [(1, 2), (3, 2), (0, 1)]
         self.assertEqual(set(out), set(ans))
 
+    def test_failed_reduced_map(self):
+        """Generate a bad disconnected reduced map"""
+        fake = FakeRueschlikon()
+        cmap = fake.configuration().coupling_map
+        coupling_map = CouplingMap(cmap)
+        with self.assertRaises(CouplingError):
+            coupling_map.reduce([12, 11, 10, 3])
+
     def test_symmetric_small_true(self):
         coupling_list = [[0, 1], [1, 0]]
         coupling = CouplingMap(coupling_list)

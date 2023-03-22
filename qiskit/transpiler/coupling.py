@@ -283,6 +283,10 @@ class CouplingMap:
         Raises:
             CouplingError: Reduced coupling map must be connected.
         """
+
+        from scipy.sparse import coo_matrix, csgraph
+
+        reduced_qubits = len(mapping)
         inv_map = [None] * (max(mapping) + 1)
         for idx, val in enumerate(mapping):
             inv_map[val] = idx
@@ -292,6 +296,16 @@ class CouplingMap:
         for edge in self.get_edges():
             if edge[0] in mapping and edge[1] in mapping:
                 reduced_cmap.append([inv_map[edge[0]], inv_map[edge[1]]])
+
+        # Verify coupling_map is connected
+        rows = np.array([edge[0] for edge in reduced_cmap], dtype=int)
+        cols = np.array([edge[1] for edge in reduced_cmap], dtype=int)
+        data = np.ones_like(rows)
+
+        mat = coo_matrix((data, (rows, cols)), shape=(reduced_qubits, reduced_qubits)).tocsr()
+
+        if csgraph.connected_components(mat)[0] != 1:
+            raise CouplingError("coupling_map must be connected.")
 
         return CouplingMap(reduced_cmap)
 
