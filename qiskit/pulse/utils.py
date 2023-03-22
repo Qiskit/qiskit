@@ -13,6 +13,7 @@
 """Module for common pulse programming utilities."""
 import functools
 from typing import List, Dict, Union
+import warnings
 
 import numpy as np
 
@@ -65,6 +66,19 @@ def format_parameter_value(
             evaluated = float(evaluated.real)
             if evaluated.is_integer():
                 evaluated = int(evaluated)
+        else:
+            warnings.warn(
+                "Assignment of complex values to ParameterExpression in Qiskit Pulse objects is "
+                "now pending deprecation. This will align the Pulse module with other modules "
+                "where such assignment wasn't possible to begin with. The typical use case for complex "
+                "parameters in the module was the SymbolicPulse library. As of Qiskit-Terra "
+                "0.23.0 all library pulses were converted from complex amplitude representation"
+                " to real representation using two floats (amp,angle), as used in the "
+                "ScalableSymbolicPulse class. This eliminated the need for complex parameters. "
+                "Any use of complex parameters (and particularly custom-built pulses) should be "
+                "converted in a similar fashion to avoid the use of complex parameters.",
+                PendingDeprecationWarning,
+            )
 
         return evaluated
     except TypeError:
@@ -98,7 +112,10 @@ def instruction_duration_validation(duration: int):
         )
 
 
-@deprecate_function("Deprecated since Terra 0.22.0. Use 'qiskit.utils.deprecate_function' instead.")
+@deprecate_function(
+    "Deprecated since Terra 0.22.0. Use 'qiskit.utils.deprecate_function' instead.",
+    since="0.22.0",
+)
 def deprecated_functionality(func):
     """A decorator that raises deprecation warning without showing alternative method."""
     return deprecate_function(
@@ -108,4 +125,5 @@ def deprecated_functionality(func):
         "an issue in Qiskit/qiskit-terra repository.",
         category=DeprecationWarning,
         stacklevel=2,
+        since="0.22.0",
     )(func)

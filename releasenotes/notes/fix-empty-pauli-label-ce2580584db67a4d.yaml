@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an edge case in the construction of :class:`.Pauli` instances; a string with an optional
+    phase and no qubits is now a valid label, making an operator with no qubits (such as
+    ``Pauli("-i")``).  This was already possible when using the array forms, or empty slices.
+    Fixed `#9720 <https://github.com/Qiskit/qiskit-terra/issues/9720>`__.

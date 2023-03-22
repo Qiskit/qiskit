@@ -15,13 +15,12 @@
 from os.path import basename, isfile
 from typing import Callable, Optional
 
-from tweedledum import BitVec, BoolFunction  # pylint: disable=import-error
-from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
-
 from qiskit.circuit import QuantumCircuit
+from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from .classical_element import ClassicalElement
 
 
+@HAS_TWEEDLEDUM.require_in_instance
 class BooleanExpression(ClassicalElement):
     """The Boolean Expression gate."""
 
@@ -34,6 +33,8 @@ class BooleanExpression(ClassicalElement):
             var_order(list): A list with the order in which variables will be created.
                (default: by appearance)
         """
+
+        from tweedledum import BoolFunction  # pylint: disable=import-error
 
         self._tweedledum_bool_expression = BoolFunction.from_expression(
             expression, var_order=var_order
@@ -57,6 +58,8 @@ class BooleanExpression(ClassicalElement):
         Returns:
             bool: result of the evaluation.
         """
+        from tweedledum import BitVec  # pylint: disable=import-error
+
         bits = []
         for bit in bitstring:
             bits.append(BitVec(1, bit))
@@ -85,6 +88,7 @@ class BooleanExpression(ClassicalElement):
 
         if synthesizer is None:
             from .utils import tweedledum2qiskit  # Avoid an import cycle
+            from tweedledum.synthesis import pkrm_synth  # pylint: disable=import-error
 
             truth_table = self._tweedledum_bool_expression.truth_table(output_bit=0)
             return tweedledum2qiskit(pkrm_synth(truth_table), name=self.name, qregs=qregs)
@@ -107,6 +111,8 @@ class BooleanExpression(ClassicalElement):
             FileNotFoundError: If filename is not found.
         """
 
+        from tweedledum import BoolFunction  # pylint: disable=import-error
+
         expr_obj = cls.__new__(cls)
         if not isfile(filename):
             raise FileNotFoundError("The file %s does not exists." % filename)
@@ -116,7 +122,7 @@ class BooleanExpression(ClassicalElement):
             expr_obj._tweedledum_bool_expression.num_inputs()
             + expr_obj._tweedledum_bool_expression.num_outputs()
         )
-        super(BooleanExpression, expr_obj).__init__(  # pylint: disable=no-value-for-parameter
+        super(BooleanExpression, expr_obj).__init__(
             name=basename(filename), num_qubits=num_qubits, params=[]
         )
         return expr_obj

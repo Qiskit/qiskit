@@ -190,6 +190,11 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
         base_x = np.zeros((num_paulis, num_qubits), dtype=bool)
         base_phase = np.zeros(num_paulis, dtype=int)
         for i, pauli in enumerate(paulis):
+            if pauli.num_qubits != num_qubits:
+                raise ValueError(
+                    f"The {i}th Pauli is defined over {pauli.num_qubits} qubits, "
+                    f"but num_qubits == {num_qubits} was expected."
+                )
             base_z[i] = pauli._z
             base_x[i] = pauli._x
             base_phase[i] = pauli._phase
@@ -720,7 +725,6 @@ class PauliList(BasePauli, LinearMixin, GroupMixin):
             )
         return PauliList(super().compose(other, qargs=qargs, front=front, inplace=inplace))
 
-    # pylint: disable=arguments-differ
     def dot(self, other, qargs=None, inplace=False):
         """Return the composition other∘self for each Pauli in the list.
 
