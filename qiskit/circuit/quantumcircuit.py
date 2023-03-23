@@ -478,7 +478,9 @@ class QuantumCircuit:
         # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
 
-        return circuit_to_dag(self) == circuit_to_dag(other)
+        return circuit_to_dag(self, copy_operations=False) == circuit_to_dag(
+            other, copy_operations=False
+        )
 
     @classmethod
     def _increment_instances(cls):
