@@ -18,11 +18,12 @@ import uuid
 
 import rustworkx as rx
 
-from qiskit.circuit import Qubit, Barrier
+from qiskit.circuit import Qubit, Barrier, Clbit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
-from qiskit.dagcircuit.dagnode import DAGInNode, DAGOpNode, DAGOutNode
+from qiskit.dagcircuit.dagnode import DAGOutNode
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.passes.layout import vf2_utils
 
 T = TypeVar("T")
 
@@ -124,41 +125,28 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
     """Separate a dag circuit into it's connected components."""
     # Split barriers into single qubit barrieries before connected components
     split_barriers(dag)
-    connected_components = rx.weakly_connected_components(dag._multi_graph)
-    disconnected_subgraphs = []
-    for components in connected_components:
-        disconnected_subgraphs.append(dag._multi_graph.subgraph(list(components)))
+    im_graph, _, qubit_map, __ = vf2_utils.build_interaction_graph(dag)
+    connected_components = rx.weakly_connected_components(im_graph)
+    component_qubits = []
+    for component in connected_components:
+        component_qubits.append(set(qubit_map[x] for x in component))
 
-    def _key(x):
-        return x.sort_key
+    qubits = set(dag.qubits)
 
     decomposed_dags = []
-    for subgraph in disconnected_subgraphs:
+    for component_qubits in component_qubits:
         new_dag = dag.copy_empty_like()
+        new_dag.remove_qubits(*qubits - component_qubits)
         new_dag.global_phase = 0
-        subgraph_is_classical = True
-        for node in rx.lexicographical_topological_sort(subgraph, key=_key):
-            if isinstance(node, DAGInNode):
-                if isinstance(node.wire, Qubit):
-                    subgraph_is_classical = False
-            if not isinstance(node, DAGOpNode):
-                continue
-            new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
-            # Ignore DAGs created for empty clbits
-            if not subgraph_is_classical:
-                continue
-        idle_qubits = []
+        for node in dag.topological_op_nodes():
+            if node.qargs[0] in component_qubits:
+                new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
         idle_clbits = []
         for bit, node in new_dag.input_map.items():
             succ_node = next(new_dag.successors(node))
-            if isinstance(succ_node, DAGOutNode):
-                if isinstance(succ_node.wire, Qubit):
-                    idle_qubits.append(bit)
-                else:
-                    idle_clbits.append(bit)
-        new_dag.remove_qubits(*idle_qubits)
+            if isinstance(succ_node, DAGOutNode) and isinstance(succ_node.wire, Clbit):
+                idle_clbits.append(bit)
         new_dag.remove_clbits(*idle_clbits)
         combine_barriers(new_dag)
         decomposed_dags.append(new_dag)
-
     return decomposed_dags

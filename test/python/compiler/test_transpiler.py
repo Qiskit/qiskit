@@ -2166,3 +2166,39 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             if op_name == "barrier":
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
+
+    @data(2, 3)
+    def test_shared_classical_between_components_condition(self, opt_level):
+        """Test a condition sharing classical bits between components."""
+        creg = ClassicalRegister(19)
+        qc = QuantumCircuit(25)
+        qc.add_register(creg)
+        qc.h(0)
+        for i in range(18):
+            qc.cx(0, i + 1)
+        for i in range(18):
+            qc.measure(i, creg[i])
+
+        qc.ecr(20, 21).c_if(creg, 0)
+        tqc = transpile(qc, self.backend, optimization_level=opt_level)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(
+                    self.backend.target.instruction_supported(instruction.operation.name, qargs)
+                )
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
