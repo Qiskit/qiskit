@@ -16,6 +16,7 @@ import io
 import os
 import sys
 import math
+import unittest
 
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
@@ -2177,6 +2178,50 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.h(3)
         qc.cz(3, 4)
         qc.cz(3, 5)
+        target = self.backend.target
+        target.add_instruction(Reset(), {(i,): None for i in range(target.num_qubits)})
+        target.add_instruction(IfElseOp, name="if_else")
+        tqc = transpile(qc, target=target)
+        edges = set(target.build_coupling_map().graph.edge_list())
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(target.instruction_supported(instruction.operation.name, qargs))
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+                elif len(qargs) == 2:
+                    self.assertIn(qargs, edges)
+                self.assertIn(instruction.operation.name, target)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
+
+    @unittest.skip("Skip until separate_dag() works only considering the classical component")
+    def test_disjoint_control_flow_shared_classical(self):
+        """Test circuit with classical data dependency between conencted components."""
+        creg = ClassicalRegister(19)
+        qc = QuantumCircuit(25)
+        qc.add_register(creg)
+        qc.h(0)
+        for i in range(19):
+            qc.cx(0, i + 1)
+            qc.measure(i, creg[i])
+        with qc.if_test((creg, 0)):
+            qc.h(20)
+            qc.ecr(20, 21)
+            qc.ecr(20, 22)
+            qc.ecr(20, 23)
+            qc.ecr(20, 24)
         target = self.backend.target
         target.add_instruction(Reset(), {(i,): None for i in range(target.num_qubits)})
         target.add_instruction(IfElseOp, name="if_else")
