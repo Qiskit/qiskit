@@ -35,6 +35,10 @@ The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` from whi
     qc.cx(0,1)
     qc.measure_all()
 
+.. note::
+
+    The :class:`~qiskit.circuit.QuantumCircuit` has to include measurements.
+
 Initialize the ``Sampler``
 ==========================
 

@@ -46,6 +46,10 @@ Then you need to create the :class:`~qiskit.circuit.QuantumCircuit` for which yo
     qc.h(0)
     qc.cx(0,1)
 
+.. note::
+
+    The :class:`~qiskit.circuit.QuantumCircuit` can't include any measurements.
+
 Initialize the ``Estimator``
 ============================
 
