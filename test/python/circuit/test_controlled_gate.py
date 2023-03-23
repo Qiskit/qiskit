@@ -142,10 +142,10 @@ class TestControlledGate(QiskitTestCase):
         )
 
         self.assertEqual(
-            CCXGate(theta).control(2, ctrl_state="01"), CRYGate(theta).control(2, ctrl_state=1)
+            CCXGate().control(2, ctrl_state="01"), CCXGate().control(2, ctrl_state=1)
         )
         self.assertEqual(
-            CCXGate(theta).control(2, ctrl_state=None), CRYGate(theta).control(2, ctrl_state=3)
+            CCXGate().control(2, ctrl_state=None), CCXGate().control(2, ctrl_state=3)
         )
 
     def test_controlled_ry(self):
