@@ -10,7 +10,7 @@ fixes:
     did not scale with the rest of the image. This has been fixed and all
     elements of the circuit diagram now scale properly. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
         circuit = QuantumCircuit(2)

@@ -15,6 +15,8 @@
 Circuit Synthesis (:mod:`qiskit.synthesis`)
 ===========================================
 
+.. automodule:: qiskit.synthesis.discrete_basis
+
 .. currentmodule:: qiskit.synthesis
 
 Evolution Synthesis
@@ -29,6 +31,43 @@ Evolution Synthesis
    SuzukiTrotter
    MatrixExponential
 
+Linear Function Synthesis
+=========================
+.. autosummary::
+   :toctree: ../stubs/
+
+    synth_cnot_count_full_pmh
+    synth_cnot_depth_line_kms
+
+Permutation Synthesis
+=====================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_permutation_depth_lnn_kms
+
+Clifford Synthesis
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_clifford_full
+   synth_clifford_ag
+   synth_clifford_bm
+   synth_clifford_greedy
+
+CNOTDihedral Synthesis
+=======================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   synth_cnotdihedral_full
+   synth_cnotdihedral_two_qubits
+   synth_cnotdihedral_general
+
 """
 
 from .evolution import (
@@ -38,4 +77,18 @@ from .evolution import (
     SuzukiTrotter,
     MatrixExponential,
     QDrift,
+)
+
+from .linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
+from .permutation import synth_permutation_depth_lnn_kms
+from .clifford import (
+    synth_clifford_full,
+    synth_clifford_ag,
+    synth_clifford_bm,
+    synth_clifford_greedy,
+)
+from .cnotdihedral import (
+    synth_cnotdihedral_full,
+    synth_cnotdihedral_two_qubits,
+    synth_cnotdihedral_general,
 )

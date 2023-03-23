@@ -33,31 +33,35 @@ class Permutation(QuantumCircuit):
 
         Args:
             num_qubits: circuit width.
-            pattern: permutation pattern. If None, permute randomly.
+            pattern: permutation pattern, describing which qubits occupy the
+                positions 0, 1, 2, etc. after applying the permutation, that
+                is ``pattern[k] = m`` when the permutation maps qubit ``m``
+                to position ``k``. As an example, the pattern ``[2, 4, 3, 0, 1]``
+                means that qubit ``2`` goes to position ``0``, qubit ``4``
+                goes to the position ``1``, etc. The pattern can also be ``None``,
+                in which case a random permutation over ``num_qubits`` is
+                created.
             seed: random seed in case a random permutation is requested.
 
         Raises:
             CircuitError: if permutation pattern is malformed.
 
         Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit.library import Permutation
-                import qiskit.tools.jupyter
-                A = [2,4,3,0,1]
-                circuit = Permutation(5, A)
-                circuit.draw('mpl')
+               from qiskit.circuit.library import Permutation
+               A = [2,4,3,0,1]
+               circuit = Permutation(5, A)
+               circuit.draw('mpl')
 
         Expanded Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit.library import Permutation
-                import qiskit.tools.jupyter
-                A = [2,4,3,0,1]
-                circuit = Permutation(5, A)
-                %circuit_library_info circuit.decompose()
+               from qiskit.circuit.library import Permutation
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               A = [2,4,3,0,1]
+               circuit = Permutation(5, A)
+               _generate_circuit_library_visualization(circuit.decompose())
         """
         if pattern is not None:
             if sorted(pattern) != list(range(num_qubits)):
@@ -75,24 +79,12 @@ class Permutation(QuantumCircuit):
         circuit = QuantumCircuit(num_qubits, name=name)
 
         super().__init__(num_qubits, name=name)
+
+        # pylint: disable=cyclic-import
+        from qiskit.synthesis.permutation.permutation_utils import _get_ordered_swap
+
         for i, j in _get_ordered_swap(pattern):
             circuit.swap(i, j)
 
         all_qubits = self.qubits
         self.append(circuit.to_gate(), all_qubits)
-
-
-def _get_ordered_swap(permutation_in):
-    """This attempts to sort the input permutation by iterating through the
-    permutation list and swapping the element with where the actual index occurs and
-    and tracking the swaps.
-    """
-    permutation = list(permutation_in[:])
-    swap_list = []
-    for i, val in enumerate(permutation):
-        if val != i:
-            j = permutation.index(i)
-            swap_list.append((i, j))
-            permutation[i], permutation[j] = permutation[j], permutation[i]
-    swap_list.reverse()
-    return swap_list

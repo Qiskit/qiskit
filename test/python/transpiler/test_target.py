@@ -513,6 +513,30 @@ class TestTarget(QiskitTestCase):
         with self.assertRaises(ValueError):
             fake_target.build_coupling_map("ccx")
 
+    def test_coupling_map_mixed_ideal_global_1q_and_2q_gates(self):
+        n_qubits = 3
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        target.add_instruction(RXGate(Parameter("theta")), {None: None})
+        cmap = target.build_coupling_map()
+        self.assertEqual([(0, 1), (1, 2)], cmap.get_edges())
+
+    def test_coupling_map_mixed_global_1q_and_2q_gates(self):
+        n_qubits = 3
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        target.add_instruction(RXGate(Parameter("theta")))
+        cmap = target.build_coupling_map()
+        self.assertEqual([(0, 1), (1, 2)], cmap.get_edges())
+
+    def test_coupling_map_mixed_ideal_global_2q_and_real_2q_gates(self):
+        n_qubits = 3
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        target.add_instruction(ECRGate())
+        cmap = target.build_coupling_map()
+        self.assertIsNone(cmap)
+
     def test_physical_qubits(self):
         self.assertEqual([], self.empty_target.physical_qubits)
         self.assertEqual(list(range(5)), self.ibm_target.physical_qubits)
@@ -1387,6 +1411,16 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
         }
         self.assertEqual(expected_aqt, self.aqt_target.qargs)
         self.assertEqual(None, self.target_global_gates_only.qargs)
+
+    def test_qargs_single_qarg(self):
+        target = Target()
+        target.add_instruction(XGate(), {(0,): None})
+        self.assertEqual(
+            {
+                (0,),
+            },
+            target.qargs,
+        )
 
     def test_qargs_for_operation_name(self):
         self.assertEqual(

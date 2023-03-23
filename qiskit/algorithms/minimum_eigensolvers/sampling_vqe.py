@@ -39,6 +39,9 @@ from .sampling_mes import (
 from ..observables_evaluator import estimate_observables
 from ..utils import validate_initial_point, validate_bounds
 
+# private function as we expect this to be updated in the next released
+from ..utils.set_batching import _set_default_batchsize
+
 
 logger = logging.getLogger(__name__)
 
@@ -95,10 +98,12 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer (Optimizer | Minimizer): A classical optimizer to find the minimum energy. This
             can either be a Qiskit :class:`.Optimizer` or a callable implementing the
             :class:`.Minimizer` protocol.
-        aggregation (float | Callable[[list[float]], float] | None): A float or callable to specify
-            how the objective function evaluated on the basis states should be aggregated. If a
-            float, this specifies the :math:`\alpha \in [0,1]` parameter for a CVaR expectation
-            value [1].
+        aggregation (float | Callable[[list[tuple[float, complex]], float] | None):
+            A float or callable to specify how the objective function evaluated on the basis states
+            should be aggregated. If a float, this specifies the :math:`\alpha \in [0,1]` parameter
+            for a CVaR expectation value [1]. If a callable, it takes a list of basis state
+            measurements specified as  ``[(probability, objective_value)]`` and return an objective
+            value as float. If None, all an ordinary expectation value is calculated.
         callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None): A callback that
             can access the intermediate data at each optimization step. These data are: the
             evaluation count, the optimizer parameters for the ansatz, the evaluated value, and the
@@ -208,9 +213,17 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
             # pylint: disable=not-callable
             optimizer_result = self.optimizer(fun=evaluate_energy, x0=initial_point, bounds=bounds)
         else:
+            # we always want to submit as many estimations per job as possible for minimal
+            # overhead on the hardware
+            was_updated = _set_default_batchsize(self.optimizer)
+
             optimizer_result = self.optimizer.minimize(
                 fun=evaluate_energy, x0=initial_point, bounds=bounds
             )
+
+            # reset to original value
+            if was_updated:
+                self.optimizer.set_max_evals_grouped(None)
 
         optimizer_time = time() - start_time
 
@@ -281,7 +294,9 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
                 ):
                     best_measurement["best"] = best_i
 
-        estimator = _DiagonalEstimator(sampler=self.sampler, callback=store_best_measurement)
+        estimator = _DiagonalEstimator(
+            sampler=self.sampler, callback=store_best_measurement, aggregation=self.aggregation
+        )
 
         def evaluate_energy(parameters):
             nonlocal eval_count
@@ -314,7 +329,7 @@ class SamplingVQE(VariationalAlgorithm, SamplingMinimumEigensolver):
         optimizer_result: OptimizerResult,
         aux_operators_evaluated: ListOrDict[tuple[complex, tuple[complex, int]]],
         best_measurement: dict[str, Any],
-        final_state: list[QuasiDistribution],
+        final_state: QuasiDistribution,
         optimizer_time: float,
     ) -> SamplingVQEResult:
         result = SamplingVQEResult()
