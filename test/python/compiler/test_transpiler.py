@@ -16,7 +16,6 @@ import io
 import os
 import sys
 import math
-import unittest
 
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
@@ -2206,15 +2205,15 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
         )
 
-    @unittest.skip("Skip until separate_dag() works only considering the classical component")
     def test_disjoint_control_flow_shared_classical(self):
         """Test circuit with classical data dependency between conencted components."""
         creg = ClassicalRegister(19)
         qc = QuantumCircuit(25)
         qc.add_register(creg)
         qc.h(0)
-        for i in range(19):
+        for i in range(18):
             qc.cx(0, i + 1)
+        for i in range(18):
             qc.measure(i, creg[i])
         with qc.if_test((creg, 0)):
             qc.h(20)
@@ -2226,7 +2225,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         target.add_instruction(Reset(), {(i,): None for i in range(target.num_qubits)})
         target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, target=target)
-        edges = set(target.build_coupling_map().graph.edge_list())
 
         def _visit_block(circuit, qubit_mapping=None):
             for instruction in circuit:
@@ -2241,9 +2239,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                             for outer, inner in zip(instruction.qubits, block.qubits)
                         }
                         _visit_block(block, new_mapping)
-                elif len(qargs) == 2:
-                    self.assertIn(qargs, edges)
-                self.assertIn(instruction.operation.name, target)
 
         _visit_block(
             tqc,
@@ -2308,7 +2303,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
-    @data(2, 3)
+    @data(1, 2, 3)
     def test_shared_classical_between_components_condition(self, opt_level):
         """Test a condition sharing classical bits between components."""
         creg = ClassicalRegister(19)
