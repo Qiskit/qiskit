@@ -14,7 +14,7 @@
 
 import math
 
-from ddt import ddt, data
+from ddt import ddt, data, unpack
 
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Clbit, ClassicalRegister, Instruction, Parameter, QuantumCircuit, Qubit
@@ -371,6 +371,18 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         self.assertEqual(op.cases(), {0: case1, 1: case2, 2: case2})
         self.assertEqual(list(op.blocks), [case1, case2])
 
+    def test_switch_reconstruction(self):
+        """Test that the `cases_specifier` method can be used to reconstruct an equivalent op."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2)
+        case1 = QuantumCircuit([qubit], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit], creg)
+        case2.y(0)
+
+        base = SwitchCaseOp(creg, [(0, case1), ((1, 2), case2)])
+        self.assertEqual(base, SwitchCaseOp(creg, base.cases_specifier()))
+
     def test_switch_rejects_separate_cases_to_same_block(self):
         """Test that the switch statement rejects cases that are supplied separately, but point to
         the same QuantumCircuit."""
@@ -381,7 +393,7 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
         case2 = QuantumCircuit([qubit], creg)
         case2.y(0)
 
-        with self.assertRaisesRegex(CircuitError, "separate cases cannot point to the same block"):
+        with self.assertRaisesRegex(CircuitError, "ungrouped cases cannot point to the same block"):
             SwitchCaseOp(creg, [(0, case1), (1, case2), (2, case1)])
 
     def test_switch_rejects_cases_over_different_bits(self):
@@ -430,6 +442,54 @@ class TestCreatingControlFlowOperations(QiskitTestCase):
 @ddt
 class TestAddingControlFlowOperations(QiskitTestCase):
     """Tests of instruction subclasses for dynamic QuantumCircuits."""
+
+    @data(
+        (Clbit(), [False, True]),
+        (ClassicalRegister(3, "test_creg"), [3, 1]),
+        (ClassicalRegister(3, "test_creg"), [0, (1, 2), CASE_DEFAULT]),
+    )
+    @unpack
+    def test_appending_switch_case_op(self, target, labels):
+        """Verify we can append a SwitchCaseOp to a QuantumCircuit."""
+        bodies = [QuantumCircuit(3, 1) for _ in labels]
+
+        op = SwitchCaseOp(target, zip(labels, bodies))
+
+        qc = QuantumCircuit(5, 2)
+        if isinstance(target, ClassicalRegister):
+            qc.add_register(target)
+        else:
+            qc.add_bits([target])
+        qc.append(op, [1, 2, 3], [1])
+
+        self.assertEqual(qc.data[0].operation.name, "switch_case")
+        self.assertEqual(qc.data[0].operation.params, bodies[: len(labels)])
+        self.assertEqual(qc.data[0].operation.condition, None)
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
+
+    @data(
+        (Clbit(), [False, True]),
+        (ClassicalRegister(3, "test_creg"), [3, 1]),
+        (ClassicalRegister(3, "test_creg"), [0, (1, 2), CASE_DEFAULT]),
+    )
+    @unpack
+    def test_appending_switch_case_op(self, target, labels):
+        """Verify we can use the `QuantumCircuit.switch` method."""
+        bodies = [QuantumCircuit(3, 1) for _ in labels]
+
+        qc = QuantumCircuit(5, 2)
+        if isinstance(target, ClassicalRegister):
+            qc.add_register(target)
+        else:
+            qc.add_bits([target])
+        qc.switch(target, zip(labels, bodies), [1, 2, 3], [1])
+
+        self.assertEqual(qc.data[0].operation.name, "switch_case")
+        self.assertEqual(qc.data[0].operation.params, bodies[: len(labels)])
+        self.assertEqual(qc.data[0].operation.condition, None)
+        self.assertEqual(qc.data[0].qubits, tuple(qc.qubits[1:4]))
+        self.assertEqual(qc.data[0].clbits, (qc.clbits[1],))
 
     @data(
         (Clbit(), True),

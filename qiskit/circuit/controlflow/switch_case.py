@@ -113,7 +113,7 @@ class SwitchCaseOp(ControlFlowOp):
             if not isinstance(case_, QuantumCircuit):
                 raise CircuitError("case blocks must be QuantumCircuit instances")
             if id(case_) in case_ids:
-                raise CircuitError("separate cases cannot point to the same block")
+                raise CircuitError("ungrouped cases cannot point to the same block")
             case_ids.add(id(case_))
             if num_qubits is None:
                 num_qubits, num_clbits = case_.num_qubits, case_.num_clbits
@@ -131,7 +131,7 @@ class SwitchCaseOp(ControlFlowOp):
         # that all the labels point the right way as well.
         return super().__eq__(other) and all(
             set(labels_self) == set(labels_other)
-            for (labels_self, _), (labels_other, _) in zip(self._label_spec, other._label_spec)
+            for labels_self, labels_other in zip(self._label_spec, other._label_spec)
         )
 
     def cases_specifier(self) -> Iterable[Tuple[Tuple, QuantumCircuit]]:
