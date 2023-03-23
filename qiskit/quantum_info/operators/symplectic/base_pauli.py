@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,6 +24,10 @@ from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
+
+
+# utility for _to_matrix
+_PARITY = np.array([-1 if bin(i).count("1") % 2 else 1 for i in range(256)], dtype=complex)
 
 
 class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
@@ -392,7 +396,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
     @staticmethod
     def _to_matrix(z, x, phase=0, group_phase=False, sparse=False):
-        """Return the matrix matrix from symplectic representation.
+        """Return the matrix from symplectic representation.
 
         The Pauli is defined as :math:`P = (-i)^{phase + z.x} * Z^z.x^x`
         where ``array = [x, z]``.
@@ -430,7 +434,19 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             coeff = (-1j) ** phase
         else:
             coeff = 1
-        data = np.array([coeff * (-1) ** (bin(i).count("1") % 2) for i in z_indices & indptr])
+
+        # Compute parities of `z_indices & indptr`, i.e.,
+        # np.array([(-1) ** bin(i).count("1") for i in z_indices & indptr])
+        vec_u64 = z_indices & indptr
+        mat_u8 = np.zeros((vec_u64.size, 8), dtype=np.uint8)
+        for i in range(8):
+            mat_u8[:, i] = vec_u64 & 255
+            vec_u64 >>= 8
+            if np.all(vec_u64 == 0):
+                break
+        parity = _PARITY[np.bitwise_xor.reduce(mat_u8, axis=1)]
+
+        data = coeff * parity
         if sparse:
             # Return sparse matrix
             from scipy.sparse import csr_matrix
@@ -439,8 +455,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # Build dense matrix using csr format
         mat = np.zeros((dim, dim), dtype=complex)
-        for i in range(dim):
-            mat[i][indices[indptr[i] : indptr[i + 1]]] = data[indptr[i] : indptr[i + 1]]
+        mat[range(dim), indices[:dim]] = data[:dim]
         return mat
 
     @staticmethod
