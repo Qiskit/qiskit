@@ -2182,15 +2182,28 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         target.add_instruction(IfElseOp, name="if_else")
         tqc = transpile(qc, target=target)
         edges = set(target.build_coupling_map().graph.edge_list())
-        for inst in tqc.data:
-            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
-            op_name = inst.operation.name
-            if op_name == "barrier":
-                continue
-            if op_name == "if_else":
-                self.assertIn(qubits, edges)
-            else:
-                self.assertIn(qubits, self.backend.target[op_name])
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(target.instruction_supported(instruction.operation.name, qargs))
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+                elif len(qargs) == 2:
+                    self.assertIn(qargs, edges)
+                self.assertIn(instruction.operation.name, target)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
 
     # Add level 0 and 1 when TrivialLayout supports disjoint coupling maps
     # Tagged as slow until #9834 is fixed
