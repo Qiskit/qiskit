@@ -78,8 +78,6 @@ Development Environment and install the appropriate package **from source**.
 For a quick guide on how to do this for qiskit-terra take a look at the
 `How to Install Qiskit - Contributors <https://www.youtube.com/watch?v=Pix2MFCtiOo>`__ YouTube video.
 
-You can learn how to install different Qiskit packages from source in the :ref:`install-from-source`.
-
 For non-python packages you should check the CONTRIBUTING.md file for specific details on setting up your dev environment.
 
 Set up Python Virtual Development Environment
@@ -171,7 +169,7 @@ merged in a timely manner.
 - You have followed the requirements in the CONTRIBUTING.md file for the specific repo you are
   contributing to.
 - All CI checks pass (it's recommended to run tests and lint checks locally before pushing).
-- New tests have for any new functionality that has been introduced.
+- New tests have been added for any new functionality that has been introduced.
 - The documentation has been updated accordingly for any new/modified functionality.
 - A release note has been added if the change has a user-facing impact.
 - Any superfluous comments or print statements have been removed.

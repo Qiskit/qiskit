@@ -158,7 +158,7 @@ of the quantum computation. Contrast this with **real-time computation**, where 
 computation occurs within the decoherence time of the quantum device.
 
 Constructing complex quantum circuits with minimal effort is at the heart of Qiskit,
-that support a rich feature set of operations, and can be passed to a range of
+which supports a rich feature set of operations and can send your circuits to a range of
 :ref:`quantum computers <qc-intro-computers>` or classical simulators.
 With only a few lines of code, it is possible to construct complex circuits like the
 one above.
