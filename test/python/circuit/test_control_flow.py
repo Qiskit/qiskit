@@ -474,7 +474,7 @@ class TestAddingControlFlowOperations(QiskitTestCase):
         (ClassicalRegister(3, "test_creg"), [0, (1, 2), CASE_DEFAULT]),
     )
     @unpack
-    def test_appending_switch_case_op(self, target, labels):
+    def test_quantumcircuit_switch(self, target, labels):
         """Verify we can use the `QuantumCircuit.switch` method."""
         bodies = [QuantumCircuit(3, 1) for _ in labels]
 
