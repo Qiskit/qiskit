@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -236,6 +236,20 @@ class TestSparsePauliOpConversions(QiskitTestCase):
         for coeff, label in zip(coeffs, labels):
             target += coeff * pauli_mat(label)
         np.testing.assert_array_equal(spp_op.to_matrix(), target)
+        np.testing.assert_array_equal(spp_op.to_matrix(sparse=True).toarray(), target)
+
+    def test_to_matrix_large(self):
+        """Test to_matrix method with a large number of qubits."""
+        reps = 5
+        labels = ["XI" * reps, "YZ" * reps, "YY" * reps, "ZZ" * reps]
+        coeffs = [-3, 4.4j, 0.2 - 0.1j, 66.12]
+        spp_op = SparsePauliOp(labels, coeffs)
+        size = 1 << 2 * reps
+        target = np.zeros((size, size), dtype=complex)
+        for coeff, label in zip(coeffs, labels):
+            target += coeff * pauli_mat(label)
+        np.testing.assert_array_equal(spp_op.to_matrix(), target)
+        np.testing.assert_array_equal(spp_op.to_matrix(sparse=True).toarray(), target)
 
     def test_to_matrix_parameters(self):
         """Test to_matrix method for parameterized SparsePauliOp."""
