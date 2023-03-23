@@ -107,7 +107,7 @@ class PhaseGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate: Gate = CPhaseGate(self.params[0], label=label, ctrl_state=ctrl_state)
+            gate = CPhaseGate(self.params[0], label=label, ctrl_state=ctrl_state)
         elif ctrl_state is None and num_ctrl_qubits > 1:
             gate = MCPhaseGate(self.params[0], num_ctrl_qubits, label=label)
         else:

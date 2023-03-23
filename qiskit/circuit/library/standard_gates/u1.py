@@ -128,7 +128,7 @@ class U1Gate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate: Gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
+            gate = CU1Gate(self.params[0], label=label, ctrl_state=ctrl_state)
         elif ctrl_state is None and num_ctrl_qubits > 1:
             gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
         else:

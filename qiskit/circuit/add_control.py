@@ -16,6 +16,7 @@ from __future__ import annotations
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
+from ._utils import _ctrl_state_to_int
 
 
 def add_control(
@@ -50,8 +51,6 @@ def add_control(
         Controlled version of gate.
 
     """
-    if ctrl_state is None:
-        ctrl_state = 2**num_ctrl_qubits - 1
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
@@ -91,6 +90,8 @@ def control(
 
     # pylint: disable=cyclic-import
     from qiskit.circuit import controlledgate
+
+    ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
 
     q_control = QuantumRegister(num_ctrl_qubits, name="control")
     q_target = QuantumRegister(operation.num_qubits, name="target")
@@ -217,9 +218,7 @@ def control(
     if isinstance(operation, controlledgate.ControlledGate):
         operation.ctrl_state = original_ctrl_state
         new_num_ctrl_qubits = num_ctrl_qubits + operation.num_ctrl_qubits
-        new_ctrl_state = (
-            operation.ctrl_state << num_ctrl_qubits | ctrl_state
-        )  # TODO: should convert ctrl_state to int
+        new_ctrl_state = operation.ctrl_state << num_ctrl_qubits | ctrl_state
         base_name = operation.base_gate.name
         base_gate = operation.base_gate
     else:
