@@ -43,7 +43,8 @@ def double_commutator(
         a: Operator a.
         b: Operator b.
         c: Operator c.
-        commutator: True commutator, False anti-commutator.
+        commutator: If ``True`` compute the double commutator, 
+            if ``False`` the double anti-commutator.
 
     Returns:
         The double commutator
