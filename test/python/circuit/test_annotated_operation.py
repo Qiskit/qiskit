@@ -14,72 +14,100 @@
 
 import unittest
 
-import numpy as np
-
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import QuantumCircuit, Barrier, Measure, Reset, Gate, Operation
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, InverseModifier, _canonicalize_modifiers
-from qiskit.circuit.library import XGate, CXGate, SGate
-from qiskit.quantum_info.operators import Clifford, CNOTDihedral, Pauli
-from qiskit.extensions.quantum_initializer import Initialize, Isometry
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, InverseModifier, PowerModifier, _canonicalize_modifiers
+from qiskit.circuit.library import XGate, CXGate, SGate, SdgGate
 from qiskit.quantum_info import Operator
 
 
 class TestAnnotatedOperationlass(QiskitTestCase):
     """Testing qiskit.circuit.AnnotatedOperation"""
 
-    def test_lazy_inverse(self):
-        """Test that lazy inverse results in AnnotatedOperation."""
-        gate = SGate()
-        lazy_gate = gate.lazy_inverse()
-        self.assertIsInstance(lazy_gate, AnnotatedOperation)
-        self.assertIsInstance(lazy_gate.base_op, SGate)
+    def test_create_gate_with_modifier(self):
+        """Test creating a gate with a single modifier."""
+        op = AnnotatedOperation(SGate(), InverseModifier())
+        self.assertIsInstance(op, AnnotatedOperation)
+        self.assertIsInstance(op.base_op, SGate)
 
-    def test_lazy_control(self):
-        """Test that lazy control results in AnnotatedOperation."""
-        gate = CXGate()
-        lazy_gate = gate.lazy_control(2)
-        self.assertIsInstance(lazy_gate, AnnotatedOperation)
-        self.assertIsInstance(lazy_gate.base_op, CXGate)
+    def test_create_gate_with_modifier_list(self):
+        """Test creating a gate with a list of modifiers."""
+        op = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(2), PowerModifier(3), InverseModifier()])
+        self.assertIsInstance(op, AnnotatedOperation)
+        self.assertIsInstance(op.base_op, SGate)
+        self.assertEqual(op.modifiers, [InverseModifier(), ControlModifier(2), PowerModifier(3), InverseModifier()])
+        self.assertNotEqual(op.modifiers, [InverseModifier(), PowerModifier(3), ControlModifier(2), InverseModifier()])
 
-    def test_lazy_iterative(self):
-        """Test that iteratively applying lazy inverse and control
-        combines lazy modifiers."""
-        lazy_gate = CXGate().lazy_inverse().lazy_control(2).lazy_inverse().lazy_control(1)
-        self.assertIsInstance(lazy_gate, AnnotatedOperation)
-        self.assertIsInstance(lazy_gate.base_op, CXGate)
-        self.assertEqual(len(lazy_gate.modifiers), 4)
+    def test_create_gate_with_empty_modifier_list(self):
+        """Test creating a gate with an empty list of modifiers."""
+        op = AnnotatedOperation(SGate(), [])
+        self.assertIsInstance(op, AnnotatedOperation)
+        self.assertIsInstance(op.base_op, SGate)
+        self.assertEqual(op.modifiers, [])
 
-    def test_eq(self):
-        lazy1 = CXGate().lazy_inverse().lazy_control(2)
+    def test_create_nested_annotated_gates(self):
+        """Test creating an annotated gate whose base operation is also an annotated gate."""
+        op_inner = AnnotatedOperation(SGate(), ControlModifier(3))
+        op = AnnotatedOperation(op_inner, InverseModifier())
+        self.assertIsInstance(op, AnnotatedOperation)
+        self.assertIsInstance(op.base_op, AnnotatedOperation)
+        self.assertIsInstance(op.base_op.base_op, SGate)
 
-        lazy2 = CXGate().lazy_inverse().lazy_control(2, ctrl_state=None)
-        self.assertEqual(lazy1, lazy2)
+    def test_equality(self):
+        """Test equality/non-equality of annotated operations
+        (note that the lists of modifiers are ordered).
+        """
+        op1 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(2)])
+        op2 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(2)])
+        self.assertEqual(op1, op2)
+        op3 = AnnotatedOperation(SGate(), [ControlModifier(2), InverseModifier()])
+        self.assertNotEqual(op1, op3)
+        op4 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(2, ctrl_state=2)])
+        op5 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(2, ctrl_state=3)])
+        op6 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(2, ctrl_state=None)])
+        self.assertNotEqual(op1, op4)
+        self.assertEqual(op1, op5)
+        self.assertEqual(op1, op6)
+        op7 = AnnotatedOperation(SdgGate(), [InverseModifier(), ControlModifier(2)])
+        self.assertNotEqual(op1, op7)
 
-        lazy3 = CXGate().lazy_inverse().lazy_control(2, ctrl_state=2)
-        self.assertNotEqual(lazy1, lazy3)
+    def test_num_qubits(self):
+        """Tests that number of qubits is computed correctly."""
+        op_inner = AnnotatedOperation(SGate(), [ControlModifier(4, ctrl_state=1), InverseModifier(), ControlModifier(2), PowerModifier(3), InverseModifier()])
+        op = AnnotatedOperation(op_inner, ControlModifier(3))
+        self.assertEqual(op.num_qubits, 10)
 
-        lazy4 = CXGate().lazy_inverse().lazy_control(2, ctrl_state=3)
-        self.assertEqual(lazy1, lazy4)
+    def test_num_clbits(self):
+        """Tests that number of clbits is computed correctly."""
+        op_inner = AnnotatedOperation(SGate(), [ControlModifier(4, ctrl_state=1), InverseModifier(), ControlModifier(2),
+                                                PowerModifier(3), InverseModifier()])
+        op = AnnotatedOperation(op_inner, ControlModifier(3))
+        self.assertEqual(op.num_clbits, 0)
 
-        lazy5 = CXGate().lazy_control(2).lazy_inverse()
-        self.assertNotEqual(lazy1, lazy5)
-
-    def test_lazy_open_control(self):
-        base_gate = XGate()
-        base_mat = base_gate.to_matrix()
+    def test_to_matrix_with_control_modifier(self):
+        """Test that ``to_matrix`` works correctly for control modifiers."""
         num_ctrl_qubits = 3
-
         for ctrl_state in [5, None, 0, 7, "110"]:
-            lazy_gate = AnnotatedOperation(base_gate, ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state))
-            target_mat = _compute_control_matrix(base_mat, num_ctrl_qubits, ctrl_state)
-            self.assertEqual(Operator(lazy_gate), Operator(target_mat))
+            op = AnnotatedOperation(SGate(), ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state))
+            target_mat = _compute_control_matrix(SGate().to_matrix(), num_ctrl_qubits, ctrl_state)
+            self.assertEqual(Operator(op), Operator(target_mat))
 
-    def test_canonize(self):
-        modifiers = [ControlModifier(num_ctrl_qubits=2, ctrl_state=None)]
-        canonical_modifiers = _canonicalize_modifiers(modifiers)
-        self.assertEqual(modifiers, canonical_modifiers)
+    def test_to_matrix_with_inverse_modifier(self):
+        """Test that ``to_matrix`` works correctly for inverse modifiers."""
+        op = AnnotatedOperation(SGate(), InverseModifier())
+        self.assertEqual(Operator(op), Operator(SGate()).power(-1))
+
+    def test_to_matrix_with_power_modifier(self):
+        """Test that ``to_matrix`` works correctly for power modifiers with integer powers."""
+        for power in [0, 1, -1, 2, -2]:
+            op = AnnotatedOperation(SGate(), PowerModifier(power))
+            self.assertEqual(Operator(op), Operator(SGate()).power(power))
+
+    def test_canonicalize_modifiers(self):
+        """Test that ``canonicalize_modifiers`` works correctly."""
+        op = AnnotatedOperation(SGate(), _canonicalize_modifiers([InverseModifier(), ControlModifier(2), PowerModifier(2), ControlModifier(1), InverseModifier(), PowerModifier(-3)]))
+        expected_op = AnnotatedOperation(SGate(), [InverseModifier(), PowerModifier(6), ControlModifier(3)])
+        self.assertEqual(op, expected_op)
 
 
 if __name__ == "__main__":
