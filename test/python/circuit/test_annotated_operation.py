@@ -23,7 +23,7 @@ from qiskit.circuit.annotated_operation import (
     PowerModifier,
     _canonicalize_modifiers,
 )
-from qiskit.circuit.library import XGate, CXGate, SGate, SdgGate
+from qiskit.circuit.library import SGate, SdgGate
 from qiskit.quantum_info import Operator
 
 
