@@ -231,9 +231,10 @@ pub fn apply_pauli(
     }
     let mut data_arr = unsafe { data.as_array_mut() };
     let n = data_arr.len();
-    let (x_mask, z_mask, x_max): (usize, usize, usize);
-    (x_mask, z_mask, x_max) =
-        pauli_masks_and_phase(&qubits, pauli_x.as_slice()?, pauli_z.as_slice()?);
+    let res = pauli_masks_and_phase(&qubits, pauli_x.as_slice()?, pauli_z.as_slice()?);
+    let x_mask: usize = res.0;
+    let z_mask: usize = res.1;
+    let x_max: usize = res.2;
     let phase = add_y_phase(&y_phase);
 
     // Special case for only I Paulis
@@ -246,6 +247,7 @@ pub fn apply_pauli(
         };
         // It would be preferable if it could be parallelized as follows
         // (0..n).into_par_iter().map(lambda);
+        // (0..n).par_iter_mut().map(lambda);
         for i in 0..n {
             lambda(i);
         }
@@ -286,6 +288,7 @@ pub fn apply_pauli(
     };
     // It would be preferable if it could be parallelized as follows
     // (0..n).into_par_iter().map(lambda);
+
     for i in 0..(n >> 1) {
         lambda(i);
     }
