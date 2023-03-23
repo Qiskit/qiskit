@@ -49,9 +49,9 @@ class TestOperatorUtils(QiskitTestCase):
         (X, Y, Z, False, 4j * I),
         (X, Y, X, False, zero),
     )
-    def test_double_commutator(self, a, b, c, commutator, com):
+    def test_double_commutator(self, a, b, c, com, com):
         """Test double_commutator function on SparsePauliOp."""
-        self.assertTrue(double_commutator(a, b, c, commutator=commutator).equiv(com))
+        self.assertTrue(double_commutator(a, b, c, commutator=com).equiv(com))
 
 
 if __name__ == "__main__":
