@@ -14,14 +14,20 @@
 """Synthesize higher-level objects."""
 
 
-from qiskit.converters import circuit_to_dag
+from typing import Union
+
+from qiskit.circuit.operation import Operation
+from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.synthesis import synth_permutation_basic, synth_permutation_acg
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.synthesis import synth_clifford_full
+from qiskit.synthesis.clifford import synth_clifford_full
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms
+from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
+
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
@@ -88,10 +94,16 @@ class HLSConfig:
 
 
 class HighLevelSynthesis(TransformationPass):
-    """Synthesize higher-level objects using synthesis plugins.
+    """Synthesize higher-level objects.
 
-    Synthesis plugins apply synthesis methods specified in the high-level-synthesis
-    config (refer to the documentation for :class:`~.HLSConfig`).
+    The input to this pass is a DAG that may contain higher-level objects,
+    including abstract mathematical objects (e.g., objects of type :class:`.LinearFunction`)
+    and annotated operations (objects of type :class:`.AnnotatedOperation`).
+    By default, all higher-level objects are synthesized, so the output is a DAG without such objects.
+
+    The abstract mathematical objects are synthesized using synthesis plugins, applying
+    synthesis methods specified in the high-level-synthesis config (refer to the documentation
+    for :class:`~.HLSConfig`).
 
     As an example, let us assume that ``op_a`` and ``op_b`` are names of two higher-level objects,
     that ``op_a``-objects have two synthesis methods ``default`` which does require any additional
@@ -105,6 +117,10 @@ class HighLevelSynthesis(TransformationPass):
 
     shows how to run the alternative synthesis method ``other`` for ``op_b``-objects, while using the
     ``default`` methods for all other high-level objects, including ``op_a``-objects.
+
+    The annotated operations (consisting of a base operation and a list of inverse, control and power
+    modifiers) are synthesizing recursively, first synthesizing the base operation, and then applying
+    synthesis methods for creating inverted, controlled, or powered versions of that).
     """
 
     def __init__(self, hls_config=None):
@@ -117,76 +133,181 @@ class HighLevelSynthesis(TransformationPass):
             # to synthesize Operations (when available).
             self.hls_config = HLSConfig(True)
 
+        self.hls_plugin_manager = HighLevelSynthesisPluginManager()
+
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
+
         Args:
             dag: input dag.
+
         Returns:
-            Output dag with certain Operations synthesized (as specified by
-            the hls_config).
+            Output dag with higher-level operations synthesized.
 
         Raises:
-            TranspilerError: when the specified synthesis method is not available.
+            TranspilerError: when the transpiler is unable to synthesize the given DAG
+            (for instance, when the specified synthesis method is not available).
         """
 
-        hls_plugin_manager = HighLevelSynthesisPluginManager()
+        # The pass is recursive, as we may have annotated gates whose definitions
+        # consist of other annotated gates, whose definitions include for instance
+        # LinearFunctions. Note that in order to synthesize a controlled linear
+        # function, we must first fully synthesize the linear function, and then
+        # synthesize the circuit obtained by adding control logic.
 
-        for node in dag.op_nodes():
-            if node.name in self.hls_config.methods.keys():
-                # the operation's name appears in the user-provided config,
-                # we use the list of methods provided by the user
-                methods = self.hls_config.methods[node.name]
-            elif (
-                self.hls_config.use_default_on_unspecified
-                and "default" in hls_plugin_manager.method_names(node.name)
-            ):
-                # the operation's name does not appear in the user-specified config,
-                # we use the "default" method when instructed to do so and the "default"
-                # method is available
-                methods = ["default"]
-            else:
-                methods = []
+        # copy dag_op_nodes because we are modifying the DAG below
+        dag_op_nodes = dag.op_nodes()
 
-            for method in methods:
-                # There are two ways to specify a synthesis method. The more explicit
-                # way is to specify it as a tuple consisting of a synthesis algorithm and a
-                # list of additional arguments, e.g.,
-                #   ("kms", {"all_mats": 1, "max_paths": 100, "orig_circuit": 0}), or
-                #   ("pmh", {}).
-                # When the list of additional arguments is empty, one can also specify
-                # just the synthesis algorithm, e.g.,
-                #   "pmh".
-                if isinstance(method, tuple):
-                    plugin_specifier, plugin_args = method
-                else:
-                    plugin_specifier = method
-                    plugin_args = {}
+        for node in dag_op_nodes:
+            decomposition = self._recursively_handle_op(node.op)
 
-                # There are two ways to specify a synthesis algorithm being run,
-                # either by name, e.g. "kms" (which then should be specified in entry_points),
-                # or directly as a class inherited from HighLevelSynthesisPlugin (which then
-                # does not need to be specified in entry_points).
-                if isinstance(plugin_specifier, str):
-                    if plugin_specifier not in hls_plugin_manager.method_names(node.name):
-                        raise TranspilerError(
-                            "Specified method: %s not found in available plugins for %s"
-                            % (plugin_specifier, node.name)
-                        )
-                    plugin_method = hls_plugin_manager.method(node.name, plugin_specifier)
-                else:
-                    plugin_method = plugin_specifier
+            if not isinstance(decomposition, (QuantumCircuit, Operation)):
+                raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {node.op}.")
 
-                # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
-                #       e.g. coupling_map to the synthesis algorithm.
-                decomposition = plugin_method.run(node.op, **plugin_args)
-
-                # The synthesis methods that are not suited for the given higher-level-object
-                # will return None, in which case the next method in the list will be used.
-                if decomposition is not None:
-                    dag.substitute_node_with_dag(node, circuit_to_dag(decomposition))
-                    break
+            if isinstance(decomposition, QuantumCircuit):
+                dag.substitute_node_with_dag(node, circuit_to_dag(decomposition))
+            elif isinstance(decomposition, Operation):
+                dag.substitute_node(node, decomposition)
 
         return dag
+
+    def _recursively_handle_op(self, op: Operation) -> Union[Operation, QuantumCircuit]:
+        """Recursively synthesizes a single operation.
+
+        The result can be either another operation or a quantum circuit.
+
+        Some examples when the result can be another operation:
+        Adding control to CX-gate results in CCX-gate,
+        Adding inverse to SGate results in SdgGate.
+
+        Some examples when the result can be a quantum circuit:
+        Synthesizing a LinearFunction produces a quantum circuit consisting of
+        CX-gates.
+
+        The function recursively handles operation's definition, if it exists.
+        """
+
+        # First, try to apply plugin mechanism
+        decomposition = self._synthesize_op_using_plugins(op)
+        if decomposition:
+            return decomposition
+
+        # Second, handle annotated operations
+        decomposition = self._synthesize_annotated_op(op)
+        if decomposition:
+            return decomposition
+
+        # Third, recursively descend into op's definition if exists
+        if getattr(op, "definition", None) is not None:
+            dag = circuit_to_dag(op.definition)
+            dag = self.run(dag)
+            op.definition = dag_to_circuit(dag)
+
+        return op
+
+    def _synthesize_op_using_plugins(self, op: Operation) -> Union[QuantumCircuit, None]:
+        """
+        Attempts to synthesize op using plugin mechanism.
+        Returns either the synthesized circuit or None (which occurs when no
+        synthesis methods are available or specified).
+        """
+        hls_plugin_manager = self.hls_plugin_manager
+
+        if op.name in self.hls_config.methods.keys():
+            # the operation's name appears in the user-provided config,
+            # we use the list of methods provided by the user
+            methods = self.hls_config.methods[op.name]
+        elif (
+            self.hls_config.use_default_on_unspecified
+            and "default" in hls_plugin_manager.method_names(op.name)
+        ):
+            # the operation's name does not appear in the user-specified config,
+            # we use the "default" method when instructed to do so and the "default"
+            # method is available
+            methods = ["default"]
+        else:
+            methods = []
+
+        for method in methods:
+            # There are two ways to specify a synthesis method. The more explicit
+            # way is to specify it as a tuple consisting of a synthesis algorithm and a
+            # list of additional arguments, e.g.,
+            #   ("kms", {"all_mats": 1, "max_paths": 100, "orig_circuit": 0}), or
+            #   ("pmh", {}).
+            # When the list of additional arguments is empty, one can also specify
+            # just the synthesis algorithm, e.g.,
+            #   "pmh".
+            if isinstance(method, tuple):
+                plugin_specifier, plugin_args = method
+            else:
+                plugin_specifier = method
+                plugin_args = {}
+
+            # There are two ways to specify a synthesis algorithm being run,
+            # either by name, e.g. "kms" (which then should be specified in entry_points),
+            # or directly as a class inherited from HighLevelSynthesisPlugin (which then
+            # does not need to be specified in entry_points).
+            if isinstance(plugin_specifier, str):
+                if plugin_specifier not in hls_plugin_manager.method_names(op.name):
+                    raise TranspilerError(
+                        "Specified method: %s not found in available plugins for %s"
+                        % (plugin_specifier, op.name)
+                    )
+                plugin_method = hls_plugin_manager.method(op.name, plugin_specifier)
+            else:
+                plugin_method = plugin_specifier
+
+            # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
+            #       e.g. coupling_map to the synthesis algorithm.
+            # print(f"{plugin_method = }, {op = }, {plugin_args = }")
+            decomposition = plugin_method.run(op, **plugin_args)
+
+            # The synthesis methods that are not suited for the given higher-level-object
+            # will return None, in which case the next method in the list will be used.
+            if decomposition is not None:
+                return decomposition
+
+        return None
+
+    def _synthesize_annotated_op(self, op: Operation) -> Union[Operation, None]:
+        """
+        Recursively synthesizes annotated operations.
+        Returns either the synthesized operation or None (which occurs when the operation
+        is not an annotated operation).
+        """
+        if isinstance(op, AnnotatedOperation):
+            synthesized_op = self._recursively_handle_op(op.base_op)
+
+            if not synthesized_op:
+                raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op.base_op}.")
+            if not isinstance(synthesized_op, (QuantumCircuit, Gate)):
+                raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op.base_op}.")
+
+            for modifier in op.modifiers:
+                if isinstance(modifier, InverseModifier):
+                    # ToDo: what do we do for clifford or Operation without inverse method?
+                    synthesized_op = synthesized_op.inverse()
+                elif isinstance(modifier, ControlModifier):
+                    # Above we checked that we either have a gate or a quantum circuit
+                    synthesized_op = synthesized_op.control(
+                        num_ctrl_qubits=modifier.num_ctrl_qubits,
+                        label=None,
+                        ctrl_state=modifier.ctrl_state,
+                    )
+                elif isinstance(modifier, PowerModifier):
+                    if isinstance(synthesized_op, QuantumCircuit):
+                        qc = synthesized_op
+                    else:
+                        qc = QuantumCircuit(synthesized_op.num_qubits, synthesized_op.num_clbits)
+                        qc.append(synthesized_op, range(synthesized_op.num_qubits), range(synthesized_op.num_clbits))
+
+                    qc = qc.power(modifier.power)
+                    synthesized_op = qc.to_gate()
+                else:
+                    raise TranspilerError(f"Unknown modifier {modifier}.")
+
+            return synthesized_op
+        return None
 
 
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):

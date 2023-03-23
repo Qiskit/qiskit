@@ -16,12 +16,16 @@ Tests the interface for HighLevelSynthesis transpiler pass.
 
 
 import unittest.mock
-
+import numpy as np
 from qiskit.circuit import QuantumCircuit, Operation
+from qiskit.circuit.library import SwapGate, CXGate, RZGate, PermutationGate
+from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
+from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, InverseModifier, PowerModifier
+from qiskit.quantum_info import Operator
 
 
 # In what follows, we create two simple operations OpA and OpB, that potentially mimic
@@ -146,7 +150,7 @@ class MockPluginManager:
         return self.plugins[plugin_name]()
 
 
-class TestHighLeverSynthesisInterface(QiskitTestCase):
+class TestHighLevelSynthesisInterface(QiskitTestCase):
     """Tests for the synthesis plugin interface."""
 
     def create_circ(self):
@@ -363,6 +367,328 @@ class TestHighLeverSynthesisInterface(QiskitTestCase):
             tqc = pm.run(qc)
             ops = tqc.count_ops()
             self.assertEqual(ops["swap"], 6)
+
+
+class TestHighLevelSynthesisModifiers(QiskitTestCase):
+    """Tests for high-level-synthesis pass."""
+
+    def test_control_basic_gates(self):
+        """Test lazy control synthesis of basic gates (each has its class ``control`` method)."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), ControlModifier(2))
+        lazy_gate2 = AnnotatedOperation(CXGate(), ControlModifier(1))
+        lazy_gate3 = AnnotatedOperation(RZGate(np.pi / 4), ControlModifier(1))
+        circuit = QuantumCircuit(4)
+        circuit.append(lazy_gate1, [0, 1, 2, 3])
+        circuit.append(lazy_gate2, [0, 1, 2])
+        circuit.append(lazy_gate3, [2, 3])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        controlled_gate1 = SwapGate().control(2)
+        controlled_gate2 = CXGate().control(1)
+        controlled_gate3 = RZGate(np.pi / 4).control(1)
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.append(controlled_gate1, [0, 1, 2, 3])
+        expected_circuit.append(controlled_gate2, [0, 1, 2])
+        expected_circuit.append(controlled_gate3, [2, 3])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_control_custom_gates(self):
+        """Test lazy control synthesis of custom gates (which inherits ``control`` method from
+        ``Gate``).
+        """
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+        gate = qc.to_gate()
+        circuit = QuantumCircuit(4)
+        circuit.append(AnnotatedOperation(gate, ControlModifier(2)), [0, 1, 2, 3])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.append(gate.control(2), [0, 1, 2, 3])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_control_clifford(self):
+        """Test lazy control synthesis of Clifford objects (no ``control`` method defined)."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+        cliff = Clifford(qc)
+        circuit = QuantumCircuit(4)
+        circuit.append(AnnotatedOperation(cliff, ControlModifier(2)), [0, 1, 2, 3])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.append(cliff.to_instruction().control(2), [0, 1, 2, 3])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_multiple_controls(self):
+        """Test lazy controlled synthesis with multiple control modifiers."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), [ControlModifier(2), ControlModifier(1)])
+        circuit = QuantumCircuit(5)
+        circuit.append(lazy_gate1, [0, 1, 2, 3, 4])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(5)
+        expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_nested_controls(self):
+        """Test lazy controlled synthesis of nested lazy gates."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), ControlModifier(2))
+        lazy_gate2 = AnnotatedOperation(lazy_gate1, ControlModifier(1))
+        circuit = QuantumCircuit(5)
+        circuit.append(lazy_gate2, [0, 1, 2, 3, 4])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(5)
+        expected_circuit.append(SwapGate().control(2).control(1), [0, 1, 2, 3, 4])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_nested_controls_permutation(self):
+        """Test lazy controlled synthesis of ``PermutationGate`` with nested lazy gates.
+        Note that ``PermutationGate`` currently does not have definition."""
+        lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), ControlModifier(2))
+        lazy_gate2 = AnnotatedOperation(lazy_gate1, ControlModifier(1))
+        circuit = QuantumCircuit(7)
+        circuit.append(lazy_gate2, [0, 1, 2, 3, 4, 5, 6])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+    def test_inverse_basic_gates(self):
+        """Test lazy inverse synthesis of basic gates (each has its class ``control`` method)."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), InverseModifier())
+        lazy_gate2 = AnnotatedOperation(CXGate(), InverseModifier())
+        lazy_gate3 = AnnotatedOperation(RZGate(np.pi / 4), InverseModifier())
+        circuit = QuantumCircuit(4)
+        circuit.append(lazy_gate1, [0, 2])
+        circuit.append(lazy_gate2, [0, 1])
+        circuit.append(lazy_gate3, [2])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        inverse_gate1 = SwapGate().inverse()
+        inverse_gate2 = CXGate().inverse()
+        inverse_gate3 = RZGate(np.pi / 4).inverse()
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.append(inverse_gate1, [0, 2])
+        expected_circuit.append(inverse_gate2, [0, 1])
+        expected_circuit.append(inverse_gate3, [2])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_inverse_custom_gates(self):
+        """Test lazy control synthesis of custom gates (which inherits ``inverse`` method from
+        ``Gate``).
+        """
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+        gate = qc.to_gate()
+        circuit = QuantumCircuit(2)
+        circuit.append(AnnotatedOperation(gate, InverseModifier()), [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(gate.inverse(), [0, 1])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_inverse_clifford(self):
+        """Test lazy inverse synthesis of Clifford objects (no ``inverse`` method defined)."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+        cliff = Clifford(qc)
+        circuit = QuantumCircuit(2)
+        circuit.append(AnnotatedOperation(cliff, InverseModifier()), [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(cliff.to_instruction().inverse(), [0, 1])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_two_inverses(self):
+        """Test lazy controlled synthesis with multiple inverse modifiers (even)."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), [InverseModifier(), InverseModifier()])
+        circuit = QuantumCircuit(2)
+        circuit.append(lazy_gate1, [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(SwapGate().inverse().inverse(), [0, 1])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_three_inverses(self):
+        """Test lazy controlled synthesis with multiple inverse modifiers (odd)."""
+        lazy_gate1 = AnnotatedOperation(RZGate(np.pi / 4), [InverseModifier(), InverseModifier(), InverseModifier()])
+        circuit = QuantumCircuit(1)
+        circuit.append(lazy_gate1, [0])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(1)
+        expected_circuit.append(RZGate(np.pi / 4).inverse().inverse().inverse(), [0])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_nested_inverses(self):
+        """Test lazy synthesis with nested lazy gates."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), InverseModifier())
+        lazy_gate2 = AnnotatedOperation(lazy_gate1, InverseModifier())
+        circuit = QuantumCircuit(2)
+        circuit.append(lazy_gate2, [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(SwapGate(), [0, 1])
+        self.assertEqual(transpiled_circuit, expected_circuit)
+
+    def test_nested_inverses_permutation(self):
+        """Test lazy controlled synthesis of ``PermutationGate`` with nested lazy gates.
+        Note that ``PermutationGate`` currently does not have definition."""
+        lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), InverseModifier())
+        lazy_gate2 = AnnotatedOperation(lazy_gate1, InverseModifier())
+        circuit = QuantumCircuit(4)
+        circuit.append(lazy_gate2, [0, 1, 2, 3])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+    def test_power_posint_basic_gates(self):
+        """Test lazy power synthesis of basic gates with positive and zero integer powers."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), PowerModifier(2))
+        lazy_gate2 = AnnotatedOperation(CXGate(), PowerModifier(1))
+        lazy_gate3 = AnnotatedOperation(RZGate(np.pi / 4), PowerModifier(3))
+        lazy_gate4 = AnnotatedOperation(CXGate(), PowerModifier(0))
+        circuit = QuantumCircuit(4)
+        circuit.append(lazy_gate1, [0, 1])
+        circuit.append(lazy_gate2, [1, 2])
+        circuit.append(lazy_gate3, [3])
+        circuit.append(lazy_gate4, [2, 3])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.append(SwapGate(), [0, 1])
+        expected_circuit.append(SwapGate(), [0, 1])
+        expected_circuit.append(CXGate(), [1, 2])
+        expected_circuit.append(RZGate(np.pi / 4), [3])
+        expected_circuit.append(RZGate(np.pi / 4), [3])
+        expected_circuit.append(RZGate(np.pi / 4), [3])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_power_negint_basic_gates(self):
+        """Test lazy power synthesis of basic gates with negative integer powers."""
+        lazy_gate1 = AnnotatedOperation(CXGate(), PowerModifier(-1))
+        lazy_gate2 = AnnotatedOperation(RZGate(np.pi / 4), PowerModifier(-3))
+        circuit = QuantumCircuit(4)
+        circuit.append(lazy_gate1, [0, 1])
+        circuit.append(lazy_gate2, [2])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.append(CXGate(), [0, 1])
+        expected_circuit.append(RZGate(-np.pi / 4), [2])
+        expected_circuit.append(RZGate(-np.pi / 4), [2])
+        expected_circuit.append(RZGate(-np.pi / 4), [2])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_power_float_basic_gates(self):
+        """Test lazy power synthesis of basic gates with floating-point powers."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), PowerModifier(0.5))
+        lazy_gate2 = AnnotatedOperation(CXGate(), PowerModifier(0.2))
+        lazy_gate3 = AnnotatedOperation(RZGate(np.pi / 4), PowerModifier(-0.25))
+        circuit = QuantumCircuit(4)
+        circuit.append(lazy_gate1, [0, 1])
+        circuit.append(lazy_gate2, [1, 2])
+        circuit.append(lazy_gate3, [3])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.append(SwapGate().power(0.5), [0, 1])
+        expected_circuit.append(CXGate().power(0.2), [1, 2])
+        expected_circuit.append(RZGate(np.pi / 4).power(-0.25), [3])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_power_custom_gates(self):
+        """Test lazy power synthesis of custom gates with positive integer powers."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+        gate = qc.to_gate()
+        circuit = QuantumCircuit(2)
+        circuit.append(AnnotatedOperation(gate, PowerModifier(3)), [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(gate, [0, 1])
+        expected_circuit.append(gate, [0, 1])
+        expected_circuit.append(gate, [0, 1])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_power_posint_clifford(self):
+        """Test lazy power synthesis of Clifford objects with positive integer power."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+        cliff = Clifford(qc)
+        circuit = QuantumCircuit(2)
+        circuit.append(AnnotatedOperation(cliff, PowerModifier(3)), [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(cliff.to_instruction().power(3), [0, 1])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_power_float_clifford(self):
+        """Test lazy power synthesis of Clifford objects with floating-point power."""
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.h(1)
+        cliff = Clifford(qc)
+        circuit = QuantumCircuit(2)
+        circuit.append(AnnotatedOperation(cliff, PowerModifier(-0.5)), [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(cliff.to_instruction().power(-0.5), [0, 1])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_multiple_powers(self):
+        """Test lazy controlled synthesis with multiple power modifiers."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), [PowerModifier(2), PowerModifier(-1)])
+        circuit = QuantumCircuit(2)
+        circuit.append(lazy_gate1, [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(SwapGate().power(-2), [0, 1])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_nested_powers(self):
+        """Test lazy synthesis with nested lazy gates."""
+        lazy_gate1 = AnnotatedOperation(SwapGate(), PowerModifier(2))
+        lazy_gate2 = AnnotatedOperation(lazy_gate1, PowerModifier(-1))
+        circuit = QuantumCircuit(2)
+        circuit.append(lazy_gate2, [0, 1])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        expected_circuit = QuantumCircuit(2)
+        expected_circuit.append(SwapGate().power(-2), [0, 1])
+        self.assertEqual(Operator(transpiled_circuit), Operator(expected_circuit))
+
+    def test_nested_powers_permutation(self):
+        """Test lazy controlled synthesis of ``PermutationGate`` with nested lazy gates.
+        Note that ``PermutationGate`` currently does not have definition."""
+        lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), PowerModifier(2))
+        lazy_gate2 = AnnotatedOperation(lazy_gate1, PowerModifier(-1))
+        circuit = QuantumCircuit(4)
+        circuit.append(lazy_gate2, [0, 1, 2, 3])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+    def test_multiple_modifiers(self):
+        """Test involving gates with different modifiers."""
+        qc = QuantumCircuit(4)
+        lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), InverseModifier())
+        lazy_gate2 = AnnotatedOperation(SwapGate(), ControlModifier(2))
+        qc.append(lazy_gate1, [0, 1, 2, 3])
+        qc.append(lazy_gate2, [0, 1, 2, 3])
+        custom_gate = qc.to_gate()
+        lazy_gate3 = AnnotatedOperation(custom_gate, ControlModifier(2))
+        circuit = QuantumCircuit(6)
+        circuit.append(lazy_gate3, [0, 1, 2, 3, 4, 5])
+        transpiled_circuit = HighLevelSynthesis()(circuit)
+        self.assertEqual(Operator(circuit), Operator(transpiled_circuit))
+
+    def test_reordered_modifiers(self):
+        """Test involving gates with different modifiers."""
+        lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), [InverseModifier(), ControlModifier(2), PowerModifier(3)])
+        lazy_gate2 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), [PowerModifier(3), ControlModifier(2), InverseModifier()])
+        qc1 = QuantumCircuit(6)
+        qc1.append(lazy_gate1, [0, 1, 2, 3, 4, 5])
+        qc2 = QuantumCircuit(6)
+        qc2.append(lazy_gate2, [0, 1, 2, 3, 4, 5])
+        self.assertEqual(Operator(qc1), Operator(qc2))
+        transpiled1 = HighLevelSynthesis()(qc1)
+        transpiled2 = HighLevelSynthesis()(qc2)
+        self.assertEqual(Operator(transpiled1), Operator(transpiled2))
+        self.assertEqual(Operator(qc1), Operator(transpiled1))
 
 
 if __name__ == "__main__":
