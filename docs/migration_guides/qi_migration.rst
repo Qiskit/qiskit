@@ -25,6 +25,9 @@ Summary of migration alternatives for the :class:`~qiskit.utils.QuantumInstance`
    * - ``QuantumInstance.assemble``
      - Deprecated
 
+The remainder of this guide will focus on the :class:`~qiskit.utils.QuantumInstance` to :mod:`qiskit.primitives`
+migration path.
+
 Contents
 ========
 
@@ -33,6 +36,11 @@ Contents
 * `Code examples`_
 
 .. attention::
+
+    **Background on the Qiskit Primitives**
+
+    The qiskit primitives are algorithmic abstractions that encapsulate the access to backends or simulators
+    for an easy integration into algorithm workflows.
 
     The current pool of primitives includes **two** different **classes** (:class:`~qiskit.primitives.Sampler` and
     :class:`~qiskit.primitives.Estimator`) that can be imported from **three** different locations (
@@ -62,7 +70,7 @@ purpose. Selecting the right primitive (``Sampler`` or ``Estimator``) requires s
 .. note::
 
     The role of the primitives is two-fold. On one hand, they act as access points to backends and simulators.
-    On the other hand, they are **algoritmic** abstractions with defined tasks:
+    On the other hand, they are **algorithmic** abstractions with defined tasks:
 
     * The ``Estimator`` takes in circuits and observables and returns their **expectation values**.
     * The ``Sampler`` takes in circuits, measures them, and returns their  **quasi-probability distribution**.
@@ -70,7 +78,11 @@ purpose. Selecting the right primitive (``Sampler`` or ``Estimator``) requires s
     The :class:`~qiskit.utils.QuantumInstance` shares the role of access point to backends and simulators, but
     unlike the primitives, it returned the **raw** output of the execution, with a higher level of granularity.
     The minimal unit of information of this output was usually **measurement counts**. And in this sense, the closest
-    primitive would be the ``Sampler``. However, you must keep in mind the difference in output formats.
+    primitive would be the ``Sampler``.
+
+    However, you must keep in mind the difference in output formats between
+    the :class:`~qiskit.utils.QuantumInstance` and the ``Sampler``. The :class:`~qiskit.utils.QuantumInstance`
+    returns **counts** (plus metadata), while the ``Sampler`` returns **quasi-probabilities** (plus metadata).
 
 
 In order to know which primitive to use instead of :class:`~qiskit.utils.QuantumInstance`, you should ask
@@ -97,7 +109,7 @@ primitives **expose a similar setting through their interface**:
 
 .. attention::
 
-    In some cases, a setting might not be exposed through the interface, but there might be workarounds to make
+    In some cases, a setting might not be exposed through the interface, but there might an alternative path to make
     it work. This is the case for custom transpiler passes, which cannot be set through the primitives interface,
     but pre-transpiled circuits can be sent if setting the option ``skip_transpilation=True``. For more information,
     please refer to the API reference or source code of the desired primitive implementation.
@@ -171,128 +183,155 @@ Code examples
 
     **Using Quantum Instance**
 
-    The only alternative for local simulations using the quantum instance was through the definition of an Aer Simulator
-    as backend:
+    The only alternative for local simulations using the quantum instance was using an Aer Simulator backend.
+    Please note that ``QuantumInstance.execute()`` returned the counts bitstrings in hexadecimal format.
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit_aer import AerSimulator
-        >>> from qiskit.utils import QuantumInstance
+        from qiskit import QuantumCircuit
+        from qiskit_aer import AerSimulator
+        from qiskit.utils import QuantumInstance
 
-        >>> circuit = QuantumCircuit(2)
-        >>> circuit.x(0)
-        >>> circuit.x(1)
-        >>> circuit.measure_all()
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.x(1)
+        circuit.measure_all()
 
-        >>> simulator = AerSimulator()
-        >>> qi = QuantumInstance(backend=simulator, shots=200, backend_options={"method": "statevector"})
-        >>> result = qi.execute(circuit).results[0]
-        >>> result
-        ExperimentResult(shots=200, success=True, meas_level=2, data=ExperimentResultData(counts={'0x3': 200}), header=QobjExperimentHeader(clbit_labels=[['meas', 0], ['meas', 1]], creg_sizes=[['meas', 2]], global_phase=0.0, memory_slots=2, metadata={}, n_qubits=2, name='circuit-112', qreg_sizes=[['q', 2]], qubit_labels=[['q', 0], ['q', 1]]), status=DONE, seed_simulator=3116700546, metadata={'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 6.0573e-05, 'noise': 'ideal', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1], 'measure_sampling': True, 'num_clbits': 2, 'input_qubit_map': [[1, 1], [0, 0]], 'num_qubits': 2, 'method': 'statevector', 'fusion': {'applied': False, 'max_fused_qubits': 5, 'threshold': 14, 'enabled': True}}, time_taken=0.000426016)
+        simulator = AerSimulator()
+        qi = QuantumInstance(backend=simulator, shots=200, backend_options={"method": "statevector"})
+        result = qi.execute(circuit).results[0]
+        data = result.data
+        counts = data.counts
 
-        >>> data = result.data
-        >>> data
-        ExperimentResultData(counts={'0x3': 200})
+        print("Counts: ", counts)
+        print("Data: ", data)
+        print("Result: ", result)
 
-        >>> counts = data.counts
-        >>> counts
-        {'0x3': 200}
+    .. testoutput::
+       :options: +SKIP
+
+        Counts: {'0x3': 200}
+        Data: ExperimentResultData(counts={'0x3': 200})
+        Result: ExperimentResult(shots=200, success=True, meas_level=2, data=ExperimentResultData(counts={'0x3': 200}), header=QobjExperimentHeader(clbit_labels=[['meas', 0], ['meas', 1]], creg_sizes=[['meas', 2]], global_phase=0.0, memory_slots=2, metadata={}, n_qubits=2, name='circuit-112', qreg_sizes=[['q', 2]], qubit_labels=[['q', 0], ['q', 1]]), status=DONE, seed_simulator=3116700546, metadata={'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 6.0573e-05, 'noise': 'ideal', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1], 'measure_sampling': True, 'num_clbits': 2, 'input_qubit_map': [[1, 1], [0, 0]], 'num_qubits': 2, 'method': 'statevector', 'fusion': {'applied': False, 'max_fused_qubits': 5, 'threshold': 14, 'enabled': True}}, time_taken=0.000426016)
+
 
     **Using Primitives**
 
-    The primitives offer two alternatives for local statevector simulation:
+    The primitives offer two alternatives for local statevector simulation, one with the Reference primitives
+    and one with the Aer primitives. As mentioned above the closest alternative to ``QuantumInstance.execute()``
+    for sampling is the ``Sampler`` primitive.
 
     **a. Using the Reference Primitives**
 
-    Basic statevector simulation based on the :class:`qiskit.quantum_info.Statevector` class.
+    Basic statevector simulation based on the :class:`qiskit.quantum_info.Statevector` class. Please note that
+    the resulting quasi-probability distribution does not use bitstrings but **integers** to identify the states.
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.primitives import Sampler
+        from qiskit import QuantumCircuit
+        from qiskit.primitives import Sampler
 
-        >>> circuit = QuantumCircuit(2)
-        >>> circuit.x(0)
-        >>> circuit.x(1)
-        >>> circuit.measure_all()
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.x(1)
+        circuit.measure_all()
 
-        >>> sampler = Sampler(options = {"shots":200})
-        >>> result = sampler.run(circuit).result()
-        >>> result
-        SamplerResult(quasi_dists=[{3: 1.0}], metadata=[{'shots': 200}])
+        sampler = Sampler(options = {"shots":200})
+        result = sampler.run(circuit).result()
+        quasi_dists = result.quasi_dists
 
-        >>> quasi_dists = result.quasi_dists
-        >>> quasi_dists
-        [{3: 1.0}]
+        print("Quasi-dists: ", quasi_dists)
+        print("Result: ", result)
+
+    .. testoutput::
+       :options: +SKIP
+
+        Quasi-dists: [{3: 1.0}]
+        Result: SamplerResult(quasi_dists=[{3: 1.0}], metadata=[{'shots': 200}])
 
     **b. Using the Aer Primitives**
 
-    Aer simulation following the statevector method. This would be the direct 1-1 replacement of the Quantum Instance
-    exeample, as they are both accessing the same simulator. For this reason, the output metadata is richer, and
-    closer to the Quantum Instance's output.
+    Aer simulation following the statevector method. This would be the direct 1-1 replacement of the ``QuantumInstance``
+    example, as they are both accessing the same simulator. For this reason, the output metadata is
+    closer to the Quantum Instance's output. Please note that
+    the resulting quasi-probability distribution does not use bitstrings but **integers** to identify the states.
 
-    .. code-block:: python
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit_aer.primitives import Sampler
+    .. testcode::
 
-        >>> circuit = QuantumCircuit(2)
-        >>> circuit.x(0)
-        >>> circuit.x(1)
-        >>> circuit.measure_all()
+        from qiskit import QuantumCircuit
+        from qiskit_aer.primitives import Sampler
 
-        >>> sampler = Sampler(run_options = {"method":"statevector", "shots":200})
-        >>> result = sampler.run(circuit).result()
-        >>> result
-        SamplerResult(quasi_dists=[{3: 1.0}], metadata=[{'shots': 200, 'simulator_metadata': {'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 9.016e-05, 'noise': 'ideal', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1], 'measure_sampling': True, 'num_clbits': 2, 'input_qubit_map': [[1, 1], [0, 0]], 'num_qubits': 2, 'method': 'statevector', 'fusion': {'applied': False, 'max_fused_qubits': 5, 'threshold': 14, 'enabled': True}}}])
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.x(1)
+        circuit.measure_all()
 
-        >>> quasi_dists = result.quasi_dists
-        >>> quasi_dists
-        [{3: 1.0}]
+        sampler = Sampler(run_options = {"method":"statevector", "shots":200})
+        result = sampler.run(circuit).result()
+        quasi_dists = result.quasi_dists
+
+        print("Quasi-dists: ", quasi_dists)
+        print("Result: ", result)
+
+    .. testoutput::
+       :options: +SKIP
+
+        Quasi-dists: [{3: 1.0}]
+        Result: SamplerResult(quasi_dists=[{3: 1.0}], metadata=[{'shots': 200, 'simulator_metadata': {'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 9.016e-05, 'noise': 'ideal', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1], 'measure_sampling': True, 'num_clbits': 2, 'input_qubit_map': [[1, 1], [0, 0]], 'num_qubits': 2, 'method': 'statevector', 'fusion': {'applied': False, 'max_fused_qubits': 5, 'threshold': 14, 'enabled': True}}}])
 
 
 .. dropdown:: Example 2: Expectation Value Calculation with Local Noisy Simulation
     :animate: fade-in-slide-down
+
+    While this example does not include a direct call to ``QuantumInstance.execute()``, it shows
+    how to migrate from a :class:`~qiskit.utils.QuantumInstance`-based to a :mod:`~qiskit.primitives`-based
+    workflow.
 
     **Using Quantum Instance**
 
     The most common use case for computing expectation values with the Quantum Instance was as in combination with the
     :mod:`~qiskit.opflow` library. You can see more information in the `opflow migration guide <http://qisk.it/opflow_migration>`_.
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.opflow import StateFn, PauliSumOp, PauliExpectation, CircuitSampler
-        >>> from qiskit.utils import QuantumInstance
-        >>> from qiskit_aer import AerSimulator
-        >>> from qiskit_aer.noise import NoiseModel
-        >>> from qiskit_ibm_provider import IBMProvider
+        from qiskit import QuantumCircuit
+        from qiskit.opflow import StateFn, PauliSumOp, PauliExpectation, CircuitSampler
+        from qiskit.utils import QuantumInstance
+        from qiskit_aer import AerSimulator
+        from qiskit_aer.noise import NoiseModel
+        from qiskit_ibm_provider import IBMProvider
 
-        # Define problem
-        >>> op = PauliSumOp.from_list([("XY",1)])
-        >>> qc = QuantumCircuit(2)
-        >>> qc.x(0)
-        >>> qc.x(1)
-        >>> state = StateFn(qc)
-        >>> measurable_expression = StateFn(op, is_measurement=True).compose(state)
-        >>> expectation = PauliExpectation().convert(measurable_expression)
+        # Define problem using opflow
+        op = PauliSumOp.from_list([("XY",1)])
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.x(1)
+
+        state = StateFn(qc)
+        measurable_expression = StateFn(op, is_measurement=True).compose(state)
+        expectation = PauliExpectation().convert(measurable_expression)
 
         # Define Quantum Instance with noisy simulator
-        >>> provider = IBMProvider()
-        >>> device = provider.get_backend("ibmq_manila")
-        >>> noise_model = NoiseModel.from_backend(device)
-        >>> coupling_map = device.configuration().coupling_map
+        provider = IBMProvider()
+        device = provider.get_backend("ibmq_manila")
+        noise_model = NoiseModel.from_backend(device)
+        coupling_map = device.configuration().coupling_map
 
-        >>> backend = AerSimulator()
-        >>> qi = QuantumInstance(backend=backend, shots=1024,
-        ...                     seed_simulator=42, seed_transpiler=42,
-        ...                     coupling_map=coupling_map, noise_model=noise_model)
+        backend = AerSimulator()
+        qi = QuantumInstance(backend=backend, shots=1024,
+                            seed_simulator=42, seed_transpiler=42,
+                            coupling_map=coupling_map, noise_model=noise_model)
 
         # Run
-        >>> sampler = CircuitSampler(qi).convert(expectation)
-        >>> expectation_value = sampler.eval().real
-        >>> expectation_value
+        sampler = CircuitSampler(qi).convert(expectation)
+        expectation_value = sampler.eval().real
+
+        print(expectation_value)
+
+    .. testoutput::
+       :options: +SKIP
+
         -0.04687500000000008
 
     **Using Primitives**
@@ -300,38 +339,43 @@ Code examples
     Now, the primitives have allowed to combine the opflow and quantum instance functionality in a single ``Estimator``.
     In this case, for local noisy simulation, this will be the Aer Estimator.
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.quantum_info import SparsePauliOp
-        >>> from qiskit_aer.noise import NoiseModel
-        >>> from qiskit_aer.primitives import Estimator
-        >>> from qiskit_ibm_provider import IBMProvider
+        from qiskit import QuantumCircuit
+        from qiskit.quantum_info import SparsePauliOp
+        from qiskit_aer.noise import NoiseModel
+        from qiskit_aer.primitives import Estimator
+        from qiskit_ibm_provider import IBMProvider
 
         # Define problem
-        >>> op = SparsePauliOp("XY")
-        >>> qc = QuantumCircuit(2)
-        >>> qc.x(0)
-        >>> qc.x(1)
+        op = SparsePauliOp("XY")
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.x(1)
 
         # Define Aer Estimator with noisy simulator
-        >>> device = provider.get_backend("ibmq_manila")
-        >>> noise_model = NoiseModel.from_backend(device)
-        >>> coupling_map = device.configuration().coupling_map
+        device = provider.get_backend("ibmq_manila")
+        noise_model = NoiseModel.from_backend(device)
+        coupling_map = device.configuration().coupling_map
 
-        >>> estimator = Estimator(
-        ...            backend_options={
-        ...                "method": "density_matrix",
-        ...                "coupling_map": coupling_map,
-        ...                "noise_model": noise_model,
-        ...            },
-        ...            run_options={"seed": 42, "shots": 1024},
-        ...           transpile_options={"seed_transpiler": 42},
-        ...        )
+        estimator = Estimator(
+                   backend_options={
+                       "method": "density_matrix",
+                       "coupling_map": coupling_map,
+                       "noise_model": noise_model,
+                   },
+                   run_options={"seed": 42, "shots": 1024},
+                  transpile_options={"seed_transpiler": 42},
+               )
 
         # Run
-        >>> expectation_value = estimator.run(qc, op).result().values
-        >>> expectation_value
+        expectation_value = estimator.run(qc, op).result().values
+
+        print(expectation_value)
+
+    .. testoutput::
+       :options: +SKIP
+
         [-0.04101562]
 
 .. dropdown:: Example 3: Circuit Sampling on IBM Backend with Error Mitigation
@@ -340,9 +384,10 @@ Code examples
     **Using Quantum Instance**
 
     The QuantumInstance interface allowed to configure measurement error mitigation settings such as the method, the
-    matrix refresh period or the mitigation pattern.
+    matrix refresh period or the mitigation pattern. This configuration is no longer available in the primitives
+    interface.
 
-    .. code-block:: python
+    .. testcode::
 
         from qiskit import QuantumCircuit
         from qiskit.utils import QuantumInstance
@@ -355,16 +400,23 @@ Code examples
         circuit.measure_all()
 
         provider = IBMProvider()
-        backend = provider.get_backend("ibmq_manila")
+        backend = provider.get_backend("ibmq_montreal")
 
         qi = QuantumInstance(
             backend=backend,
-            shots=1000,
+            shots=4000,
             measurement_error_mitigation_cls=CompleteMeasFitter,
             cals_matrix_refresh_period=0,
         )
 
-        result = qi.execute(circuit).results[0]
+        result = qi.execute(circuit).results[0].data
+        print(result)
+
+    .. testoutput::
+       :options: +SKIP
+
+        ExperimentResultData(counts={'11': 4000})
+
 
     **Using Primitives**
 
@@ -376,8 +428,7 @@ Code examples
     For more information on the error mitigation options in the Runtime Primitives, you can check out the following
     `link <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.options.Options.html#qiskit_ibm_runtime.options.Options>`_.
 
-
-    .. code-block:: python
+    .. testcode::
 
         from qiskit import QuantumCircuit
         from qiskit_ibm_runtime import QiskitRuntimeService, Sampler, Options
@@ -388,16 +439,22 @@ Code examples
         circuit.measure_all()
 
         service = QiskitRuntimeService(channel="ibm_quantum")
-        backend = service.backend("ibmq_manila")
+        backend = service.backend("ibmq_montreal")
 
         options = Options(resilience_level = 1) # 1 = measurement error mitigation
         sampler = Sampler(session=backend, options=options)
 
         # Run
-        result = sampler.run(circuit).result()
-
+        result = sampler.run(circuit, shots=4000).result()
         quasi_dists = result.quasi_dists
 
+        print("Quasi dists: ", quasi_dists)
+
+    .. testoutput::
+       :options: +SKIP
+
+        Quasi dists: [{2: 0.0008492371522941081, 3: 0.9968874384378738, 0: -0.0003921227905920063,
+		 1: 0.002655447200424097}]
 
 .. dropdown:: Example 4: Circuit Sampling with Custom Bound and Unbound Pass Managers
     :animate: fade-in-slide-down
@@ -430,109 +487,70 @@ Code examples
 
     **Using Quantum Instance**
 
-    .. code-block:: python
+    .. testcode::
 
-        >>> from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit
-        >>> from qiskit.transpiler import PassManager, CouplingMap
-        >>> from qiskit.transpiler.passes import BasicSwap, Unroller
-        >>> from qiskit_ibm_provider import IBMProvider
+        from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit
+        from qiskit.transpiler import PassManager, CouplingMap
+        from qiskit.transpiler.passes import BasicSwap, Unroller
+        from qiskit_ibm_provider import IBMProvider
 
-        >>> from qiskit.utils import QuantumInstance
-        >>> from qiskit_aer.noise import NoiseModel
-        >>> from qiskit_aer import AerSimulator
+        from qiskit.utils import QuantumInstance
+        from qiskit_aer.noise import NoiseModel
+        from qiskit_aer import AerSimulator
 
-        >>> q = QuantumRegister(7, 'q')
-        >>> p = Parameter('p')
-        >>> circuit = QuantumCircuit(q)
-        >>> circuit.h(q[0])
-        >>> circuit.cx(q[0], q[4])
-        >>> circuit.cx(q[2], q[3])
-        >>> circuit.cx(q[6], q[1])
-        >>> circuit.cx(q[5], q[0])
-        >>> circuit.rz(p, q[2])
-        >>> circuit.cx(q[5], q[0])
-        >>> circuit.measure_all()
+        q = QuantumRegister(7, 'q')
+        p = Parameter('p')
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.cx(q[0], q[4])
+        circuit.cx(q[2], q[3])
+        circuit.cx(q[6], q[1])
+        circuit.cx(q[5], q[0])
+        circuit.rz(p, q[2])
+        circuit.cx(q[5], q[0])
+        circuit.measure_all()
 
         # Set up simulation based on real device
-        >>> provider = IBMProvider()
-        >>> backend = AerSimulator()
-        >>> device = provider.get_backend("ibm_oslo")
-        >>> noise_model = NoiseModel.from_backend(device)
-        >>> coupling_map = device.configuration().coupling_map
+        provider = IBMProvider()
+        backend = AerSimulator()
+        device = provider.get_backend("ibm_oslo")
+        noise_model = NoiseModel.from_backend(device)
+        coupling_map = device.configuration().coupling_map
 
         # Define unbound pass manager
-        >>> unbound_pm = PassManager(BasicSwap(CouplingMap(couplinglist=coupling_map)))
+        unbound_pm = PassManager(BasicSwap(CouplingMap(couplinglist=coupling_map)))
 
         # Define bound pass manager
-        >>> bound_pm = PassManager(Unroller(['u1', 'u2', 'u3', 'cx']))
+        bound_pm = PassManager(Unroller(['u1', 'u2', 'u3', 'cx']))
 
         # Define quantum instance
-        >>> qi = QuantumInstance(
-        ...    backend=backend,
-        ...    shots=1000,
-        ...    seed_simulator=42,
-        ...    noise_model=noise_model,
-        ...    coupling_map=coupling_map,
-        ...    pass_manager=unbound_pm,
-        ...    bound_pass_manager=bound_pm
-        ... )
+        qi = QuantumInstance(
+           backend=backend,
+           shots=1024,
+           seed_simulator=42,
+           noise_model=noise_model,
+           coupling_map=coupling_map,
+           pass_manager=unbound_pm,
+           bound_pass_manager=bound_pm
+        )
 
         # You can transpile the unbound circuit
-        >>> transpiled_circuit = qi.transpile(circuit, pass_manager=unbound_pm)
-        >>> print(transpiled_circuit)
+        transpiled_circuit = qi.transpile(circuit, pass_manager=unbound_pm)
+        print(transpiled_circuit)
 
         # You can bind the parameter and transpile
-        >>> bound_circuit = circuit.bind_parameters({p: 0.1})
-        >>> transpiled_bound_circuit = qi.transpile(bound_circuit, pass_manager=bound_pm)
-        >>> print(transpiled_bound_circuit)
+        bound_circuit = circuit.bind_parameters({p: 0.1})
+        transpiled_bound_circuit = qi.transpile(bound_circuit, pass_manager=bound_pm)
+        print(transpiled_bound_circuit)
 
         # Or you can execute bound circuit with passes defined during init.
-        >>> result = qi.execute(bound_circuit).results[0]
-        >>> result
-        ExperimentResult(shots=1000, success=True, meas_level=2, data=ExperimentResultData(counts={'0x39': 1, '0x3': 3, '0x1f': 4, '0x43': 2, '0x14': 1, '0x22': 1, '0x5': 1, '0x15': 3, '0xc': 5, '0x1d': 4, '0x50': 1, '0x44': 1, '0x32': 1, '0x1': 73, '0x1a': 1, '0x1b': 2, '0x30': 1, '0x9': 1, '0x12': 4, '0x13': 14, '0x53': 2, '0xe': 4, '0x21': 1, '0x10': 89, '0x19': 7, '0x31': 5, '0x17': 1, '0x11': 326, '0x41': 1, '0x8': 12, '0x1e': 1, '0x20': 13, '0x42': 6, '0x4': 9, '0x51': 6, '0x40': 19, '0x52': 2, '0x2': 8, '0x0': 364}), header=QobjExperimentHeader(clbit_labels=[['meas', 0], ['meas', 1], ['meas', 2], ['meas', 3], ['meas', 4], ['meas', 5], ['meas', 6]], creg_sizes=[['meas', 7]], global_phase=6.233185307179586, memory_slots=7, metadata={}, n_qubits=7, name='circuit-1845', qreg_sizes=[['q', 7]], qubit_labels=[['q', 0], ['q', 1], ['q', 2], ['q', 3], ['q', 4], ['q', 5], ['q', 6]]), status=DONE, seed_simulator=42, metadata={'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 0.000634964, 'noise': 'superop', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1, 2, 3, 4, 5, 6], 'measure_sampling': True, 'num_clbits': 7, 'input_qubit_map': [[6, 6], [5, 5], [4, 4], [3, 3], [2, 2], [1, 1], [0, 0]], 'num_qubits': 7, 'method': 'density_matrix', 'fusion': {'applied': False, 'max_fused_qubits': 2, 'threshold': 7, 'enabled': True}}, time_taken=0.045343491)
+        result = qi.execute(bound_circuit).results[0]
+        print("Result: ", result)
+        print("Counts: ", result.data.counts)
 
-        >>> result.data.counts
-        {'0x39': 1, '0x3': 3, '0x1f': 4, '0x43': 2, '0x14': 1, '0x22': 1, '0x5': 1, '0x15': 3, '0xc': 5, '0x1d': 4, '0x50': 1, '0x44': 1, '0x32': 1, '0x1': 73, '0x1a': 1, '0x1b': 2, '0x30': 1, '0x9': 1, '0x12': 4, '0x13': 14, '0x53': 2, '0xe': 4, '0x21': 1, '0x10': 89, '0x19': 7, '0x31': 5, '0x17': 1, '0x11': 326, '0x41': 1, '0x8': 12, '0x1e': 1, '0x20': 13, '0x42': 6, '0x4': 9, '0x51': 6, '0x40': 19, '0x52': 2, '0x2': 8, '0x0': 364}
+    .. testoutput::
+       :options: +SKIP
 
-    **Using Primitives**
-
-    Let's see how the workflow changes with the Backend Sampler:
-
-    .. code-block:: python
-
-        >>> from qiskit.circuit import QuantumRegister, Parameter
-        >>> from qiskit.transpiler import PassManager, CouplingMap
-        >>> from qiskit.transpiler.passes import BasicSwap, Unroller
-        >>> from qiskit_ibm_provider import IBMProvider
-        >>> from qiskit import QuantumCircuit
-        >>> from qiskit.primitives import BackendSampler
-        >>> from qiskit_aer.noise import NoiseModel
-        >>> from qiskit_aer import AerSimulator
-
-        >>> q = QuantumRegister(7, 'q')
-        >>> p = Parameter('p')
-        >>> circuit = QuantumCircuit(q)
-        >>> circuit.h(q[0])
-        >>> circuit.cx(q[0], q[4])
-        >>> circuit.cx(q[2], q[3])
-        >>> circuit.cx(q[6], q[1])
-        >>> circuit.cx(q[5], q[0])
-        >>> circuit.rz(p, q[2])
-        >>> circuit.cx(q[5], q[0])
-        >>> circuit.measure_all()
-
-        # Set up simulation based on real device
-        >>> provider = IBMProvider()
-        >>> backend = AerSimulator()
-        >>> device = provider.get_backend("ibm_oslo")
-        >>> noise_model = NoiseModel.from_backend(device)
-        >>> coupling_map = device.configuration().coupling_map
-        >>> backend.set_options(seed_simulator=42, noise_model=noise_model, coupling_map=coupling_map)
-
-        # Pre-run transpilation using pass manager
-        >>> unbound_pm = PassManager(BasicSwap(CouplingMap(couplinglist=coupling_map)))
-        >>> transpiled_circuit = unbound_pm.run(circuit)
-        >>> print(transpiled_circuit)
                 ┌───┐                                                     ░       ┌─┐
            q_0: ┤ H ├───────────────X─────────────────────────────────────░───────┤M├────────────
                 └───┘     ┌───────┐ │                                     ░       └╥┘         ┌─┐
@@ -550,17 +568,98 @@ Code examples
                                                                           ░ └╥┘ ║  ║  ║  ║  ║  ║
         meas: 7/═════════════════════════════════════════════════════════════╩══╩══╩══╩══╩══╩══╩═
                                                                              0  1  2  3  4  5  6
+        global phase: 6.2332
+                ┌─────────┐                     ┌───┐┌───┐ ░ ┌─┐
+           q_0: ┤ U2(0,π) ├──────────────────■──┤ X ├┤ X ├─░─┤M├──────────────────
+                └─────────┘┌───┐             │  └─┬─┘└─┬─┘ ░ └╥┘┌─┐
+           q_1: ───────────┤ X ├─────────────┼────┼────┼───░──╫─┤M├───────────────
+                           └─┬─┘┌─────────┐  │    │    │   ░  ║ └╥┘┌─┐
+           q_2: ─────■───────┼──┤ U1(0.1) ├──┼────┼────┼───░──╫──╫─┤M├────────────
+                   ┌─┴─┐     │  └─────────┘  │    │    │   ░  ║  ║ └╥┘┌─┐
+           q_3: ───┤ X ├─────┼───────────────┼────┼────┼───░──╫──╫──╫─┤M├─────────
+                   └───┘     │             ┌─┴─┐  │    │   ░  ║  ║  ║ └╥┘┌─┐
+           q_4: ─────────────┼─────────────┤ X ├──┼────┼───░──╫──╫──╫──╫─┤M├──────
+                             │             └───┘  │    │   ░  ║  ║  ║  ║ └╥┘┌─┐
+           q_5: ─────────────┼────────────────────■────■───░──╫──╫──╫──╫──╫─┤M├───
+                             │                             ░  ║  ║  ║  ║  ║ └╥┘┌─┐
+           q_6: ─────────────■─────────────────────────────░──╫──╫──╫──╫──╫──╫─┤M├
+                                                           ░  ║  ║  ║  ║  ║  ║ └╥┘
+        meas: 7/══════════════════════════════════════════════╩══╩══╩══╩══╩══╩══╩═
+                                                              0  1  2  3  4  5  6
+        Result:  ExperimentResult(shots=1024, success=True, meas_level=2, data=ExperimentResultData(counts={'0xf': 1, '0x1c': 1, '0x72': 1, '0x50': 3, '0x62': 1, '0xc': 3, '0x1f': 3, '0x5b': 5, '0x18': 7, '0x4b': 1, '0xe': 2, '0x53': 7, '0x13': 6, '0x40': 5, '0x51': 4, '0x63': 1, '0x31': 6, '0x10': 97, '0x19': 16, '0x21': 3, '0x2': 9, '0x52': 9, '0x35': 1, '0x49': 2, '0x4a': 1, '0x4': 4, '0x42': 12, '0x1a': 1, '0x1': 96, '0x3': 4, '0x30': 7, '0x9': 7, '0x48': 1, '0x46': 1, '0x1d': 2, '0x0': 345, '0x14': 4, '0xb': 1, '0x43': 7, '0x5': 3, '0x15': 3, '0x41': 2, '0x8': 20, '0x11': 299, '0x59': 2, '0x20': 8}), header=QobjExperimentHeader(clbit_labels=[['meas', 0], ['meas', 1], ['meas', 2], ['meas', 3], ['meas', 4], ['meas', 5], ['meas', 6]], creg_sizes=[['meas', 7]], global_phase=6.233185307179586, memory_slots=7, metadata={}, n_qubits=7, name='circuit-2663', qreg_sizes=[['q', 7]], qubit_labels=[['q', 0], ['q', 1], ['q', 2], ['q', 3], ['q', 4], ['q', 5], ['q', 6]]), status=DONE, seed_simulator=42, metadata={'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 0.000634379, 'noise': 'superop', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1, 2, 3, 4, 5, 6], 'measure_sampling': True, 'num_clbits': 7, 'input_qubit_map': [[6, 6], [5, 5], [4, 4], [3, 3], [2, 2], [1, 1], [0, 0]], 'num_qubits': 7, 'method': 'density_matrix', 'fusion': {'applied': False, 'max_fused_qubits': 2, 'threshold': 7, 'enabled': True}}, time_taken=0.044914751)
+        Counts:  {'0xf': 1, '0x1c': 1, '0x72': 1, '0x50': 3, '0x62': 1, '0xc': 3, '0x1f': 3, '0x5b': 5, '0x18': 7, '0x4b': 1, '0xe': 2, '0x53': 7, '0x13': 6, '0x40': 5, '0x51': 4, '0x63': 1, '0x31': 6, '0x10': 97, '0x19': 16, '0x21': 3, '0x2': 9, '0x52': 9, '0x35': 1, '0x49': 2, '0x4a': 1, '0x4': 4, '0x42': 12, '0x1a': 1, '0x1': 96, '0x3': 4, '0x30': 7, '0x9': 7, '0x48': 1, '0x46': 1, '0x1d': 2, '0x0': 345, '0x14': 4, '0xb': 1, '0x43': 7, '0x5': 3, '0x15': 3, '0x41': 2, '0x8': 20, '0x11': 299, '0x59': 2, '0x20': 8}
+
+    **Using Primitives**
+
+    Let's see how the workflow changes with the Backend Sampler:
+
+    .. testcode::
+
+        from qiskit.circuit import QuantumRegister, Parameter
+        from qiskit.transpiler import PassManager, CouplingMap
+        from qiskit.transpiler.passes import BasicSwap, Unroller
+        from qiskit_ibm_provider import IBMProvider
+        from qiskit import QuantumCircuit
+        from qiskit.primitives import BackendSampler
+        from qiskit_aer.noise import NoiseModel
+        from qiskit_aer import AerSimulator
+
+        q = QuantumRegister(7, 'q')
+        p = Parameter('p')
+        circuit = QuantumCircuit(q)
+        circuit.h(q[0])
+        circuit.cx(q[0], q[4])
+        circuit.cx(q[2], q[3])
+        circuit.cx(q[6], q[1])
+        circuit.cx(q[5], q[0])
+        circuit.rz(p, q[2])
+        circuit.cx(q[5], q[0])
+        circuit.measure_all()
+
+        # Set up simulation based on real device
+        provider = IBMProvider()
+        backend = AerSimulator()
+        device = provider.get_backend("ibm_oslo")
+        noise_model = NoiseModel.from_backend(device)
+        coupling_map = device.configuration().coupling_map
+        backend.set_options(seed_simulator=42, noise_model=noise_model, coupling_map=coupling_map)
+
+        # Pre-run transpilation using pass manager
+        unbound_pm = PassManager(BasicSwap(CouplingMap(couplinglist=coupling_map)))
+        transpiled_circuit = unbound_pm.run(circuit)
+        print(transpiled_circuit)
 
         # Define bound pass manager
-        >>> bound_pm = PassManager(Unroller(['u1', 'u2', 'u3', 'cx']))
+        bound_pm = PassManager(Unroller(['u1', 'u2', 'u3', 'cx']))
 
         # Set up sampler with skip_transpilation and bound_pass_manager
-        >>> sampler = BackendSampler(backend=backend, skip_transpilation=True, bound_pass_manager=bound_pm)
+        sampler = BackendSampler(backend=backend, skip_transpilation=True, bound_pass_manager=bound_pm)
 
         # Run
-        >>> result = sampler.run(transpiled_circuit, [[0.1]], shots=1024).result().quasi_dists
-        >>> result
-        [{20: 0.0009765625,
+        quasi_dists = sampler.run(transpiled_circuit, [[0.1]], shots=1024).result().quasi_dists
+        print("Quasi-dists: ", quasi_dists)
+
+    .. testoutput::
+       :options: +SKIP
+
+                ┌───┐                                                     ░       ┌─┐
+           q_0: ┤ H ├───────────────X─────────────────────────────────────░───────┤M├────────────
+                └───┘     ┌───────┐ │                                     ░       └╥┘         ┌─┐
+           q_1: ──X────■──┤ Rz(p) ├─X──X──────────────────────────X───■───░────────╫──────────┤M├
+                  │    │  └───────┘    │                          │ ┌─┴─┐ ░    ┌─┐ ║          └╥┘
+           q_2: ──X────┼───────────────┼──────────────────────────┼─┤ X ├─░────┤M├─╫───────────╫─
+                     ┌─┴─┐             │                          │ └───┘ ░    └╥┘ ║ ┌─┐       ║
+           q_3: ─────┤ X ├─────────────X──X────────■────■──────X──X───────░─────╫──╫─┤M├───────╫─
+                     └───┘                │ ┌───┐  │    │      │          ░     ║  ║ └╥┘┌─┐    ║
+           q_4: ──────────────────────────┼─┤ X ├──┼────┼──────┼──────────░─────╫──╫──╫─┤M├────╫─
+                                          │ └─┬─┘┌─┴─┐┌─┴─┐    │          ░     ║  ║  ║ └╥┘┌─┐ ║
+           q_5: ──────────────────────────X───■──┤ X ├┤ X ├─X──X──────────░─────╫──╫──╫──╫─┤M├─╫─
+                                                 └───┘└───┘ │             ░ ┌─┐ ║  ║  ║  ║ └╥┘ ║
+           q_6: ────────────────────────────────────────────X─────────────░─┤M├─╫──╫──╫──╫──╫──╫─
+                                                                          ░ └╥┘ ║  ║  ║  ║  ║  ║
+        meas: 7/═════════════════════════════════════════════════════════════╩══╩══╩══╩══╩══╩══╩═
+                                                                             0  1  2  3  4  5  6
+        Quasi-dists: [{20: 0.0009765625,
           18: 0.001953125,
           80: 0.00390625,
           6: 0.001953125,
@@ -598,4 +697,3 @@ Code examples
           38: 0.0009765625,
           0: 0.376953125,
           17: 0.330078125}]
-
