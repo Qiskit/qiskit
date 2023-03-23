@@ -172,10 +172,13 @@ class BasisTranslator(TransformationPass):
 
             if local_basis_transforms is None:
                 raise TranspilerError(
-                    "Unable to map source basis {} to target basis {} on qarg {} "
-                    "over library {}.".format(
-                        local_source_basis, expanded_target, qarg, self._equiv_lib
-                    )
+                    "Unable to translate the operations in the circuit: "
+                    f"{[x[0] for x in local_source_basis]} to the backend's (or manually "
+                    f"specified) target basis: {list(expanded_target)}. This likely means the "
+                    "target basis is not universal or there are additional equivalence rules "
+                    "needed in the EquivalenceLibrary being used (see: "
+                    "https://qiskit.org/documentation/apidoc/providers.html#custom-basis-gates "
+                    "for details on adding custom equivalence rules)."
                 )
 
             qarg_local_basis_transforms[qarg] = local_basis_transforms
@@ -187,8 +190,13 @@ class BasisTranslator(TransformationPass):
 
         if basis_transforms is None:
             raise TranspilerError(
-                "Unable to map source basis {} to target basis {} "
-                "over library {}.".format(source_basis, target_basis, self._equiv_lib)
+                "Unable to translate the operations in the circuit: "
+                f"{[x[0] for x in source_basis]} to the backend's (or manually specified) target "
+                f"basis: {list(target_basis)}. This likely means the target basis is not universal "
+                "or there are additional equivalence rules needed in the EquivalenceLibrary being "
+                "used (see: "
+                "https://qiskit.org/documentation/apidoc/providers.html#custom-basis-gates for "
+                "details on adding custom equivalence rules)."
             )
 
         # Compose found path into a set of instruction substitution rules.
