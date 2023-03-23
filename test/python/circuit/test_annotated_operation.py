@@ -105,9 +105,17 @@ class TestAnnotatedOperationlass(QiskitTestCase):
 
     def test_canonicalize_modifiers(self):
         """Test that ``canonicalize_modifiers`` works correctly."""
-        op = AnnotatedOperation(SGate(), _canonicalize_modifiers([InverseModifier(), ControlModifier(2), PowerModifier(2), ControlModifier(1), InverseModifier(), PowerModifier(-3)]))
-        expected_op = AnnotatedOperation(SGate(), [InverseModifier(), PowerModifier(6), ControlModifier(3)])
-        self.assertEqual(op, expected_op)
+        original_list = [InverseModifier(), ControlModifier(2), PowerModifier(2), ControlModifier(1), InverseModifier(), PowerModifier(-3)]
+        canonical_list = _canonicalize_modifiers(original_list)
+        expected_list = [InverseModifier(), PowerModifier(6), ControlModifier(3)]
+        self.assertEqual(canonical_list, expected_list)
+
+    def test_canonicalize_inverse(self):
+        """Tests that canonicalization cancels pairs of inverse modifiers."""
+        original_list = _canonicalize_modifiers([InverseModifier(), InverseModifier()])
+        canonical_list = _canonicalize_modifiers(original_list)
+        expected_list = []
+        self.assertEqual(canonical_list, expected_list)
 
 
 if __name__ == "__main__":

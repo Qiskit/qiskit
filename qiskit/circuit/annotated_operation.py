@@ -1,5 +1,5 @@
 import dataclasses
-from typing import Optional, Union, List
+from typing import Union, List
 
 from qiskit.circuit.operation import Operation
 from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
@@ -7,16 +7,20 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class Modifier:
+    """Modifier class. """
     pass
 
 
 @dataclasses.dataclass
 class InverseModifier(Modifier):
+    """Inverse modifier: specifies that the operation is inverted."""
     pass
 
 
 @dataclasses.dataclass
 class ControlModifier(Modifier):
+    """Control modifier: specifies that the operation is controlled by ``num_ctrl_qubits``
+    and has control state ``ctrl_state``."""
     num_ctrl_qubits: int
     ctrl_state: Union[int, str, None] = None
 
@@ -27,24 +31,43 @@ class ControlModifier(Modifier):
 
 @dataclasses.dataclass
 class PowerModifier(Modifier):
+    """Power modifier: specifies that the operation is raised to the power ``power``."""
     power: float
 
 
 class AnnotatedOperation(Operation):
-    """Gate and modifiers inside."""
+    """Annotated operation."""
 
     def __init__(
         self,
         base_op: Operation,
         modifiers: Union[Modifier, List[Modifier]]
     ):
+        """
+        Create a new AnnotatedOperation.
+
+        Args:
+            base_op: base operation being modified
+            modifiers: ordered list of modifiers. Supported modifiers include
+                ``InverseModifier``, ``ControlModifier`` and ``PowerModifier``.
+
+        Examples::
+
+            op1 = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(2)])
+
+            op2_inner = AnnotatedGate(SGate(), InverseModifier())
+            op2 = AnnotatedGate(op2_inner, ControlModifier(2))
+
+        Both op1 and op2 are semantically equivalent to an ``SGate()`` which is first
+        inverted and then controlled by 2 qubits.
+        """
         self.base_op = base_op
         self.modifiers = modifiers if isinstance(modifiers, List) else [modifiers]
 
     @property
     def name(self):
         """Unique string identifier for operation type."""
-        return "lazy"
+        return "annotated"
 
     @property
     def num_qubits(self):
@@ -61,45 +84,6 @@ class AnnotatedOperation(Operation):
         """Number of classical bits."""
         return self.base_op.num_clbits
 
-    def lazy_inverse(self):
-        """Returns lazy inverse
-        """
-
-        # ToDo: Should we copy base_op? modifiers?
-        modifiers = self.modifiers.copy()
-        modifiers.append(InverseModifier())
-        return AnnotatedOperation(self.base_op, modifiers)
-
-    def inverse(self):
-        return self.lazy_inverse()
-
-    def lazy_control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[int, str]] = None,
-    ):
-        """Maybe does not belong here"""
-        modifiers = self.modifiers.copy()
-        modifiers.append(ControlModifier(num_ctrl_qubits, ctrl_state))
-        return AnnotatedOperation(self.base_op, modifiers)
-
-    def control(
-        self,
-        num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[int, str]] = None,
-    ):
-        return self.lazy_control(num_ctrl_qubits, label, ctrl_state)
-
-    def lazy_power(self, power: float) -> "AnnotatedOperation":
-        modifiers = self.modifiers.copy()
-        modifiers.append(PowerModifier(power))
-        return AnnotatedOperation(self.base_op, modifiers)
-
-    def power(self, power: float):
-        return self.lazy_power(power)
-
     def __eq__(self, other) -> bool:
         """Checks if two AnnotatedOperations are equal."""
         return (
@@ -107,23 +91,6 @@ class AnnotatedOperation(Operation):
             and self.modifiers == other.modifiers
             and self.base_op == other.base_op
         )
-
-    def print_rec(self, offset=0, depth=100, header=""):
-        """Temporary debug function."""
-        line = " " * offset + header + " LazyGate " + self.name
-        for modifier in self.modifiers:
-            if isinstance(modifier, InverseModifier):
-                line += "[inv] "
-            elif isinstance(modifier, ControlModifier):
-                line += "[ctrl=" + str(modifier.num_ctrl_qubits) + ", state=" + str(modifier.ctrl_state) + "] "
-            elif isinstance(modifier, PowerModifier):
-                line += "[power=" + str(modifier.power) + "] "
-            else:
-                raise CircuitError(f"Unknown modifier {modifier}.")
-
-        print(line)
-        if depth >= 0:
-            self.base_op.print_rec(offset + 2, depth - 1, header="base gate")
 
     def copy(self) -> "AnnotatedOperation":
         """Return a copy of the :class:`AnnotatedOperation`."""
@@ -151,6 +118,14 @@ class AnnotatedOperation(Operation):
 
 
 def _canonicalize_modifiers(modifiers):
+    """
+    Returns the canonical representative of the modifier list. This is possible
+    since all the modifiers commute; also note that InverseModifier is a special
+    case of PowerModifier. The current solution is to compute the total number
+    of control qubits / control state and the total power. The InverseModifier
+    will be present if total power is negative, whereas the power modifier will
+    be present only with positive powers different from 1.
+    """
     power = 1
     num_ctrl_qubits = 0
     ctrl_state = 0
