@@ -26,7 +26,12 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.synthesis.clifford import synth_clifford_full
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms
-from qiskit.circuit.annotated_operation import AnnotatedOperation, InverseModifier, ControlModifier, PowerModifier
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    InverseModifier,
+    ControlModifier,
+    PowerModifier,
+)
 
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
@@ -299,7 +304,11 @@ class HighLevelSynthesis(TransformationPass):
                         qc = synthesized_op
                     else:
                         qc = QuantumCircuit(synthesized_op.num_qubits, synthesized_op.num_clbits)
-                        qc.append(synthesized_op, range(synthesized_op.num_qubits), range(synthesized_op.num_clbits))
+                        qc.append(
+                            synthesized_op,
+                            range(synthesized_op.num_qubits),
+                            range(synthesized_op.num_clbits),
+                        )
 
                     qc = qc.power(modifier.power)
                     synthesized_op = qc.to_gate()

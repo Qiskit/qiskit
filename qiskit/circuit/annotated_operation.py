@@ -7,13 +7,15 @@ from qiskit.circuit.exceptions import CircuitError
 
 
 class Modifier:
-    """Modifier class. """
+    """Modifier class."""
+
     pass
 
 
 @dataclasses.dataclass
 class InverseModifier(Modifier):
     """Inverse modifier: specifies that the operation is inverted."""
+
     pass
 
 
@@ -21,6 +23,7 @@ class InverseModifier(Modifier):
 class ControlModifier(Modifier):
     """Control modifier: specifies that the operation is controlled by ``num_ctrl_qubits``
     and has control state ``ctrl_state``."""
+
     num_ctrl_qubits: int
     ctrl_state: Union[int, str, None] = None
 
@@ -32,17 +35,14 @@ class ControlModifier(Modifier):
 @dataclasses.dataclass
 class PowerModifier(Modifier):
     """Power modifier: specifies that the operation is raised to the power ``power``."""
+
     power: float
 
 
 class AnnotatedOperation(Operation):
     """Annotated operation."""
 
-    def __init__(
-        self,
-        base_op: Operation,
-        modifiers: Union[Modifier, List[Modifier]]
-    ):
+    def __init__(self, base_op: Operation, modifiers: Union[Modifier, List[Modifier]]):
         """
         Create a new AnnotatedOperation.
 
@@ -94,10 +94,7 @@ class AnnotatedOperation(Operation):
 
     def copy(self) -> "AnnotatedOperation":
         """Return a copy of the :class:`AnnotatedOperation`."""
-        return AnnotatedOperation(
-            base_op=self.base_op,
-            modifiers=self.modifiers.copy()
-        )
+        return AnnotatedOperation(base_op=self.base_op, modifiers=self.modifiers.copy())
 
     def to_matrix(self):
         """Return a matrix representation (allowing to construct Operator)."""
@@ -109,7 +106,11 @@ class AnnotatedOperation(Operation):
             if isinstance(modifier, InverseModifier):
                 operator = operator.power(-1)
             elif isinstance(modifier, ControlModifier):
-                operator = Operator(_compute_control_matrix(operator.data, modifier.num_ctrl_qubits, modifier.ctrl_state))
+                operator = Operator(
+                    _compute_control_matrix(
+                        operator.data, modifier.num_ctrl_qubits, modifier.ctrl_state
+                    )
+                )
             elif isinstance(modifier, PowerModifier):
                 operator = operator.power(modifier.power)
             else:

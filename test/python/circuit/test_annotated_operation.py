@@ -16,7 +16,13 @@ import unittest
 
 from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.test import QiskitTestCase
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, InverseModifier, PowerModifier, _canonicalize_modifiers
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    ControlModifier,
+    InverseModifier,
+    PowerModifier,
+    _canonicalize_modifiers,
+)
 from qiskit.circuit.library import XGate, CXGate, SGate, SdgGate
 from qiskit.quantum_info import Operator
 
@@ -32,11 +38,19 @@ class TestAnnotatedOperationlass(QiskitTestCase):
 
     def test_create_gate_with_modifier_list(self):
         """Test creating a gate with a list of modifiers."""
-        op = AnnotatedOperation(SGate(), [InverseModifier(), ControlModifier(2), PowerModifier(3), InverseModifier()])
+        op = AnnotatedOperation(
+            SGate(), [InverseModifier(), ControlModifier(2), PowerModifier(3), InverseModifier()]
+        )
         self.assertIsInstance(op, AnnotatedOperation)
         self.assertIsInstance(op.base_op, SGate)
-        self.assertEqual(op.modifiers, [InverseModifier(), ControlModifier(2), PowerModifier(3), InverseModifier()])
-        self.assertNotEqual(op.modifiers, [InverseModifier(), PowerModifier(3), ControlModifier(2), InverseModifier()])
+        self.assertEqual(
+            op.modifiers,
+            [InverseModifier(), ControlModifier(2), PowerModifier(3), InverseModifier()],
+        )
+        self.assertNotEqual(
+            op.modifiers,
+            [InverseModifier(), PowerModifier(3), ControlModifier(2), InverseModifier()],
+        )
 
     def test_create_gate_with_empty_modifier_list(self):
         """Test creating a gate with an empty list of modifiers."""
@@ -73,14 +87,31 @@ class TestAnnotatedOperationlass(QiskitTestCase):
 
     def test_num_qubits(self):
         """Tests that number of qubits is computed correctly."""
-        op_inner = AnnotatedOperation(SGate(), [ControlModifier(4, ctrl_state=1), InverseModifier(), ControlModifier(2), PowerModifier(3), InverseModifier()])
+        op_inner = AnnotatedOperation(
+            SGate(),
+            [
+                ControlModifier(4, ctrl_state=1),
+                InverseModifier(),
+                ControlModifier(2),
+                PowerModifier(3),
+                InverseModifier(),
+            ],
+        )
         op = AnnotatedOperation(op_inner, ControlModifier(3))
         self.assertEqual(op.num_qubits, 10)
 
     def test_num_clbits(self):
         """Tests that number of clbits is computed correctly."""
-        op_inner = AnnotatedOperation(SGate(), [ControlModifier(4, ctrl_state=1), InverseModifier(), ControlModifier(2),
-                                                PowerModifier(3), InverseModifier()])
+        op_inner = AnnotatedOperation(
+            SGate(),
+            [
+                ControlModifier(4, ctrl_state=1),
+                InverseModifier(),
+                ControlModifier(2),
+                PowerModifier(3),
+                InverseModifier(),
+            ],
+        )
         op = AnnotatedOperation(op_inner, ControlModifier(3))
         self.assertEqual(op.num_clbits, 0)
 
@@ -88,7 +119,9 @@ class TestAnnotatedOperationlass(QiskitTestCase):
         """Test that ``to_matrix`` works correctly for control modifiers."""
         num_ctrl_qubits = 3
         for ctrl_state in [5, None, 0, 7, "110"]:
-            op = AnnotatedOperation(SGate(), ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state))
+            op = AnnotatedOperation(
+                SGate(), ControlModifier(num_ctrl_qubits=num_ctrl_qubits, ctrl_state=ctrl_state)
+            )
             target_mat = _compute_control_matrix(SGate().to_matrix(), num_ctrl_qubits, ctrl_state)
             self.assertEqual(Operator(op), Operator(target_mat))
 
@@ -105,7 +138,14 @@ class TestAnnotatedOperationlass(QiskitTestCase):
 
     def test_canonicalize_modifiers(self):
         """Test that ``canonicalize_modifiers`` works correctly."""
-        original_list = [InverseModifier(), ControlModifier(2), PowerModifier(2), ControlModifier(1), InverseModifier(), PowerModifier(-3)]
+        original_list = [
+            InverseModifier(),
+            ControlModifier(2),
+            PowerModifier(2),
+            ControlModifier(1),
+            InverseModifier(),
+            PowerModifier(-3),
+        ]
         canonical_list = _canonicalize_modifiers(original_list)
         expected_list = [InverseModifier(), PowerModifier(6), ControlModifier(3)]
         self.assertEqual(canonical_list, expected_list)

@@ -24,7 +24,12 @@ from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
 from qiskit.transpiler.passes.synthesis.high_level_synthesis import HighLevelSynthesis, HLSConfig
-from qiskit.circuit.annotated_operation import AnnotatedOperation, ControlModifier, InverseModifier, PowerModifier
+from qiskit.circuit.annotated_operation import (
+    AnnotatedOperation,
+    ControlModifier,
+    InverseModifier,
+    PowerModifier,
+)
 from qiskit.quantum_info import Operator
 
 
@@ -509,7 +514,9 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
 
     def test_three_inverses(self):
         """Test lazy controlled synthesis with multiple inverse modifiers (odd)."""
-        lazy_gate1 = AnnotatedOperation(RZGate(np.pi / 4), [InverseModifier(), InverseModifier(), InverseModifier()])
+        lazy_gate1 = AnnotatedOperation(
+            RZGate(np.pi / 4), [InverseModifier(), InverseModifier(), InverseModifier()]
+        )
         circuit = QuantumCircuit(1)
         circuit.append(lazy_gate1, [0])
         transpiled_circuit = HighLevelSynthesis()(circuit)
@@ -678,8 +685,12 @@ class TestHighLevelSynthesisModifiers(QiskitTestCase):
 
     def test_reordered_modifiers(self):
         """Test involving gates with different modifiers."""
-        lazy_gate1 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), [InverseModifier(), ControlModifier(2), PowerModifier(3)])
-        lazy_gate2 = AnnotatedOperation(PermutationGate([3, 1, 0, 2]), [PowerModifier(3), ControlModifier(2), InverseModifier()])
+        lazy_gate1 = AnnotatedOperation(
+            PermutationGate([3, 1, 0, 2]), [InverseModifier(), ControlModifier(2), PowerModifier(3)]
+        )
+        lazy_gate2 = AnnotatedOperation(
+            PermutationGate([3, 1, 0, 2]), [PowerModifier(3), ControlModifier(2), InverseModifier()]
+        )
         qc1 = QuantumCircuit(6)
         qc1.append(lazy_gate1, [0, 1, 2, 3, 4, 5])
         qc2 = QuantumCircuit(6)
