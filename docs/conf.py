@@ -126,6 +126,7 @@ experiments_tutorials = [
 
 redirects = {
     "install": "getting_started.html",
+    "tutorials/algorithms/08_factorizers": "https://qiskit.org/textbook/ch-algorithms/shor.html"
 }
 
 for tutorial in optimization_tutorials:
