@@ -42,6 +42,23 @@ All of these interfaces will raise :exc:`QASM3ExporterError` on failure.
 
 .. autoexception:: QASM3ExporterError
 
+Experimental features
+---------------------
+
+The OpenQASM 3 language is still evolving as hardware capabilities improve, so there is no final
+syntax that Qiskit can reliably target.  In order to represent the evolving language, we will
+sometimes release features before formal standardisation, which may need to change as the review
+process in the OpenQASM 3 design committees progresses.  By default, the exporters will only support
+standardised features of the language.  To enable these early-release features, use the
+``experimental`` keyword argument of :func:`dump` and :func:`dumps`.  The available feature flags
+are:
+
+.. autoclass:: ExperimentalFeatures
+    :members:
+
+If you want to enable multiple experimental features, you should combine the flags using the ``|``
+operator, such as ``flag1 | flag2``.
+
 
 Importing from OpenQASM 3
 =========================
@@ -124,6 +141,8 @@ convert it into a :class:`.QuantumCircuit`:
 """
 
 from qiskit.utils import optionals as _optionals
+
+from .experimental import ExperimentalFeatures
 from .exporter import Exporter
 from .exceptions import QASM3Error, QASM3ImporterError, QASM3ExporterError
 
