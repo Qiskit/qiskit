@@ -48,7 +48,7 @@ Then you need to create the :class:`~qiskit.circuit.QuantumCircuit` for which yo
 
 .. note::
 
-    The :class:`~qiskit.circuit.QuantumCircuit` can't include any measurements.
+    The :class:`~qiskit.circuit.QuantumCircuit` you pass to :class:`~qiskit.primitives.Estimator` must not include any measurements.
 
 Initialize the ``Estimator``
 ============================

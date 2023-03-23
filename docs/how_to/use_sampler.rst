@@ -37,7 +37,7 @@ The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` from whi
 
 .. note::
 
-    The :class:`~qiskit.circuit.QuantumCircuit` has to include measurements.
+    The :class:`~qiskit.circuit.QuantumCircuit` you pass to :class:`~qiskit.primitives.Sampler` has to include measurements.
 
 Initialize the ``Sampler``
 ==========================
