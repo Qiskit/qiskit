@@ -553,7 +553,7 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.op.condition:
+            if getattr(node.op, "condition", None):
                 if isinstance(node.op.condition[0], Clbit):
                     cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
                     index_stop = self.measure_map[cond_bit[0]]

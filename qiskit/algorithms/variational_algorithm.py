@@ -30,6 +30,8 @@ from typing import Optional, Dict
 from abc import ABC, abstractmethod
 import numpy as np
 
+from qiskit.circuit import QuantumCircuit
+
 from .algorithm_result import AlgorithmResult
 from .optimizers import OptimizerResult
 
@@ -60,6 +62,8 @@ class VariationalResult(AlgorithmResult):
         self._optimal_value = None
         self._optimal_point = None
         self._optimal_parameters = None
+        self._optimizer_result = None
+        self._optimal_circuit = None
 
     @property
     def optimizer_evals(self) -> Optional[int]:
@@ -120,3 +124,14 @@ class VariationalResult(AlgorithmResult):
     def optimizer_result(self, value: OptimizerResult) -> None:
         """Sets optimizer result"""
         self._optimizer_result = value
+
+    @property
+    def optimal_circuit(self) -> QuantumCircuit:
+        """The optimal circuits. Along with the optimal parameters,
+        these can be used to retrieve the minimum eigenstate.
+        """
+        return self._optimal_circuit
+
+    @optimal_circuit.setter
+    def optimal_circuit(self, optimal_circuit: QuantumCircuit) -> None:
+        self._optimal_circuit = optimal_circuit

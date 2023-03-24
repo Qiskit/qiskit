@@ -310,7 +310,8 @@ def _parse_common_args(
     backend_name = getattr(backend_config, "backend_name", None)
     backend_version = getattr(backend_config, "backend_version", None)
     qobj_header = {
-        **dict(backend_name=backend_name, backend_version=backend_version),
+        "backend_name": backend_name,
+        "backend_version": backend_version,
         **qobj_header,
     }
     qobj_header = QobjHeader(**{k: v for k, v in qobj_header.items() if v is not None})
@@ -494,13 +495,15 @@ def _parse_circuit_args(
     parameter_binds = parameter_binds or []
     # create run configuration and populate
     run_config_dict = dict(parameter_binds=parameter_binds, **run_config)
-    if backend:
-        run_config_dict["parametric_pulses"] = getattr(
-            backend.configuration(), "parametric_pulses", []
-        )
-    if parametric_pulses:
+    if parametric_pulses is None:
+        if backend:
+            run_config_dict["parametric_pulses"] = getattr(
+                backend.configuration(), "parametric_pulses", []
+            )
+        else:
+            run_config_dict["parametric_pulses"] = []
+    else:
         run_config_dict["parametric_pulses"] = parametric_pulses
-
     if meas_level:
         run_config_dict["meas_level"] = meas_level
         # only enable `meas_return` if `meas_level` isn't classified

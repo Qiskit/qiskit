@@ -198,6 +198,10 @@ class TestPauliListInit(QiskitTestCase):
             np.testing.assert_equal(pauli_list.z, z)
             np.testing.assert_equal(pauli_list.x, x)
 
+        with self.subTest(msg="str init prevent broadcasting"):
+            with self.assertRaises(ValueError):
+                PauliList(["XYZ", "I"])
+
     def test_list_init(self):
         """Test list initialization."""
         with self.subTest(msg="PauliList"):
@@ -2033,6 +2037,40 @@ class TestPauliListMethods(QiskitTestCase):
         self.assertListEqual(value, target)
         self.assertListEqual(value, value_h)
         self.assertListEqual(value_inv, value_s)
+
+    def test_phase_dtype_evolve_clifford(self):
+        """Test phase dtype during evolve method for Clifford gates."""
+        gates = (
+            IGate(),
+            XGate(),
+            YGate(),
+            ZGate(),
+            HGate(),
+            SGate(),
+            SdgGate(),
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            SwapGate(),
+        )
+        dtypes = [
+            int,
+            np.int8,
+            np.uint8,
+            np.int16,
+            np.uint16,
+            np.int32,
+            np.uint32,
+            np.int64,
+            np.uint64,
+        ]
+        for gate, dtype in itertools.product(gates, dtypes):
+            z = np.ones(gate.num_qubits, dtype=bool)
+            x = np.ones(gate.num_qubits, dtype=bool)
+            phase = (np.sum(z & x) % 4).astype(dtype)
+            paulis = Pauli((z, x, phase))
+            evo = paulis.evolve(gate)
+            self.assertEqual(evo.phase.dtype, dtype)
 
     @combine(phase=(True, False))
     def test_evolve_clifford_qargs(self, phase):

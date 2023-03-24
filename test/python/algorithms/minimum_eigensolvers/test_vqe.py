@@ -107,6 +107,11 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.subTest(msg="assert optimizer_result."):
             self.assertAlmostEqual(result.optimizer_result.fun, self.h2_energy, places=5)
 
+        with self.subTest(msg="assert return ansatz is set"):
+            estimator = Estimator()
+            job = estimator.run(result.optimal_circuit, self.h2_op, result.optimal_point)
+            np.testing.assert_array_almost_equal(job.result().values, result.eigenvalue, 6)
+
     def test_invalid_initial_point(self):
         """Test the proper error is raised when the initial point has the wrong size."""
         ansatz = self.ryrz_wavefunction
@@ -234,7 +239,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
     def test_callback(self):
         """Test the callback on VQE."""
         history = {"eval_count": [], "parameters": [], "mean": [], "metadata": []}
-        # expected_shots = options["shots"] if "shots" in options else 0
 
         def store_intermediate_result(eval_count, parameters, mean, metadata):
             history["eval_count"].append(eval_count)
@@ -295,6 +299,35 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.subTest("Optimizer replace."):
             vqe.optimizer = L_BFGS_B()
             run_check()
+
+    def test_default_batch_evaluation_on_spsa(self):
+        """Test the default batching works."""
+        ansatz = TwoLocal(2, rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
+
+        wrapped_estimator = Estimator()
+        inner_estimator = Estimator()
+
+        callcount = {"estimator": 0}
+
+        def wrapped_estimator_run(*args, **kwargs):
+            kwargs["callcount"]["estimator"] += 1
+            return inner_estimator.run(*args, **kwargs)
+
+        wrapped_estimator.run = partial(wrapped_estimator_run, callcount=callcount)
+
+        spsa = SPSA(maxiter=5)
+
+        vqe = VQE(wrapped_estimator, ansatz, spsa)
+        _ = vqe.compute_minimum_eigenvalue(Pauli("ZZ"))
+
+        # 1 calibration + 5 loss + 1 return loss
+        expected_estimator_runs = 1 + 5 + 1
+
+        with self.subTest(msg="check callcount"):
+            self.assertEqual(callcount["estimator"], expected_estimator_runs)
+
+        with self.subTest(msg="check reset to original max evals grouped"):
+            self.assertIsNone(spsa._max_evals_grouped)
 
     def test_batch_evaluate_with_qnspsa(self):
         """Test batch evaluating with QNSPSA works."""

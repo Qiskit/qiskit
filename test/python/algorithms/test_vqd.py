@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test VQD """
+"""Test VQD"""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -40,6 +40,7 @@ from qiskit.opflow import (
 )
 
 from qiskit.utils import QuantumInstance, algorithm_globals, has_aer
+from qiskit.test import slow_test
 
 
 if has_aer():
@@ -85,6 +86,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
             seed_transpiler=self.seed,
         )
 
+    @slow_test
     def test_basic_aer_statevector(self):
         """Test the VQD on BasicAer's statevector simulator."""
         wavefunction = self.ryrz_wavefunction

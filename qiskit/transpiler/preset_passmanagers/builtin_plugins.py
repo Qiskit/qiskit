@@ -218,7 +218,7 @@ class SabreSwapPassManager(PassManagerStagePlugin):
             )
         if optimization_level == 1:
             routing_pass = SabreSwap(
-                coupling_map, heuristic="lookahead", seed=seed_transpiler, trials=5
+                coupling_map, heuristic="decay", seed=seed_transpiler, trials=5
             )
             return common.generate_routing_passmanager(
                 routing_pass,

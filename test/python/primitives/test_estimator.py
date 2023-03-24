@@ -15,13 +15,16 @@
 import unittest
 
 import numpy as np
+from ddt import data, ddt, unpack
 
-from qiskit.circuit import QuantumCircuit
+from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.library import RealAmplitudes
+from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import Estimator, EstimatorResult
+from qiskit.primitives import BaseEstimator, Estimator, EstimatorResult
+from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
-from qiskit.quantum_info import Operator, SparsePauliOp
+from qiskit.quantum_info import Operator, SparsePauliOp, Pauli, PauliList
 from qiskit.test import QiskitTestCase
 
 
@@ -31,7 +34,7 @@ class TestEstimator(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.ansatz = RealAmplitudes(num_qubits=2, reps=2)
-        self.observable = PauliSumOp.from_list(
+        self.observable = SparsePauliOp.from_list(
             [
                 ("II", -1.052373245772859),
                 ("IZ", 0.39793742484318045),
@@ -450,6 +453,58 @@ class TestEstimator(QiskitTestCase):
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.284366511861733])
 
+    def test_run_single_circuit_observable(self):
+        """Test for single circuit and single observable case."""
+        est = Estimator()
+
+        with self.subTest("No parameter"):
+            qc = QuantumCircuit(1)
+            qc.x(0)
+            op = SparsePauliOp("Z")
+            param_vals = [None, [], [[]], np.array([]), np.array([[]]), [np.array([])]]
+            target = [-1]
+            for val in param_vals:
+                self.subTest(f"{val}")
+                result = est.run(qc, op, val).result()
+                np.testing.assert_allclose(result.values, target)
+                self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("One parameter"):
+            param = Parameter("x")
+            qc = QuantumCircuit(1)
+            qc.ry(param, 0)
+            op = SparsePauliOp("Z")
+            param_vals = [
+                [np.pi],
+                [[np.pi]],
+                np.array([np.pi]),
+                np.array([[np.pi]]),
+                [np.array([np.pi])],
+            ]
+            target = [-1]
+            for val in param_vals:
+                self.subTest(f"{val}")
+                result = est.run(qc, op, val).result()
+                np.testing.assert_allclose(result.values, target)
+                self.assertEqual(len(result.metadata), 1)
+
+        with self.subTest("More than one parameter"):
+            qc = self.psi[0]
+            op = self.hamiltonian[0]
+            param_vals = [
+                self.theta[0],
+                [self.theta[0]],
+                np.array(self.theta[0]),
+                np.array([self.theta[0]]),
+                [np.array(self.theta[0])],
+            ]
+            target = [1.5555572817900956]
+            for val in param_vals:
+                self.subTest(f"{val}")
+                result = est.run(qc, op, val).result()
+                np.testing.assert_allclose(result.values, target)
+                self.assertEqual(len(result.metadata), 1)
+
     def test_run_1qubit(self):
         """Test for 1-qubit cases"""
         qc = QuantumCircuit(1)
@@ -584,6 +639,74 @@ class TestEstimator(QiskitTestCase):
             ).result()
             self.assertIsInstance(result, EstimatorResult)
             np.testing.assert_allclose(result.values, [-1.307397243478641])
+
+    def test_negative_variance(self):
+        """Test for negative variance caused by numerical error."""
+        qc = QuantumCircuit(1)
+
+        estimator = Estimator()
+        result = estimator.run(qc, 1e-4 * SparsePauliOp("I"), shots=1024).result()
+        self.assertEqual(result.values[0], 1e-4)
+        self.assertEqual(result.metadata[0]["variance"], 0.0)
+
+    def test_different_circuits(self):
+        """Test collision of quantum observables."""
+
+        def get_op(i):
+            op = SparsePauliOp.from_list([("IXIX", i)])
+            return op
+
+        keys = [_observable_key(get_op(i)) for i in range(5)]
+        self.assertEqual(len(keys), len(set(keys)))
+
+
+@ddt
+class TestObservableValidation(QiskitTestCase):
+    """Test observables validation logic."""
+
+    @data(
+        ("IXYZ", (SparsePauliOp("IXYZ"),)),
+        (Pauli("IXYZ"), (SparsePauliOp("IXYZ"),)),
+        (PauliList("IXYZ"), (SparsePauliOp("IXYZ"),)),
+        (SparsePauliOp("IXYZ"), (SparsePauliOp("IXYZ"),)),
+        (PauliSumOp(SparsePauliOp("IXYZ")), (SparsePauliOp("IXYZ"),)),
+        (
+            ["IXYZ", "ZYXI"],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+        (
+            [Pauli("IXYZ"), Pauli("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+        (
+            [PauliList("IXYZ"), PauliList("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+        (
+            [SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+        (
+            [PauliSumOp(SparsePauliOp("IXYZ")), PauliSumOp(SparsePauliOp("ZYXI"))],
+            (SparsePauliOp("IXYZ"), SparsePauliOp("ZYXI")),
+        ),
+    )
+    @unpack
+    def test_validate_observables(self, obsevables, expected):
+        """Test obsevables standardization."""
+        self.assertEqual(BaseEstimator._validate_observables(obsevables), expected)
+
+    @data(None, "ERROR")
+    def test_qiskit_error(self, observables):
+        """Test qiskit error if invalid input."""
+        with self.assertRaises(QiskitError):
+            BaseEstimator._validate_observables(observables)
+
+    @data((), [])
+    def test_value_error(self, observables):
+        """Test value error if no obsevables are provided."""
+        with self.assertRaises(ValueError):
+            BaseEstimator._validate_observables(observables)
 
 
 if __name__ == "__main__":

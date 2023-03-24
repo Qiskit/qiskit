@@ -305,7 +305,6 @@ class TestAddingControlFlowOperations(QiskitTestCase):
     def test_appending_while_loop_op(self, condition):
         """Verify we can append a WhileLoopOp to a QuantumCircuit."""
         body = QuantumCircuit(3, 1)
-        body.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
 
         op = WhileLoopOp(condition, body)
 
@@ -326,9 +325,12 @@ class TestAddingControlFlowOperations(QiskitTestCase):
     def test_quantumcircuit_while_loop(self, condition):
         """Verify we can append a WhileLoopOp to a QuantumCircuit via qc.while_loop."""
         body = QuantumCircuit(3, 1)
-        body.add_register([condition[0]] if isinstance(condition[0], Clbit) else condition[0])
 
         qc = QuantumCircuit(5, 2)
+        if isinstance(condition[0], ClassicalRegister):
+            qc.add_register(condition[0])
+        else:
+            qc.add_bits([condition[0]])
         qc.while_loop(condition, body, [1, 2, 3], [1])
 
         self.assertEqual(qc.data[0].operation.name, "while_loop")

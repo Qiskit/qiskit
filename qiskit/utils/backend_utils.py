@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" backend utility functions """
+"""backend utility functions"""
 
 import logging
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 _UNSUPPORTED_BACKENDS = ["unitary_simulator", "clifford_simulator"]
 
-# pylint: disable=no-name-in-module, import-error, unused-import
+# pylint: disable=no-name-in-module,unused-import
 
 
 class ProviderCheck:
@@ -50,7 +50,7 @@ def _get_backend_provider(backend):
 
 
 def has_ibmq():
-    """Check if IBMQ is installed"""
+    """Check if IBMQ is installed."""
     if not _PROVIDER_CHECK.checked_ibmq:
         try:
             from qiskit.providers.ibmq import IBMQFactory
@@ -67,7 +67,7 @@ def has_ibmq():
 
 
 def has_aer():
-    """check if Aer is installed"""
+    """Check if Aer is installed."""
     if not _PROVIDER_CHECK.checked_aer:
         try:
             from qiskit.providers.aer import AerProvider

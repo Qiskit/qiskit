@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import,import-error
+# pylint: disable=no-name-in-module,broad-except,cyclic-import
 
 """Contains the terra version."""
 
-from collections.abc import Mapping
 import os
 import subprocess
+import sys
+from collections.abc import Mapping
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -101,7 +102,10 @@ class QiskitVersion(Mapping):
         self._loaded = False
 
     def _load_versions(self):
-        import pkg_resources
+        if sys.version_info >= (3, 8):
+            from importlib.metadata import version
+        else:
+            from importlib_metadata import version
 
         try:
             # TODO: Update to use qiskit_aer instead when we remove the
@@ -148,7 +152,7 @@ class QiskitVersion(Mapping):
         except Exception:
             self._version_dict["qiskit-machine-learning"] = None
         try:
-            self._version_dict["qiskit"] = pkg_resources.get_distribution("qiskit").version
+            self._version_dict["qiskit"] = version("qiskit")
         except Exception:
             self._version_dict["qiskit"] = None
         self._loaded = True

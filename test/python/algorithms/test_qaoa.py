@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test QAOA """
+"""Test QAOA"""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -20,7 +20,7 @@ import math
 import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.algorithms import QAOA
 from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD

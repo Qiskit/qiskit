@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-type-doc
-
 """Qiskit pulse drawer.
 
 This module provides a common user interface for the pulse drawer.
@@ -308,54 +306,57 @@ def draw(
 
         Drawing with the default stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
-            sched = schedule(qc, FakeAlmaden())
+            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
+            sched = schedule(qc, FakeBoeblingen())
 
-            draw(sched, backend=FakeAlmaden())
+            draw(sched, backend=FakeBoeblingen())
 
         Drawing with the stylesheet suited for publication.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXSimple
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
-            sched = schedule(qc, FakeAlmaden())
+            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
+            sched = schedule(qc, FakeBoeblingen())
 
-            draw(sched, style=IQXSimple(), backend=FakeAlmaden())
+            draw(sched, style=IQXSimple(), backend=FakeBoeblingen())
 
         Drawing with the stylesheet suited for program debugging.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.pulse_v2 import draw, IQXDebugging
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0, 1)
             qc.measure_all()
-            qc = transpile(qc, FakeAlmaden(), layout_method='trivial')
-            sched = schedule(qc, FakeAlmaden())
+            qc = transpile(qc, FakeBoeblingen(), layout_method='trivial')
+            sched = schedule(qc, FakeBoeblingen())
 
-            draw(sched, style=IQXDebugging(), backend=FakeAlmaden())
+            draw(sched, style=IQXDebugging(), backend=FakeBoeblingen())
 
         You can partially customize a preset stylesheet when initializing it.
 
@@ -368,7 +369,7 @@ def draw(
             }
             style = IQXStandard(**my_style)
             # draw
-            draw(sched, style=style, backend=FakeAlmaden())
+            draw(sched, style=style, backend=FakeBoeblingen())
 
         In the same way as above, you can create custom generator or layout functions
         and update the existing stylesheet with custom functions.

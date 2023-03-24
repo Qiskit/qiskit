@@ -17,6 +17,7 @@ See https://arxiv.org/abs/1805.08138.
 
 from typing import Optional, List, Callable, Union, Dict, Tuple
 import logging
+import warnings
 from time import time
 import numpy as np
 
@@ -37,6 +38,7 @@ from qiskit.opflow import (
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
+from qiskit.utils.deprecation import deprecate_function
 from qiskit.utils import QuantumInstance
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, Minimizer
@@ -50,7 +52,12 @@ logger = logging.getLogger(__name__)
 
 
 class VQD(VariationalAlgorithm, Eigensolver):
-    r"""The Variational Quantum Deflation algorithm.
+    r"""Pending deprecation: Variational Quantum Deflation algorithm.
+
+    The VQD class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.VQD` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     `VQD <https://arxiv.org/abs/1805.08138>`__ is a quantum algorithm that uses a
     variational technique to find
@@ -89,6 +96,14 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     """
 
+    @deprecate_function(
+        "The VQD class has been superseded by the "
+        "qiskit.algorithms.eigensolvers.VQD class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+        since="0.23.0",
+    )
     def __init__(
         self,
         ansatz: Optional[QuantumCircuit] = None,
@@ -149,7 +164,9 @@ class VQD(VariationalAlgorithm, Eigensolver):
         """
         validate_min("max_evals_grouped", max_evals_grouped, 1)
 
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
         self._circuit_sampler = None  # type: Optional[CircuitSampler]
@@ -741,8 +758,23 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
 
 class VQDResult(VariationalResult, EigensolverResult):
-    """VQD Result."""
+    """Pending deprecation: VQD Result.
 
+    The VQDResult class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.VQDResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_function(
+        "The VQDResult class has been superseded by the "
+        "qiskit.algorithms.eigensolvers.VQDResult class. "
+        "This class will be deprecated in a future release and subsequently "
+        "removed after that.",
+        category=PendingDeprecationWarning,
+        since="0.23.0",
+    )
     def __init__(self) -> None:
         super().__init__()
         self._cost_function_evals = None

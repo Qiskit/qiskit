@@ -25,9 +25,7 @@ from .linear_system_matrix import LinearSystemMatrix
 class NumPyMatrix(LinearSystemMatrix):
     """The deprecated class of matrices given as a numpy array.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             import warnings
             import numpy as np
@@ -50,7 +48,8 @@ class NumPyMatrix(LinearSystemMatrix):
 
     @deprecate_function(
         "The NumPyMatrix class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+        "and will be removed no sooner than 3 months after the release date.",
+        since="0.22.0",
     )
     def __init__(
         self,

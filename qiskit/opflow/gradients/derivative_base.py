@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DerivativeBase Class """
+"""DerivativeBase Class"""
 
 import warnings
 from abc import abstractmethod
@@ -48,7 +48,6 @@ class DerivativeBase(ConverterBase):
     DerivativeBase - uses classical techniques to differentiate opflow data structures
     """
 
-    # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
         self,

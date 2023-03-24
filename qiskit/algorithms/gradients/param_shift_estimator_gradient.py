@@ -17,99 +17,107 @@ from __future__ import annotations
 
 from typing import Sequence
 
-import numpy as np
-
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
-from qiskit.primitives import BaseEstimator
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
-from .utils import _make_param_shift_parameter_values, _param_shift_preprocessing
+from .utils import _make_param_shift_parameter_values
+
+from ..exceptions import AlgorithmError
 
 
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
-    """Compute the gradients of the expectation values by the parameter shift rule"""
+    """
+    Compute the gradients of the expectation values by the parameter shift rule [1].
 
-    def __init__(self, estimator: BaseEstimator, **options):
-        """
-        Args:
-            estimator: The estimator used to compute the gradients.
-            options: Primitive backend runtime options used for circuit execution.
-                The order of priority is: options in ``run`` method > gradient's
-                default options > primitive's default setting.
-                Higher priority setting overrides lower priority setting
-        """
-        self._gradient_circuits = {}
-        super().__init__(estimator, **options)
+    **Reference:**
+    [1] Schuld, M., Bergholm, V., Gogolin, C., Izaac, J., and Killoran, N. Evaluating analytic
+    gradients on quantum hardware, `DOI <https://doi.org/10.1103/PhysRevA.99.032331>`_
+    """
+
+    SUPPORTED_GATES = [
+        "x",
+        "y",
+        "z",
+        "h",
+        "rx",
+        "ry",
+        "rz",
+        "p",
+        "cx",
+        "cy",
+        "cz",
+        "ryy",
+        "rxx",
+        "rzz",
+        "rzx",
+    ]
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
+        **options,
+    ) -> EstimatorGradientResult:
+        """Compute the gradients of the expectation values by the parameter shift rule."""
+        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
+            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
+        )
+        results = self._run_unique(
+            g_circuits, observables, g_parameter_values, g_parameter_sets, **options
+        )
+        return self._postprocess(results, circuits, parameter_values, parameter_sets)
+
+    def _run_unique(
+        self,
+        circuits: Sequence[QuantumCircuit],
+        observables: Sequence[BaseOperator | PauliSumOp],
+        parameter_values: Sequence[Sequence[float]],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, result_indices_all, coeffs_all, metadata_ = [], [], [], []
-        for circuit, observable, parameter_values_, parameters_ in zip(
-            circuits, observables, parameter_values, parameters
+        job_circuits, job_observables, job_param_values, metadata = [], [], [], []
+        all_n = []
+        for circuit, observable, parameter_values_, parameter_set in zip(
+            circuits, observables, parameter_values, parameter_sets
         ):
-            # a set of parameters to be differentiated
-            if parameters_ is None:
-                param_set = set(circuit.parameters)
-            else:
-                param_set = set(parameters_)
-            metadata_.append({"parameters": [p for p in circuit.parameters if p in param_set]})
-
-            if self._gradient_circuits.get(id(circuit)):
-                gradient_circuit, base_parameter_values_all = self._gradient_circuits[id(circuit)]
-            else:
-                gradient_circuit, base_parameter_values_all = _param_shift_preprocessing(circuit)
-                self._gradient_circuits[id(circuit)] = (
-                    gradient_circuit,
-                    base_parameter_values_all,
-                )
-
-            (
-                gradient_parameter_values_plus,
-                gradient_parameter_values_minus,
-                result_indices,
-                coeffs,
-            ) = _make_param_shift_parameter_values(
-                gradient_circuit_data=gradient_circuit,
-                base_parameter_values=base_parameter_values_all,
-                parameter_values=parameter_values_,
-                param_set=param_set,
+            metadata.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
+            # Make parameter values for the parameter shift rule.
+            param_shift_parameter_values = _make_param_shift_parameter_values(
+                circuit, parameter_values_, parameter_set
             )
-            n = 2 * len(gradient_parameter_values_plus)
-            job = self._estimator.run(
-                [gradient_circuit.gradient_circuit] * n,
-                [observable] * n,
-                gradient_parameter_values_plus + gradient_parameter_values_minus,
-                **options,
-            )
-            jobs.append(job)
-            result_indices_all.append(result_indices)
-            coeffs_all.append(coeffs)
+            # Combine inputs into a single job to reduce overhead.
+            n = len(param_shift_parameter_values)
+            job_circuits.extend([circuit] * n)
+            job_observables.extend([observable] * n)
+            job_param_values.extend(param_shift_parameter_values)
+            all_n.append(n)
 
-        # combine the results
+        # Run the single job with all circuits.
+        job = self._estimator.run(
+            job_circuits,
+            job_observables,
+            job_param_values,
+            **options,
+        )
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
+        # Compute the gradients.
         gradients = []
-        for i, result in enumerate(results):
-            n = len(result.values) // 2  # is always a multiple of 2
-            gradient_ = result.values[:n] - result.values[n:]
-            values = np.zeros(len(metadata_[i]["parameters"]))
-            for grad_, idx, coeff in zip(gradient_, result_indices_all[i], coeffs_all[i]):
-                values[idx] += coeff * grad_
-            gradients.append(values)
+        partial_sum_n = 0
+        for n in all_n:
+            result = results.values[partial_sum_n : partial_sum_n + n]
+            gradient_ = (result[: n // 2] - result[n // 2 :]) / 2
+            gradients.append(gradient_)
+            partial_sum_n += n
 
         opt = self._get_local_options(options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)

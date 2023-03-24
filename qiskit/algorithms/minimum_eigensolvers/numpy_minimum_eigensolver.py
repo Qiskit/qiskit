@@ -19,10 +19,10 @@ import logging
 import numpy as np
 
 from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-# TODO this path will need updating when VQD is merged
-from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
+from ..eigensolvers.numpy_eigensolver import NumPyEigensolver
 from .minimum_eigensolver import MinimumEigensolver, MinimumEigensolverResult
 from ..list_or_dict import ListOrDict
 
@@ -43,7 +43,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     ) -> None:
         """
         Args:
-            filter_criterion: callable that allows to filter eigenvalues/eigenstates. The minimum
+            filter_criterion: Callable that allows to filter eigenvalues/eigenstates. The minimum
                 eigensolver is only searching over feasible states and returns an eigenstate that
                 has the smallest eigenvalue among feasible states. The callable has the signature
                 ``filter(eigenstate, eigenvalue, aux_values)`` and must return a boolean to indicate
@@ -81,8 +81,8 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         if eigensolver_result.eigenvalues is not None and len(eigensolver_result.eigenvalues) > 0:
             result.eigenvalue = eigensolver_result.eigenvalues[0]
             result.eigenstate = eigensolver_result.eigenstates[0]
-            if eigensolver_result.aux_operator_eigenvalues:
-                result.aux_operators_evaluated = eigensolver_result.aux_operator_eigenvalues[0]
+            if eigensolver_result.aux_operators_evaluated:
+                result.aux_operators_evaluated = eigensolver_result.aux_operators_evaluated[0]
 
         logger.debug("NumPy minimum eigensolver result: %s", result)
 
@@ -97,10 +97,10 @@ class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
         self._eigenstate = None
 
     @property
-    def eigenstate(self) -> np.ndarray | None:
+    def eigenstate(self) -> Statevector | None:
         """Returns the eigenstate corresponding to the computed minimum eigenvalue."""
         return self._eigenstate
 
     @eigenstate.setter
-    def eigenstate(self, value: np.ndarray) -> None:
+    def eigenstate(self, value: Statevector) -> None:
         self._eigenstate = value

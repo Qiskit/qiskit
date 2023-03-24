@@ -169,8 +169,12 @@ class PassManager:
             passes = [passes]
         for pass_ in passes:
             if isinstance(pass_, FlowController):
-                # Normalize passes in nested FlowController
-                PassManager._normalize_passes(pass_.passes)
+                # Normalize passes in nested FlowController.
+                # TODO: Internal renormalisation should be the responsibility of the
+                # `FlowController`, but the separation between `FlowController`,
+                # `RunningPassManager` and `PassManager` is so muddled right now, it would be better
+                # to do this as part of more top-down refactoring.  ---Jake, 2022-10-03.
+                pass_.passes = PassManager._normalize_passes(pass_.passes)
             elif not isinstance(pass_, BasePass):
                 raise TranspilerError(
                     "%s is not a BasePass or FlowController instance " % pass_.__class__
@@ -322,6 +326,19 @@ class PassManager:
             ret.append(item)
         return ret
 
+    def to_flow_controller(self) -> FlowController:
+        """Linearize this manager into a single :class:`.FlowController`, so that it can be nested
+        inside another :class:`.PassManager`."""
+        return FlowController.controller_factory(
+            [
+                FlowController.controller_factory(
+                    pass_set["passes"], None, **pass_set["flow_controllers"]
+                )
+                for pass_set in self._pass_sets
+            ],
+            None,
+        )
+
 
 class StagedPassManager(PassManager):
     """A Pass manager pipeline built up of individual stages
@@ -331,11 +348,11 @@ class StagedPassManager(PassManager):
     a fixed order, and each stage is defined as a standalone :class:`~.PassManager`
     instance. There are also ``pre_`` and ``post_`` stages for each defined stage.
     This enables easily composing and replacing different stages and also adding
-    hook points to enable programmtic modifications to a pipeline. When using a staged
+    hook points to enable programmatic modifications to a pipeline. When using a staged
     pass manager you are not able to modify the individual passes and are only able
     to modify stages.
 
-    By default instances of StagedPassManager define a typical full compilation
+    By default instances of ``StagedPassManager`` define a typical full compilation
     pipeline from an abstract virtual circuit to one that is optimized and
     capable of running on the specified backend. The default pre-defined stages are:
 
@@ -344,11 +361,11 @@ class StagedPassManager(PassManager):
        circuit to the physical qubits on a backend
     #. ``routing`` - This stage runs after a layout has been run and will insert any
        necessary gates to move the qubit states around until it can be run on
-       backend's compuling map.
+       backend's coupling map.
     #. ``translation`` - Perform the basis gate translation, in other words translate the gates
        in the circuit to the target backend's basis set
     #. ``optimization`` - The main optimization loop, this will typically run in a loop trying to
-       optimize the circuit until a condtion (such as fixed depth) is reached.
+       optimize the circuit until a condition (such as fixed depth) is reached.
     #. ``scheduling`` - Any hardware aware scheduling passes
 
     .. note::
@@ -509,3 +526,9 @@ class StagedPassManager(PassManager):
     ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
         self._update_passmanager()
         return super().run(circuits, output_name, callback)
+
+    def draw(self, filename=None, style=None, raw=False):
+        """Draw the staged pass manager."""
+        from qiskit.visualization import staged_pass_manager_drawer
+
+        return staged_pass_manager_drawer(self, filename=filename, style=style, raw=raw)

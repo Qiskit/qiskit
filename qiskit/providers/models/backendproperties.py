@@ -128,11 +128,12 @@ class Gate:
         Returns:
             Gate: The Nduv from the input dictionary.
         """
-        in_data = copy.copy(data)
-        nduvs = []
-        for nduv in in_data.pop("parameters"):
-            nduvs.append(Nduv.from_dict(nduv))
-        in_data["parameters"] = nduvs
+        in_data = {}
+        for key, value in data.items():
+            if key == "parameters":
+                in_data[key] = list(map(Nduv.from_dict, value))
+            else:
+                in_data[key] = value
         return cls(**in_data)
 
     def to_dict(self):
@@ -297,7 +298,7 @@ class BackendProperties:
             result = self._gates[gate]
             if qubits is not None:
                 if isinstance(qubits, int):
-                    qubits = tuple([qubits])
+                    qubits = (qubits,)
                 result = result[tuple(qubits)]
                 if name:
                     result = result[name]

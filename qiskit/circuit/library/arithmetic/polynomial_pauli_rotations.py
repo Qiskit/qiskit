@@ -25,7 +25,7 @@ from .functional_pauli_rotations import FunctionalPauliRotations
 
 
 def _binomial_coefficients(n):
-    """ "Return a dictionary of binomial coefficients
+    """Return a dictionary of binomial coefficients
 
     Based-on/forked from sympy's binomial_coefficients() function [#]
 
@@ -41,7 +41,7 @@ def _binomial_coefficients(n):
 
 
 def _large_coefficients_iter(m, n):
-    """ "Return an iterator of multinomial coefficients
+    """Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients_iterator() function [#]
 
@@ -87,7 +87,7 @@ def _large_coefficients_iter(m, n):
 
 
 def _multinomial_coefficients(m, n):
-    """ "Return an iterator of multinomial coefficients
+    """Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients() function [#]
 
@@ -135,7 +135,7 @@ def _multinomial_coefficients(m, n):
 class PolynomialPauliRotations(FunctionalPauliRotations):
     r"""A circuit implementing polynomial Pauli rotations.
 
-    For a polynomial :math`p(x)`, a basis state :math:`|i\rangle` and a target qubit
+    For a polynomial :math:`p(x)`, a basis state :math:`|i\rangle` and a target qubit
     :math:`|0\rangle` this operator acts as:
 
     .. math::

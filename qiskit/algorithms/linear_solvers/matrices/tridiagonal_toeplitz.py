@@ -38,9 +38,7 @@ class TridiagonalToeplitz(LinearSystemMatrix):
             0 & 0 & b & a
         \end{pmatrix}.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             import warnings
             import numpy as np
@@ -62,7 +60,8 @@ class TridiagonalToeplitz(LinearSystemMatrix):
 
     @deprecate_function(
         "The TridiagonalToeplitz class is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the release date. "
+        "and will be removed no sooner than 3 months after the release date.",
+        since="0.22.0",
     )
     def __init__(
         self,

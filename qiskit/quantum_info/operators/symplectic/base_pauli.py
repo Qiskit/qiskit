@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -24,6 +24,10 @@ from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.mixins import AdjointMixin, MultiplyMixin
+
+
+# utility for _to_matrix
+_PARITY = np.array([-1 if bin(i).count("1") % 2 else 1 for i in range(256)], dtype=complex)
 
 
 class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
@@ -87,7 +91,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         phase = np.mod(phase1 + phase2, 4)
         return BasePauli(z, x, phase)
 
-    # pylint: disable=arguments-differ
     def compose(self, other, qargs=None, front=False, inplace=False):
         """Return the composition of Paulis.
 
@@ -131,9 +134,9 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         # Get phase shift
         phase = self._phase + other._phase
         if front:
-            phase += 2 * _count_y(x1, z2)
+            phase += 2 * _count_y(x1, z2, dtype=phase.dtype)
         else:
-            phase += 2 * _count_y(x2, z1)
+            phase += 2 * _count_y(x2, z1, dtype=phase.dtype)
 
         # Update Pauli
         x = np.logical_xor(x1, x2)
@@ -185,7 +188,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
     def transpose(self):
         """Return the transpose of each Pauli in the list."""
         # Transpose sets Y -> -Y. This has effect on changing the phase
-        parity_y = self._count_y() % 2
+        parity_y = self._count_y(dtype=self._phase.dtype) % 2
         if np.all(parity_y == 0):
             return self
         return BasePauli(self._z, self._x, np.mod(self._phase + 2 * parity_y, 4))
@@ -279,7 +282,6 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return self.copy()._append_circuit(other.inverse(), qargs=qargs)
 
     def _evolve_clifford(self, other, qargs=None, frame="h"):
-
         """Heisenberg picture evolution of a Pauli by a Clifford."""
 
         if frame == "s":
@@ -304,7 +306,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         idx = np.concatenate((self._x[:, qargs_], self._z[:, qargs_]), axis=1)
         for idx_, row in zip(
             idx.T,
-            PauliList.from_symplectic(z=adj.table.Z, x=adj.table.X, phase=2 * adj.table.phase),
+            PauliList.from_symplectic(z=adj.z, x=adj.x, phase=2 * adj.phase),
         ):
             # most of the logic below is to properly index if self is a PauliList (2D),
             # while not trying to index if the object is just a Pauli (1D).
@@ -388,12 +390,13 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             raise QiskitError("z and x vectors are different size.")
 
         # Convert group phase convention to internal ZX-phase conversion.
-        base_phase = np.mod(_count_y(base_x, base_z) + phase, 4)
+        dtype = getattr(phase, "dtype", None)
+        base_phase = np.mod(_count_y(base_x, base_z, dtype=dtype) + phase, 4)
         return base_z, base_x, base_phase
 
     @staticmethod
     def _to_matrix(z, x, phase=0, group_phase=False, sparse=False):
-        """Return the matrix matrix from symplectic representation.
+        """Return the matrix from symplectic representation.
 
         The Pauli is defined as :math:`P = (-i)^{phase + z.x} * Z^z.x^x`
         where ``array = [x, z]``.
@@ -431,7 +434,19 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             coeff = (-1j) ** phase
         else:
             coeff = 1
-        data = np.array([coeff * (-1) ** (bin(i).count("1") % 2) for i in z_indices & indptr])
+
+        # Compute parities of `z_indices & indptr`, i.e.,
+        # np.array([(-1) ** bin(i).count("1") for i in z_indices & indptr])
+        vec_u64 = z_indices & indptr
+        mat_u8 = np.zeros((vec_u64.size, 8), dtype=np.uint8)
+        for i in range(8):
+            mat_u8[:, i] = vec_u64 & 255
+            vec_u64 >>= 8
+            if np.all(vec_u64 == 0):
+                break
+        parity = _PARITY[np.bitwise_xor.reduce(mat_u8, axis=1)]
+
+        data = coeff * parity
         if sparse:
             # Return sparse matrix
             from scipy.sparse import csr_matrix
@@ -440,8 +455,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
         # Build dense matrix using csr format
         mat = np.zeros((dim, dim), dtype=complex)
-        for i in range(dim):
-            mat[i][indices[indptr[i] : indptr[i + 1]]] = data[indptr[i] : indptr[i + 1]]
+        mat[range(dim), indices[:dim]] = data[:dim]
         return mat
 
     @staticmethod
@@ -601,7 +615,7 @@ def _evolve_h(base_pauli, qubit):
     z = base_pauli._z[:, qubit].copy()
     base_pauli._x[:, qubit] = z
     base_pauli._z[:, qubit] = x
-    base_pauli._phase += 2 * np.logical_and(x, z).T
+    base_pauli._phase += 2 * np.logical_and(x, z).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -609,7 +623,7 @@ def _evolve_s(base_pauli, qubit):
     """Update P -> S.P.Sdg"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
-    base_pauli._phase += x.T
+    base_pauli._phase += x.T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -617,7 +631,7 @@ def _evolve_sdg(base_pauli, qubit):
     """Update P -> Sdg.P.S"""
     x = base_pauli._x[:, qubit]
     base_pauli._z[:, qubit] ^= x
-    base_pauli._phase -= x.T
+    base_pauli._phase -= x.T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -629,19 +643,21 @@ def _evolve_i(base_pauli, qubit):
 
 def _evolve_x(base_pauli, qubit):
     """Update P -> X.P.X"""
-    base_pauli._phase += 2 * base_pauli._z[:, qubit].T
+    base_pauli._phase += 2 * base_pauli._z[:, qubit].T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
 def _evolve_y(base_pauli, qubit):
     """Update P -> Y.P.Y"""
-    base_pauli._phase += 2 * base_pauli._x[:, qubit].T + 2 * base_pauli._z[:, qubit].T
+    xp = base_pauli._x[:, qubit].T.astype(base_pauli._phase.dtype)
+    zp = base_pauli._z[:, qubit].T.astype(base_pauli._phase.dtype)
+    base_pauli._phase += 2 * (xp + zp)
     return base_pauli
 
 
 def _evolve_z(base_pauli, qubit):
     """Update P -> Z.P.Z"""
-    base_pauli._phase += 2 * base_pauli._x[:, qubit].T
+    base_pauli._phase += 2 * base_pauli._x[:, qubit].T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -658,7 +674,7 @@ def _evolve_cz(base_pauli, q1, q2):
     x2 = base_pauli._x[:, q2].copy()
     base_pauli._z[:, q1] ^= x2
     base_pauli._z[:, q2] ^= x1
-    base_pauli._phase += 2 * np.logical_and(x1, x2).T
+    base_pauli._phase += 2 * np.logical_and(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -670,7 +686,7 @@ def _evolve_cy(base_pauli, qctrl, qtrgt):
     base_pauli._x[:, qtrgt] ^= x1
     base_pauli._z[:, qtrgt] ^= x1
     base_pauli._z[:, qctrl] ^= np.logical_xor(x2, z2)
-    base_pauli._phase += x1 + 2 * np.logical_and(x1, x2).T
+    base_pauli._phase += x1 + 2 * np.logical_and(x1, x2).T.astype(base_pauli._phase.dtype)
     return base_pauli
 
 
@@ -687,7 +703,4 @@ def _evolve_swap(base_pauli, q1, q2):
 
 def _count_y(x, z, dtype=None):
     """Count the number of I Pauli's"""
-    axis = 1
-    if dtype is None:
-        dtype = np.min_scalar_type(x.shape[axis])
-    return (x & z).sum(axis=axis, dtype=dtype)
+    return (x & z).sum(axis=1, dtype=dtype)
