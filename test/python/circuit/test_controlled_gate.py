@@ -131,7 +131,7 @@ class TestControlledGate(QiskitTestCase):
         self.assertEqual(RZGate(theta).control(), CRZGate(theta))
 
     def test_control_parameters(self):
-        """Test different control state formats for control function."""
+        """Test different ctrl_state formats for control function."""
         theta = 0.5
 
         self.assertEqual(

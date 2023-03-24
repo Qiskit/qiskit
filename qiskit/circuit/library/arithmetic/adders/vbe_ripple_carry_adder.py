@@ -82,10 +82,10 @@ class VBERippleCarryAdder(Adder):
         # define the input registers
         registers: list[QuantumRegister | list[Bit]] = []
         if kind == "full":
-            qr_cin: QuantumRegister | list[Bit] = QuantumRegister(1, name="cin")
+            qr_cin = QuantumRegister(1, name="cin")
             registers.append(qr_cin)
         else:
-            qr_cin = []
+            qr_cin = QuantumRegister(0)
 
         qr_a = QuantumRegister(num_state_qubits, name="a")
         qr_b = QuantumRegister(num_state_qubits, name="b")
@@ -93,10 +93,10 @@ class VBERippleCarryAdder(Adder):
         registers += [qr_a, qr_b]
 
         if kind in ["half", "full"]:
-            qr_cout: QuantumRegister | list[Bit] = QuantumRegister(1, name="cout")
+            qr_cout = QuantumRegister(1, name="cout")
             registers.append(qr_cout)
         else:
-            qr_cout = []
+            qr_cout = QuantumRegister(0)
 
         self.add_register(*registers)
 

@@ -12,7 +12,8 @@
 
 """Multiple-Control, Multiple-Target Gate."""
 
-from typing import Union, Callable, List
+from __future__ import annotations
+from typing import Callable
 
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
@@ -46,7 +47,7 @@ class MCMT(QuantumCircuit):
 
     def __init__(
         self,
-        gate: Union[Gate, Callable[[QuantumCircuit, Qubit, Qubit], Instruction]],
+        gate: Gate | Callable[[QuantumCircuit, Qubit, Qubit], Instruction],
         num_ctrl_qubits: int,
         num_target_qubits: int,
     ) -> None:
@@ -209,8 +210,8 @@ class MCMTVChain(MCMT):
 
     def _ccx_v_chain_rule(
         self,
-        control_qubits: Union[QuantumRegister, List[Qubit]],
-        ancilla_qubits: Union[QuantumRegister, List[Qubit]],
+        control_qubits: QuantumRegister | list[Qubit],
+        ancilla_qubits: QuantumRegister | list[Qubit],
         reverse: bool = False,
     ) -> None:
         """Get the rule for the CCX V-chain.

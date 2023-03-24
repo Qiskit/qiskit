@@ -13,7 +13,6 @@
 """U1 Gate."""
 from __future__ import annotations
 from cmath import exp
-from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -114,7 +113,7 @@ class U1Gate(Gate):
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        ctrl_state: str | int | None = None,
     ):
         """Return a (multi-)controlled-U1 gate.
 
@@ -189,7 +188,7 @@ class CU1Gate(ControlledGate):
         self,
         theta: ParameterValueType,
         label: str | None = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        ctrl_state: str | int | None = None,
     ):
         """Create new CU1 gate."""
         super().__init__(
@@ -237,7 +236,7 @@ class CU1Gate(ControlledGate):
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        ctrl_state: str | int | None = None,
     ):
         """Controlled version of this gate.
 
@@ -303,7 +302,7 @@ class MCU1Gate(ControlledGate):
         lam: ParameterValueType,
         num_ctrl_qubits: int,
         label: str | None = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        ctrl_state: str | int | None = None,
     ):
         """Create new MCU1 gate."""
         super().__init__(
@@ -341,7 +340,7 @@ class MCU1Gate(ControlledGate):
         self,
         num_ctrl_qubits: int = 1,
         label: str | None = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        ctrl_state: str | int | None = None,
     ):
         """Controlled version of this gate.
 
