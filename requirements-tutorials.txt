@@ -1,7 +1,7 @@
 # Requirements for the tutorials CI run.  This may have some overlap with
 # requirements-optional.txt.
 
-qiskit-ibmq-provider
+qiskit-ibmq-provider[visualization]
 qiskit-aer
 z3-solver
 networkx
@@ -9,6 +9,7 @@ matplotlib>=3.3.0
 sphinx
 nbsphinx
 ipykernel
+pylatexenc
 sphinx_rtd_theme
 cvxpy
 
