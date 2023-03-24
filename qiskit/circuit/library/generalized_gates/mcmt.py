@@ -16,7 +16,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
+from qiskit import circuit
+from qiskit.circuit import ControlledGate, Gate, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from ..standard_gates import XGate, YGate, ZGate, HGate, TGate, TdgGate, SGate, SdgGate
 
@@ -48,7 +49,7 @@ class MCMT(QuantumCircuit):
 
     def __init__(
         self,
-        gate: Gate | Callable[[QuantumCircuit, Qubit, Qubit], Instruction],
+        gate: Gate | Callable[[QuantumCircuit, Qubit, Qubit], circuit.Instruction],
         num_ctrl_qubits: int,
         num_target_qubits: int,
     ) -> None:
