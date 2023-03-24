@@ -1,17 +1,11 @@
-# Requirements for the tutorials CI run.  This may have some overlap with
-# requirements-optional.txt.
+# Requirements for the tutorials CI run that go beyond the others in `requirements-optional.txt`.
+# This may also include some requirements that are only in `requirements-dev.txt`, since those
+# aren't runtime dependencies or optionals of Terra.
 
 qiskit-ibmq-provider[visualization]
-qiskit-aer
-z3-solver
-networkx
-matplotlib>=3.3.0
-sphinx
+networkx>=2.2
+jupyter
+Sphinx
 nbsphinx
-ipykernel
-pylatexenc
-sphinx_rtd_theme
-cvxpy
-
-# Tweedledum is unmaintained and its existing Mac wheels are unreliable.
-tweedledum; python_version<'3.11' and platform_system!="Darwin"
+qiskit_sphinx_theme
+pyscf
