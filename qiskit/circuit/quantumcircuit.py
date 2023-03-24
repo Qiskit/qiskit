@@ -470,10 +470,9 @@ class QuantumCircuit:
                 "removed in a future release. Instead, set metadata to an empty dictionary.",
                 DeprecationWarning,
             )
-
-        self._metadata = metadata
-        if not isinstance(self._metadata, dict):
+        elif not isinstance(metadata, dict):
             raise TypeError("Only a dictionary is accepted for circuit metadata")
+        self._metadata = metadata
 
     def __str__(self) -> str:
         return str(self.draw(output="text"))

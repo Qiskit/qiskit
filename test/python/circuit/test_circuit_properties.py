@@ -1279,6 +1279,13 @@ class TestCircuitProperties(QiskitTestCase):
         with self.assertRaises(TypeError):
             qc.metadata = 1
 
+    def test_metdata_deprectation(self):
+        """Test that setting metadata to None emits a deprecation."""
+        qc = QuantumCircuit(1)
+        with self.assertWarns(DeprecationWarning):
+            qc.metadata = None
+        self.assertEqual(qc.metadata, {})
+
     def test_scheduling(self):
         """Test cannot return schedule information without scheduling."""
         qc = QuantumCircuit(2)
