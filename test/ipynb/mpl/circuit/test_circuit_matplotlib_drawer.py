@@ -901,7 +901,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(4, 4)
         circuit.x(2)
         circuit.barrier()
-        self.circuit_drawer(circuit, cregbundle=False, filename="idle_wires_barrier.png")
+        self.circuit_drawer(circuit, cregbundle=False, filename="idle_wires_barrier.png", idle_wires=False)
 
     def test_wire_order(self):
         """Test the wire_order option"""
