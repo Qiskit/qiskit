@@ -1,9 +1,9 @@
 ---
 upgrade:
   - |
-    The deprecated modules ``factorizers`` and ``linear_solvers`` have been removed from
-    :mod:`qiskit.algorithms`. These arguments
+    The deprecated modules ``factorizers`` and ``linear_solvers``, containing ``HHL`` and ``Shor`` have been removed from
+    :mod:`qiskit.algorithms`. These functionalities
     were originally deprecated as part of the 0.22.0 release (released on
-    October 13, 2022). You can access the code throguht the textbook tutorials instead:
+    October 13, 2022). You can access the code through the Qiskit Textbook instead:
     `Linear Solvers (HHL) <https://qiskit.org/textbook/ch-applications/hhl_tutorial.html>`_ ,
     `Factorizers (Shor) <https://qiskit.org/textbook/ch-algorithms/shor.html>`_
