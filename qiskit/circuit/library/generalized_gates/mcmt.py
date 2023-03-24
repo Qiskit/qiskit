@@ -13,7 +13,8 @@
 """Multiple-Control, Multiple-Target Gate."""
 
 from __future__ import annotations
-from typing import Callable
+
+from collections.abc import Callable
 
 from qiskit.circuit import ControlledGate, Gate, Instruction, Qubit, QuantumRegister, QuantumCircuit
 from qiskit.exceptions import QiskitError
