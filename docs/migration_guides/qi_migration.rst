@@ -3,15 +3,27 @@ Quantum Instance Migration Guide
 ################################
 
 The :class:`~qiskit.utils.QuantumInstance` is a utility class that allowed to jointly
-configure the circuit transpilation and execution steps, and provided useful tools for algorithm development,
-such as basic error mitigation strategies.
+configure the circuit transpilation and execution steps, and provided functions
+at a higher level of abstraction for a more convenient integration with algorihthms.
+These include measurement error mitigation, splitting/combining execution to
+conform to job limits,
+and ensuring reliable execution of circuits with additional job management tools.
 
-The functionality of :class:`~qiskit.utils.QuantumInstance.execute` has
-now been delegated to the different implementations of the :mod:`~qiskit.primitives` base classes,
-while the explicit transpilation has been left to the :mod:`~qiskit.transpiler` module (see table below).
-Thus, the :class:`~qiskit.utils.QuantumInstance` is being deprecated.
+..
+    tools for algorithm development,
+    such as basic error mitigation strategies.
 
-Summary of migration alternatives for the :class:`~qiskit.utils.QuantumInstance` class:
+The :class:`~qiskit.utils.QuantumInstance` is being deprecated for several reasons:
+On one hand, the functionality of :class:`~qiskit.utils.QuantumInstance.execute` has
+now been delegated to the different implementations of the :mod:`~qiskit.primitives` base classes.
+On the other hand, with the direct implementation of transpilation at the primitives level,
+the algorithms no longer
+need to manage that aspect of execution, and thus :class:`~qiskit.utils.QuantumInstance.transpile` is no longer
+required by the workflow. If desired, custom transpilation routines can still be performed at the
+user level through the :mod:`~qiskit.transpiler` module (see table below).
+
+
+The following table summarizes the migration alternatives for the :class:`~qiskit.utils.QuantumInstance` class:
 
 .. list-table::
    :header-rows: 1
@@ -62,8 +74,12 @@ Contents
 Choosing the right primitive for your task
 ===========================================
 
-While the :class:`~qiskit.utils.QuantumInstance` was designed as as single, highly-configurable, task-agnostic class,
-the primitives don't follow the same principle. There are multiple primitives, and each is optimized for a specific
+The :class:`~qiskit.utils.QuantumInstance` was designed to be an abstraction over transpile/ run.
+It took inspiration from :class:`qiskit.execute_function`, but retained config information that could be set
+at the algorithm level, to save the user from defining the same parameters for every transpile/execute call.
+
+The :mod:`qiskit.primitives` share some of these features, but unlike the :class:`~qiskit.utils.QuantumInstance`,
+there are multiple primitive classes, and each is optimized for a specific
 purpose. Selecting the right primitive (``Sampler`` or ``Estimator``) requires some knowledge about
 **what** is it expected to do and **where/how** is it expected to run.
 
@@ -74,16 +90,6 @@ purpose. Selecting the right primitive (``Sampler`` or ``Estimator``) requires s
 
     * The ``Estimator`` takes in circuits and observables and returns **expectation values**.
     * The ``Sampler`` takes in circuits, measures them, and returns their  **quasi-probability distributions**.
-
-    The :class:`~qiskit.utils.QuantumInstance` shares the role of access point to backends and simulators, but
-    unlike the primitives, it returned the **raw** output of the execution, with a higher level of granularity.
-    The minimal unit of information of this output was usually **measurement counts**. And in this sense, the closest
-    primitive would be the ``Sampler``.
-
-    However, you must keep in mind the difference in output formats between
-    the :class:`~qiskit.utils.QuantumInstance` and the ``Sampler``. The :class:`~qiskit.utils.QuantumInstance`
-    returns **counts** (plus metadata), while the ``Sampler`` returns **quasi-probabilities** (plus metadata).
-
 
 In order to know which primitive to use instead of :class:`~qiskit.utils.QuantumInstance`, you should ask
 yourself two questions:
@@ -98,7 +104,15 @@ yourself two questions:
     c. Accessing **runtime-enabled backends** (or cloud simulators): **Runtime Primitives**
     d. Accessing **non runtime-enabled backends** : **Backend Primitives**
 
+Arguably, the ``Sampler`` is the closest primitive to :class:`~qiskit.utils.QuantumInstance`, as they
+both execute circuits and provide a result back. However, with the :class:`~qiskit.utils.QuantumInstance`,
+the result data was backend dependent (it could be a counts ``dict``, a ``numpy.array`` for
+statevector simulations, etc), while the ``Sampler`` normalizes its ``SamplerResult`` to
+return a ``QuasiDistribution`` object with the resulting quasi-probability distribution.
 
+The ``Estimator`` provides a specific abstraction for the expectation value calculation that can replace
+the use of ``QuantumInstance`` as well as the associated pre- and post-processing steps, usually performed
+with an additional library such as :mod:`qiskit.opflow`.
 
 Choosing the right primitive for your settings
 ==============================================
@@ -226,6 +240,13 @@ Code examples
     Basic statevector simulation based on the :class:`qiskit.quantum_info.Statevector` class. Please note that
     the resulting quasi-probability distribution does not use bitstrings but **integers** to identify the states.
 
+    .. attention::
+
+        In some cases, a setting might not be exposed through the interface, but there might an alternative path to make
+        it work. This is the case for custom transpiler passes, which cannot be set through the primitives interface,
+        but pre-transpiled circuits can be sent if setting the option ``skip_transpilation=True``. For more information,
+        please refer to the API reference or source code of the desired primitive implementation.
+
     .. testcode::
 
         from qiskit import QuantumCircuit
@@ -236,8 +257,8 @@ Code examples
         circuit.x(1)
         circuit.measure_all()
 
-        sampler = Sampler(options = {"shots":200})
-        result = sampler.run(circuit).result()
+        sampler = Sampler()
+        result = sampler.run(circuit, shots=200).result()
         quasi_dists = result.quasi_dists
 
         print("Quasi-dists: ", quasi_dists)
@@ -256,6 +277,14 @@ Code examples
     closer to the Quantum Instance's output. Please note that
     the resulting quasi-probability distribution does not use bitstrings but **integers** to identify the states.
 
+    .. note::
+
+        The :class:`qiskit.result.QuasiDistribution` class returned by the ``Sampler`` exposes two methods to convert
+        the result keys from integer to binary strings/hexadecimal:
+
+            - :meth:`qiskit.result.QuasiDistribution.binary_probabilities`
+            - :meth:`qiskit.result.QuasiDistribution.hex_probabilities`
+
 
     .. testcode::
 
@@ -267,8 +296,10 @@ Code examples
         circuit.x(1)
         circuit.measure_all()
 
-        sampler = Sampler(run_options = {"method":"statevector", "shots":200})
-        result = sampler.run(circuit).result()
+        # if no Noise Model provided, the aer primitives
+        # perform an exact (statevector) simulation
+        sampler = Sampler()
+        result = sampler.run(circuit, shots=200).result()
         quasi_dists = result.quasi_dists
 
         print("Quasi-dists: ", quasi_dists)
@@ -358,9 +389,10 @@ Code examples
         noise_model = NoiseModel.from_backend(device)
         coupling_map = device.configuration().coupling_map
 
+        # if Noise Model provided, the aer primitives
+        # perform a "qasm" simulation
         estimator = Estimator(
-                   backend_options={
-                       "method": "density_matrix",
+                   backend_options={ # method chosen automatically to match options
                        "coupling_map": coupling_map,
                        "noise_model": noise_model,
                    },
@@ -459,7 +491,7 @@ Code examples
 .. dropdown:: Example 4: Circuit Sampling with Custom Bound and Unbound Pass Managers
     :animate: fade-in-slide-down
 
-    The management of transpilation is quite different between the QuantumInstance and the Primitives.
+    The management of transpilation is quite different between the ``QuantumInstance`` and the Primitives.
 
     The Quantum Instance allowed you to:
 
@@ -479,6 +511,17 @@ Code examples
       locally and set ``skip_transpilation=True`` in the corresponding primitive.
     * The only primitives that currently accept a custom **bound** transpiler pass manager are the **Backend Primitives**.
       If a ``bound_pass_manager`` is defined, the ``skip_transpilation=True`` option will **not** skip this bound pass.
+
+    .. attention::
+
+        Care is needed when setting ``skip_transpilation=True`` with the ``Estimator`` primitive.
+        Since operator and circuit size need to match for the Estimator, should the custom transpilation change
+        the circuit size, then the operator must be adapted before sending it
+        to the Estimator, as there is no currently no mechanism to identify the active qubits it should consider.
+
+    ..
+        In opflow, the ansatz would always have the basis change and measurement gates added before transpilation,
+        so if the circuit ended up on more qubits it did not matter.
 
     Note that the primitives **do** handle parameter bindings, meaning that even if a ``bound_pass_manager`` is defined in a
     Backend Primitive, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
