@@ -14,8 +14,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
@@ -58,7 +56,7 @@ class GraphState(QuantumCircuit):
         `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
     """
 
-    def __init__(self, adjacency_matrix: list[Any] | np.ndarray) -> None:
+    def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
         """Create graph state preparation circuit.
 
         Args:

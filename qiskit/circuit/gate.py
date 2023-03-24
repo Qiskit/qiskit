@@ -13,7 +13,7 @@
 """Unitary gate."""
 
 from __future__ import annotations
-from typing import Any, Iterator, Iterable
+from typing import Iterator, Iterable
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -24,9 +24,7 @@ from .instruction import Instruction
 class Gate(Instruction):
     """Unitary gate."""
 
-    def __init__(
-        self, name: str, num_qubits: int, params: list[Any], label: str | None = None
-    ) -> None:
+    def __init__(self, name: str, num_qubits: int, params: list, label: str | None = None) -> None:
         """Create a new gate.
 
         Args:
@@ -121,7 +119,7 @@ class Gate(Instruction):
         return add_control(self, num_ctrl_qubits, label, ctrl_state)
 
     @staticmethod
-    def _broadcast_single_argument(qarg: list[Any]) -> Iterator[tuple[list[Any], list[Any]]]:
+    def _broadcast_single_argument(qarg: list) -> Iterator[tuple[list, list]]:
         """Expands a single argument.
 
         For example: [q[0], q[1]] -> [q[0]], [q[1]]
@@ -132,9 +130,7 @@ class Gate(Instruction):
             yield [arg0], []
 
     @staticmethod
-    def _broadcast_2_arguments(
-        qarg0: list[Any], qarg1: list[Any]
-    ) -> Iterator[tuple[list[Any], list[Any]]]:
+    def _broadcast_2_arguments(qarg0: list, qarg1: list) -> Iterator[tuple[list, list]]:
         if len(qarg0) == len(qarg1):
             # [[q[0], q[1]], [r[0], r[1]]] -> [q[0], r[0]]
             #                              -> [q[1], r[1]]
@@ -156,16 +152,14 @@ class Gate(Instruction):
             )
 
     @staticmethod
-    def _broadcast_3_or_more_args(qargs: list[Any]) -> Iterator[tuple[list[Any], list[Any]]]:
+    def _broadcast_3_or_more_args(qargs: list) -> Iterator[tuple[list, list]]:
         if all(len(qarg) == len(qargs[0]) for qarg in qargs):
             for arg in zip(*qargs):
                 yield list(arg), []
         else:
             raise CircuitError("Not sure how to combine these qubit arguments:\n %s\n" % qargs)
 
-    def broadcast_arguments(
-        self, qargs: list[Any], cargs: list[Any]
-    ) -> Iterable[tuple[list[Any], list[Any]]]:
+    def broadcast_arguments(self, qargs: list, cargs: list) -> Iterable[tuple[list, list]]:
         """Validation and handling of the arguments and its relationship.
 
         For example, ``cx([q[0],q[1]], q[2])`` means ``cx(q[0], q[2]); cx(q[1], q[2])``. This
