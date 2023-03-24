@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    The function `control` that is used to create controlled gates now properly handles string and None
-    control state description.
+    The method :meth:`.Gate.control` that is used to create controlled gates now properly handles string and 
+    ``None`` control state description.
