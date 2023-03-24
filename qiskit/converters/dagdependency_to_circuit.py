@@ -32,7 +32,7 @@ def dagdependency_to_circuit(dagdependency):
         *dagdependency.cregs.values(),
         name=name,
     )
-    circuit.metadata = dagdependency.metadata
+    circuit.metadata = dagdependency.metadata or {}
 
     circuit.calibrations = dagdependency.calibrations
 

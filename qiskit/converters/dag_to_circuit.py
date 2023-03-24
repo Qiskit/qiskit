@@ -63,7 +63,7 @@ def dag_to_circuit(dag, copy_operations=True):
         name=name,
         global_phase=dag.global_phase,
     )
-    circuit.metadata = dag.metadata
+    circuit.metadata = dag.metadata or {}
     circuit.calibrations = dag.calibrations
 
     for node in dag.topological_op_nodes():
