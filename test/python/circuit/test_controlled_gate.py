@@ -141,12 +141,8 @@ class TestControlledGate(QiskitTestCase):
             CRYGate(theta).control(2, ctrl_state=None), CRYGate(theta).control(2, ctrl_state=3)
         )
 
-        self.assertEqual(
-            CCXGate().control(2, ctrl_state="01"), CCXGate().control(2, ctrl_state=1)
-        )
-        self.assertEqual(
-            CCXGate().control(2, ctrl_state=None), CCXGate().control(2, ctrl_state=3)
-        )
+        self.assertEqual(CCXGate().control(2, ctrl_state="01"), CCXGate().control(2, ctrl_state=1))
+        self.assertEqual(CCXGate().control(2, ctrl_state=None), CCXGate().control(2, ctrl_state=3))
 
     def test_controlled_ry(self):
         """Test the creation of a controlled RY gate."""
