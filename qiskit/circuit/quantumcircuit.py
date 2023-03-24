@@ -449,7 +449,7 @@ class QuantumCircuit:
         return (qubits, params) in self.calibrations[instr.name]
 
     @property
-    def metadata(self) -> dict:
+    def metadata(self) -> Union[dict, None]:
         """The user provided metadata associated with the circuit
 
         The metadata for the circuit is a user provided ``dict`` of metadata
