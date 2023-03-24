@@ -1280,7 +1280,7 @@ class TestCircuitProperties(QiskitTestCase):
             qc.metadata = 1
 
     def test_metdata_deprectation(self):
-        """Test that setting metadata to None emits a deprecation."""
+        """Test that setting metadata to None emits a deprecation warning."""
         qc = QuantumCircuit(1)
         with self.assertWarns(DeprecationWarning):
             qc.metadata = None

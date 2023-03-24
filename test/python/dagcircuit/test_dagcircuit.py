@@ -1226,7 +1226,7 @@ class TestCircuitProperties(QiskitTestCase):
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
     def test_default_metadata_value(self):
-        """Test that the default DAGCircuit metadata is valid QuantumCircuit data."""
+        """Test that the default DAGCircuit metadata is valid QuantumCircuit metadata."""
         qc = QuantumCircuit(1)
         qc.metadata = self.dag.metadata
         self.assertEqual(qc.metadata, {})

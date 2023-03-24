@@ -320,7 +320,7 @@ class TestDagProperties(QiskitTestCase):
         self.assertEqual(dag.depth(), 0)
 
     def test_default_metadata_value(self):
-        """Test that the default DAGDependency metadata is valid QuantumCircuit data."""
+        """Test that the default DAGDependency metadata is valid QuantumCircuit metadata."""
         qc = QuantumCircuit(1)
         qc.metadata = self.dag.metadata
         self.assertEqual(qc.metadata, {})
