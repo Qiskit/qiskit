@@ -161,7 +161,7 @@ Plugin API
    PassManagerStagePlugin
    PassManagerStagePluginManager
    list_stage_plugins
-   entry_point_obj
+   passmanager_stage_plugins
 """
 
 import abc
@@ -312,12 +312,19 @@ def passmanager_stage_plugins(stage: str) -> Dict[str, PassManagerStagePlugin]:
         from qiskit.transpiler.preset_passmanagers.plugin import passmanager_stage_plugins
         routing_plugins = passmanager_stage_plugins('routing')
         basic_plugin = routing_plugins['basic']
-        ?basic_plugin
+        help(basic_plugin)
 
-        Type:        BasicSwapPassManager
-        String form: <...builtin_plugins.BasicSwapPassManager object at 0xdeadbeef>
-        File:        .../qiskit/transpiler/preset_passmanagers/builtin_plugins.py
-        Docstring:   Plugin class for routing stage with :class:`~.BasicSwap`
+        Help on BasicSwapPassManager in module ...preset_passmanagers.builtin_plugins object:
+
+        class BasicSwapPassManager(...preset_passmanagers.plugin.PassManagerStagePlugin)
+         |  Plugin class for routing stage with :class:`~.BasicSwap`
+         |
+         |  Method resolution order:
+         |      BasicSwapPassManager
+         |      ...preset_passmanagers.plugin.PassManagerStagePlugin
+         |      abc.ABC
+         |      builtins.object
+         ...
 
     Args:
         stage: The stage name to get
