@@ -1225,6 +1225,12 @@ class TestCircuitProperties(QiskitTestCase):
         """Test number of separable factors in circuit."""
         self.assertEqual(self.dag.num_tensor_factors(), 2)
 
+    def test_default_metadata_value(self):
+        """Test that the default DAGCircuit metadata is valid QuantumCircuit data."""
+        qc = QuantumCircuit(1)
+        qc.metadata = self.dag.metadata
+        self.assertEqual(qc.metadata, {})
+
 
 class TestCircuitControlFlowProperties(QiskitTestCase):
     """Properties tests of DAGCircuit with control-flow instructions."""
