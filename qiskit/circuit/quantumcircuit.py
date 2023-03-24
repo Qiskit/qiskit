@@ -4815,7 +4815,7 @@ def _circuit_from_qasm(qasm: Qasm) -> "QuantumCircuit":
 
     ast = qasm.parse()
     dag = ast_to_dag(ast)
-    return dag_to_circuit(dag)
+    return dag_to_circuit(dag, copy_operations=False)
 
 
 def _standard_compare(value1, value2):
