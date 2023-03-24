@@ -13,6 +13,7 @@ testtools
 ipykernel
 ipython
 ipywidgets>=7.3.0
+jupyter
 matplotlib>=3.3
 pillow>=4.2.1
 pydot
@@ -22,6 +23,7 @@ seaborn>=0.9.0
 
 # Functionality and accelerators.
 qiskit-aer
+qiskit-qasm3-import; python_version>='3.8'
 python-constraint>=1.4
 cplex; python_version < '3.11'
 cvxpy
@@ -32,5 +34,8 @@ networkx>=2.2
 scikit-learn>=0.20.0
 scikit-quant<=0.7; platform_system != 'Windows'
 SQSnobFit
-tweedledum
 z3-solver>=4.7
+# Tweedledum is unmaintained and its existing Mac wheels are unreliable. If you
+# manage to get a working install on a Mac the functionality should still work,
+# but as a convenience this file won't attempt the install itself.
+tweedledum; python_version<'3.11' && platform_system!="Darwin"

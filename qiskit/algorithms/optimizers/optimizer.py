@@ -26,7 +26,7 @@ import scipy
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 
 if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
+    # pylint: disable=ungrouped-imports
     from typing import Protocol
 else:
     from typing_extensions import Protocol
@@ -41,7 +41,7 @@ class OptimizerResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._x = None  # pylint: disable=invalid-name
+        self._x = None
         self._fun = None
         self._jac = None
         self._nfev = None

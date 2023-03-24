@@ -379,7 +379,9 @@ class TestBlockOperation(BaseTestBlock):
             pulse.acquire(50, pulse.AcquireChannel(0), pulse.MemorySlot(0))
 
         backend = FakeArmonk()
-        test_result = backend.run(sched_block).result()
+        # TODO: Rewrite test to simulate with qiskit-dynamics
+        with self.assertWarns(DeprecationWarning):
+            test_result = backend.run(sched_block).result()
         self.assertDictEqual(test_result.get_counts(), {"0": 1024})
 
 

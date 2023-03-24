@@ -1,0 +1,15 @@
+# Requirements for the tutorials CI run.  This may have some overlap with
+# requirements-optional.txt.
+
+qiskit-ibmq-provider
+qiskit-aer
+z3-solver
+networkx
+matplotlib>=3.3.0
+sphinx
+nbsphinx
+sphinx_rtd_theme
+cvxpy
+
+# Tweedledum is unmaintained and its existing Mac wheels are unreliable.
+tweedledum; python_version<'3.11' && platform_system!="Darwin"

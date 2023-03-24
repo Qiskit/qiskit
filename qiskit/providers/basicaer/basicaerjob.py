@@ -37,7 +37,6 @@ class BasicAerJob(JobV1):
         return
 
     def result(self, timeout=None):
-        # pylint: disable=arguments-differ
         """Get job result .
 
         Returns:

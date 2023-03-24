@@ -95,14 +95,14 @@ class InstructionSet:
     def __init__(self, circuit_cregs=None, *, resource_requester: Optional[Callable] = None):
         """New collection of instructions.
 
-        The context (qargs and cargs that each instruction is attached to) is also stored separately
-        for each instruction.
+        The context (``qargs`` and ``cargs`` that each instruction is attached to) is also stored
+        separately for each instruction.
 
         Args:
-            circuit_cregs (list[ClassicalRegister]): Optional. List of cregs of the
+            circuit_cregs (list[ClassicalRegister]): Optional. List of ``cregs`` of the
                 circuit to which the instruction is added. Default: `None`.
 
-                .. deprecated:: qiskit-terra 0.19
+                .. deprecated:: 0.19
                     The classical registers are insufficient to access all classical resources in a
                     circuit, as there may be loose classical bits as well.  It can also cause
                     integer indices to be resolved incorrectly if any registers overlap.  Instead,
@@ -188,23 +188,24 @@ class InstructionSet:
                 to a concrete resource that these instructions are permitted to access.
 
         Example:
-            .. jupyter-execute::
+            .. plot::
+               :include-source:
 
-                from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+               from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 
-                qr = QuantumRegister(2)
-                cr = ClassicalRegister(2)
-                qc = QuantumCircuit(qr, cr)
-                qc.h(range(2))
-                qc.measure(range(2), range(2))
+               qr = QuantumRegister(2)
+               cr = ClassicalRegister(2)
+               qc = QuantumCircuit(qr, cr)
+               qc.h(range(2))
+               qc.measure(range(2), range(2))
 
-                # apply x gate if the classical register has the value 2 (10 in binary)
-                qc.x(0).c_if(cr, 2)
+               # apply x gate if the classical register has the value 2 (10 in binary)
+               qc.x(0).c_if(cr, 2)
 
-                # apply y gate if bit 0 is set to 1
-                qc.y(1).c_if(0, 1)
+               # apply y gate if bit 0 is set to 1
+               qc.y(1).c_if(0, 1)
 
-                qc.draw()
+               qc.draw('mpl')
 
         """
         if self._requester is None and not isinstance(classical, (Clbit, ClassicalRegister)):

@@ -19,7 +19,6 @@ from typing import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -29,8 +28,9 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
 
+from ..exceptions import AlgorithmError
+
 if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
     from typing import Literal
 else:
     from typing_extensions import Literal
@@ -38,7 +38,10 @@ else:
 
 class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
     """
-    Compute the gradients of the expectation values by finite difference method.
+    Compute the gradients of the expectation values by finite difference method [1].
+
+    **Reference:**
+    [1] `Finite difference method <https://en.wikipedia.org/wiki/Finite_difference_method>`_
     """
 
     def __init__(
@@ -85,58 +88,69 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
+        parameter_sets: Sequence[set[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        jobs, metadata_ = [], []
-        for circuit, observable, parameter_values_, parameters_ in zip(
-            circuits, observables, parameter_values, parameters
-        ):
-            # indices of parameters to be differentiated
-            if parameters_ is None:
-                indices = list(range(circuit.num_parameters))
-            else:
-                indices = [circuit.parameters.data.index(p) for p in parameters_]
-            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+        job_circuits, job_observables, job_param_values, metadata = [], [], [], []
+        all_n = []
 
+        for circuit, observable, parameter_values_, parameter_set in zip(
+            circuits, observables, parameter_values, parameter_sets
+        ):
+            # Indices of parameters to be differentiated
+            indices = [
+                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
+            ]
+            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+
+            # Combine inputs into a single job to reduce overhead.
             offset = np.identity(circuit.num_parameters)[indices, :]
             if self._method == "central":
                 plus = parameter_values_ + self._epsilon * offset
                 minus = parameter_values_ - self._epsilon * offset
                 n = 2 * len(indices)
-                job = self._estimator.run(
-                    [circuit] * n, [observable] * n, plus.tolist() + minus.tolist(), **options
-                )
+                job_circuits.extend([circuit] * n)
+                job_observables.extend([observable] * n)
+                job_param_values.extend(plus.tolist() + minus.tolist())
+                all_n.append(n)
             elif self._method == "forward":
                 plus = parameter_values_ + self._epsilon * offset
                 n = len(indices) + 1
-                job = self._estimator.run(
-                    [circuit] * n, [observable] * n, [parameter_values_] + plus.tolist(), **options
-                )
+                job_circuits.extend([circuit] * n)
+                job_observables.extend([observable] * n)
+                job_param_values.extend([parameter_values_] + plus.tolist())
+                all_n.append(n)
             elif self._method == "backward":
                 minus = parameter_values_ - self._epsilon * offset
                 n = len(indices) + 1
-                job = self._estimator.run(
-                    [circuit] * n, [observable] * n, [parameter_values_] + minus.tolist(), **options
-                )
-            jobs.append(job)
+                job_circuits.extend([circuit] * n)
+                job_observables.extend([observable] * n)
+                job_param_values.extend([parameter_values_] + minus.tolist())
+                all_n.append(n)
 
-        # combine the results
+        # Run the single job with all circuits.
+        job = self._estimator.run(job_circuits, job_observables, job_param_values, **options)
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
             raise AlgorithmError("Estimator job failed.") from exc
 
+        # Compute the gradients
         gradients = []
-        for result in results:
+        partial_sum_n = 0
+        for n in all_n:
             if self._method == "central":
-                n = len(result.values) // 2  # is always a multiple of 2
-                gradient_ = (result.values[:n] - result.values[n:]) / (2 * self._epsilon)
+                result = results.values[partial_sum_n : partial_sum_n + n]
+                gradient = (result[: n // 2] - result[n // 2 :]) / (2 * self._epsilon)
             elif self._method == "forward":
-                gradient_ = (result.values[1:] - result.values[0]) / self._epsilon
+                result = results.values[partial_sum_n : partial_sum_n + n]
+                gradient = (result[1:] - result[0]) / self._epsilon
             elif self._method == "backward":
-                gradient_ = (result.values[0] - result.values[1:]) / self._epsilon
-            gradients.append(gradient_)
+                result = results.values[partial_sum_n : partial_sum_n + n]
+                gradient = (result[0] - result[1:]) / self._epsilon
+            partial_sum_n += n
+            gradients.append(gradient)
+
         opt = self._get_local_options(options)
-        return EstimatorGradientResult(gradients=gradients, metadata=metadata_, options=opt)
+        return EstimatorGradientResult(gradients=gradients, metadata=metadata, options=opt)

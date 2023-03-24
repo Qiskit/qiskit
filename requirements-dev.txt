@@ -11,8 +11,8 @@ black[jupyter]~=22.0
 # Lint
 # These versions are pinned precisely because pylint frequently includes new
 # on-by-default lint failures in new versions, which breaks our CI.
-astroid==2.5.6
-pylint==2.8.3
+astroid==2.14.2
+pylint==2.16.2
 
 # Tests
 coverage>=4.4.0
@@ -24,7 +24,6 @@ ddt>=1.2.0,!=1.4.0,!=1.4.3
 reno>=3.4.0
 Sphinx>=3.0.0
 qiskit-sphinx-theme>=1.6
-sphinx-autodoc-typehints~=1.18,!=1.19.3
-jupyter-sphinx
+sphinx-autodoc-typehints==1.21.1  # revert to >=1.18 once the incompatibilities are fixed
 sphinx-design>=0.2.0
 pygments>=2.4

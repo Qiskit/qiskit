@@ -79,22 +79,16 @@ def plot_gate_map(
         MissingOptionalLibraryError: if matplotlib not installed.
 
     Example:
-        .. jupyter-execute::
-            :hide-code:
-            :hide-output:
 
-            from qiskit.test.ibmq_mock import mock_get_backend
-            mock_get_backend('FakeVigo')
+        .. plot::
+           :include-source:
 
-        .. jupyter-execute::
-
-           from qiskit import QuantumCircuit, execute, IBMQ
+           from qiskit import QuantumCircuit, execute
+           from qiskit.providers.fake_provider import FakeVigoV2
            from qiskit.visualization import plot_gate_map
-           %matplotlib inline
 
-           provider = IBMQ.load_account()
-           accountProvider = IBMQ.get_provider(hub='ibm-q')
-           backend = accountProvider.get_backend('ibmq_vigo')
+           backend = FakeVigoV2()
+
            plot_gate_map(backend)
     """
     qubit_coordinates_map = {}
@@ -589,10 +583,10 @@ def plot_coupling_map(
 
     Example:
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit.visualization import plot_coupling_map
-            %matplotlib inline
 
             num_qubits = 8
             qubit_coordinates = [[0, 1], [1, 1], [1, 0], [1, 2], [2, 0], [2, 2], [2, 1], [3, 1]]
@@ -767,23 +761,16 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         VisualizationError: Circuit has no layout attribute.
 
     Example:
-        .. jupyter-execute::
-            :hide-code:
-            :hide-output:
-
-            from qiskit.test.ibmq_mock import mock_get_backend
-            mock_get_backend('FakeVigo')
-
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             import numpy as np
-            from qiskit import QuantumCircuit, IBMQ, transpile
-            from qiskit.visualization import plot_histogram, plot_gate_map, plot_circuit_layout
+            from qiskit import QuantumCircuit, transpile
+            from qiskit.providers.fake_provider import FakeVigoV2
+            from qiskit.visualization import plot_circuit_layout
             from qiskit.tools.monitor import job_monitor
+            from qiskit.providers.fake_provider import FakeVigoV2
             import matplotlib.pyplot as plt
-            %matplotlib inline
-
-            IBMQ.load_account()
 
             ghz = QuantumCircuit(3, 3)
             ghz.h(0)
@@ -791,8 +778,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
                 ghz.cx(0,idx)
             ghz.measure(range(3), range(3))
 
-            provider = IBMQ.get_provider(hub='ibm-q')
-            backend = provider.get_backend('ibmq_vigo')
+            backend = FakeVigoV2()
             new_circ_lv3 = transpile(ghz, backend=backend, optimization_level=3)
             plot_circuit_layout(new_circ_lv3, backend)
     """
@@ -803,9 +789,11 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     if backend_version <= 1:
         num_qubits = backend.configuration().n_qubits
         cmap = backend.configuration().coupling_map
+        cmap_len = len(cmap)
     else:
         num_qubits = backend.num_qubits
         cmap = backend.coupling_map
+        cmap_len = cmap.graph.num_edges()
 
     qubits = []
     qubit_labels = [None] * num_qubits
@@ -840,7 +828,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
     for k in qubits:
         qcolors[k] = "k"
 
-    lcolors = ["#648fff"] * len(cmap)
+    lcolors = ["#648fff"] * cmap_len
 
     for idx, edge in enumerate(cmap):
         if edge[0] in qubits and edge[1] in qubits:
@@ -862,7 +850,7 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
     """Plots the error map of a given backend.
 
     Args:
-        backend (IBMQBackend): Given backend.
+        backend (Backend): Given backend.
         figsize (tuple): Figure size in inches.
         show_title (bool): Show the title or not.
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
@@ -875,27 +863,18 @@ def plot_error_map(backend, figsize=(12, 9), show_title=True, qubit_coordinates=
         Figure: A matplotlib figure showing error map.
 
     Raises:
-        VisualizationError: Input is not IBMQ backend.
         VisualizationError: The backend does not provide gate errors for the 'sx' gate.
         MissingOptionalLibraryError: If seaborn is not installed
 
     Example:
-        .. jupyter-execute::
-            :hide-code:
-            :hide-output:
+        .. plot::
+           :include-source:
 
-            from qiskit.test.ibmq_mock import mock_get_backend
-            mock_get_backend('FakeVigo')
-
-        .. jupyter-execute::
-
-            from qiskit import QuantumCircuit, execute, IBMQ
+            from qiskit import QuantumCircuit, execute
             from qiskit.visualization import plot_error_map
-            %matplotlib inline
+            from qiskit.providers.fake_provider import FakeVigoV2
 
-            IBMQ.load_account()
-            provider = IBMQ.get_provider(hub='ibm-q')
-            backend = provider.get_backend('ibmq_vigo')
+            backend = FakeVigoV2()
             plot_error_map(backend)
     """
     import seaborn as sns

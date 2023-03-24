@@ -406,9 +406,10 @@ class TestVisualizationUtils(QiskitTestCase):
         ]
         matrix = np.array(matrix)
         exp_str = (
-            "\\begin{bmatrix}\\tfrac{1}{\\sqrt{2}}&\\tfrac{1}{16}&\\tfrac{1}{\\sqrt{8}}+3i&"
-            "\\tfrac{1}{2}(-1+i)\\\\\\tfrac{1}{3}(1+i)&\\tfrac{1}{\\sqrt{2}}i&34.321&"
-            "-\\tfrac{9}{2}\\\\\\end{bmatrix}"
+            "\\begin{bmatrix}\\frac{\\sqrt{2}}{2}&\\frac{1}{16}&"
+            "\\frac{\\sqrt{2}}{4}+3i&-\\frac{1}{2}+\\frac{i}{2}\\\\"
+            "\\frac{1}{3}+\\frac{i}{3}&\\frac{\\sqrt{2}i}{2}&34.321&-"
+            "\\frac{9}{2}\\\\\\end{bmatrix}"
         )
         result = array_to_latex(matrix, source=True).replace(" ", "").replace("\n", "")
         self.assertEqual(exp_str, result)

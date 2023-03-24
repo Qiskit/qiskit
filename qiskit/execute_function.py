@@ -118,23 +118,26 @@ def execute(
 
             #. :class:`qiskit.transpiler.Layout` instance
             #. ``dict``:
-               virtual to physical::
+
+               * virtual to physical::
 
                     {qr[0]: 0,
                      qr[1]: 3,
                      qr[2]: 5}
 
-               physical to virtual::
+               * physical to virtual::
+
                     {0: qr[0],
                      3: qr[1],
                      5: qr[2]}
 
-            #. ``list``
-               virtual to physical::
+            #. ``list``:
+
+               * virtual to physical::
 
                     [0, 3, 5]  # virtual qubits are ordered (in addition to named)
 
-               physical to virtual::
+               * physical to virtual::
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
@@ -264,7 +267,7 @@ def execute(
     Example:
         Construct a 5-qubit GHZ circuit and execute 4321 shots on a backend.
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumCircuit, execute, BasicAer
 

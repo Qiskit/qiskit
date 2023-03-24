@@ -1,0 +1,33 @@
+---
+features:
+  - |
+    New Quantum Fisher Information (QFI) and  Quantum Geometric Tensor (QGT) algorithms using the
+    primitives, :class:`qiskit.algorithms.gradients.QFI` and
+    :class:`qiskit.algorithms.gradients.LinCombQGT`, have been added to the gradients module.
+
+    Example::
+
+    .. code-block:: python
+
+      from qiskit.circuit import QuantumCircuit, Parameter
+      from qiskit.algorithms.gradients import LinCombQGT, QFI
+
+      estimator = Estimator()
+      a, b = Parameter("a"), Parameter("b")
+      qc = QuantumCircuit(1)
+      qc.h(0)
+      qc.rz(a, 0)
+      qc.rx(b, 0)
+
+      parameter_value = [[np.pi / 4, 0]]
+
+      qgt = LinCombQGT(estimator)
+      qgt_result = qgt.run([qc], parameter_value).result()
+
+      qfi = QFI(qgt)
+      qfi_result = qfi.run([qc], parameter_value).result()
+
+  - |
+    We can now specify the derivative type of
+    :class:`qiskit.algorithms.gradients.LinCombEstimatorGradient` and can compute the imaginary parts
+    of the gradients additional to the real part.

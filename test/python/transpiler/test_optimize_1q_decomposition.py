@@ -35,7 +35,6 @@ from qiskit.compiler import transpile
 from qiskit.transpiler import PassManager, Target, InstructionProperties
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import BasisTranslator
-from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import _error
 from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
 from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
@@ -144,32 +143,6 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition())
         result = passmanager.run(circuit)
         self.assertEqual(QuantumCircuit(1), result)
-
-    def test_optimize_error_over_target_1(self):
-        """XZX is re-written as ZXZ, which is cheaper according to target."""
-        qr = QuantumRegister(1, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.rx(np.pi / 7, qr[0])
-        circuit.rz(np.pi / 4, qr[0])
-        circuit.rx(np.pi / 3, qr[0])
-
-        target = target_rz_rx
-        passmanager = PassManager()
-        passmanager.append(Optimize1qGatesDecomposition(target=target))
-        result = passmanager.run(circuit)
-        self.assertLess(_error(result, target, 0), _error(circuit, target, 0))
-
-    def test_optimize_error_over_target_2(self):
-        """U is re-written as ZYZ, which is cheaper according to target."""
-        qr = QuantumRegister(1, "qr")
-        circuit = QuantumCircuit(qr)
-        circuit.u(np.pi / 7, np.pi / 4, np.pi / 3, qr[0])
-
-        target = target_rz_ry_u
-        passmanager = PassManager()
-        passmanager.append(Optimize1qGatesDecomposition(target=target))
-        result = passmanager.run(circuit)
-        self.assertLess(_error(result, target, 0), _error(circuit, target, 0))
 
     def test_optimize_error_over_target_3(self):
         """U is shorter than RZ-RY-RZ or RY-RZ-RY so use it when no error given."""
@@ -524,6 +497,41 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         passmanager.append(Optimize1qGatesDecomposition(basis))
         result = passmanager.run(circuit)
         self.assertEqual(circuit, result, f"Circuit:\n{circuit}\nResult:\n{result}")
+
+    def test_optimize_run_of_u_to_single_u_on_target_no_error(self):
+        """U(pi/3, 0, 0) * U(pi/3, 0, 0) * U(pi/3, 0, 0) -> U(pi, 0, 0). See #9701."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        for _ in range(3):
+            circuit.append(UGate(np.pi / 3, 0.0, 0.0), [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.append(UGate(np.pi, 0.0, 0.0), [qr[0]])
+
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(target=target_rz_ry_u_noerror))
+        result = passmanager.run(circuit)
+
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
+
+    def test_optimize_run_of_u_to_single_u_no_target(self):
+        """U(pi/3, 0, 0) * U(pi/3, 0, 0) * U(pi/3, 0, 0) -> U(pi, 0, 0). See #9701."""
+        qr = QuantumRegister(1, "qr")
+        circuit = QuantumCircuit(qr)
+        for _ in range(3):
+            circuit.append(UGate(np.pi / 3, 0.0, 0.0), [qr[0]])
+
+        expected = QuantumCircuit(qr)
+        expected.append(UGate(np.pi, 0.0, 0.0), [qr[0]])
+
+        basis = ["u"]
+        passmanager = PassManager()
+        passmanager.append(Optimize1qGatesDecomposition(basis))
+        result = passmanager.run(circuit)
+
+        msg = f"expected:\n{expected}\nresult:\n{result}"
+        self.assertEqual(expected, result, msg=msg)
 
     def test_optimize_u_to_phase_gate(self):
         """U(0, 0, pi/4) ->  p(pi/4). Basis [p, sx]."""

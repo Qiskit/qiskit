@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test VQD """
+"""Test VQD"""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -19,35 +19,30 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.eigensolvers import VQD
+from qiskit.algorithms.eigensolvers import VQD, VQDResult
 from qiskit.algorithms import AlgorithmError
-from qiskit.algorithms.optimizers import (
-    COBYLA,
-    L_BFGS_B,
-    SLSQP,
-)
-
+from qiskit.algorithms.optimizers import COBYLA, L_BFGS_B, SLSQP, SPSA
+from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit.library import TwoLocal, RealAmplitudes
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import Sampler, Estimator
-from qiskit.algorithms.state_fidelities import ComputeUncompute
-from qiskit.utils import algorithm_globals
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators import Operator
+from qiskit.utils import algorithm_globals
 
 
-I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
-X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
-Z = PauliSumOp.from_list([("Z", 1)])  # pylint: disable=invalid-name
-
-H2_PAULI = (
-    -1.052373245772859 * (I ^ I)
-    + 0.39793742484318045 * (I ^ Z)
-    - 0.39793742484318045 * (Z ^ I)
-    - 0.01128010425623538 * (Z ^ Z)
-    + 0.18093119978423156 * (X ^ X)
+H2_SPARSE_PAULI = SparsePauliOp.from_list(
+    [
+        ("II", -1.052373245772859),
+        ("IZ", 0.39793742484318045),
+        ("ZI", -0.39793742484318045),
+        ("ZZ", -0.01128010425623538),
+        ("XX", 0.18093119978423156),
+    ]
 )
+H2_OP = Operator(H2_SPARSE_PAULI.to_matrix())
 
-H2_OP = Operator(H2_PAULI.to_matrix())
+H2_PAULI = PauliSumOp(H2_SPARSE_PAULI)
 
 
 @ddt
@@ -68,11 +63,11 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
         self.estimator = Estimator()
-        self.estimator_shots = Estimator(options={"shots": 2048, "seed": self.seed})
+        self.estimator_shots = Estimator(options={"shots": 1024, "seed": self.seed})
         self.fidelity = ComputeUncompute(Sampler())
         self.betas = [50, 50]
 
-    @data(H2_PAULI, H2_OP)
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_basic_operator(self, op):
         """Test the VQD without aux_operators."""
         wavefunction = self.ryrz_wavefunction
@@ -116,7 +111,21 @@ class TestVQD(QiskitAlgorithmsTestCase):
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
 
-    @data(H2_PAULI, H2_OP)
+    @data(H2_PAULI, H2_SPARSE_PAULI)
+    def test_beta_autoeval(self, op):
+        """Test beta autoevaluation for different operator types."""
+
+        with self.assertLogs(level="INFO") as logs:
+            vqd = VQD(
+                self.estimator_shots, self.fidelity, self.ryrz_wavefunction, optimizer=L_BFGS_B()
+            )
+            _ = vqd.compute_eigenvalues(op)
+
+        # the first log message shows the value of beta[0]
+        beta = float(logs.output[0].split()[-1])
+        self.assertAlmostEqual(beta, 20.40459399499687, 4)
+
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_mismatching_num_qubits(self, op):
         """Ensuring circuit and operator mismatch is caught"""
         wavefunction = QuantumCircuit(1)
@@ -132,7 +141,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.assertRaises(AlgorithmError):
             _ = vqd.compute_eigenvalues(operator=op)
 
-    @data(H2_PAULI, H2_OP)
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_missing_varform_params(self, op):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(op.num_qubits)
@@ -147,7 +156,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.assertRaises(AlgorithmError):
             vqd.compute_eigenvalues(operator=op)
 
-    @data(H2_PAULI, H2_OP)
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_callback(self, op):
         """Test the callback on VQD."""
         history = {"eval_count": [], "parameters": [], "mean": [], "metadata": [], "step": []}
@@ -163,7 +172,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
 
         vqd = VQD(
-            estimator=self.estimator,
+            estimator=self.estimator_shots,
             fidelity=self.fidelity,
             ansatz=wavefunction,
             optimizer=optimizer,
@@ -191,9 +200,10 @@ class TestVQD(QiskitAlgorithmsTestCase):
         np.testing.assert_array_almost_equal(history["mean"], ref_mean, decimal=2)
         np.testing.assert_array_almost_equal(history["step"], ref_step, decimal=0)
 
-    @data(H2_PAULI, H2_OP)
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_vqd_optimizer(self, op):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
+
         vqd = VQD(
             estimator=self.estimator,
             fidelity=self.fidelity,
@@ -218,7 +228,18 @@ class TestVQD(QiskitAlgorithmsTestCase):
             vqd.optimizer = L_BFGS_B()
             run_check()
 
-    @data(H2_PAULI, H2_OP)
+        with self.subTest("Batched optimizer replace"):
+            vqd.optimizer = SLSQP(maxiter=60, max_evals_grouped=10)
+            run_check()
+
+        with self.subTest("SPSA replace"):
+            # SPSA takes too long to converge, so we will
+            # only check that it runs with no errors.
+            vqd.optimizer = SPSA(maxiter=5, learning_rate=0.01, perturbation=0.01)
+            result = vqd.compute_eigenvalues(operator=op)
+            self.assertIsInstance(result, VQDResult)
+
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_aux_operators_list(self, op):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
@@ -239,8 +260,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertIsNone(result.aux_operators_evaluated)
 
         # Go again with two auxiliary operators
-        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
-        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_op1 = SparsePauliOp.from_list([("II", 2.0)])
+        aux_op2 = SparsePauliOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
         result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         np.testing.assert_array_almost_equal(
@@ -271,7 +292,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertIsInstance(result.aux_operators_evaluated[0][1][1], dict)
         self.assertIsInstance(result.aux_operators_evaluated[0][3][1], dict)
 
-    @data(H2_PAULI, H2_OP)
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_aux_operators_dict(self, op):
         """Test dictionary compatibility of aux_operators"""
         wavefunction = self.ry_wavefunction
@@ -291,8 +312,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertIsNone(result.aux_operators_evaluated)
 
         # Go again with two auxiliary operators
-        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
-        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_op1 = SparsePauliOp.from_list([("II", 2.0)])
+        aux_op2 = SparsePauliOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
         result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 2)
@@ -325,7 +346,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         self.assertIsInstance(result.aux_operators_evaluated[0]["aux_op2"][1], dict)
         self.assertIsInstance(result.aux_operators_evaluated[0]["zero_operator"][1], dict)
 
-    @data(H2_PAULI, H2_OP)
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_aux_operator_std_dev(self, op):
         """Test non-zero standard deviations of aux operators."""
         wavefunction = self.ry_wavefunction
@@ -348,8 +369,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         )
 
         # Go again with two auxiliary operators
-        aux_op1 = PauliSumOp.from_list([("II", 2.0)])
-        aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
+        aux_op1 = SparsePauliOp.from_list([("II", 2.0)])
+        aux_op2 = SparsePauliOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
         result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operators_evaluated), 2)

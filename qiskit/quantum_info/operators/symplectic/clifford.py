@@ -12,6 +12,7 @@
 """
 Clifford operator class.
 """
+import itertools
 import re
 
 import numpy as np
@@ -51,7 +52,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     be obtained by calling the :meth:`to_dict` method. This representation is
     also used if a Clifford object is printed as in the following example
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import Clifford
@@ -71,6 +72,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Print the Clifford stabilizer rows
         print(cliff.to_labels(mode="S"))
 
+    .. parsed-literal::
+
+        Clifford: Stabilizer = ['+XX', '+ZZ'], Destabilizer = ['+IZ', '+XI']
+        ['+IZ', '+XI']
+        ['+XX', '+ZZ']
+
     **Circuit Conversion**
 
     Clifford operators can be initialized from circuits containing *only* the
@@ -78,8 +85,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     :class:`~qiskit.circuit.library.XGate`, :class:`~qiskit.circuit.library.YGate`,
     :class:`~qiskit.circuit.library.ZGate`, :class:`~qiskit.circuit.library.HGate`,
     :class:`~qiskit.circuit.library.SGate`, :class:`~qiskit.circuit.library.SdgGate`,
+    :class:`~qiskit.circuit.library.SXGate`, :class:`~qiskit.circuit.library.SXdgGate`,
     :class:`~qiskit.circuit.library.CXGate`, :class:`~qiskit.circuit.library.CZGate`,
-    :class:`~qiskit.circuit.library.SwapGate`.
+    :class:`~qiskit.circuit.library.CYGate`, :class:`~qiskit.circuit.library.DXGate`,
+    :class:`~qiskit.circuit.library.SwapGate`, :class:`~qiskit.circuit.library.iSwapGate`,
+    :class:`~qiskit.circuit.library.ECRGate`.
     They can be converted back into a :class:`~qiskit.circuit.QuantumCircuit`,
     or :class:`~qiskit.circuit.Gate` object using the :meth:`~Clifford.to_circuit`
     or :meth:`~Clifford.to_instruction` methods respectively. Note that this
@@ -104,18 +114,21 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
+    _COMPOSE_PHASE_LOOKUP = None
+    _COMPOSE_1Q_LOOKUP = None
+
     def __array__(self, dtype=None):
         if dtype:
             return np.asarray(self.to_matrix(), dtype=dtype)
         return self.to_matrix()
 
-    def __init__(self, data, validate=True):
+    def __init__(self, data, validate=True, copy=True):
         """Initialize an operator object."""
 
-        # Initialize from another Clifford by sharing the data
+        # Initialize from another Clifford
         if isinstance(data, Clifford):
             num_qubits = data.num_qubits
-            self.tableau = data.tableau
+            self.tableau = data.tableau.copy() if copy else data.tableau
 
         # Initialize from ScalarOp as N-qubit identity discarding any global phase
         elif isinstance(data, ScalarOp):
@@ -138,7 +151,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Initialize StabilizerTable directly from the data
         else:
             if isinstance(data, (list, np.ndarray)) and np.asarray(data, dtype=bool).ndim == 2:
-                data = np.asarray(data, dtype=bool)
+                data = np.array(data, dtype=bool, copy=copy)
                 if data.shape[0] == data.shape[1]:
                     self.tableau = self._stack_table_phase(
                         data, np.zeros(data.shape[0], dtype=bool)
@@ -191,11 +204,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         """Check if two Clifford tables are equal"""
         return super().__eq__(other) and (self.tableau == other.tableau).all()
 
+    def copy(self):
+        return type(self)(self, validate=False, copy=True)
+
     # ---------------------------------------------------------------------
     # Attributes
     # ---------------------------------------------------------------------
-
-    # pylint: disable=bad-docstring-quotes
 
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
@@ -424,7 +438,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 return _append_operation(self.copy(), other, qargs=qargs)
 
         if not isinstance(other, Clifford):
-            other = Clifford(other)
+            # Not copying is safe since we're going to drop our only reference to `other` at the end
+            # of the function.
+            other = Clifford(other, copy=False)
 
         # Validate compose dimensions
         self._op_shape.compose(other._op_shape, qargs, front)
@@ -432,64 +448,82 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Pad other with identities if composing on subsystem
         other = self._pad_with_identity(other, qargs)
 
-        if front:
-            table1 = self
-            table2 = other
-        else:
-            table1 = other
-            table2 = self
+        left, right = (self, other) if front else (other, self)
 
-        num_qubits = self.num_qubits
+        if self.num_qubits == 1:
+            return self._compose_1q(left, right)
+        return self._compose_general(left, right)
 
-        array1 = table1.symplectic_matrix.astype(int)
-        phase1 = table1.phase.astype(int)
+    @classmethod
+    def _compose_general(cls, first, second):
+        # Correcting for phase due to Pauli multiplication. Start with factors of -i from XZ = -iY
+        # on individual qubits, and then handle multiplication between each qubitwise pair.
+        ifacts = np.sum(second.x & second.z, axis=1, dtype=int)
 
-        array2 = table2.symplectic_matrix.astype(int)
-        phase2 = table2.phase.astype(int)
+        x1, z1 = first.x.astype(np.uint8), first.z.astype(np.uint8)
+        lookup = cls._compose_lookup()
 
-        # Update Pauli table
-        pauli = (array2.dot(array1) % 2).astype(bool)
-
-        # Add phases
-        phase = np.mod(array2.dot(phase1) + phase2, 2)
-
-        # Correcting for phase due to Pauli multiplication
-        ifacts = np.zeros(2 * num_qubits, dtype=int)
-
-        for k in range(2 * num_qubits):
-
-            row2 = array2[k]
-            x2 = table2.x[k]
-            z2 = table2.z[k]
-
-            # Adding a factor of i for each Y in the image of an operator under the
-            # first operation, since Y=iXZ
-
-            ifacts[k] += np.sum(x2 & z2)
-
-            # Adding factors of i due to qubit-wise Pauli multiplication
-
-            for j in range(num_qubits):
-                x = 0
-                z = 0
-                for i in range(2 * num_qubits):
-                    if row2[i]:
-                        x1 = array1[i, j]
-                        z1 = array1[i, j + num_qubits]
-                        if (x | z) & (x1 | z1):
-                            val = np.mod(np.abs(3 * z1 - x1) - np.abs(3 * z - x) - 1, 3)
-                            if val == 0:
-                                ifacts[k] += 1
-                            elif val == 1:
-                                ifacts[k] -= 1
-                        x = np.mod(x + x1, 2)
-                        z = np.mod(z + z1, 2)
-
+        # The loop is over 2*n_qubits entries, and the entire loop is cubic in the number of qubits.
+        for k, row2 in enumerate(second.symplectic_matrix):
+            x1_select = x1[row2]
+            z1_select = z1[row2]
+            x1_accum = np.logical_xor.accumulate(x1_select, axis=0).astype(np.uint8)
+            z1_accum = np.logical_xor.accumulate(z1_select, axis=0).astype(np.uint8)
+            indexer = (x1_select[1:], z1_select[1:], x1_accum[:-1], z1_accum[:-1])
+            ifacts[k] += np.sum(lookup[indexer])
         p = np.mod(ifacts, 4) // 2
 
-        phase = np.mod(phase + p, 2)
+        phase = (
+            (np.matmul(second.symplectic_matrix, first.phase, dtype=int) + second.phase + p) % 2
+        ).astype(bool)
+        data = cls._stack_table_phase(
+            (np.matmul(second.symplectic_matrix, first.symplectic_matrix, dtype=int) % 2).astype(
+                bool
+            ),
+            phase,
+        )
+        return Clifford(data, validate=False, copy=False)
 
-        return Clifford(self._stack_table_phase(pauli, phase), validate=False)
+    @classmethod
+    def _compose_1q(cls, first, second):
+        # 1-qubit composition can be done with a simple lookup table; there are 24 elements in the
+        # 1q Clifford group, so 576 possible combinations, which is small enough to look up.
+        if cls._COMPOSE_1Q_LOOKUP is None:
+            # The valid tables for 1q Cliffords.
+            tables_1q = np.array(
+                [
+                    [[False, True], [True, False]],
+                    [[False, True], [True, True]],
+                    [[True, False], [False, True]],
+                    [[True, False], [True, True]],
+                    [[True, True], [False, True]],
+                    [[True, True], [True, False]],
+                ]
+            )
+            phases_1q = np.array([[False, False], [False, True], [True, False], [True, True]])
+            # Build the lookup table.
+            cliffords = [
+                cls(cls._stack_table_phase(table, phase), validate=False, copy=False)
+                for table, phase in itertools.product(tables_1q, phases_1q)
+            ]
+            cls._COMPOSE_1Q_LOOKUP = {
+                (cls._hash(left), cls._hash(right)): cls._compose_general(left, right)
+                for left, right in itertools.product(cliffords, repeat=2)
+            }
+        return cls._COMPOSE_1Q_LOOKUP[cls._hash(first), cls._hash(second)].copy()
+
+    @classmethod
+    def _compose_lookup(cls):
+        if cls._COMPOSE_PHASE_LOOKUP is None:
+            # A lookup table for calculating phases.  The indices are
+            #     current_x, current_z, running_x_count, running_z_count
+            # where all counts taken modulo 2.
+            lookup = np.zeros((2, 2, 2, 2), dtype=int)
+            lookup[0, 1, 1, 0] = lookup[1, 0, 1, 1] = lookup[1, 1, 0, 1] = -1
+            lookup[0, 1, 1, 1] = lookup[1, 0, 0, 1] = lookup[1, 1, 1, 0] = 1
+            lookup.setflags(write=False)
+            cls._COMPOSE_PHASE_LOOKUP = lookup
+        return cls._COMPOSE_PHASE_LOOKUP
 
     # ---------------------------------------------------------------------
     # Representation conversions
@@ -719,6 +753,12 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     # Internal helper functions
     # ---------------------------------------------------------------------
 
+    def _hash(self):
+        """Produce a hashable value that is unique for each different Clifford.  This should only be
+        used internally when the classes being hashed are under our control, because classes of this
+        type are mutable."""
+        return np.packbits(self.tableau).tobytes()
+
     @staticmethod
     def _is_symplectic(mat):
         """Return True if input is symplectic matrix."""
@@ -768,7 +808,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         if qargs is None:
             return clifford
 
-        padded = Clifford(np.eye(2 * self.num_qubits, dtype=bool), validate=False)
+        padded = Clifford(np.eye(2 * self.num_qubits, dtype=bool), validate=False, copy=False)
         inds = list(qargs) + [self.num_qubits + i for i in qargs]
 
         # Pad Pauli array

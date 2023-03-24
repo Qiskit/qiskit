@@ -8,6 +8,7 @@ trigger:
     include:
       - 'main'
       - 'stable/*'
+      - 'gh-readonly-queue/*'
   tags:
     include:
       - '*'
@@ -44,11 +45,6 @@ parameters:
     displayName: "Maximum supported version of Python"
     type: string
     default: "3.11"
-
-  - name: "minimumRustVersion"
-    displayName: "Minimum supported version of Rust"
-    type: string
-    default: "1.56.1"
 
   # These two versions of Python can be chosen somewhat arbitrarily, but we get
   # slightly better coverage per PR if they're neither the maximum nor minimum
@@ -106,6 +102,7 @@ stages:
               pythonVersion: ${{ version }}
               testQPY: false
               testImages: false
+              testRust: false
               installOptionals: true
 
           - template: ".azure/test-macos.yml"
@@ -133,8 +130,10 @@ stages:
                 id: 7864
                 comment: Nightly test job failed at commit $(Build.SourceVersion).  View the logs at $(System.TeamFoundationCollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId).
 
-  # Full PR suite.
-  - ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+  # Full PR suite.  This also needs to apply to the merge queue, which appears
+  # as a push event.  The queue won't get cron triggered because the schedule
+  # trigger doesn't have it as a target.
+  - ${{ if or(eq(variables['Build.Reason'], 'PullRequest'), contains(variables['Build.SourceBranch'], 'gh-readonly-queue')) }}:
     # The preliminary stage should be small in both total runtime (including
     # provisioning) and resources required.  About half of PR commits result in
     # a CI failure, and over 90% of these are in linting, documention or a test
@@ -157,9 +156,9 @@ stages:
             # Failures due to missing optionals should be very rare, so we
             # optimise for faster turnaround in testing optional features.
             installOptionals: true
+            testRust: true
             testQPY: true
             testImages: false
-            rustVersion: ${{ parameters.minimumRustVersion }}
 
     # The rest of the PR pipeline is to test the oldest and newest supported
     # versions of Python, along with the integration tests (via the tutorials).
@@ -177,6 +176,7 @@ stages:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
+            testRust: false
             testQPY: false
             testImages: true
             installFromSdist: true
@@ -202,14 +202,15 @@ stages:
             pythonVersion: ${{ parameters.maximumPythonVersion }}
             installOptionals: false
 
-  # Push to main or the stable branches.  The triggering branches are set in the
-  # triggers at the top of this file.
-  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), startsWith(variables['Build.SourceBranch'], 'refs/heads/')) }}:
+  # Push to main or the stable branches.  The triggering branches also need to
+  # be in the triggers at the top of this file.
+  - ${{ if and(eq(variables['Build.Reason'], 'IndividualCI'), or(startsWith(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/stable/'))) }}:
     - stage: "Push"
       jobs:
         - template: ".azure/test-linux.yml"
           parameters:
             pythonVersion: ${{ parameters.branchPushPythonVersion }}
+            testRust: true
             testQPY: true
             testImages: true
             installOptionals: false
