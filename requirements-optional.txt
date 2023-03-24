@@ -5,7 +5,7 @@
 # If updating this, you probably want to update `qiskit.utils.optionals` and
 # maybe `setup.py` too.
 
-# Test only.
+# Test-runner enhancements.
 fixtures
 testtools
 
@@ -38,4 +38,4 @@ z3-solver>=4.7
 # Tweedledum is unmaintained and its existing Mac wheels are unreliable. If you
 # manage to get a working install on a Mac the functionality should still work,
 # but as a convenience this file won't attempt the install itself.
-tweedledum; python_version<'3.11' && platform_system!="Darwin"
+tweedledum; python_version<'3.11' and platform_system!="Darwin"
