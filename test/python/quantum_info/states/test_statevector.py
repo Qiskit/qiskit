@@ -1196,7 +1196,6 @@ class TestStatevector(QiskitTestCase):
 
     @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "requires matplotlib")
     @unittest.skipUnless(optionals.HAS_PYLATEX, "requires pylatexenc")
-    @unittest.skipUnless(optionals.HAS_PDFLATEX, "requires pdflatex")
     def test_drawings(self):
         """Test draw method"""
         qc1 = QFT(5)
