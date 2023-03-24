@@ -13,7 +13,6 @@ testtools
 ipykernel
 ipython
 ipywidgets>=7.3.0
-jupyter
 matplotlib>=3.3
 pillow>=4.2.1
 pydot

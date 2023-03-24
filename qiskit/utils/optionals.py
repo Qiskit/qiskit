@@ -87,6 +87,10 @@ External Python Libraries
       - Some methods of gradient calculation within :mod:`.opflow.gradients` require `JAX
         <https://github.com/google/jax>`__ for autodifferentiation.
 
+    * - .. py:data:: HAS_JUPYTER
+      - Some of the tests require a complete `Jupyter <https://jupyter.org/>`__ installation to test
+        interactivity features.
+
     * - .. py:data:: HAS_MATPLOTLIB
       - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.
         Almost all of these are built using `Matplotlib <https://matplotlib.org/>`__, which must
@@ -254,6 +258,7 @@ HAS_JAX = _LazyImportTester(
     name="jax",
     install="pip install jax",
 )
+HAS_JUPYTER = _LazyImportTester(["jupyter", "nbformat", "nbconvert"], install="pip install jupyter")
 HAS_MATPLOTLIB = _LazyImportTester(
     ("matplotlib.patches", "matplotlib.pyplot"),
     name="matplotlib",

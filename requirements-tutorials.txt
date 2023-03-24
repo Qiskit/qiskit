@@ -12,4 +12,4 @@ sphinx_rtd_theme
 cvxpy
 
 # Tweedledum is unmaintained and its existing Mac wheels are unreliable.
-tweedledum; python_version<'3.11' && platform_system!="Darwin"
+tweedledum; python_version<'3.11' and platform_system!="Darwin"

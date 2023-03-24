@@ -16,8 +16,6 @@ import os
 import sys
 import unittest
 
-import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor
 from qiskit.utils import optionals
 from qiskit.test import Path, QiskitTestCase, slow_test
 
@@ -29,6 +27,7 @@ JUPYTER_KERNEL = "python3"
 
 
 @unittest.skipUnless(optionals.HAS_IBMQ, "requires IBMQ provider")
+@unittest.skipUnless(optionals.HAS_JUPYTER, "involves running Jupyter notebooks")
 class TestJupyter(QiskitTestCase):
     """Notebooks test case."""
 
@@ -41,6 +40,9 @@ class TestJupyter(QiskitTestCase):
         )
 
     def _execute_notebook(self, filename):
+        import nbformat
+        from nbconvert.preprocessors import ExecutePreprocessor
+
         # Create the preprocessor.
         execute_preprocessor = ExecutePreprocessor(timeout=TIMEOUT, kernel_name=JUPYTER_KERNEL)
 
