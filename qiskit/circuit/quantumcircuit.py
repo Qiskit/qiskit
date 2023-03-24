@@ -22,6 +22,7 @@ import functools
 import multiprocessing as mp
 import string
 import re
+import warnings
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -298,9 +299,7 @@ class QuantumCircuit:
 
         self.duration = None
         self.unit = "dt"
-        if not isinstance(metadata, dict) and metadata is not None:
-            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
-        self._metadata = metadata
+        self.metadata = {} if metadata is None else metadata
 
     @staticmethod
     def from_instructions(
@@ -449,8 +448,8 @@ class QuantumCircuit:
         return (qubits, params) in self.calibrations[instr.name]
 
     @property
-    def metadata(self) -> Union[dict, None]:
-        """The user provided metadata associated with the circuit
+    def metadata(self) -> dict:
+        """The user provided metadata associated with the circuit.
 
         The metadata for the circuit is a user provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
@@ -464,9 +463,17 @@ class QuantumCircuit:
     @metadata.setter
     def metadata(self, metadata: Optional[dict]):
         """Update the circuit metadata"""
-        if not isinstance(metadata, dict) and metadata is not None:
-            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        if metadata is None:
+            metadata = {}
+            warnings.warn(
+                "Setting metadata to None was deprecated in Terra 0.24.0 and this ability will be "
+                "removed in a future release. Instead, set metadata to an empty dictionary.",
+                DeprecationWarning,
+            )
+
         self._metadata = metadata
+        if not isinstance(self._metadata, dict):
+            raise TypeError("Only a dictionary is accepted for circuit metadata")
 
     def __str__(self) -> str:
         return str(self.draw(output="text"))
