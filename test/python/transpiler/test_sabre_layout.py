@@ -17,6 +17,7 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import SabreLayout
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.compiler.transpiler import transpile
@@ -306,6 +307,20 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
                 # later
                 if qubits not in edge_set:
                     self.assertIn((qubits[1], qubits[0]), edge_set)
+
+    def test_too_large_components(self):
+        """Assert trying to run a circuit with too large a connected component raises."""
+        qc = QuantumCircuit(8)
+        qc.h(0)
+        for i in range(1, 6):
+            qc.cx(0, i)
+        qc.h(7)
+        qc.cx(7, 6)
+        layout_routing_pass = SabreLayout(
+            self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
+        )
+        with self.assertRaises(TranspilerError):
+            layout_routing_pass(qc)
 
 
 if __name__ == "__main__":
