@@ -72,8 +72,8 @@ purpose. Selecting the right primitive (``Sampler`` or ``Estimator``) requires s
     The role of the primitives is two-fold. On one hand, they act as access points to backends and simulators.
     On the other hand, they are **algorithmic** abstractions with defined tasks:
 
-    * The ``Estimator`` takes in circuits and observables and returns their **expectation values**.
-    * The ``Sampler`` takes in circuits, measures them, and returns their  **quasi-probability distribution**.
+    * The ``Estimator`` takes in circuits and observables and returns **expectation values**.
+    * The ``Sampler`` takes in circuits, measures them, and returns their  **quasi-probability distributions**.
 
     The :class:`~qiskit.utils.QuantumInstance` shares the role of access point to backends and simulators, but
     unlike the primitives, it returned the **raw** output of the execution, with a higher level of granularity.
@@ -422,7 +422,7 @@ Code examples
 
     The Runtime Primitives offer a suite of error mitigation methods that can be easily "turned on" with the
     ``resilience_level`` option. These are, however, not configurable. The sampler's ``resilience_level=1``
-    is the closest alternative to the Quantum Instance's error mitigation implementation, but this
+    is the closest alternative to the Quantum Instance's measurement error mitigation implementation, but this
     is not a 1-1 replacement.
 
     For more information on the error mitigation options in the Runtime Primitives, you can check out the following
