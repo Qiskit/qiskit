@@ -169,6 +169,7 @@ class BoxOnQuWire(DrawElement):
         bot: └───┘   └───┘
     """
 
+    # TODO:
     def __init__(self, label="", top_connect="─", conditional=False):
         super().__init__(label)
         self.top_format = "┌─%s─┐"
@@ -907,7 +908,7 @@ class TextDrawing:
                 ret += "│"
             elif topc == "└" and botc == "┌" and icod == "top":
                 ret += "├"
-            elif topc == "┘" and botc == "┐":
+            elif topc == "┘" and botc == "┐" and icod == "top":
                 ret += "┤"
             elif botc in "┐┌" and icod == "top":
                 ret += "┬"
