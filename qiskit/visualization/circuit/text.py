@@ -169,7 +169,6 @@ class BoxOnQuWire(DrawElement):
         bot: └───┘   └───┘
     """
 
-    # TODO:
     def __init__(self, label="", top_connect="─", conditional=False):
         super().__init__(label)
         self.top_format = "┌─%s─┐"
