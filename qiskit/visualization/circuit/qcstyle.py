@@ -218,7 +218,7 @@ class DefaultStyle:
                 "ryy": "R_{YY}",
                 "rzx": "R_{ZX}",
                 "rzz": "ZZ",
-                "reset": "\\left.|0\\right\\rangle",
+                "reset": "\\left.|0\\right\\rangle",  # \left.| is on purpose, so every ket has same size
                 "initialize": "$|\\psi\\rangle$",
             },
             "dispcol": {
