@@ -578,7 +578,7 @@ class TestControlledGate(QiskitTestCase):
         expected = _compute_control_matrix(base, num_controls)
         self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
 
-    def test_linear_depth_mcv(self):
+    def test_mcsu2_real_diagonal(self):
         """Test mcsu2_real_diagonal"""
         num_ctrls = 6
         theta = 0.3
