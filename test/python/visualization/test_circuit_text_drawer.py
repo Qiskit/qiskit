@@ -2003,12 +2003,17 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
                 "                             ║  ",
                 "                             ║  ",
                 " cr_0: 0 ════════════════════o══",
-                "                            0x2 "
+                "                            0x2 ",
             ]
         )
 
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, vertical_compression="low", cregbundle=False, reverse_bits=True)), expected
+            str(
+                _text_circuit_drawer(
+                    circuit, vertical_compression="low", cregbundle=False, reverse_bits=True
+                )
+            ),
+            expected,
         )
 
     def test_text_conditional_reverse_bits_false(self):
@@ -2044,12 +2049,17 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
                 "                    0x2 ",
                 "                        ",
                 "  cr2: 0 ═══════════════",
-                "                        "
+                "                        ",
             ]
         )
 
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, vertical_compression="low", cregbundle=False, reverse_bits=False)), expected
+            str(
+                _text_circuit_drawer(
+                    circuit, vertical_compression="low", cregbundle=False, reverse_bits=False
+                )
+            ),
+            expected,
         )
 
     def test_text_justify_right(self):
