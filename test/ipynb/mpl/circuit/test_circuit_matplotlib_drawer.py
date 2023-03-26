@@ -315,8 +315,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         # check for other barrier like commands
         circuit.h(q[1])
 
-        # this import appears to be unused, but is actually needed to get snapshot instruction
-        import qiskit.extensions.simulator  # pylint: disable=unused-import
+        # snapshot operations might have a label
 
         circuit.snapshot("1")
 
@@ -901,7 +900,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(4, 4)
         circuit.x(2)
         circuit.barrier()
-        self.circuit_drawer(circuit, cregbundle=False, filename="idle_wires_barrier.png", idle_wires=False)
+        self.circuit_drawer(
+            circuit, cregbundle=False, filename="idle_wires_barrier.png", idle_wires=False
+        )
 
     def test_wire_order(self):
         """Test the wire_order option"""
