@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" UnitaryGate tests """
+"""UnitaryGate tests"""
 
 import json
 import numpy
@@ -177,7 +177,7 @@ class TestUnitaryCircuit(QiskitTestCase):
         class NumpyEncoder(json.JSONEncoder):
             """Class for encoding json str with complex and numpy arrays."""
 
-            def default(self, obj):  # pylint: disable=arguments-differ
+            def default(self, obj):
                 if isinstance(obj, numpy.ndarray):
                     return obj.tolist()
                 if isinstance(obj, complex):
