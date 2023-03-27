@@ -30,6 +30,13 @@ jobs:
             cargo install grcov
             sudo apt-get install lcov
 
+      # This is needed to support any requirements, particularly in the `optionals` set,
+      # that might not have 'pyproject.toml' files specifying their build requirements.
+      # Modern pip (23.1+) can error out if it doesn't have `wheel` and we ask for one
+      # of these legacy packages.
+      - name: Ensure basic build requirements
+        run: pip install --upgrade pip setuptools wheel
+
       - name: Build and install qiskit-terra
         run: pip install -e .
         env:
