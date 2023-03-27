@@ -2,7 +2,6 @@
 # This may also include some requirements that are only in `requirements-dev.txt`, since those
 # aren't runtime dependencies or optionals of Terra.
 
-qiskit-ibmq-provider[visualization]
 networkx>=2.2
 jupyter
 Sphinx
