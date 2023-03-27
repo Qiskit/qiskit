@@ -24,12 +24,12 @@ from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon, FakeTo
 from qiskit.utils import optionals
 
 
+@unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
 class TestCSPLayout(QiskitTestCase):
     """Tests the CSPLayout pass"""
 
     seed = 42
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_2q_circuit_2q_coupling(self):
         """A simple example, without considering the direction
           0 - 1
@@ -48,7 +48,6 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr[1]], 0)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_3q_circuit_5q_coupling(self):
         """3 qubits in Tenerife, without considering the direction
             qr1
@@ -75,7 +74,6 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr[2]], 4)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_9q_circuit_16q_coupling(self):
         """9 qubits in Rueschlikon, without considering the direction
         q0[1] - q0[0] - q1[3] - q0[3] - q1[0] - q1[1] - q1[2] - 8
@@ -107,7 +105,6 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr1[4]], 10)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_2q_circuit_2q_coupling_sd(self):
         """A simple example, considering the direction
          0  -> 1
@@ -126,7 +123,6 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr[1]], 0)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_3q_circuit_5q_coupling_sd(self):
         """3 qubits in Tenerife, considering the direction
               qr0
@@ -153,7 +149,6 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr[2]], 0)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_9q_circuit_16q_coupling_sd(self):
         """9 qubits in Rueschlikon, considering the direction
         q0[1] → q0[0] → q1[3] → q0[3] ← q1[0] ← q1[1] → q1[2] ← 8
@@ -185,7 +180,6 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(layout[qr1[4]], 8)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_5q_circuit_16q_coupling_no_solution(self):
         """5 qubits in Rueschlikon, no solution
 
@@ -246,7 +240,6 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(15, 18)
         return circuit_to_dag(circuit)
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_time_limit(self):
         """Hard to solve situations hit the time limit"""
         dag = TestCSPLayout.create_hard_dag()
@@ -260,7 +253,6 @@ class TestCSPLayout(QiskitTestCase):
         self.assertLess(runtime, 3)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "time limit reached")
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_call_limit(self):
         """Hard to solve situations hit the call limit"""
         dag = TestCSPLayout.create_hard_dag()
@@ -274,7 +266,6 @@ class TestCSPLayout(QiskitTestCase):
         self.assertLess(runtime, 1)
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "call limit reached")
 
-    @unittest.skipUnless(optionals.HAS_CONSTRAINT, "needs python-constraint")
     def test_seed(self):
         """Different seeds yield different results"""
         seed_1 = 42

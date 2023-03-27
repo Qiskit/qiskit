@@ -26,10 +26,10 @@ if optionals.HAS_PIL:
     from PIL import Image
 
 
+@unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
 class TestPlotHistogram(QiskitVisualizationTestCase):
     """Qiskit plot_histogram tests."""
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_different_counts_lengths(self):
         """Test plotting two different length dists works"""
         exact_dist = {
@@ -115,21 +115,18 @@ class TestPlotHistogram(QiskitVisualizationTestCase):
         fig = plot_histogram([raw_dist, exact_dist])
         self.assertIsInstance(fig, mpl.figure.Figure)
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_with_number_to_keep(self):
         """Test plotting using number_to_keep"""
         dist = {"00": 3, "01": 5, "11": 8, "10": 11}
         fig = plot_histogram(dist, number_to_keep=2)
         self.assertIsInstance(fig, mpl.figure.Figure)
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     def test_with_number_to_keep_multiple_executions(self):
         """Test plotting using number_to_keep with multiple executions"""
         dist = [{"00": 3, "01": 5, "11": 8, "10": 11}, {"00": 3, "01": 7, "10": 11}]
         fig = plot_histogram(dist, number_to_keep=2)
         self.assertIsInstance(fig, mpl.figure.Figure)
 
-    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
     @unittest.skipUnless(optionals.HAS_PIL, "matplotlib not available.")
     def test_with_number_to_keep_multiple_executions_correct_image(self):
         """Test plotting using number_to_keep with multiple executions"""

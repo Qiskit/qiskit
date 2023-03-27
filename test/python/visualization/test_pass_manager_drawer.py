@@ -32,6 +32,9 @@ from qiskit.utils import optionals
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
+@unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
+@unittest.skipUnless(optionals.HAS_PYDOT, "pydot not installed")
+@unittest.skipUnless(optionals.HAS_PIL, "Pillow not installed")
 class TestPassManagerDrawer(QiskitVisualizationTestCase):
     """Qiskit pass manager drawer tests."""
 
@@ -55,9 +58,6 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.pass_manager.append(CXDirection(coupling_map))
         self.pass_manager.append(RemoveResetInZeroState())
 
-    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
-    @unittest.skipUnless(optionals.HAS_PYDOT, "pydot not installed")
-    @unittest.skipUnless(optionals.HAS_PIL, "Pillow not installed")
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
         filename = "current_standard.dot"
@@ -66,9 +66,6 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.assertFilesAreEqual(filename, path_to_diagram_reference("pass_manager_standard.dot"))
         os.remove(filename)
 
-    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
-    @unittest.skipUnless(optionals.HAS_PYDOT, "pydot not installed")
-    @unittest.skipUnless(optionals.HAS_PIL, "Pillow now installed")
     def test_pass_manager_drawer_style(self):
         """Test to see if the colours are updated when provided by the user"""
         # set colours for some passes, but leave others to take the default values
