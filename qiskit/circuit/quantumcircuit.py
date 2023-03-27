@@ -130,11 +130,11 @@ class QuantumCircuit:
     A circuit is a list of instructions bound to some registers.
 
     Args:
-        regs (list(:class:`Register`) or list(``int``) or list(list(:class:`Bit`))): The
+        regs (list(:class:`~.Register`) or list(``int``) or list(list(:class:`~.Bit`))): The
             registers to be included in the circuit.
 
-            * If a list of :class:`Register` objects, represents the :class:`QuantumRegister`
-              and/or :class:`ClassicalRegister` objects to include in the circuit.
+            * If a list of :class:`~.Register` objects, represents the :class:`.QuantumRegister`
+              and/or :class:`.ClassicalRegister` objects to include in the circuit.
 
               For example:
 
@@ -151,8 +151,8 @@ class QuantumCircuit:
                 * ``QuantumCircuit(4) # A QuantumCircuit with 4 qubits``
                 * ``QuantumCircuit(4, 3) # A QuantumCircuit with 4 qubits and 3 classical bits``
 
-            * If a list of python lists containing :class:`Bit` objects, a collection of
-              :class:`Bit` s to be added to the circuit.
+            * If a list of python lists containing :class:`.Bit` objects, a collection of
+              :class:`.Bit` s to be added to the circuit.
 
 
         name (str): the name of the quantum circuit. If not set, an
@@ -1217,8 +1217,7 @@ class QuantumCircuit:
             were actually added to the circuit.
 
         Raises:
-            CircuitError: if the operation passed is not an instance of
-                :class:`~.circuit..Instruction`.
+            CircuitError: if the operation passed is not an instance of :class:`~.circuit.Instruction` .
         """
         if isinstance(instruction, CircuitInstruction):
             operation = instruction.operation
@@ -1684,7 +1683,7 @@ class QuantumCircuit:
                     bit_labels[clbit],
                 )
             elif operation.name == "reset":
-                string_temp += f"reset {bit_labels[instruction.qubits[0]]}\n"
+                string_temp += f"reset {bit_labels[instruction.qubits[0]]};\n"
             elif operation.name == "barrier":
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
                 string_temp += "barrier;\n" if not qargs else f"barrier {qargs};\n"
@@ -1855,10 +1854,10 @@ class QuantumCircuit:
                 Default is True, except for when ``output`` is set to  ``"text"``.
             wire_order (list): Optional. A list of integers used to reorder the display
                 of the bits. The list must have an entry for every bit with the bits
-                in the range 0 to (num_qubits + num_clbits).
+                in the range 0 to (``num_qubits`` + ``num_clbits``).
 
         Returns:
-            :class:`TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
+            :class:`.TextDrawing` or :class:`matplotlib.figure` or :class:`PIL.Image` or
             :class:`str`:
 
             * `TextDrawing` (output='text')
@@ -2860,8 +2859,8 @@ class QuantumCircuit:
                         self._rebind_definition(inner.operation, parameter, value)
 
     def barrier(self, *qargs: QubitSpecifier, label=None) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.Barrier`. If qargs is empty, applies to all qubits in the
-        circuit.
+        """Apply :class:`~.library.Barrier`. If ``qargs`` is empty, applies to all qubits
+        in the circuit.
 
         Args:
             qargs (QubitSpecifier): Specification for one or more qubit arguments.
@@ -2897,14 +2896,15 @@ class QuantumCircuit:
         qarg: Optional[QubitSpecifier] = None,
         unit: str = "dt",
     ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.Delay`. If qarg is None, applies to all qubits.
+        """Apply :class:`~.circuit.Delay`. If qarg is ``None``, applies to all qubits.
         When applying to multiple qubits, delays with the same duration will be created.
 
         Args:
             duration (int or float or ParameterExpression): duration of the delay.
             qarg (Object): qubit argument to apply this delay.
-            unit (str): unit of the duration. Supported units: 's', 'ms', 'us', 'ns', 'ps', 'dt'.
-                Default is ``dt``, i.e. integer time unit depending on the target backend.
+            unit (str): unit of the duration. Supported units: ``'s'``, ``'ms'``, ``'us'``,
+                ``'ns'``, ``'ps'``, and ``'dt'``. Default is ``'dt'``, i.e. integer time unit
+                depending on the target backend.
 
         Returns:
             qiskit.circuit.InstructionSet: handle to the added instructions.
@@ -3010,7 +3010,7 @@ class QuantumCircuit:
         return self.i(qubit)
 
     def ms(self, theta: ParameterValueType, qubits: Sequence[QubitSpecifier]) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.library.generalized_gates.gms.MSGate`.
+        """Apply :class:`~qiskit.circuit.library.MSGate`.
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
@@ -3131,9 +3131,9 @@ class QuantumCircuit:
         rotation in radians.
 
         Args:
-            vx: x-compenent of the rotation axis.
-            vy: y-compenent of the rotation axis.
-            vz: z-compenent of the rotation axis.
+            vx: x-component of the rotation axis.
+            vy: y-component of the rotation axis.
+            vz: z-component of the rotation axis.
             qubit: The qubit(s) to apply the gate to.
 
         Returns:
@@ -3564,8 +3564,8 @@ class QuantumCircuit:
             target_qubit2: The qubit(s) targeted by the gate.
             label: The string label of the gate in the circuit.
             ctrl_state:
-                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
-                on the '1' state.
+                The control state in decimal, or as a bitstring (e.g. ``'1'``).  Defaults to controlling
+                on the ``'1'`` state.
 
         Returns:
             A handle to the instructions created.
@@ -3906,10 +3906,10 @@ class QuantumCircuit:
         The multi-cX gate can be implemented using different techniques, which use different numbers
         of ancilla qubits and have varying circuit depth. These modes are:
 
-        - 'noancilla': Requires 0 ancilla qubits.
-        - 'recursion': Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
-        - 'v-chain': Requires 2 less ancillas than the number of control qubits.
-        - 'v-chain-dirty': Same as for the clean ancillas (but the circuit will be longer).
+        - ``'noancilla'``: Requires 0 ancilla qubits.
+        - ``'recursion'``: Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
+        - ``'v-chain'``: Requires 2 less ancillas than the number of control qubits.
+        - ``'v-chain-dirty'``: Same as for the clean ancillas (but the circuit will be longer).
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
@@ -3984,10 +3984,10 @@ class QuantumCircuit:
         The multi-cX gate can be implemented using different techniques, which use different numbers
         of ancilla qubits and have varying circuit depth. These modes are:
 
-        - 'noancilla': Requires 0 ancilla qubits.
-        - 'recursion': Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
-        - 'v-chain': Requires 2 less ancillas than the number of control qubits.
-        - 'v-chain-dirty': Same as for the clean ancillas (but the circuit will be longer).
+        - ``'noancilla'``: Requires 0 ancilla qubits.
+        - ``'recursion'``: Requires 1 ancilla qubit if more than 4 controls are used, otherwise 0.
+        - ``'v-chain'``: Requires 2 less ancillas than the number of control qubits.
+        - ``'v-chain-dirty'``: Same as for the clean ancillas (but the circuit will be longer).
 
         For the full matrix form of this gate, see the underlying gate documentation.
 
@@ -4362,10 +4362,10 @@ class QuantumCircuit:
 
         There are two forms for calling this function.  If called with all its arguments (with the
         possible exception of ``label``), it will create a
-        :obj:`~qiskit.circuit.controlflow.ForLoopOp` with the given ``body``.  If ``body`` (and
+        :class:`~qiskit.circuit.ForLoopOp` with the given ``body``.  If ``body`` (and
         ``qubits`` and ``clbits``) are *not* passed, then this acts as a context manager, which,
         when entered, provides a loop variable (unless one is given, in which case it will be
-        reused) and will automatically build a :obj:`~qiskit.circuit.controlflow.ForLoopOp` when the
+        reused) and will automatically build a :class:`~qiskit.circuit.ForLoopOp` when the
         scope finishes.  In this form, you do not need to keep track of the qubits or clbits you are
         using, because the scope will handle it for you.
 
@@ -4460,7 +4460,7 @@ class QuantumCircuit:
 
         There are two forms for calling this function.  If called with all its arguments (with the
         possible exception of ``label``), it will create a
-        :obj:`~qiskit.circuit.controlflow.IfElseOp` with the given ``true_body``, and there will be
+        :obj:`~qiskit.circuit.IfElseOp` with the given ``true_body``, and there will be
         no branch for the ``false`` condition (see also the :meth:`.if_else` method).  However, if
         ``true_body`` (and ``qubits`` and ``clbits``) are *not* passed, then this acts as a context
         manager, which can be used to build ``if`` statements.  The return value of the ``with``
@@ -4547,7 +4547,7 @@ class QuantumCircuit:
         clbits: Sequence[ClbitSpecifier],
         label: Optional[str] = None,
     ) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.controlflow.IfElseOp`.
+        """Apply :class:`~qiskit.circuit.IfElseOp`.
 
         .. note::
 
@@ -4592,7 +4592,7 @@ class QuantumCircuit:
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
     def break_loop(self) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.controlflow.BreakLoopOp`.
+        """Apply :class:`~qiskit.circuit.BreakLoopOp`.
 
         .. warning::
 
@@ -4622,7 +4622,7 @@ class QuantumCircuit:
         return self.append(BreakLoopOp(self.num_qubits, self.num_clbits), self.qubits, self.clbits)
 
     def continue_loop(self) -> InstructionSet:
-        """Apply :class:`~qiskit.circuit.controlflow.ContinueLoopOp`.
+        """Apply :class:`~qiskit.circuit.ContinueLoopOp`.
 
         .. warning::
 
@@ -4632,8 +4632,8 @@ class QuantumCircuit:
             determined.  This would quickly lead to invalid circuits, and so if you are trying to
             construct a reusable loop body (without the context managers), you must also use the
             non-context-manager form of :meth:`.if_test` and :meth:`.if_else`.  Take care that the
-            :obj:`.ContinueLoopOp` instruction must span all the resources of its containing loop,
-            not just the immediate scope.
+            :class:`~qiskit.circuit.ContinueLoopOp` instruction must span all the resources of its
+            containing loop, not just the immediate scope.
 
         Returns:
             A handle to the instruction created.
@@ -4808,7 +4808,7 @@ def _circuit_from_qasm(qasm: Qasm) -> "QuantumCircuit":
 
     ast = qasm.parse()
     dag = ast_to_dag(ast)
-    return dag_to_circuit(dag)
+    return dag_to_circuit(dag, copy_operations=False)
 
 
 def _standard_compare(value1, value2):
