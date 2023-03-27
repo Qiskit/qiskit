@@ -35,11 +35,11 @@ def deprecate_func(
     Args:
         since: The version the deprecation started at. If the deprecation is pending, set
             the version to when that started; but later, when switching from pending to
-            deprecated, update `since` to the new version.
+            deprecated, update ``since`` to the new version.
         additional_msg: Put here any additional information, such as what to use instead.
-            For example, "Instead, use the function `new_func` from the module `qiskit.my_module`,
+            For example, "Instead, use the function ``new_func`` from the module ``<my_module>.<my_submodule>``,
             which is similar but uses GPU acceleration."
-        pending: Set to `True` if the deprecation is still pending.
+        pending: Set to ``True`` if the deprecation is still pending.
         project_name: The name of the project, e.g. "Qiskit Nature".
         removal_timeline: How soon can this deprecation be removed? Expects a value
             like "no sooner than 6 months after the latest release" or "in release 9.99".
@@ -112,7 +112,7 @@ def deprecate_arg(
     """Decorator to indicate an argument has been deprecated in some way.
 
     This decorator may be used multiple times on the same function, once per deprecated argument.
-    It should be placed beneath other decorators like `@staticmethod` and property decorators.
+    It should be placed beneath other decorators like ``@staticmethod`` and property decorators.
 
     Args:
         name: The name of the deprecated argument.
