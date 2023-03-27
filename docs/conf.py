@@ -28,6 +28,7 @@ import custom_extensions
 from custom_directives import (IncludeDirective, GalleryItemDirective,
                                CustomGalleryItemDirective, CustomCalloutItemDirective,
                                CustomCardItemDirective)
+import url_redirects
 
 
 # -- General configuration ---------------------------------------------------
@@ -60,97 +61,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
 ]
 
-optimization_tutorials = [
-    '1_quadratic_program',
-    '2_converters_for_quadratic_programs',
-    '3_minimum_eigen_optimizer',
-    '4_grover_optimizer',
-    '5_admm_optimizer',
-    '6_examples_max_cut_and_tsp',
-    '7_examples_vehicle_routing',
-    '8_cvar_optimization',
-    'index.html'
-]
-
-finance_tutorials = [
-    '01_portfolio_optimization',
-    '02_portfolio_diversification',
-    '03_european_call_option_pricing',
-    '04_european_put_option_pricing',
-    '05_bull_spread_pricing',
-    '06_basket_option_pricing',
-    '07_asian_barrier_spread_pricing',
-    '08_fixed_income_pricing',
-    '09_credit_risk_analysis',
-    '10_qgan_option_pricing',
-    '11_time_series',
-    'index'
-]
-
-chemistry_tutorials = [
-    '01_electronic_structure',
-    '02_vibronic_structure',
-    '03_ground_state_solvers',
-    '04_excited_states_solvers',
-    '05_Sampling_potential_energy_surfaces',
-    '06_calculating_thermodynamic_observables',
-    'index'
-]
-
-ml_tutorials = [
-    '01_qsvm_classification',
-    '02_qsvm_multiclass',
-    '03_vqc',
-    '04_qgans_for_loading_random_distributions',
-    'index'
-]
-
-dynamics_tutorials = [
-    "09_pulse_simulator_duffing_model",
-    "10_pulse_simulator_backend_model",
-]
-
-experiments_tutorials = [
-    "1_hamiltonian_and_gate_characterization",
-    "2_relaxation_and_decoherence",
-    "3_measurement_error_mitigation",
-    "4_randomized_benchmarking",
-    "5_quantum_volume",
-    "6_repetition_code",
-    "7_accreditation",
-    "8_tomography",
-    "9_entanglement_verification",
-    "index",
-]
-
-
-redirects = {
-    "install": "getting_started.html",
-    "tutorials/algorithms/08_factorizers": "https://qiskit.org/textbook/ch-algorithms/shor.html"
-}
-
-for tutorial in optimization_tutorials:
-    redirects['tutorials/optimization/%s' % tutorial] =  "https://qiskit.org/documentation/optimization/tutorials/index.html"
-
-for tutorial in finance_tutorials:
-    redirects['tutorials/finance/%s' % tutorial] = "https://qiskit.org/documentation/finance/tutorials/index.html"
-
-for tutorial in chemistry_tutorials:
-    redirects["tutorials/chemistry/%s" % tutorial] = "https://qiskit.org/documentation/nature/tutorials/index.html"
-
-for tutorial in ml_tutorials:
-    redirects["tutorials/machine_learning/%s" % tutorial] = "https://qiskit.org/documentation/machine-learning/tutorials/index.html"
-
-for tutorial in dynamics_tutorials:
-    redirects["tutorials/circuits_advanced/%s" % tutorial] = "https://qiskit.org/documentation/dynamics/tutorials/index.html"
-
-for tutorial in experiments_tutorials:
-    redirects["tutorials/noise/%s" % tutorial] = "https://qiskit.org/documentation/experiments/tutorials/index.html"
-
-with open("aer_sources.txt", "r") as fd:
-    for source_str in fd:
-        target_str = f"../{source_str.replace('qiskit.providers.aer', 'qiskit_aer')}"
-        redirects[source_str] = target_str
+redirects = url_redirects.determine_redirects()
 
 nbsphinx_timeout = 300
 nbsphinx_execute = os.getenv('QISKIT_DOCS_BUILD_TUTORIALS', 'never')

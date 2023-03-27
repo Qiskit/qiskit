@@ -20,7 +20,7 @@ import warnings
 from distutils import dir_util
 
 # Elements with api doc sources
-qiskit_elements = ['qiskit-terra', 'qiskit-aer', 'qiskit-ibmq-provider']
+qiskit_elements = ['qiskit-terra', 'qiskit-ibmq-provider']
 apidocs_exists = False
 apidocs_master = None
 
