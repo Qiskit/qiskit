@@ -80,7 +80,7 @@ class ApproximateTokenSwapper:
         parallel_swaps = [[swap] for swap in sequential_swaps]
         return permutation_circuit(parallel_swaps)
 
-    def map(self, mapping: Mapping[int, int], trials: int = 4) -> List[Swap[int]]:
+    def map(self, mapping: Mapping[int, int], trials: int = 4, parallel_threshold: int = 4) -> List[Swap[int]]:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
 
         Supports partial mappings (i.e. not-permutations) for graphs with missing tokens.
@@ -96,7 +96,9 @@ class ApproximateTokenSwapper:
         Returns:
           The swaps to implement the mapping
         """
-        return rx.graph_token_swapper(self.graph, mapping, 4, 4)
+        # seed = np.random.get_state()[1][0]
+        # print(seed)
+        return rx.graph_token_swapper(self.graph, mapping, trials, 4, parallel_threshold)
         tokens = dict(mapping)
         digraph = rx.PyDiGraph()
         sub_digraph = rx.PyDiGraph()  # Excludes self-loops in digraph.
