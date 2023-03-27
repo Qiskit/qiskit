@@ -26,3 +26,4 @@ Sphinx>=5.0
 qiskit-sphinx-theme>=1.6
 sphinx-design>=0.2.0
 pygments>=2.4
+matplotlib>=3.3
