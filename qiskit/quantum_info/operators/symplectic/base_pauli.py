@@ -190,18 +190,18 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return BasePauli(self._z, self._x, np.mod(self._phase + 2 * parity_y, 4))
 
     def commutes(self, other, qargs=None):
-        """Return True if Pauli that commutes with other.
+        """Return ``True`` if Pauli commutes with ``other``.
 
         Args:
             other (BasePauli): another BasePauli operator.
-            qargs (list): qubits to apply dot product on (default: None).
+            qargs (list): qubits to apply dot product on (default: ``None``).
 
         Returns:
-            np.array: Boolean array of True if Pauli's commute, False if
+            np.array: Boolean array of ``True`` if Paulis commute, ``False`` if
                       they anti-commute.
 
         Raises:
-            QiskitError: if number of qubits of other does not match qargs.
+            QiskitError: if number of qubits of ``other`` does not match ``qargs``.
         """
         if qargs is not None and len(qargs) != other.num_qubits:
             raise QiskitError(
@@ -239,7 +239,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             BasePauli: the Pauli :math:`C^\dagger.P.C`.
 
         Raises:
-            QiskitError: if the Clifford number of qubits and qargs don't match.
+            QiskitError: if the Clifford number of qubits and ``qargs`` don't match.
         """
         # Check dimension
         if qargs is not None and len(qargs) != other.num_qubits:
@@ -336,7 +336,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
         return ret
 
     def _count_y(self, dtype=None):
-        """Count the number of I Pauli's"""
+        """Count the number of I Paulis"""
         return _count_y(self._x, self._z, dtype=dtype)
 
     @staticmethod
@@ -401,16 +401,16 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             z (array): The symplectic representation z vector.
             x (array): The symplectic representation x vector.
             phase (int): Pauli phase.
-            group_phase (bool): Optional. If True use group-phase convention
+            group_phase (bool): Optional. If ``True`` use group-phase convention
                                 instead of BasePauli ZX-phase convention.
-                                (default: False).
-            sparse (bool): Optional. Of True return a sparse CSR matrix,
+                                (default: ``False``).
+            sparse (bool): Optional. Of ``True`` return a sparse CSR matrix,
                            otherwise return a dense Numpy array
-                           (default: False).
+                           (default: ``False``).
 
         Returns:
-            array: if sparse=False.
-            csr_matrix: if sparse=True.
+            array: if ``sparse=False``.
+            csr_matrix: if ``sparse=True``.
         """
         num_qubits = z.size
 
@@ -451,14 +451,14 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
             z (array): The symplectic representation z vector.
             x (array): The symplectic representation x vector.
             phase (int): Pauli phase.
-            group_phase (bool): Optional. If True use group-phase convention
+            group_phase (bool): Optional. If ``True`` use group-phase convention
                                 instead of BasePauli ZX-phase convention.
-                                (default: False).
+                                (default: ``False``).
             full_group (bool): If True return the Pauli label from the full Pauli group
                 including complex coefficient from [1, -1, 1j, -1j]. If
-                False return the unsigned Pauli label with coefficient 1
-                (default: True).
-            return_phase (bool): If True return the adjusted phase for the coefficient
+                ``False`` return the unsigned Pauli label with coefficient 1
+                (default: ``True``).
+            return_phase (bool): If ``True`` return the adjusted phase for the coefficient
                 of the returned Pauli label. This can be used even if
                 ``full_group=False``.
 
@@ -687,5 +687,5 @@ def _evolve_swap(base_pauli, q1, q2):
 
 
 def _count_y(x, z, dtype=None):
-    """Count the number of I Pauli's"""
+    """Count the number of I Paulis"""
     return (x & z).sum(axis=1, dtype=dtype)
