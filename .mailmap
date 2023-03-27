@@ -2,10 +2,14 @@
 # 1) to merge multiple git commit authors that correspond to a single author
 # 2) to change the canonical name and/or email address of an author.
 #
-# Format is:
-#     Canonical Name <Canonical@email> commit name <commit@email>
-#     \--------------+---------------/ \----------+-------------/
-#                 replace                       find
+# Format to replace name and email:
+#     Canonical Name <Canonical@email>  <commit@email>
+#     \--------------+---------------/ \------+------/
+#                 replace                    find
+# Format to replace name only:
+#     Canonical Name <Canonical@email> 
+#     \------+-----/ \-------+-------/
+#          replace         find
 # See also: 'git shortlog --help' and 'git check-mailmap --help'.
 #
 # If you don't like the way your name is cited by qiskit, please feel free to
@@ -37,7 +41,7 @@ Andrew W. Cross <awcross@us.ibm.com> <awcross@Andrews-MacBook-Pro.local>
 Andrew W. Cross <awcross@us.ibm.com> <awcross@andrews-mbp.watson.ibm.com>
 André Großardt <99898527+grossardt@users.noreply.github.com>
 André Großardt <99898527+grossardt@users.noreply.github.com> <andgros@einstein.tpi.uni-jena.de>
-Animesh N Dangwal <animesh.leo@gmail.com>
+Animesh N. Dangwal <animesh.leo@gmail.com>
 Anna Phan <9410731+attp@users.noreply.github.com> <anna.phan@au1.ibm.com>
 Annanay Kapila <k.annanay@gmail.com>
 Anthony Gandon <anthony.gandon@ibm.com>
