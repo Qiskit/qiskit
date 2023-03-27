@@ -14,8 +14,12 @@
 # Note that each qiskit element uses its own mailmap so it may be necessary to
 # propagate changes in other repos for consistency.
 #
+Abby Mitchell <23662430+javabster@users.noreply.github.com> <abby.mitchell@btinternet.com>
+Abby Mitchell <23662430+javabster@users.noreply.github.com> <abby.s.mitchell@gmail.com>
 Abdón Rodríguez Davila <a@abdonrd.com>
 Abigail J. Cross <across@us.ibm.com>
+Abraham Asfaw <abraham.asfaw@ibm.com> <asfaw@princeton.edu>
+Adish Vartak <avartak@cern.ch> <adishvartak@gmail.com>
 Adrien Suau <adrien.suau@cerfacs.fr>
 Albert Frisch <albert.frisch@de.ibm.com>
 Albert Frisch <albert.frisch@de.ibm.com> <alfr@de.ibm.com>
@@ -28,13 +32,16 @@ Andrew W. Cross <awcross@us.ibm.com> <awcross@andrews-mbp.watson.ibm.com>
 Animesh N Dangwal <animesh.leo@gmail.com>
 Anna Phan <9410731+attp@users.noreply.github.com> <anna.phan@au1.ibm.com>
 Annanay Kapila <k.annanay@gmail.com>
+Anton Dekusar <62334182+adekusar-drl@users.noreply.github.com> <adekusar@ie.ibm.com>
 Antonio D. Córcoles-Gonzales <adcorcol@us.ibm.com>
 Antonio Mezzacapo <30698465+antoniomezzacapo@users.noreply.github.com> <amezzac@us.ibm.com>
 Arijit Saha <59946663+Arijit02@users.noreply.github.com>
 Atsushi Matsuo <47442626+a-matsuo@users.noreply.github.com>
+Atsushi Matsuo <47442626+a-matsuo@users.noreply.github.com> <matsuoa@jp.ibm.com>
 Aziz Ngoueya <49644465+AzizNgoueya@users.noreply.github.com>
 Ben Rosand <brosand@gmail.com>
 Bhargav Vishnu <38890773+Bhargavishnu@users.noreply.github.com>
+Bryce-Fuller <Bryce.Fuller@ibm.com> <bgf024@gmail.com>
 Carmen Recio Valcarce <car_rv@outlook.es> <49230820+carmenrv@users.noreply.github.com>
 Chris Culver <chris.cb.culver@gmail.com>
 Christa Zoufal <40824883+Zoufalc@users.noreply.github.com>
@@ -50,24 +57,35 @@ Dhruv Bhatnagar <61590679+dhruvbhq@users.noreply.github.com>
 Diego M. Rodríguez <diego.plan9@gmail.com>
 Dimitar Trenev <64981310+dtrenev@users.noreply.github.com>
 Dmitri Maslov <34778124+dmitrimaslov@users.noreply.github.com>
+Doğukan Tuna <5399244-sotapr@users.noreply.gitlab.com> <dtuname@gmail.com>
 Drew Risinger <drewrisinger@users.noreply.github.com>
 Edwin Navarro <enavarro@comcast.net>
+ElePT <57907331+ElePT@users.noreply.github.com> <epenatap@gmail.com>
+Eric Peterson <Eric.Peterson@ibm.com> <peterson.eric.c@gmail.com>
 Erick Winston <ewinston@us.ibm.com>
 Faisal Debouni <faisal@megoapps.com>
 Farai Mazhandu <35575882+faraimazh@users.noreply.github.com>
 Fran Cabrera <francabrera@users.noreply.github.com> <fcabrera@us.ibm.com>
 Fran Cabrera <francabrera@users.noreply.github.com> <francabrera@Frans-MacBook-Pro.local>
 Franck Chevallier <fchevallier10@gmail.com>
+Frank Harkins <frankharkins@users.noreply.github.com> <frankharkins@hotmail.co.uk>
 Freya Shah <28627285+fs1132429@users.noreply.github.com>
 Gabriele Agliardi <72732327+gabrieleagl@users.noreply.github.com>
 Gadi Aleksandrowicz <gadial@gmail.com>
+Gadi Aleksandrowicz <gadial@gmail.com> <gadia@il.ibm.com>
 Georgios Tsilimigkounakis <45130028+georgios-ts@users.noreply.github.com>
+Giacomo Nannicini <gnannicini@users.noreply.github.com> <giacomo.n@gmail.com>
+Gian Gentinetta <31244916+gentinettagian@users.noreply.github.com> <gian.gentinetta@gmx.ch>
+Ginés Carrascal <gines_carrascal@es.ibm.com> <gines.carrascal@gmail.com>
 Hiroshi Horii <horii@jp.ibm.com> <hhorii@users.noreply.github.com>
 Igor Olegovich Sokolov <iso@zurich.ibm.com> <ISO@zurich.ibm.com>
 Ismael Faro Sertage <ismael.faro1@ibm.com> <ismael.faro.sertage@gmail.com>
 Ismael Faro Sertage <ismael.faro1@ibm.com> <ismael.faro1@ibm.com>
 Ismail Yunus Akhalwaya <ismaila@za.ibm.com>
 Ismail Yunus Akhalwaya <ismaila@za.ibm.com> <30803146+ismaila-at-za-ibm@users.noreply.github.com>
+Ivan Carvalho <ivancarv@student.ubc.ca> <ivan.ivancps.cn@gmail.com>
+Jack J. Woehr <4604036+jwoehr@users.noreply.github.com> <jwoehr@softwoehr.com>
+Jake Lishman <jake.lishman@ibm.com>
 Jake Lishman <jake.lishman@ibm.com> <jake@binhbar.com>
 James R. Garrison <garrison@ibm.com>
 James R. Garrison <garrison@ibm.com> <jim@garrison.cc>
@@ -76,10 +94,12 @@ Jay M. Gambetta <jay.gambetta@us.ibm.com>
 Jerry M. Chow <chowmj@us.ibm.com>
 Jessica Wilson <jessicalostinspace@gmail.com>
 Jesús Pérez <jesusper@us.ibm.com> <jesusprubio@gmail.com>
+Jesús Sistos <46694558+jsistos@users.noreply.github.com> <jesussistos.josb@gmail.com>
 Johannes Weidenfeller <54772951+Knabberjoe@users.noreply.github.com>
 Jonathan A. Wildstrom <34069155+jwildstr-ibm@users.noreply.github.com>
 Jonathan A. Wildstrom <34069155+jwildstr-ibm@users.noreply.github.com> <jwildstr@us.ibm.com>
 Jonathan Shoemaker <Jonathan-Shoemaker@ibm.com>
+Jonathan Shoemaker <Jonathan-Shoemaker@ibm.com> <66969627+jonathan-shoemaker@users.noreply.github.com>
 Jordan Connor <jordanhconnor@gmail.com>
 Jorge Carballo <carballo@us.ibm.com> <jelcaf@gmail.com>
 Juan Cruz-Benito <juan.cruz@ibm.com>
@@ -87,31 +107,49 @@ Juan Gomez-Mosquera <atilag@gmail.com>
 Juan Gomez-Mosquera <atilag@gmail.com> <Juan.Gomez1@ibm.com>
 Juan Luis Sánchez Toural <toural@es.ibm.com>
 Julien Gacon <jul@zurich.ibm.com>
+Julien Gacon <jul@zurich.ibm.com> <gaconju@gmail.com>
 Julien Gacon <jul@zurich.ibm.com> <jules.gacon@googlemail.com>
+Kevin J. Sung <kevinsung@users.noreply.github.com> <kevinjefferysung@gmail.com>
+Kevin J. Sung <kevinsung@users.noreply.github.com> <kevjsung@umich.edu>
 Kevin Krsulich <kevin.krsulich@ibm.com> <kevin@krsulich.net>
+Lauren Capelluto <lcapelluto@users.noreply.github.com> <laurencapelluto@gmail.com>
 Lev S. Bishop <18673315+levbishop@users.noreply.github.com>
+Luciano Bello <luciano.bello@ibm.com> <bel@zurich.ibm.com>
 Luciano Bello <luciano.bello@ibm.com> <lbello@gmail.com>
 Luciano Bello <luciano.bello@ibm.com> <luciano.bello@ibm.com>
 Luciano Bello <luciano.bello@ibm.com> <luciano@debian.org>
+M. Chandler Bennett <mchandlerbennett@gmail.com> <mcbennet@ncsu.edu>
 Marco Pistoia <pistoia@us.ibm.com> <mpistoia@gmail.com>
 Martin Sandberg <martinos@us.ibm.com>
 Mathieu Tillet <50137038+mtillet@users.noreply.github.com>
 Matt Stypulkoski <50181769+Matt-Stypulkoski@users.noreply.github.com>
 Max Reuter <Max.Reuter@ibm.com>
 Max Rossmannek <rmax@ethz.ch>
+Max Rossmannek <rmax@ethz.ch> <max.rossmannek@uzh.ch>
+Max Rossmannek <rmax@ethz.ch> <oss@zurich.ibm.com>
 Naoki Kanazawa <39517270+nkanazawa1989@users.noreply.github.com>
+Naoki Kanazawa <39517270+nkanazawa1989@users.noreply.github.com> <knzwnao@jp.ibm.com>
+Naoki Kanazawa <39517270+nkanazawa1989@users.noreply.github.com> <nkanazawa1989@gmail.com>
 Nick Bronn <nick.bronn@gmail.com>
+Nick Bronn <nick.bronn@gmail.com> <ntbronn@us.ibm.com>
 Ninad Sathaye <sathayen@users.noreply.github.com>
+Omar Costa Hamido <18335360+omarcostahamido@users.noreply.github.com> <omarcostinha@gmail.com>
 Paco Martín Fernández <fmartinfdez@gmail.com>
 Panagiotis Barkoutsos <bpa@zurich.ibm.com> <pbarkoutsos@gmail.com>
 Patrick Neuweiler <npatrick@ethz.ch> <56123073+neupat@users.noreply.github.com>
+Pauline Ollitrault <49036540+paulineollitrault@users.noreply.github.com> <pauline.ollitrault1@gmail.com>
 Peng Liu <34400304+liupibm@users.noreply.github.com>
+Peng Liu <34400304+liupibm@users.noreply.github.com> <liup@us.ibm.com>
+Pieter Eendebak <pieter.eendebak@gmail.com> <p.t.eendebak@tudelft.nl>
 Pradeep Niroula <niroulapradeep@gmail.com> <npdeep@users.noreply.github.com>
 Prakash Murali <prakashmurali@gmail.com>
+Qian Jianhua <87301318+QianJianhua1@users.noreply.github.com> <qianjh@fujitsu.com>
 Quintiii <46296978+IsidoreCarinae@users.noreply.github.com>
 Rafael Martín-Cuevas Redondo <r.martin-cuevas@alumnos.upm.es> <r.martinc@outlook.com>
 Rafal Wieczorek <kenorb@users.noreply.github.com>
+Rafał Pracht <55279376+rafal-pracht@users.noreply.github.com> <rpracht@wp.pl>
 Raphaël Lambert <49641842+rfclambert@users.noreply.github.com>
+Richard Chen <chunfuchen@users.noreply.github.com> <chenrich@us.ibm.com>
 Romain Moyard <36766072+rmoyard@users.noreply.github.com>
 Rudy Raymond <rudyhar@jp.ibm.com> <rudyhar@jp.ibm.com>
 Salvador de la Puente González <neo.salvador@gmail.com> <salva@unoyunodiez.com>
@@ -119,14 +157,22 @@ Samuel Bosch <BoschSamuel@users.noreply.github.com>
 Scott Kelso <scottkelso07@hotmail.com>
 Sebastian Brandhofer <sebastian.brandhofer@gmail.com>
 Seif Mostafa <csseifms@gmail.com>
+Shaohan Hu <shaohan.hu@ibm.com> <hushaohan@gmail.com>
 Soolu Thomas <soolu.thomas@ibm.com> <soolu.elto@gmail.com>
 Stefan Woerner <wor@zurich.ibm.com> <41292468+stefan-woerner@users.noreply.github.com>
 Stefan Woerner <wor@zurich.ibm.com> <stefan@swoerner.de>
+Stefan Woerner <wor@zurich.ibm.com> <wor@zurich.ibm.com>
 Stephen Wood <40241007+woodsp-ibm@users.noreply.github.com> <woodsp@us.ibm.com>
 Sumit Puri <er.sumitpuri@gmail.com>
+Takashi Imamichi <31178928+t-imamichi@users.noreply.github.com> <imamichi@jp.ibm.com>
+Takashi Imamichi <31178928+t-imamichi@users.noreply.github.com> <t.imamichi@gmail.com>
 Tharrmashastha SAPV <51048173+TharrmashasthaPV@users.noreply.github.com>
+Tharrmashastha SAPV <51048173+TharrmashasthaPV@users.noreply.github.com> <tharrmashasthapv@users.noreply.github.com>
+Thomas Alexander <talexander@ibm.com> <thomas.a.alexander@ibm.com>
 Thomas Alexander <talexander@ibm.com> <thomasalexander2718@gmail.com>
 Toshinari Itoko <itoko@jp.ibm.com>
+Toshinari Itoko <itoko@jp.ibm.com> <15028342+itoko@users.noreply.github.com>
+Victor Villar <59838221+vvilpas@users.noreply.github.com> <vvilpas@gmail.com>
 Vismai Khanderao <59114226+Vismai-Khanderao@users.noreply.github.com>
 Vojtech Havlicek <Vojtech.Havlicek@ibm.com>
 Will Bang <will.h.bang@gmail.com>
