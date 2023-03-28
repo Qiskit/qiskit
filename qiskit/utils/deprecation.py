@@ -37,8 +37,8 @@ def deprecate_func(
             the version to when that started; but later, when switching from pending to
             deprecated, update ``since`` to the new version.
         additional_msg: Put here any additional information, such as what to use instead.
-            For example, "Instead, use the function ``new_func`` from the module ``<my_module>.<my_submodule>``,
-            which is similar but uses GPU acceleration."
+            For example, "Instead, use the function ``new_func`` from the module
+            ``<my_module>.<my_submodule>``, which is similar but uses GPU acceleration."
         pending: Set to ``True`` if the deprecation is still pending.
         project_name: The name of the project, e.g. "Qiskit Nature".
         removal_timeline: How soon can this deprecation be removed? Expects a value
