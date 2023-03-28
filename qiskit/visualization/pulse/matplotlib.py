@@ -16,7 +16,8 @@
 
 from __future__ import annotations
 import collections
-from typing import Callable, Any, Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 
 import numpy as np
 

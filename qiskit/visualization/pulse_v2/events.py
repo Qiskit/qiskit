@@ -80,7 +80,7 @@ than plotting each operand value bound to the instruction.
 """
 from __future__ import annotations
 from collections import defaultdict
-from typing import Iterator
+from collections.abc import Iterator
 
 from qiskit import pulse, circuit
 from qiskit.visualization.pulse_v2.types import PhaseFreqTuple, PulseInstruction
@@ -119,11 +119,11 @@ class ChannelEvents:
         self.channel = channel
 
         # initial frame
-        self._init_phase = 0
-        self._init_frequency = 0
+        self._init_phase = 0.0
+        self._init_frequency = 0.0
 
         # time resolution
-        self._dt = 0
+        self._dt = 0.0
 
     @classmethod
     def load_program(cls, program: pulse.Schedule, channel: pulse.channels.Channel):
@@ -159,10 +159,9 @@ class ChannelEvents:
             init_frequency: Modulation frequency in Hz.
             init_phase: Initial phase in rad.
         """
-        # TODO: should be float?
-        self._dt = dt or 1
-        self._init_frequency = init_frequency or 0
-        self._init_phase = init_phase or 0
+        self._dt = dt or 1.0
+        self._init_frequency = init_frequency or 0.0
+        self._init_phase = init_phase or 0.0
 
     def get_waveforms(self) -> Iterator[PulseInstruction]:
         """Return waveform type instructions with frame."""

@@ -59,7 +59,7 @@ from __future__ import annotations
 
 from abc import ABC
 from enum import Enum
-from typing import cast, Any, List
+from typing import Any
 
 import numpy as np
 
@@ -96,7 +96,6 @@ class ElementaryData(ABC):
         """
         if channels and isinstance(channels, Channel):
             channels = [channels]
-        channels = cast(List[Channel], channels)
 
         if isinstance(data_type, Enum):
             data_type = data_type.value

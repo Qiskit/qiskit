@@ -66,11 +66,12 @@ the lookup table of the handler and the drawing by using this data key.
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from enum import Enum
 from functools import partial
 from itertools import chain
-from typing import Union, Iterator
 
 import numpy as np
 from qiskit import pulse
@@ -117,13 +118,11 @@ class DrawerCanvas:
 
         # data scaling
         self.chan_scales: dict[
-            Union[
-                pulse.channels.DriveChannel,
-                pulse.channels.MeasureChannel,
-                pulse.channels.ControlChannel,
-                pulse.channels.AcquireChannel,
-            ],
-            dict,
+            pulse.channels.DriveChannel
+            | pulse.channels.MeasureChannel
+            | pulse.channels.ControlChannel
+            | pulse.channels.AcquireChannel,
+            float,
         ] = {}
 
         # global time
@@ -206,13 +205,11 @@ class DrawerCanvas:
 
     def load_program(
         self,
-        program: Union[
-            pulse.Waveform,
-            pulse.ParametricPulse,
-            pulse.SymbolicPulse,
-            pulse.Schedule,
-            pulse.ScheduleBlock,
-        ],
+        program: pulse.Waveform
+        | pulse.ParametricPulse
+        | pulse.SymbolicPulse
+        | pulse.Schedule
+        | pulse.ScheduleBlock,
     ):
         """Load a program to draw.
 
@@ -237,7 +234,7 @@ class DrawerCanvas:
 
     def _waveform_loader(
         self,
-        program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.SymbolicPulse],
+        program: pulse.Waveform | pulse.ParametricPulse | pulse.SymbolicPulse,
     ):
         """Load Waveform instance.
 
@@ -264,7 +261,7 @@ class DrawerCanvas:
 
         self.charts.append(chart)
 
-    def _schedule_loader(self, program: Union[pulse.Schedule, pulse.ScheduleBlock]):
+    def _schedule_loader(self, program: pulse.Schedule | pulse.ScheduleBlock):
         """Load Schedule instance.
 
         This function is sub-routine of py:method:`load_program`.
@@ -275,7 +272,7 @@ class DrawerCanvas:
         program = target_qobj_transform(program, remove_directives=False)
 
         # initialize scale values
-        self.chan_scales: dict[pulse.channels.Channel, float] = {}
+        self.chan_scales = {}
         for chan in program.channels:
             if isinstance(chan, pulse.channels.DriveChannel):
                 self.chan_scales[chan] = self.formatter["channel_scaling.drive"]
@@ -855,7 +852,7 @@ class Chart:
 
         return np.asarray(new_x, dtype=float), np.asarray(new_y, dtype=float)
 
-    def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
+    def _bind_coordinate(self, vals: Sequence[types.Coordinate] | np.ndarray) -> np.ndarray:
         """A helper function to bind actual coordinates to an `AbstractCoordinate`.
 
         Args:

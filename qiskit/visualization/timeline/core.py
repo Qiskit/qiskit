@@ -50,9 +50,9 @@ the lookup table of the handler and the drawings by using this data key.
 """
 from __future__ import annotations
 import warnings
+from collections.abc import Iterator
 from copy import deepcopy
 from functools import partial
-from typing import Iterator
 from enum import Enum
 
 import numpy as np

@@ -355,7 +355,7 @@ def _draw_shaped_waveform(
     Raises:
         VisualizationError: When the waveform color for channel is not defined.
     """
-    fill_objs = []
+    fill_objs: list[drawings.LineData | drawings.BoxData | drawings.TextData] = []
 
     resolution = formatter["general.vertical_resolution"]
 
