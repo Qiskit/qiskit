@@ -660,7 +660,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             if props is None:
                 basis_2q_fidelity = 1.0
             else:
-                basis_2q_fidelity = 1 - getattr(props, "error", 0.0)
+                error = getattr(props, "error", 0.0)
+                if error is None:
+                    error = 0.0
+                basis_2q_fidelity = 1 - error
             if approximation_degree is not None:
                 basis_2q_fidelity *= approximation_degree
             decomposer = TwoQubitBasisDecomposer(
@@ -682,7 +685,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             if props is None:
                 basis_2q_fidelity[strength] = 1.0
             else:
-                basis_2q_fidelity[strength] = 1 - getattr(props, "error", 0.0)
+                error = getattr(props, "error", 0.0)
+                if error is None:
+                    error = 0.0
+                basis_2q_fidelity[strength] = 1 - error
             # rewrite XX of the same strength in terms of it
             embodiment = XXEmbodiments[type(v)]
             if len(embodiment.parameters) == 1:
@@ -734,9 +740,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         if unitary.shape == (2, 2):
             _decomposer1q = Optimize1qGatesDecomposition(basis_gates, target)
-            return _decomposer1q._gate_sequence_to_dag(
-                _decomposer1q._resynthesize_run(unitary, qubits[0])
-            )
+            sequence = _decomposer1q._resynthesize_run(unitary, qubits[0])
+            if sequence is None:
+                return None
+            return _decomposer1q._gate_sequence_to_dag(sequence)
         elif unitary.shape == (4, 4):
             # select synthesizers that can lower to the target
             if target is not None:

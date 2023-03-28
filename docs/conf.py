@@ -35,7 +35,6 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.doctest",
-    "sphinx_autodoc_typehints",
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
@@ -85,6 +84,13 @@ html_theme_options = {
 # Note that setting autodoc defaults here may not have as much of an effect as you may expect; any
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
 # which likely overrides the autodoc defaults.
+
+# Move type hints from signatures to the parameter descriptions (except in overload cases, where
+# that's not possible).
+autodoc_typehints = "description"
+# Only add type hints from signature to description body if the parameter has documentation.  The
+# return type is always added to the description (if in the signature).
+autodoc_typehints_description_target = "documented_params"
 
 autosummary_generate = True
 autosummary_generate_overwrite = False
