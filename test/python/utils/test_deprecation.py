@@ -70,7 +70,7 @@ class TestDeprecationDecorators(QiskitTestCase):
                 f"""\
 
                 .. deprecated:: 9.99
-                  The function ``{__name__}._deprecated_func()`` is deprecated as of Qiskit Terra \
+                  The function ``{__name__}._deprecated_func()`` is deprecated as of qiskit-terra \
 9.99. It will be removed in 2 releases. Instead, use new_func().
                 """
             ),
@@ -81,7 +81,7 @@ class TestDeprecationDecorators(QiskitTestCase):
                 f"""\
 
                 .. deprecated:: 9.99_pending
-                  The class ``{__name__}._Foo`` is pending deprecation as of Qiskit Terra 9.99. It \
+                  The class ``{__name__}._Foo`` is pending deprecation as of qiskit-terra 9.99. It \
 will be marked deprecated in a future release, and then removed no earlier than 3 months after \
 the release date.
                 """
@@ -94,7 +94,7 @@ the release date.
                 Method.
 
                 .. deprecated:: 9.99
-                  The method ``{__name__}._Foo.my_method()`` is deprecated as of Qiskit Terra \
+                  The method ``{__name__}._Foo.my_method()`` is deprecated as of qiskit-terra \
 9.99. It will be removed no earlier than 3 months after the release date. Stop using this!
                 """
             ),
@@ -106,7 +106,7 @@ the release date.
                 Property.
 
                 .. deprecated:: 9.99
-                  The property ``{__name__}._Foo.my_property`` is deprecated as of Qiskit Terra \
+                  The property ``{__name__}._Foo.my_property`` is deprecated as of qiskit-terra \
 9.99. It will be removed no earlier than 3 months after the release date.
                 """
             ),
@@ -141,22 +141,22 @@ the release date.
 
                 .. deprecated:: 9.99
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg4`` is deprecated as of \
-Qiskit Terra 9.99. It will be removed no earlier than 3 months after the release date. Instead, \
+qiskit-terra 9.99. It will be removed no earlier than 3 months after the release date. Instead, \
 use foo.
 
                 .. deprecated:: 9.99
-                  Using the argument arg3 is deprecated as of Qiskit Terra 9.99. It will be \
+                  Using the argument arg3 is deprecated as of qiskit-terra 9.99. It will be \
 removed no earlier than 3 months after the release date. Instead, use the argument ``new_arg3``, \
 which behaves identically.
 
                 .. deprecated:: 9.99_pending
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg2`` is pending \
-deprecation as of Qiskit Terra 9.99. It will be marked deprecated in a future release, and then \
+deprecation as of qiskit-terra 9.99. It will be marked deprecated in a future release, and then \
 removed no earlier than 3 months after the release date.
 
                 .. deprecated:: 9.99
                   ``{__name__}.{my_func.__qualname__}()``'s argument ``arg1`` is deprecated as of \
-Qiskit Terra 9.99. It will be removed in 2 releases.
+qiskit-terra 9.99. It will be removed in 2 releases.
                 """
             ),
         )

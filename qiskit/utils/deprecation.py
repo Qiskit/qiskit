@@ -22,7 +22,7 @@ def deprecate_func(
     since: str,
     additional_msg: Optional[str] = None,
     pending: bool = False,
-    project_name: str = "Qiskit Terra",
+    package_name: str = "qiskit-terra",
     removal_timeline: str = "no earlier than 3 months after the release date",
     is_property: bool = False,
 ):
@@ -40,7 +40,7 @@ def deprecate_func(
             For example, "Instead, use the function ``new_func`` from the module ``<my_module>.<my_submodule>``,
             which is similar but uses GPU acceleration."
         pending: Set to ``True`` if the deprecation is still pending.
-        project_name: The name of the project, e.g. "Qiskit Nature".
+        package_name: The PyPI package name, e.g. "qiskit-nature".
         removal_timeline: How soon can this deprecation be removed? Expects a value
             like "no sooner than 6 months after the latest release" or "in release 9.99".
         is_property: If the deprecated function is a `@property`, set this to True so that the
@@ -79,7 +79,7 @@ def deprecate_func(
 
         msg, category = _write_deprecation_msg(
             deprecated_entity=deprecated_entity,
-            project_name=project_name,
+            package_name=package_name,
             since=since,
             pending=pending,
             additional_msg=additional_msg,
@@ -104,7 +104,7 @@ def deprecate_arg(
     additional_msg: Optional[str] = None,
     deprecation_description: Optional[str] = None,
     pending: bool = False,
-    project_name: str = "Qiskit Terra",
+    package_name: str = "qiskit-terra",
     new_alias: Optional[str] = None,
     predicate: Optional[Callable[[Any], bool]] = None,
     removal_timeline: str = "no earlier than 3 months after the release date",
@@ -125,7 +125,7 @@ def deprecate_arg(
             (if new_alias is not set). For example, "Instead, use the argument `new_arg`,
             which is similar but does not impact the circuit's setup."
         pending: Set to `True` if the deprecation is still pending.
-        project_name: The name of the project, e.g. "Qiskit Nature".
+        package_name: The PyPI package name, e.g. "qiskit-nature".
         new_alias: If the arg has simply been renamed, set this to the new name. The decorator will
             dynamically update the `kwargs` so that when the user sets the old arg, it will be
             passed in as the `new_alias` arg.
@@ -156,7 +156,7 @@ def deprecate_arg(
 
         msg, category = _write_deprecation_msg(
             deprecated_entity=deprecated_entity,
-            project_name=project_name,
+            package_name=package_name,
             since=since,
             pending=pending,
             additional_msg=final_additional_msg,
@@ -298,7 +298,7 @@ def _maybe_warn_and_rename_kwarg(
 def _write_deprecation_msg(
     *,
     deprecated_entity: str,
-    project_name: str,
+    package_name: str,
     since: str,
     pending: bool,
     additional_msg: str,
@@ -314,7 +314,7 @@ def _write_deprecation_msg(
         removal_desc = f"removed {removal_timeline}"
 
     msg = (
-        f"{deprecated_entity} is {deprecation_status} as of {project_name} {since}. "
+        f"{deprecated_entity} is {deprecation_status} as of {package_name} {since}. "
         f"It will be {removal_desc}."
     )
     if additional_msg:
