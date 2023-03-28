@@ -18,7 +18,7 @@ from typing import Optional, List, Tuple
 import numpy as np
 
 from qiskit.opflow import OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
@@ -36,13 +36,10 @@ class Eigensolver(ABC):
     used interchangeably.
     """
 
-    @deprecate_function(
-        "The Eigensolver interface has been superseded by the "
-        "qiskit.algorithms.eigensolvers.Eigensolver interface. "
-        "This interface will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg="Instead, use the interface ``qiskit.algorithms.eigensolvers.Eigensolver``",
         since="0.23.0",
+        pending=True,
     )
     def __init__(self) -> None:
         pass
@@ -89,13 +86,12 @@ class EigensolverResult(AlgorithmResult):
 
     """
 
-    @deprecate_function(
-        "The EigensolverResult class has been superseded by the "
-        "qiskit.algorithms.eigensolvers.EigensolverResult class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.EigensolverResult``."
+        ),
         since="0.23.0",
+        pending=True,
     )
     def __init__(self) -> None:
         super().__init__()
