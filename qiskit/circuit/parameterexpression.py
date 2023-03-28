@@ -523,7 +523,7 @@ class ParameterExpression:
 
         if not self._symbol_expr.is_real and self._symbol_expr.is_real is not None:
             # Symengine returns false for is_real on the expression if
-            # there is a imaginary component (even if that component is 0),
+            # there is an imaginary component (even if that component is 0),
             # but the parameter will evaluate as real. Check that if the
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
