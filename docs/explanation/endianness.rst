@@ -1,6 +1,6 @@
-=========================
+#########################
 Order of qubits in Qiskit
-=========================
+#########################
 
 While most physics textbooks represent an :math:`n`-qubit system as the tensor product :math:`Q_0\otimes Q_1 \otimes ... \otimes Q_{n-1}`, where :math:`Q_j` is the :math:`j^{\mathrm{th}}` qubit, Qiskit uses the inverse order, that is, :math:`Q_{n-1}\otimes ... \otimes Q_1 \otimes Q_{0}`.  This is done to follow the order of bit strings, in which the :math:`n^{\mathrm{th}}` bit or most significant bit (MSB) is placed on the left (with index 0) while the least significant bit (LSB) is placed on the right (index :math:`n-1`). This ordering convention is called little-endian while the one from the physics textbooks is called big-endian.
 
@@ -31,15 +31,17 @@ This different order can also make the circuit corresponding to an algorithm fro
 
 Let's try this for a 3-qubit Quantum Fourier Transform (:class:`~.QFT`).
 
-.. jupyter-execute::
+.. plot::
+    :include-source:
+    :context:
 
     from qiskit.circuit.library import QFT
 
     qft = QFT(3)
-
     qft.decompose().draw('mpl')
 
-.. jupyter-execute::
+.. plot::
+    :include-source:
+    :context: close-figs
 
     qft.decompose().draw('mpl', reverse_bits=True)
-
