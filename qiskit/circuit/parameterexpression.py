@@ -528,10 +528,10 @@ class ParameterExpression:
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
             if _optionals.HAS_SYMENGINE:
-                if self.symbol_expr.imag == 0.0:
+                if self._symbol_expr.imag == 0.0:
                     return True
             return False
-        return self.symbol_expr.is_real
+        return self._symbol_expr.is_real
 
     def sympify(self):
         """Return symbolic expression as a raw Sympy or Symengine object.
