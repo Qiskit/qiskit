@@ -1299,10 +1299,9 @@ class TestParameterExpressions(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "Name conflict"):
             expr.subs({x: y_second})
 
-    def test_expressions_of_parameter_with_constant(self):
+    @data([2, 1.3, 0, -1, -1.0, numpy.pi, 1j])
+    def test_expressions_of_parameter_with_constant(self, good_constants):
         """Verify operating on a Parameter with a constant."""
-
-        good_constants = [2, 1.3, 0, -1, -1.0, numpy.pi, 1j]
 
         x = Parameter("x")
 
