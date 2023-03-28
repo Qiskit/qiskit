@@ -601,7 +601,7 @@ def _fisher_confint(
     confint = result.mle + norm.ppf(1 - alpha / 2) / std * np.array([-1, 1])
 
     # transform the confidence interval from [0, 1] to the target interval
-    return tuple(result.post_processing(bound) for bound in confint)
+    return result.post_processing(confint[0]), result.post_processing(confint[1])
 
 
 def _likelihood_ratio_confint(

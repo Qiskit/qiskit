@@ -311,9 +311,7 @@ def _assign_unique_parameters(
             else:
                 new_parameter = Parameter(f"__gθ{num_gradient_parameters}")
                 substitution_map[parameter] = new_parameter
-                parameter_map[parameter].append(
-                    new_parameter, 1
-                )  # TODO: should be (new_parameter, 1)?
+                parameter_map[parameter].append((new_parameter, 1))
                 num_gradient_parameters += 1
         gradient_circuit.global_phase = gradient_circuit.global_phase.subs(substitution_map)
 

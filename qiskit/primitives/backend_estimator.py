@@ -39,7 +39,7 @@ def _run_circuits(
     circuits: QuantumCircuit | list[QuantumCircuit],
     backend: BackendV1 | BackendV2,
     **run_options,
-) -> tuple[Result, list[dict]]:
+) -> tuple[list[Result], list[dict]]:
     """Remove metadata of circuits and run the circuits on a backend.
     Args:
         circuits: The circuits

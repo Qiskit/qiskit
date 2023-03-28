@@ -189,5 +189,6 @@ def _compute_std_devs(
         # when `variances` is a single value equal to 0., our expectation value is exact and we
         # manually ensure the variances to be a list of the correct length
         variances = np.zeros(len(observables), dtype=float)
+    # TODO: this will crash if quantum_instance is a backend
     std_devs = np.sqrt(variances / quantum_instance.run_config.shots)
     return std_devs

@@ -16,7 +16,7 @@ from __future__ import annotations
 import itertools
 import operator
 import warnings
-from collections.abc import Iterator
+from collections.abc import Iterator, Generator
 from typing import Any
 
 import numpy as np
@@ -159,7 +159,9 @@ class Grover(AmplitudeAmplifier):
 
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
-            self._iterations: list[int] = [int(growth_rate**x) for x in itertools.count(1)]
+            self._iterations: Generator[int] | list[int] = (
+                int(growth_rate**x) for x in itertools.count(1)
+            )
         elif isinstance(iterations, int):
             self._iterations = [iterations]
         else:
@@ -297,8 +299,7 @@ class Grover(AmplitudeAmplifier):
 
             # sample from [0, power) if specified
             if self._sample_from_iterations:
-                # TODO: Generator has no attribute randint, use integers
-                power = algorithm_globals.random.randint(power)
+                power = algorithm_globals.random.integers(power)
             # Run a grover experiment for a given power of the Grover operator.
             if self._sampler is not None:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)

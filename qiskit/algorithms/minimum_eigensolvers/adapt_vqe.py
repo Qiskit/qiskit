@@ -18,6 +18,7 @@ from enum import Enum
 
 import re
 import logging
+from typing import Any
 
 import numpy as np
 
@@ -134,7 +135,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         theta: list[float],
         operator: OperatorBase,
-    ) -> list[tuple[complex, complex]]:
+    ) -> list[tuple[complex, dict[str, Any]]]:
         """
         Computes the gradients for all available excitation operators.
 
@@ -208,7 +209,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
 
         prev_op_indices: list[int] = []
         theta: list[float] = []
-        max_grad: tuple[float, PauliSumOp | None] = (0.0, None)
+        max_grad: tuple[complex, dict[str, Any] | None] = (0.0, None)
         self._excitation_list = []
         history: list[complex] = []
         iteration = 0
@@ -293,10 +294,10 @@ class AdaptVQEResult(VQEResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._num_iterations: int = None
-        self._final_max_gradient: float = None
+        self._num_iterations: int | None = None
+        self._final_max_gradient: float | None = None  # TODO: should be complex?
         self._termination_criterion: str = ""
-        self._eigenvalue_history: list[float] = None
+        self._eigenvalue_history: list[float] | None = None
 
     @property
     def num_iterations(self) -> int:
