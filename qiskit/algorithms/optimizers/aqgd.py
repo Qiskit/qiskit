@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 import logging
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from qiskit.utils.validation import validate_range_exclusive_max

@@ -13,7 +13,8 @@
 """The Amplification problem class."""
 from __future__ import annotations
 
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GroverOperator
@@ -62,7 +63,7 @@ class AmplificationProblem:
         if is_good_state is not None:
             self._is_good_state = is_good_state
         elif hasattr(oracle, "evaluate_bitstring"):
-            self._is_good_state = oracle.evaluate_bitstring  # type: ignore[union-attr]
+            self._is_good_state = oracle.evaluate_bitstring
         else:
             self._is_good_state = None
 
@@ -171,14 +172,10 @@ class AmplificationProblem:
                 )  # error due to https://github.com/python/mypy/issues/4297
             else:
                 return lambda bitstr: all(
-                    bitstr[good_index] == "1"  # type:ignore[index]
-                    for good_index in self._is_good_state
+                    bitstr[good_index] == "1" for good_index in self._is_good_state
                 )
 
-        return (
-            lambda bitstr: bitstr
-            in self._is_good_state.probabilities_dict()  # type:ignore[union-attr]
-        )
+        return lambda bitstr: bitstr in self._is_good_state.probabilities_dict()
 
     @is_good_state.setter
     def is_good_state(

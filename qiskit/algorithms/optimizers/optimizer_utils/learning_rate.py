@@ -13,7 +13,7 @@
 """A class to represent the Learning Rate."""
 from __future__ import annotations
 
-from typing import Callable, Iterator, Generator
+from collections.abc import Generator, Callable, Iterator
 from itertools import tee
 import numpy as np
 

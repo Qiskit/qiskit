@@ -13,7 +13,7 @@
 """Minimize using objective function"""
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 from enum import Enum
 from abc import abstractmethod
 import logging

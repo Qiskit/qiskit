@@ -16,9 +16,9 @@ See https://arxiv.org/abs/1805.08138.
 """
 from __future__ import annotations
 
-from typing import Callable
 import logging
 import warnings
+from collections.abc import Callable
 from time import time
 import numpy as np
 

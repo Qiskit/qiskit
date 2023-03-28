@@ -348,19 +348,18 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._success_probability: int | None = None
+        self._success_probability: float | None = None
         self._num_steps: int | None = None
         self._num_first_state_steps: int | None = None
         self._theta_intervals: list[list[float]] | None = None
 
     @property
-    def success_probability(self) -> int:
+    def success_probability(self) -> float:
         """Return the success probability of the algorithm."""
-        # TODO: should be float?
         return self._success_probability
 
     @success_probability.setter
-    def success_probability(self, probability: int) -> None:
+    def success_probability(self, probability: float) -> None:
         """Set the success probability of the algorithm."""
         self._success_probability = probability
 

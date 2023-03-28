@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 import itertools
-from typing import Sequence
+from collections.abc import Sequence
 
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import RXGate, RYGate, RZGate, CRXGate, CRYGate, CRZGate

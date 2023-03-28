@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """Forward Euler ODE solver."""
-
-from typing import Sequence, Callable
+from collections.abc import Callable, Sequence
 
 import numpy as np
 from scipy.integrate import OdeSolver

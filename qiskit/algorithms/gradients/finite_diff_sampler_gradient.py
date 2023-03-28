@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import sys
 from collections import defaultdict
-from typing import Sequence
 
 import numpy as np
 
@@ -31,7 +30,7 @@ from ..exceptions import AlgorithmError
 
 if sys.version_info >= (3, 8):
     # pylint: disable=ungrouped-imports
-    from typing import Literal
+    from typing import Literal, Sequence
 else:
     from typing_extensions import Literal
 

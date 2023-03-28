@@ -638,7 +638,7 @@ def _get_counts(
     """
     one_hits = []  # h_k: how often 1 has been measured, for a power Q^(m_k)
     # shots_k: how often has been measured at a power Q^(m_k)
-    all_hits: np.ndarray | list[float] = []  
+    all_hits: np.ndarray | list[float] = []
     if all(isinstance(data, (list, np.ndarray)) for data in circuit_results):
         probabilities = []
         num_qubits = int(np.log2(len(circuit_results[0])))  # the total number of qubits

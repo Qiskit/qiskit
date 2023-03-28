@@ -15,10 +15,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from enum import IntEnum
 import logging
 import sys
-from typing import Any, Callable, Union
+from typing import Any, Union
 
 import numpy as np
 import scipy

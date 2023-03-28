@@ -17,7 +17,8 @@ import logging
 import multiprocessing
 import platform
 import sys
-from typing import Callable, SupportsFloat
+from collections.abc import Callable
+from typing import SupportsFloat
 
 import numpy as np
 

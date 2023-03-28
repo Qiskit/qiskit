@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import logging
 import warnings
+from collections.abc import Callable
 from time import time
-from typing import Callable
 
 import numpy as np
 

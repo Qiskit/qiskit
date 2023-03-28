@@ -39,13 +39,13 @@ from .optimizers import OptimizerResult
 class VariationalAlgorithm(ABC):
     """The Variational Algorithm Base Class."""
 
-    @property  # type: ignore
+    @property
     @abstractmethod
     def initial_point(self) -> np.ndarray | None:
         """Returns initial point."""
         pass
 
-    @initial_point.setter  # type: ignore
+    @initial_point.setter
     @abstractmethod
     def initial_point(self, initial_point: np.ndarray | None) -> None:
         """Sets initial point."""

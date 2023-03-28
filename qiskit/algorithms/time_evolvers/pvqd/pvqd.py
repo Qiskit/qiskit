@@ -368,7 +368,7 @@ class PVQD(RealTimeEvolver):
             )
             observable_values = [evaluate_observables(self.initial_parameters)]
 
-        fidelities = [1]  # TODO: should be float?
+        fidelities = [1.0]
         parameters = [self.initial_parameters]
         times = np.linspace(0, time, num_timesteps + 1).tolist()  # +1 to include initial time 0
 

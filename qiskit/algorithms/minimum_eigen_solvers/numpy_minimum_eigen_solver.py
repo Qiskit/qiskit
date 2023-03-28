@@ -13,9 +13,10 @@
 """The Numpy Minimum Eigensolver algorithm."""
 from __future__ import annotations
 
-from typing import Callable
 import logging
 import warnings
+from collections.abc import Callable
+
 import numpy as np
 
 from qiskit.opflow import OperatorBase

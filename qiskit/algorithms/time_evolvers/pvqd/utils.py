@@ -14,7 +14,7 @@
 """Utilities for p-VQD."""
 from __future__ import annotations
 import logging
-from typing import Callable, cast
+from collections.abc import Callable
 
 import numpy as np
 
@@ -35,7 +35,6 @@ def _is_gradient_supported(ansatz: QuantumCircuit) -> bool:
     # check whether the circuit can be unrolled to supported gates
     try:
         unrolled = transpile(ansatz, basis_gates=ParamShift.SUPPORTED_GATES, optimization_level=0)
-        unrolled = cast(QuantumCircuit, unrolled)
     except QiskitError:
         # failed to map to supported basis
         logger.log(

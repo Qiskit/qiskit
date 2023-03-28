@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 from abc import abstractmethod, ABC
-from typing import Callable
+from collections.abc import Callable
+
 import numpy as np
 
 from .estimation_problem import EstimationProblem

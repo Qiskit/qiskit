@@ -14,8 +14,8 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Mapping
-from typing import Type, Callable, Sequence
+from collections.abc import Mapping, Callable, Sequence
+from typing import Type
 
 import numpy as np
 from scipy.integrate import OdeSolver

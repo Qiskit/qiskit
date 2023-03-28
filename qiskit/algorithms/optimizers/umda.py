@@ -13,7 +13,8 @@
 """Univariate Marginal Distribution Algorithm (Estimation-of-Distribution-Algorithm)."""
 from __future__ import annotations
 
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
 import numpy as np
 from scipy.stats import norm
 from qiskit.utils import algorithm_globals
@@ -204,7 +205,10 @@ class UMDA(Optimizer):
         not_better_count = 0
         result = OptimizerResult()
 
-        self._n_variables = len(x0)  # TODO: what if x0 is float?
+        if isinstance(x0, float):
+            x0 = [x0]
+        self._n_variables = len(x0)
+
         self._best_cost_global = 999999999999
         self._best_ind_global = 9999999
         history = []

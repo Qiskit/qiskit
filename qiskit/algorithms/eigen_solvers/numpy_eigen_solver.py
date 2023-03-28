@@ -14,8 +14,9 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
 import warnings
+from collections.abc import Callable
+
 import numpy as np
 from scipy import sparse as scisparse
 

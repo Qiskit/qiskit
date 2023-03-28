@@ -31,11 +31,8 @@ def validate_bounds(circuit: QuantumCircuit) -> list[tuple[float | None, float |
     Raises:
         ValueError: If the number of bounds does not the match the number of circuit parameters.
     """
-    if (
-        hasattr(circuit, "parameter_bounds")
-        and circuit.parameter_bounds is not None  # type: ignore[attr-defined]
-    ):
-        bounds = circuit.parameter_bounds  # type: ignore[attr-defined]
+    if hasattr(circuit, "parameter_bounds") and circuit.parameter_bounds is not None:
+        bounds = circuit.parameter_bounds
         if len(bounds) != circuit.num_parameters:
             raise ValueError(
                 f"The number of bounds ({len(bounds)}) does not match the number of "

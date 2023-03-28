@@ -14,8 +14,8 @@
 from __future__ import annotations
 
 from abc import abstractmethod, ABC
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 from .optimizer import Optimizer, POINT, OptimizerResult
 
 

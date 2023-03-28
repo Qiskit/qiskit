@@ -13,8 +13,7 @@
 """Class for solving linear equations for Quantum Time Evolution."""
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import Callable
+from collections.abc import Mapping, Sequence, Callable
 
 import numpy as np
 

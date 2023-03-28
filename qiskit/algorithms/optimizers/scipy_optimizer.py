@@ -13,7 +13,8 @@
 """Wrapper class of scipy.optimize.minimize."""
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from scipy.optimize import minimize
@@ -91,7 +92,7 @@ class SciPyOptimizer(Optimizer):
             # all _OPTIONS should be keys in self._options, but add a failsafe here
             attributes = [
                 option
-                for option in self._OPTIONS  # pylint: disable=no-member # type: ignore[attr-defined]
+                for option in self._OPTIONS  # pylint: disable=no-member
                 if option in options.keys()
             ]
 

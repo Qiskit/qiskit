@@ -13,8 +13,9 @@
 """The Quantum Approximate Optimization Algorithm."""
 from __future__ import annotations
 
-from typing import Callable
 import warnings
+from collections.abc import Callable
+
 import numpy as np
 
 from qiskit.algorithms.optimizers import Minimizer, Optimizer

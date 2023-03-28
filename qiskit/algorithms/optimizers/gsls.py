@@ -13,7 +13,9 @@
 """Line search with Gaussian-smoothed samples on a sphere."""
 
 from __future__ import annotations
-from typing import Callable, Any, SupportsFloat
+
+from collections.abc import Callable
+from typing import Any, SupportsFloat
 import numpy as np
 
 from qiskit.utils import algorithm_globals
