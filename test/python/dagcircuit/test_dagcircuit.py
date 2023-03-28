@@ -1892,6 +1892,41 @@ class TestReplaceBlock(QiskitTestCase):
         self.assertEqual(expected_dag.count_ops(), dag.count_ops())
         self.assertIsInstance(new_node.op, XGate)
 
+    def test_replace_block_with_block(self):
+        """Test replacing a block of nodes with another block"""
+        qr = QuantumRegister(2)
+        cr = ClassicalRegister(2)
+
+        dag_1 = DAGCircuit()
+        dag_1.add_qreg(qr)
+        dag_1.add_creg(cr)
+        dag_1.apply_operation_back(XGate(), qargs=[qr[0]])
+        dag_1.apply_operation_back(XGate(), qargs=[qr[1]])
+        block_1 = []
+        block_1.append(dag_1.apply_operation_back(HGate(), qargs=[qr[1]]))
+        block_1.append(dag_1.apply_operation_back(CXGate(), qargs=[qr[0], qr[1]]))
+        block_1.append(dag_1.apply_operation_back(HGate(), qargs=[qr[1]]))
+        block_1.append(dag_1.apply_operation_back(Measure(), qargs=[qr[0]], cargs=[cr[0]]))
+        block_1.append(dag_1.apply_operation_back(Measure(), qargs=[qr[1]], cargs=[cr[1]]))
+
+        dag_2 = DAGCircuit()
+        dag_2.add_qreg(qr)
+        dag_2.add_creg(cr)
+        block_2 = []
+        block_2.append(dag_2.apply_operation_back(CZGate(), qargs=[qr[0], qr[1]]))
+        block_2.append(dag_2.apply_operation_back(Measure(), qargs=[qr[1]], cargs=[cr[1]]))
+
+        dag_1.replace_block_with_block(block_1, block_2)
+
+        expected_dag = DAGCircuit()
+        expected_dag.add_qreg(qr)
+        expected_dag.add_creg(cr)
+        expected_dag.apply_operation_back(XGate(), qargs=[qr[0]])
+        expected_dag.apply_operation_back(XGate(), qargs=[qr[1]])
+        expected_dag.apply_operation_back(CZGate(), qargs=[qr[0], qr[1]])
+        expected_dag.apply_operation_back(Measure(), qargs=[qr[1]], cargs=[cr[1]])
+        self.assertEqual(dag_1, expected_dag)
+
 
 class TestDagProperties(QiskitTestCase):
     """Test the DAG properties."""

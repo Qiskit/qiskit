@@ -565,6 +565,19 @@ class DAGCircuit:
 
         return target_dag
 
+    def copy_bit_like(self):
+        """Return a copy of self with the same qubits and clbits but nothing else.
+
+        Returns:
+            DAGCircuit: An empty copy of self.
+        """
+        target_dag = DAGCircuit()
+        for qreg in self.qregs.values():
+            target_dag.add_qreg(qreg)
+        for creg in self.cregs.values():
+            target_dag.add_creg(creg)
+        return target_dag
+
     def apply_operation_back(self, op, qargs=(), cargs=()):
         """Apply an operation to the output of the circuit.
 
@@ -1134,7 +1147,7 @@ class DAGCircuit:
 
         for nd in node_block:
             block_qargs |= set(nd.qargs)
-            if isinstance(nd, DAGOpNode) and getattr(nd.op, "condition", None):
+            if isinstance(nd, DAGOpNode):
                 block_cargs |= set(nd.cargs)
 
         # Create replacement node
@@ -1152,13 +1165,64 @@ class DAGCircuit:
             raise DAGCircuitError(
                 "Replacing the specified node block would introduce a cycle"
             ) from ex
-
         self._increment_op(op)
 
         for nd in node_block:
             self._decrement_op(nd.op)
 
         return new_node
+
+    def _block_to_dag(self, block, remove_idle_bits=False):
+        """Convert block of nodes to dag with qubits of block referencing qubits in DAG.
+
+        Args:
+            block (list[DAGNode]): A list of nodes referencing the bits in this DAGCircuit.
+            remove_idle_bits (bool): Whether to remove qubits and clbits which appear in this
+                DAGCircuit but are idle in the block.
+
+        Returns:
+            DAGCircuit: The block converted to a DAG
+        """
+        block_dag = self.copy_bit_like()
+        for node in block:
+            block_dag.apply_operation_back(node.op, qargs=node.qargs, cargs=node.cargs)
+        if remove_idle_bits:
+            block_dag.remove_qubits(*{bit for bit in block_dag.qubits if bit in self.idle_wires()})
+            block_dag.remove_clbits(*{bit for bit in block_dag.clbits if bit in self.idle_wires()})
+        return block_dag
+
+    def replace_block_with_block(self, block_a, block_b, cycle_check=True, phase=None):
+        """Replace a connected block of nodes with another set of connected nodes.
+
+        Args:
+            block_a (list[DAGNode]): A list of connected nodes in the DAG to be replaced.
+            block_b (list[DAGNode]): A list of connected nodes, with the same connectivity
+                as block_a, to replace.
+            cycle_check (bool): When set to True this method will check that
+                replacing the provided ``node_block`` with a single node
+                would introduce a cycle (which would invalidate the
+                ``DAGCircuit``) and will raise a ``DAGCircuitError`` if a cycle
+                would be introduced. This checking comes with a run time
+                penalty. If you can guarantee that your input ``node_block`` is
+                a contiguous block and won't introduce a cycle when it's
+                contracted to a single node, this can be set to ``False`` to
+                improve the runtime performance of this method.
+            phase (None or Float): Optional phase difference between blocks.
+
+        Returns:
+            dict: maps node IDs from nodes in `block_b` to their new node incarnations in `self`.
+        """
+        global_index_map = {wire: idx for idx, wire in enumerate(self.qubits + self.clbits)}
+        dag_a = self._block_to_dag(block_a, remove_idle_bits=True)
+        dag_b = self._block_to_dag(block_b, remove_idle_bits=True)
+        placeholder_op = Instruction("placeholder", len(dag_a.qubits), len(dag_a.clbits), params=[])
+        placeholder_node = self.replace_block_with_op(
+            block_a, placeholder_op, global_index_map, cycle_check=cycle_check
+        )
+        node_id_map = self.substitute_node_with_dag(placeholder_node, dag_b)
+        if phase:
+            self.global_phase += phase
+        return node_id_map
 
     def substitute_node_with_dag(self, node, input_dag, wires=None, propagate_condition=True):
         """Replace one node with dag.
