@@ -528,7 +528,8 @@ class ParameterExpression:
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
             if _optionals.HAS_SYMENGINE:
-                if self._symbol_expr.imag == 0.0:
+                if numpy.isclose(float(self._symbol_expr.imag), 0):
+                    self._symbol_expr = self._symbol_expr.real
                     return True
             return False
         return self._symbol_expr.is_real
