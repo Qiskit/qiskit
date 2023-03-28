@@ -77,7 +77,7 @@ def _create_obs_final(
     """
 
     aux_ops = evolution_problem.aux_operators
-    aux_ops_evaluated = [(op_ev, 0) for op_ev in ops_ev_mean]
+    aux_ops_evaluated: ListOrDict[tuple[complex, complex]] = [(op_ev, 0) for op_ev in ops_ev_mean]
     if isinstance(aux_ops, dict):
         aux_ops_evaluated = dict(zip(aux_ops.keys(), aux_ops_evaluated))
     return aux_ops_evaluated

@@ -134,8 +134,8 @@ class PhaseEstimationResult(PhaseEstimatorResult):
                     # But, we chose to apply the unitaries such that the phase is recorded
                     # in reverse order. So, we reverse the bitstrings here.
                     binary_phase_string = numpy.binary_repr(idx, self._num_evaluation_qubits)[::-1]
-                    if as_float:
-                        _key = _bit_string_to_phase(binary_phase_string)
+                    if as_float:  # TODO: should be not as_float?
+                        _key: str | float = _bit_string_to_phase(binary_phase_string)
                     else:
                         _key = binary_phase_string
                     phases[_key] = amplitude

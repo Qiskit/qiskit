@@ -83,6 +83,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         ):
             metadata.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
             # Make parameter values for the parameter shift rule.
+            # TODO: parameter values is a sequence (list?) but treated as np.ndarray
             param_shift_parameter_values = _make_param_shift_parameter_values(
                 circuit, parameter_values_, parameter_set
             )
@@ -106,7 +107,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             gradient = []
             result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
             for dist_plus, dist_minus in zip(result[: n // 2], result[n // 2 :]):
-                grad_dist = defaultdict(float)
+                grad_dist: dict[int, float] = defaultdict(float)
                 for key, val in dist_plus.items():
                     grad_dist[key] += val / 2
                 for key, val in dist_minus.items():

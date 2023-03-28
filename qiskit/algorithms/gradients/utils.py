@@ -100,7 +100,6 @@ def _make_param_shift_parameter_values(
     Returns:
         A list of parameter values with offsets for parameter shift rule.
     """
-    plus_offsets, minus_offsets = [], []
     indices = [idx for idx, param in enumerate(circuit.parameters) if param in parameter_set]
     offset = np.identity(circuit.num_parameters)[indices, :]
     plus_offsets = parameter_values + offset * np.pi / 2
@@ -312,7 +311,9 @@ def _assign_unique_parameters(
             else:
                 new_parameter = Parameter(f"__gθ{num_gradient_parameters}")
                 substitution_map[parameter] = new_parameter
-                parameter_map[parameter].append(new_parameter, 1)
+                parameter_map[parameter].append(
+                    new_parameter, 1
+                )  # TODO: should be (new_parameter, 1)?
                 num_gradient_parameters += 1
         gradient_circuit.global_phase = gradient_circuit.global_phase.subs(substitution_map)
 

@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """IMplicit FILtering (IMFIL) optimizer."""
+from __future__ import annotations
 
-from typing import Any, Dict, Callable, Optional, List, Tuple
+from typing import Any, Callable
 
 from qiskit.utils import optionals as _optionals
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
@@ -55,7 +56,7 @@ class IMFIL(Optimizer):
         }
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         return {
             "maxiter": self._maxiter,
         }
@@ -64,8 +65,8 @@ class IMFIL(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         from skquant import opt as skq
 

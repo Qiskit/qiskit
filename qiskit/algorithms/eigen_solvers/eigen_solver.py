@@ -11,9 +11,8 @@
 # that they have been altered from the originals.
 
 """The Eigensolver interface"""
-
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Optional, List, Tuple
 
 import numpy as np
 
@@ -49,7 +48,7 @@ class Eigensolver(ABC):
 
     @abstractmethod
     def compute_eigenvalues(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
     ) -> "EigensolverResult":
         """
         Computes eigenvalues. Operator and aux_operators can be supplied here and
@@ -99,12 +98,12 @@ class EigensolverResult(AlgorithmResult):
     )
     def __init__(self) -> None:
         super().__init__()
-        self._eigenvalues = None
-        self._eigenstates = None
-        self._aux_operator_eigenvalues = None
+        self._eigenvalues: np.ndarray | None = None
+        self._eigenstates: np.ndarray | None = None
+        self._aux_operator_eigenvalues: list[ListOrDict[tuple[complex, complex]]] | None = None
 
     @property
-    def eigenvalues(self) -> Optional[np.ndarray]:
+    def eigenvalues(self) -> np.ndarray | None:
         """returns eigen values"""
         return self._eigenvalues
 
@@ -114,7 +113,7 @@ class EigensolverResult(AlgorithmResult):
         self._eigenvalues = value
 
     @property
-    def eigenstates(self) -> Optional[np.ndarray]:
+    def eigenstates(self) -> np.ndarray | None:
         """return eigen states"""
         return self._eigenstates
 
@@ -124,7 +123,7 @@ class EigensolverResult(AlgorithmResult):
         self._eigenstates = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[List[ListOrDict[Tuple[complex, complex]]]]:
+    def aux_operator_eigenvalues(self) -> list[ListOrDict[tuple[complex, complex]]] | None:
         """Return aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, standard deviation).
@@ -132,6 +131,6 @@ class EigensolverResult(AlgorithmResult):
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: List[ListOrDict[Tuple[complex, complex]]]) -> None:
+    def aux_operator_eigenvalues(self, value: list[ListOrDict[tuple[complex, complex]]]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

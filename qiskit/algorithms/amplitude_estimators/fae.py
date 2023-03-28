@@ -319,14 +319,14 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         theta = np.mean(theta_ci)
         rescaling = 4 if self._rescale else 1
         value = (rescaling * np.sin(theta)) ** 2
-        value_ci = [(rescaling * np.sin(x)) ** 2 for x in theta_ci]
+        value_ci = [(rescaling * np.sin(x)) ** 2 for x in theta_ci]  # TODO should be tuple?
 
         result = FasterAmplitudeEstimationResult()
         result.num_oracle_queries = self._num_oracle_calls
         result.num_steps = num_steps
         result.num_first_state_steps = num_first_stage_steps
         if self._quantum_instance is not None and self._quantum_instance.is_statevector:
-            result.success_probability = 1
+            result.success_probability = 1.0
         else:
             result.success_probability = 1 - (2 * self._maxiter - j_0) * self._delta
 
@@ -348,14 +348,15 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._success_probability = None
-        self._num_steps = None
-        self._num_first_state_steps = None
-        self._theta_intervals = None
+        self._success_probability: int | None = None
+        self._num_steps: int | None = None
+        self._num_first_state_steps: int | None = None
+        self._theta_intervals: list[list[float]] | None = None
 
     @property
     def success_probability(self) -> int:
         """Return the success probability of the algorithm."""
+        # TODO: should be float?
         return self._success_probability
 
     @success_probability.setter

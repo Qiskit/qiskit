@@ -11,11 +11,10 @@
 # that they have been altered from the originals.
 
 """An implementation of the AdaptVQE algorithm."""
-
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional, Sequence
+from typing import Sequence
 
 import re
 import logging
@@ -209,9 +208,9 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
 
         prev_op_indices: list[int] = []
         theta: list[float] = []
-        max_grad: tuple[float, Optional[PauliSumOp]] = (0.0, None)
+        max_grad: tuple[float, PauliSumOp | None] = (0.0, None)
         self._excitation_list = []
-        history: list[float] = []
+        history: list[complex] = []
         iteration = 0
         while self.max_iterations is None or iteration < self.max_iterations:
             iteration += 1

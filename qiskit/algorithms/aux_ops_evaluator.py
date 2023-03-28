@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 """Evaluator of auxiliary operators for algorithms."""
 
-from typing import Tuple, Union, List
+from __future__ import annotations
 
 import numpy as np
 
@@ -40,16 +40,12 @@ from .list_or_dict import ListOrDict
     since="0.23.0",
 )
 def eval_observables(
-    quantum_instance: Union[QuantumInstance, Backend],
-    quantum_state: Union[
-        Statevector,
-        QuantumCircuit,
-        OperatorBase,
-    ],
+    quantum_instance: QuantumInstance | Backend,
+    quantum_state: Statevector | QuantumCircuit | OperatorBase,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
     threshold: float = 1e-12,
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, complex]]:
     """
     Pending deprecation: Accepts a list or a dictionary of operators and calculates
     their expectation values - means
@@ -117,11 +113,7 @@ def eval_observables(
 
 
 def _prepare_list_op(
-    quantum_state: Union[
-        Statevector,
-        QuantumCircuit,
-        OperatorBase,
-    ],
+    quantum_state: Statevector | QuantumCircuit | OperatorBase,
     observables: ListOrDict[OperatorBase],
 ) -> ListOp:
     """
@@ -145,9 +137,9 @@ def _prepare_list_op(
 
 
 def _prepare_result(
-    observables_results: List[Tuple[complex, complex]],
+    observables_results: list[tuple[complex, complex]],
     observables: ListOrDict[OperatorBase],
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, complex]]:
     """
     Prepares a list or a dictionary of eigenvalues from ``observables_results`` and
     ``observables``.
@@ -161,7 +153,7 @@ def _prepare_result(
         A list or a dictionary of tuples (mean, standard deviation).
     """
     if isinstance(observables, list):
-        observables_eigenvalues = [None] * len(observables)
+        observables_eigenvalues: ListOrDict[tuple[complex, complex]] = [None] * len(observables)
         key_value_iterator = enumerate(observables_results)
     else:
         observables_eigenvalues = {}
@@ -176,8 +168,8 @@ def _compute_std_devs(
     observables_expect_sampled: OperatorBase,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
-    quantum_instance: Union[QuantumInstance, Backend],
-) -> List[complex]:
+    quantum_instance: QuantumInstance | Backend,
+) -> list[complex]:
     """
     Calculates a list of standard deviations from expectation values of observables provided.
 

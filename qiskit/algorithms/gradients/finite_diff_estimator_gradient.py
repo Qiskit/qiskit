@@ -75,7 +75,7 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         if epsilon <= 0:
             raise ValueError(f"epsilon ({epsilon}) should be positive.")
         self._epsilon = epsilon
-        self._base_parameter_values_dict = {}
+        self._base_parameter_values_dict = {}  # TODO: unused?
         if method not in ("central", "forward", "backward"):
             raise TypeError(
                 f"The argument method should be central, forward, or backward: {method} is given."

@@ -90,7 +90,7 @@ class VarQTELinearSolver:
         self,
         param_dict: Mapping[Parameter, float],
         time_value: float | None = None,
-    ) -> tuple(np.ndarray, np.ndarray, np.ndarray):
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Solve the system of linear equations underlying McLachlan's variational principle for the
         calculation without error bounds.

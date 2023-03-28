@@ -103,7 +103,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             initial point (list[float]): An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None):
+            callback (Callable[[int, np.ndarray, float, dict[str, Any], int], None] | None):
                 A callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
@@ -121,7 +121,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         k: int = 2,
         betas: Sequence[float] | None = None,
         initial_point: Sequence[float] | None = None,
-        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
+        callback: Callable[[int, np.ndarray, float, dict[str, Any], int], None] | None = None,
     ) -> None:
         """
 
@@ -211,7 +211,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             # Drop None and convert zero values when aux_operators is a dict.
             if isinstance(aux_operators, list):
                 key_op_iterator = enumerate(aux_operators)
-                converted = [zero_op] * len(aux_operators)
+                converted: ListOrDict[BaseOperator | PauliSumOp] = [zero_op] * len(aux_operators)
             else:
                 key_op_iterator = aux_operators.items()
                 converted = {}
@@ -327,7 +327,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         betas: Sequence[float],
         prev_states: list[QuantumCircuit] | None = None,
-    ) -> Callable[[np.ndarray], float | list[float]]:
+    ) -> Callable[[np.ndarray], float | np.ndarray]:
         """Returns a function handle to evaluate the ansatz's energy for any given parameters.
             This is the objective function to be passed to the optimizer that is used for evaluation.
 
@@ -359,7 +359,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         self._check_operator_ansatz(operator)
 
-        def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
+        def evaluate_energy(parameters: np.ndarray) -> float | np.ndarray:
             # handle broadcasting: ensure parameters is of shape [array, array, ...]
             if len(parameters.shape) == 1:
                 parameters = np.reshape(parameters, (-1, num_parameters))
@@ -420,6 +420,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @staticmethod
     def _update_vqd_result(result, opt_result, eval_time, ansatz) -> VQDResult:
+        # TODO: are result fields lists or ndarrays (or both?)
         result.optimal_points.append(opt_result.x)
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
         result.optimal_values.append(opt_result.fun)
@@ -436,13 +437,13 @@ class VQDResult(EigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._cost_function_evals = None
-        self._optimizer_times = None
-        self._optimal_values = None
-        self._optimal_points = None
-        self._optimal_parameters = None
-        self._optimizer_results = None
-        self._optimal_circuits = None
+        self._cost_function_evals: Sequence[int] | None = None
+        self._optimizer_times: Sequence[float] | None = None
+        self._optimal_values: Sequence[float] | None = None
+        self._optimal_points: Sequence[np.ndarray] | None = None
+        self._optimal_parameters: Sequence[dict] | None = None
+        self._optimizer_results: Sequence[OptimizerResult] | None = None
+        self._optimal_circuits: list[QuantumCircuit] | None = None
 
     @property
     def cost_function_evals(self) -> Sequence[int] | None:
@@ -505,7 +506,7 @@ class VQDResult(EigensolverResult):
         self._optimizer_results = value
 
     @property
-    def optimal_circuits(self) -> list[QuantumCircuit]:
+    def optimal_circuits(self) -> list[QuantumCircuit] | None:
         """The optimal circuits. Along with the optimal parameters,
         these can be used to retrieve the different eigenstates."""
         return self._optimal_circuits

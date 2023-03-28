@@ -137,7 +137,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
             if self._method == "central":
                 result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
                 for dist_plus, dist_minus in zip(result[: n // 2], result[n // 2 :]):
-                    grad_dist = defaultdict(float)
+                    grad_dist: dict[int, float] = defaultdict(float)
                     for key, value in dist_plus.items():
                         grad_dist[key] += value / (2 * self._epsilon)
                     for key, value in dist_minus.items():

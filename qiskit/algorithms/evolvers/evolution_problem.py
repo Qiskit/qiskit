@@ -12,7 +12,7 @@
 
 """Evolution problem class."""
 
-from typing import Union, Optional, Dict
+from __future__ import annotations
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -45,11 +45,11 @@ class EvolutionProblem:
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: Optional[Union[StateFn, QuantumCircuit]] = None,
-        aux_operators: Optional[ListOrDict[OperatorBase]] = None,
+        initial_state: StateFn | QuantumCircuit | None = None,
+        aux_operators: ListOrDict[OperatorBase] | None = None,
         truncation_threshold: float = 1e-12,
-        t_param: Optional[Parameter] = None,
-        param_value_dict: Optional[Dict[Parameter, complex]] = None,
+        t_param: Parameter | None = None,
+        param_value_dict: dict[Parameter, complex] | None = None,
     ):
         """
         Args:
@@ -108,7 +108,7 @@ class EvolutionProblem:
             t_param_set = set()
             if self.t_param is not None:
                 t_param_set.add(self.t_param)
-            hamiltonian_dict_param_set = set()
+            hamiltonian_dict_param_set: set[Parameter] = set()
             if self.param_value_dict is not None:
                 hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
                     set(self.param_value_dict.keys())

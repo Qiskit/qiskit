@@ -433,7 +433,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                             if estimation_problem.is_good_state(bit):
                                 prob += probabilities
 
-                        a_confidence_interval = [prob, prob]  # type: list[float]
+                        a_confidence_interval = [prob, prob]
                         a_intervals.append(a_confidence_interval)
 
                         theta_i_interval = [
@@ -536,15 +536,15 @@ class IterativeAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._alpha = None
-        self._epsilon_target = None
-        self._epsilon_estimated = None
-        self._epsilon_estimated_processed = None
-        self._estimate_intervals = None
-        self._theta_intervals = None
-        self._powers = None
-        self._ratios = None
-        self._confidence_interval_processed = None
+        self._alpha: float | None = None
+        self._epsilon_target: float | None = None
+        self._epsilon_estimated: float | None = None
+        self._epsilon_estimated_processed: float | None = None
+        self._estimate_intervals: list[list[float]] | None = None
+        self._theta_intervals: list[list[float]] | None = None
+        self._powers: list[int] | None = None
+        self._ratios: list[float] | None = None
+        self._confidence_interval_processed: tuple[float, float] | None = None
 
     @property
     def alpha(self) -> float:

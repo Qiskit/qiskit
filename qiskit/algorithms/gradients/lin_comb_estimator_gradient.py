@@ -87,7 +87,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting.
         """
-        self._lin_comb_cache = {}
+        self._lin_comb_cache: dict[tuple, dict[Parameter, QuantumCircuit]] = {}
         super().__init__(estimator, options, derivative_type=derivative_type)
 
     @BaseEstimatorGradient.derivative_type.setter

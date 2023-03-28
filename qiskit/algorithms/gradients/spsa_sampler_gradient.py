@@ -118,7 +118,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
             dist_diffs = {}
             result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
             for j, (dist_plus, dist_minus) in enumerate(zip(result[: n // 2], result[n // 2 :])):
-                dist_diff = defaultdict(float)
+                dist_diff: dict[int, float] = defaultdict(float)
                 for key, value in dist_plus.items():
                     dist_diff[key] += value / (2 * self._epsilon)
                 for key, value in dist_minus.items():
@@ -131,7 +131,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
                     continue
                 # the gradient for jth parameter is the average of the gradients of the jth parameter
                 # for each batch.
-                gradient_j = defaultdict(float)
+                gradient_j: dict[int, float] = defaultdict(float)
                 for k in range(self._batch_size):
                     for key, value in dist_diffs[k].items():
                         gradient_j[key] += value * offsets[i][k][j]

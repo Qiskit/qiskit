@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Stable Noisy Optimization by Branch and FIT algorithm (SNOBFIT) optimizer."""
+from __future__ import annotations
 
-from typing import Any, Dict, Optional, Callable, Tuple, List
+from typing import Any, Callable
 
 import numpy as np
 from qiskit.exceptions import QiskitError
@@ -77,7 +78,7 @@ class SNOBFIT(Optimizer):
         }
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         return {
             "maxiter": self._maxiter,
             "maxfail": self._maxfail,
@@ -89,8 +90,8 @@ class SNOBFIT(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         import skquant.opt as skq
         from SQSnobFit import optset

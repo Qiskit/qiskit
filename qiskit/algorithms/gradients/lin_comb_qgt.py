@@ -113,7 +113,9 @@ class LinCombQGT(BaseQGT):
         self._gradient = LinCombEstimatorGradient(
             estimator, derivative_type=DerivativeType.COMPLEX, options=options
         )
-        self._lin_comb_qgt_circuit_cache = {}
+        self._lin_comb_qgt_circuit_cache: dict[
+            tuple, dict[tuple[Parameter, Parameter], QuantumCircuit]
+        ] = {}
 
     def _run(
         self,

@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """The Amplification problem class."""
+from __future__ import annotations
 
-from typing import Optional, Callable, Any, Union, List
+from typing import Callable, Any
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.library import GroverOperator
@@ -29,14 +30,12 @@ class AmplificationProblem:
 
     def __init__(
         self,
-        oracle: Union[QuantumCircuit, Statevector],
-        state_preparation: Optional[QuantumCircuit] = None,
-        grover_operator: Optional[QuantumCircuit] = None,
-        post_processing: Optional[Callable[[str], Any]] = None,
-        objective_qubits: Optional[Union[int, List[int]]] = None,
-        is_good_state: Optional[
-            Union[Callable[[str], bool], List[int], List[str], Statevector]
-        ] = None,
+        oracle: QuantumCircuit | Statevector,
+        state_preparation: QuantumCircuit | None = None,
+        grover_operator: QuantumCircuit | None = None,
+        post_processing: Callable[[str], Any] | None = None,
+        objective_qubits: int | list[int] | None = None,
+        is_good_state: Callable[[str], bool] | list[int] | list[str] | Statevector | None = None,
     ) -> None:
         r"""
         Args:
@@ -63,12 +62,12 @@ class AmplificationProblem:
         if is_good_state is not None:
             self._is_good_state = is_good_state
         elif hasattr(oracle, "evaluate_bitstring"):
-            self._is_good_state = oracle.evaluate_bitstring
+            self._is_good_state = oracle.evaluate_bitstring  # type: ignore[union-attr]
         else:
             self._is_good_state = None
 
     @property
-    def oracle(self) -> Union[QuantumCircuit, Statevector]:
+    def oracle(self) -> QuantumCircuit | Statevector:
         """Return the oracle.
 
         Returns:
@@ -77,7 +76,7 @@ class AmplificationProblem:
         return self._oracle
 
     @oracle.setter
-    def oracle(self, oracle: Union[QuantumCircuit, Statevector]) -> None:
+    def oracle(self, oracle: QuantumCircuit | Statevector) -> None:
         """Set the oracle.
 
         Args:
@@ -100,7 +99,7 @@ class AmplificationProblem:
         return self._state_preparation
 
     @state_preparation.setter
-    def state_preparation(self, state_preparation: Optional[QuantumCircuit]) -> None:
+    def state_preparation(self, state_preparation: QuantumCircuit | None) -> None:
         r"""Set the :math:`\mathcal{A}` operator. If None, a layer of Hadamard gates is used.
 
         Args:
@@ -130,7 +129,7 @@ class AmplificationProblem:
         self._post_processing = post_processing
 
     @property
-    def objective_qubits(self) -> List[int]:
+    def objective_qubits(self) -> list[int]:
         """The indices of the objective qubits.
 
         Returns:
@@ -145,7 +144,7 @@ class AmplificationProblem:
         return self._objective_qubits
 
     @objective_qubits.setter
-    def objective_qubits(self, objective_qubits: Optional[Union[int, List[int]]]) -> None:
+    def objective_qubits(self, objective_qubits: int | list[int] | None) -> None:
         """Set the objective qubits.
 
         Args:
@@ -167,18 +166,23 @@ class AmplificationProblem:
             return self._is_good_state  # returns None if no is_good_state arg has been set
         elif isinstance(self._is_good_state, list):
             if all(isinstance(good_bitstr, str) for good_bitstr in self._is_good_state):
-                return lambda bitstr: bitstr in self._is_good_state
+                return (
+                    lambda bitstr: bitstr in self._is_good_state
+                )  # error due to https://github.com/python/mypy/issues/4297
             else:
                 return lambda bitstr: all(
-                    bitstr[good_index] == "1"  # type:ignore
+                    bitstr[good_index] == "1"  # type:ignore[index]
                     for good_index in self._is_good_state
                 )
 
-        return lambda bitstr: bitstr in self._is_good_state.probabilities_dict()
+        return (
+            lambda bitstr: bitstr
+            in self._is_good_state.probabilities_dict()  # type:ignore[union-attr]
+        )
 
     @is_good_state.setter
     def is_good_state(
-        self, is_good_state: Union[Callable[[str], bool], List[int], List[str], Statevector]
+        self, is_good_state: Callable[[str], bool] | list[int] | list[str] | Statevector
     ) -> None:
         """Set the ``is_good_state`` function.
 
@@ -188,7 +192,7 @@ class AmplificationProblem:
         self._is_good_state = is_good_state
 
     @property
-    def grover_operator(self) -> Optional[QuantumCircuit]:
+    def grover_operator(self) -> QuantumCircuit | None:
         r"""Get the :math:`\mathcal{Q}` operator, or Grover operator.
 
         If the Grover operator is not set, we try to build it from the :math:`\mathcal{A}` operator
@@ -203,7 +207,7 @@ class AmplificationProblem:
         return self._grover_operator
 
     @grover_operator.setter
-    def grover_operator(self, grover_operator: Optional[QuantumCircuit]) -> None:
+    def grover_operator(self, grover_operator: QuantumCircuit | None) -> None:
         r"""Set the :math:`\mathcal{Q}` operator.
 
         If None, this operator is constructed from the ``oracle`` and ``state_preparation``.

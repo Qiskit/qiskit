@@ -71,7 +71,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting
         """
-        self._lin_comb_cache = {}
+        self._lin_comb_cache: dict[tuple, dict[Parameter, QuantumCircuit]] = {}
         super().__init__(sampler, options)
 
     def _run(
@@ -136,7 +136,7 @@ class LinCombSamplerGradient(BaseSamplerGradient):
             result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
             m = 2 ** circuits[i].num_qubits
             for dist in result:
-                grad_dist = defaultdict(float)
+                grad_dist: dict[int, float] = defaultdict(float)
                 for key, value in dist.items():
                     if key < m:
                         grad_dist[key] += value

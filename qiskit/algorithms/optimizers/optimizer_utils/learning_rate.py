@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """A class to represent the Learning Rate."""
+from __future__ import annotations
 
-from typing import Union, Callable, Optional, List, Iterator, Generator
+from typing import Callable, Iterator, Generator
 from itertools import tee
 import numpy as np
 
@@ -26,9 +27,7 @@ class LearningRate(Generator):
     This class wraps ``Generator`` so that we can also access the last yielded value.
     """
 
-    def __init__(
-        self, learning_rate: Union[float, List[float], np.ndarray, Callable[[], Iterator]]
-    ):
+    def __init__(self, learning_rate: float | list[float] | np.ndarray | Callable[[], Iterator]):
         """
         Args:
             learning_rate: Used to create a generator to iterate on.
@@ -42,7 +41,7 @@ class LearningRate(Generator):
         else:
             self._gen = learning_rate()
 
-        self._current: Optional[float] = None
+        self._current: float | None = None
 
     def send(self, value):
         """Send a value into the generator.
