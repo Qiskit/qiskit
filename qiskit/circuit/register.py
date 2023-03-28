@@ -15,6 +15,8 @@
 """
 Base register reference object.
 """
+
+from __future__ import annotations
 import re
 import itertools
 import warnings
@@ -59,7 +61,7 @@ class Register:
     prefix = "reg"
     bit_type = None
 
-    def __init__(self, size=None, name=None, bits=None):
+    def __init__(self, size: int | None = None, name: str | None = None, bits=None):
         """Create a new generic register.
 
         Either the ``size`` or the ``bits`` argument must be provided. If
