@@ -51,7 +51,7 @@ def circuit_drawer(
     output=None,
     interactive=False,
     plot_barriers=True,
-    reverse_bits=False,
+    reverse_bits=None,
     justify=None,
     vertical_compression="medium",
     idle_wires=True,
@@ -111,7 +111,9 @@ def circuit_drawer(
             `latex_source` output type this has no effect and will be silently
             ignored. Defaults to False.
         reverse_bits (bool): when set to True, reverse the bit order inside
-            registers for the output visualization. Defaults to False.
+            registers for the output visualization. Defaults to False unless the
+            user config file (usually ``~/.qiskit/settings.conf``) has an
+            alternative value set. For example, ``circuit_reverse_bits = True``.
         plot_barriers (bool): enable/disable drawing barriers in the output
             circuit. Defaults to True.
         justify (string): options are ``left``, ``right`` or ``none``. If
@@ -141,8 +143,9 @@ def circuit_drawer(
             it is redundant.
         initial_state (bool): Optional. Adds ``|0>`` in the beginning of the wire.
             Default is False.
-        cregbundle (bool): Optional. If set True, bundle classical registers.
-            Default is True, except for when ``output`` is set to  ``"text"``.
+        cregbundle (bool): Optional. If set True, bundle classical registers into a single wire.
+            Default is true if possible, and false if a block instruction needs to access an
+            individual bit from a register.
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
@@ -165,7 +168,8 @@ def circuit_drawer(
         MissingOptionalLibraryError: when the output methods requires non-installed libraries.
 
     Example:
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.tools.visualization import circuit_drawer
@@ -180,6 +184,7 @@ def circuit_drawer(
     config = user_config.get_config()
     # Get default from config file else use text
     default_output = "text"
+    default_reverse_bits = False
     if config:
         default_output = config.get("circuit_drawer", "text")
         if default_output == "auto":
@@ -187,8 +192,13 @@ def circuit_drawer(
                 default_output = "mpl"
             else:
                 default_output = "text"
+        if wire_order is None:
+            default_reverse_bits = config.get("circuit_reverse_bits", False)
     if output is None:
         output = default_output
+
+    if reverse_bits is None:
+        reverse_bits = default_reverse_bits
 
     if wire_order is not None and reverse_bits:
         raise VisualizationError(
@@ -207,13 +217,14 @@ def circuit_drawer(
             "wire_order list for the index of each qubit and each clbit in the circuit."
         )
 
-    if circuit.clbits and cregbundle and (reverse_bits or wire_order is not None):
+    if circuit.clbits and (reverse_bits or wire_order is not None):
+        if cregbundle:
+            warn(
+                "cregbundle set to False since either reverse_bits or wire_order has been set.",
+                RuntimeWarning,
+                2,
+            )
         cregbundle = False
-        warn(
-            "Cregbundle set to False since either reverse_bits or wire_order has been set.",
-            RuntimeWarning,
-            2,
-        )
     if output == "text":
         return _text_circuit_drawer(
             circuit,
@@ -241,7 +252,7 @@ def circuit_drawer(
             idle_wires=idle_wires,
             with_layout=with_layout,
             initial_state=initial_state,
-            cregbundle=cregbundle if cregbundle is not None else True,
+            cregbundle=cregbundle,
             wire_order=wire_order,
         )
     elif output == "latex_source":
@@ -256,7 +267,7 @@ def circuit_drawer(
             idle_wires=idle_wires,
             with_layout=with_layout,
             initial_state=initial_state,
-            cregbundle=cregbundle if cregbundle is not None else True,
+            cregbundle=cregbundle,
             wire_order=wire_order,
         )
     elif output == "mpl":
@@ -352,16 +363,12 @@ def _text_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         reverse_bits=reverse_bits,
-        layout=None,
         initial_state=initial_state,
         cregbundle=cregbundle,
-        global_phase=None,
         encoding=encoding,
-        qregs=None,
-        cregs=None,
         with_layout=with_layout,
-        circuit=circuit,
     )
     text_drawing.plotbarriers = plot_barriers
     text_drawing.line_length = fold
@@ -391,7 +398,7 @@ def _latex_circuit_drawer(
     idle_wires=True,
     with_layout=True,
     initial_state=False,
-    cregbundle=False,
+    cregbundle=None,
     wire_order=None,
 ):
     """Draw a quantum circuit based on latex (Qcircuit package)
@@ -414,8 +421,8 @@ def _latex_circuit_drawer(
             layout. Default: True
         initial_state (bool): Optional. Adds |0> in the beginning of the line.
             Default: `False`.
-        cregbundle (bool): Optional. If set True, bundle classical registers.
-            Default: ``False``.
+        cregbundle (bool): Optional. If set True, bundle classical registers.  On by default, if
+            this is possible for the given circuit, otherwise off.
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
@@ -510,7 +517,7 @@ def _generate_latex_source(
     idle_wires=True,
     with_layout=True,
     initial_state=False,
-    cregbundle=False,
+    cregbundle=None,
     wire_order=None,
 ):
     """Convert QuantumCircuit to LaTeX string.
@@ -532,7 +539,6 @@ def _generate_latex_source(
         initial_state (bool): Optional. Adds |0> in the beginning of the line.
             Default: `False`.
         cregbundle (bool): Optional. If set True, bundle classical registers.
-            Default: ``False``.
         wire_order (list): Optional. A list of integers used to reorder the display
             of the bits. The list must have an entry for every bit with the bits
             in the range 0 to (num_qubits + num_clbits).
@@ -590,10 +596,9 @@ def _matplotlib_circuit_drawer(
     fold=None,
     ax=None,
     initial_state=False,
-    cregbundle=True,
+    cregbundle=None,
     wire_order=None,
 ):
-
     """Draw a quantum circuit based on matplotlib.
     If `%matplotlib inline` is invoked in a Jupyter notebook, it visualizes a circuit inline.
     We recommend `%config InlineBackend.figure_format = 'svg'` for the inline visualization.
@@ -652,7 +657,7 @@ def _matplotlib_circuit_drawer(
         fold=fold,
         ax=ax,
         initial_state=initial_state,
-        cregbundle=cregbundle if cregbundle is not None else True,
+        cregbundle=cregbundle,
         global_phase=None,
         calibrations=None,
         qregs=None,

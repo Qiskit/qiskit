@@ -16,15 +16,13 @@
 import math
 import heapq
 from collections import OrderedDict, defaultdict
-import warnings
 
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 from qiskit.dagcircuit.exceptions import DAGDependencyError
 from qiskit.dagcircuit.dagdepnode import DAGDepNode
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.circuit.commutation_checker import CommutationChecker
 
 
@@ -38,6 +36,8 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 #  - We should rethink the API of DAGDependency:
 #    Currently, most of the functions (such as "add_op_node", "_update_edges", etc.)
 #    are only used when creating a new DAGDependency from another representation of a circuit.
+#    On the other hand, replace_block_with_op is only used at the very end,
+#    just before DAGDependency is converted into QuantumCircuit or DAGCircuit.
 #    A part of the reason is that doing local changes to DAGDependency is tricky:
 #    as an example, suppose that DAGDependency contains a gate A such that A = B * C;
 #    in general we cannot simply replace A by the pair B, C, as there may be
@@ -155,33 +155,6 @@ class DAGDependency:
                 {'gate_name': {(qubits, gate_params): schedule}}
         """
         self._calibrations = defaultdict(dict, calibrations)
-
-    def to_networkx(self):
-        """Returns a copy of the DAGDependency in networkx format."""
-        # For backwards compatibility, return networkx structure from terra 0.12
-        # where DAGNodes instances are used as indexes on the networkx graph.
-        warnings.warn(
-            "The to_networkx() method is deprecated and will be removed in a future release.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-        try:
-            import networkx as nx
-        except ImportError as ex:
-            raise MissingOptionalLibraryError(
-                libname="Networkx",
-                name="DAG dependency",
-                pip_install="pip install networkx",
-            ) from ex
-        dag_networkx = nx.MultiDiGraph()
-
-        for node in self.get_nodes():
-            dag_networkx.add_node(node)
-        for node in self.topological_nodes():
-            for source_id, dest_id, edge in self.get_in_edges(node.node_id):
-                dag_networkx.add_edge(self.get_node(source_id), self.get_node(dest_id), **edge)
-        return dag_networkx
 
     def to_retworkx(self):
         """Returns the DAGDependency in retworkx format."""
@@ -347,7 +320,7 @@ class DAGDependency:
         Returns:
             List: direct successors id as a sorted list
         """
-        return sorted(list(self._multi_graph.adj_direction(node_id, False).keys()))
+        return sorted(self._multi_graph.adj_direction(node_id, False).keys())
 
     def direct_predecessors(self, node_id):
         """
@@ -359,7 +332,7 @@ class DAGDependency:
         Returns:
             List: direct predecessors id as a sorted list
         """
-        return sorted(list(self._multi_graph.adj_direction(node_id, True).keys()))
+        return sorted(self._multi_graph.adj_direction(node_id, True).keys())
 
     def successors(self, node_id):
         """
@@ -398,26 +371,34 @@ class DAGDependency:
 
         return iter(rx.lexicographical_topological_sort(self._multi_graph, key=_key))
 
-    def add_op_node(self, operation, qargs, cargs):
-        """Add a DAGDepNode to the graph and update the edges.
+    def _create_op_node(self, operation, qargs, cargs):
+        """Creates a DAGDepNode to the graph and update the edges.
 
         Args:
-            operation (qiskit.circuit.Instruction): operation as a quantum gate.
+            operation (qiskit.circuit.Operation): operation
             qargs (list[Qubit]): list of qubits on which the operation acts
-            cargs (list[Clbit]): list of classical wires to attach to.
+            cargs (list[Clbit]): list of classical wires to attach to
+
+        Returns:
+            DAGDepNode: the newly added node.
         """
         directives = ["measure"]
         if not getattr(operation, "_directive", False) and operation.name not in directives:
             qindices_list = []
             for elem in qargs:
                 qindices_list.append(self.qubits.index(elem))
+
             if getattr(operation, "condition", None):
-                for clbit in self.clbits:
-                    if clbit in operation.condition[0]:
-                        initial = self.clbits.index(clbit)
-                        final = self.clbits.index(clbit) + operation.condition[0].size
-                        cindices_list = range(initial, final)
-                        break
+                # The change to handling operation.condition follows code patterns in quantum_circuit.py.
+                # However:
+                #   (1) cindices_list are specific to template optimization and should not be computed
+                #       in this place.
+                #   (2) Template optimization pass needs currently does not handle general conditions.
+                if isinstance(operation.condition[0], Clbit):
+                    condition_bits = [operation.condition[0]]
+                else:
+                    condition_bits = operation.condition[0]
+                cindices_list = [self.clbits.index(clbit) for clbit in condition_bits]
             else:
                 cindices_list = []
         else:
@@ -435,6 +416,17 @@ class DAGDependency:
             qindices=qindices_list,
             cindices=cindices_list,
         )
+        return new_node
+
+    def add_op_node(self, operation, qargs, cargs):
+        """Add a DAGDepNode to the graph and update the edges.
+
+        Args:
+            operation (qiskit.circuit.Operation): operation as a quantum gate
+            qargs (list[Qubit]): list of qubits on which the operation acts
+            cargs (list[Clbit]): list of classical wires to attach to
+        """
+        new_node = self._create_op_node(operation, qargs, cargs)
         self._add_multi_graph_node(new_node)
         self._update_edges()
 
@@ -610,6 +602,77 @@ class DAGDependency:
         from qiskit.visualization.dag_visualization import dag_drawer
 
         return dag_drawer(dag=self, scale=scale, filename=filename, style=style)
+
+    def replace_block_with_op(self, node_block, op, wire_pos_map, cycle_check=True):
+        """Replace a block of nodes with a single node.
+
+        This is used to consolidate a block of DAGDepNodes into a single
+        operation. A typical example is a block of CX and SWAP gates consolidated
+        into a LinearFunction. This function is an adaptation of a similar
+        function from DAGCircuit.
+
+        It is important that such consolidation preserves commutativity assumptions
+        present in DAGDependency. As an example, suppose that every node in a
+        block [A, B, C, D] commutes with another node E. Let F be the consolidated
+        node, F = A o B o C o D. Then F also commutes with E, and thus the result of
+        replacing [A, B, C, D] by F results in a valid DAGDependency. That is, any
+        deduction about commutativity in consolidated DAGDependency is correct.
+        On the other hand, suppose that at least one of the nodes, say B, does not commute
+        with E. Then the consolidated DAGDependency would imply that F does not commute
+        with E. Even though F and E may actually commute, it is still safe to assume that
+        they do not. That is, the current implementation of consolidation may lead to
+        suboptimal but not to incorrect results.
+
+        Args:
+            node_block (List[DAGDepNode]): A list of dag nodes that represents the
+                node block to be replaced
+            op (qiskit.circuit.Operation): The operation to replace the
+                block with
+            wire_pos_map (Dict[Qubit, int]): The dictionary mapping the qarg to
+                the position. This is necessary to reconstruct the qarg order
+                over multiple gates in the combined single op node.
+            cycle_check (bool): When set to True this method will check that
+                replacing the provided ``node_block`` with a single node
+                would introduce a cycle (which would invalidate the
+                ``DAGDependency``) and will raise a ``DAGDependencyError`` if a cycle
+                would be introduced. This checking comes with a run time
+                penalty. If you can guarantee that your input ``node_block`` is
+                a contiguous block and won't introduce a cycle when it's
+                contracted to a single node, this can be set to ``False`` to
+                improve the runtime performance of this method.
+        Raises:
+            DAGDependencyError: if ``cycle_check`` is set to ``True`` and replacing
+                the specified block introduces a cycle or if ``node_block`` is
+                empty.
+        """
+        block_qargs = set()
+        block_cargs = set()
+        block_ids = [x.node_id for x in node_block]
+
+        # If node block is empty return early
+        if not node_block:
+            raise DAGDependencyError("Can't replace an empty node_block")
+
+        for nd in node_block:
+            block_qargs |= set(nd.qargs)
+            if nd.op.condition:
+                block_cargs |= set(nd.cargs)
+
+        # Create replacement node
+        new_node = self._create_op_node(
+            op,
+            qargs=sorted(block_qargs, key=lambda x: wire_pos_map[x]),
+            cargs=sorted(block_cargs, key=lambda x: wire_pos_map[x]),
+        )
+
+        try:
+            new_node.node_id = self._multi_graph.contract_nodes(
+                block_ids, new_node, check_cycle=cycle_check
+            )
+        except rx.DAGWouldCycle as ex:
+            raise DAGDependencyError(
+                "Replacing the specified node block would introduce a cycle"
+            ) from ex
 
 
 def merge_no_duplicates(*iterables):

@@ -651,7 +651,8 @@ class SPSA(Optimizer):
         "The SPSA.optimize method is deprecated as of Qiskit Terra 0.21.0 and will be removed no "
         "sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement, "
         "which supports the same arguments but follows the interface of scipy.optimize and returns "
-        "a complete result object containing additional information."
+        "a complete result object containing additional information.",
+        since="0.21.0",
     )
     def optimize(
         self,
@@ -719,7 +720,7 @@ def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
     """
 
     # if the function cannot handle lists of points as input, cover this case immediately
-    if max_evals_grouped == 1:
+    if max_evals_grouped is None or max_evals_grouped == 1:
         # support functions with multiple arguments where the points are given in a tuple
         return [
             function(*point) if isinstance(point, tuple) else function(point) for point in points

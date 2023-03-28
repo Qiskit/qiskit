@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017--2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 Circuit simulation for the Clifford class.
 """
 
-from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.barrier import Barrier
 from qiskit.circuit.delay import Delay
 from qiskit.exceptions import QiskitError
@@ -24,66 +23,85 @@ def _append_circuit(clifford, circuit, qargs=None):
 
     Args:
         clifford (Clifford): the Clifford to update.
-        circuit (QuantumCircuit or Instruction): the gate or composite gate to apply.
-        qargs (list or None): The qubits to apply gate to.
+        circuit (QuantumCircuit): the circuit to apply.
+        qargs (list or None): The qubits to apply circuit to.
 
     Returns:
         Clifford: the updated Clifford.
 
     Raises:
-        QiskitError: if input gate cannot be decomposed into Clifford gates.
+        QiskitError: if input circuit cannot be decomposed into Clifford operations.
     """
-    if isinstance(circuit, (Barrier, Delay)):
+    if qargs is None:
+        qargs = list(range(clifford.num_qubits))
+
+    for instruction in circuit:
+        if instruction.clbits:
+            raise QiskitError(
+                f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
+            )
+        # Get the integer position of the flat register
+        new_qubits = [qargs[circuit.find_bit(bit).index] for bit in instruction.qubits]
+        _append_operation(clifford, instruction.operation, new_qubits)
+    return clifford
+
+
+def _append_operation(clifford, operation, qargs=None):
+    """Update Clifford inplace by applying a Clifford operation.
+
+    Args:
+        clifford (Clifford): the Clifford to update.
+        operation (Instruction or str): the operation or composite operation to apply.
+        qargs (list or None): The qubits to apply operation to.
+
+    Returns:
+        Clifford: the updated Clifford.
+
+    Raises:
+        QiskitError: if input operation cannot be decomposed into Clifford operations.
+    """
+    if isinstance(operation, (Barrier, Delay)):
         return clifford
 
     if qargs is None:
         qargs = list(range(clifford.num_qubits))
 
-    if isinstance(circuit, QuantumCircuit):
-        gate = circuit.to_instruction()
-    else:
-        gate = circuit
-
-    # Basis Clifford Gates
-    basis_1q = {
-        "i": _append_i,
-        "id": _append_i,
-        "iden": _append_i,
-        "x": _append_x,
-        "y": _append_y,
-        "z": _append_z,
-        "h": _append_h,
-        "s": _append_s,
-        "sdg": _append_sdg,
-        "sinv": _append_sdg,
-        "v": _append_v,
-        "w": _append_w,
-    }
-    basis_2q = {"cx": _append_cx, "cz": _append_cz, "swap": _append_swap}
-
-    # Non-clifford gates
-    non_clifford = ["t", "tdg", "ccx", "ccz"]
+    gate = operation
 
     if isinstance(gate, str):
         # Check if gate is a valid Clifford basis gate string
-        if gate not in basis_1q and gate not in basis_2q:
+        if gate not in _BASIS_1Q and gate not in _BASIS_2Q:
             raise QiskitError(f"Invalid Clifford gate name string {gate}")
         name = gate
     else:
-        # Assume gate is an Instruction
+        # assert isinstance(gate, Instruction)
         name = gate.name
+        if getattr(gate, "condition", None) is not None:
+            raise QiskitError("Conditional gate is not a valid Clifford operation.")
 
     # Apply gate if it is a Clifford basis gate
-    if name in non_clifford:
+    if name in _NON_CLIFFORD:
         raise QiskitError(f"Cannot update Clifford with non-Clifford gate {name}")
-    if name in basis_1q:
+    if name in _BASIS_1Q:
         if len(qargs) != 1:
             raise QiskitError("Invalid qubits for 1-qubit gate.")
-        return basis_1q[name](clifford, qargs[0])
-    if name in basis_2q:
+        return _BASIS_1Q[name](clifford, qargs[0])
+    if name in _BASIS_2Q:
         if len(qargs) != 2:
             raise QiskitError("Invalid qubits for 2-qubit gate.")
-        return basis_2q[name](clifford, qargs[0], qargs[1])
+        return _BASIS_2Q[name](clifford, qargs[0], qargs[1])
+
+    # If gate is a Clifford, we can either unroll the gate using the "to_circuit"
+    # method, or we can compose the Cliffords directly. Experimentally, for large
+    # cliffords the second method is considerably faster.
+
+    # pylint: disable=cyclic-import
+    from qiskit.quantum_info import Clifford
+
+    if isinstance(gate, Clifford):
+        composed_clifford = clifford.compose(gate, qargs=qargs, front=False)
+        clifford.tableau = composed_clifford.tableau
+        return clifford
 
     # If not a Clifford basis gate we try to unroll the gate and
     # raise an exception if unrolling reaches a non-Clifford gate.
@@ -91,22 +109,8 @@ def _append_circuit(clifford, circuit, qargs=None):
     # are a single qubit Clifford gate rather than raise an exception.
     if gate.definition is None:
         raise QiskitError(f"Cannot apply Instruction: {gate.name}")
-    if not isinstance(gate.definition, QuantumCircuit):
-        raise QiskitError(
-            "{} instruction definition is {}; expected QuantumCircuit".format(
-                gate.name, type(gate.definition)
-            )
-        )
-    qubit_indices = {bit: idx for idx, bit in enumerate(gate.definition.qubits)}
-    for instruction in gate.definition:
-        if instruction.clbits:
-            raise QiskitError(
-                f"Cannot apply Instruction with classical bits: {instruction.operation.name}"
-            )
-        # Get the integer position of the flat register
-        new_qubits = [qargs[qubit_indices[tup]] for tup in instruction.qubits]
-        _append_circuit(clifford, instruction.operation, new_qubits)
-    return clifford
+
+    return _append_circuit(clifford, gate.definition, qargs)
 
 
 # ---------------------------------------------------------------------
@@ -226,6 +230,42 @@ def _append_sdg(clifford, qubit):
     return clifford
 
 
+def _append_sx(clifford, qubit):
+    """Apply an SX gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+
+    clifford.phase ^= ~x & z
+    x ^= z
+    return clifford
+
+
+def _append_sxdg(clifford, qubit):
+    """Apply an SXdg gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    x = clifford.x[:, qubit]
+    z = clifford.z[:, qubit]
+
+    clifford.phase ^= x & z
+    x ^= z
+    return clifford
+
+
 def _append_v(clifford, qubit):
     """Apply a V gate to a Clifford.
 
@@ -308,6 +348,23 @@ def _append_cz(clifford, control, target):
     return clifford
 
 
+def _append_cy(clifford, control, target):
+    """Apply a CY gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        control (int): gate control qubit index.
+        target (int): gate target qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_sdg(clifford, target)
+    clifford = _append_cx(clifford, control, target)
+    clifford = _append_s(clifford, target)
+    return clifford
+
+
 def _append_swap(clifford, qubit0, qubit1):
     """Apply a Swap gate to a Clifford.
 
@@ -322,3 +379,88 @@ def _append_swap(clifford, qubit0, qubit1):
     clifford.x[:, [qubit0, qubit1]] = clifford.x[:, [qubit1, qubit0]]
     clifford.z[:, [qubit0, qubit1]] = clifford.z[:, [qubit1, qubit0]]
     return clifford
+
+
+def _append_iswap(clifford, qubit0, qubit1):
+    """Apply a iSwap gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_s(clifford, qubit0)
+    clifford = _append_h(clifford, qubit0)
+    clifford = _append_s(clifford, qubit1)
+    clifford = _append_cx(clifford, qubit0, qubit1)
+    clifford = _append_cx(clifford, qubit1, qubit0)
+    clifford = _append_h(clifford, qubit1)
+    return clifford
+
+
+def _append_dcx(clifford, qubit0, qubit1):
+    """Apply a DCX gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_cx(clifford, qubit0, qubit1)
+    clifford = _append_cx(clifford, qubit1, qubit0)
+    return clifford
+
+
+def _append_ecr(clifford, qubit0, qubit1):
+    """Apply an ECR gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit0 (int): first qubit index.
+        qubit1 (int): second  qubit index.
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    clifford = _append_s(clifford, qubit0)
+    clifford = _append_sx(clifford, qubit1)
+    clifford = _append_cx(clifford, qubit0, qubit1)
+    clifford = _append_x(clifford, qubit0)
+
+    return clifford
+
+
+# Basis Clifford Gates
+_BASIS_1Q = {
+    "i": _append_i,
+    "id": _append_i,
+    "iden": _append_i,
+    "x": _append_x,
+    "y": _append_y,
+    "z": _append_z,
+    "h": _append_h,
+    "s": _append_s,
+    "sdg": _append_sdg,
+    "sinv": _append_sdg,
+    "sx": _append_sx,
+    "sxdg": _append_sxdg,
+    "v": _append_v,
+    "w": _append_w,
+}
+_BASIS_2Q = {
+    "cx": _append_cx,
+    "cz": _append_cz,
+    "cy": _append_cy,
+    "swap": _append_swap,
+    "iswap": _append_iswap,
+    "ecr": _append_ecr,
+    "dcx": _append_dcx,
+}
+# Non-clifford gates
+_NON_CLIFFORD = {"t", "tdg", "ccx", "ccz"}

@@ -10,14 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Measurement Error Mitigation """
+"""Test Measurement Error Mitigation"""
 
 import unittest
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 from qiskit import QuantumCircuit, execute
 from qiskit.quantum_info import Pauli
 from qiskit.exceptions import QiskitError
@@ -31,11 +31,11 @@ from qiskit.utils.measurement_error_mitigation import build_measurement_error_mi
 from qiskit.utils import optionals
 
 if optionals.HAS_AER:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=no-name-in-module
     from qiskit import Aer
     from qiskit.providers.aer import noise
 if optionals.HAS_IGNIS:
-    # pylint: disable=import-error,no-name-in-module
+    # pylint: disable=no-name-in-module
     from qiskit.ignis.mitigation.measurement import (
         CompleteMeasFitter as CompleteMeasFitter_IG,
         TensoredMeasFitter as TensoredMeasFitter_IG,
@@ -221,6 +221,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_transpiler=algorithm_globals.random_seed,
             noise_model=noise_model,
             measurement_error_mitigation_cls=CompleteMeasFitter,
+            shots=10000,
         )
 
         qaoa = QAOA(

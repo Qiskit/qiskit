@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    All fake backends in :mod:`qiskit.providers.fake_provider.backends` have been
-    updated to return the corresponding pulse channel objects with the method call of
-    :meth:`~BackendV2.drive_channel`, :meth:`~BackendV2.measure_channel`,
-    :meth:`~BackendV2.acquire_channel`, :meth:`~BackendV2.control_channel`.

@@ -42,7 +42,6 @@ class PassManagerConfig:
         hls_config=None,
         init_method=None,
         optimization_method=None,
-        optimization_level=None,
     ):
         """Initialize a PassManagerConfig object
 
@@ -84,7 +83,6 @@ class PassManagerConfig:
             init_method (str): The plugin name for the init stage plugin to use
             optimization_method (str): The plugin name for the optimization stage plugin
                 to use.
-            optimization_level (int): The optimization level being used for compilation.
         """
         self.initial_layout = initial_layout
         self.basis_gates = basis_gates
@@ -105,7 +103,6 @@ class PassManagerConfig:
         self.unitary_synthesis_plugin_config = unitary_synthesis_plugin_config
         self.target = target
         self.hls_config = hls_config
-        self.optimization_level = optimization_level
 
     @classmethod
     def from_backend(cls, backend, **pass_manager_options):
@@ -139,7 +136,9 @@ class PassManagerConfig:
         if res.inst_map is None:
             if backend_version < 2:
                 if hasattr(backend, "defaults"):
-                    res.inst_map = backend.defaults().instruction_schedule_map
+                    defaults = backend.defaults()
+                    if defaults is not None:
+                        res.inst_map = defaults.instruction_schedule_map
             else:
                 res.inst_map = backend.instruction_schedule_map
         if res.coupling_map is None:
@@ -157,6 +156,10 @@ class PassManagerConfig:
         if res.target is None:
             if backend_version >= 2:
                 res.target = backend.target
+        if res.scheduling_method is None and hasattr(backend, "get_scheduling_stage_plugin"):
+            res.scheduling_method = backend.get_scheduling_stage_plugin()
+        if res.translation_method is None and hasattr(backend, "get_translation_stage_plugin"):
+            res.translation_method = backend.get_translation_stage_plugin()
         return res
 
     def __str__(self):

@@ -12,28 +12,33 @@
 
 """Test the VF2Layout pass"""
 
+import io
+import pickle
 import unittest
 from math import pi
 
 import ddt
 import numpy
-import retworkx
+import rustworkx
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import ControlFlowOp
 from qiskit.transpiler import CouplingMap, Target, TranspilerError
 from qiskit.transpiler.passes.layout.vf2_layout import VF2Layout, VF2LayoutStopReason
+from qiskit._accelerate.error_map import ErrorMap
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeTenerife,
+    FakeVigoV2,
     FakeRueschlikon,
     FakeManhattan,
     FakeYorktown,
     FakeGuadalupeV2,
 )
-from qiskit.circuit.library import GraphState, CXGate
-from qiskit.transpiler import PassManager
+from qiskit.circuit.library import GraphState, CXGate, XGate
+from qiskit.transpiler import PassManager, AnalysisPass
+from qiskit.transpiler.target import InstructionProperties
 from qiskit.transpiler.preset_passmanagers.common import generate_embed_passmanager
 
 
@@ -217,6 +222,34 @@ class TestVF2LayoutSimple(LayoutTestCase):
         with self.assertRaises(TranspilerError):
             vf2_pass.run(dag)
 
+    def test_target_no_error(self):
+        """Test that running vf2layout on a pass against a target with no error rates works."""
+        n_qubits = 15
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        vf2_pass = VF2Layout(target=target)
+        circuit = QuantumCircuit(2)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
+
+    def test_target_some_error(self):
+        """Test that running vf2layout on a pass against a target with some error rates works."""
+        n_qubits = 15
+        target = Target()
+        target.add_instruction(
+            XGate(), {(i,): InstructionProperties(error=0.00123) for i in range(n_qubits)}
+        )
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        vf2_pass = VF2Layout(target=target)
+        circuit = QuantumCircuit(2)
+        circuit.h(0)
+        circuit.cx(0, 1)
+        dag = circuit_to_dag(circuit)
+        vf2_pass.run(dag)
+        self.assertLayout(dag, target.build_coupling_map(), vf2_pass.property_set)
+
 
 class TestVF2LayoutLattice(LayoutTestCase):
     """Fit in 25x25 hexagonal lattice coupling map"""
@@ -225,12 +258,12 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
     def graph_state_from_pygraph(self, graph):
         """Creates a GraphState circuit from a PyGraph"""
-        adjacency_matrix = retworkx.adjacency_matrix(graph)
+        adjacency_matrix = rustworkx.adjacency_matrix(graph)
         return GraphState(adjacency_matrix).decompose()
 
     def test_hexagonal_lattice_graph_20_in_25(self):
         """A 20x20 interaction map in 25x25 coupling map"""
-        graph_20_20 = retworkx.generators.hexagonal_lattice_graph(20, 20)
+        graph_20_20 = rustworkx.generators.hexagonal_lattice_graph(20, 20)
         circuit = self.graph_state_from_pygraph(graph_20_20)
 
         dag = circuit_to_dag(circuit)
@@ -240,7 +273,7 @@ class TestVF2LayoutLattice(LayoutTestCase):
 
     def test_hexagonal_lattice_graph_9_in_25(self):
         """A 9x9 interaction map in 25x25 coupling map"""
-        graph_9_9 = retworkx.generators.hexagonal_lattice_graph(9, 9)
+        graph_9_9 = rustworkx.generators.hexagonal_lattice_graph(9, 9)
         circuit = self.graph_state_from_pygraph(graph_9_9)
 
         dag = circuit_to_dag(circuit)
@@ -386,6 +419,52 @@ class TestVF2LayoutBackend(LayoutTestCase):
         pass_.run(dag)
         self.assertLayout(dag, cmap5, pass_.property_set)
 
+    def test_3q_circuit_vigo_with_custom_scores(self):
+        """Test custom ErrorMap from analysis pass are used for scoring."""
+        backend = FakeVigoV2()
+        target = backend.target
+
+        class FakeScore(AnalysisPass):
+            """Fake analysis pass with custom scoring."""
+
+            def run(self, dag):
+                error_map = ErrorMap(9)
+                error_map.add_error((0, 0), 0.1)
+                error_map.add_error((0, 1), 0.5)
+                error_map.add_error((1, 1), 0.2)
+                error_map.add_error((1, 2), 0.8)
+                error_map.add_error((1, 3), 0.75)
+                error_map.add_error((2, 2), 0.123)
+                error_map.add_error((3, 3), 0.333)
+                error_map.add_error((3, 4), 0.12345423)
+                error_map.add_error((4, 4), 0.2222)
+                self.property_set["vf2_avg_error_map"] = error_map
+
+        qr = QuantumRegister(3, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        circuit.cx(qr[0], qr[2])  # qr0 -> qr2
+
+        vf2_pass = VF2Layout(target=target, seed=1234568942)
+        property_set = {}
+        vf2_pass(circuit, property_set)
+        pm = PassManager([FakeScore(), VF2Layout(target=target, seed=1234568942)])
+        pm.run(circuit)
+        # Assert layout is different from backend properties
+        self.assertNotEqual(property_set["layout"], pm.property_set["layout"])
+        self.assertLayout(circuit_to_dag(circuit), backend.coupling_map, pm.property_set)
+
+    def test_error_map_pickle(self):
+        """Test that the `ErrorMap` Rust structure correctly pickles and depickles."""
+        errors = {(0, 1): 0.2, (1, 0): 0.2, (0, 0): 0.05, (1, 1): 0.02}
+        error_map = ErrorMap.from_dict(errors)
+        with io.BytesIO() as fptr:
+            pickle.dump(error_map, fptr)
+            fptr.seek(0)
+            loaded = pickle.load(fptr)
+        self.assertEqual(len(loaded), len(errors))
+        self.assertEqual({k: loaded[k] for k in errors}, errors)
+
     def test_perfect_fit_Manhattan(self):
         """A circuit that fits perfectly in Manhattan (65 qubits)
         See https://github.com/Qiskit/qiskit-terra/issues/5694"""
@@ -514,6 +593,7 @@ class TestMultipleTrials(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
+        qc.cx(0, 1)
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -533,6 +613,7 @@ class TestMultipleTrials(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
+        qc.cx(0, 1)
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -554,7 +635,7 @@ class TestMultipleTrials(QiskitTestCase):
         """Test that the default trials is set to a reasonable number."""
         backend = FakeManhattan()
         qc = QuantumCircuit(5)
-        qc.h(2)
+        qc.cx(2, 3)
         qc.cx(0, 1)
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -567,7 +648,7 @@ class TestMultipleTrials(QiskitTestCase):
             "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 159 is >= configured max trials 159",
             cm.output,
         )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 58, 0, 1})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 33, 0, 34})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""

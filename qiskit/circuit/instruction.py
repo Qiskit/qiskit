@@ -131,11 +131,13 @@ class Instruction(Operation):
                 pass
 
             try:
-                if numpy.shape(self_param) == numpy.shape(other_param) and numpy.allclose(
+                self_asarray = numpy.asarray(self_param)
+                other_asarray = numpy.asarray(other_param)
+                if numpy.shape(self_asarray) == numpy.shape(other_asarray) and numpy.allclose(
                     self_param, other_param, atol=_CUTOFF_PRECISION, rtol=0
                 ):
                     continue
-            except TypeError:
+            except (ValueError, TypeError):
                 pass
 
             try:
@@ -415,12 +417,11 @@ class Instruction(Operation):
         Copy of the instruction.
 
         Args:
-          name (str): name to be given to the copied circuit,
-            if None then the name stays the same.
+            name (str): name to be given to the copied circuit, if ``None`` then the name stays the same.
 
         Returns:
-          qiskit.circuit.Instruction: a copy of the current instruction, with the name
-            updated if it was provided
+            qiskit.circuit.Instruction: a copy of the current instruction, with the name updated if it
+            was provided
         """
         cpy = self.__deepcopy__()
 
@@ -455,7 +456,7 @@ class Instruction(Operation):
         if self.params:
             name_param = "{}({})".format(
                 name_param,
-                ",".join([pi_check(i, ndigits=8, output="qasm") for i in self.params]),
+                ",".join([pi_check(i, output="qasm", eps=1e-12) for i in self.params]),
             )
 
         return self._qasmif(name_param)

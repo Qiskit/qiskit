@@ -92,7 +92,7 @@ features:
                  0 └─────────┘ 0
 
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit import QuantumCircuit
       from qiskit.transpiler import InstructionDurations, PassManager
@@ -128,7 +128,7 @@ features:
 
     By using the default configuration of passes, the circuit is schedule like below.
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit import QuantumCircuit
       from qiskit.transpiler import InstructionDurations, PassManager

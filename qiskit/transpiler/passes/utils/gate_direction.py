@@ -19,8 +19,23 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.circuit import QuantumRegister, ControlFlowOp
-from qiskit.dagcircuit import DAGCircuit
-from qiskit.circuit.library.standard_gates import RYGate, HGate, CXGate, CZGate, ECRGate, RZXGate
+from qiskit.dagcircuit import DAGCircuit, DAGOpNode
+from qiskit.circuit.library.standard_gates import (
+    RYGate,
+    HGate,
+    CXGate,
+    CZGate,
+    ECRGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
+    SwapGate,
+)
+
+
+def _swap_node_qargs(node):
+    return DAGOpNode(node.op, node.qargs[::-1], node.cargs)
 
 
 class GateDirection(TransformationPass):
@@ -46,6 +61,8 @@ class GateDirection(TransformationPass):
         q_1: ┤1     ├     q_1: ┤ H ├┤0     ├┤ H ├
              └──────┘          └───┘└──────┘└───┘
     """
+
+    _KNOWN_REPLACEMENTS = frozenset(["cx", "cz", "ecr", "swap", "rzx", "rxx", "ryy", "rzz"])
 
     def __init__(self, coupling_map, target=None):
         """GateDirection pass.
@@ -83,7 +100,19 @@ class GateDirection(TransformationPass):
         self._cz_dag.add_qreg(qr)
         self._cz_dag.apply_operation_back(CZGate(), [qr[1], qr[0]], [])
 
-        self._static_replacements = {"cx": self._cx_dag, "cz": self._cz_dag, "ecr": self._ecr_dag}
+        self._swap_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        self._swap_dag.add_qreg(qr)
+        self._swap_dag.apply_operation_back(SwapGate(), [qr[1], qr[0]], [])
+
+        # If adding more replacements (either static or dynamic), also update the class variable
+        # `_KNOWN_REPLACMENTS` to include them in the error messages.
+        self._static_replacements = {
+            "cx": self._cx_dag,
+            "cz": self._cz_dag,
+            "ecr": self._ecr_dag,
+            "swap": self._swap_dag,
+        }
 
     @staticmethod
     def _rzx_dag(parameter):
@@ -96,6 +125,30 @@ class GateDirection(TransformationPass):
         _rzx_dag.apply_operation_back(HGate(), [qr[0]], [])
         _rzx_dag.apply_operation_back(HGate(), [qr[1]], [])
         return _rzx_dag
+
+    @staticmethod
+    def _rxx_dag(parameter):
+        _rxx_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        _rxx_dag.add_qreg(qr)
+        _rxx_dag.apply_operation_back(RXXGate(parameter), [qr[1], qr[0]], [])
+        return _rxx_dag
+
+    @staticmethod
+    def _ryy_dag(parameter):
+        _ryy_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        _ryy_dag.add_qreg(qr)
+        _ryy_dag.apply_operation_back(RYYGate(parameter), [qr[1], qr[0]], [])
+        return _ryy_dag
+
+    @staticmethod
+    def _rzz_dag(parameter):
+        _rzz_dag = DAGCircuit()
+        qr = QuantumRegister(2)
+        _rzz_dag.add_qreg(qr)
+        _rzz_dag.apply_operation_back(RZZGate(parameter), [qr[1], qr[0]], [])
+        return _rzz_dag
 
     def _run_coupling_map(self, dag, wire_map, edges=None):
         if edges is None:
@@ -121,6 +174,8 @@ class GateDirection(TransformationPass):
                 continue
             if len(node.qargs) != 2:
                 continue
+            if dag.has_calibration_for(node):
+                continue
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             if qargs not in edges and (qargs[1], qargs[0]) not in edges:
                 raise TranspilerError(
@@ -132,10 +187,17 @@ class GateDirection(TransformationPass):
                     dag.substitute_node_with_dag(node, replacement)
                 elif node.name == "rzx":
                     dag.substitute_node_with_dag(node, self._rzx_dag(*node.op.params))
+                elif node.name == "rxx":
+                    dag.substitute_node_with_dag(node, self._rxx_dag(*node.op.params))
+                elif node.name == "ryy":
+                    dag.substitute_node_with_dag(node, self._ryy_dag(*node.op.params))
+                elif node.name == "rzz":
+                    dag.substitute_node_with_dag(node, self._rzz_dag(*node.op.params))
                 else:
                     raise TranspilerError(
-                        f"Flipping of gate direction is only supported "
-                        f"for {list(self._static_replacements)} at this time, not '{node.name}'."
+                        f"'{node.name}' would be supported on '{qargs}' if the direction were"
+                        f" swapped, but no rules are known to do that."
+                        f" {list(self._KNOWN_REPLACEMENTS)} can be automatically flipped."
                     )
         return dag
 
@@ -157,6 +219,8 @@ class GateDirection(TransformationPass):
                 )
                 continue
             if len(node.qargs) != 2:
+                continue
+            if dag.has_calibration_for(node):
                 continue
             qargs = (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
             swapped = (qargs[1], qargs[0])
@@ -184,11 +248,64 @@ class GateDirection(TransformationPass):
                         f"The circuit requires a connection between physical qubits {qargs}"
                         f" for {node.name}"
                     )
+            elif node.name == "rxx":
+                if self.target.instruction_supported(
+                    qargs=qargs, operation_class=RXXGate, parameters=node.op.params
+                ):
+                    continue
+                if self.target.instruction_supported(
+                    qargs=swapped, operation_class=RXXGate, parameters=node.op.params
+                ):
+                    dag.substitute_node_with_dag(node, self._rxx_dag(*node.op.params))
+                else:
+                    raise TranspilerError(
+                        f"The circuit requires a connection between physical qubits {qargs}"
+                        f" for {node.name}"
+                    )
+            elif node.name == "ryy":
+                if self.target.instruction_supported(
+                    qargs=qargs, operation_class=RYYGate, parameters=node.op.params
+                ):
+                    continue
+                if self.target.instruction_supported(
+                    qargs=swapped, operation_class=RYYGate, parameters=node.op.params
+                ):
+                    dag.substitute_node_with_dag(node, self._ryy_dag(*node.op.params))
+                else:
+                    raise TranspilerError(
+                        f"The circuit requires a connection between physical qubits {qargs}"
+                        f" for {node.name}"
+                    )
+            elif node.name == "rzz":
+                if self.target.instruction_supported(
+                    qargs=qargs, operation_class=RZZGate, parameters=node.op.params
+                ):
+                    continue
+                if self.target.instruction_supported(
+                    qargs=swapped, operation_class=RZZGate, parameters=node.op.params
+                ):
+                    dag.substitute_node_with_dag(node, self._rzz_dag(*node.op.params))
+                else:
+                    raise TranspilerError(
+                        f"The circuit requires a connection between physical qubits {qargs}"
+                        f" for {node.name}"
+                    )
+            elif self.target.instruction_supported(node.name, qargs):
+                continue
+            elif self.target.instruction_supported(node.name, swapped) or dag.has_calibration_for(
+                _swap_node_qargs(node)
+            ):
+                raise TranspilerError(
+                    f"'{node.name}' would be supported on '{qargs}' if the direction were"
+                    f" swapped, but no rules are known to do that."
+                    f" {list(self._KNOWN_REPLACEMENTS)} can be automatically flipped."
+                )
             else:
                 raise TranspilerError(
-                    f"Flipping of gate direction is only supported "
-                    f"for {list(self._static_replacements)} at this time, not '{node.name}'."
+                    f"'{node.name}' with parameters '{node.op.params}' is not supported on qubits"
+                    f" '{qargs}' in either direction."
                 )
+
         return dag
 
     def run(self, dag):

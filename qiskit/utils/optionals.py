@@ -93,15 +93,15 @@ External Python Libraries
         be installed in order to use them.
 
     * - .. py:data:: HAS_NETWORKX
-      - Internally, Qiskit uses the high-performance `retworkx
-        <https://github.com/Qiskit/retworkx>`__ library as a core dependency, but sometimes it can
-        be convenient to convert things into the Python-only `NetworkX <https://networkx.org/>`__
-        format.  There are converter methods on :class:`.DAGCircuit` if NetworkX is present.
+      - No longer used by Terra.  Internally, Qiskit now uses the high-performance `rustworkx
+        <https://github.com/Qiskit/rustworkx>`__ library as a core dependency, and during the
+        change-over period, it was sometimes convenient to convert things into the Python-only
+        `NetworkX <https://networkx.org/>`__ format.  Some tests of application modules, such as
+        `Qiskit Nature <https://qiskit.org/documentation/nature/>`__ still use NetworkX.
 
     * - .. py:data:: HAS_NLOPT
-      - `NLOpt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimisation library,
-        used by the global optimizers in :mod:`.algorithms.optimizers`.  See installation details in
-        :ref:`installing-nlopt`.
+      - `NLopt <https://nlopt.readthedocs.io/en/latest/>`__ is a nonlinear optimization library,
+        used by the global optimizers in the :mod:`.algorithms.optimizers` module.
 
     * - .. py:data:: HAS_PIL
       - PIL is a Python image-manipulation library.  Qiskit actually uses the `pillow
@@ -116,6 +116,11 @@ External Python Libraries
     * - .. py:data:: HAS_PYLATEX
       - Various LaTeX-based visualizations, especially the circuit drawers, need access to the
         `pylatexenc <https://github.com/phfaist/pylatexenc>`__ project to work correctly.
+
+    * - .. py:data:: HAS_QASM3_IMPORT
+      - The functions :func:`.qasm3.load` and :func:`.qasm3.loads` for importing OpenQASM 3 programs
+        into :class:`.QuantumCircuit` instances use `an external importer package
+        <https://qiskit.github.io/qiskit-qasm3-import>`__.
 
     * - .. py:data:: HAS_SEABORN
       - Qiskit Terra provides several visualisation tools in the :mod:`.visualization` module.  Some
@@ -253,26 +258,7 @@ HAS_MATPLOTLIB = _LazyImportTester(
 )
 HAS_NETWORKX = _LazyImportTester("networkx", install="pip install networkx")
 
-
-def _nlopt_callback(available):
-    if not available:
-        return
-    import nlopt  # pylint: disable=import-error
-
-    _logger.info(
-        "NLopt version: %s.%s.%s",
-        nlopt.version_major(),
-        nlopt.version_minor(),
-        nlopt.version_bugfix(),
-    )
-
-
-HAS_NLOPT = _LazyImportTester(
-    "nlopt",
-    name="NLopt Optimizer",
-    callback=_nlopt_callback,
-    msg="See the documentation of 'qiskit.algorithms.optimizer.nlopts' for installation help",
-)
+HAS_NLOPT = _LazyImportTester("nlopt", name="NLopt Optimizer", install="pip install nlopt")
 HAS_PIL = _LazyImportTester("PIL.Image", name="pillow", install="pip install pillow")
 HAS_PYDOT = _LazyImportTester("pydot", install="pip install pydot")
 HAS_PYLATEX = _LazyImportTester(
@@ -282,6 +268,9 @@ HAS_PYLATEX = _LazyImportTester(
     },
     name="pylatexenc",
     install="pip install pylatexenc",
+)
+HAS_QASM3_IMPORT = _LazyImportTester(
+    "qiskit_qasm3_import", install="pip install qiskit_qasm3_import"
 )
 HAS_SEABORN = _LazyImportTester("seaborn", install="pip install seaborn")
 HAS_SKLEARN = _LazyImportTester(

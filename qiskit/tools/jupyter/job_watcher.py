@@ -25,8 +25,6 @@ from .watcher_monitor import _job_monitor
 class JobWatcher(Subscriber):
     """An IBM Q job watcher."""
 
-    # pylint: disable=import-error
-
     def __init__(self):
         super().__init__()
         self.jobs = []

@@ -376,7 +376,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
         Consider sorting all a random ordering of all 2-qubit Paulis
 
-        .. jupyter-execute::
+        .. code-block::
 
             from numpy.random import shuffle
             from qiskit.quantum_info.operators import StabilizerTable
@@ -402,6 +402,27 @@ class StabilizerTable(PauliTable, AdjointMixin):
             print('Weight sorted')
             print(srt)
 
+        .. parsed-literal::
+
+            Initial Ordering
+            StabilizerTable: [
+                '-YZ', '+IX', '-ZI', '+II', '-IY', '-II', '-XI', '-IX', '-ZX', '-ZZ', '+XY', '+XZ',
+                '-YX', '-YI', '+ZI', '+ZX', '+ZY', '+IZ', '-ZY', '+YZ', '-IZ', '-XX', '+XI', '+YI',
+                '+XX', '+IY', '+ZZ', '-XY', '-YY', '+YX', '+YY', '-XZ'
+            ]
+            Lexicographically sorted
+            StabilizerTable: [
+                '+II', '-II', '+IX', '-IX', '-IY', '+IY', '+IZ', '-IZ', '-XI', '+XI', '-XX', '+XX',
+                '+XY', '-XY', '+XZ', '-XZ', '-YI', '+YI', '-YX', '+YX', '-YY', '+YY', '-YZ', '+YZ',
+                '-ZI', '+ZI', '-ZX', '+ZX', '+ZY', '-ZY', '-ZZ', '+ZZ'
+            ]
+            Weight sorted
+            StabilizerTable: [
+                '+II', '-II', '+IX', '-IX', '-IY', '+IY', '+IZ', '-IZ', '-XI', '+XI', '-YI', '+YI',
+                '-ZI', '+ZI', '-XX', '+XX', '+XY', '-XY', '+XZ', '-XZ', '-YX', '+YX', '-YY', '+YY',
+                '-YZ', '+YZ', '-ZX', '+ZX', '+ZY', '-ZY', '-ZZ', '+ZZ'
+            ]
+
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
 
@@ -415,13 +436,17 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import StabilizerTable
 
             st = StabilizerTable.from_labels(['+X', '+I', '-I', '-X', '+X', '-X', '+I'])
             unique = st.unique()
             print(unique)
+
+        .. parsed-literal::
+
+            StabilizerTable: ['+X', '+I', '-I', '-X']
 
         Args:
             return_index (bool): If True, also return the indices that
@@ -477,13 +502,17 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import StabilizerTable
 
             current = StabilizerTable.from_labels(['+I', '-X'])
             other =  StabilizerTable.from_labels(['-Y', '+Z'])
             print(current.tensor(other))
+
+        .. parsed-literal::
+
+            StabilizerTable: ['-IY', '+IZ', '+XY', '-XZ']
 
         Args:
             other (StabilizerTable): another StabilizerTable.
@@ -509,13 +538,17 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import StabilizerTable
 
             current = StabilizerTable.from_labels(['+I', '-X'])
             other =  StabilizerTable.from_labels(['-Y', '+Z'])
             print(current.expand(other))
+
+        .. parsed-literal::
+
+            StabilizerTable: ['-YI', '+YX', '+ZI', '-ZX']
 
         Args:
             other (StabilizerTable): another StabilizerTable.
@@ -556,13 +589,17 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import StabilizerTable
 
             current = StabilizerTable.from_labels(['+I', '-X'])
             other =  StabilizerTable.from_labels(['+X', '-Z'])
             print(current.compose(other))
+
+        .. parsed-literal::
+
+            StabilizerTable: ['+X', '-Z', '-I', '-Y']
 
         Args:
             other (StabilizerTable): another StabilizerTable.
@@ -634,13 +671,17 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import StabilizerTable
 
             current = StabilizerTable.from_labels(['+I', '-X'])
             other =  StabilizerTable.from_labels(['+X', '-Z'])
             print(current.dot(other))
+
+        .. parsed-literal::
+
+            StabilizerTable: ['+X', '-Z', '-I', '+Y']
 
         Args:
             other (StabilizerTable): another StabilizerTable.
@@ -986,7 +1027,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
 
     @staticmethod
     def _to_matrix(pauli, phase, sparse=False):
-        """ "Return the Pauli stabilizer matrix from symplectic representation.
+        """Return the Pauli stabilizer matrix from symplectic representation.
 
         Args:
             pauli (array): symplectic Pauli vector.
@@ -998,7 +1039,6 @@ class StabilizerTable(PauliTable, AdjointMixin):
             array: if sparse=False.
             csr_matrix: if sparse=True.
         """
-        # pylint: disable=arguments-differ
         mat = PauliTable._to_matrix(pauli, sparse=sparse, real_valued=True)
         if phase:
             mat *= -1

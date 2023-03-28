@@ -4,6 +4,12 @@ notifications:
         - "@Qiskit/terra-core"
     "visualization/pulse_v2":
         - "@nkanazawa1989"
+    "visualization/timeline":
+        - "@nkanazawa1989"
+    "pulse":
+        - "@nkanazawa1989"
+    "scheduler":
+        - "@nkanazawa1989"
     "qpy":
         - "@mtreinish"
         - "@nkanazawa1989"
@@ -35,6 +41,11 @@ notifications:
     ".*\\.rs$|^Cargo":
         - "@mtreinish"
         - "@kevinhartman"
+        - "@Eric-Arellano"
     "(?!.*pulse.*)\\bvisualization\\b":
         - "@enavarro51"
+    "^docs/":
+        - "@javabster"
+        - "@HuangJunye"
+        - "@Eric-Arellano"
 always_notify: true

@@ -44,7 +44,7 @@ Version Support Policy
 ----------------------
 
 To enable providers to have time to adjust to changes in this interface
-Terra will support support multiple versions of each class at once. Given the
+Terra will support multiple versions of each class at once. Given the
 nature of one version per release the version deprecation policy is a bit
 more conservative than the standard deprecation policy. Terra will support a
 provider interface version for a minimum of 3 minor releases or the first
@@ -154,7 +154,7 @@ steps for writing a provider are:
  * Implement a :class:`~qiskit.providers.ProviderV1` subclass that handles
    access to the backend(s).
  * Implement a :class:`~qiskit.providers.BackendV2` subclass and its
-   :meth:`~~qiskit.providers.BackendV2.run` method.
+   :meth:`~qiskit.providers.BackendV2.run` method.
 
    * Add any custom gates for the backend's basis to the session
      :class:`~qiskit.circuit.EquivalenceLibrary` instance.
@@ -335,10 +335,11 @@ Custom Basis Gates
        }
        self.target.add_instruction(SYGate(), sy_props)
 
-   The keys in ``sy_props`` define the qubits on the backend ``SYGate`` can be
-   used on, and the values define the properties of ``SYGate`` on that qubit.
-   For multiqubit gates the tuple keys contain all qubit combinations the gate
-   works on (order is significant, i.e. ``(0, 1)`` is different from ``(1, 0)``).
+   The keys in ``sy_props`` define the qubits where the backend ``SYGate`` can
+   be used on, and the values define the properties of ``SYGate`` on that
+   qubit. For multiqubit gates the tuple keys contain all qubit combinations
+   the gate works on (order is significant, i.e. ``(0, 1)`` is different from
+   ``(1, 0)``).
 
 3. After you've defined the custom gates to use for the backend's basis set
    then you need to add equivalence rules to the standard equivalence library
@@ -405,6 +406,53 @@ Custom Basis Gates
    for custom basis gates and contributing the definitions and support in the
    transpiler will ensure that it continues to be well supported by Qiskit
    moving forward.
+
+.. _custom_transpiler_backend:
+
+Custom Transpiler Passes
+^^^^^^^^^^^^^^^^^^^^^^^^
+The transpiler supports the ability for backends to provide custom transpiler
+stage implementations to facilitate hardware specific optimizations and
+circuit transformations. Currently there are two stages supported,
+``get_translation_stage_plugin()`` and ``get_scheduling_stage_plugin()``
+which allow a backend to specify string plugin names to be used as the default
+translation and scheduling stages, respectively. These
+hook points in a :class:`~.BackendV2` class can be used if your
+backend has requirements for compilation that are not met by the
+current backend/:class:`~.Target` interface.  Please also consider
+submitting a Github issue describing your use case as there is interest
+in improving these interfaces to be able to describe more hardware
+architectures in greater depth.
+
+To leverage these hook points you just need to add the methods to your
+:class:`~.BackendV2` implementation and have them return a string plugin name.
+For example::
+
+
+    class Mybackend(BackendV2):
+
+        def get_scheduling_stage_plugin(self):
+            return "SpecialDD"
+
+        def get_translation_stage_plugin(self):
+            return "BasisTranslatorWithCustom1qOptimization"
+
+This snippet of a backend implementation will now have the :func:`~.transpile`
+function use the ``SpecialDD`` plugin for the scheduling stage and
+the ``BasisTranslatorWithCustom1qOptimization`` plugin for the translation
+stage by default when the target is set to ``Mybackend``. Note that users may override these choices
+by explicitly selecting a different plugin name. For this interface to work though transpiler
+stage plugins must be implemented for the returned plugin name. You can refer
+to :mod:`qiskit.transpiler.preset_passmanagers.plugin` module documentation for
+details on how to implement plugins. The typical expectation is that if your backend
+requires custom passes as part of a compilation stage the provider package will
+include the transpiler stage plugins that use those passes. However, this is not
+required and any valid method (from a built-in method or external plugin) can
+be used.
+
+This way if these two compilation steps are **required** for running or providing
+efficient output on ``Mybackend`` the transpiler will be able to perform these
+custom steps without any manual user input.
 
 Run Method
 ----------
@@ -565,6 +613,35 @@ and for a sync job::
         def status(self):
             return JobStatus.DONE
 
+Primitives
+==========
+
+While not directly part of the provider interface, the :mod:`qiskit.primitives`
+module is tightly coupled with providers. Specifically the primitive
+interfaces, such as :class:`~.BaseSampler` and :class:`~.BaseEstimator`,
+are designed to enable provider implementations to provide custom
+implementations which are optimized for the provider's backends. This can
+include customizations like circuit transformations, additional pre- and
+post-processing, batching, caching, error mitigation, etc. The concept of
+the :mod:`qiskit.primitives` module is to explicitly enable this as the
+primitive objects are higher level abstractions to produce processed higher
+level outputs (such as probability distributions and expectation values)
+that abstract away the mechanics of getting the best result efficienctly, to
+concentrate on higher level applications using these outputs.
+
+For example, if your backends were well suited to leverage
+`mthree <https://github.com/Qiskit-Partners/mthree/>`__ measurement
+mitigation to improve the quality of the results, you could implement a
+provider-specific :class:`~.Sampler` implementation that leverages the
+``M3Mitigation`` class internally to run the circuits and return
+quasi-probabilities directly from mthree in the result. Doing this would
+enable algorithms from :mod:`qiskit.algorithms` to get the best results with
+mitigation applied directly from your backends. You can refer to the
+documentation in :mod:`qiskit.primitives` on how to write custom
+implementations. Also the built-in implementations: :class:`~.Sampler`,
+:class:`~.Estimator`, :class:`~.BackendSampler`, and :class:`~.BackendEstimator`
+can serve as references/models on how to implement these as well.
+
 ======================================
 Migrating between Backend API Versions
 ======================================
@@ -579,13 +656,13 @@ from :obj:`~BackendV1` to :obj:`~BackendV2` existing access patterns will need
 to be adjusted. It is expected for existing providers to deprecate the old
 access where possible to provide a graceful migration, but eventually users
 will need to adjust code. The biggest change to adapt to in :obj:`~BackendV2` is
-that most of the information accesible about a backend is contained in its
+that most of the information accessible about a backend is contained in its
 :class:`~qiskit.transpiler.Target` object and the backend's attributes often query
 its :attr:`~qiskit.providers.BackendV2.target`
 attribute to return information, however in many cases the attributes only provide
 a subset of information the target can contain. For example, ``backend.coupling_map``
 returns a :class:`~qiskit.transpiler.CouplingMap` constructed from the
-:class:`~qiskit.transpiler.Target` accesible in the
+:class:`~qiskit.transpiler.Target` accessible in the
 :attr:`~qiskit.providers.BackendV2.target` attribute, however the target may contain
 instructions that operate on more than two qubits (which can't be represented in a
 :class:`~qiskit.transpiler.CouplingMap`) or has instructions that only operate on

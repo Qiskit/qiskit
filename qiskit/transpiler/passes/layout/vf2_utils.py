@@ -16,10 +16,14 @@ from collections import defaultdict
 import statistics
 import random
 
-from retworkx import PyDiGraph, PyGraph
+import numpy as np
+from rustworkx import PyDiGraph, PyGraph, connected_components
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp
 from qiskit.converters import circuit_to_dag
+from qiskit._accelerate import vf2_layout
+from qiskit._accelerate.nlayout import NLayout
+from qiskit._accelerate.error_map import ErrorMap
 
 
 def build_interaction_graph(dag, strict_direction=True):
@@ -75,33 +79,68 @@ def build_interaction_graph(dag, strict_direction=True):
         _visit(dag, 1, {bit: bit for bit in dag.qubits})
     except MultiQEncountered:
         return None
-    return im_graph, im_graph_node_map, reverse_im_graph_node_map
+    # Remove components with no 2q interactions from interaction graph
+    # these will be evaluated separately independently of scoring isomorphic
+    # mappings. This is not done for strict direction because for post layout
+    # we need to factor in local operation constraints when evaluating a graph
+    free_nodes = {}
+    if not strict_direction:
+        conn_comp = connected_components(im_graph)
+        for comp in conn_comp:
+            if len(comp) == 1:
+                index = comp.pop()
+                free_nodes[index] = im_graph[index]
+                im_graph.remove_node(index)
+
+    return im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes
 
 
-def score_layout(avg_error_map, layout, bit_map, reverse_bit_map, im_graph, strict_direction=False):
+def score_layout(
+    avg_error_map,
+    layout_mapping,
+    bit_map,
+    _reverse_bit_map,
+    im_graph,
+    strict_direction=False,
+    run_in_parallel=True,
+):
     """Score a layout given an average error map."""
-    bits = layout.get_virtual_bits()
-    fidelity = 1
-    for bit, node_index in bit_map.items():
-        gate_count = sum(im_graph[node_index].values())
-        fidelity *= (1 - avg_error_map[(bits[bit],)]) ** gate_count
-    for edge in im_graph.edge_index_map().values():
-        gate_count = sum(edge[2].values())
-        qargs = (bits[reverse_bit_map[edge[0]]], bits[reverse_bit_map[edge[1]]])
-        if not strict_direction and qargs not in avg_error_map:
-            qargs = (qargs[1], qargs[0])
-        fidelity *= (1 - avg_error_map[qargs]) ** gate_count
-    return 1 - fidelity
+    if layout_mapping:
+        size = max(max(layout_mapping), max(layout_mapping.values()))
+    else:
+        size = 0
+    nlayout = NLayout(layout_mapping, size + 1, size + 1)
+    bit_list = np.zeros(len(im_graph), dtype=np.int32)
+    if strict_direction:
+        for node_index in bit_map.values():
+            bit_list[node_index] = sum(im_graph[node_index].values())
+    edge_list = {
+        (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
+    }
+    return vf2_layout.score_layout(
+        bit_list, edge_list, avg_error_map, nlayout, strict_direction, run_in_parallel
+    )
 
 
 def build_average_error_map(target, properties, coupling_map):
     """Build an average error map used for scoring layouts pre-basis translation."""
-    avg_map = {}
     num_qubits = 0
-    if coupling_map is not None:
+    if target is not None:
+        num_qubits = target.num_qubits
+        avg_map = ErrorMap(len(target.qargs))
+    elif coupling_map is not None:
         num_qubits = coupling_map.size()
+        avg_map = ErrorMap(num_qubits + coupling_map.graph.num_edges())
+    else:
+        # If coupling map is not defined almost certainly we don't have any
+        # data to build an error map, but just in case initialize an empty
+        # object
+        avg_map = ErrorMap(0)
+    built = False
     if target is not None:
         for qargs in target.qargs:
+            if qargs is None:
+                continue
             qarg_error = 0.0
             count = 0
             for op in target.operation_names_for_qargs(qargs):
@@ -110,7 +149,10 @@ def build_average_error_map(target, properties, coupling_map):
                     count += 1
                     qarg_error += inst_props.error
             if count > 0:
-                avg_map[qargs] = qarg_error / count
+                if len(qargs) == 1:
+                    qargs = (qargs[0], qargs[0])
+                avg_map.add_error(qargs, qarg_error / count)
+                built = True
     elif properties is not None:
         errors = defaultdict(list)
         for qubit in range(len(properties.qubits)):
@@ -120,15 +162,39 @@ def build_average_error_map(target, properties, coupling_map):
             for param in gate.parameters:
                 if param.name == "gate_error":
                     errors[qubits].append(param.value)
-        avg_map = {k: statistics.mean(v) for k, v in errors.items()}
-    elif coupling_map is not None:
+        for k, v in errors.items():
+            if len(k) == 1:
+                qargs = (k[0], k[0])
+            else:
+                qargs = k
+            # If the properties payload contains an index outside the number of qubits
+            # the properties are invalid for the given input. This normally happens either
+            # with a malconstructed properties payload or if the faulty qubits feature of
+            # BackendV1/BackendPropeties is being used. In such cases we map noise characteristics
+            # so we should just treat the mapping as an ideal case.
+            if qargs[0] >= num_qubits or qargs[1] >= num_qubits:
+                continue
+            avg_map.add_error(qargs, statistics.mean(v))
+            built = True
+    # if there are no error rates in the target we should fallback to using the degree heuristic
+    # used for a coupling map. To do this we can build the coupling map from the target before
+    # running the fallback heuristic
+    if not built and target is not None and coupling_map is None:
+        coupling_map = target.build_coupling_map()
+    if not built and coupling_map is not None:
         for qubit in range(num_qubits):
-            avg_map[(qubit,)] = (
-                coupling_map.graph.out_degree(qubit) + coupling_map.graph.in_degree(qubit)
-            ) / num_qubits
+            avg_map.add_error(
+                (qubit, qubit),
+                (coupling_map.graph.out_degree(qubit) + coupling_map.graph.in_degree(qubit))
+                / num_qubits,
+            )
         for edge in coupling_map.graph.edge_list():
-            avg_map[edge] = (avg_map[(edge[0],)] + avg_map[(edge[1],)]) / 2
-    return avg_map
+            avg_map.add_error(edge, (avg_map[edge[0], edge[0]] + avg_map[edge[1], edge[1]]) / 2)
+            built = True
+    if built:
+        return avg_map
+    else:
+        return None
 
 
 def shuffle_coupling_graph(coupling_map, seed, strict_direction=True):
@@ -147,3 +213,26 @@ def shuffle_coupling_graph(coupling_map, seed, strict_direction=True):
         cm_nodes = [k for k, v in sorted(enumerate(cm_nodes), key=lambda item: item[1])]
         cm_graph = shuffled_cm_graph
     return cm_graph, cm_nodes
+
+
+def map_free_qubits(
+    free_nodes, partial_layout, num_physical_qubits, reverse_bit_map, avg_error_map
+):
+    """Add any free nodes to a layout."""
+    if not free_nodes:
+        return partial_layout
+    if avg_error_map is not None:
+        free_qubits = sorted(
+            set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys(),
+            key=lambda bit: avg_error_map.get((bit, bit), 1.0),
+        )
+    # If no error map is available this means there is no scoring heuristic available for this
+    # backend and we can just randomly pick a free qubit
+    else:
+        free_qubits = list(
+            set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys()
+        )
+    for im_index in sorted(free_nodes, key=lambda x: sum(free_nodes[x].values())):
+        selected_qubit = free_qubits.pop(0)
+        partial_layout.add(reverse_bit_map[im_index], selected_qubit)
+    return partial_layout

@@ -1,9 +1,0 @@
----
-fixes:
-  - |
-    Fixes the :meth:`.UCGate.inverse` method which previously did not invert the
-    global phase.
-  - |
-    Fixes the global phase problem of the isometry decomposition. Refer to
-    `#4687 <https://github.com/Qiskit/qiskit-terra/issues/4687>` for more
-    details.

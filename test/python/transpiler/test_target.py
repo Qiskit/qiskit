@@ -30,17 +30,20 @@ from qiskit.circuit.library import (
     RZXGate,
     CZGate,
 )
+from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.calibration_entries import CalibrationPublisher
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeBackendV2, FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider import FakeBackendV2, FakeMumbaiFractionalCX, FakeGeneva
 
 
 class TestTarget(QiskitTestCase):
@@ -397,6 +400,30 @@ class TestTarget(QiskitTestCase):
         for gate in ideal_sim_expected:
             self.assertIn(gate, self.ideal_sim_target.operations_for_qargs(None))
 
+    def test_get_operation_for_qargs_global(self):
+        expected = [
+            RXGate(self.theta),
+            RYGate(self.theta),
+            RZGate(self.theta),
+            RGate(self.theta, self.phi),
+            Measure(),
+        ]
+        res = self.aqt_target.operations_for_qargs((0,))
+        self.assertEqual(len(expected), len(res))
+        for x in expected:
+            self.assertIn(x, res)
+        expected = [RXXGate(self.theta)]
+        res = self.aqt_target.operations_for_qargs((0, 1))
+        self.assertEqual(len(expected), len(res))
+        for x in expected:
+            self.assertIn(x, res)
+
+    def test_get_invalid_operations_for_qargs(self):
+        with self.assertRaises(KeyError):
+            self.ibm_target.operations_for_qargs((0, 102))
+        with self.assertRaises(KeyError):
+            self.ibm_target.operations_for_qargs(None)
+
     def test_get_operation_names_for_qargs(self):
         with self.assertRaises(KeyError):
             self.empty_target.operation_names_for_qargs((0,))
@@ -414,6 +441,20 @@ class TestTarget(QiskitTestCase):
         ideal_sim_expected = ["u", "rx", "ry", "rz", "cx", "ecr", "ccx", "measure"]
         for gate in ideal_sim_expected:
             self.assertIn(gate, self.ideal_sim_target.operation_names_for_qargs(None))
+
+    def test_get_operation_names_for_qargs_invalid_qargs(self):
+        with self.assertRaises(KeyError):
+            self.ibm_target.operation_names_for_qargs((0, 102))
+        with self.assertRaises(KeyError):
+            self.ibm_target.operation_names_for_qargs(None)
+
+    def test_get_operation_names_for_qargs_global_insts(self):
+        expected = {"r", "rx", "rz", "ry", "measure"}
+        self.assertEqual(self.aqt_target.operation_names_for_qargs((0,)), expected)
+        expected = {
+            "rxx",
+        }
+        self.assertEqual(self.aqt_target.operation_names_for_qargs((0, 1)), expected)
 
     def test_coupling_map(self):
         self.assertEqual(
@@ -472,6 +513,30 @@ class TestTarget(QiskitTestCase):
         self.assertEqual([], cmap.get_edges())
         with self.assertRaises(ValueError):
             fake_target.build_coupling_map("ccx")
+
+    def test_coupling_map_mixed_ideal_global_1q_and_2q_gates(self):
+        n_qubits = 3
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        target.add_instruction(RXGate(Parameter("theta")), {None: None})
+        cmap = target.build_coupling_map()
+        self.assertEqual([(0, 1), (1, 2)], cmap.get_edges())
+
+    def test_coupling_map_mixed_global_1q_and_2q_gates(self):
+        n_qubits = 3
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        target.add_instruction(RXGate(Parameter("theta")))
+        cmap = target.build_coupling_map()
+        self.assertEqual([(0, 1), (1, 2)], cmap.get_edges())
+
+    def test_coupling_map_mixed_ideal_global_2q_and_real_2q_gates(self):
+        n_qubits = 3
+        target = Target()
+        target.add_instruction(CXGate(), {(i, i + 1): None for i in range(n_qubits - 1)})
+        target.add_instruction(ECRGate())
+        cmap = target.build_coupling_map()
+        self.assertIsNone(cmap)
 
     def test_physical_qubits(self):
         self.assertEqual([], self.empty_target.physical_qubits)
@@ -1027,7 +1092,7 @@ class TestPulseTarget(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.pulse_target = Target(
-            dt=3e-7, granularity=2, min_length=4, pulse_alignment=8, aquire_alignment=8
+            dt=3e-7, granularity=2, min_length=4, pulse_alignment=8, acquire_alignment=8
         )
         with pulse.build(name="sx_q0") as self.custom_sx_q0:
             pulse.play(pulse.Constant(100, 0.1), pulse.DriveChannel(0))
@@ -1163,6 +1228,473 @@ Instructions:
                 f"Generated constraints differs from expected for attribute {i}"
                 f"{getattr(generated_constraints, i)}!={getattr(expected_constraints, i)}",
             )
+
+    def test_default_instmap_has_no_custom_gate(self):
+        backend = FakeGeneva()
+        target = backend.target
+
+        # This copies .calibraiton of InstructionProperties of each instruction
+        # This must not convert PulseQobj to Schedule during this.
+        # See qiskit-terra/#9595
+        inst_map = target.instruction_schedule_map()
+        self.assertFalse(inst_map.has_custom_gate())
+
+        # Get pulse schedule. This generates Schedule provided by backend.
+        sched = inst_map.get("sx", (0,))
+        self.assertEqual(sched.metadata["publisher"], CalibrationPublisher.BACKEND_PROVIDER)
+        self.assertFalse(inst_map.has_custom_gate())
+
+        # Update target with custom instruction. This is user provided schedule.
+        new_prop = InstructionProperties(
+            duration=self.custom_sx_q0.duration,
+            error=None,
+            calibration=self.custom_sx_q0,
+        )
+        target.update_instruction_properties(instruction="sx", qargs=(0,), properties=new_prop)
+        inst_map = target.instruction_schedule_map()
+        self.assertTrue(inst_map.has_custom_gate())
+
+        empty = InstructionProperties()
+        target.update_instruction_properties(instruction="sx", qargs=(0,), properties=empty)
+        inst_map = target.instruction_schedule_map()
+        self.assertFalse(inst_map.has_custom_gate())
+
+    def test_get_empty_target_calibration(self):
+        target = Target()
+        properties = {(0,): InstructionProperties(duration=100, error=0.1)}
+        target.add_instruction(XGate(), properties)
+
+        self.assertIsNone(target["x"][(0,)].calibration)
+
+
+class TestGlobalVariableWidthOperations(QiskitTestCase):
+    def setUp(self):
+        super().setUp()
+        self.theta = Parameter("theta")
+        self.phi = Parameter("phi")
+        self.lam = Parameter("lambda")
+        self.target_global_gates_only = Target(num_qubits=5)
+        self.target_global_gates_only.add_instruction(CXGate())
+        self.target_global_gates_only.add_instruction(UGate(self.theta, self.phi, self.lam))
+        self.target_global_gates_only.add_instruction(Measure())
+        self.target_global_gates_only.add_instruction(IfElseOp, name="if_else")
+        self.target_global_gates_only.add_instruction(ForLoopOp, name="for_loop")
+        self.target_global_gates_only.add_instruction(WhileLoopOp, name="while_loop")
+        self.ibm_target = Target()
+        i_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+            (2,): InstructionProperties(duration=35.5e-9, error=0.0004003),
+            (3,): InstructionProperties(duration=35.5e-9, error=0.000614),
+            (4,): InstructionProperties(duration=35.5e-9, error=0.006149),
+        }
+        self.ibm_target.add_instruction(IGate(), i_props)
+        rz_props = {
+            (0,): InstructionProperties(duration=0, error=0),
+            (1,): InstructionProperties(duration=0, error=0),
+            (2,): InstructionProperties(duration=0, error=0),
+            (3,): InstructionProperties(duration=0, error=0),
+            (4,): InstructionProperties(duration=0, error=0),
+        }
+        self.ibm_target.add_instruction(RZGate(self.theta), rz_props)
+        sx_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+            (2,): InstructionProperties(duration=35.5e-9, error=0.0004003),
+            (3,): InstructionProperties(duration=35.5e-9, error=0.000614),
+            (4,): InstructionProperties(duration=35.5e-9, error=0.006149),
+        }
+        self.ibm_target.add_instruction(SXGate(), sx_props)
+        x_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+            (2,): InstructionProperties(duration=35.5e-9, error=0.0004003),
+            (3,): InstructionProperties(duration=35.5e-9, error=0.000614),
+            (4,): InstructionProperties(duration=35.5e-9, error=0.006149),
+        }
+        self.ibm_target.add_instruction(XGate(), x_props)
+        cx_props = {
+            (3, 4): InstructionProperties(duration=270.22e-9, error=0.00713),
+            (4, 3): InstructionProperties(duration=305.77e-9, error=0.00713),
+            (3, 1): InstructionProperties(duration=462.22e-9, error=0.00929),
+            (1, 3): InstructionProperties(duration=497.77e-9, error=0.00929),
+            (1, 2): InstructionProperties(duration=227.55e-9, error=0.00659),
+            (2, 1): InstructionProperties(duration=263.11e-9, error=0.00659),
+            (0, 1): InstructionProperties(duration=519.11e-9, error=0.01201),
+            (1, 0): InstructionProperties(duration=554.66e-9, error=0.01201),
+        }
+        self.ibm_target.add_instruction(CXGate(), cx_props)
+        measure_props = {
+            (0,): InstructionProperties(duration=5.813e-6, error=0.0751),
+            (1,): InstructionProperties(duration=5.813e-6, error=0.0225),
+            (2,): InstructionProperties(duration=5.813e-6, error=0.0146),
+            (3,): InstructionProperties(duration=5.813e-6, error=0.0215),
+            (4,): InstructionProperties(duration=5.813e-6, error=0.0333),
+        }
+        self.ibm_target.add_instruction(Measure(), measure_props)
+        self.ibm_target.add_instruction(IfElseOp, name="if_else")
+        self.ibm_target.add_instruction(ForLoopOp, name="for_loop")
+        self.ibm_target.add_instruction(WhileLoopOp, name="while_loop")
+        self.aqt_target = Target(description="AQT Target")
+        rx_props = {
+            (0,): None,
+            (1,): None,
+            (2,): None,
+            (3,): None,
+            (4,): None,
+        }
+        self.aqt_target.add_instruction(RXGate(self.theta), rx_props)
+        ry_props = {
+            (0,): None,
+            (1,): None,
+            (2,): None,
+            (3,): None,
+            (4,): None,
+        }
+        self.aqt_target.add_instruction(RYGate(self.theta), ry_props)
+        rz_props = {
+            (0,): None,
+            (1,): None,
+            (2,): None,
+            (3,): None,
+            (4,): None,
+        }
+        self.aqt_target.add_instruction(RZGate(self.theta), rz_props)
+        r_props = {
+            (0,): None,
+            (1,): None,
+            (2,): None,
+            (3,): None,
+            (4,): None,
+        }
+        self.aqt_target.add_instruction(RGate(self.theta, self.phi), r_props)
+        rxx_props = {
+            (0, 1): None,
+            (0, 2): None,
+            (0, 3): None,
+            (0, 4): None,
+            (1, 0): None,
+            (2, 0): None,
+            (3, 0): None,
+            (4, 0): None,
+            (1, 2): None,
+            (1, 3): None,
+            (1, 4): None,
+            (2, 1): None,
+            (3, 1): None,
+            (4, 1): None,
+            (2, 3): None,
+            (2, 4): None,
+            (3, 2): None,
+            (4, 2): None,
+            (3, 4): None,
+            (4, 3): None,
+        }
+        self.aqt_target.add_instruction(RXXGate(self.theta), rxx_props)
+        measure_props = {
+            (0,): None,
+            (1,): None,
+            (2,): None,
+            (3,): None,
+            (4,): None,
+        }
+        self.aqt_target.add_instruction(Measure(), measure_props)
+        self.aqt_target.add_instruction(IfElseOp, name="if_else")
+        self.aqt_target.add_instruction(ForLoopOp, name="for_loop")
+        self.aqt_target.add_instruction(WhileLoopOp, name="while_loop")
+
+    def test_qargs(self):
+        expected_ibm = {
+            (0,),
+            (1,),
+            (2,),
+            (3,),
+            (4,),
+            (3, 4),
+            (4, 3),
+            (3, 1),
+            (1, 3),
+            (1, 2),
+            (2, 1),
+            (0, 1),
+            (1, 0),
+        }
+        self.assertEqual(expected_ibm, self.ibm_target.qargs)
+        expected_aqt = {
+            (0,),
+            (1,),
+            (2,),
+            (3,),
+            (4,),
+            (0, 1),
+            (0, 2),
+            (0, 3),
+            (0, 4),
+            (1, 0),
+            (2, 0),
+            (3, 0),
+            (4, 0),
+            (1, 2),
+            (1, 3),
+            (1, 4),
+            (2, 1),
+            (3, 1),
+            (4, 1),
+            (2, 3),
+            (2, 4),
+            (3, 2),
+            (4, 2),
+            (3, 4),
+            (4, 3),
+        }
+        self.assertEqual(expected_aqt, self.aqt_target.qargs)
+        self.assertEqual(None, self.target_global_gates_only.qargs)
+
+    def test_qargs_single_qarg(self):
+        target = Target()
+        target.add_instruction(XGate(), {(0,): None})
+        self.assertEqual(
+            {
+                (0,),
+            },
+            target.qargs,
+        )
+
+    def test_qargs_for_operation_name(self):
+        self.assertEqual(
+            self.ibm_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)}
+        )
+        self.assertEqual(
+            self.aqt_target.qargs_for_operation_name("rz"), {(0,), (1,), (2,), (3,), (4,)}
+        )
+        self.assertIsNone(self.target_global_gates_only.qargs_for_operation_name("cx"))
+        self.assertIsNone(self.ibm_target.qargs_for_operation_name("if_else"))
+        self.assertIsNone(self.aqt_target.qargs_for_operation_name("while_loop"))
+
+    def test_instruction_names(self):
+        self.assertEqual(
+            self.ibm_target.operation_names,
+            {"rz", "id", "sx", "x", "cx", "measure", "if_else", "while_loop", "for_loop"},
+        )
+        self.assertEqual(
+            self.aqt_target.operation_names,
+            {"rz", "ry", "rx", "rxx", "r", "measure", "if_else", "while_loop", "for_loop"},
+        )
+        self.assertEqual(
+            self.target_global_gates_only.operation_names,
+            {"u", "cx", "measure", "if_else", "while_loop", "for_loop"},
+        )
+
+    def test_operations_for_qargs(self):
+        expected = [
+            IGate(),
+            RZGate(self.theta),
+            SXGate(),
+            XGate(),
+            Measure(),
+            IfElseOp,
+            ForLoopOp,
+            WhileLoopOp,
+        ]
+        res = self.ibm_target.operations_for_qargs((0,))
+        self.assertEqual(len(expected), len(res))
+        for x in expected:
+            self.assertIn(x, res)
+        expected = [
+            CXGate(),
+            IfElseOp,
+            ForLoopOp,
+            WhileLoopOp,
+        ]
+        res = self.ibm_target.operations_for_qargs((0, 1))
+        self.assertEqual(len(expected), len(res))
+        for x in expected:
+            self.assertIn(x, res)
+        expected = [
+            RXGate(self.theta),
+            RYGate(self.theta),
+            RZGate(self.theta),
+            RGate(self.theta, self.phi),
+            Measure(),
+            IfElseOp,
+            ForLoopOp,
+            WhileLoopOp,
+        ]
+        res = self.aqt_target.operations_for_qargs((0,))
+        self.assertEqual(len(expected), len(res))
+        for x in expected:
+            self.assertIn(x, res)
+        expected = [RXXGate(self.theta), IfElseOp, ForLoopOp, WhileLoopOp]
+        res = self.aqt_target.operations_for_qargs((0, 1))
+        self.assertEqual(len(expected), len(res))
+        for x in expected:
+            self.assertIn(x, res)
+
+    def test_operation_names_for_qargs(self):
+        expected = {
+            "id",
+            "rz",
+            "sx",
+            "x",
+            "measure",
+            "if_else",
+            "for_loop",
+            "while_loop",
+        }
+        self.assertEqual(expected, self.ibm_target.operation_names_for_qargs((0,)))
+        expected = {
+            "cx",
+            "if_else",
+            "for_loop",
+            "while_loop",
+        }
+        self.assertEqual(expected, self.ibm_target.operation_names_for_qargs((0, 1)))
+        expected = {
+            "rx",
+            "ry",
+            "rz",
+            "r",
+            "measure",
+            "if_else",
+            "for_loop",
+            "while_loop",
+        }
+        self.assertEqual(self.aqt_target.operation_names_for_qargs((0,)), expected)
+        expected = {"rxx", "if_else", "for_loop", "while_loop"}
+        self.assertEqual(self.aqt_target.operation_names_for_qargs((0, 1)), expected)
+
+    def test_operations(self):
+        ibm_expected = [
+            RZGate(self.theta),
+            IGate(),
+            SXGate(),
+            XGate(),
+            CXGate(),
+            Measure(),
+            WhileLoopOp,
+            IfElseOp,
+            ForLoopOp,
+        ]
+        for gate in ibm_expected:
+            self.assertIn(gate, self.ibm_target.operations)
+        aqt_expected = [
+            RZGate(self.theta),
+            RXGate(self.theta),
+            RYGate(self.theta),
+            RGate(self.theta, self.phi),
+            RXXGate(self.theta),
+            ForLoopOp,
+            IfElseOp,
+            WhileLoopOp,
+        ]
+        for gate in aqt_expected:
+            self.assertIn(gate, self.aqt_target.operations)
+        fake_expected = [
+            UGate(self.theta, self.phi, self.lam),
+            CXGate(),
+            Measure(),
+            ForLoopOp,
+            WhileLoopOp,
+            IfElseOp,
+        ]
+        for gate in fake_expected:
+            self.assertIn(gate, self.target_global_gates_only.operations)
+
+    def test_add_invalid_instruction(self):
+        inst_props = {(0, 1, 2, 3): None}
+        target = Target()
+        with self.assertRaises(TranspilerError):
+            target.add_instruction(CXGate(), inst_props)
+
+    def test_instructions(self):
+        ibm_expected = [
+            (IGate(), (0,)),
+            (IGate(), (1,)),
+            (IGate(), (2,)),
+            (IGate(), (3,)),
+            (IGate(), (4,)),
+            (RZGate(self.theta), (0,)),
+            (RZGate(self.theta), (1,)),
+            (RZGate(self.theta), (2,)),
+            (RZGate(self.theta), (3,)),
+            (RZGate(self.theta), (4,)),
+            (SXGate(), (0,)),
+            (SXGate(), (1,)),
+            (SXGate(), (2,)),
+            (SXGate(), (3,)),
+            (SXGate(), (4,)),
+            (XGate(), (0,)),
+            (XGate(), (1,)),
+            (XGate(), (2,)),
+            (XGate(), (3,)),
+            (XGate(), (4,)),
+            (CXGate(), (3, 4)),
+            (CXGate(), (4, 3)),
+            (CXGate(), (3, 1)),
+            (CXGate(), (1, 3)),
+            (CXGate(), (1, 2)),
+            (CXGate(), (2, 1)),
+            (CXGate(), (0, 1)),
+            (CXGate(), (1, 0)),
+            (Measure(), (0,)),
+            (Measure(), (1,)),
+            (Measure(), (2,)),
+            (Measure(), (3,)),
+            (Measure(), (4,)),
+            (IfElseOp, None),
+            (ForLoopOp, None),
+            (WhileLoopOp, None),
+        ]
+        self.assertEqual(ibm_expected, self.ibm_target.instructions)
+        ideal_sim_expected = [
+            (CXGate(), None),
+            (UGate(self.theta, self.phi, self.lam), None),
+            (Measure(), None),
+            (IfElseOp, None),
+            (ForLoopOp, None),
+            (WhileLoopOp, None),
+        ]
+        self.assertEqual(ideal_sim_expected, self.target_global_gates_only.instructions)
+
+    def test_instruction_supported(self):
+        self.assertTrue(self.aqt_target.instruction_supported("r", (0,)))
+        self.assertFalse(self.aqt_target.instruction_supported("cx", (0, 1)))
+        self.assertTrue(self.target_global_gates_only.instruction_supported("cx", (0, 1)))
+        self.assertFalse(self.target_global_gates_only.instruction_supported("cx", (0, 524)))
+        self.assertFalse(self.target_global_gates_only.instruction_supported("cx", (0, 1, 2)))
+        self.assertTrue(self.aqt_target.instruction_supported("while_loop", (0, 1, 2, 3)))
+        self.assertTrue(
+            self.aqt_target.instruction_supported(operation_class=WhileLoopOp, qargs=(0, 1, 2, 3))
+        )
+        self.assertFalse(
+            self.ibm_target.instruction_supported(
+                operation_class=IfElseOp, qargs=(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+            )
+        )
+        self.assertFalse(
+            self.ibm_target.instruction_supported(operation_class=IfElseOp, qargs=(0, 425))
+        )
+        self.assertFalse(self.ibm_target.instruction_supported("for_loop", qargs=(0, 425)))
+
+    def test_coupling_map(self):
+        self.assertIsNone(self.target_global_gates_only.build_coupling_map())
+        self.assertEqual(
+            set(CouplingMap.from_full(5).get_edges()),
+            set(self.aqt_target.build_coupling_map().get_edges()),
+        )
+        self.assertEqual(
+            {
+                (3, 4),
+                (4, 3),
+                (3, 1),
+                (1, 3),
+                (1, 2),
+                (2, 1),
+                (0, 1),
+                (1, 0),
+            },
+            set(self.ibm_target.build_coupling_map().get_edges()),
+        )
 
 
 class TestInstructionProperties(QiskitTestCase):

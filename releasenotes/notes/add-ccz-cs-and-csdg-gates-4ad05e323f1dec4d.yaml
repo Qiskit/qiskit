@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Add new gates :class:`.CZZGate`, :class:`.CSGate`, and :class:`.CSdgGate`.
-    Added their equivalences into the standard :class:`EquivalenceLibrary`. 

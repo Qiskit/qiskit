@@ -10,13 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test of scikit-quant optimizers. """
+"""Test of scikit-quant optimizers."""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt, data, unpack
 
+import numpy
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
@@ -63,6 +64,10 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
+    @unittest.skipIf(
+        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
+    )
     def test_snobfit(self):
         """SNOBFIT optimizer test."""
         try:
@@ -71,6 +76,10 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
+    @unittest.skipIf(
+        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
+    )
     @data((None,), ([(-1, 1), (None, None)],))
     @unpack
     def test_snobfit_missing_bounds(self, bounds):
