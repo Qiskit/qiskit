@@ -205,6 +205,8 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             QNSPSA.get_fidelity(ansatz, backend=StatevectorSimulatorPy())
         with self.assertWarns(PendingDeprecationWarning):
             QNSPSA.get_fidelity(ansatz, expectation=MatrixExpectation())
+        # No warning when used correctly.
+        QNSPSA.get_fidelity(ansatz)
 
     def test_qnspsa_fidelity_primitives(self):
         """Test the primitives can be used in get_fidelity."""
