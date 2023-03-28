@@ -1,0 +1,31 @@
+---
+deprecations:
+  - |
+    In future passing multiple qubit arguments to controlled gate methods created multi-controlled
+    (and optionall multi-target) gates. The current behavior, where multiple arguments are
+    broadcasted to create multiple single-control single-target gates, is pending deprecation.
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+
+      circuit = QuantumCircuit(3)
+      circuit.cx([0, 1], 2)
+
+    currently creates two CX gates, one controlled on qubit 0 and acting on qubit 2
+    and a second one contolled on qubit 1 and acting on qubit 2. In future, this will create a
+    CCX gate, controlled on qubits 0 and 1 and acting on 2.
+
+    To construct two gates in future, the methods have to be called twice explicitly::
+
+      from qiskit.circuit import QuantumCircuit
+
+      circuit = QuantumCircuit(3)
+      circuit.cx(0, 2)
+      circuit.cx(1, 2)
+
+    The future behavior for multicontrolled gates can already be enabled as::
+
+      from qiskit.future import multicontrolled_gates
+
+    which also silences pending deprecation warnings.

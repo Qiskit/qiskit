@@ -22,6 +22,7 @@ import functools
 import multiprocessing as mp
 import string
 import re
+import warnings
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -39,6 +40,7 @@ from typing import (
 )
 import typing
 import numpy as np
+from qiskit import future
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
@@ -189,7 +191,8 @@ class QuantumCircuit:
 
            qc = QuantumCircuit(5)
            qc.h(0)
-           qc.cx(0, range(1, 5))
+           for i in range(1, 5):
+               qc.cx(0, i)
            qc.measure_all()
 
         Construct a 4-qubit Bernstein-Vazirani circuit using registers.
@@ -207,7 +210,8 @@ class QuantumCircuit:
            qc.x(anc[0])
            qc.h(anc[0])
            qc.h(qr[0:3])
-           qc.cx(qr[0:3], anc[0])
+           for q in qr[0:3]:
+               qc.cx(q, anc[0])
            qc.h(qr[0:3])
            qc.barrier(qr)
            qc.measure(qr, cr)
@@ -2965,18 +2969,29 @@ class QuantumCircuit:
             control_qubit: The qubit(s) used as the control.
             target_qubit: The qubit(s) targeted by the gate.
             label: The string label of the gate in the circuit.
-            ctrl_state:
-                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
-                on the '1' state.
+            ctrl_state: The control state in decimal, or as a bitstring (e.g. '1').
+                Defaults to controlling on the '1' state.
 
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.h import CHGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CHGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.h import HGate
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            gate = MCMT(HGate(), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.h import CHGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "ch")
+            gate = CHGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def i(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.IGate`.
@@ -3066,11 +3081,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.p import CPhaseGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CPhaseGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.p import PhaseGate
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            gate = MCMT(PhaseGate(theta), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.p import CPhaseGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "cp")
+            gate = CPhaseGate(theta, label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def mcp(
         self,
@@ -3234,11 +3261,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.rx import CRXGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CRXGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.rx import RXGate
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            gate = MCMT(RXGate(theta), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.rx import CRXGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "crx")
+            gate = CRXGate(theta, label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def rxx(
         self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
@@ -3302,11 +3341,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.ry import CRYGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CRYGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.ry import RYGate
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            gate = MCMT(RYGate(theta), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.ry import CRYGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "cry")
+            gate = CRYGate(theta, label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def ryy(
         self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
@@ -3367,11 +3418,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.rz import CRZGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CRZGate(theta, label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.rz import RZGate
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            gate = MCMT(RZGate(theta), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.rz import CRZGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "crz")
+            gate = CRZGate(theta, label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def rzx(
         self, theta: ParameterValueType, qubit1: QubitSpecifier, qubit2: QubitSpecifier
@@ -3563,20 +3626,38 @@ class QuantumCircuit:
             target_qubit1: The qubit(s) targeted by the gate.
             target_qubit2: The qubit(s) targeted by the gate.
             label: The string label of the gate in the circuit.
-            ctrl_state:
-                The control state in decimal, or as a bitstring (e.g. ``'1'``).  Defaults to controlling
-                on the ``'1'`` state.
+            ctrl_state: The control state in decimal, or as a bitstring (e.g. ``'1'``).  Defaults to
+                controlling on the ``'1'`` state.
 
         Returns:
             A handle to the instructions created.
-        """
-        from .library.standard_gates.swap import CSwapGate
 
-        return self.append(
-            CSwapGate(label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit1, target_qubit2],
-            [],
-        )
+        Raises:
+            NotImplementedError: If future behavior of multicontrolled gates is enabled and
+                multiple targets qubit are specified.
+        """
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets1 = self.qbit_argument_conversion(target_qubit1)
+        targets2 = self.qbit_argument_conversion(target_qubit2)
+
+        if future.__MULTICONTROLLED_GATES__ and len(controls) > 1:
+            if len(targets1) > 1 or len(targets2) > 1:
+                raise NotImplementedError(
+                    "The multi-control multi-target gate is not supported the SWAP gate."
+                )
+
+            from .library.standard_gates.swap import SwapGate
+
+            gate = SwapGate().control(len(controls), ctrl_state=ctrl_state)
+            qubits = controls + targets1 + targets2
+        else:
+            from .library.standard_gates.swap import CSwapGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets1, targets2], "cswap")
+            gate = CSwapGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit1, target_qubit2]
+
+        return self.append(gate, qubits, [])
 
     def fredkin(
         self,
@@ -3599,6 +3680,9 @@ class QuantumCircuit:
         See Also:
             QuantumCircuit.cswap: the same function with a different name.
         """
+        _warn_on_broadcasting_controlled_gate(
+            [control_qubit, target_qubit1, target_qubit2], "fredkin"
+        )
         return self.cswap(control_qubit, target_qubit1, target_qubit2)
 
     def sx(self, qubit: QubitSpecifier) -> InstructionSet:
@@ -3653,13 +3737,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.sx import CSXGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CSXGate(label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.sx import SXGate
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            gate = MCMT(SXGate(), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.sx import CSXGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "csx")
+            gate = CSXGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def t(self, qubit: QubitSpecifier) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.library.TGate`.
@@ -3738,20 +3832,31 @@ class QuantumCircuit:
             control_qubit: The qubit(s) used as the control.
             target_qubit: The qubit(s) targeted by the gate.
             label: The string label of the gate in the circuit.
-            ctrl_state:
-                The control state in decimal, or as a bitstring (e.g. '1').  Defaults to controlling
-                on the '1' state.
+            ctrl_state: The control state in decimal, or as a bitstring (e.g. '1').
+                Defaults to controlling on the '1' state.
 
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.u import CUGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state),
-            [control_qubit, target_qubit],
-            [],
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            u_gate = QuantumCircuit(1, global_phase=gamma, name="U")
+            u_gate.u(theta, phi, lam, 0)
+
+            gate = MCMT(u_gate, len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.u import CUGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "cu")
+            gate = CUGate(theta, phi, lam, gamma, label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def x(self, qubit: QubitSpecifier, label: Optional[str] = None) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.XGate`.
@@ -3791,12 +3896,29 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
+        if future.__MULTICONTROLLED_GATES__:
+            controls = self.qbit_argument_conversion(control_qubit)
+            targets = self.qbit_argument_conversion(target_qubit)
+            qubits = controls + targets
 
-        from .library.standard_gates.x import CXGate
+            if len(targets) == 1:
+                from .library.standard_gates.x import MCXGate
 
-        return self.append(
-            CXGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+                gate = MCXGate(len(controls), ctrl_state=ctrl_state)
+            else:
+                from .library.standard_gates.x import XGate
+                from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+                gate = MCMT(XGate(), len(controls), len(targets)).data[0][0]
+
+        else:
+            from .library.standard_gates.x import CXGate
+
+            _warn_on_broadcasting_controlled_gate([control_qubit, target_qubit], "cx")
+            gate = CXGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def cnot(
         self,
@@ -3865,6 +3987,8 @@ class QuantumCircuit:
         """
         from .library.standard_gates.x import CCXGate
 
+        _warn_on_broadcasting_controlled_gate([control_qubit1, control_qubit2, target_qubit], "ccx")
+
         return self.append(
             CCXGate(ctrl_state=ctrl_state),
             [control_qubit1, control_qubit2, target_qubit],
@@ -3892,6 +4016,9 @@ class QuantumCircuit:
         See Also:
             QuantumCircuit.ccx: the same gate with a different name.
         """
+        _warn_on_broadcasting_controlled_gate(
+            [control_qubit1, control_qubit2, target_qubit], "toffoli"
+        )
         return self.ccx(control_qubit1, control_qubit2, target_qubit)
 
     def mcx(
@@ -4046,11 +4173,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.y import CYGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CYGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.y import YGate
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            gate = MCMT(YGate(), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.y import CYGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "cy")
+            gate = CYGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def z(self, qubit: QubitSpecifier) -> InstructionSet:
         r"""Apply :class:`~qiskit.circuit.library.ZGate`.
@@ -4089,11 +4228,23 @@ class QuantumCircuit:
         Returns:
             A handle to the instructions created.
         """
-        from .library.standard_gates.z import CZGate
+        controls = self.qbit_argument_conversion(control_qubit)
+        targets = self.qbit_argument_conversion(target_qubit)
 
-        return self.append(
-            CZGate(label=label, ctrl_state=ctrl_state), [control_qubit, target_qubit], []
-        )
+        if future.__MULTICONTROLLED_GATES__ and (len(controls) > 1 or len(targets) > 1):
+            from .library.standard_gates.z import ZGate
+            from .library.generalized_gates.mcmt import MCMT  # pylint: disable=cyclic-import
+
+            gate = MCMT(ZGate(), len(controls), len(targets)).data[0][0]
+            qubits = controls + targets
+        else:
+            from .library.standard_gates.z import CZGate
+
+            _warn_on_broadcasting_controlled_gate([controls, targets], "cz")
+            gate = CZGate(label=label, ctrl_state=ctrl_state)
+            qubits = [control_qubit, target_qubit]
+
+        return self.append(gate, qubits, [])
 
     def ccz(
         self,
@@ -4947,6 +5098,22 @@ def _insert_composite_gate_definition_qasm(
 
     string_temp = string_temp.replace(extension_lib, f"{extension_lib}{gate_definition_string}")
     return string_temp
+
+
+def _warn_on_broadcasting_controlled_gate(qargs, name):
+    # check for multiple qubits
+    if any(isinstance(qarg, (tuple, list, np.ndarray)) and len(qarg) > 1 for qarg in qargs):
+        warnings.warn(
+            "Creating multiple single-controlled gates with a single call, "
+            "as QuantumCircuit.cx([0, 1], 2) is pending deprecation as of Qiskit "
+            "Terra 0.24.0 and will be deprecated no sooner than 6 months after its "
+            "release date. In future, this will construct a multi-controlled gate, where the "
+            "first argument determines the control qubits and the second the target qubit(s). "
+            f"To construct multiple gates, you can call the {name} method multiple times with a "
+            "single control and target.",
+            PendingDeprecationWarning,
+            stacklevel=3,
+        )
 
 
 def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_):
