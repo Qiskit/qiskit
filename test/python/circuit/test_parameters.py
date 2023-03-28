@@ -1299,30 +1299,30 @@ class TestParameterExpressions(QiskitTestCase):
         with self.assertRaisesRegex(CircuitError, "Name conflict"):
             expr.subs({x: y_second})
 
-    @data([2, 1.3, 0, -1, -1.0, numpy.pi, 1j])
-    def test_expressions_of_parameter_with_constant(self, good_constants):
+    @data(2, 1.3, 0, -1, -1.0, numpy.pi, 1j)
+    def test_expressions_of_parameter_with_constant(self, const):
         """Verify operating on a Parameter with a constant."""
 
         x = Parameter("x")
 
         for op in self.supported_operations:
-            for const in good_constants:
-                expr = op(const, x)
-                bound_expr = expr.bind({x: 2.3})
+            expr = op(const, x)
+            bound_expr = expr.bind({x: 2.3})
+            res = complex(bound_expr)
+            expected = op(const, 2.3)
+            self.assertTrue(cmath.isclose(res, expected), f"{res} != {expected}")
 
-                self.assertEqual(complex(bound_expr), op(const, 2.3))
+            # Division by zero will raise. Tested elsewhere.
+            if const == 0 and op == truediv:
+                continue
 
-                # Division by zero will raise. Tested elsewhere.
-                if const == 0 and op == truediv:
-                    continue
+            # Repeat above, swapping position of Parameter and constant.
+            expr = op(x, const)
+            bound_expr = expr.bind({x: 2.3})
 
-                # Repeat above, swapping position of Parameter and constant.
-                expr = op(x, const)
-                bound_expr = expr.bind({x: 2.3})
-
-                res = complex(bound_expr)
-                expected = op(2.3, const)
-                self.assertTrue(cmath.isclose(res, expected), f"{res} != {expected}")
+            res = complex(bound_expr)
+            expected = op(2.3, const)
+            self.assertTrue(cmath.isclose(res, expected), f"{res} != {expected}")
 
     def test_complex_parameter_bound_to_real(self):
         """Test a complex parameter expression can be real if bound correctly."""
