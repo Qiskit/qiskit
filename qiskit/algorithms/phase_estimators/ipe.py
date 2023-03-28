@@ -51,7 +51,8 @@ class IterativePhaseEstimation(PhaseEstimator):
         quantum_instance: QuantumInstance | Backend | None = None,
         sampler: BaseSampler | None = None,
     ) -> None:
-        r"""Args:
+        r"""
+        Args:
             num_iterations: The number of iterations (rounds) of the phase estimation to run.
             quantum_instance: Pending deprecation\: The quantum instance on which the
                 circuit will be run.
