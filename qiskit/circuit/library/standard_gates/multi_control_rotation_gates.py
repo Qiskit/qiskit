@@ -115,8 +115,10 @@ def mcsu2_real_diagonal(
     if unitary.shape != (2, 2):
         raise QiskitError("parameter unitary in mcsu2_real_diagonal must be a 2x2 matrix")
 
-    is_main_diag_real = np.isreal(np.real_if_close(unitary).diagonal()).all()
-    is_secondary_diag_real = np.isreal(np.real_if_close(np.fliplr(unitary)).diagonal()).all()
+    is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
+    is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
+        unitary[1, 0].imag, 0.0
+    )
 
     if not is_main_diag_real and not is_secondary_diag_real:
         raise QiskitError("parameter unitary in mcsu2_real_diagonal must have one real diagonal")
