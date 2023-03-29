@@ -74,16 +74,19 @@ class HLSConfig:
     documentation for :class:`~.HighLevelSynthesis`.
     """
 
-    def __init__(self, use_default_on_unspecified=True, **kwargs):
+    def __init__(self, use_default_on_unspecified=True, recurse=True, **kwargs):
         """Creates a high-level-synthesis config.
 
         Args:
             use_default_on_unspecified (bool): if True, every higher-level-object without an
                 explicitly specified list of methods will be synthesized using the "default"
                 algorithm if it exists.
+            recurse (bool): if True, also recursively processes objects in gates' ``definition``
+                field, if such exists.
             kwargs: a dictionary mapping higher-level-objects to lists of synthesis methods.
         """
         self.use_default_on_unspecified = use_default_on_unspecified
+        self.recurse = recurse
         self.methods = {}
 
         for key, value in kwargs.items():
@@ -202,11 +205,20 @@ class HighLevelSynthesis(TransformationPass):
         if decomposition:
             return decomposition
 
-        # Third, recursively descend into op's definition if exists
-        if getattr(op, "definition", None) is not None:
-            dag = circuit_to_dag(op.definition)
-            dag = self.run(dag)
-            op.definition = dag_to_circuit(dag)
+        # Third, optionally recursively descend into op's definition if exists
+        if self.hls_config.recurse:
+            try:
+                # extract definition
+                definition = op.definition
+            except TypeError as err:
+                raise TranspilerError(
+                    f"HighLevelSynthesis was unable to extract definition for {op.name}: {err}"
+                )
+
+            if definition is not None:
+                dag = circuit_to_dag(definition)
+                dag = self.run(dag)
+                op.definition = dag_to_circuit(dag)
 
         return op
 
@@ -283,9 +295,7 @@ class HighLevelSynthesis(TransformationPass):
         if isinstance(op, AnnotatedOperation):
             synthesized_op = self._recursively_handle_op(op.base_op)
 
-            if not synthesized_op:
-                raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op.base_op}.")
-            if not isinstance(synthesized_op, (QuantumCircuit, Gate)):
+            if not synthesized_op or not isinstance(synthesized_op, (QuantumCircuit, Gate)):
                 raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op.base_op}.")
 
             for modifier in op.modifiers:

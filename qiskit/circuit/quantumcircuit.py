@@ -1558,12 +1558,12 @@ class QuantumCircuit:
         """
         # pylint: disable=cyclic-import
         from qiskit.transpiler.passes.basis.decompose import Decompose
-        from qiskit.transpiler.passes.synthesis import HighLevelSynthesis
+        from qiskit.transpiler.passes.synthesis import HighLevelSynthesis, HLSConfig
         from qiskit.converters.circuit_to_dag import circuit_to_dag
         from qiskit.converters.dag_to_circuit import dag_to_circuit
 
         dag = circuit_to_dag(self)
-        dag = HighLevelSynthesis().run(dag)
+        dag = HighLevelSynthesis(HLSConfig(recurse=False)).run(dag)
         pass_ = Decompose(gates_to_decompose)
         for _ in range(reps):
             dag = pass_.run(dag)
