@@ -210,7 +210,12 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         ansatz = PauliTwoDesign(2, reps=1, seed=2)
 
         with self.assertWarns(DeprecationWarning):
-            _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
+            QNSPSA.get_fidelity(ansatz, backend=StatevectorSimulatorPy())
+        with self.assertWarns(DeprecationWarning):
+            QNSPSA.get_fidelity(ansatz, expectation=MatrixExpectation())
+        # No warning when used correctly.
+        QNSPSA.get_fidelity(ansatz)
+
 
     def test_qnspsa_fidelity_primitives(self):
         """Test the primitives can be used in get_fidelity."""

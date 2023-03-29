@@ -23,8 +23,6 @@ from qiskit.circuit import Parameter
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from qiskit.algorithms.utils.assign_params import _assign_parameters
-
 from ..variational_principles import VariationalPrinciple
 
 
@@ -115,13 +113,12 @@ class VarQTELinearSolver:
 
         if self._time_param is not None:
             if time_value is not None:
-                bound_params_array = _assign_parameters(self._hamiltonian.coeffs, [time_value])
-                hamiltonian = SparsePauliOp(self._hamiltonian.paulis, bound_params_array)
+                hamiltonian = hamiltonian.assign_parameters([time_value])
             else:
                 raise ValueError(
-                    f"Providing a time_value is required for time-dependant hamiltonians, "
+                    "Providing a time_value is required for time-dependent hamiltonians, "
                     f"but got time_value = {time_value}. "
-                    f"Please provide a time_value to the solve_lse method."
+                    "Please provide a time_value to the solve_lse method."
                 )
 
         evolution_grad_lse_rhs = self._var_principle.evolution_gradient(

@@ -12,7 +12,8 @@
 
 """The two-local gate circuit."""
 
-from typing import Union, Optional, List, Callable, Any
+from __future__ import annotations
+from typing import Union, Optional, List, Callable, Any, Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit import Gate, Instruction, Parameter
@@ -308,7 +309,7 @@ class TwoLocal(NLocal):
 
     def get_entangler_map(
         self, rep_num: int, block_num: int, num_block_qubits: int
-    ) -> List[List[int]]:
+    ) -> Sequence[Sequence[int]]:
         """Overloading to handle the special case of 1 qubit where the entanglement are ignored."""
         if self.num_qubits <= 1:
             return []
