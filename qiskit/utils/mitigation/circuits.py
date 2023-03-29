@@ -27,7 +27,7 @@ from qiskit.utils.deprecation import deprecate_func
     additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def count_keys(num_qubits: int) -> List[str]:
-    """Deprecation: Return ordered count keys.
+    """Return ordered count keys.
 
     Args:
         num_qubits: The number of qubits in the generated list.
@@ -51,7 +51,7 @@ def complete_meas_cal(
     circlabel: str = "",
 ) -> Tuple[List["QuantumCircuit"], List[str]]:
     """
-    Deprecation: Return a list of measurement calibration circuits for the full
+    Return a list of measurement calibration circuits for the full
     Hilbert space.
 
     If the circuit contains :math:`n` qubits, then :math:`2^n` calibration circuits
@@ -132,7 +132,7 @@ def tensored_meas_cal(
     circlabel: str = "",
 ) -> Tuple[List["QuantumCircuit"], List[List[int]]]:
     """
-    Deprecation: Return a list of calibration circuits
+    Return a list of calibration circuits
 
     Args:
         mit_pattern: Qubits on which to perform the

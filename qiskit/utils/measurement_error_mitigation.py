@@ -38,7 +38,7 @@ def get_measured_qubits(
     transpiled_circuits: List[QuantumCircuit],
 ) -> Tuple[List[int], Dict[str, List[int]]]:
     """
-    Deprecation: Retrieve the measured qubits from transpiled circuits.
+    Retrieve the measured qubits from transpiled circuits.
 
     Args:
         transpiled_circuits: a list of transpiled circuits
@@ -87,7 +87,7 @@ def get_measured_qubits(
 )
 def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, List[int]]]:
     """
-    Deprecation: Retrieve the measured qubits from transpiled circuits.
+    Retrieve the measured qubits from transpiled circuits.
 
     Args:
         qobj: qobj
@@ -141,7 +141,7 @@ def build_measurement_error_mitigation_circuits(
     compile_config: Optional[Dict] = None,
     mit_pattern: Optional[List[List[int]]] = None,
 ) -> Tuple[QuantumCircuit, List[str], List[str]]:
-    """Deprecation: Build measurement error mitigation circuits
+    """Build measurement error mitigation circuits
     Args:
         qubit_list: list of ordered qubits used in the algorithm
         fitter_cls: CompleteMeasFitter or TensoredMeasFitter

@@ -216,7 +216,7 @@ class CompleteMeasFitter:
 
 class TensoredMeasFitter:
     """
-    Deprecation: Measurement correction fitter for a tensored calibration.
+    Measurement correction fitter for a tensored calibration.
     """
 
     @deprecate_func(

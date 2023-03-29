@@ -125,7 +125,7 @@ class _MeasFitterType(Enum):
 
 
 class QuantumInstance:
-    """Deprecation: Quantum Backend including execution setting."""
+    """Quantum Backend including execution setting."""
 
     _BACKEND_CONFIG = ["basis_gates", "coupling_map"]
     _COMPILE_CONFIG = ["initial_layout", "seed_transpiler", "optimization_level"]
