@@ -56,6 +56,7 @@ class EventsOutputChannels:
         "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
         " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
         " In no less than 6 months the old objects will be completely removed.",
+        since="0.23.0",
     )
     def __init__(self, t0: int, tf: int):
         """Create new channel dataset.
@@ -290,6 +291,7 @@ class WaveformDrawer:
         "`qiskit.visualization.pulse` and all its contents are deprecated since Terra 0.23."
         " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
         " In no less than 6 months the old objects will be completely removed.",
+        since="0.23.0",
     )
     def __init__(self, style: PulseStyle):
         """Create new figure.
@@ -391,6 +393,7 @@ class ScheduleDrawer:
         " The new interface for pulse visualization is `qiskit.visualization.pulse_drawer`."
         " In no less than 6 months the old objects will be completely removed.",
         stacklevel=3,
+        since="0.23.0",
     )
     def __init__(self, style: SchedStyle):
         """Create new figure.

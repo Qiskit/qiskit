@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliTrotterEvolution Class """
+"""PauliTrotterEvolution Class"""
 
 import logging
 from typing import Optional, Union, cast

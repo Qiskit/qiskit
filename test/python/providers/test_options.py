@@ -133,8 +133,8 @@ class TestOptionsSimpleNamespaceBackwardCompatibility(QiskitTestCase):
 
     def test_setting_attributes(self):
         options = Options()
-        options.hello = "world"  # pylint: disable=assigning-non-slot
-        options.a = "b"  # pylint: disable=assigning-non-slot
+        options.hello = "world"
+        options.a = "b"
         self.assertEqual(options.get("hello"), "world")
         self.assertEqual(options.get("a"), "b")
         self.assertEqual(options.__dict__, {"hello": "world", "a": "b"})

@@ -119,32 +119,31 @@ class LinCombQGT(BaseQGT):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> QGTResult:
         """Compute the QGT on the given circuits."""
-        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
-            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
+        g_circuits, g_parameter_values, g_parameters = self._preprocess(
+            circuits, parameter_values, parameters, self.SUPPORTED_GATES
         )
-        results = self._run_unique(g_circuits, g_parameter_values, g_parameter_sets, **options)
-        return self._postprocess(results, circuits, parameter_values, parameter_sets)
+        results = self._run_unique(g_circuits, g_parameter_values, g_parameters, **options)
+        return self._postprocess(results, circuits, parameter_values, parameters)
 
     def _run_unique(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> QGTResult:
         """Compute the QGTs on the given circuits."""
         job_circuits, job_observables, job_param_values, metadata = [], [], [], []
         all_n, all_m, phase_fixes = [], [], []
 
-        for circuit, parameter_values_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
-        ):
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # Prepare circuits for the gradient of the specified parameters.
-            meta = {"parameters": [p for p in circuit.parameters if p in parameter_set]}
+            parameters_ = [p for p in circuit.parameters if p in parameters_]
+            meta = {"parameters": parameters_}
             metadata.append(meta)
 
             # Compute the first term in the QGT
@@ -157,11 +156,10 @@ class LinCombQGT(BaseQGT):
             lin_comb_qgt_circuits = self._lin_comb_qgt_circuit_cache[circuit_key]
 
             qgt_circuits = []
-            parameters = [p for p in circuit.parameters if p in parameter_set]
-            rows, cols = np.triu_indices(len(parameters))
+            rows, cols = np.triu_indices(len(parameters_))
             for row, col in zip(rows, cols):
-                param_i = parameters[row]
-                param_j = parameters[col]
+                param_i = parameters_[row]
+                param_j = parameters_[col]
                 qgt_circuits.append(lin_comb_qgt_circuits[(param_i, param_j)])
 
             observable = SparsePauliOp.from_list([("I" * circuit.num_qubits, 1)])
@@ -174,13 +172,13 @@ class LinCombQGT(BaseQGT):
                 job_circuits.extend(qgt_circuits * 2)
                 job_observables.extend([observable_1] * n + [observable_2] * n)
                 job_param_values.extend([parameter_values_] * 2 * n)
-                all_m.append(len(parameter_set))
+                all_m.append(len(parameters_))
                 all_n.append(2 * n)
             else:
                 job_circuits.extend(qgt_circuits)
                 job_observables.extend([observable_1] * n)
                 job_param_values.extend([parameter_values_] * n)
-                all_m.append(len(parameter_set))
+                all_m.append(len(parameters_))
                 all_n.append(n)
 
         # Run the single job with all circuits.
@@ -200,7 +198,7 @@ class LinCombQGT(BaseQGT):
                 circuits=circuits,
                 observables=phase_fix_obs,
                 parameter_values=parameter_values,
-                parameters=parameter_sets,
+                parameters=parameters,
                 **options,
             )
 

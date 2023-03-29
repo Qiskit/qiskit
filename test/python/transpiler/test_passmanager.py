@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-class-docstring,missing-function-docstring
+# pylint: disable=missing-class-docstring
 
 """Test the passmanager logic"""
 
@@ -129,7 +129,7 @@ class TestPassManager(QiskitTestCase):
             def run(self, dag):
                 return dag
 
-        def repeat(count):  # pylint: disable=unused-argument
+        def repeat(count):
             def condition(_):
                 nonlocal count
                 if not count:

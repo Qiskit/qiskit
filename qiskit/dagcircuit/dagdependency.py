@@ -320,7 +320,7 @@ class DAGDependency:
         Returns:
             List: direct successors id as a sorted list
         """
-        return sorted(list(self._multi_graph.adj_direction(node_id, False).keys()))
+        return sorted(self._multi_graph.adj_direction(node_id, False).keys())
 
     def direct_predecessors(self, node_id):
         """
@@ -332,7 +332,7 @@ class DAGDependency:
         Returns:
             List: direct predecessors id as a sorted list
         """
-        return sorted(list(self._multi_graph.adj_direction(node_id, True).keys()))
+        return sorted(self._multi_graph.adj_direction(node_id, True).keys())
 
     def successors(self, node_id):
         """

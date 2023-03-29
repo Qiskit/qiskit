@@ -30,7 +30,7 @@ from .sampler_gradient_result import SamplerGradientResult
 from ..exceptions import AlgorithmError
 
 if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
+    # pylint: disable=ungrouped-imports
     from typing import Literal
 else:
     from typing_extensions import Literal
@@ -86,20 +86,16 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         job_circuits, job_param_values, metadata = [], [], []
         all_n = []
-        for circuit, parameter_values_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
-        ):
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # Indices of parameters to be differentiated
-            indices = [
-                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
-            ]
-            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+            indices = [circuit.parameters.data.index(p) for p in parameters_]
+            metadata.append({"parameters": parameters_})
             # Combine inputs into a single job to reduce overhead.
             offset = np.identity(circuit.num_parameters)[indices, :]
             if self._method == "central":
