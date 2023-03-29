@@ -22,7 +22,7 @@ from ..list_or_dict import ListOrDict
 
 
 class EvolutionProblem:
-    """Pending deprecation: Evolution problem class.
+    """Deprecated: Evolution problem class.
 
     The EvolutionProblem class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.TimeEvolutionProblem` class.
@@ -35,10 +35,10 @@ class EvolutionProblem:
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the class ``qiskit.algorithms.time_evolvers.TimeEvolutionProblem``."
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.TimeEvolutionProblem``. "
+            "See http://qisk.it/algo_migration for a migration guide."
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.24.0",
     )
     def __init__(
         self,

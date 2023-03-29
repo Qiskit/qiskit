@@ -93,9 +93,11 @@ class HamiltonianPhaseEstimation:
 
     @deprecate_arg(
         "quantum_instance",
-        additional_msg="Instead, use the ``sampler`` argument.",
-        since="0.22.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See http://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -107,7 +109,7 @@ class HamiltonianPhaseEstimation:
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
-            quantum_instance: Pending deprecation\: The quantum instance on which
+            quantum_instance: Deprecated: The quantum instance on which
                 the circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
         """

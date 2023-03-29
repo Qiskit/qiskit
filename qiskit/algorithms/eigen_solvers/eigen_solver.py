@@ -24,7 +24,7 @@ from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):
-    """Pending deprecation: Eigensolver Interface.
+    """Deprecated: Eigensolver Interface.
 
     The Eigensolver interface has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.Eigensolver` interface.
@@ -37,9 +37,11 @@ class Eigensolver(ABC):
     """
 
     @deprecate_func(
-        additional_msg="Instead, use the interface ``qiskit.algorithms.eigensolvers.Eigensolver``",
-        since="0.23.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the interface ``qiskit.algorithms.eigensolvers.Eigensolver``. See "
+            "http://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(self) -> None:
         pass
@@ -77,7 +79,7 @@ class Eigensolver(ABC):
 
 
 class EigensolverResult(AlgorithmResult):
-    """Pending deprecation: Eigensolver Result.
+    """Deprecated: Eigensolver Result.
 
     The EigensolverResult class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.EigensolverResult` class.
@@ -88,10 +90,10 @@ class EigensolverResult(AlgorithmResult):
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the class ``qiskit.algorithms.eigensolvers.EigensolverResult``."
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.EigensolverResult``. "
+            "See http://qisk.it/algo_migration for a migration guide."
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.24.0",
     )
     def __init__(self) -> None:
         super().__init__()

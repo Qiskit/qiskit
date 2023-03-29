@@ -37,7 +37,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class TrotterQRTE(RealEvolver):
-    """Pending deprecation: Quantum Real Time Evolution using Trotterization.
+    """Deprecated: Quantum Real Time Evolution using Trotterization.
 
     The TrotterQRTE class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class.
@@ -67,9 +67,9 @@ class TrotterQRTE(RealEvolver):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class ``qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE``."
+            " See http://qisk.it/algo_migration for a migration guide."
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.24.0",
     )
     def __init__(
         self,

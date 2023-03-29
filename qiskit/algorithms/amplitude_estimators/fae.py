@@ -50,9 +50,11 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     @deprecate_arg(
         "quantum_instance",
-        additional_msg="Instead, use the ``sampler`` argument.",
-        since="0.22.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See http://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -67,7 +69,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             delta: The probability that the true value is outside of the final confidence interval.
             maxiter: The number of iterations, the maximal power of Q is `2 ** (maxiter - 1)`.
             rescale: Whether to rescale the problem passed to `estimate`.
-            quantum_instance: Pending deprecation\: The quantum instance or backend
+            quantum_instance: Deprecated: The quantum instance or backend
                 to run the circuits.
             sampler: A sampler primitive to evaluate the circuits.
 
@@ -108,9 +110,13 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+    )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation; Get the quantum instance.
+        """Deprecated. Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -118,9 +124,13 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+    )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Pending deprecation; Set quantum instance.
+        """Deprecated. Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.

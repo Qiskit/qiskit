@@ -114,9 +114,11 @@ class Grover(AmplitudeAmplifier):
 
     @deprecate_arg(
         "quantum_instance",
-        additional_msg="Instead, use the ``sampler`` argument.",
-        since="0.22.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. "
+            "See http://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -143,7 +145,7 @@ class Grover(AmplitudeAmplifier):
             sample_from_iterations: If True, instead of taking the values in ``iterations`` as
                 powers of the Grover operator, a random integer sample between 0 and smaller value
                 than the iteration is used as a power, see [1], Section 4.
-            quantum_instance: Pending deprecation: A Quantum Instance or Backend to run the circuits.
+            quantum_instance: Deprecated: A Quantum Instance or Backend to run the circuits.
             sampler: A Sampler to use for sampling the results of the circuits.
 
         Raises:
@@ -181,7 +183,7 @@ class Grover(AmplitudeAmplifier):
         self._quantum_instance = None
         if quantum_instance is not None:
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore", category=PendingDeprecationWarning)
+                warnings.simplefilter("ignore")
                 self.quantum_instance = quantum_instance
 
         self._sampler = sampler
@@ -190,9 +192,13 @@ class Grover(AmplitudeAmplifier):
         self._iterations_arg = iterations
 
     @property
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+    )
     def quantum_instance(self) -> Optional[QuantumInstance]:
-        r"""Pending deprecation\; Get the quantum instance.
+        r"""Deprecated. Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -200,9 +206,13 @@ class Grover(AmplitudeAmplifier):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+    )
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
-        r"""Pending deprecation\; Set quantum instance.
+        r"""Deprecated. Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.

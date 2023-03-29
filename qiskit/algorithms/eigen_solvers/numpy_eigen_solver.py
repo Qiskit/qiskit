@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 class NumPyEigensolver(Eigensolver):
     r"""
-    Pending deprecation: NumPy Eigensolver algorithm.
+    Deprecated: NumPy Eigensolver algorithm.
 
     The NumPyEigensolver class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.NumPyEigensolver` class.
@@ -48,10 +48,10 @@ class NumPyEigensolver(Eigensolver):
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the class ``qiskit.algorithms.eigensolvers.NumPyEigensolver``."
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.NumPyEigensolver``. "
+            "See http://qisk.it/algo_migration for a migration guide."
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.24.0",
     )
     def __init__(
         self,

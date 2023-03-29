@@ -22,7 +22,7 @@ from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):
-    """Pending deprecation: Class for holding evolution result.
+    """Deprecated: Class for holding evolution result.
 
     The EvolutionResult class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.TimeEvolutionResult` class.
@@ -33,10 +33,10 @@ class EvolutionResult(AlgorithmResult):
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the class ``qiskit.algorithms.time_evolvers.TimeEvolutionResult``."
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.TimeEvolutionResult``. "
+            "See http://qisk.it/algo_migration for a migration guide."
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.24.0",
     )
     def __init__(
         self,

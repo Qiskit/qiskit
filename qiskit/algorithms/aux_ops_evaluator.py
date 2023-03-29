@@ -34,10 +34,10 @@ from .list_or_dict import ListOrDict
 @deprecate_func(
     additional_msg=(
         "Instead, use the function "
-        "``qiskit.algorithms.observables_evaluator.estimate_observables``."
+        "``qiskit.algorithms.observables_evaluator.estimate_observables``. See "
+        "http://qisk.it/algo_migration for a migration guide."
     ),
-    since="0.23.0",
-    pending=True,
+    since="0.24.0",
 )
 def eval_observables(
     quantum_instance: Union[QuantumInstance, Backend],
@@ -51,7 +51,7 @@ def eval_observables(
     threshold: float = 1e-12,
 ) -> ListOrDict[Tuple[complex, complex]]:
     """
-    Pending deprecation: Accepts a list or a dictionary of operators and calculates
+    Deprecated: Accepts a list or a dictionary of operators and calculates
     their expectation values - means
     and standard deviations. They are calculated with respect to a quantum state provided. A user
     can optionally provide a threshold value which filters mean values falling below the threshold.
