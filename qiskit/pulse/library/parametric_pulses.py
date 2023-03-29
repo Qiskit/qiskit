@@ -36,7 +36,6 @@ by following the existing pattern:
         ...
         new_supported_pulse_name = library.YourPulseWaveformClass
 """
-import warnings
 from abc import abstractmethod
 from typing import Any, Dict, Optional, Union
 
@@ -49,6 +48,7 @@ from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ParametricPulse(Pulse):
@@ -63,6 +63,14 @@ class ParametricPulse(Pulse):
     """
 
     @abstractmethod
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use SymbolPulse because of QPY serialization support. See "
+            "qiskit.pulse.library.symbolic_pulses for details."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -79,14 +87,6 @@ class ParametricPulse(Pulse):
                              amplitude is constrained to 1.
         """
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
-
-        warnings.warn(
-            "ParametricPulse and its subclass will be deprecated and will be replaced with "
-            "SymbolicPulse and its subclass because of QPY serialization support. "
-            "See qiskit.pulse.library.symbolic_pulses for details.",
-            PendingDeprecationWarning,
-            stacklevel=3,
-        )
         self.validate_parameters()
 
     @abstractmethod
@@ -132,6 +132,14 @@ class Gaussian(ParametricPulse):
     and practical DSP reasons it has the name ``Gaussian``.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use Gaussian from qiskit.pulse.library.symbolic_pulses because of "
+            "QPY serialization support."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -236,6 +244,14 @@ class GaussianSquare(ParametricPulse):
     and practical DSP reasons it has the name ``GaussianSquare``.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use GaussianSquare from qiskit.pulse.library.symbolic_pulses because of "
+            "QPY serialization support."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -398,6 +414,14 @@ class Drag(ParametricPulse):
            Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use Drag from qiskit.pulse.library.symbolic_pulses because of "
+            "QPY serialization support."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -513,6 +537,14 @@ class Constant(ParametricPulse):
         f(x) = 0      ,  elsewhere
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use Constant from qiskit.pulse.library.symbolic_pulses because of "
+            "QPY serialization support."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],

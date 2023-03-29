@@ -29,6 +29,7 @@ from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
 from qiskit.utils import optionals as _optional
+from qiskit.utils.deprecation import deprecate_arg
 
 if _optional.HAS_SYMENGINE:
     import symengine as sym
@@ -586,6 +587,18 @@ class ScalableSymbolicPulse(SymbolicPulse):
     :math:'\text{amp}\times\exp\left(i\times\text{angle}\right)' is compared.
     """
 
+    @deprecate_arg(
+        "amp",
+        deprecation_description=(
+            "Setting ``amp`` to a complex in the ScalableSymbolicPulse constructor"
+        ),
+        additional_msg=(
+            "Instead, use a float for ``amp`` (for the magnitude) and a float for ``angle``"
+        ),
+        since="0.23.0",
+        pending=True,
+        predicate=lambda amp: isinstance(amp, complex),
+    )
     def __init__(
         self,
         pulse_type: str,
@@ -620,18 +633,10 @@ class ScalableSymbolicPulse(SymbolicPulse):
 
         Raises:
             PulseError: If both `amp` is complex and `angle` is not `None` or 0.
-
         """
-        # This should be removed once complex amp support is deprecated.
-        if isinstance(amp, complex):
-            if angle is None or angle == 0:
-                warnings.warn(
-                    "Complex amp will be deprecated. "
-                    "Use float amp (for the magnitude) and float angle instead.",
-                    PendingDeprecationWarning,
-                )
-            else:
-                raise PulseError("amp can't be complex with angle not None or 0")
+        # This should be removed once complex amp support is removed.
+        if isinstance(amp, complex) and (angle is not None or angle != 0):
+            raise PulseError("amp can't be complex with angle not None or 0")
 
         if angle is None:
             angle = 0
