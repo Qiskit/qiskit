@@ -18,7 +18,7 @@ import warnings
 import numpy as np
 
 from qiskit.opflow import OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..list_or_dict import ListOrDict
@@ -37,13 +37,13 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
 
     """
 
-    @deprecate_function(
-        "The NumPyMinimumEigensolver class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class "
+            "``qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver``."
+        ),
         since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,

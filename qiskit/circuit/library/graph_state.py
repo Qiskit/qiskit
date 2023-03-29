@@ -12,7 +12,7 @@
 
 """Graph State circuit."""
 
-from typing import Union, List
+from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -56,7 +56,7 @@ class GraphState(QuantumCircuit):
         `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
     """
 
-    def __init__(self, adjacency_matrix: Union[List, np.array]) -> None:
+    def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
         """Create graph state preparation circuit.
 
         Args:

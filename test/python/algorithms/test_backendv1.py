@@ -13,17 +13,15 @@
 """Test Providers that support BackendV1 interface"""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.providers.fake_provider import FakeProvider
 from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.algorithms import Shor, VQE, Grover, AmplificationProblem
+from qiskit.algorithms import VQE, Grover, AmplificationProblem
 from qiskit.opflow import X, Z, I
 from qiskit.algorithms.optimizers import SPSA
 from qiskit.circuit.library import TwoLocal, EfficientSU2
 from qiskit.utils.mitigation import CompleteMeasFitter
-from qiskit.test import slow_test
 
 
 class TestBackendV1(QiskitAlgorithmsTestCase):
@@ -34,26 +32,6 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         self._provider = FakeProvider()
         self._qasm = self._provider.get_backend("fake_qasm_simulator")
         self.seed = 50
-
-    @slow_test
-    def test_shor_factoring(self):
-        """shor factoring test"""
-        n_v = 15
-        factors = [3, 5]
-        qasm_simulator = QuantumInstance(
-            self._qasm, shots=1000, seed_simulator=self.seed, seed_transpiler=self.seed
-        )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            shor = Shor(quantum_instance=qasm_simulator)
-            self.assertTrue("Shor class is deprecated" in str(caught_warnings[0].message))
-
-        result = shor.factor(N=n_v)
-        self.assertListEqual(result.factors[0], factors)
-        self.assertTrue(result.total_counts >= result.successful_counts)
 
     def test_vqe_qasm(self):
         """Test the VQE on QASM simulator."""

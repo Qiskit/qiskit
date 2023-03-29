@@ -12,8 +12,9 @@
 
 "Container to encapsulate all control flow operations."
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Tuple, Iterable
+from typing import Iterable
 
 from qiskit.circuit import QuantumCircuit, Instruction
 
@@ -23,7 +24,7 @@ class ControlFlowOp(Instruction, ABC):
 
     @property
     @abstractmethod
-    def blocks(self) -> Tuple[QuantumCircuit, ...]:
+    def blocks(self) -> tuple[QuantumCircuit, ...]:
         """Tuple of QuantumCircuits which may be executed as part of the
         execution of this ControlFlowOp. May be parameterized by a loop
         parameter to be resolved at run time.

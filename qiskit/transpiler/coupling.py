@@ -19,6 +19,8 @@ CNOT gates. The object has a distance function that can be used to map quantum c
 onto a device with this coupling.
 """
 
+import math
+from typing import List
 import warnings
 
 import numpy as np
@@ -37,7 +39,14 @@ class CouplingMap:
     and target qubits, respectively.
     """
 
-    __slots__ = ("description", "graph", "_dist_matrix", "_qubit_list", "_size", "_is_symmetric")
+    __slots__ = (
+        "description",
+        "graph",
+        "_dist_matrix",
+        "_qubit_list",
+        "_size",
+        "_is_symmetric",
+    )
 
     def __init__(self, couplinglist=None, description=None):
         """
@@ -160,7 +169,11 @@ class CouplingMap:
 
     @property
     def distance_matrix(self):
-        """Return the distance matrix for the coupling map."""
+        """Return the distance matrix for the coupling map.
+
+        For any qubits where there isn't a path available between them the value
+        in this position of the distance matrix will be ``math.inf``.
+        """
         self.compute_distance_matrix()
         return self._dist_matrix
 
@@ -175,9 +188,9 @@ class CouplingMap:
         those or want to pre-generate it.
         """
         if self._dist_matrix is None:
-            if not self.is_connected():
-                raise CouplingError("coupling graph not connected")
-            self._dist_matrix = rx.digraph_distance_matrix(self.graph, as_undirected=True)
+            self._dist_matrix = rx.digraph_distance_matrix(
+                self.graph, as_undirected=True, null_value=math.inf
+            )
 
     def distance(self, physical_qubit1, physical_qubit2):
         """Returns the undirected distance between physical_qubit1 and physical_qubit2.
@@ -197,7 +210,10 @@ class CouplingMap:
         if physical_qubit2 >= self.size():
             raise CouplingError("%s not in coupling graph" % physical_qubit2)
         self.compute_distance_matrix()
-        return int(self._dist_matrix[physical_qubit1, physical_qubit2])
+        res = self._dist_matrix[physical_qubit1, physical_qubit2]
+        if res == math.inf:
+            raise CouplingError(f"No path from {physical_qubit1} to {physical_qubit2}")
+        return int(res)
 
     def shortest_undirected_path(self, physical_qubit1, physical_qubit2):
         """Returns the shortest undirected path between physical_qubit1 and physical_qubit2.
@@ -268,6 +284,7 @@ class CouplingMap:
         Raises:
             CouplingError: Reduced coupling map must be connected.
         """
+
         from scipy.sparse import coo_matrix, csgraph
 
         reduced_qubits = len(mapping)
@@ -403,6 +420,66 @@ class CouplingMap:
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
 
+    def connected_components(self) -> List["CouplingMap"]:
+        """Separate a :Class:`~.CouplingMap` into subgraph :class:`~.CouplingMap`
+        for each connected component.
+
+        The connected components of a :class:`~.CouplingMap` are the subgraphs
+        that are not part of any larger subgraph. For example, if you had a
+        coupling map that looked like::
+
+            0 --> 1   4 --> 5 ---> 6 --> 7
+            |     |
+            |     |
+            V     V
+            2 --> 3
+
+        then the connected components of that graph are the subgraphs::
+
+            0 --> 1
+            |     |
+            |     |
+            V     V
+            2 --> 3
+
+        and::
+
+            4 --> 5 ---> 6 --> 7
+
+        For a connected :class:`~.CouplingMap` object there is only a single connected
+        component, the entire :class:`~.CouplingMap`.
+
+        This method will return a list of :class:`~.CouplingMap` objects, one for each connected
+        component in this :class:`~.CouplingMap`. The data payload of each node in the
+        :attr:`~.CouplingMap.graph` attribute will contain the qubit number in the original
+        graph. This will enables mapping the qubit index in a component subgraph to
+        the original qubit in the combined :class:`~.CouplingMap`. For example::
+
+            from qiskit.transpiler import CouplingMap
+
+            cmap = CouplingMap([[0, 1], [1, 2], [2, 0], [3, 4], [4, 5], [5, 3]])
+            component_cmaps = cmap.get_component_subgraphs()
+            print(component_cmaps[1].graph[0])
+
+        will print ``3`` as index ``0`` in the second component is qubit 3 in the original cmap.
+
+        Returns:
+            list: A list of :class:`~.CouplingMap` objects for each connected
+                components. The order of this list is deterministic but
+                implementation specific and shouldn't be relied upon as
+                part of the API.
+        """
+        # Set payload to index
+        for node in self.graph.node_indices():
+            self.graph[node] = node
+        components = rx.weakly_connected_components(self.graph)
+        output_list = []
+        for component in components:
+            new_cmap = CouplingMap()
+            new_cmap.graph = self.graph.subgraph(list(sorted(component)))
+            output_list.append(new_cmap)
+        return output_list
+
     def __str__(self):
         """Return a string representation of the coupling graph."""
         string = ""
@@ -411,6 +488,22 @@ class CouplingMap:
             string += ", ".join([f"[{src}, {dst}]" for (src, dst) in self.get_edges()])
             string += "]"
         return string
+
+    def __eq__(self, other):
+        """Check if the graph in ``other`` has the same node labels and edges as the graph in
+        ``self``.
+
+        This function assumes that the graphs in :class:`.CouplingMap` instances are connected.
+
+        Args:
+            other (CouplingMap): The other coupling map.
+
+        Returns:
+            bool: Whether or not other is isomorphic to self.
+        """
+        if not isinstance(other, CouplingMap):
+            return False
+        return set(self.graph.edge_list()) == set(other.graph.edge_list())
 
     def draw(self):
         """Draws the coupling map.

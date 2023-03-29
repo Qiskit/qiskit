@@ -20,7 +20,7 @@ import os
 import pickle
 import sys
 from time import time
-from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable
+from typing import List, Union, Dict, Callable, Any, Optional, Tuple, Iterable, TypeVar
 import warnings
 
 from qiskit import user_config
@@ -57,9 +57,11 @@ else:
 
 logger = logging.getLogger(__name__)
 
+_CircuitT = TypeVar("_CircuitT", bound=Union[QuantumCircuit, List[QuantumCircuit]])
+
 
 def transpile(
-    circuits: Union[QuantumCircuit, List[QuantumCircuit]],
+    circuits: _CircuitT,
     backend: Optional[Backend] = None,
     basis_gates: Optional[List[str]] = None,
     inst_map: Optional[List[InstructionScheduleMap]] = None,
@@ -79,13 +81,13 @@ def transpile(
     callback: Optional[Callable[[BasePass, DAGCircuit, float, PropertySet, int], Any]] = None,
     output_name: Optional[Union[str, List[str]]] = None,
     unitary_synthesis_method: str = "default",
-    unitary_synthesis_plugin_config: dict = None,
-    target: Target = None,
+    unitary_synthesis_plugin_config: Optional[dict] = None,
+    target: Optional[Target] = None,
     hls_config: Optional[HLSConfig] = None,
-    init_method: str = None,
-    optimization_method: str = None,
+    init_method: Optional[str] = None,
+    optimization_method: Optional[str] = None,
     ignore_backend_supplied_default_methods: bool = False,
-) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+) -> _CircuitT:
     """Transpile one or more circuits, according to some desired transpilation targets.
 
     .. deprecated:: 0.23.0
@@ -559,7 +561,7 @@ def _remap_circuit_faulty_backend(circuit, num_qubits, backend_prop, faulty_qubi
     dag_circuit = circuit_to_dag(circuit)
     apply_layout_pass = ApplyLayout()
     apply_layout_pass.property_set["layout"] = Layout(physical_layout_dict)
-    circuit = dag_to_circuit(apply_layout_pass.run(dag_circuit))
+    circuit = dag_to_circuit(apply_layout_pass.run(dag_circuit), copy_operations=False)
     circuit._layout = new_layout
     return circuit
 
@@ -645,6 +647,11 @@ def _parse_transpile_args(
             timing_constraints = target.timing_constraints()
         if backend_properties is None:
             backend_properties = target_to_backend_properties(target)
+    # If target is not specified and any hardware constraint object is
+    # manually specified then do not use the target from the backend as
+    # it is invalidated by a custom basis gate list or a custom coupling map
+    elif basis_gates is None and coupling_map is None:
+        target = _parse_target(backend, target)
 
     basis_gates = _parse_basis_gates(basis_gates, backend)
     initial_layout = _parse_initial_layout(initial_layout, circuits)
@@ -658,7 +665,6 @@ def _parse_transpile_args(
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
-    target = _parse_target(backend, target)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"

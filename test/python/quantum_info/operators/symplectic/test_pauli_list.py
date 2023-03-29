@@ -198,6 +198,10 @@ class TestPauliListInit(QiskitTestCase):
             np.testing.assert_equal(pauli_list.z, z)
             np.testing.assert_equal(pauli_list.x, x)
 
+        with self.subTest(msg="str init prevent broadcasting"):
+            with self.assertRaises(ValueError):
+                PauliList(["XYZ", "I"])
+
     def test_list_init(self):
         """Test list initialization."""
         with self.subTest(msg="PauliList"):
