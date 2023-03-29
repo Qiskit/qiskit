@@ -214,6 +214,9 @@ class HighLevelSynthesis(TransformationPass):
                 raise TranspilerError(
                     f"HighLevelSynthesis was unable to extract definition for {op.name}: {err}"
                 )
+            except AttributeError:
+                # definition is None
+                definition = None
 
             if definition is not None:
                 dag = circuit_to_dag(definition)
