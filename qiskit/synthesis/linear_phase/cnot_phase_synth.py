@@ -24,16 +24,17 @@ from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
 
 def synth_cnot_phase_aam(cnots, angles, section_size=2):
-    """This function is an implementation of the GraySynth algorithm.
+    """This function is an implementation of the GraySynth algorithm of
+    Amy, Azimadeh and Mosca.
 
-    GraySynth is a heuristic algorithm for synthesizing small parity networks.
+    GraySynth is a heuristic algorithm from [1] for synthesizing small parity networks.
     It is inspired by Gray codes. Given a set of binary strings S
     (called "cnots" bellow), the algorithm synthesizes a parity network for S by
     repeatedly choosing an index i to expand and then effectively recursing on
     the co-factors S_0 and S_1, consisting of the strings y in S,
     with y_i = 0 or 1 respectively. As a subset S is recursively expanded,
     CNOT gates are applied so that a designated target bit contains the
-    (partial) parity ksi_y(x) where y_i = 1 if and only if y'_i = 1 for for all
+    (partial) parity ksi_y(x) where y_i = 1 if and only if y'_i = 1 for all
     y' in S. If S is a singleton {y'}, then y = y', hence the target bit contains
     the value ksi_y'(x) as desired.
 
@@ -43,10 +44,7 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
     of bits. This allows the algorithm to avoid the 'backtracking' inherent in
     uncomputing-based methods.
 
-    The algorithm is described in detail in the following paper in section 4:
-    "On the controlled-NOT complexity of controlled-NOT–phase circuits."
-    Amy, Matthew, Parsiad Azimzadeh, and Michele Mosca.
-    Quantum Science and Technology 4.1 (2018): 015002.
+    The algorithm is described in detail in section 4 of [1].
 
     Args:
         cnots (list[list]): a matrix whose columns are the parities to be synthesized
@@ -63,17 +61,23 @@ def synth_cnot_phase_aam(cnots, angles, section_size=2):
 
         angles (list): a list containing all the phase-shift gates which are
             to be applied, in the same order as in "cnots". A number is
-            interpreted as the angle of u1(angle), otherwise the elements
+            interpreted as the angle of p(angle), otherwise the elements
             have to be 't', 'tdg', 's', 'sdg' or 'z'.
 
         section_size (int): the size of every section, used in _lwr_cnot_synth(), in the
             Patel–Markov–Hayes algorithm. section_size must be a factor of num_qubits.
 
     Returns:
-        QuantumCircuit: the quantum circuit
+        QuantumCircuit: the decomposed quantum circuit.
 
     Raises:
-        QiskitError: when dimensions of cnots and angles don't align
+        QiskitError: when dimensions of cnots and angles don't align.
+
+    References:
+        1. Amy, Matthew, Parsiad Azimzadeh, and Michele Mosca.
+           *On the controlled-NOT complexity of controlled-NOT–phase circuits.*,
+           Quantum Science and Technology 4.1 (2018): 015002.
+           `arXiv:1712.01859 <https://arxiv.org/abs/1712.01859>`_
     """
     num_qubits = len(cnots)
 
