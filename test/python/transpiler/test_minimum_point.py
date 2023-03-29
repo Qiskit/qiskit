@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""FixedPoint pass testing"""
+"""MinimumPoint pass testing"""
 
 from qiskit.transpiler.passes import MinimumPoint
 from qiskit.dagcircuit import DAGCircuit

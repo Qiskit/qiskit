@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Check if the DAG has reached a fixed point."""
+"""Check if the DAG has reached a relative semi-stable point over previous runs."""
 
 from copy import deepcopy
 from qiskit.transpiler.basepasses import TransformationPass
@@ -71,7 +71,7 @@ class MinimumPoint(TransformationPass):
         self.minimum_dag = None
 
     def run(self, dag):
-        """Run the DAGFixedPoint pass on `dag`."""
+        """Run the MinimumPoint pass on `dag`."""
         score = tuple(self.property_set[x] for x in self.property_set_list)
 
         if self.property_set[self.backtrack_name] is None:
