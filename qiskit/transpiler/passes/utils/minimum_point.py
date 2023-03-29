@@ -13,6 +13,11 @@
 """Check if the DAG has reached a relative semi-stable point over previous runs."""
 
 from copy import deepcopy
+from dataclasses import dataclass
+import math
+from typing import Tuple
+
+from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 
 
@@ -39,9 +44,7 @@ class MinimumPoint(TransformationPass):
     Fields used by this pass in the property set are (all relative to the ``prefix``
     argument):
 
-     * ``{prefix}_minimum_point_count`` - Used to track the number of executions since
-        the current minimum was found
-     * ``{prefix}_backtrack_history`` - Stores the current minimum value and :class:`~.DAGCircuit`
+     * ``{prefix}_minimum_point_state`` - Used to track the state of the minimpoint search
      * ``{prefix}_minimum_point`` - This value gets set to ``True`` when either a fixed point
         is reached over the ``backtrack_depth`` executions, or ``backtrack_depth`` was exceeded
         and an earlier minimum is restored.
@@ -64,30 +67,48 @@ class MinimumPoint(TransformationPass):
         """
         super().__init__()
         self.property_set_list = property_set_list
-        self.backtrack_name = f"{prefix}_minimum_point_count"
-        self.backtrack_min_name = f"{prefix}_backtrack_history"
+
+        self.backtrack_name = f"{prefix}_minimum_point_state"
         self.minimum_reached = f"{prefix}_minimum_point"
         self.backtrack_depth = backtrack_depth
-        self.minimum_dag = None
 
     def run(self, dag):
         """Run the MinimumPoint pass on `dag`."""
         score = tuple(self.property_set[x] for x in self.property_set_list)
+        state = self.property_set[self.backtrack_name]
 
-        if self.property_set[self.backtrack_name] is None:
-            self.property_set[self.backtrack_name] = 1
-        elif self.property_set[self.backtrack_min_name] is None:
-            self.property_set[self.backtrack_min_name] = (score, deepcopy(dag))
-        elif score > self.property_set[self.backtrack_min_name][0]:
-            self.property_set[self.backtrack_name] += 1
-            if self.property_set[self.backtrack_name] == self.backtrack_depth:
+        # The pass starts at None and the first iteration doesn't set a real
+        # score so the overall loop is treated as a do while to ensur we have
+        # at least 2 iterations.
+        if state is None:
+            self.property_set[self.backtrack_name] = _MinimumPointState(
+                dag=None, score=(math.inf,) * len(self.property_set_list), since=0
+            )
+        # If the score of this execution is worse than the previous execution
+        # increment since since we have not found a new minimum point
+        elif score > state.score:
+            state.since += 1
+            if state.since == self.backtrack_depth:
                 self.property_set[self.minimum_reached] = True
-                return self.property_set[self.backtrack_min_name][1]
-        elif score < self.property_set[self.backtrack_min_name][0]:
-            self.property_set[self.backtrack_name] = 1
-            self.property_set[self.backtrack_min_name] = (score, deepcopy(dag))
-        elif score == self.property_set[self.backtrack_min_name][0]:
+                return self.property_set[self.backtrack_name].dag
+        # If the score has decreased (gotten better) than this iteration is
+        # better performing and this iteration is a new local minimum. So
+        # update the state to be this iteration and reset counter
+        elif score < state.score:
+            state.since = 1
+            state.score = score
+            state.dag = deepcopy(dag)
+        # If the current execution is equal to the previous minimum value than
+        # we've reached an equivalent fixed point and we should use
+        elif score == state.score:
             self.property_set[self.minimum_reached] = True
-            return self.property_set[self.backtrack_min_name][1]
+            return dag
 
         return dag
+
+
+@dataclass(slots=True)
+class _MinimumPointState:
+    dag: DAGCircuit
+    score: Tuple[float, ...]
+    since: int
