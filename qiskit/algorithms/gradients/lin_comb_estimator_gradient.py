@@ -100,44 +100,44 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
-            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
+        g_circuits, g_parameter_values, g_parameters = self._preprocess(
+            circuits, parameter_values, parameters, self.SUPPORTED_GATES
         )
         results = self._run_unique(
-            g_circuits, observables, g_parameter_values, g_parameter_sets, **options
+            g_circuits, observables, g_parameter_values, g_parameters, **options
         )
-        return self._postprocess(results, circuits, parameter_values, parameter_sets)
+        return self._postprocess(results, circuits, parameter_values, parameters)
 
     def _run_unique(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         job_circuits, job_observables, job_param_values, metadata = [], [], [], []
         all_n = []
-        for circuit, observable, parameter_values_, parameter_set in zip(
-            circuits, observables, parameter_values, parameter_sets
+        for circuit, observable, parameter_values_, parameters_ in zip(
+            circuits, observables, parameter_values, parameters
         ):
             # Prepare circuits for the gradient of the specified parameters.
-            meta = {"parameters": [p for p in circuit.parameters if p in parameter_set]}
+            meta = {"parameters": parameters_}
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._lin_comb_cache:
+                # Cache the circuits for the linear combination of unitaries.
+                # We only cache the circuits for the specified parameters in the future.
                 self._lin_comb_cache[circuit_key] = _make_lin_comb_gradient_circuit(
                     circuit, add_measurement=False
                 )
             lin_comb_circuits = self._lin_comb_cache[circuit_key]
             gradient_circuits = []
-            for param in circuit.parameters:
-                if param not in parameter_set:
-                    continue
+            for param in parameters_:
                 gradient_circuits.append(lin_comb_circuits[param])
             n = len(gradient_circuits)
             # Make the observable as :class:`~qiskit.quantum_info.SparsePauliOp` and

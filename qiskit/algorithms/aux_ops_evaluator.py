@@ -26,18 +26,18 @@ from qiskit.opflow import (
 from qiskit.providers import Backend
 from qiskit.quantum_info import Statevector
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 from .list_or_dict import ListOrDict
 
 
-@deprecate_function(
-    "The eval_observables function has been superseded by the "
-    "qiskit.algorithms.observables_evaluator.estimate_observables function. "
-    "This function will be deprecated in a future release and subsequently "
-    "removed after that.",
-    category=PendingDeprecationWarning,
+@deprecate_func(
+    additional_msg=(
+        "Instead, use the function "
+        "``qiskit.algorithms.observables_evaluator.estimate_observables``."
+    ),
     since="0.23.0",
+    pending=True,
 )
 def eval_observables(
     quantum_instance: QuantumInstance | Backend,

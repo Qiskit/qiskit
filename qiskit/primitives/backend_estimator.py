@@ -70,7 +70,7 @@ def _run_circuits(
     return result, metadata
 
 
-def _prepare_counts(results):
+def _prepare_counts(results: list[Result]):
     counts = []
     for res in results:
         count = res.get_counts()
@@ -351,7 +351,7 @@ class BackendEstimator(BaseEstimator):
         return preprocessed_circuits
 
     def _postprocessing(
-        self, result: Result, accum: list[int], metadata: list[dict]
+        self, result: list[Result], accum: list[int], metadata: list[dict]
     ) -> EstimatorResult:
         """
         Postprocessing for evaluation of expectation value using pauli rotation gates.
