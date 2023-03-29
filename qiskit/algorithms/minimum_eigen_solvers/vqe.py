@@ -191,7 +191,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
-        self._circuit_sampler = None  # type: CircuitSampler | None
+        self._circuit_sampler: CircuitSampler | None = None
         self._expectation = None
         self.expectation = expectation
         self._include_custom = include_custom
