@@ -392,7 +392,7 @@ class BasePauli(BaseOperator, AdjointMixin, MultiplyMixin):
 
     @staticmethod
     def _to_matrix(z, x, phase=0, group_phase=False, sparse=False):
-        """Return the matrix matrix from symplectic representation.
+        """Return the matrix from symplectic representation.
 
         The Pauli is defined as :math:`P = (-i)^{phase + z.x} * Z^z.x^x`
         where ``array = [x, z]``.
