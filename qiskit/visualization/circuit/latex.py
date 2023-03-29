@@ -55,7 +55,7 @@ class QCircuitImage:
     @deprecate_arg(
         "circuit",
         deprecation_description=(
-            "Not setting the ``circuit`` argument in the ``QCircuitImage`` constructor`"
+            "Not setting the ``circuit`` argument in the ``QCircuitImage`` constructor"
         ),
         since="0.20.0",
         predicate=lambda circuit: circuit is None,
