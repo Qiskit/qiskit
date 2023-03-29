@@ -52,7 +52,8 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.pass_manager.append(Unroller(basis_gates))
         self.pass_manager.append(CheckMap(coupling_map))
         self.pass_manager.append(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
-        self.pass_manager.append(CXDirection(coupling_map))
+        with self.assertWarns(DeprecationWarning):
+            self.pass_manager.append(CXDirection(coupling_map))
         self.pass_manager.append(RemoveResetInZeroState())
 
     @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
