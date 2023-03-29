@@ -274,7 +274,12 @@ class QuantumInstance:
                 stacklevel=2,
             )
 
-        run_config = RunConfig(shots=shots, max_credits=max_credits)
+        # Remove this warnings filter when removing the deprecated `max_credits` arg. We
+        # filter here so that we don't "double warn" if max_credits was set.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            run_config = RunConfig(shots=shots, max_credits=max_credits)
+
         if seed_simulator is not None:
             run_config.seed_simulator = seed_simulator
 
