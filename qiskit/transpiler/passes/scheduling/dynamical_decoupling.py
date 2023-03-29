@@ -13,7 +13,6 @@
 """Dynamical Decoupling insertion pass."""
 
 import itertools
-import warnings
 
 import numpy as np
 from qiskit.circuit.delay import Delay
@@ -25,6 +24,7 @@ from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.utils.deprecation import deprecate_func
 
 
 class DynamicalDecoupling(TransformationPass):
@@ -91,6 +91,14 @@ class DynamicalDecoupling(TransformationPass):
         timeline_drawer(circ_dd)
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``DynamicalDecouplingPadding``, which performs the same "
+            "function but requires scheduling and alignment analysis passes to run prior to it."
+        ),
+        since="0.21.0",
+        pending=True,
+    )
     def __init__(
         self, durations, dd_sequence, qubits=None, spacing=None, skip_reset_qubits=True, target=None
     ):
@@ -114,14 +122,6 @@ class DynamicalDecoupling(TransformationPass):
                   ``durations`` and this are specified then this argument will take
                   precedence and ``durations`` will be ignored.
         """
-        warnings.warn(
-            "The DynamicalDecoupling class has been supersceded by the "
-            "DynamicalDecouplingPadding class which performs the same function but "
-            "requires scheduling and alignment analysis passes to run prior to it. "
-            "This class will be deprecated in a future release and subsequently "
-            "removed after that.",
-            PendingDeprecationWarning,
-        )
         super().__init__()
         self._durations = durations
         self._dd_sequence = dd_sequence
