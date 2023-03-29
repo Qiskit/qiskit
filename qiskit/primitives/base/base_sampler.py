@@ -79,14 +79,13 @@ from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
 from typing import cast
-from warnings import warn
 
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.providers import JobV1 as Job
-from qiskit.utils.deprecation import deprecate_arguments, deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 
 from ..utils import _circuit_key
 from .base_primitive import BasePrimitive
@@ -101,6 +100,14 @@ class BaseSampler(BasePrimitive):
 
     __hash__ = None
 
+    @deprecate_arg(
+        "circuits", since="0.22", additional_msg="Instead, use the run() method to append objects."
+    )
+    @deprecate_arg(
+        "parameters",
+        since="0.22",
+        additional_msg="Instead, use the run() method to append objects.",
+    )
     def __init__(
         self,
         circuits: Iterable[QuantumCircuit] | QuantumCircuit | None = None,
@@ -117,14 +124,6 @@ class BaseSampler(BasePrimitive):
         Raises:
             ValueError: For mismatch of circuits and parameters list.
         """
-        if circuits is not None or parameters is not None:
-            warn(
-                "The BaseSampler 'circuits', and `parameters` kwarg are deprecated "
-                "as of 0.22.0 and will be removed no earlier than 3 months after the "
-                "release date. You can use 'run' method to append objects.",
-                DeprecationWarning,
-                2,
-            )
         if isinstance(circuits, QuantumCircuit):
             circuits = (circuits,)
         self._circuits = [] if circuits is None else list(circuits)
@@ -256,19 +255,15 @@ class BaseSampler(BasePrimitive):
         """
         return tuple(self._parameters)
 
-    @deprecate_function(
-        "The BaseSampler.__enter__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseSampler should be initialized directly.",
+    @deprecate_func(
+        additional_msg="BaseEstimator should be initialized directly.",
         since="0.22.0",
     )
     def __enter__(self):
         return self
 
-    @deprecate_function(
-        "The BaseSampler.__exit__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "BaseSampler should be initialized directly.",
+    @deprecate_func(
+        additional_msg="BaseEstimator should be initialized directly.",
         since="0.22.0",
     )
     def __exit__(self, *exc_info):
@@ -278,16 +273,11 @@ class BaseSampler(BasePrimitive):
         """Close the session and free resources"""
         ...
 
-    @deprecate_function(
-        "The BaseSampler.__call__ method is deprecated as of Qiskit Terra 0.22.0 "
-        "and will be removed no sooner than 3 months after the releasedate. "
-        "Use run method instead.",
+    @deprecate_func(
+        additional_msg="Use the `run` method instead.",
         since="0.22.0",
     )
-    @deprecate_arguments(
-        {"circuit_indices": "circuits"},
-        since="0.21.0",
-    )
+    @deprecate_arg("circuit_indices", new_alias="circuits", since="0.21.0")
     def __call__(
         self,
         circuits: Sequence[int | QuantumCircuit],
