@@ -185,7 +185,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         return cos_estimate
 
-    def _chernoff(self, cos, shots):
+    def _chernoff(self, cos, shots) -> list[float]:
         width = np.sqrt(np.log(2 / self._delta) * 12 / shots)
         confint = [np.maximum(-1, cos - width), np.minimum(1, cos + width)]
         return confint
@@ -306,7 +306,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         theta = np.mean(theta_ci)
         rescaling = 4 if self._rescale else 1
         value = (rescaling * np.sin(theta)) ** 2
-        value_ci = [(rescaling * np.sin(x)) ** 2 for x in theta_ci]  # TODO should be tuple?
+        value_ci = ((rescaling * np.sin(theta_ci[0])) ** 2, (rescaling * np.sin(theta_ci[1])) ** 2)
 
         result = FasterAmplitudeEstimationResult()
         result.num_oracle_queries = self._num_oracle_calls
