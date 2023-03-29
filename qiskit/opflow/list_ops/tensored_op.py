@@ -22,7 +22,7 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
 
 class TensoredOp(ListOp):
@@ -32,11 +32,9 @@ class TensoredOp(ListOp):
     be tensored together, and therefore if they reach a point in which they can be, such as after
     conversion to QuantumCircuits, they can be reduced by tensor product."""
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="TensoredOp",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

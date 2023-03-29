@@ -24,7 +24,7 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.list_ops.list_op import ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ComposedOp(ListOp):
@@ -34,11 +34,9 @@ class ComposedOp(ListOp):
     be composed, and therefore if they reach a point in which they can be, such as after
     conversion to QuantumCircuits or matrices, they can be reduced by composition."""
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="ComposedOp",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

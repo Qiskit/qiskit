@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
 from ..list_ops.composed_op import ComposedOp
@@ -52,11 +52,9 @@ class NaturalGradient(GradientBase):
     where R(x) represents the penalization term.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="NaturalGradient",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

@@ -28,8 +28,7 @@ from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 
 class CVaRMeasurement(OperatorStateFn):
     r"""Deprecation: A specialized measurement class to compute CVaR expectation values.
@@ -41,11 +40,9 @@ class CVaRMeasurement(OperatorStateFn):
     primitive: OperatorBase
 
     # TODO allow normalization somehow?
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="CVaRMeasurement",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

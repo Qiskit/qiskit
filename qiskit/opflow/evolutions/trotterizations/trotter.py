@@ -13,8 +13,7 @@
 """Trotter Class"""
 
 from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 
 class Trotter(Suzuki):
     r"""
@@ -22,11 +21,9 @@ class Trotter(Suzuki):
     together ``reps`` times and dividing the evolution time of each by ``reps``.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="Trotter",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self, reps: int = 1) -> None:
         r"""

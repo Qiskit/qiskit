@@ -20,8 +20,7 @@ from qiskit.circuit.library import CXGate, SGate, TGate, HGate, SwapGate, CZGate
 from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 # Digits of precision when returning values from eval functions. Without rounding, 1e-17 or 1e-32
 # values often show up in place of 0, etc.
 # Note: care needs to be taken in rounding otherwise some behavior may not be as expected. E.g
@@ -33,12 +32,9 @@ EVAL_SIG_DIGITS = 18
 # Immutable convenience objects
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="opflow",
-    old_name="make_immutable",
-    old_type="function",
-    url="https://qisk.it/opflow_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
 )
 def make_immutable(obj):
     r"""Deprecate\: Delete the __setattr__ property to make the object mostly immutable."""

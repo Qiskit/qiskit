@@ -23,7 +23,7 @@ from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Statevector
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CircuitOp(PrimitiveOp):
@@ -31,11 +31,9 @@ class CircuitOp(PrimitiveOp):
 
     primitive: QuantumCircuit
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="CircuitOp",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

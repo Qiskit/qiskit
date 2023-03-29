@@ -23,8 +23,7 @@ from qiskit.opflow.list_ops.summed_op import SummedOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 
 class Suzuki(TrotterizationBase):
     r"""
@@ -35,11 +34,9 @@ class Suzuki(TrotterizationBase):
     Detailed in https://arxiv.org/pdf/quant-ph/0508139.pdf.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="Suzuki",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self, reps: int = 1, order: int = 2) -> None:
         """

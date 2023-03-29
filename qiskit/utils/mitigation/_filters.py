@@ -31,7 +31,7 @@ import qiskit
 from qiskit import QiskitError
 from qiskit.tools import parallel_map
 from qiskit.utils.mitigation.circuits import count_keys
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
 
 class MeasurementFilter:
@@ -43,11 +43,9 @@ class MeasurementFilter:
 
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="utils",
-        old_name="MeasurementFilter",
-        url="https://qisk.it/qi_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
     )
     def __init__(self, cal_matrix: np.matrix, state_labels: list):
         """
@@ -227,11 +225,9 @@ class TensoredFilter:
     to data.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="utils",
-        old_name="TensoredFilter",
-        url="https://qisk.it/qi_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
     )
     def __init__(self, cal_matrices: np.matrix, substate_labels_list: list, mit_pattern: list):
         """

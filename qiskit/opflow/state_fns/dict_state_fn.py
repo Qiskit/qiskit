@@ -27,8 +27,7 @@ from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
 from qiskit.result import Result
 from qiskit.utils import algorithm_globals
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 
 class DictStateFn(StateFn):
     """Deprecation: A class for state functions and measurements which are defined by a lookup table,
@@ -38,11 +37,9 @@ class DictStateFn(StateFn):
     primitive: Dict[str, complex]
 
     # TODO allow normalization somehow?
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="DictStateFn",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

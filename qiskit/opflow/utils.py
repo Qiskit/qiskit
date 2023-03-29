@@ -13,16 +13,13 @@
 """Utility functions for OperatorFlow"""
 
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="opflow",
-    old_name="commutator",
-    old_type="function",
-    url="https://qisk.it/opflow_migration",
-)
+@deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+    )
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
     Deprecation: Compute commutator of `op_a` and `op_b`.
@@ -40,13 +37,10 @@ def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     return (op_a @ op_b - op_b @ op_a).reduce()
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="opflow",
-    old_name="anti_commutator",
-    old_type="function",
-    url="https://qisk.it/opflow_migration",
-)
+@deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+    )
 def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
     Deprecation: Compute anti-commutator of `op_a` and `op_b`.
@@ -64,13 +58,10 @@ def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     return (op_a @ op_b + op_b @ op_a).reduce()
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="opflow",
-    old_name="double_commutator",
-    old_type="function",
-    url="https://qisk.it/opflow_migration",
-)
+@deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+    )
 def double_commutator(
     op_a: OperatorBase,
     op_b: OperatorBase,

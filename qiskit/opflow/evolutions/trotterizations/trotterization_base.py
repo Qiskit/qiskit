@@ -16,8 +16,7 @@ from abc import abstractmethod
 
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 # TODO centralize handling of commuting groups
 
 
@@ -26,11 +25,9 @@ class TrotterizationBase(EvolutionBase):
     operator sums by compositions of exponentiations.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="TrotterizationBase",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self, reps: int = 1) -> None:
         super().__init__()

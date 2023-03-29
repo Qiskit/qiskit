@@ -16,8 +16,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.evolutions.evolution_base import EvolutionBase
 from qiskit.opflow.evolutions.pauli_trotter_evolution import PauliTrotterEvolution
 from qiskit.opflow.evolutions.matrix_evolution import MatrixEvolution
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 
 class EvolutionFactory:
     """Deprecation: A factory class for convenient automatic selection of an
@@ -25,12 +24,9 @@ class EvolutionFactory:
     """
 
     @staticmethod
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="EvolutionFactory.build",
-        old_type="method",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def build(operator: OperatorBase = None) -> EvolutionBase:
         r"""

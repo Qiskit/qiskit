@@ -16,19 +16,15 @@ from qiskit.opflow.evolutions.trotterizations.qdrift import QDrift
 from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
 from qiskit.opflow.evolutions.trotterizations.trotter import Trotter
 from qiskit.opflow.evolutions.trotterizations.trotterization_base import TrotterizationBase
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 
 class TrotterizationFactory:
     """Deprecation: A factory for conveniently creating TrotterizationBase instances."""
 
     @staticmethod
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="TrotterizationFactory.build",
-        old_type="method",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def build(mode: str = "trotter", reps: int = 1) -> TrotterizationBase:
         """A factory for conveniently creating TrotterizationBase instances.

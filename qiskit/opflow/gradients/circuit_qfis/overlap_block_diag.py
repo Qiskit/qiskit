@@ -18,7 +18,7 @@ import numpy as np
 from scipy.linalg import block_diag
 from qiskit.circuit import Parameter, ParameterVector, ParameterExpression
 from qiskit.utils.arithmetic import triu_to_dense
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -39,11 +39,9 @@ class OverlapBlockDiag(CircuitQFI):
     See also :class:`~qiskit.opflow.QFI`.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="OverlapBlockDiag",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self) -> None:
         super().__init__()

@@ -19,15 +19,11 @@ Measurement calibration circuits. To apply the measurement mitigation
 use the fitters to produce a filter.
 """
 from typing import List, Tuple, Union
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
-
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="count_keys",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def count_keys(num_qubits: int) -> List[str]:
     """Deprecation: Return ordered count keys.
@@ -43,12 +39,9 @@ def count_keys(num_qubits: int) -> List[str]:
     return [bin(j)[2:].zfill(num_qubits) for j in range(2**num_qubits)]
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="complete_meas_cal",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def complete_meas_cal(
     qubit_list: List[int] = None,
@@ -127,12 +120,9 @@ def complete_meas_cal(
     return cal_circuits, state_labels
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="tensored_meas_cal",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def tensored_meas_cal(
     mit_pattern: List[List[int]] = None,

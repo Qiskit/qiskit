@@ -17,8 +17,7 @@ from typing import List, Union
 import numpy as np
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ParameterVector, ParameterExpression
 from qiskit.utils.arithmetic import triu_to_dense
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.summed_op import SummedOp
@@ -37,11 +36,9 @@ class LinCombFull(CircuitQFI):
     """
 
     # pylint: disable=signature-differs, arguments-differ
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="LinCombFull",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

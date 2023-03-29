@@ -26,8 +26,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals, arithmetic
-from qiskit.utils.deprecation import deprecate_function_msg
-
+from qiskit.utils.deprecation import deprecate_func
 
 class VectorStateFn(StateFn):
     """Deprecation: A class for state functions and measurements which are defined in vector
@@ -37,11 +36,9 @@ class VectorStateFn(StateFn):
     primitive: Statevector
 
     # TODO allow normalization somehow?
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="VectorStateFn",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

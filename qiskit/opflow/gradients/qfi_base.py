@@ -14,7 +14,7 @@
 
 from typing import Union
 
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 from .derivative_base import DerivativeBase
 from .circuit_qfis import CircuitQFI
 
@@ -30,11 +30,9 @@ class QFIBase(DerivativeBase):
         [QFI]kl= Re[〈∂kψ|∂lψ〉−〈∂kψ|ψ〉〈ψ|∂lψ〉] * 4.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="QFIBase",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
         r"""

@@ -27,7 +27,7 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.utils.mitigation.circuits import count_keys
 from qiskit.utils.mitigation._filters import MeasurementFilter, TensoredFilter
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CompleteMeasFitter:
@@ -35,11 +35,9 @@ class CompleteMeasFitter:
     Deprecation: Measurement correction fitter for a full calibration
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="utils",
-        old_name="CompleteMeasFitter",
-        url="https://qisk.it/qi_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
     )
     def __init__(
         self,
@@ -221,11 +219,9 @@ class TensoredMeasFitter:
     Deprecation: Measurement correction fitter for a tensored calibration.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="utils",
-        old_name="TensoredMeasFitter",
-        url="https://qisk.it/qi_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
     )
     def __init__(
         self,

@@ -14,7 +14,7 @@
 
 from typing import Union
 
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 from .circuit_gradients.circuit_gradient import CircuitGradient
 from .derivative_base import DerivativeBase
 
@@ -25,11 +25,9 @@ class GradientBase(DerivativeBase):
     Convert an operator expression to the first-order gradient.
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="GradientBase",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self, grad_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
         r"""

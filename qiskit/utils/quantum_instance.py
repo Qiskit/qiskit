@@ -38,7 +38,7 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -144,11 +144,9 @@ class QuantumInstance:
         "statevector_hpc_gate_opt",
     ] + _BACKEND_OPTIONS_QASM_ONLY
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="utils",
-        old_name="QuantumInstance",
-        url="https://qisk.it/qi_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration."
     )
     def __init__(
         self,

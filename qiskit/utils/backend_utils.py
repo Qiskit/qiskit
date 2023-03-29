@@ -13,7 +13,7 @@
 """backend utility functions"""
 
 import logging
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -50,12 +50,9 @@ def _get_backend_provider(backend):
     return provider
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="has_ibmq",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def has_ibmq():
     """Check if IBMQ is installed."""
@@ -74,12 +71,9 @@ def has_ibmq():
     return _PROVIDER_CHECK.has_ibmq
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="has_aer",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def has_aer():
     """Check if Aer is installed."""
@@ -97,12 +91,9 @@ def has_aer():
     return _PROVIDER_CHECK.has_aer
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="is_aer_provider",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def is_aer_provider(backend):
     """Detect whether or not backend is from Aer provider.
@@ -124,12 +115,9 @@ def is_aer_provider(backend):
     return False
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="is_basicaer_provider",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def is_basicaer_provider(backend):
     """Detect whether or not backend is from BasicAer provider.
@@ -144,12 +132,9 @@ def is_basicaer_provider(backend):
     return isinstance(_get_backend_provider(backend), BasicAerProvider)
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="is_ibmq_provider",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def is_ibmq_provider(backend):
     """Detect whether or not backend is from IBMQ provider.
@@ -167,12 +152,9 @@ def is_ibmq_provider(backend):
     return False
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="is_aer_statevector_backend",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def is_aer_statevector_backend(backend):
     """
@@ -186,12 +168,9 @@ def is_aer_statevector_backend(backend):
     return is_statevector_backend(backend) and is_aer_provider(backend)
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="is_statevector_backend",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def is_statevector_backend(backend):
     """
@@ -218,12 +197,9 @@ def is_statevector_backend(backend):
         return backend.name.startswith("statevector")
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="is_simulator_backend",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def is_simulator_backend(backend):
     """
@@ -240,12 +216,9 @@ def is_simulator_backend(backend):
     return False
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="is_local_backend",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def is_local_backend(backend):
     """
@@ -262,12 +235,9 @@ def is_local_backend(backend):
     return False
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="is_aer_qasm",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def is_aer_qasm(backend):
     """
@@ -285,12 +255,9 @@ def is_aer_qasm(backend):
     return ret
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="support_backend_options",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
 )
 def support_backend_options(backend):
     """

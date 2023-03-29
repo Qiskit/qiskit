@@ -16,7 +16,7 @@ from abc import abstractmethod
 from typing import List, Union
 
 from qiskit.circuit import ParameterExpression, ParameterVector
-from qiskit.utils.deprecation import deprecate_function_msg
+from qiskit.utils.deprecation import deprecate_func
 from ...converters.converter_base import ConverterBase
 from ...operator_base import OperatorBase
 
@@ -36,11 +36,9 @@ class CircuitQFI(ConverterBase):
     DerivativeBase - uses classical techniques to differentiate opflow data structures
     """
 
-    @deprecate_function_msg(
-        version="0.24.0",
-        old_module="opflow",
-        old_name="CircuitQFI",
-        url="https://qisk.it/opflow_migration",
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self) -> None:
         super().__init__()
