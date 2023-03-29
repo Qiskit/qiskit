@@ -27,6 +27,7 @@ from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.utils import algorithm_globals
 from qiskit.utils.deprecation import deprecate_func
+
 # pylint: disable=invalid-name
 
 
@@ -38,7 +39,7 @@ class QDrift(TrotterizationBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self, reps: int = 1) -> None:
         r"""

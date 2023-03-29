@@ -17,8 +17,12 @@ Primitive Operators (:mod:`qiskit.opflow.primitive_ops`)
 .. currentmodule:: qiskit.opflow.primitive_ops
 
 .. deprecated:: 0.24.0
-    Operators are defined to be functions which take State functions to State functions.
 
+    The :mod::`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
+
+Operators are defined to be functions which take State functions to State functions.
 
 PrimitiveOps are the classes for representing basic Operators, backed by computational
 Operator primitives from Terra. These classes (and inheritors) primarily serve to allow the

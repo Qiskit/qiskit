@@ -21,9 +21,10 @@ use the fitters to produce a filter.
 from typing import List, Tuple, Union
 from qiskit.utils.deprecation import deprecate_func
 
+
 @deprecate_func(
     since="0.24.0",
-    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def count_keys(num_qubits: int) -> List[str]:
     """Deprecation: Return ordered count keys.
@@ -41,7 +42,7 @@ def count_keys(num_qubits: int) -> List[str]:
 
 @deprecate_func(
     since="0.24.0",
-    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def complete_meas_cal(
     qubit_list: List[int] = None,
@@ -122,7 +123,7 @@ def complete_meas_cal(
 
 @deprecate_func(
     since="0.24.0",
-    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
+    additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def tensored_meas_cal(
     mit_pattern: List[List[int]] = None,

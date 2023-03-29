@@ -20,9 +20,10 @@ from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.utils.deprecation import deprecate_func
 
+
 class DictToCircuitSum(ConverterBase):
     r"""
-    Converts ``DictStateFns`` or ``VectorStateFns`` to equivalent ``CircuitStateFns``
+    Deprecation: Converts ``DictStateFns`` or ``VectorStateFns`` to equivalent ``CircuitStateFns``
     or sums thereof. The behavior of this class can be mostly replicated by calling ``to_circuit_op``
     on an Operator, but with the added control of choosing whether to convert only ``DictStateFns``
     or ``VectorStateFns``, rather than both.
@@ -30,7 +31,7 @@ class DictToCircuitSum(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(
         self, traverse: bool = True, convert_dicts: bool = True, convert_vectors: bool = True

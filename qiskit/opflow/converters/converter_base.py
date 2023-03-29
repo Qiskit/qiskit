@@ -17,6 +17,7 @@ from abc import ABC, abstractmethod
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.utils.deprecation import deprecate_func
 
+
 class ConverterBase(ABC):
     r"""
     Converters take an Operator and return a new Operator, generally isomorphic
@@ -31,7 +32,7 @@ class ConverterBase(ABC):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self) -> None:
         pass

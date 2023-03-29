@@ -17,18 +17,23 @@ Operator Evolutions (:mod:`qiskit.opflow.evolutions`)
 .. currentmodule:: qiskit.opflow.evolutions
 
 .. deprecated:: 0.24.0
-    Evolutions are converters which traverse an Operator tree, replacing
-    any :class:`EvolvedOp` `e` with a Schrodinger equation-style evolution
-    :class:`~qiskit.opflow.primitive_ops.CircuitOp`
-    equalling or approximating the matrix exponential of -i * the Operator contained inside
-    (`e.primitive`). The Evolutions are essentially implementations of Hamiltonian Simulation
-    algorithms, including various methods for Trotterization.
 
-    The :class:`EvolvedOp` is simply a placeholder signifying that the Operator inside it should be
-    converted to its exponential by the Evolution converter. All Operators
-    (not :mod:`~qiskit.opflow.state_fns`) have
-    ``.exp_i()`` methods which either return the exponential of the Operator directly,
-    or an :class:`EvolvedOp` containing the Operator.
+    The :mod::`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
+
+Evolutions are converters which traverse an Operator tree, replacing
+any :class:`EvolvedOp` `e` with a Schrodinger equation-style evolution
+:class:`~qiskit.opflow.primitive_ops.CircuitOp`
+equalling or approximating the matrix exponential of -i * the Operator contained inside
+(`e.primitive`). The Evolutions are essentially implementations of Hamiltonian Simulation
+algorithms, including various methods for Trotterization.
+
+The :class:`EvolvedOp` is simply a placeholder signifying that the Operator inside it should be
+converted to its exponential by the Evolution converter. All Operators
+(not :mod:`~qiskit.opflow.state_fns`) have
+``.exp_i()`` methods which either return the exponential of the Operator directly,
+or an :class:`EvolvedOp` containing the Operator.
 
 
 Note:

@@ -18,8 +18,12 @@ Operators (:mod:`qiskit.opflow`)
 .. currentmodule:: qiskit.opflow
 
 .. deprecated:: 0.24.0
-   Operators and State functions are the building blocks of Quantum Algorithms.
 
+    The :mod::`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
+
+Operators and State functions are the building blocks of Quantum Algorithms.
 
 A library for Quantum Algorithms & Applications is more than a collection of
 algorithms wrapped in Python functions. It needs to provide tools to make writing

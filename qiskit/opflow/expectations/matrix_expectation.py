@@ -20,13 +20,14 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.utils.deprecation import deprecate_func
 
+
 class MatrixExpectation(ExpectationBase):
     """An Expectation converter which converts Operator measurements to
     be matrix-based so they can be evaluated by matrix multiplication."""
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self) -> None:
         super().__init__()

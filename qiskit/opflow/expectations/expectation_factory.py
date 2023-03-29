@@ -26,18 +26,19 @@ from qiskit.providers import Backend
 from qiskit.utils.backend_utils import is_aer_qasm, is_statevector_backend
 from qiskit.utils import QuantumInstance, optionals
 from qiskit.utils.deprecation import deprecate_func
+
 logger = logging.getLogger(__name__)
 
 
 class ExpectationFactory:
-    """ factory class for convenient automatic selection of an Expectation based on the
+    """factory class for convenient automatic selection of an Expectation based on the
     Operator to be converted and backend used to sample the expectation value.
     """
 
     @staticmethod
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def build(
         operator: OperatorBase,

@@ -29,6 +29,7 @@ from qiskit.result import Result
 from qiskit.utils import algorithm_globals
 from qiskit.utils.deprecation import deprecate_func
 
+
 class DictStateFn(StateFn):
     """A class for state functions and measurements which are defined by a lookup table,
     stored in a dict.
@@ -39,7 +40,7 @@ class DictStateFn(StateFn):
     # TODO allow normalization somehow?
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(
         self,

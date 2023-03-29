@@ -23,7 +23,8 @@ Measurement Mitigation Utils (:mod:`qiskit.utils.mitigation`)
 
 .. deprecated:: 0.24.0
     This module is deprecated and will be removed no sooner than 3 months
-    after the release date.
+    after the release date. For code migration guidelines,
+    visit https://qisk.it/qi_migration.
 
 .. warning::
 

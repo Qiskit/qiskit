@@ -11,10 +11,8 @@
 # that they have been altered from the originals.
 
 """
-.. deprecated:: 0.24.0
-    Trotterization methods - Algorithms for
-    approximating Exponentials of Operator Sums.
-
+Trotterization methods - Algorithms for
+approximating Exponentials of Operator Sums.
 """
 
 from .trotterization_base import TrotterizationBase

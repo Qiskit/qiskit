@@ -21,6 +21,7 @@ from qiskit.opflow.converters import ConverterBase
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.utils.deprecation import deprecate_func
 
+
 class ExpectationBase(ConverterBase):
     r"""
     A base for Expectation value converters. Expectations are converters which enable the
@@ -39,7 +40,7 @@ class ExpectationBase(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self) -> None:
         super().__init__()

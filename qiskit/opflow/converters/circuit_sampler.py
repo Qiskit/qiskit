@@ -34,6 +34,7 @@ from qiskit.providers import Backend
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.deprecation import deprecate_func
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,7 +55,7 @@ class CircuitSampler(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(
         self,

@@ -22,6 +22,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns import CVaRMeasurement, OperatorStateFn
 from qiskit.utils.deprecation import deprecate_func
 
+
 class CVaRExpectation(ExpectationBase):
     r"""Compute the Conditional Value at Risk (CVaR) expectation value.
 
@@ -56,7 +57,7 @@ class CVaRExpectation(ExpectationBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self, alpha: float, expectation: Optional[ExpectationBase] = None) -> None:
         """

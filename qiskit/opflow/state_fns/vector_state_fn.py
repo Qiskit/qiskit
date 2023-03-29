@@ -28,6 +28,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals, arithmetic
 from qiskit.utils.deprecation import deprecate_func
 
+
 class VectorStateFn(StateFn):
     """A class for state functions and measurements which are defined in vector
     representation, and stored using Terra's ``Statevector`` class.
@@ -38,7 +39,7 @@ class VectorStateFn(StateFn):
     # TODO allow normalization somehow?
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(
         self,

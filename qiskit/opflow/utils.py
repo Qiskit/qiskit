@@ -17,9 +17,9 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 @deprecate_func(
-        since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
-    )
+    since="0.24.0",
+    additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
+)
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
     Compute commutator of `op_a` and `op_b`.
@@ -38,9 +38,9 @@ def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
 
 
 @deprecate_func(
-        since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
-    )
+    since="0.24.0",
+    additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
+)
 def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
     Compute anti-commutator of `op_a` and `op_b`.
@@ -59,9 +59,9 @@ def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
 
 
 @deprecate_func(
-        since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
-    )
+    since="0.24.0",
+    additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
+)
 def double_commutator(
     op_a: OperatorBase,
     op_b: OperatorBase,

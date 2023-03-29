@@ -32,6 +32,7 @@ from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.quantum_info import Pauli
 from qiskit.utils.deprecation import deprecate_func
 
+
 class PauliBasisChange(ConverterBase):
     r"""
     Converter for changing Paulis into other bases. By default, the diagonal basis
@@ -57,7 +58,7 @@ class PauliBasisChange(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(
         self,

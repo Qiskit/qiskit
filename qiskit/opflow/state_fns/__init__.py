@@ -15,11 +15,15 @@ State Functions (:mod:`qiskit.opflow.state_fns`)
 ================================================
 
 .. deprecated:: 0.24.0
-    State functions are defined to be complex functions over a single binary
-    string (as compared to an operator, which is defined as a function over two binary strings,
-    or a function taking a binary function to another binary function). This function may be
-    called by the eval() method.
 
+    The :mod::`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
+
+State functions are defined to be complex functions over a single binary
+string (as compared to an operator, which is defined as a function over two binary strings,
+or a function taking a binary function to another binary function). This function may be
+called by the eval() method.
 
 Measurements are defined to be functionals over StateFns, taking them to real values.
 Generally, this real value is interpreted to represent the probability of some classical

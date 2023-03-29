@@ -21,6 +21,7 @@ from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.tapered_pauli_sum_op import Z2Symmetries
 from qiskit.quantum_info import Pauli
 from qiskit.utils.deprecation import deprecate_func
+
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +38,7 @@ class TwoQubitReduction(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self, num_particles: Union[int, List[int], Tuple[int, int]]):
         """

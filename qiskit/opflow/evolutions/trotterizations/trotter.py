@@ -15,6 +15,7 @@
 from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
 from qiskit.utils.deprecation import deprecate_func
 
+
 class Trotter(Suzuki):
     r"""
     Simple Trotter expansion, composing the evolution circuits of each Operator in the sum
@@ -23,7 +24,7 @@ class Trotter(Suzuki):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self, reps: int = 1) -> None:
         r"""

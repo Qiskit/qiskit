@@ -29,6 +29,7 @@ from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Statevector
 from qiskit.utils.deprecation import deprecate_func
 
+
 class EvolvedOp(PrimitiveOp):
     r"""
     Class for wrapping Operator Evolutions for compilation (``convert``) by an EvolutionBase
@@ -41,7 +42,7 @@ class EvolvedOp(PrimitiveOp):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(
         self, primitive: OperatorBase, coeff: Union[complex, ParameterExpression] = 1.0

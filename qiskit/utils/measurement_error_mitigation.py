@@ -29,12 +29,10 @@ from qiskit.utils.mitigation import (
 )
 from qiskit.utils.deprecation import deprecate_func
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="get_measured_qubits",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def get_measured_qubits(
     transpiled_circuits: List[QuantumCircuit],

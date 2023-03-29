@@ -45,7 +45,7 @@ class MeasurementFilter:
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
+        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration.",
     )
     def __init__(self, cal_matrix: np.matrix, state_labels: list):
         """
@@ -227,7 +227,7 @@ class TensoredFilter:
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration."
+        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration.",
     )
     def __init__(self, cal_matrices: np.matrix, substate_labels_list: list, mit_pattern: list):
         """

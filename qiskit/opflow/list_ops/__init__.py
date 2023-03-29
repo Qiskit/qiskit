@@ -17,20 +17,25 @@ List Operators (:mod:`qiskit.opflow.list_ops`)
 .. currentmodule:: qiskit.opflow.list_ops
 
 .. deprecated:: 0.24.0
-    List Operators are classes for storing and manipulating lists of Operators, State functions,
-    or Measurements, and include some rule or ``combo_fn`` defining how the Operator functions of the
-    list constituents should be combined to form to cumulative Operator function of the
-    :class:`ListOp`. For example, a :class:`SummedOp` has an addition-based ``combo_fn``, so once
-    the Operators in its list are evaluated against some bitstring to produce a list of results,
-    we know to add up those results to produce the final result of the :class:`SummedOp`'s evaluation.
-    In theory, this ``combo_fn`` can be any function over classical complex values, but for convenience
-    we've chosen for them to be defined over NumPy arrays and values. This way, large numbers of
-    evaluations, such as after calling :meth:`~ListOp.to_matrix` on the list constituents,
-    can be efficiently combined. While the combination function is defined over classical values,
-    it should be understood as the operation by which each Operators' underlying function is
-    combined to form the underlying Operator function of the :class:`ListOp`. In this way, the
-    :mod:`.list_ops` are the basis for constructing large and sophisticated Operators,
-    State Functions, and Measurements.
+
+    The :mod::`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
+
+List Operators are classes for storing and manipulating lists of Operators, State functions,
+or Measurements, and include some rule or ``combo_fn`` defining how the Operator functions of the
+list constituents should be combined to form to cumulative Operator function of the
+:class:`ListOp`. For example, a :class:`SummedOp` has an addition-based ``combo_fn``, so once
+the Operators in its list are evaluated against some bitstring to produce a list of results,
+we know to add up those results to produce the final result of the :class:`SummedOp`'s evaluation.
+In theory, this ``combo_fn`` can be any function over classical complex values, but for convenience
+we've chosen for them to be defined over NumPy arrays and values. This way, large numbers of
+evaluations, such as after calling :meth:`~ListOp.to_matrix` on the list constituents,
+can be efficiently combined. While the combination function is defined over classical values,
+it should be understood as the operation by which each Operators' underlying function is
+combined to form the underlying Operator function of the :class:`ListOp`. In this way, the
+:mod:`.list_ops` are the basis for constructing large and sophisticated Operators,
+State Functions, and Measurements.
 
 
 The base :class:`ListOp` class is particularly interesting, as its ``combo_fn`` is "the identity

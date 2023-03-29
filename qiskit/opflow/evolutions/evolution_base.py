@@ -18,6 +18,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.converters.converter_base import ConverterBase
 from qiskit.utils.deprecation import deprecate_func
 
+
 class EvolutionBase(ConverterBase, ABC):
     r"""
     A base for Evolution converters.
@@ -31,7 +32,7 @@ class EvolutionBase(ConverterBase, ABC):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self) -> None:
         super().__init__()

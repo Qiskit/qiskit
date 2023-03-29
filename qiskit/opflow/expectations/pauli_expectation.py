@@ -28,6 +28,7 @@ from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.utils.deprecation import deprecate_func
+
 logger = logging.getLogger(__name__)
 
 
@@ -43,7 +44,7 @@ class PauliExpectation(ExpectationBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(self, group_paulis: bool = True) -> None:
         """
