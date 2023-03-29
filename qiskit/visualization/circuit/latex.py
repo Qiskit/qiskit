@@ -24,6 +24,7 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.library.standard_gates import SwapGate, XGate, ZGate, RZZGate, U1Gate, PhaseGate
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.tools.pi_check import pi_check
+from qiskit.utils.deprecation import deprecate_arg
 
 from .qcstyle import load_style
 from ._utils import (
@@ -47,6 +48,23 @@ class QCircuitImage:
     Thanks to Eric Sabo for the initial implementation for Qiskit.
     """
 
+    @deprecate_arg("gregs", since="0.20.0")
+    @deprecate_arg("cregs", since="0.20.0")
+    @deprecate_arg("layout", since="0.20.0")
+    @deprecate_arg("global_phase", since="0.20.0")
+    @deprecate_arg(
+        "circuit",
+        deprecation_description=(
+            "Not setting the ``circuit`` argument in the ``QCircuitImage`` constructor`"
+        ),
+        since="0.20.0",
+        predicate=lambda circuit: circuit is None,
+        additional_msg=(
+            "The ``circuit`` argument must be a valid QuantumCircuit. If ``circuit`` is set to "
+            "``None``, then the circuit will be built using the ``qubits`` and ``clbits`` "
+            "arguments for rendering the drawing."
+        ),
+    )
     def __init__(
         self,
         qubits,
@@ -85,52 +103,15 @@ class QCircuitImage:
         Raises:
             ImportError: If pylatexenc is not installed
         """
-        if qregs is not None:
-            warn(
-                "The 'qregs' kwarg to the QCircuitImage class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if cregs is not None:
-            warn(
-                "The 'cregs' kwarg to the QCircuitImage class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if layout is not None:
-            warn(
-                "The 'layout' kwarg to the QCircuitImage class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if global_phase is not None:
-            warn(
-                "The 'global_phase' kwarg to the QCircuitImage class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
+        del layout
+        del global_phase
         # This check should be removed when the 4 deprecations above are removed
         if circuit is None:
-            warn(
-                "The 'circuit' kwarg to the QCircuitImage class must be a valid "
-                "QuantumCircuit and not None. A new circuit is being created using "
-                "the qubits and clbits for rendering the drawing.",
-                DeprecationWarning,
-                2,
-            )
             circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs:
+            for reg in qregs or []:
                 bits = [qubits[circ._qubit_indices[q].index] for q in reg]
                 circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs:
+            for reg in cregs or []:
                 bits = [clbits[circ._clbit_indices[q].index] for q in reg]
                 circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
             self._circuit = circ
