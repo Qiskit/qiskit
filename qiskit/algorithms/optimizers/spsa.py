@@ -25,7 +25,7 @@ import scipy
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
@@ -647,11 +647,12 @@ class SPSA(Optimizer):
         }
 
     # pylint: disable=bad-docstring-quotes
-    @deprecate_function(
-        "The SPSA.optimize method is deprecated as of Qiskit Terra 0.21.0 and will be removed no "
-        "sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement, "
-        "which supports the same arguments but follows the interface of scipy.optimize and returns "
-        "a complete result object containing additional information.",
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use ``SPSA.minimize`` as a replacement, which supports the same arguments "
+            "but follows the interface of scipy.optimize and returns a complete result object "
+            "containing additional information."
+        ),
         since="0.21.0",
     )
     def optimize(
