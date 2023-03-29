@@ -13,10 +13,10 @@
 
 """Objects to represent the information at a node in the DAGCircuit."""
 
-import warnings
 from typing import Iterable
 
 from qiskit.circuit import Qubit, Clbit
+from qiskit.utils.deprecation import deprecate_arg
 
 
 def _condition_as_indices(operation, bit_indices):
@@ -49,6 +49,26 @@ class DAGNode:
         return str(id(self))
 
     @staticmethod
+    @deprecate_arg(
+        "bit_indices1",
+        deprecation_description="Not setting bit_indices1 in DAGNode.semantic_eq()",
+        additional_msg=(
+            "To ease the transition, bit_indices1 and bit_indices2 will for now be "
+            "pre-populated based on the values found in Bit.index and Bit.register."
+        ),
+        since="0.21.0",
+        predicate=lambda arg: arg is None,
+    )
+    @deprecate_arg(
+        "bit_indices2",
+        deprecation_description="Not setting bit_indices2 in DAGNode.semantic_eq()",
+        additional_msg=(
+            "To ease the transition, bit_indices1 and bit_indices2 will for now be "
+            "pre-populated based on the values found in Bit.index and Bit.register."
+        ),
+        since="0.21.0",
+        predicate=lambda arg: arg is None,
+    )
     def semantic_eq(node1, node2, bit_indices1=None, bit_indices2=None):
         """
         Check if DAG nodes are considered equivalent, e.g., as a node_match for nx.is_isomorphic.
@@ -65,15 +85,6 @@ class DAGNode:
             Bool: If node1 == node2
         """
         if bit_indices1 is None or bit_indices2 is None:
-            warnings.warn(
-                "DAGNode.semantic_eq now expects two bit-to-circuit index "
-                "mappings as arguments. To ease the transition, these will be "
-                "pre-populated based on the values found in Bit.index and "
-                "Bit.register. However, this behavior is deprecated and a future "
-                "release will require the mappings to be provided as arguments.",
-                DeprecationWarning,
-            )
-
             bit_indices1 = {arg: arg for arg in node1.qargs + node1.cargs}
             bit_indices2 = {arg: arg for arg in node2.qargs + node2.cargs}
 

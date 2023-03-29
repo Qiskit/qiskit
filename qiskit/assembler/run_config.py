@@ -13,7 +13,8 @@
 """Models for RunConfig and its related components."""
 
 from types import SimpleNamespace
-import warnings
+
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class RunConfig(SimpleNamespace):
@@ -30,6 +31,14 @@ class RunConfig(SimpleNamespace):
         parameter_binds (list[dict]): List of parameter bindings
     """
 
+    @deprecate_arg(
+        "max_credits",
+        since="0.20.0",
+        additional_msg=(
+            "This argument has no effect on modern IBM Quantum systems, and no alternative is"
+            "necessary."
+        ),
+    )
     def __init__(
         self,
         shots=None,
@@ -55,13 +64,6 @@ class RunConfig(SimpleNamespace):
             self.shots = shots
         if max_credits is not None:
             self.max_credits = max_credits
-            warnings.warn(
-                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-                "and will be removed in a future release. This parameter has no effect on "
-                "modern IBM Quantum systems, and no alternative is necessary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         if seed_simulator is not None:
             self.seed_simulator = seed_simulator
         if memory is not None:
