@@ -31,7 +31,7 @@ from qiskit.quantum_info import Statevector
 from qiskit.utils.deprecation import deprecate_func
 
 class CVaRMeasurement(OperatorStateFn):
-    r"""Deprecation: A specialized measurement class to compute CVaR expectation values.
+    r"""A specialized measurement class to compute CVaR expectation values.
         See https://arxiv.org/pdf/1907.04769.pdf for further details.
 
     Used in :class:`~qiskit.opflow.CVaRExpectation`, see there for more details.

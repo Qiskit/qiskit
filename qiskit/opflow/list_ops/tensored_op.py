@@ -26,7 +26,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class TensoredOp(ListOp):
-    """Deprecation: A class for lazily representing tensor products of Operators. Often Operators
+    """A class for lazily representing tensor products of Operators. Often Operators
     cannot be efficiently tensored to one another, but may be manipulated further so that they can be
     later. This class holds logic to indicate that the Operators in ``oplist`` are meant to
     be tensored together, and therefore if they reach a point in which they can be, such as after

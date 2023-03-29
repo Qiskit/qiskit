@@ -23,7 +23,7 @@ from ...operator_base import OperatorBase
 
 
 class CircuitGradient(ConverterBase):
-    r"""Deprecation: Circuit to gradient operator converter.
+    r"""Circuit to gradient operator converter.
 
     Converter for changing parameterized circuits into operators
     whose evaluation yields the gradient with respect to the circuit parameters.

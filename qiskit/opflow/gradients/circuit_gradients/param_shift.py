@@ -40,7 +40,7 @@ from ..derivative_base import _coeff_derivative
 
 
 class ParamShift(CircuitGradient):
-    """Deprecation: Compute the gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the sampling
+    """Compute the gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the sampling
     probabilities of the basis states of a state |ψ(ω)〉w.r.t. ω with the parameter shift
     method.
     """

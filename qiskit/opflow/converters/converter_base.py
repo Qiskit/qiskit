@@ -19,7 +19,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class ConverterBase(ABC):
     r"""
-    Deprecation: Converters take an Operator and return a new Operator, generally isomorphic
+    Converters take an Operator and return a new Operator, generally isomorphic
     in some way with the first, but with certain desired properties. For example,
     a converter may accept ``CircuitOp`` and return a ``SummedOp`` of
     ``PauliOps`` representing the circuit unitary. Converters may not

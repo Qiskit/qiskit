@@ -29,7 +29,7 @@ from qiskit.utils import algorithm_globals
 from qiskit.utils.deprecation import deprecate_func
 
 class SparseVectorStateFn(StateFn):
-    """Deprecation: A class for sparse state functions and measurements in vector representation.
+    """A class for sparse state functions and measurements in vector representation.
 
     This class uses ``scipy.sparse.spmatrix`` for the internal representation.
     """

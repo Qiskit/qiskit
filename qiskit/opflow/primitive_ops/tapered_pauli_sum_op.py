@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class TaperedPauliSumOp(PauliSumOp):
-    """Deprecation: Class for PauliSumOp after tapering"""
+    """Class for PauliSumOp after tapering"""
 
     @deprecate_func(
         since="0.24.0",

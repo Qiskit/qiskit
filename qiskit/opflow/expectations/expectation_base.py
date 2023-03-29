@@ -23,7 +23,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class ExpectationBase(ConverterBase):
     r"""
-    Deprecation: A base for Expectation value converters. Expectations are converters which enable the
+    A base for Expectation value converters. Expectations are converters which enable the
     computation of the expectation value of an Observable with respect to some state function.
     They traverse an Operator tree, replacing OperatorStateFn measurements with equivalent
     measurements which are more amenable to computation on quantum or classical hardware. For

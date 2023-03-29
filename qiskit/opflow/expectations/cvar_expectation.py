@@ -23,7 +23,7 @@ from qiskit.opflow.state_fns import CVaRMeasurement, OperatorStateFn
 from qiskit.utils.deprecation import deprecate_func
 
 class CVaRExpectation(ExpectationBase):
-    r"""Deprecation: Compute the Conditional Value at Risk (CVaR) expectation value.
+    r"""Compute the Conditional Value at Risk (CVaR) expectation value.
 
     The standard approach to calculating the expectation value of a Hamiltonian w.r.t. a
     state is to take the sample mean of the measurement outcomes. This corresponds to an estimator

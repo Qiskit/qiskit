@@ -26,7 +26,7 @@ from .circuit_qfis import CircuitQFI
 
 
 class QFI(QFIBase):
-    r"""Deprecation: Compute the Quantum Fisher Information (QFI).
+    r"""Compute the Quantum Fisher Information (QFI).
 
     Computes the QFI given a pure, parameterized quantum state, where QFI is:
 

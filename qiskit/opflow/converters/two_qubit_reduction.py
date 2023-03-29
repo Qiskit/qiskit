@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class TwoQubitReduction(ConverterBase):
     """
-    Deprecation: Two qubit reduction converter which eliminates the central and last
+    Two qubit reduction converter which eliminates the central and last
     qubit in a list of Pauli that has diagonal operators (Z,I) at those positions.
 
     Chemistry specific method:

@@ -37,7 +37,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class CircuitStateFn(StateFn):
     r"""
-    Deprecation: A class for state functions and measurements which are defined by the action of a
+    A class for state functions and measurements which are defined by the action of a
     QuantumCircuit starting from \|0⟩, and stored using Terra's ``QuantumCircuit`` class.
     """
     primitive: QuantumCircuit

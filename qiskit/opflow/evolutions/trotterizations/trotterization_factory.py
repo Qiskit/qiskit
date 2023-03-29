@@ -19,7 +19,7 @@ from qiskit.opflow.evolutions.trotterizations.trotterization_base import Trotter
 from qiskit.utils.deprecation import deprecate_func
 
 class TrotterizationFactory:
-    """Deprecation: A factory for conveniently creating TrotterizationBase instances."""
+    """A factory for conveniently creating TrotterizationBase instances."""
 
     @staticmethod
     @deprecate_func(

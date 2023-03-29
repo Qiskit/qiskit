@@ -25,7 +25,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class SummedOp(ListOp):
-    """Deprecation: A class for lazily representing sums of Operators. Often Operators cannot be
+    """A class for lazily representing sums of Operators. Often Operators cannot be
     efficiently added to one another, but may be manipulated further so that they can be
     later. This class holds logic to indicate that the Operators in ``oplist`` are meant to
     be added together, and therefore if they reach a point in which they can be, such as after

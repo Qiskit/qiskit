@@ -35,7 +35,7 @@ from ..exceptions import OpflowError
 
 
 class Gradient(GradientBase):
-    """Deprecation: Convert an operator expression to the first-order gradient."""
+    """Convert an operator expression to the first-order gradient."""
 
     @deprecate_func(
         since="0.24.0",

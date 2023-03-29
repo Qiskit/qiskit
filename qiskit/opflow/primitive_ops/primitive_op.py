@@ -27,7 +27,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class PrimitiveOp(OperatorBase):
     r"""
-    Deprecation: A class for representing basic Operators, backed by Operator primitives from
+    A class for representing basic Operators, backed by Operator primitives from
     Terra. This class (and inheritors) primarily serves to allow the underlying
     primitives to "flow" - i.e. interoperability and adherence to the Operator formalism
     - while the core computational logic mostly remains in the underlying primitives.

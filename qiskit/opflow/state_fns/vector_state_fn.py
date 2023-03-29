@@ -29,7 +29,7 @@ from qiskit.utils import algorithm_globals, arithmetic
 from qiskit.utils.deprecation import deprecate_func
 
 class VectorStateFn(StateFn):
-    """Deprecation: A class for state functions and measurements which are defined in vector
+    """A class for state functions and measurements which are defined in vector
     representation, and stored using Terra's ``Statevector`` class.
     """
 

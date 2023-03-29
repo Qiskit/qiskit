@@ -22,7 +22,7 @@ from ...operator_base import OperatorBase
 
 
 class CircuitQFI(ConverterBase):
-    r"""Deprecation: Circuit to Quantum Fisher Information operator converter.
+    r"""Circuit to Quantum Fisher Information operator converter.
 
     Converter for changing parameterized circuits into operators
     whose evaluation yields Quantum Fisher Information metric tensor

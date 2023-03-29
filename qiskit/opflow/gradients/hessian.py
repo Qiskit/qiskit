@@ -38,7 +38,7 @@ from .circuit_gradients.circuit_gradient import CircuitGradient
 
 
 class Hessian(HessianBase):
-    """Deprecation: Compute the Hessian of an expected value."""
+    """Compute the Hessian of an expected value."""
 
     @deprecate_func(
         since="0.24.0",
