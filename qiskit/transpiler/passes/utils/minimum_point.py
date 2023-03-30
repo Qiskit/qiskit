@@ -109,8 +109,10 @@ class MinimumPoint(TransformationPass):
         return dag
 
 
-@dataclass(slots=True)
+@dataclass
 class _MinimumPointState:
+    __slots__ = ("dag", "score", "since")
+
     dag: DAGCircuit
     score: Tuple[float, ...]
     since: int
