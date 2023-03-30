@@ -141,10 +141,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.x(qr[2]).c_if(cr, 2)
         circuit.measure(qr[2], cr[2])
 
-        # TODO(#9880): This is a hack to work-around production code incorrectly using a
-        #  deprecated property. Remove the assertWarns once fixed.
-        with self.assertWarns(DeprecationWarning):
-            circuit_drawer(circuit, filename=filename, output="latex_source")
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -200,10 +197,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.measure(qr, cr)
         circuit.h(qr[0]).c_if(cr, 2)
 
-        # TODO(#9880): This is a hack to work-around production code incorrectly using a
-        #  deprecated property. Remove the assertWarns once fixed.
-        with self.assertWarns(DeprecationWarning):
-            circuit_drawer(circuit, filename=filename, output="latex_source")
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -563,10 +557,7 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])
         circuit.h(qr[1]).c_if(cr, 1)
-        # TODO(#9880): This is a hack to work-around production code incorrectly using a
-        #  deprecated property. Remove the assertWarns once fixed.
-        with self.assertWarns(DeprecationWarning):
-            circuit_drawer(circuit, filename=filename, output="latex_source")
+        circuit_drawer(circuit, filename=filename, output="latex_source")
 
         self.assertEqualToReference(filename)
 
@@ -636,11 +627,8 @@ class TestLatexSourceGenerator(QiskitVisualizationTestCase):
         circuit.measure(0, cr1[1])
         circuit.measure(1, cr2[0]).c_if(cr1, 1)
         circuit.h(0).c_if(cr2, 3)
-        # TODO(#9880): This is a hack to work-around production code incorrectly using a
-        #  deprecated property. Remove the assertWarns once fixed.
-        with self.assertWarns(DeprecationWarning):
-            circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
-            circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
+        circuit_drawer(circuit, cregbundle=False, filename=filename1, output="latex_source")
+        circuit_drawer(circuit, cregbundle=True, filename=filename2, output="latex_source")
         self.assertEqualToReference(filename1)
         self.assertEqualToReference(filename2)
 
