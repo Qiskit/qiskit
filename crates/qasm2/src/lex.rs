@@ -58,9 +58,9 @@ impl TokenContext {
         }
     }
 
-    /// Take ownership of the given `ascii_text` of a [Token], and return an index into the
-    /// [TokenContext].  This will not store strings that are already present in the context;
-    /// instead, the previous index is transparently returned.
+    /// Intern the given `ascii_text` of a [Token], and return an index into the [TokenContext].
+    /// This will not store strings that are already present in the context; instead, the previous
+    /// index is transparently returned.
     fn index(&mut self, ascii_text: &[u8]) -> usize {
         match self.lookup.get(ascii_text) {
             Some(index) => *index,
@@ -226,8 +226,10 @@ impl TokenType {
 #[derive(Clone, Copy, Debug)]
 pub struct Token {
     pub ttype: TokenType,
-    // This is just start line and end line; the spans can be calculated from the text, if you also
-    // have a reference to the token context.
+    // The `line` and `col` refer only to the start of the token.  There are no tokens that span
+    // more than one line (we don't tokenise comments), but the ending column offset can be
+    // calculated by asking the associated `TokenContext` for the text associated with this token,
+    // and inspecting the length of the returned value.
     pub line: usize,
     pub col: usize,
     // Index into the TokenContext object, to retrieve the text that makes up the token.  We don't
@@ -315,10 +317,11 @@ impl Token {
 /// lexer, with its main public associated functions being the iterable method [Self::next()] and
 /// the [std::iter::Peekable]-like function [Self::peek()].
 ///
-/// The stream exposes two public attributes directly: the [filename] that this stream comes from
-/// (set to some placeholder value for streams that do not have a backing file), and the
-/// [TokenContext] object [context], which owns all the strings of all the text representations of
-/// the previously seen tokens.
+/// The stream exposes one public attributes directly: the [filename] that this stream comes from
+/// (set to some placeholder value for streams that do not have a backing file).  The associated
+/// `TokenContext` object is managed separately to the stream and is passed in each call to `next`;
+/// this allows for multiple streams to operate on the same context, such as when a new stream
+/// begins in order to handle an `include` statement.
 pub struct TokenStream {
     /// The filename from which this stream is derived.  May be a placeholder if there is no
     /// backing file or other named resource.
@@ -408,7 +411,7 @@ impl TokenStream {
     }
 
     /// Get the next character in the stream.  This updates the line and column information for the
-    /// current bute as well.
+    /// current byte as well.
     fn next_byte(&mut self) -> PyResult<Option<u8>> {
         if self.col >= self.line_buffer.len() && self.advance_line()? == 0 {
             return Ok(None);
