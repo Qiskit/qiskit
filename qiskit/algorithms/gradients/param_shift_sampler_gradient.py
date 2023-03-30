@@ -81,7 +81,6 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             metadata.append({"parameters": parameters_})
             # Make parameter values for the parameter shift rule.
-            # TODO: parameter values is a sequence (list?) but treated as np.ndarray
             param_shift_parameter_values = _make_param_shift_parameter_values(
                 circuit, parameter_values_, parameters_
             )

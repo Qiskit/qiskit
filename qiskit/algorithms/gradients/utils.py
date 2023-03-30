@@ -88,7 +88,7 @@ class LinearCombGradientCircuit:
 ################################################################################
 def _make_param_shift_parameter_values(
     circuit: QuantumCircuit,
-    parameter_values: np.ndarray,
+    parameter_values: np.ndarray | list[float],
     parameters: Sequence[Parameter],
 ) -> list[np.ndarray]:
     """Returns a list of parameter values with offsets for parameter shift rule.
