@@ -832,7 +832,7 @@ class PulseBackendConfiguration(QasmBackendConfiguration):
         return AcquireChannel(qubit)
 
     @deprecate_arg(
-        "qubits",
+        "channel",
         since="0.19.0",
         additional_msg=(
             "Instead, use the ``qubits`` argument. This method will now return accurate "
