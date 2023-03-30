@@ -70,18 +70,20 @@ subgraph cluster_20 {
 fontname=helvetica;
 label="[7] ";
 labeljust=l;
-21 [color=blue, fontname=helvetica, label=CXDirection, shape=rectangle];
+21 [color=blue, fontname=helvetica, label=GateDirection, shape=rectangle];
 22 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
 22 -> 21;
+23 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
+23 -> 21;
 19 -> 21;
 }
 
-subgraph cluster_23 {
+subgraph cluster_24 {
 fontname=helvetica;
 label="[8] ";
 labeljust=l;
-24 [color=grey, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
-21 -> 24;
+25 [color=grey, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
+21 -> 25;
 }
 
 }
