@@ -120,10 +120,10 @@ class BaseQiskitTestCase(BaseTestCase):
             msg = "The two circuits are not equal."
         msg += f"""
 Left circuit:
-{qc1.draw(style='text')}
+{qc1}
 
 Right circuit:
-{qc2.draw(style='text')}"""
+{qc2}"""
         raise self.failureException(msg)
 
     def assertDictAlmostEqual(
