@@ -14,8 +14,8 @@
 
 import itertools
 import operator
-from typing import Iterator, List, Optional, Union
 import warnings
+from typing import Iterator, List, Optional, Union
 
 import numpy as np
 
@@ -24,8 +24,9 @@ from qiskit.algorithms.exceptions import AlgorithmError
 from qiskit.primitives import BaseSampler
 from qiskit.providers import Backend
 from qiskit.quantum_info import partial_trace
-from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils import QuantumInstance, algorithm_globals
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
+
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
 
@@ -111,6 +112,12 @@ class Grover(AmplitudeAmplifier):
             `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         iterations: Optional[Union[List[int], Iterator[int], int]] = None,
@@ -156,7 +163,7 @@ class Grover(AmplitudeAmplifier):
 
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
-            self._iterations = map(lambda x: int(growth_rate**x), itertools.count(1))
+            self._iterations = (int(growth_rate**x) for x in itertools.count(1))
         elif isinstance(iterations, int):
             self._iterations = [iterations]
         else:
@@ -173,13 +180,6 @@ class Grover(AmplitudeAmplifier):
 
         self._quantum_instance = None
         if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
-                stacklevel=2,
-            )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=PendingDeprecationWarning)
                 self.quantum_instance = quantum_instance
@@ -190,12 +190,7 @@ class Grover(AmplitudeAmplifier):
         self._iterations_arg = iterations
 
     @property
-    @deprecate_function(
-        "The Grover.quantum_instance getter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-    )
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
     def quantum_instance(self) -> Optional[QuantumInstance]:
         r"""Pending deprecation\; Get the quantum instance.
 
@@ -205,12 +200,7 @@ class Grover(AmplitudeAmplifier):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The Grover.quantum_instance setter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-    )
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
     def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         r"""Pending deprecation\; Set quantum instance.
 
@@ -292,7 +282,7 @@ class Grover(AmplitudeAmplifier):
 
             # sample from [0, power) if specified
             if self._sample_from_iterations:
-                power = np.random.randint(power)
+                power = algorithm_globals.random.randint(power)
             # Run a grover experiment for a given power of the Grover operator.
             if self._sampler is not None:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
@@ -309,7 +299,7 @@ class Grover(AmplitudeAmplifier):
                 }
                 top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
 
-            else:
+            else:  # use of else brach instead of elif as this seperates out the deprecated logic
                 if self._quantum_instance.is_statevector:
                     qc = self.construct_circuit(amplification_problem, power, measurement=False)
                     circuit_results = self._quantum_instance.execute(qc).get_statevector()

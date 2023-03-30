@@ -14,13 +14,13 @@
 
 from __future__ import annotations
 from typing import Any, Iterator, Callable
-import warnings
 
 import numpy as np
 from qiskit.providers import Backend
 from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 
 from qiskit.primitives import BaseSampler, Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
@@ -228,9 +228,10 @@ class QNSPSA(SPSA):
         gradient_estimate = (loss_values[0] - loss_values[1]) / (2 * eps) * delta1
 
         # compute the preconditioner point estimate
+        fidelity_values = np.asarray(fidelity_values, dtype=float)
         diff = fidelity_values[2] - fidelity_values[0]
-        diff -= fidelity_values[3] - fidelity_values[1]
-        diff /= 2 * eps**2
+        diff = diff - (fidelity_values[3] - fidelity_values[1])
+        diff = diff / (2 * eps**2)
 
         rank_one = np.outer(delta1, delta2)
         # -0.5 factor comes from the fact that we need -0.5 * fidelity
@@ -252,6 +253,8 @@ class QNSPSA(SPSA):
         return settings
 
     @staticmethod
+    @deprecate_arg("backend", since="0.22", pending=True)
+    @deprecate_arg("expectation", since="0.22", pending=True)
     def get_fidelity(
         circuit: QuantumCircuit,
         backend: Backend | QuantumInstance | None = None,
@@ -276,7 +279,7 @@ class QNSPSA(SPSA):
             F(\theta, \phi) = \big|\langle 0 | U^\dagger(\theta) U(\phi) |0\rangle  \big|^2.
 
         The output of this function can be used as input for the ``fidelity`` to the
-        :class:~`qiskit.algorithms.optimizers.QNSPSA` optimizer.
+        :class:`~.QNSPSA` optimizer.
 
         Args:
             circuit: The circuit preparing the parameterized ansatz.
@@ -300,19 +303,22 @@ class QNSPSA(SPSA):
             sampler = Sampler()
 
         if expectation is not None or backend is not None:
-            warnings.warn(
-                "Passing a backend and expectation converter to QNSPSA.get_fidelity is pending "
-                "deprecation and will be deprecated in a future release. Instead, pass a "
-                "sampler primitive.",
-                stacklevel=2,
-                category=PendingDeprecationWarning,
-            )
             return QNSPSA._legacy_get_fidelity(circuit, backend, expectation)
 
         fid = ComputeUncompute(sampler)
 
+        num_parameters = circuit.num_parameters
+
         def fidelity(values_x, values_y):
-            result = fid.run(circuit, circuit, values_x, values_y).result()
+            values_x = np.reshape(values_x, (-1, num_parameters)).tolist()
+            batch_size_x = len(values_x)
+
+            values_y = np.reshape(values_y, (-1, num_parameters)).tolist()
+            batch_size_y = len(values_y)
+
+            result = fid.run(
+                batch_size_x * [circuit], batch_size_y * [circuit], values_x, values_y
+            ).result()
             return np.asarray(result.fidelities)
 
         return fidelity

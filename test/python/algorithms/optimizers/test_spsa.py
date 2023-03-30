@@ -19,7 +19,7 @@ import numpy as np
 
 from qiskit.algorithms.optimizers import SPSA, QNSPSA
 from qiskit.circuit.library import PauliTwoDesign
-from qiskit.primitives import Sampler
+from qiskit.primitives import Estimator, Sampler
 from qiskit.providers.basicaer import StatevectorSimulatorPy
 from qiskit.opflow import I, Z, StateFn, MatrixExpectation
 from qiskit.utils import algorithm_globals
@@ -201,9 +201,12 @@ class TestSPSA(QiskitAlgorithmsTestCase):
     def test_qnspsa_fidelity_deprecation(self):
         """Test using a backend and expectation converter in get_fidelity warns."""
         ansatz = PauliTwoDesign(2, reps=1, seed=2)
-
         with self.assertWarns(PendingDeprecationWarning):
-            _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
+            QNSPSA.get_fidelity(ansatz, backend=StatevectorSimulatorPy())
+        with self.assertWarns(PendingDeprecationWarning):
+            QNSPSA.get_fidelity(ansatz, expectation=MatrixExpectation())
+        # No warning when used correctly.
+        QNSPSA.get_fidelity(ansatz)
 
     def test_qnspsa_fidelity_primitives(self):
         """Test the primitives can be used in get_fidelity."""
@@ -222,3 +225,60 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             result = fidelity(initial_point, initial_point)
 
             self.assertAlmostEqual(result[0], 1)
+
+    def test_qnspsa_max_evals_grouped(self):
+        """Test using max_evals_grouped with QNSPSA."""
+        circuit = PauliTwoDesign(3, reps=1, seed=1)
+        num_parameters = circuit.num_parameters
+        obs = Z ^ Z ^ I
+
+        estimator = Estimator(options={"seed": 12})
+
+        initial_point = np.array(
+            [0.82311034, 0.02611798, 0.21077064, 0.61842177, 0.09828447, 0.62013131]
+        )
+
+        def objective(x):
+            x = np.reshape(x, (-1, num_parameters)).tolist()
+            n = len(x)
+            return estimator.run(n * [circuit], n * [obs.primitive], x).result().values.real
+
+        fidelity = QNSPSA.get_fidelity(circuit)
+        optimizer = QNSPSA(fidelity)
+        optimizer.maxiter = 1
+        optimizer.learning_rate = 0.05
+        optimizer.perturbation = 0.05
+        optimizer.set_max_evals_grouped(50)  # greater than 1
+
+        result = optimizer.minimize(objective, initial_point)
+
+        with self.subTest("check final accuracy"):
+            self.assertAlmostEqual(result.fun[0], 0.473, places=3)
+
+        with self.subTest("check number of function calls"):
+            expected_nfev = 8  # 7 * maxiter + 1
+            self.assertEqual(result.nfev, expected_nfev)
+
+    def test_point_sample(self):
+        """Test point sample function in QNSPSA"""
+
+        def fidelity(x, _y):
+            x = np.asarray(x)
+            return np.ones_like(x, dtype=float)  # some float
+
+        def objective(x):
+            return x
+
+        def get_perturbation():
+            def perturbation():
+                while True:
+                    yield 1
+
+            return perturbation
+
+        qnspsa = QNSPSA(fidelity, maxiter=1, learning_rate=0.1, perturbation=get_perturbation())
+        initial_point = 1.0
+        result = qnspsa.minimize(objective, initial_point)
+
+        expected_nfev = 8  # 7 * maxiter + 1
+        self.assertEqual(result.nfev, expected_nfev)

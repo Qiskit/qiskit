@@ -12,19 +12,19 @@
 
 """Test Grover's algorithm."""
 
+import itertools
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
-import itertools
-import numpy as np
-from ddt import ddt, data, idata, unpack
 
+import numpy as np
+from ddt import data, ddt, idata, unpack
 
 from qiskit import BasicAer, QuantumCircuit
-from qiskit.utils import QuantumInstance
-from qiskit.algorithms import Grover, AmplificationProblem
+from qiskit.algorithms import AmplificationProblem, Grover
 from qiskit.circuit.library import GroverOperator, PhaseOracle
 from qiskit.primitives import Sampler
 from qiskit.quantum_info import Operator, Statevector
+from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 
 
@@ -80,7 +80,6 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
         problem = AmplificationProblem(oracle, is_good_state=is_good_state)
 
         expected = [state in ["01", "11"] for state in possible_states]
-        # pylint: disable=not-callable
         actual = [problem.is_good_state(state) for state in possible_states]
 
         self.assertListEqual(expected, actual)
@@ -100,6 +99,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
         )
         self._sampler = Sampler()
         self._sampler_with_shots = Sampler(options={"shots": 1024, "seed": 123})
+        algorithm_globals.random_seed = 123
 
     @unittest.skipUnless(HAS_TWEEDLEDUM, "tweedledum required for this test")
     @data("ideal", "shots", False)
@@ -256,10 +256,11 @@ class TestGrover(QiskitAlgorithmsTestCase):
         if use_sampler:
             for i, dist in enumerate(result.circuit_results):
                 keys, values = zip(*sorted(dist.items()))
-                self.assertTupleEqual(keys, ("00", "01", "10", "11"))
                 if i in (0, 3):
-                    np.testing.assert_allclose(values, [0, 0, 0, 1], atol=0.2)
+                    self.assertTupleEqual(keys, ("11",))
+                    np.testing.assert_allclose(values, [1], atol=0.2)
                 else:
+                    self.assertTupleEqual(keys, ("00", "01", "10", "11"))
                     np.testing.assert_allclose(values, [0.25, 0.25, 0.25, 0.25], atol=0.2)
         else:
             expected_results = [

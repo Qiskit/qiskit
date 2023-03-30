@@ -51,9 +51,10 @@ from qiskit.providers.fake_provider import (
     FakeRueschlikon,
     FakeBoeblingen,
     FakeMumbaiV2,
+    FakeNairobiV2,
 )
 from qiskit.transpiler import Layout, CouplingMap
-from qiskit.transpiler import PassManager
+from qiskit.transpiler import PassManager, TransformationPass
 from qiskit.transpiler.target import Target
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
@@ -61,6 +62,7 @@ from qiskit.quantum_info import Operator, random_unitary
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 from qiskit.tools import parallel
+from qiskit.pulse import InstructionScheduleMap
 
 
 class CustomCX(Gate):
@@ -1312,7 +1314,7 @@ class TestTranspile(QiskitTestCase):
     @data(0, 1, 2, 3)
     def test_transpile_preserves_circuit_metadata(self, optimization_level):
         """Verify that transpile preserves circuit metadata in the output."""
-        circuit = QuantumCircuit(2, metadata=dict(experiment_id="1234", execution_number=4))
+        circuit = QuantumCircuit(2, metadata={"experiment_id": "1234", "execution_number": 4})
         circuit.h(0)
         circuit.cx(0, 1)
 
@@ -1466,31 +1468,18 @@ class TestTranspile(QiskitTestCase):
         phi = Parameter("ϕ")
         lam = Parameter("λ")
         target = Target(num_qubits=2)
-        target.add_instruction(UGate(theta, phi, lam))
-        target.add_instruction(CXGate())
-        target.add_instruction(Measure())
+        target.add_instruction(UGate(theta, phi, lam), {(0,): None, (1,): None})
+        target.add_instruction(CXGate(), {(0, 1): None})
+        target.add_instruction(Measure(), {(0,): None, (1,): None})
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
         qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
         qc.h(qubit_reg[0])
         qc.cx(qubit_reg[0], qubit_reg[1])
-        if opt_level != 3:
-            qc.measure(qubit_reg, clbit_reg)
-        result = transpile(qc, target=target, optimization_level=opt_level)
-        # The Unitary synthesis optimization pass results for optimization level 3
-        # results in a different output than the other optimization levels
-        # and can differ based on fp precision. To avoid relying on a hard match
-        # do a unitary equiv
 
-        if opt_level == 3:
-            result_op = Operator.from_circuit(result)
-            self.assertTrue(result_op.equiv(qc))
-        else:
-            expected = QuantumCircuit(qubit_reg, clbit_reg)
-            expected.u(np.pi / 2, 0, np.pi, qubit_reg[0])
-            expected.cx(qubit_reg[0], qubit_reg[1])
-            expected.measure(qubit_reg, clbit_reg)
-            self.assertEqual(result, expected)
+        result = transpile(qc, target=target, optimization_level=opt_level)
+
+        self.assertEqual(Operator.from_circuit(result), Operator.from_circuit(qc))
 
     # TODO: Add optimization level 2 and 3 after they support control flow
     # compilation
@@ -1554,6 +1543,27 @@ class TestTranspile(QiskitTestCase):
             transpiled,
             qubit_mapping={qubit: index for index, qubit in enumerate(transpiled.qubits)},
         )
+
+    @data(1, 2, 3)
+    def test_transpile_identity_circuit_no_target(self, opt_level):
+        """Test circuit equivalent to identity is optimized away for all optimization levels >0.
+
+        Reproduce taken from https://github.com/Qiskit/qiskit-terra/issues/9217
+        """
+        qr1 = QuantumRegister(3, "state")
+        qr2 = QuantumRegister(2, "ancilla")
+        cr = ClassicalRegister(2, "c")
+        qc = QuantumCircuit(qr1, qr2, cr)
+        qc.h(qr1[0])
+        qc.cx(qr1[0], qr1[1])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[1], qr1[2])
+        qc.cx(qr1[0], qr1[1])
+        qc.h(qr1[0])
+
+        empty_qc = QuantumCircuit(qr1, qr2, cr)
+        result = transpile(qc, optimization_level=opt_level)
+        self.assertEqual(empty_qc, result)
 
 
 @ddt
@@ -1833,3 +1843,131 @@ class TestTranspileParallel(QiskitTestCase):
         self.assertIsInstance(res, list)
         for circ in res:
             self.assertIsInstance(circ, QuantumCircuit)
+
+    @data(0, 1, 2, 3)
+    def test_parallel_dispatch(self, opt_level):
+        """Test that transpile in parallel works for all optimization levels."""
+        backend = FakeRueschlikon()
+        qr = QuantumRegister(16)
+        cr = ClassicalRegister(16)
+        qc = QuantumCircuit(qr, cr)
+        qc.h(qr[0])
+        for k in range(1, 15):
+            qc.cx(qr[0], qr[k])
+        qc.measure(qr, cr)
+        qlist = [qc for k in range(15)]
+        tqc = transpile(
+            qlist, backend=backend, optimization_level=opt_level, seed_transpiler=424242
+        )
+        result = backend.run(tqc, seed_simulator=4242424242, shots=1000).result()
+        counts = result.get_counts()
+        for count in counts:
+            self.assertTrue(math.isclose(count["0000000000000000"], 500, rel_tol=0.1))
+            self.assertTrue(math.isclose(count["0111111111111111"], 500, rel_tol=0.1))
+
+    def test_parallel_dispatch_lazy_cal_loading(self):
+        """Test adding calibration by lazy loading in parallel environment."""
+
+        class TestAddCalibration(TransformationPass):
+            """A fake pass to test lazy pulse qobj loading in parallel environment."""
+
+            def __init__(self, target):
+                """Instantiate with target."""
+                super().__init__()
+                self.target = target
+
+            def run(self, dag):
+                """Run test pass that adds calibration of SX gate of qubit 0."""
+                dag.add_calibration(
+                    "sx",
+                    qubits=(0,),
+                    schedule=self.target["sx"][(0,)].calibration,  # PulseQobj is parsed here
+                )
+                return dag
+
+        backend = FakeMumbaiV2()
+
+        # This target has PulseQobj entries that provides a serialized schedule data
+        pass_ = TestAddCalibration(backend.target)
+        pm = PassManager(passes=[pass_])
+        self.assertIsNone(backend.target["sx"][(0,)]._calibration._definition)
+
+        qc = QuantumCircuit(1)
+        qc.sx(0)
+        qc_copied = [qc for _ in range(10)]
+
+        qcs_cal_added = pm.run(qc_copied)
+        ref_cal = backend.target["sx"][(0,)].calibration
+        for qc_test in qcs_cal_added:
+            added_cal = qc_test.calibrations["sx"][((0,), ())]
+            self.assertEqual(added_cal, ref_cal)
+
+    @data(0, 1, 2, 3)
+    def test_backendv2_and_basis_gates(self, opt_level):
+        """Test transpile() with BackendV2 and basis_gates set."""
+        backend = FakeNairobiV2()
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(0, 2)
+        qc.cz(0, 3)
+        qc.cz(0, 4)
+        qc.measure_all()
+        tqc = transpile(
+            qc,
+            backend=backend,
+            basis_gates=["u", "cz"],
+            optimization_level=opt_level,
+            seed_transpiler=12345678942,
+        )
+        op_count = set(tqc.count_ops())
+        self.assertEqual({"u", "cz", "measure", "barrier"}, op_count)
+        for inst in tqc.data:
+            if inst.operation.name not in {"u", "cz"}:
+                continue
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            self.assertIn(qubits, backend.target.qargs)
+
+    @data(0, 1, 2, 3)
+    def test_backendv2_and_coupling_map(self, opt_level):
+        """Test transpile() with custom coupling map."""
+        backend = FakeNairobiV2()
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(0, 2)
+        qc.cz(0, 3)
+        qc.cz(0, 4)
+        qc.measure_all()
+        cmap = CouplingMap.from_line(5, bidirectional=False)
+        tqc = transpile(
+            qc,
+            backend=backend,
+            coupling_map=cmap,
+            optimization_level=opt_level,
+            seed_transpiler=12345678942,
+        )
+        op_count = set(tqc.count_ops())
+        self.assertTrue({"rz", "sx", "x", "cx", "measure", "barrier"}.issuperset(op_count))
+        for inst in tqc.data:
+            if len(inst.qubits) == 2:
+                qubit_0 = tqc.find_bit(inst.qubits[0]).index
+                qubit_1 = tqc.find_bit(inst.qubits[1]).index
+                self.assertEqual(qubit_1, qubit_0 + 1)
+
+    @data(0, 1, 2, 3)
+    def test_backend_and_custom_gate(self, opt_level):
+        """Test transpile() with BackendV2, custom basis pulse gate."""
+        backend = FakeNairobiV2()
+        inst_map = InstructionScheduleMap()
+        inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
+        newgate = Gate("newgate", 2, [])
+        circ = QuantumCircuit(2)
+        circ.append(newgate, [0, 1])
+        tqc = transpile(
+            circ, backend, inst_map=inst_map, basis_gates=["newgate"], optimization_level=opt_level
+        )
+        self.assertEqual(len(tqc.data), 1)
+        self.assertEqual(tqc.data[0].operation, newgate)
+        qubits = tuple(tqc.find_bit(x).index for x in tqc.data[0].qubits)
+        self.assertIn(qubits, backend.target.qargs)

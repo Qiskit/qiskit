@@ -16,7 +16,8 @@
 A target object represents the minimum set of information the transpiler needs
 from a backend
 """
-
+import warnings
+from typing import Union
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
@@ -24,14 +25,17 @@ import io
 import logging
 import inspect
 
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
+from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.utils.deprecation import deprecate_arguments
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
@@ -51,13 +55,13 @@ class InstructionProperties:
     custom attributes for those custom/additional properties by the backend.
     """
 
-    __slots__ = ("duration", "error", "calibration")
+    __slots__ = ("duration", "error", "_calibration")
 
     def __init__(
         self,
         duration: float = None,
         error: float = None,
-        calibration=None,
+        calibration: Union[Schedule, ScheduleBlock, CalibrationEntry] = None,
     ):
         """Create a new ``InstructionProperties`` object
 
@@ -66,17 +70,34 @@ class InstructionProperties:
                 specified set of qubits
             error: The average error rate for the instruction on the specified
                 set of qubits.
-            calibration (Union["qiskit.pulse.Schedule", "qiskit.pulse.ScheduleBlock"]): The pulse
-                representation of the instruction
+            calibration: The pulse representation of the instruction.
         """
+        self._calibration = None
+
         self.duration = duration
         self.error = error
         self.calibration = calibration
 
+    @property
+    def calibration(self):
+        """The pulse representation of the instruction."""
+        if self._calibration is None:
+            return None
+        return self._calibration.get_schedule()
+
+    @calibration.setter
+    def calibration(self, calibration: Union[Schedule, ScheduleBlock, CalibrationEntry]):
+        if isinstance(calibration, (Schedule, ScheduleBlock)):
+            new_entry = ScheduleDef()
+            new_entry.define(calibration)
+        else:
+            new_entry = calibration
+        self._calibration = new_entry
+
     def __repr__(self):
         return (
             f"InstructionProperties(duration={self.duration}, error={self.error}"
-            f", calibration={self.calibration})"
+            f", calibration={self._calibration})"
         )
 
 
@@ -177,13 +198,14 @@ class Target(Mapping):
         "granularity",
         "min_length",
         "pulse_alignment",
-        "aquire_alignment",
+        "acquire_alignment",
         "_non_global_basis",
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
     )
 
+    @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
     def __init__(
         self,
         description=None,
@@ -192,7 +214,7 @@ class Target(Mapping):
         granularity=1,
         min_length=1,
         pulse_alignment=1,
-        aquire_alignment=1,
+        acquire_alignment=1,
         qubit_properties=None,
     ):
         """
@@ -251,7 +273,7 @@ class Target(Mapping):
         self.granularity = granularity
         self.min_length = min_length
         self.pulse_alignment = pulse_alignment
-        self.aquire_alignment = aquire_alignment
+        self.acquire_alignment = acquire_alignment
         self._non_global_basis = None
         self._non_global_strict_basis = None
         if qubit_properties is not None:
@@ -501,7 +523,7 @@ class Target(Mapping):
             TimingConstraints: The timing constraints represented in the Target
         """
         return TimingConstraints(
-            self.granularity, self.min_length, self.pulse_alignment, self.aquire_alignment
+            self.granularity, self.min_length, self.pulse_alignment, self.acquire_alignment
         )
 
     def instruction_schedule_map(self):
@@ -517,8 +539,12 @@ class Target(Mapping):
         out_inst_schedule_map = InstructionScheduleMap()
         for instruction, qargs in self._gate_map.items():
             for qarg, properties in qargs.items():
-                if properties is not None and properties.calibration is not None:
-                    out_inst_schedule_map.add(instruction, qarg, properties.calibration)
+                # Directly getting CalibrationEntry not to invoke .get_schedule().
+                # This keeps PulseQobjDef un-parsed.
+                cal_entry = getattr(properties, "_calibration", None)
+                if cal_entry is not None:
+                    # Use fast-path to add entries to the inst map.
+                    out_inst_schedule_map._add(instruction, qarg, cal_entry)
         self._instruction_schedule_map = out_inst_schedule_map
         return out_inst_schedule_map
 
@@ -555,7 +581,7 @@ class Target(Mapping):
             raise KeyError(f"{qargs} not in target.")
         res = [self._gate_name_map[x] for x in self._qarg_gate_map[qargs]]
         if qargs is not None:
-            res += self._global_operations.get(len(qargs), list())
+            res += self._global_operations.get(len(qargs), [])
         for op in self._gate_name_map.values():
             if inspect.isclass(op):
                 res.append(op)
@@ -872,7 +898,7 @@ class Target(Mapping):
 
         if two_q_gate is not None:
             coupling_graph = rx.PyDiGraph(multigraph=False)
-            coupling_graph.add_nodes_from(list(None for _ in range(self.num_qubits)))
+            coupling_graph.add_nodes_from([None] * self.num_qubits)
             for qargs, properties in self._gate_map[two_q_gate].items():
                 if len(qargs) != 2:
                     raise ValueError(
@@ -951,6 +977,22 @@ class Target(Mapping):
             self._non_global_basis = incomplete_basis_gates
         return incomplete_basis_gates
 
+    @property
+    def aquire_alignment(self):
+        """Alias of deprecated name. This will be removed."""
+        warnings.warn(
+            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
+        )
+        return self.acquire_alignment
+
+    @aquire_alignment.setter
+    def aquire_alignment(self, new_value: int):
+        """Alias of deprecated name. This will be removed."""
+        warnings.warn(
+            "aquire_alignment is deprecated. Use acquire_alignment instead.", DeprecationWarning
+        )
+        self.acquire_alignment = new_value
+
     def __iter__(self):
         return iter(self._gate_map)
 
@@ -995,7 +1037,7 @@ class Target(Mapping):
                 error = getattr(props, "error", None)
                 if error is not None:
                     prop_str_pieces.append(f"\t\t\tError Rate: {error}\n")
-                schedule = getattr(props, "calibration", None)
+                schedule = getattr(props, "_calibration", None)
                 if schedule is not None:
                     prop_str_pieces.append("\t\t\tWith pulse schedule calibration\n")
                 extra_props = getattr(props, "properties", None)
@@ -1024,25 +1066,24 @@ def target_to_backend_properties(target: Target):
         if gate != "measure":
             for qargs, props in qargs_list.items():
                 property_list = []
-                if props is not None:
-                    if props.duration is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_length",
-                                "unit": "s",
-                                "value": props.duration,
-                            }
-                        )
-                    if props.error is not None:
-                        property_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "gate_error",
-                                "unit": "",
-                                "value": props.error,
-                            }
-                        )
+                if getattr(props, "duration", None) is not None:
+                    property_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "gate_length",
+                            "unit": "s",
+                            "value": props.duration,
+                        }
+                    )
+                if getattr(props, "error", None) is not None:
+                    property_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "gate_error",
+                            "unit": "",
+                            "value": props.error,
+                        }
+                    )
                 if property_list:
                     gates.append(
                         {
@@ -1059,25 +1100,24 @@ def target_to_backend_properties(target: Target):
                     continue
                 qubit = qargs[0]
                 props_list = []
-                if props is not None:
-                    if props.error is not None:
-                        props_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "readout_error",
-                                "unit": "",
-                                "value": props.error,
-                            }
-                        )
-                    if props.duration is not None:
-                        props_list.append(
-                            {
-                                "date": datetime.datetime.utcnow(),
-                                "name": "readout_length",
-                                "unit": "s",
-                                "value": props.duration,
-                            }
-                        )
+                if getattr(props, "error", None) is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_error",
+                            "unit": "",
+                            "value": props.error,
+                        }
+                    )
+                if getattr(props, "duration", None) is not None:
+                    props_list.append(
+                        {
+                            "date": datetime.datetime.utcnow(),
+                            "name": "readout_length",
+                            "unit": "s",
+                            "value": props.duration,
+                        }
+                    )
                 if not props_list:
                     qubit_props = {}
                     break

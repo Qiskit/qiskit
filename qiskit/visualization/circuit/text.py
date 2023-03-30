@@ -16,9 +16,10 @@ A module for drawing circuits in ascii art or some other text representation
 
 from warnings import warn
 from shutil import get_terminal_size
+import itertools
 import sys
 
-from qiskit.circuit import Qubit, Clbit, ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Qubit, Clbit, ClassicalRegister
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
@@ -35,13 +36,6 @@ from ._utils import (
     get_condition_label_val,
 )
 from ..exceptions import VisualizationError
-
-
-class TextDrawerCregBundle(VisualizationError):
-    """The parameter "cregbundle" was set to True in an impossible situation. For example,
-    a node needs to refer to individual classical wires'"""
-
-    pass
 
 
 class TextDrawerEncodingError(VisualizationError):
@@ -601,74 +595,20 @@ class TextDrawing:
         qubits,
         clbits,
         nodes,
+        circuit,
         reverse_bits=False,
         plotbarriers=True,
         line_length=None,
         vertical_compression="high",
-        layout=None,
         initial_state=True,
         cregbundle=None,
-        global_phase=None,
         encoding=None,
-        qregs=None,
-        cregs=None,
         with_layout=False,
-        circuit=None,
     ):
-        if qregs is not None:
-            warn(
-                "The 'qregs' kwarg to the TextDrawing class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if cregs is not None:
-            warn(
-                "The 'cregs' kwarg to the TextDrawing class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if layout is not None:
-            warn(
-                "The 'layout' kwarg to the TextDrawing class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if global_phase is not None:
-            warn(
-                "The 'global_phase' kwarg to the TextDrawing class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        # This check should be removed when the 4 deprecations above are removed
-        if circuit is None:
-            warn(
-                "The 'circuit' kwarg to the TextDrawing class must be a valid "
-                "QuantumCircuit and not None. A new circuit is being created using "
-                "the qubits and clbits for rendering the drawing.",
-                DeprecationWarning,
-                2,
-            )
-            circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs:
-                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
-                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs:
-                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
-                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
-            self._circuit = circ
-        else:
-            self._circuit = circuit
         self.qubits = qubits
         self.clbits = clbits
         self.nodes = nodes
+        self._circuit = circuit
         if with_layout:
             if self._circuit._layout:
                 self.layout = self._circuit._layout.initial_layout
@@ -678,8 +618,6 @@ class TextDrawing:
             self.layout = None
 
         self.initial_state = initial_state
-        self._cregbundle = cregbundle
-        self._default_cregbundle = False
         self.global_phase = circuit.global_phase
         self.plotbarriers = plotbarriers
         self.reverse_bits = reverse_bits
@@ -689,6 +627,20 @@ class TextDrawing:
         self.vertical_compression = vertical_compression
         self._wire_map = {}
 
+        for node in itertools.chain.from_iterable(self.nodes):
+            if node.cargs and node.op.name != "measure":
+                if cregbundle:
+                    warn(
+                        "Cregbundle set to False since an instruction needs to refer"
+                        " to individual classical wire",
+                        RuntimeWarning,
+                        2,
+                    )
+                self.cregbundle = False
+                break
+        else:
+            self.cregbundle = True if cregbundle is None else cregbundle
+
         if encoding:
             self.encoding = encoding
         else:
@@ -696,13 +648,6 @@ class TextDrawing:
                 self.encoding = sys.stdout.encoding
             else:
                 self.encoding = "utf8"
-
-    @property
-    def cregbundle(self):
-        """cregbundle, depending if it was explicitly set or not"""
-        if self._cregbundle is not None:
-            return self._cregbundle
-        return self._default_cregbundle
 
     def __str__(self):
         return self.single_string()
@@ -769,19 +714,7 @@ class TextDrawing:
 
         noqubits = len(self.qubits)
 
-        try:
-            layers = self.build_layers()
-        except TextDrawerCregBundle:
-            if self._cregbundle is not None:
-                self._cregbundle = False
-                warn(
-                    'The parameter "cregbundle" was disabled, since an instruction needs to refer to '
-                    "individual classical wires",
-                    RuntimeWarning,
-                    2,
-                )
-            layers = self.build_layers()
-
+        layers = self.build_layers()
         layer_groups = [[]]
         rest_of_the_line = line_length
         for layerno, layer in enumerate(layers):
@@ -1167,8 +1100,6 @@ class TextDrawing:
             layer.set_qu_multibox(node.qargs, gate_text, conditional=conditional)
 
         elif node.qargs and node.cargs:
-            if self.cregbundle and node.cargs:
-                raise TextDrawerCregBundle("TODO")
             layer._set_multibox(
                 gate_text,
                 qubits=node.qargs,

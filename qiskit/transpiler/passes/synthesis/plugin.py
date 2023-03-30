@@ -183,20 +183,20 @@ documentation for all the required fields. An example plugin class would look
 something like::
 
     from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
-    from qiskit.quantum_info.synthesis.clifford_decompose import decompose_clifford_bm
+    from qiskit.synthesis.clifford import synth_clifford_bm
 
 
     class SpecialSynthesisClifford(HighLevelSynthesisPlugin):
 
     def run(self, high_level_object, **options):
         if higher_level_object.num_qubits <= 3:
-            return decompose_clifford_bm(high_level_object)
+            return synth_clifford_bm(high_level_object)
         else:
             return None
 
 The above example creates a plugin to synthesize objects of type
 :class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford that have
-at most 3 qubits, using the method ``decompose_clifford_bm``.
+at most 3 qubits, using the method ``synth_clifford_bm``.
 
 The second step is to expose the
 :class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
@@ -346,11 +346,11 @@ class UnitarySynthesisPlugin(abc.ABC):
         """Return whether the plugin supports taking ``gate_lengths``
 
         ``gate_lengths`` will be a dictionary in the form of
-        ``{gate_name: {(qubit_1, qubit_2): length}}``. For example::
+        ``{(qubits,): [Gate, length]}``. For example::
 
             {
-            'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
-            'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
+            (0,): [SXGate(): 0.0006149355812506126, RZGate(): 0.0],
+            (0, 1): [CXGate(): 0.012012477900732316]
             }
 
         where the ``length`` value is in units of seconds.
@@ -367,11 +367,11 @@ class UnitarySynthesisPlugin(abc.ABC):
         """Return whether the plugin supports taking ``gate_errors``
 
         ``gate_errors`` will be a dictionary in the form of
-        ``{gate_name: {(qubit_1, qubit_2): error}}``. For example::
+        ``{(qubits,): [Gate, error]}``. For example::
 
             {
-            'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
-            'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
+            (0,): [SXGate(): 0.0006149355812506126, RZGate(): 0.0],
+            (0, 1): [CXGate(): 0.012012477900732316]
             }
 
         Do note that this dictionary might not be complete or could be empty
@@ -510,7 +510,7 @@ class HighLevelSynthesisPluginManager:
         # The registered plugin names should be of the form <OperationName.SynthesisMethodName>.
 
         # Create a dict, mapping <OperationName> to the list of its <SynthesisMethodName>s.
-        self.plugins_by_op = dict()
+        self.plugins_by_op = {}
         for plugin_name in self.plugins.names():
             op_name, method_name = plugin_name.split(".")
             if op_name not in self.plugins_by_op.keys():

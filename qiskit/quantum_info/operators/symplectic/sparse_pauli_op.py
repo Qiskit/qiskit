@@ -13,14 +13,21 @@
 N-Qubit Sparse Pauli Operator class.
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from numbers import Number
 from typing import Dict, Optional
+from copy import deepcopy
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit._accelerate.sparse_pauli_op import unordered_unique
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.custom_iterator import CustomIterator
 from qiskit.quantum_info.operators.linear_op import LinearOp
@@ -112,10 +119,18 @@ class SparsePauliOp(LinearOp):
 
         pauli_list = PauliList(data.copy() if copy and hasattr(data, "copy") else data)
 
-        dtype = object if isinstance(coeffs, np.ndarray) and coeffs.dtype == object else complex
+        if isinstance(coeffs, np.ndarray) and coeffs.dtype == object:
+            dtype = object
+        elif coeffs is not None:
+            if not isinstance(coeffs, (np.ndarray, Sequence)):
+                coeffs = [coeffs]
+            if any(isinstance(coeff, ParameterExpression) for coeff in coeffs):
+                dtype = object
+            else:
+                dtype = complex
 
         if coeffs is None:
-            coeffs = np.ones(pauli_list.size, dtype=dtype)
+            coeffs = np.ones(pauli_list.size, dtype=complex)
         else:
             coeffs = np.array(coeffs, copy=copy, dtype=dtype)
 
@@ -335,7 +350,7 @@ class SparsePauliOp(LinearOp):
     def _tensor(cls, a, b):
         paulis = a.paulis.tensor(b.paulis)
         coeffs = np.kron(a.coeffs, b.coeffs)
-        return SparsePauliOp(paulis, coeffs, copy=False)
+        return SparsePauliOp(paulis, coeffs, ignore_pauli_phase=True, copy=False)
 
     def _add(self, other, qargs=None):
         if qargs is None:
@@ -482,7 +497,7 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp argsort.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -512,6 +527,18 @@ class SparsePauliOp(LinearOp):
             print('Weight sorted')
             print(srt)
 
+        .. parsed-literal::
+
+            Initial Ordering
+            SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
+                          coeffs=[2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j])
+            Lexicographically sorted
+            [4 7 0 1 2 6 5 3]
+            Lexicographically sorted
+            [4 7 0 1 2 6 5 3]
+            Weight sorted
+            [4 7 3 0 1 2 6 5]
+
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
             By using the weight kwarg the output can additionally be sorted
@@ -539,7 +566,7 @@ class SparsePauliOp(LinearOp):
 
         Here is an example of how to use SparsePauliOp sort.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit.quantum_info import SparsePauliOp
@@ -568,6 +595,21 @@ class SparsePauliOp(LinearOp):
             srt = spo.sort(weight=True)
             print('Weight sorted')
             print(srt)
+
+        .. parsed-literal::
+
+            Initial Ordering
+            SparsePauliOp(['XX', 'XX', 'XX', 'YI', 'II', 'XZ', 'XY', 'XI'],
+                          coeffs=[2.+1.j, 2.+2.j, 3.+0.j, 3.+0.j, 4.+0.j, 5.+0.j, 6.+0.j, 7.+0.j])
+            Lexicographically sorted
+            SparsePauliOp(['II', 'XI', 'XX', 'XX', 'XX', 'XY', 'XZ', 'YI'],
+                          coeffs=[4.+0.j, 7.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j, 3.+0.j])
+            Lexicographically sorted
+            SparsePauliOp(['II', 'XI', 'XX', 'XX', 'XX', 'XY', 'XZ', 'YI'],
+                          coeffs=[4.+0.j, 7.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j, 3.+0.j])
+            Weight sorted
+            SparsePauliOp(['II', 'XI', 'YI', 'XX', 'XX', 'XX', 'XY', 'XZ'],
+                          coeffs=[4.+0.j, 7.+0.j, 3.+0.j, 2.+1.j, 2.+2.j, 3.+0.j, 6.+0.j, 5.+0.j])
 
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
@@ -930,7 +972,7 @@ class SparsePauliOp(LinearOp):
                 or on a per-qubit basis.
 
         Returns:
-            retworkx.PyGraph: A class of undirected graphs
+            rustworkx.PyGraph: A class of undirected graphs
         """
 
         edges = self.paulis._noncommutation_graph(qubit_wise)
@@ -969,6 +1011,58 @@ class SparsePauliOp(LinearOp):
         for idx, color in coloring_dict.items():
             groups[color].append(idx)
         return [self[group] for group in groups.values()]
+
+    @property
+    def parameters(self) -> ParameterView:
+        r"""Return the free ``Parameter``\s in the coefficients."""
+        ret = set()
+        for coeff in self.coeffs:
+            if isinstance(coeff, ParameterExpression):
+                ret |= coeff.parameters
+        return ParameterView(ret)
+
+    def assign_parameters(
+        self,
+        parameters: Mapping[Parameter, complex | ParameterExpression]
+        | Sequence[complex | ParameterExpression],
+        inplace: bool = False,
+    ) -> SparsePauliOp | None:
+        r"""Bind the free ``Parameter``\s in the coefficients to provided values.
+
+        Args:
+            parameters: The values to bind the parameters to.
+            inplace: If ``False``, a copy of the operator with the bound parameters is returned.
+                If ``True`` the operator itself is modified.
+
+        Returns:
+            A copy of the operator with bound parameters, if ``inplace`` is ``False``, otherwise
+            ``None``.
+        """
+        if inplace:
+            bound = self
+        else:
+            bound = deepcopy(self)
+
+        # turn the parameters to a dictionary
+        if isinstance(parameters, Sequence):
+            free_parameters = bound.parameters
+            if len(parameters) != len(free_parameters):
+                raise ValueError(
+                    f"Mismatching number of values ({len(parameters)}) and parameters "
+                    f"({len(free_parameters)}). For partial binding please pass a dictionary of "
+                    "{parameter: value} pairs."
+                )
+            parameters = dict(zip(free_parameters, parameters))
+
+        for i, coeff in enumerate(bound.coeffs):
+            if isinstance(coeff, ParameterExpression):
+                for key in coeff.parameters & parameters.keys():
+                    coeff = coeff.assign(key, parameters[key])
+                if len(coeff.parameters) == 0:
+                    coeff = complex(coeff)
+                bound.coeffs[i] = coeff
+
+        return None if inplace else bound
 
 
 # Update docstrings for API docs

@@ -33,7 +33,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 
 class TrotterQRTE(RealEvolver):
@@ -46,9 +46,7 @@ class TrotterQRTE(RealEvolver):
 
     Type of Trotterization is defined by a ProductFormula provided.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             from qiskit.opflow import X, Z, Zero
             from qiskit.algorithms import EvolutionProblem, TrotterQRTE
@@ -66,12 +64,12 @@ class TrotterQRTE(RealEvolver):
             evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
     """
 
-    @deprecate_function(
-        "The TrotterQRTE class has been superseded by the "
-        "qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE``."
+        ),
+        since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,

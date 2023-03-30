@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test AerPauliExpectation """
+"""Test AerPauliExpectation"""
 
 import itertools
 import unittest
@@ -49,7 +49,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
     def setUp(self) -> None:
         super().setUp()
         try:
-            from qiskit import Aer
+            from qiskit_aer import Aer
 
             self.seed = 97
             self.backend = Aer.get_backend("aer_simulator")
@@ -170,7 +170,6 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             sampled_plus.eval(), [1, 0.5**0.5, (1 + 0.5**0.5), 1], decimal=1
         )
 
-    @unittest.skip("Skip until https://github.com/Qiskit/qiskit-aer/issues/1249 is closed.")
     def test_parameterized_qobj(self):
         """grouped pauli expectation test"""
         two_qubit_h2 = (

@@ -48,10 +48,11 @@ an iterator of drawings with the unique data key.
 If a plotter provides object handler for plotted shapes, the plotter API can manage
 the lookup table of the handler and the drawings by using this data key.
 """
+from __future__ import annotations
 import warnings
+from collections.abc import Iterator
 from copy import deepcopy
 from functools import partial
-from typing import Tuple, Iterator, Dict
 from enum import Enum
 
 import numpy as np
@@ -73,16 +74,16 @@ class DrawerCanvas:
         self.layout = stylesheet.layout
 
         # drawings
-        self._collections = {}
-        self._output_dataset = {}
+        self._collections: dict[str, drawings.ElementaryData] = {}
+        self._output_dataset: dict[str, drawings.ElementaryData] = {}
 
         # vertical offset of bits
-        self.bits = []
-        self.assigned_coordinates = {}
+        self.bits: list[types.Bits] = []
+        self.assigned_coordinates: dict[types.Bits, float] = {}
 
         # visible controls
-        self.disable_bits = set()
-        self.disable_types = set()
+        self.disable_bits: set[types.Bits] = set()
+        self.disable_types: set[str] = set()
 
         # time
         self._time_range = (0, 0)
@@ -92,7 +93,7 @@ class DrawerCanvas:
         self.vmin = 0
 
     @property
-    def time_range(self) -> Tuple[int, int]:
+    def time_range(self) -> tuple[int, int]:
         """Return current time range to draw.
 
         Calculate net duration and add side margin to edge location.
@@ -108,8 +109,13 @@ class DrawerCanvas:
 
         return new_t0, new_t1
 
+    @time_range.setter
+    def time_range(self, new_range: tuple[int, int]):
+        """Update time range to draw."""
+        self._time_range = new_range
+
     @property
-    def collections(self) -> Iterator[Tuple[str, drawings.ElementaryData]]:
+    def collections(self) -> Iterator[tuple[str, drawings.ElementaryData]]:
         """Return currently active entries from drawing data collection.
 
         The object is returned with unique name as a key of an object handler.
@@ -117,11 +123,6 @@ class DrawerCanvas:
         the value is substituted by current time range preference.
         """
         yield from self._output_dataset.items()
-
-    @time_range.setter
-    def time_range(self, new_range: Tuple[int, int]):
-        """Update time range to draw."""
-        self._time_range = new_range
 
     def add_data(self, data: drawings.ElementaryData):
         """Add drawing to collections.
@@ -162,7 +163,10 @@ class DrawerCanvas:
 
             try:
                 program = transpile(
-                    program, scheduling_method="alap", instruction_durations=InstructionDurations()
+                    program,
+                    scheduling_method="alap",
+                    instruction_durations=InstructionDurations(),
+                    optimization_level=0,
                 )
             except TranspilerError as ex:
                 raise VisualizationError(
@@ -395,8 +399,8 @@ class DrawerCanvas:
             return np.asarray(list(map(substitute, vals)), dtype=float)
 
     def _check_link_overlap(
-        self, links: Dict[str, drawings.GateLinkData]
-    ) -> Dict[str, drawings.GateLinkData]:
+        self, links: dict[str, drawings.GateLinkData]
+    ) -> dict[str, drawings.GateLinkData]:
         """Helper method to check overlap of bit links.
 
         This method dynamically shifts horizontal position of links if they are overlapped.
@@ -409,7 +413,7 @@ class DrawerCanvas:
             return np.array([self.assigned_coordinates.get(bit, np.nan) for bit in link.bits])
 
         # group overlapped links
-        overlapped_group = []
+        overlapped_group: list[list[str]] = []
         data_keys = list(links.keys())
         while len(data_keys) > 0:
             ref_key = data_keys.pop()

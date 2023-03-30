@@ -21,7 +21,7 @@ import numpy as np
 from scipy.optimize import minimize as scipy_minimize
 from ddt import ddt, idata, unpack
 
-import retworkx as rx
+import rustworkx as rx
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.minimum_eigensolvers import QAOA
@@ -29,11 +29,12 @@ from qiskit.algorithms.optimizers import COBYLA, NELDER_MEAD
 from qiskit.circuit import Parameter
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Pauli
+from qiskit.result import QuasiDistribution
 from qiskit.primitives import Sampler
 from qiskit.utils import algorithm_globals
 
-I = PauliSumOp.from_list([("I", 1)])  # pylint: disable=invalid-name
-X = PauliSumOp.from_list([("X", 1)])  # pylint: disable=invalid-name
+I = PauliSumOp.from_list([("I", 1)])
+X = PauliSumOp.from_list([("X", 1)])
 
 W1 = np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
 P1 = 1
@@ -275,13 +276,13 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
         return "".join([str(int(i)) for i in 1 - x])
 
-    def _sample_most_likely(self, state_vector):
+    def _sample_most_likely(self, state_vector: QuasiDistribution) -> np.ndarray:
         """Compute the most likely binary string from state vector.
         Args:
-            state_vector (numpy.ndarray or dict): state vector or counts.
+            state_vector: Quasi-distribution.
 
         Returns:
-            numpy.ndarray: binary string as numpy.ndarray of ints.
+            Binary string as numpy.ndarray of ints.
         """
         values = list(state_vector.values())
         n = int(np.log2(len(values)))

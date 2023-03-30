@@ -1,0 +1,68 @@
+---
+features:
+  - |
+    Added a new class :class:`~qiskit.circuit.library.PermutationGate` for
+    representing permutation logic. The older way of representing permutations
+    via quantum circuits, see :class:`~qiskit.circuit.library.Permutation`,
+    remains for backward compatibility, but will be deprecated in the future.
+    The new way of representing permutation logic avoids synthesizing a permutation
+    circuit when a ``PermutationGate`` is declared, delaying the actual synthesis to
+    the transpiler. It also allows to easily choose between several different
+    algorithms for synthesizing permutations, which are available as high-level-synthesis
+    permutation plugins.
+
+    The :class:`~qiskit.circuit.library.PermutationGate` has a method
+    ``__array__`` that returns a unitary matrix for a permutation, in particular
+    allowing to create unitary matrices from circuits containing
+    :class:`~qiskit.circuit.library.PermutationGate` gates.
+
+  - |
+    Added several high-level-synthesis plugins for synthesizing permutations.
+    The ``BasicSynthesisPermutation`` plugin applies to fully-connected
+    architectures and is based on sorting. This is the previously used
+    algorithm for constructing quantum circuits for permutations.
+    The ``ACGSynthesisPermutation`` plugin also applies to fully-connected
+    architectures but is based on the Alon, Chung, Graham method. It synthesizes
+    any permutation in depth 2 (measured in terms of SWAPs).
+    The ``KMSSynthesisPermutation`` plugin applies to linear nearest-neighbor
+    architectures and corresponds to the recently added Kutin, Moulton, Smithline
+    method.
+
+    For example::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import PermutationGate
+        from qiskit.transpiler import PassManager
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig, HighLevelSynthesis
+        from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPluginManager
+
+        # Create a permutation and add it to a quantum circuit
+        perm = PermutationGate([4, 6, 3, 7, 1, 2, 0, 5])
+        qc = QuantumCircuit(8)
+        qc.append(perm, range(8))
+
+        # Print available plugin names for synthesizing permutations
+        # Returns ['acg', 'basic', 'default', 'kms']
+        print(HighLevelSynthesisPluginManager().method_names("permutation"))
+
+        # Default plugin for permutations
+        # Returns a quantum circuit with size 6 and depth 3
+        qct = PassManager(HighLevelSynthesis()).run(qc)
+        print(f"Default: {qct.size() = }, {qct.depth() = }")
+
+        # KMSSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 18 and depth 6
+        # but adhering to the linear nearest-neighbor architecture.
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("kms", {})]))).run(qc)
+        print(f"kms: {qct.size() = }, {qct.depth() = }")
+
+        # BasicSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 6 and depth 3
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("basic", {})]))).run(qc)
+        print(f"basic: {qct.size() = }, {qct.depth() = }")
+
+        # ACGSynthesisPermutation plugin for permutations
+        # Returns a quantum circuit with size 6 and depth 2
+        qct = PassManager(HighLevelSynthesis(HLSConfig(permutation=[("acg", {})]))).run(qc)
+        print(f"acg: {qct.size() = }, {qct.depth() = }")
+
