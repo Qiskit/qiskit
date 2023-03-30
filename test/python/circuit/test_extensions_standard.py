@@ -17,7 +17,6 @@ from inspect import signature
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
-from qiskit.quantum_info import Statevector
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError

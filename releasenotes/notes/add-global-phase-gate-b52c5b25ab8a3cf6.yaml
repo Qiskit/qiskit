@@ -1,5 +1,6 @@
 ---
 features:
   - |
-    Added global phase gate (global_phase) which can be applied to a :class:`~qiskit.circuit.QuantumCircuit`.
+    Added :class:`.GlobalPhaseGate` which can be applied to add a global phase
+    on the :class:`.QuantumCircuit`.
 

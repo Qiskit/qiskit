@@ -48,7 +48,7 @@ class GlobalPhaseGate(Gate):
     """
 
     def __init__(self, phase: ParameterValueType, label: Optional[str] = None):
-        """Create new globalphase gate.
+        """
         Args:
             phase: The value of phase it takes.
             label: An optional label for the gate.
@@ -65,7 +65,7 @@ class GlobalPhaseGate(Gate):
     def inverse(self):
         r"""Return inverted GLobalPhaseGate gate.
 
-        :math:`GLobalPhaseGate(\lambda){\dagger} = GLobalPhaseGate(-\lambda)`
+        :math:`\text{GlobalPhaseGate}(\lambda){\dagger} = \text{GlobalPhaseGate}(-\lambda)`
         """
         return GlobalPhaseGate(-self.params[0])
 
