@@ -65,7 +65,7 @@ class QCircuitImage:
             "arguments for rendering the drawing."
         ),
     )
-    def __init__(
+    def __init__(  # pylint: disable=bad-docstring-quotes
         self,
         qubits,
         clbits,
