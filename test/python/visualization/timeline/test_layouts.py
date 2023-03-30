@@ -45,7 +45,10 @@ class TestBitArrange(QiskitTestCase):
 
     def test_qreg_creg_descending(self):
         """Test qreg_creg_descending layout function."""
-        sorted_regs = layouts.qreg_creg_descending(self.regs)
+        # TODO(#9880): This is a hack to work-around production code incorrectly using a
+        #  deprecated property. Remove the assertWarns once fixed.
+        with self.assertWarns(DeprecationWarning):
+            sorted_regs = layouts.qreg_creg_descending(self.regs)
         ref_regs = [
             self.regs[2],
             self.regs[1],
