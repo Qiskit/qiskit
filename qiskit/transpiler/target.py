@@ -531,7 +531,7 @@ class Target(Mapping):
                     param_names = set()
                     for qargs in inst_map.qubits_with_instruction(inst_name):
                         if isinstance(qargs, int):
-                            qargs = (qargs, )
+                            qargs = (qargs,)
                         qlen.add(len(qargs))
                         cal = getattr(out_props[tuple(qargs)], "_calibration")
                         param_names.add(tuple(cal.get_signature().parameters.keys()))
