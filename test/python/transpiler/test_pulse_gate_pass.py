@@ -374,3 +374,34 @@ class TestPulseGate(QiskitTestCase):
             }
         }
         self.assertDictEqual(transpiled_qc.calibrations, ref_calibration)
+
+    def test_transpile_with_instmap_not_mutate_backend(self):
+        """Do not override default backend target when transpile with inst map.
+
+        Providing an instmap for the transpile arguments may override target,
+        which might be pulled from the provided backend instance.
+        This should not override the source object since the same backend may
+        be used for future transpile without intention of instruction overriding.
+        """
+        backend = FakeAthensV2()
+        original_sx0 = backend.target["sx"][(0,)].calibration
+
+        instmap = FakeAthens().defaults().instruction_schedule_map
+        instmap.add("sx", (0,), self.custom_sx_q0)
+
+        qc = circuit.QuantumCircuit(1)
+        qc.sx(0)
+        qc.measure_all()
+
+        transpiled_qc = transpile(
+            qc,
+            FakeAthensV2(),
+            inst_map=instmap,
+            initial_layout=[0],
+        )
+        self.assertTrue(transpiled_qc.has_calibration_for(transpiled_qc.data[0]))
+
+        self.assertEqual(
+            backend.target["sx"][(0,)].calibration,
+            original_sx0,
+        )
