@@ -1380,6 +1380,20 @@ class TestCustomInstructions(QiskitTestCase):
         qc.delay(1, 0, unit="dt")
         self.assertEqual(parsed, qc)
 
+    def test_qiskit_override_u0_opaque(self):
+        program = """
+            opaque u0(n) q;
+            qreg q[1];
+            u0(2) q[0];
+        """
+        parsed = qiskit.qasm2.loads(
+            program, custom_instructions=qiskit.qasm2.LEGACY_CUSTOM_INSTRUCTIONS
+        )
+        qc = QuantumCircuit(QuantumRegister(1, "q"))
+        qc.id(0)
+        qc.id(0)
+        self.assertEqual(parsed.decompose(), qc)
+
     def test_can_override_u(self):
         program = """
             qreg q[1];

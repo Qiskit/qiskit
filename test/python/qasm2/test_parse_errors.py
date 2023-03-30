@@ -631,6 +631,11 @@ class TestCustomInstructions(QiskitTestCase):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "can only accept an integer"):
             qiskit.qasm2.loads(program, custom_instructions=qiskit.qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
 
+    def test_u0_float_input_wraps_exception(self):
+        program = "opaque u0(n) q; qreg q[1]; u0(1.1) q[0];"
+        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "must be an integer"):
+            qiskit.qasm2.loads(program, custom_instructions=qiskit.qasm2.LEGACY_CUSTOM_INSTRUCTIONS)
+
 
 @ddt.ddt
 class TestCustomClassical(QiskitTestCase):
