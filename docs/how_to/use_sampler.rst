@@ -98,8 +98,6 @@ If you prefer to see the outputs as binary strings instead of decimal, you can u
 
     {'00': 0.4999999999999999, '11': 0.4999999999999999}
 
-
-
 Parameterized circuits with ``Sampler``
 =========================================
 
