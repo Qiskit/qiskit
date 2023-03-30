@@ -14,7 +14,6 @@
 
 
 import logging
-import warnings
 from functools import partial
 from time import time
 from typing import Any, Dict, List, Optional, Tuple, Union, cast
@@ -83,16 +82,15 @@ class CircuitSampler(ConverterBase):
             ValueError: Set statevector or param_qobj True when not supported by backend.
         """
         super().__init__()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            self._quantum_instance = (
-                backend
-                if isinstance(backend, QuantumInstance)
-                else QuantumInstance(backend=backend)
-            )
-            self._statevector = (
-                statevector if statevector is not None else self.quantum_instance.is_statevector
-            )
+
+        self._quantum_instance = (
+            backend
+            if isinstance(backend, QuantumInstance)
+            else QuantumInstance(backend=backend)
+        )
+        self._statevector = (
+            statevector if statevector is not None else self.quantum_instance.is_statevector
+        )
         self._param_qobj = param_qobj
         self._attach_results = attach_results
 
@@ -116,19 +114,17 @@ class CircuitSampler(ConverterBase):
         Raises:
             ValueError: statevector or param_qobj are True when not supported by backend.
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            if self._statevector and not is_statevector_backend(self.quantum_instance.backend):
-                raise ValueError(
-                    "Statevector mode for circuit sampling requires statevector "
-                    "backend, not {}.".format(self.quantum_instance.backend)
-                )
+        if self._statevector and not is_statevector_backend(self.quantum_instance.backend):
+            raise ValueError(
+                "Statevector mode for circuit sampling requires statevector "
+                "backend, not {}.".format(self.quantum_instance.backend)
+            )
 
-            if self._param_qobj and not is_aer_provider(self.quantum_instance.backend):
-                raise ValueError(
-                    "Parameterized Qobj mode requires Aer "
-                    "backend, not {}.".format(self.quantum_instance.backend)
-                )
+        if self._param_qobj and not is_aer_provider(self.quantum_instance.backend):
+            raise ValueError(
+                "Parameterized Qobj mode requires Aer "
+                "backend, not {}.".format(self.quantum_instance.backend)
+            )
 
     @property
     def quantum_instance(self) -> QuantumInstance:

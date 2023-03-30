@@ -12,7 +12,6 @@
 
 """ExpectationFactory Class"""
 
-import warnings
 import logging
 from typing import Optional, Union
 
@@ -100,27 +99,25 @@ class ExpectationFactory:
             # If the user specified Aer qasm backend and is using a
             # Pauli operator, use the Aer fast expectation if we are including such
             # custom behaviors.
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                if is_aer_qasm(backend_to_check) and include_custom:
-                    return AerPauliExpectation()
+            if is_aer_qasm(backend_to_check) and include_custom:
+                return AerPauliExpectation()
 
-                # If the user specified a statevector backend (either Aer or BasicAer),
-                # use a converter to produce a
-                # Matrix operator and compute using matmul
-                elif is_statevector_backend(backend_to_check):
-                    if operator.num_qubits >= 16:
-                        logger.warning(
-                            "Note: Using a statevector_simulator with %d qubits can be very expensive. "
-                            "Consider using the Aer qasm_simulator instead to take advantage of Aer's "
-                            "built-in fast Pauli Expectation",
-                            operator.num_qubits,
-                        )
-                    return MatrixExpectation()
+            # If the user specified a statevector backend (either Aer or BasicAer),
+            # use a converter to produce a
+            # Matrix operator and compute using matmul
+            elif is_statevector_backend(backend_to_check):
+                if operator.num_qubits >= 16:
+                    logger.warning(
+                        "Note: Using a statevector_simulator with %d qubits can be very expensive. "
+                        "Consider using the Aer qasm_simulator instead to take advantage of Aer's "
+                        "built-in fast Pauli Expectation",
+                        operator.num_qubits,
+                    )
+                return MatrixExpectation()
 
-                # All other backends, including IBMQ, BasicAer QASM, go here.
-                else:
-                    return PauliExpectation()
+            # All other backends, including IBMQ, BasicAer QASM, go here.
+            else:
+                return PauliExpectation()
 
         elif primitives == {"Matrix"}:
             return MatrixExpectation()
