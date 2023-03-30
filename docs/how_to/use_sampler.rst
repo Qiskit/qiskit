@@ -207,8 +207,6 @@ If you prefer to change the options of an already-defined :class:`~qiskit.primit
 
     SamplerResult(quasi_dists=[{0: 0.5205078125, 3: 0.4794921875}], metadata=[{'shots': 2048}])
 
-
-
 Define a new :class:`~qiskit.primitives.Sampler` with the options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
