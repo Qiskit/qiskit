@@ -18,7 +18,7 @@ import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
-from qiskit.utils import deprecate_function  # pylint: disable=cyclic-import
+from qiskit.utils.deprecation import deprecate_func, deprecate_function
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -98,8 +98,8 @@ def instruction_duration_validation(duration: int):
         )
 
 
-@deprecate_function(
-    "Deprecated since Terra 0.22.0. Use 'qiskit.utils.deprecate_function' instead.",
+@deprecate_func(
+    additional_msg="Instead, use 'qiskit.utils.deprecate_func'.",
     since="0.22.0",
 )
 def deprecated_functionality(func):
