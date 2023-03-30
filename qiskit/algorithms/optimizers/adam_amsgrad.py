@@ -17,7 +17,7 @@ import os
 
 import csv
 import numpy as np
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arg
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 # pylint: disable=invalid-name
@@ -193,14 +193,9 @@ class ADAM(Optimizer):
         t = t[1:-1]
         self._t = np.fromstring(t, dtype=int, sep=" ")
 
-    @deprecate_arguments(
-        {
-            "objective_function": "fun",
-            "initial_point": "x0",
-            "gradient_function": "jac",
-        },
-        since="0.19.0",
-    )
+    @deprecate_arg("objective_function", new_alias="fun", since="0.19.0")
+    @deprecate_arg("initial_point", new_alias="fun", since="0.19.0")
+    @deprecate_arg("gradient_function", new_alias="jac", since="0.19.0")
     def minimize(
         self,
         fun: Callable[[POINT], float],
