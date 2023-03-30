@@ -39,7 +39,7 @@ class Gradient(GradientBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self, grad_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
         super().__init__(grad_method=grad_method, **kwargs)

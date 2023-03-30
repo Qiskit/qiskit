@@ -35,7 +35,7 @@ EVAL_SIG_DIGITS = 18
 
 @deprecate_func(
     since="0.24.0",
-    additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration."
 )
 def make_immutable(obj):
     r"""Deprecate\: Delete the __setattr__ property to make the object mostly immutable."""

@@ -34,7 +34,7 @@ class TensoredOp(ListOp):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(
         self,

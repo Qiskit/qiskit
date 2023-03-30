@@ -39,7 +39,7 @@ class QFI(QFIBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This deprecation is part of the opflow module deprecation effort. For code migration guidelines, visit https://qisk.it/opflow_migration.",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration."
     )
     def __init__(self, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
         super().__init__(qfi_method=qfi_method)
