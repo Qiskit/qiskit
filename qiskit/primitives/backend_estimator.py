@@ -118,12 +118,7 @@ class BackendEstimator(BaseEstimator):
                 of the input circuits is skipped and the circuit objects
                 will be directly executed when this object is called.
         """
-        super().__init__(
-            circuits=None,
-            observables=None,
-            parameters=None,
-            options=options,
-        )
+        super().__init__(options=options)
 
         self._abelian_grouping = abelian_grouping
 

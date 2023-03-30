@@ -15,6 +15,7 @@ Sampler class
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Sequence
 from typing import Any
 
@@ -24,6 +25,7 @@ from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
+from qiskit.utils.deprecation import deprecate_arg
 
 from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
@@ -52,6 +54,14 @@ class Sampler(BaseSampler):
           option is ignored.
     """
 
+    @deprecate_arg(
+        "circuits", since="0.22", additional_msg="Instead, use the run() method to append objects."
+    )
+    @deprecate_arg(
+        "parameters",
+        since="0.22",
+        additional_msg="Instead, use the run() method to append objects.",
+    )
     def __init__(
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
@@ -79,7 +89,12 @@ class Sampler(BaseSampler):
                 preprocessed_circuits.append(circuit)
         else:
             preprocessed_circuits = None
-        super().__init__(preprocessed_circuits, parameters, options)
+
+        # Avoid double warnings from the BaseSampler.__init__ and from ours. Remove once the
+        # deprecation of the kwargs is complete.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            super().__init__(preprocessed_circuits, parameters, options)
         self._is_closed = False
 
     def _call(

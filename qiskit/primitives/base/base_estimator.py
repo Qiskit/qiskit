@@ -133,10 +133,10 @@ class BaseEstimator(BasePrimitive):
         holds resources until the instance is ``close()`` ed or the context is exited.
 
         Args:
-            circuits: Quantum circuits that represent quantum states.
-            observables: Observables.
-            parameters: Parameters of quantum circuits, specifying the order in which values
-                will be bound. Defaults to ``[circ.parameters for circ in circuits]``
+            circuits: Deprecated. Quantum circuits that represent quantum states.
+            observables: Deprecated. Observables.
+            parameters: Deprecated. Parameters of quantum circuits, specifying the order in which
+                values will be bound. Defaults to ``[circ.parameters for circ in circuits]``
                 The indexing is such that ``parameters[i, j]`` is the j-th formal parameter of
                 ``circuits[i]``.
             options: Default options.

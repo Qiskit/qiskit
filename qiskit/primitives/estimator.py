@@ -15,6 +15,7 @@ Estimator class
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable, Sequence
 from typing import Any
 
@@ -25,6 +26,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.utils.deprecation import deprecate_arg
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
@@ -53,6 +55,19 @@ class Estimator(BaseEstimator):
           this option is ignored.
     """
 
+    @deprecate_arg(
+        "circuits", since="0.22", additional_msg="Instead, use the run() method to append objects."
+    )
+    @deprecate_arg(
+        "observables",
+        since="0.22",
+        additional_msg="Instead, use the run() method to append objects.",
+    )
+    @deprecate_arg(
+        "parameters",
+        since="0.22",
+        additional_msg="Instead, use the run() method to append objects.",
+    )
     def __init__(
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
@@ -62,9 +77,9 @@ class Estimator(BaseEstimator):
     ):
         """
         Args:
-            circuits: circuits that represent quantum states.
-            observables: observables to be estimated.
-            parameters: Parameters of each of the quantum circuits.
+            circuits: Deprecated. Circuits that represent quantum states.
+            observables: Deprecated. Observables to be estimated.
+            parameters: Deprecated. Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
             options: Default options.
 
@@ -81,12 +96,16 @@ class Estimator(BaseEstimator):
         if observables is not None:
             observables = tuple(init_observable(observable) for observable in observables)
 
-        super().__init__(
-            circuits=circuits,
-            observables=observables,  # type: ignore
-            parameters=parameters,
-            options=options,
-        )
+        # Avoid double warnings from the BaseEstimator.__init__ and from ours. Remove once the
+        # deprecation of the kwargs is complete.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            super().__init__(
+                circuits=circuits,
+                observables=observables,  # type: ignore
+                parameters=parameters,
+                options=options,
+            )
         self._is_closed = False
 
     def _call(
