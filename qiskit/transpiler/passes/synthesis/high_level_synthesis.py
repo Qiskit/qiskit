@@ -167,7 +167,6 @@ class HighLevelSynthesis(TransformationPass):
         # copy dag_op_nodes because we are modifying the DAG below
         dag_op_nodes = dag.op_nodes()
 
-
         for node in dag_op_nodes:
             decomposition = self._recursively_handle_op(node.op)
 
