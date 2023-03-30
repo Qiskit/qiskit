@@ -78,12 +78,9 @@ def get_measured_qubits(
     return sorted(qubit_index), qubit_mappings
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="get_measured_qubits_from_qobj",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, List[int]]]:
     """
@@ -126,12 +123,9 @@ def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, 
     return sorted(qubit_index), qubit_mappings
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="build_measurement_error_mitigation_circuits",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def build_measurement_error_mitigation_circuits(
     qubit_list: List[int],
@@ -208,12 +202,9 @@ def build_measurement_error_mitigation_circuits(
     return t_meas_calibs_circuits, state_labels, circlabel
 
 
-@deprecate_function_msg(
-    version="0.24.0",
-    old_module="utils",
-    old_name="build_measurement_error_mitigation_qobj",
-    old_type="function",
-    url="https://qisk.it/qi_migration",
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
 )
 def build_measurement_error_mitigation_qobj(
     qubit_list: List[int],
