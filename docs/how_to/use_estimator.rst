@@ -40,6 +40,10 @@ Then you need to create the :class:`~qiskit.circuit.QuantumCircuit` for which yo
 
 .. testsetup::
 
+    # This code is repeated (but hidden) because we will need to use the variables with the extension sphinx.ext.doctest (testsetup/testcode/testoutput directives)
+    # and we can't reuse the variables from the plot directive above because they are incompatible.
+    # The plot directive is used to draw the circuit with matplotlib and the code is shown because of the include-source flag.
+    
     from qiskit import QuantumCircuit
 
     qc = QuantumCircuit(2)
@@ -83,7 +87,7 @@ Get the expected value
 
 From these results you can take the expected values with the attribute :attr:`~qiskit.primitives.EstimatorResult.values`.
 
-Generally, :attr:`~qiskit.primitives.EstimatorResult.values` returns a `numpy.ndarray <https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html>`_
+Generally, :attr:`~qiskit.primitives.EstimatorResult.values` returns a :class:`numpy.ndarray`
 whose ``i``-th element would be the expectation value corresponding to the ``i``-th circuit and ``i``-th observable.
 
 .. testcode::
