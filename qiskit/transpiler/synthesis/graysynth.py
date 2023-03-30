@@ -25,8 +25,10 @@ from qiskit.synthesis.linear.cnot_synth import *
 from qiskit.synthesis.linear_phase.cnot_phase_synth import *
 from qiskit.utils.deprecation import deprecate_func
 
+
 @deprecate_func(
-        additional_msg="Instead, use the function qiskit.synthesis.synth_cnot_count_full_pmh.", since="0.24.0"
+    additional_msg="Instead, use the function qiskit.synthesis.synth_cnot_count_full_pmh.",
+    since="0.24.0",
 )
 def cnot_synth(state, section_size=2):
     """
@@ -57,8 +59,10 @@ def cnot_synth(state, section_size=2):
     """
     return synth_cnot_count_full_pmh(state, section_size=section_size)
 
+
 @deprecate_func(
-        additional_msg="Instead, use the function qiskit.synthesis.synth_cnot_phase_aam.", since="0.24.0"
+    additional_msg="Instead, use the function qiskit.synthesis.synth_cnot_phase_aam.",
+    since="0.24.0",
 )
 def graysynth(cnots, angles, section_size=2):
     """Synthesize a cnot-phase circuit."""
