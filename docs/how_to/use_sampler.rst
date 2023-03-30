@@ -75,6 +75,12 @@ From these results you can take the probability distributions with the attribute
 Even though there is only one circuit in this example, :attr:`~qiskit.primitives.SamplerResult.quasi_dists` returns a list of :class:`~qiskit.result.QuasiDistribution`\ s.
 Generally ``result.quasi_dists[i]`` would be the quasi-probability distribution of the ``i``-th circuit.
 
+.. note::
+
+    A quasi-probability distribution differs from a probability distribution in that negative values are also allowed.
+    However the quasi-probabilities must sum up to 1 like probabilities.
+    Negative quasi-probabilities may appear when using error mitigation techniques.
+
 .. testcode::
 
     quasi_dist = result.quasi_dists[0]
