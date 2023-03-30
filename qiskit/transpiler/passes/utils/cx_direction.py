@@ -12,22 +12,13 @@
 
 """Rearrange the direction of the cx nodes to match the directed coupling map."""
 
-import functools
 import warnings
 from qiskit.transpiler.passes.utils.gate_direction import GateDirection
-
-
-def debug_decorator(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        return func(*args, **kwargs)
-    return wrapper
 
 
 class CXDirection(GateDirection):
     """Deprecated: use :class:`qiskit.transpiler.passes.GateDirection` pass instead."""
 
-    @debug_decorator
     def __init__(self, coupling_map):
         super().__init__(coupling_map)
         warnings.warn(
