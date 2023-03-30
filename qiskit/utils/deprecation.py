@@ -180,6 +180,9 @@ def deprecate_arg(
             )
             return func(*args, **kwargs)
 
+        # When decorators get called repeatedly, `func` refers to the result of the prior
+        # decorator, not the original underlying function. This trick allows us to record the
+        # original function's variable names regardless of how many decorators are used.
         wrapper.__original_func_co_varnames = getattr(
             func, "__original_func_co_varnames", func.__code__.co_varnames
         )
@@ -237,6 +240,9 @@ def deprecate_arguments(
                 )
             return func(*args, **kwargs)
 
+        # When decorators get called repeatedly, `func` refers to the result of the prior
+        # decorator, not the original underlying function. This trick allows us to record the
+        # original function's variable names regardless of how many decorators are used.
         wrapper.__original_func_co_varnames = getattr(
             func, "__original_func_co_varnames", func.__code__.co_varnames
         )
