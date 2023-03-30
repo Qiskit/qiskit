@@ -55,8 +55,15 @@ class TestMatrixExpectation(QiskitOpflowTestCase):
                 backend, seed_simulator=self.seed, seed_transpiler=self.seed
             )
         self.assertTrue(len(caught_warnings) > 0)
-        self.sampler = CircuitSampler(q_instance, attach_results=True)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.sampler = CircuitSampler(q_instance, attach_results=True)
+
         self.expect = MatrixExpectation()
+        self.assertTrue(len(caught_warnings) > 0)
 
     def test_pauli_expect_pair(self):
         """pauli expect pair test"""

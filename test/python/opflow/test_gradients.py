@@ -1121,9 +1121,16 @@ class TestGradients(QiskitOpflowTestCase):
                 operator=op, bind_params=params, backend=q_instance
             )
         else:
-            prob_grad = Gradient(grad_method=method).gradient_wrapper(
-                operator=op, bind_params=params, backend=q_instance
-            )
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                prob_grad = Gradient(grad_method=method).gradient_wrapper(
+                    operator=op, bind_params=params, backend=q_instance
+                )
+            self.assertTrue(len(caught_warnings) > 0)
+
         values = [[np.pi / 4, 0], [np.pi / 4, np.pi / 4], [np.pi / 2, np.pi]]
         correct_values = [
             [[0, 0], [1 / (2 * np.sqrt(2)), -1 / (2 * np.sqrt(2))]],
@@ -1665,9 +1672,16 @@ class TestQFI(QiskitOpflowTestCase):
                 backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
             )
         self.assertTrue(len(caught_warnings) > 0)
-        grad = NaturalGradient(grad_method=method).gradient_wrapper(
-            operator=op, bind_params=params, backend=q_instance
-        )
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            grad = NaturalGradient(grad_method=method).gradient_wrapper(
+                operator=op, bind_params=params, backend=q_instance
+            )
+        self.assertTrue(len(caught_warnings) > 0)
+
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.filterwarnings(
                 "always",

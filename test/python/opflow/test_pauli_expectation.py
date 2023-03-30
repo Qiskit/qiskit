@@ -60,7 +60,14 @@ class TestPauliExpectation(QiskitOpflowTestCase):
                 backend, seed_simulator=self.seed, seed_transpiler=self.seed
             )
         self.assertTrue(len(caught_warnings) > 0)
-        self.sampler = CircuitSampler(q_instance, attach_results=True)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.sampler = CircuitSampler(q_instance, attach_results=True)
+        self.assertTrue(len(caught_warnings) > 0)
+
         self.expect = PauliExpectation()
 
     def test_pauli_expect_pair(self):
@@ -269,7 +276,14 @@ class TestPauliExpectation(QiskitOpflowTestCase):
                 seed_transpiler=self.seed,
             )
         self.assertTrue(len(caught_warnings) > 0)
-        sampler = CircuitSampler(q_instance)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            sampler = CircuitSampler(q_instance)
+        self.assertTrue(len(caught_warnings) > 0)
+
         sampler._extract_circuitstatefns(expect_op_grouped)
         num_circuits_grouped = len(sampler._circuit_ops_cache)
         self.assertEqual(num_circuits_grouped, 2)

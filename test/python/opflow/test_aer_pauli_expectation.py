@@ -61,9 +61,9 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             q_instance = QuantumInstance(
                 self.backend, seed_simulator=self.seed, seed_transpiler=self.seed
             )
+            self.sampler = CircuitSampler(q_instance, attach_results=True)
+            self.expect = AerPauliExpectation()
         self.assertTrue(len(caught_warnings) > 0)
-        self.sampler = CircuitSampler(q_instance, attach_results=True)
-        self.expect = AerPauliExpectation()
 
     def test_pauli_expect_pair(self):
         """pauli expect pair test"""
@@ -232,10 +232,15 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             + (0.18093119978423156 * X ^ X)
         )
 
-        aer_sampler = CircuitSampler(
-            self.sampler.quantum_instance, param_qobj=True, attach_results=True
-        )
-
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            aer_sampler = CircuitSampler(
+                self.sampler.quantum_instance, param_qobj=True, attach_results=True
+            )
+        self.assertTrue(len(caught_warnings) > 0)
         ansatz = RealAmplitudes()
         ansatz.num_qubits = 2
 

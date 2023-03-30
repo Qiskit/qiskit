@@ -171,7 +171,7 @@ class TestEvolutionGate(QiskitTestCase):
         evo_gate.definition.decompose()
 
         # manually construct expected evolution
-        expected = QuantumCircuit(1)∂
+        expected = QuantumCircuit(1)
         for pauli in sampled_ops:
             if pauli[0].to_label() == "X":
                 expected.rx(2 * pauli[1], 0)

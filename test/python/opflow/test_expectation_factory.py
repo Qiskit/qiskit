@@ -13,6 +13,7 @@
 """Test the expectation factory."""
 
 import unittest
+import warnings
 from test.python.opflow import QiskitOpflowTestCase
 
 from qiskit.opflow import PauliExpectation, AerPauliExpectation, ExpectationFactory, Z, I, X
@@ -29,11 +30,16 @@ class TestExpectationFactory(QiskitOpflowTestCase):
 
         backend = AerSimulator()
         op = 0.2 * (X ^ X) + 0.1 * (Z ^ I)
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            with self.subTest("Defaults"):
+                expectation = ExpectationFactory.build(op, backend, include_custom=False)
+                self.assertIsInstance(expectation, PauliExpectation)
 
-        with self.subTest("Defaults"):
-            expectation = ExpectationFactory.build(op, backend, include_custom=False)
-            self.assertIsInstance(expectation, PauliExpectation)
-
-        with self.subTest("Include custom"):
-            expectation = ExpectationFactory.build(op, backend, include_custom=True)
-            self.assertIsInstance(expectation, AerPauliExpectation)
+            with self.subTest("Include custom"):
+                expectation = ExpectationFactory.build(op, backend, include_custom=True)
+                self.assertIsInstance(expectation, AerPauliExpectation)
+        self.assertTrue(len(caught_warnings) > 0)
