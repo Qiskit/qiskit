@@ -158,7 +158,9 @@ class TestEstimator(QiskitTestCase):
         op3 = SparsePauliOp.from_list([("ZI", 1), ("ZZ", 1)])
 
         with self.assertWarns(DeprecationWarning):
-            est = Estimator([psi1, psi2], [op1, op2, op3], [params1, params2])
+            est = Estimator(
+                circuits=[psi1, psi2], observables=[op1, op2, op3], parameters=[params1, params2]
+            )
         theta1 = [0, 1, 1, 2, 3, 5]
         theta2 = [0, 1, 1, 2, 3, 5, 8, 13]
         theta3 = [1, 2, 3, 4, 5, 6]
@@ -289,7 +291,7 @@ class TestEstimator(QiskitTestCase):
         op2 = SparsePauliOp.from_list([("II", 1)])
 
         with self.assertWarns(DeprecationWarning):
-            est = Estimator([qc, qc2], [op, op2], [[]] * 2)
+            est = Estimator(circuits=[qc, qc2], observables=[op, op2], parameters=[[]] * 2)
         with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             est([0], [1], [[]])
         with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
@@ -351,7 +353,7 @@ class TestEstimator(QiskitTestCase):
 
         with self.subTest("Valid test"):
             with self.assertWarns(DeprecationWarning):
-                estimator = Estimator([self.ansatz], [self.observable])
+                estimator = Estimator(circuits=[self.ansatz], observables=[self.observable])
                 result = estimator(
                     circuits=[self.ansatz, self.ansatz],
                     observables=[self.observable, self.observable],
@@ -363,7 +365,7 @@ class TestEstimator(QiskitTestCase):
         with self.subTest("Invalid circuit test"):
             circuit = QuantumCircuit(2)
             with self.assertWarns(DeprecationWarning):
-                estimator = Estimator([self.ansatz], [self.observable])
+                estimator = Estimator(circuits=[self.ansatz], observables=[self.observable])
             with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
                 result = estimator(
                     circuits=[self.ansatz, circuit],
@@ -374,7 +376,7 @@ class TestEstimator(QiskitTestCase):
         with self.subTest("Invalid observable test"):
             observable = SparsePauliOp(["ZX"])
             with self.assertWarns(DeprecationWarning):
-                estimator = Estimator([self.ansatz], [self.observable])
+                estimator = Estimator(circuits=[self.ansatz], observables=[self.observable])
             with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
                 result = estimator(
                     circuits=[self.ansatz, self.ansatz],

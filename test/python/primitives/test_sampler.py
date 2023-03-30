@@ -336,7 +336,7 @@ class TestSampler(QiskitTestCase):
         qc2.measure_all()
 
         with self.assertWarns(DeprecationWarning):
-            sampler = Sampler([qc1, qc2], [qc1.parameters, qc2.parameters])
+            sampler = Sampler(circuits=[qc1, qc2], parameters=[qc1.parameters, qc2.parameters])
         with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
             sampler([0], [[1e2]])
         with self.assertRaises(ValueError), self.assertWarns(DeprecationWarning):
