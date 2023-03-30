@@ -30,7 +30,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class PauliSumOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``SparsePauliOp`` class."""
+    """Deprecation: Class for Operators backed by Terra's ``SparsePauliOp`` class."""
 
     primitive: SparsePauliOp
 

@@ -20,7 +20,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class EvolutionFactory:
-    """A factory class for convenient automatic selection of an
+    """Deprecation: A factory class for convenient automatic selection of an
     Evolution algorithm based on the Operator to be converted.
     """
 

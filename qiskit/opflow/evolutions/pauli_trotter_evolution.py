@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 class PauliTrotterEvolution(EvolutionBase):
     r"""
-    An Evolution algorithm replacing exponentiated sums of Paulis by changing
+    Deprecation: An Evolution algorithm replacing exponentiated sums of Paulis by changing
     them each to the Z basis, rotating with an rZ, changing back, and Trotterizing.
 
     More specifically, we compute basis change circuits for each Pauli into a single-qubit Z,

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 class PauliExpectation(ExpectationBase):
     r"""
-    An Expectation converter for Pauli-basis observables by changing Pauli measurements to a
+    Deprecation: An Expectation converter for Pauli-basis observables by changing Pauli measurements to a
     diagonal ({Z, I}^n) basis and appending circuit post-rotations to the measured state function.
     Optionally groups the Paulis with the same post-rotations (those that commute with one
     another, or form Abelian groups) into single measurements to reduce circuit execution

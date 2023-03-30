@@ -31,7 +31,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class DictStateFn(StateFn):
-    """A class for state functions and measurements which are defined by a lookup table,
+    """Deprecation: A class for state functions and measurements which are defined by a lookup table,
     stored in a dict.
     """
 

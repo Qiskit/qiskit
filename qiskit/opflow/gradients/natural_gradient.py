@@ -38,7 +38,7 @@ RCOND = 1e-2
 
 
 class NaturalGradient(GradientBase):
-    r"""Convert an operator expression to the first-order gradient.
+    r"""Deprecation: Convert an operator expression to the first-order gradient.
 
     Given an ill-posed inverse problem
 

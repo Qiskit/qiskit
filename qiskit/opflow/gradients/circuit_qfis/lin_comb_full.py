@@ -29,7 +29,7 @@ from .circuit_qfi import CircuitQFI
 
 
 class LinCombFull(CircuitQFI):
-    r"""Compute the full Quantum Fisher Information (QFI).
+    r"""Deprecation: Compute the full Quantum Fisher Information (QFI).
 
     Given a pure, parameterized quantum state this class uses the linear combination of unitaries
     See also :class:`~qiskit.opflow.QFI`.

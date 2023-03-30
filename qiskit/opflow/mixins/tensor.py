@@ -18,7 +18,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class TensorMixin(ABC):
-    """The mixin class for tensor operations.
+    """Deprecation: The mixin class for tensor operations.
 
     This class overrides:
         - ``^``, ``__xor__``, `__rxor__` -> :meth:`tensor` between two operators and

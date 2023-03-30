@@ -31,7 +31,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class PauliOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``Pauli`` module."""
+    """Deprecation: Class for Operators backed by Terra's ``Pauli`` module."""
 
     primitive: Pauli
 

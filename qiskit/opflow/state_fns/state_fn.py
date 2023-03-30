@@ -26,7 +26,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class StateFn(OperatorBase):
     r"""
-    A class for representing state functions and measurements.
+    Deprecation: A class for representing state functions and measurements.
 
     State functions are defined to be complex functions over a single binary string (as
     compared to an operator, which is defined as a function over two binary strings, or a

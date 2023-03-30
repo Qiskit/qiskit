@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 class CircuitSampler(ConverterBase):
     """
-    The CircuitSampler traverses an Operator and converts any CircuitStateFns into
+    Deprecation: The CircuitSampler traverses an Operator and converts any CircuitStateFns into
     approximations of the state function by a DictStateFn or VectorStateFn using a quantum
     backend. Note that in order to approximate the value of the CircuitStateFn, it must 1) send
     state function through a depolarizing channel, which will destroy all phase information and

@@ -31,7 +31,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class MatrixOp(PrimitiveOp):
-    """Class for Operators represented by matrices,
+    """Deprecation: Class for Operators represented by matrices,
     backed by Terra's ``Operator`` module."""
 
     primitive: Operator

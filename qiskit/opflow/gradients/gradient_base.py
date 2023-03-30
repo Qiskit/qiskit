@@ -20,7 +20,7 @@ from .derivative_base import DerivativeBase
 
 
 class GradientBase(DerivativeBase):
-    """Base class for first-order operator gradient.
+    """Deprecation: Base class for first-order operator gradient.
 
     Convert an operator expression to the first-order gradient.
     """

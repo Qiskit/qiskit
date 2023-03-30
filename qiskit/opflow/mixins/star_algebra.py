@@ -20,7 +20,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class StarAlgebraMixin(MultiplyMixin, ABC):
-    """The star algebra mixin class.
+    """Deprecation: The star algebra mixin class.
     Star algebra is an algebra with an adjoint.
 
     This class overrides:

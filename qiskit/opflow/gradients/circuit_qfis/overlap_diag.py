@@ -33,7 +33,7 @@ from ..derivative_base import _coeff_derivative
 
 
 class OverlapDiag(CircuitQFI):
-    r"""Compute the diagonal of the QFI given a pure, parameterized quantum state.
+    r"""Deprecation: Compute the diagonal of the QFI given a pure, parameterized quantum state.
 
     See also :class:`~qiskit.opflow.QFI`.
     """

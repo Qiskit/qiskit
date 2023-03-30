@@ -20,7 +20,7 @@ from .derivative_base import DerivativeBase
 
 
 class HessianBase(DerivativeBase):
-    """Base class for the Hessian of an expected value."""
+    """Deprecation: Base class for the Hessian of an expected value."""
 
     @deprecate_func(
         since="0.24.0",

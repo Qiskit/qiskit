@@ -29,7 +29,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
-    """A base class for all Operators: PrimitiveOps, StateFns, ListOps, etc. Operators are
+    """Deprecation: A base class for all Operators: PrimitiveOps, StateFns, ListOps, etc. Operators are
     defined as functions which take one complex binary function to another. These complex binary
     functions are represented by StateFns, which are themselves a special class of Operators
     taking only the ``Zero`` StateFn to the complex binary function they represent.

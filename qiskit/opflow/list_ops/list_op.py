@@ -28,7 +28,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class ListOp(OperatorBase):
     """
-    A Class for manipulating List Operators, and parent class to ``SummedOp``,
+    Deprecation: A Class for manipulating List Operators, and parent class to ``SummedOp``,
     ``ComposedOp`` and ``TensoredOp``.
 
     List Operators are classes for storing and manipulating lists of Operators, State functions,

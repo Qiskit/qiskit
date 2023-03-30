@@ -31,7 +31,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class OperatorStateFn(StateFn):
     r"""
-    A class for state functions and measurements which are defined by a density Operator,
+    Deprecation: A class for state functions and measurements which are defined by a density Operator,
     stored using an ``OperatorBase``.
     """
     primitive: OperatorBase
