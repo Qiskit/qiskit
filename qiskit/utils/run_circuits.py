@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 def find_regs_by_name(
     circuit: QuantumCircuit, name: str, qreg: bool = True
 ) -> Optional[Union[QuantumRegister, ClassicalRegister]]:
-    """Find the registers in the circuits.
+    """Deprecation: Find the registers in the circuits.
 
     Args:
         circuit: the quantum circuit.
@@ -120,7 +120,7 @@ def run_circuits(
     max_job_retries: int = 50,
 ) -> Result:
     """
-    An execution wrapper with Qiskit-Terra, with job auto recover capability.
+    Deprecation: An execution wrapper with Qiskit-Terra, with job auto recover capability.
 
     The auto-recovery feature is only applied for non-simulator backend.
     This wrapper will try to get the result no matter how long it takes.
