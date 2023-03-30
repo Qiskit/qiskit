@@ -32,7 +32,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class QDrift(TrotterizationBase):
-    """Deprecation: The QDrift Trotterization method, which selects each each term in the
+    """Deprecated: The QDrift Trotterization method, which selects each each term in the
     Trotterization randomly, with a probability proportional to its weight. Based on the work
     of Earl Campbell in https://arxiv.org/abs/1811.08017.
     """

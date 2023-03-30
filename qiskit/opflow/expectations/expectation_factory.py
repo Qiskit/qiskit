@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 class ExpectationFactory:
 
-    """Deprecation:  factory class for convenient automatic selection of an Expectation based on the
+    """Deprecated:  factory class for convenient automatic selection of an Expectation based on the
     Operator to be converted and backend used to sample the expectation value.
     """
 

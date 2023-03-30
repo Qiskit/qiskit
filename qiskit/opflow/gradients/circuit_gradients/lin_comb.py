@@ -68,7 +68,7 @@ from ...converters import PauliBasisChange
 
 
 class LinComb(CircuitGradient):
-    """Deprecation: Compute the state gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the
+    """Deprecated: Compute the state gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the
     sampling probabilities of the basis states of
     a state |ψ(ω)〉w.r.t. ω.
     This method employs a linear combination of unitaries,

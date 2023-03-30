@@ -18,7 +18,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class Trotter(Suzuki):
     r"""
-    Deprecation: Simple Trotter expansion, composing the evolution circuits of each Operator in the sum
+    Deprecated: Simple Trotter expansion, composing the evolution circuits of each Operator in the sum
     together ``reps`` times and dividing the evolution time of each by ``reps``.
     """
 

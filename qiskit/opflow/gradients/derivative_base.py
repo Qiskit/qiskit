@@ -34,7 +34,7 @@ OperatorType = Union[StateFn, PrimitiveOp, ListOp]
 
 
 class DerivativeBase(ConverterBase):
-    r"""Deprecation: Base class for differentiating opflow objects.
+    r"""Deprecated: Base class for differentiating opflow objects.
 
     Converter for differentiating opflow objects and handling
     things like properly differentiating combo_fn's and enforcing product rules

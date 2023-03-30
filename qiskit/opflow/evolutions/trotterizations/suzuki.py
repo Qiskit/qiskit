@@ -28,7 +28,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class Suzuki(TrotterizationBase):
     r"""
-    Deprecation: Suzuki Trotter expansion, composing the evolution circuits of each Operator in the sum
+    Deprecated: Suzuki Trotter expansion, composing the evolution circuits of each Operator in the sum
     together by a recursive "bookends" strategy, repeating the whole composed circuit
     ``reps`` times.
 

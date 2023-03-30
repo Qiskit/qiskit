@@ -17,7 +17,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class OpflowError(QiskitError):
-    """Deprecation: For Opflow specific errors."""
+    """Deprecated: For Opflow specific errors."""
 
     @deprecate_func(
         since="0.24.0",

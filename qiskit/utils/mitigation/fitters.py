@@ -32,7 +32,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class CompleteMeasFitter:
     """
-    Deprecation: Measurement correction fitter for a full calibration
+    Deprecated: Measurement correction fitter for a full calibration
     """
 
     @deprecate_func(
@@ -216,7 +216,7 @@ class CompleteMeasFitter:
 
 class TensoredMeasFitter:
     """
-    Deprecation: Measurement correction fitter for a tensored calibration.
+    Deprecated: Measurement correction fitter for a tensored calibration.
     """
 
     @deprecate_func(

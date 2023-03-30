@@ -31,7 +31,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class AbelianGrouper(ConverterBase):
-    """Deprecation: The AbelianGrouper converts SummedOps into a sum of Abelian sums.
+    """Deprecated: The AbelianGrouper converts SummedOps into a sum of Abelian sums.
 
     Meaning, it will traverse the Operator, and when it finds a SummedOp, it will evaluate which of
     the summed sub-Operators commute with one another. It will then convert each of the groups of

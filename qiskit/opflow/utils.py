@@ -22,7 +22,7 @@ from qiskit.utils.deprecation import deprecate_func
 )
 def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
-    Deprecation: Compute commutator of `op_a` and `op_b`.
+    Deprecated: Compute commutator of `op_a` and `op_b`.
 
     .. math::
 
@@ -43,7 +43,7 @@ def commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
 )
 def anti_commutator(op_a: OperatorBase, op_b: OperatorBase) -> OperatorBase:
     r"""
-    Deprecation: Compute anti-commutator of `op_a` and `op_b`.
+    Deprecated: Compute anti-commutator of `op_a` and `op_b`.
 
     .. math::
 
@@ -69,7 +69,7 @@ def double_commutator(
     sign: bool = False,
 ) -> OperatorBase:
     r"""
-    Deprecation: Compute symmetric double commutator of `op_a`, `op_b` and `op_c`.
+    Deprecated: Compute symmetric double commutator of `op_a`, `op_b` and `op_c`.
     See McWeeny chapter 13.6 Equation of motion methods (page 479)
 
     If `sign` is `False`, it returns

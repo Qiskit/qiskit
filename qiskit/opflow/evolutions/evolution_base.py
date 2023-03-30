@@ -21,7 +21,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class EvolutionBase(ConverterBase, ABC):
     r"""
-    Deprecation: A base for Evolution converters.
+    Deprecated: A base for Evolution converters.
     Evolutions are converters which traverse an Operator tree, replacing any ``EvolvedOp`` `e`
     with a Schrodinger equation-style evolution ``CircuitOp`` equalling or approximating the
     matrix exponential of -i * the Operator contained inside (`e.primitive`). The Evolutions are

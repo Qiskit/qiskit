@@ -27,7 +27,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class CircuitOp(PrimitiveOp):
-    """Deprecation: Class for Operators backed by Terra's ``QuantumCircuit`` module."""
+    """Deprecated: Class for Operators backed by Terra's ``QuantumCircuit`` module."""
 
     primitive: QuantumCircuit
 

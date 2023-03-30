@@ -22,7 +22,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class MatrixExpectation(ExpectationBase):
-    """Deprecation: An Expectation converter which converts Operator measurements to
+    """Deprecated: An Expectation converter which converts Operator measurements to
     be matrix-based so they can be evaluated by matrix multiplication."""
 
     @deprecate_func(

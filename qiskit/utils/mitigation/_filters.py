@@ -36,7 +36,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class MeasurementFilter:
     """
-    Deprecation: Measurement error mitigation filter.
+    Deprecated: Measurement error mitigation filter.
 
     Produced from a measurement calibration fitter and can be applied
     to data.
@@ -219,7 +219,7 @@ class MeasurementFilter:
 
 class TensoredFilter:
     """
-    Deprecation: Tensored measurement error mitigation filter.
+    Deprecated: Tensored measurement error mitigation filter.
 
     Produced from a tensored measurement calibration fitter and can be applied
     to data.

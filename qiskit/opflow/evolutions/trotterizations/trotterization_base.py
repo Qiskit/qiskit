@@ -22,7 +22,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class TrotterizationBase(EvolutionBase):
-    """Deprecation: A base for Trotterization methods, algorithms for approximating exponentiations of
+    """Deprecated: A base for Trotterization methods, algorithms for approximating exponentiations of
     operator sums by compositions of exponentiations.
     """
 

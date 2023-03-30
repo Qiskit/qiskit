@@ -20,7 +20,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class TrotterizationFactory:
-    """Deprecation: A factory for conveniently creating TrotterizationBase instances."""
+    """Deprecated: A factory for conveniently creating TrotterizationBase instances."""
 
     @staticmethod
     @deprecate_func(

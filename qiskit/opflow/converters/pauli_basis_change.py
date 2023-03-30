@@ -35,7 +35,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class PauliBasisChange(ConverterBase):
     r"""
-    Deprecation: Converter for changing Paulis into other bases. By default, the diagonal basis
+    Deprecated: Converter for changing Paulis into other bases. By default, the diagonal basis
     composed only of Pauli {Z, I}^n is used as the destination basis to which to convert.
     Meaning, if a Pauli containing X or Y terms is passed in, which cannot be
     sampled or evolved natively on some Quantum hardware, the Pauli can be replaced by a

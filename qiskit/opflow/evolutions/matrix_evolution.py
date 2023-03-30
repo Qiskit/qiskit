@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 class MatrixEvolution(EvolutionBase):
     r"""
-    Deprecation: Performs Evolution by classical matrix exponentiation, constructing a circuit with
+    Deprecated: Performs Evolution by classical matrix exponentiation, constructing a circuit with
     ``UnitaryGates`` or ``HamiltonianGates`` containing the exponentiation of the Operator.
     """
 

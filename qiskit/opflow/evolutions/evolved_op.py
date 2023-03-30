@@ -32,7 +32,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 class EvolvedOp(PrimitiveOp):
     r"""
-    Deprecation: Class for wrapping Operator Evolutions for compilation (``convert``) by an EvolutionBase
+    Deprecated: Class for wrapping Operator Evolutions for compilation (``convert``) by an EvolutionBase
     method later, essentially acting as a placeholder. Note that EvolvedOp is a weird case of
     PrimitiveOp. It happens to be that it fits into the PrimitiveOp interface nearly perfectly,
     and it essentially represents a placeholder for a PrimitiveOp later, even though it doesn't

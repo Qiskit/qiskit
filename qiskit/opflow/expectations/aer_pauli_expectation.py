@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class AerPauliExpectation(ExpectationBase):
-    r"""Deprecation: An Expectation converter for using Aer's operator snapshot to
+    r"""Deprecated: An Expectation converter for using Aer's operator snapshot to
     take expectations of quantum state circuits over Pauli observables.
 
     """
