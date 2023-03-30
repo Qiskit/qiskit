@@ -635,7 +635,7 @@ class ScalableSymbolicPulse(SymbolicPulse):
             PulseError: If both `amp` is complex and `angle` is not `None` or 0.
         """
         # This should be removed once complex amp support is removed.
-        if isinstance(amp, complex) and (angle is not None or angle != 0):
+        if isinstance(amp, complex) and angle is not None and angle != 0:
             raise PulseError("amp can't be complex with angle not None or 0")
 
         if angle is None:
