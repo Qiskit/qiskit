@@ -37,7 +37,7 @@ class CompleteMeasFitter:
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration.",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
     )
     def __init__(
         self,
@@ -221,7 +221,7 @@ class TensoredMeasFitter:
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="This function was used by the deprecated QuantumInstance class. For code migration guidelines, visit https://qisk.it/qi_migration.",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
     )
     def __init__(
         self,
