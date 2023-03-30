@@ -57,7 +57,6 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
     @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
-        self.maxDiff = None
         filename = "current_standard.dot"
         self.pass_manager.draw(filename=filename, raw=True)
 
