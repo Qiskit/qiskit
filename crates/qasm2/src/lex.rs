@@ -494,7 +494,8 @@ impl TokenStream {
     }
 
     /// Lex a numeric token completely.  This can return a successful integer or a real number; the
-    /// function distinguishes based on what it sees.
+    /// function distinguishes based on what it sees.  If `self.try_version`, this can also be a
+    /// version identifier (will take precedence over either other type, if possible).
     fn lex_numeric(&mut self, start_col: usize) -> PyResult<TokenType> {
         let first = self.line_buffer[start_col];
         if first == b'.' {
@@ -519,8 +520,17 @@ impl TokenStream {
         match self.peek_byte()? {
             Some(b'.') => {
                 self.next_byte()?;
+                let mut has_fractional = false;
                 while let Some(b'0'..=b'9') = self.peek_byte()? {
+                    has_fractional = true;
                     self.next_byte()?;
+                }
+                if self.try_version
+                    && has_fractional
+                    && !matches!(self.peek_byte()?, Some(b'e' | b'E'))
+                {
+                    self.expect_word_boundary("a version identifier", start_col)?;
+                    return Ok(TokenType::Version);
                 }
                 return self.lex_float_exponent(start_col);
             }
@@ -548,6 +558,9 @@ impl TokenStream {
                 Some(&Position::new(&self.filename, self.line, start_col)),
                 "integers cannot have leading zeroes",
             )))
+        } else if self.try_version {
+            self.expect_word_boundary("a version identifier", start_col)?;
+            Ok(TokenType::Version)
         } else {
             self.expect_word_boundary("an integer", start_col)?;
             Ok(TokenType::Integer)
@@ -565,10 +578,7 @@ impl TokenStream {
         let text = &self.line_buffer[start_col..self.col];
         if let b'A'..=b'Z' = first {
             match text {
-                b"OPENQASM" => {
-                    self.try_version = true;
-                    Ok(TokenType::OpenQASM)
-                }
+                b"OPENQASM" => Ok(TokenType::OpenQASM),
                 b"U" | b"CX" => Ok(TokenType::Id),
                 _ => Err(QASM2ParseError::new_err(message_generic(
                         Some(&Position::new(&self.filename, self.line, start_col)),
@@ -622,35 +632,6 @@ impl TokenStream {
         }
     }
 
-    /// Attempt to lex a version identifier as the next some.  Returns `true` if a version matched,
-    /// and `false` if not. This function should only be called immediately after the emission of a
-    /// [TokenType::OpenQASM] token; it is not valid anywhere else in an OpenQASM 2 program.
-    #[cold]
-    fn try_lex_version(&mut self) -> PyResult<bool> {
-        if let Some(b'1'..=b'9') = self.peek_byte()? {
-            self.next_byte()?;
-        } else {
-            return Ok(false);
-        }
-        while let Some(b'0'..=b'9') = self.peek_byte()? {
-            self.next_byte()?;
-        }
-        if let Some(b'.') = self.peek_byte()? {
-            self.next_byte()?;
-        } else {
-            return Ok(true);
-        };
-        // If we don't see at least one digit following the dot, it's still not a valid version.
-        if let Some(b'0'..=b'9') = self.peek_byte()? {
-        } else {
-            return Ok(false);
-        }
-        while let Some(b'0'..=b'9') = self.peek_byte()? {
-            self.next_byte()?;
-        }
-        Ok(true)
-    }
-
     /// The actual core of the iterator.  Read from the stream (ignoring preceding whitespace)
     /// until a complete [Token] has been constructed, or the end of the iterator is reached.  This
     /// returns `Some` for all tokens, including the error token, and only returns `None` if there
@@ -668,18 +649,6 @@ impl TokenStream {
             }
         }
         let start_col = self.col;
-        // This should quickly get branch-predicted to be very cold.  Even if the version fails to
-        // match, we shouldn't try again, because another [Token] will get emitted instead, and
-        // then we're no longer in the `OPENQASM` statement mode.
-        if self.try_version && self.try_lex_version()? {
-            return Ok(Some(Token {
-                ttype: TokenType::Version,
-                line: self.line,
-                col: start_col,
-                index: context.index(&self.line_buffer[start_col..self.col]),
-            }));
-        }
-        self.try_version = false;
         // The whitespace loop (or [Self::try_lex_version]) has already peeked the next token, so
         // we know it's going to be the `Some` variant.
         let ttype = match self.next_byte()?.unwrap() {
@@ -743,6 +712,7 @@ impl TokenStream {
                 )));
             }
         };
+        self.try_version = ttype == TokenType::OpenQASM;
         Ok(Some(Token {
             ttype,
             line: self.line,

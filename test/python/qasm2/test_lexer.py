@@ -80,12 +80,36 @@ class TestLexer(QiskitTestCase):
         ):
             qiskit.qasm2.loads("OPENQASM 2.0; include 'qelib1.inc';", strict=True)
 
+    def test_version_must_have_word_boundary_after(self):
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, r"expected a word boundary after a version"
+        ):
+            qiskit.qasm2.loads("OPENQASM 2a;")
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, r"expected a word boundary after a version"
+        ):
+            qiskit.qasm2.loads("OPENQASM 2.0a;")
+
+    def test_no_boundary_float_in_version_position(self):
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, r"expected a word boundary after a float"
+        ):
+            qiskit.qasm2.loads("OPENQASM .5a;")
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, r"expected a word boundary after a float"
+        ):
+            qiskit.qasm2.loads("OPENQASM 0.2e1a;")
+
     def test_integers_must_have_word_boundaries_after(self):
-        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"expected a word boundary"):
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, r"expected a word boundary after an integer"
+        ):
             qiskit.qasm2.loads("OPENQASM 2.0; qreg q[2a];")
 
     def test_floats_must_have_word_boundaries_after(self):
-        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, r"expected a word boundary"):
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, r"expected a word boundary after a float"
+        ):
             qiskit.qasm2.loads("OPENQASM 2.0; qreg q[1]; U(2.0a, 0, 0) q[0];")
 
     def test_single_equals_is_rejected(self):
