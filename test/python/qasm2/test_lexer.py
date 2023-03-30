@@ -23,11 +23,51 @@ class TestLexer(QiskitTestCase):
     # Most of the lexer is fully exercised in the parser tests.  These tests here are really mopping
     # up some error messages and whatnot that might otherwise be missed.
 
+    def test_pathological_formatting(self):
+        # This is deliberately _terribly_ formatted, included multiple blanks lines in quick
+        # succession and comments in places you really wouldn't expect to see comments.
+        program = """
+            OPENQASM
+
+
+            // do we really need a comment here?
+
+            2.0//and another comment very squished up
+            ;
+
+            include // this line introduces a file import
+            "qelib1.inc" // this is the file imported
+            ; // this is a semicolon
+
+            gate // we're making a gate
+            bell( // void, with loose parenthesis in comment )
+            ) a,//
+b{h a;cx a //,,,,
+,b;}
+
+            qreg // a quantum register
+            q
+            [ // a square bracket
+
+
+
+
+            2];bell q[0],//
+q[1];creg c[2];measure q->c;"""
+        parsed = qiskit.qasm2.loads(program)
+        expected_unrolled = qiskit.QuantumCircuit(
+            qiskit.QuantumRegister(2, "q"), qiskit.ClassicalRegister(2, "c")
+        )
+        expected_unrolled.h(0)
+        expected_unrolled.cx(0, 1)
+        expected_unrolled.measure([0, 1], [0, 1])
+        self.assertEqual(parsed.decompose(), expected_unrolled)
+
     @ddt.data("0.25", "00.25", "2.5e-1", "2.5e-01", "0.025E+1", ".25", ".025e1", "25e-2")
     def test_float_lexes(self, number):
         program = f"qreg q[1]; U({number}, 0, 0) q[0];"
         parsed = qiskit.qasm2.loads(program)
-        assert list(parsed.data[0].operation.params) == [0.25, 0, 0]
+        self.assertEqual(list(parsed.data[0].operation.params), [0.25, 0, 0])
 
     def test_no_decimal_float_rejected_in_strict_mode(self):
         with self.assertRaisesRegex(
