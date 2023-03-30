@@ -78,28 +78,30 @@ class MinimumPoint(TransformationPass):
         state = self.property_set[self.backtrack_name]
 
         # The pass starts at None and the first iteration doesn't set a real
-        # score so the overall loop is treated as a do while to ensur we have
+        # score so the overall loop is treated as a do-while to ensure we have
         # at least 2 iterations.
         if state is None:
             self.property_set[self.backtrack_name] = _MinimumPointState(
                 dag=None, score=(math.inf,) * len(self.property_set_list), since=0
             )
         # If the score of this execution is worse than the previous execution
-        # increment since since we have not found a new minimum point
+        # increment 'since' since we have not found a new minimum point
         elif score > state.score:
             state.since += 1
             if state.since == self.backtrack_depth:
                 self.property_set[self.minimum_reached] = True
                 return self.property_set[self.backtrack_name].dag
-        # If the score has decreased (gotten better) than this iteration is
-        # better performing and this iteration is a new local minimum. So
-        # update the state to be this iteration and reset counter
+        # If the score has decreased (gotten better) then this iteration is
+        # better performing and this iteration should be the new minimum state.
+        # So update the state to be this iteration and reset counter
         elif score < state.score:
             state.since = 1
             state.score = score
             state.dag = deepcopy(dag)
-        # If the current execution is equal to the previous minimum value than
-        # we've reached an equivalent fixed point and we should use
+        # If the current execution is equal to the previous minimum value then
+        # we've reached an equivalent fixed point and we should use this iteration's
+        # dag as the output and set the property set flag that we've found a minimum
+        # point.
         elif score == state.score:
             self.property_set[self.minimum_reached] = True
             return dag
