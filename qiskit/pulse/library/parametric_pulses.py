@@ -65,7 +65,7 @@ class ParametricPulse(Pulse):
     @abstractmethod
     @deprecate_func(
         additional_msg=(
-            "Instead, use SymbolPulse because of QPY serialization support. See "
+            "Instead, use SymbolicPulse because of QPY serialization support. See "
             "qiskit.pulse.library.symbolic_pulses for details."
         ),
         since="0.22",
