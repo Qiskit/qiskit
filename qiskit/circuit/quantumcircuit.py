@@ -4602,14 +4602,6 @@ class QuantumCircuit:
     ) -> InstructionSet:
         """Create a ``switch``/``case`` structure on this circuit.
 
-        There are two forms for calling this function.  If called with all its arguments (with the
-        possible exception of ``label``), it will create a
-        :class:`.SwitchCaseOp` with the given case structure.  If ``cases`` (and
-        ``qubits`` and ``clbits``) are *not* passed, then this acts as a context manager, which
-        will automatically build a :class:`.SwitchCaseOp` when the scope finishes.  In this form,
-        you do not need to keep track of the qubits or clbits you are using, because the scope will
-        handle it for you.
-
         Args:
             target (Union[ClassicalRegister, Clbit]): The classical value to switch one.  This must
                 be integer valued.
