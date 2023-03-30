@@ -1,5 +1,5 @@
 # Optional dependencies of Terra that can (mostly) reliably be installed with
-# `pip`.  This file is still called `requirements-optionals.txt` just to match
+# `pip`.  This file is still called `requirements-optional.txt` just to match
 # standard pip conventions, even though none of these are required.
 #
 # If updating this, you probably want to update `qiskit.utils.optionals` and
