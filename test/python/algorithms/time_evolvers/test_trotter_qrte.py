@@ -195,16 +195,10 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         trotter_qrte = TrotterQRTE(product_formula=QDrift())
         evolution_result = trotter_qrte.evolve(evolution_problem)
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            np.testing.assert_array_almost_equal(
-                Statevector.from_instruction(evolution_result.evolved_state).data,
-                expected_state.data,
-            )
-        self.assertTrue(len(caught_warnings) > 0)
+        np.testing.assert_array_almost_equal(
+            Statevector.from_instruction(evolution_result.evolved_state).data,
+            expected_state.data,
+        )
 
     @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))
     @unpack

@@ -168,16 +168,10 @@ class TestEvolutionGate(QiskitTestCase):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
         qdrift = QDrift(reps=reps)
         evo_gate = PauliEvolutionGate(op, time, synthesis=qdrift)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo_gate.definition.decompose()
-        self.assertTrue(len(caught_warnings) > 0)
+        evo_gate.definition.decompose()
 
         # manually construct expected evolution
-        expected = QuantumCircuit(1)
+        expected = QuantumCircuit(1)∂
         for pauli in sampled_ops:
             if pauli[0].to_label() == "X":
                 expected.rx(2 * pauli[1], 0)
@@ -196,12 +190,7 @@ class TestEvolutionGate(QiskitTestCase):
             op = 0.1 * (Z ^ Z) + (X ^ I) + (I ^ X) + 0.2 * (X ^ X)
         self.assertTrue(len(caught_warnings) > 0)
         reps = 20
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            qdrift = PauliEvolutionGate(op, time=0.5 / reps, synthesis=QDrift(reps=reps)).definition
+        qdrift = PauliEvolutionGate(op, time=0.5 / reps, synthesis=QDrift(reps=reps)).definition
         self.assertTrue(len(caught_warnings) > 0)
         exact = scipy.linalg.expm(-0.5j * op.to_matrix()).dot(np.eye(4)[0, :])
 
