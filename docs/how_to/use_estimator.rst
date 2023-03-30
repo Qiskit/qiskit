@@ -91,7 +91,6 @@ whose ``i``-th element would be the expectation value corresponding to the ``i``
     exp_value = result.values[0]
     print(exp_value)
 
-
 .. testoutput::
 
     3.999999999999999
