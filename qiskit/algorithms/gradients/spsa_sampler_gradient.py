@@ -19,13 +19,14 @@ from typing import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
 from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
+
+from ..exceptions import AlgorithmError
 
 
 class SPSASamplerGradient(BaseSamplerGradient):
@@ -73,20 +74,16 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[Sequence[Parameter] | None],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         job_circuits, job_param_values, metadata, offsets = [], [], [], []
         all_n = []
-        for circuit, parameter_values_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
-        ):
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # Indices of parameters to be differentiated.
-            indices = [
-                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
-            ]
-            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+            indices = [circuit.parameters.data.index(p) for p in parameters_]
+            metadata.append({"parameters": parameters_})
             offset = np.array(
                 [
                     (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
@@ -125,11 +122,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 dist_diffs[j] = dist_diff
             gradient = []
             indices = [circuits[i].parameters.data.index(p) for p in metadata[i]["parameters"]]
-            for j in range(circuits[i].num_parameters):
-                if not j in indices:
-                    continue
-                # the gradient for jth parameter is the average of the gradients of the jth parameter
-                # for each batch.
+            for j in indices:
                 gradient_j = defaultdict(float)
                 for k in range(self._batch_size):
                     for key, value in dist_diffs[k].items():

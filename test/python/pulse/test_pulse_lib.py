@@ -25,9 +25,17 @@ from qiskit.pulse.library import (
     GaussianSquare,
     GaussianSquareDrag,
     Drag,
+    Sin,
+    Cos,
+    Sawtooth,
+    Triangle,
     gaussian,
     gaussian_square,
     drag as pl_drag,
+    sin,
+    cos,
+    triangle,
+    sawtooth,
 )
 
 from qiskit.pulse import functional_pulse, PulseError
@@ -121,6 +129,10 @@ class TestParametricPulses(QiskitTestCase):
         GaussianSquare(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=2.5)
         Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
+        Sin(duration=25, amp=0.5, freq=0.1, phase=0.5, angle=0.5)
+        Cos(duration=30, amp=0.5, freq=0.1, phase=-0.5)
+        Sawtooth(duration=40, amp=0.5, freq=0.2, phase=3.14)
+        Triangle(duration=50, amp=0.5, freq=0.01, phase=0.5)
 
     # This test should be removed once deprecation of complex amp is completed.
     def test_complex_amp_deprecation(self):
@@ -314,6 +326,77 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             check_drag(duration=50, sigma=4, amp=0.8, beta=-20)
 
+    def test_sin_pulse(self):
+        """Test that Sin sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0
+
+        sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=phase)
+        sin_waveform = sin(duration=duration, amp=amp, freq=freq, phase=phase)
+
+        np.testing.assert_almost_equal(sin_pulse.get_waveform().samples, sin_waveform.samples)
+
+        with self.assertRaises(PulseError):
+            Sin(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_cos_pulse(self):
+        """Test that Cin sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0
+        cos_pulse = Cos(duration=duration, amp=amp, freq=freq, phase=phase)
+        cos_waveform = cos(duration=duration, amp=amp, freq=freq, phase=phase)
+        np.testing.assert_almost_equal(cos_pulse.get_waveform().samples, cos_waveform.samples)
+
+        shifted_sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=phase + np.pi / 2)
+        np.testing.assert_almost_equal(
+            shifted_sin_pulse.get_waveform().samples, cos_pulse.get_waveform().samples
+        )
+        with self.assertRaises(PulseError):
+            Cos(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_sawtooth_pulse(self):
+        """Test that Sawtooth sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0.5
+        sawtooth_pulse = Sawtooth(duration=duration, amp=amp, freq=freq, phase=phase)
+        sawtooth_waveform = sawtooth(duration=duration, amp=amp, freq=freq, phase=phase / 2)
+        # Note that the phase definition in `Sawtooth` was changed compared to `sawtooth`
+        np.testing.assert_almost_equal(
+            sawtooth_pulse.get_waveform().samples, sawtooth_waveform.samples
+        )
+        sawtooth_pulse_2 = Sawtooth(duration=duration, amp=amp, freq=freq, phase=phase + 2 * np.pi)
+        np.testing.assert_almost_equal(
+            sawtooth_pulse.get_waveform().samples, sawtooth_pulse_2.get_waveform().samples
+        )
+
+        with self.assertRaises(PulseError):
+            Sawtooth(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_triangle_pulse(self):
+        """Test that Sawtooth sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0.5
+        triangle_pulse = Triangle(duration=duration, amp=amp, freq=freq, phase=phase)
+        triangle_waveform = triangle(duration=duration, amp=amp, freq=freq, phase=phase)
+        np.testing.assert_almost_equal(
+            triangle_pulse.get_waveform().samples, triangle_waveform.samples
+        )
+        triangle_pulse_2 = Triangle(duration=duration, amp=amp, freq=freq, phase=phase + 2 * np.pi)
+        np.testing.assert_almost_equal(
+            triangle_pulse.get_waveform().samples, triangle_pulse_2.get_waveform().samples
+        )
+
+        with self.assertRaises(PulseError):
+            Triangle(duration=duration, amp=amp, freq=5, phase=phase)
+
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
         const = Constant(duration=150, amp=0.1 + 0.4j)
@@ -477,6 +560,57 @@ class TestParametricPulses(QiskitTestCase):
         waveform = Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=False)
         self.assertGreater(np.abs(waveform.amp), 1.0)
 
+    def test_sin_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            Sin(duration=100, amp=1.1, phase=0)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Sin(duration=100, amp=1.1, phase=0)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sin_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Sin(duration=100, amp=1.1, phase=0)
+
+        waveform = Sin(duration=100, amp=1.1, phase=0, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sawtooth_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            Sawtooth(duration=100, amp=1.1, phase=0)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Sawtooth(duration=100, amp=1.1, phase=0)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sawtooth_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Sawtooth(duration=100, amp=1.1, phase=0)
+
+        waveform = Sawtooth(duration=100, amp=1.1, phase=0, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_triangle_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            Triangle(duration=100, amp=1.1, phase=0)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Triangle(duration=100, amp=1.1, phase=0)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_triangle_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Triangle(duration=100, amp=1.1, phase=0)
+
+        waveform = Triangle(duration=100, amp=1.1, phase=0, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
     def test_get_parameters(self):
         """Test getting pulse parameters as attribute."""
         drag_pulse = Drag(duration=100, amp=0.1, sigma=40, beta=3)
@@ -592,7 +726,7 @@ class TestParametricPulses(QiskitTestCase):
 class TestFunctionalPulse(QiskitTestCase):
     """Waveform tests."""
 
-    # pylint: disable=invalid-name, unexpected-keyword-arg
+    # pylint: disable=invalid-name
     def test_gaussian(self):
         """Test gaussian pulse."""
 

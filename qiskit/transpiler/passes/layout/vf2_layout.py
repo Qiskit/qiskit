@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=too-many-function-args
 
 """VF2Layout pass to find a layout using subgraph isomorphism"""
 import os
@@ -138,7 +137,7 @@ class VF2Layout(AnalysisPass):
         if result is None:
             self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.MORE_THAN_2Q
             return
-        im_graph, im_graph_node_map, reverse_im_graph_node_map = result
+        im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes = result
         cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
             self.coupling_map, self.seed, self.strict_direction
         )
@@ -233,6 +232,13 @@ class VF2Layout(AnalysisPass):
         if chosen_layout is None:
             stop_reason = VF2LayoutStopReason.NO_SOLUTION_FOUND
         else:
+            chosen_layout = vf2_utils.map_free_qubits(
+                free_nodes,
+                chosen_layout,
+                cm_graph.num_nodes(),
+                reverse_im_graph_node_map,
+                self.avg_error_map,
+            )
             self.property_set["layout"] = chosen_layout
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)

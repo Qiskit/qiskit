@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" CircuitSampler Class """
+"""CircuitSampler Class"""
 
 
 import logging
@@ -138,7 +138,6 @@ class CircuitSampler(ConverterBase):
         self._quantum_instance = quantum_instance
         self._check_quantum_instance_and_modes_consistent()
 
-    # pylint: disable=arguments-differ
     def convert(
         self,
         operator: OperatorBase,

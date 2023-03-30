@@ -10,13 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DerivativeBase Class """
+"""DerivativeBase Class"""
 
-import warnings
 from abc import abstractmethod
 from typing import Callable, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.providers import Backend
@@ -48,7 +48,6 @@ class DerivativeBase(ConverterBase):
     DerivativeBase - uses classical techniques to differentiate opflow data structures
     """
 
-    # pylint: disable=arguments-differ
     @abstractmethod
     def convert(
         self,
@@ -129,6 +128,9 @@ class DerivativeBase(ConverterBase):
         return gradient_fn
 
     @staticmethod
+    @deprecate_func(
+        since="0.18.0", additional_msg="Instead, use the ParameterExpression.gradient method."
+    )
     def parameter_expression_grad(
         param_expr: ParameterExpression, param: ParameterExpression
     ) -> Union[ParameterExpression, float]:
@@ -141,14 +143,6 @@ class DerivativeBase(ConverterBase):
         Returns:
             ParameterExpression representing the gradient of param_expr w.r.t. param
         """
-        warnings.warn(
-            "The DerivativeBase.parameter_expression_grad method is deprecated as of "
-            "Qiskit Terra 0.18.0 and will be removed no earlier than 3 months after "
-            "the release date. Use the ParameterExpression.gradient method instead for "
-            "a direct replacement.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return _coeff_derivative(param_expr, param)
 
     @classmethod

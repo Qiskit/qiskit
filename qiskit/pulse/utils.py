@@ -98,7 +98,10 @@ def instruction_duration_validation(duration: int):
         )
 
 
-@deprecate_function("Deprecated since Terra 0.22.0. Use 'qiskit.utils.deprecate_function' instead.")
+@deprecate_function(
+    "Deprecated since Terra 0.22.0. Use 'qiskit.utils.deprecate_function' instead.",
+    since="0.22.0",
+)
 def deprecated_functionality(func):
     """A decorator that raises deprecation warning without showing alternative method."""
     return deprecate_function(
@@ -108,4 +111,5 @@ def deprecated_functionality(func):
         "an issue in Qiskit/qiskit-terra repository.",
         category=DeprecationWarning,
         stacklevel=2,
+        since="0.22.0",
     )(func)

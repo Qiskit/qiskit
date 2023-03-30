@@ -25,6 +25,7 @@ from qiskit.quantum_info.synthesis import OneQubitEulerDecomposer
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes.optimization import Optimize1qGates
+from qiskit.transpiler.target import Target
 
 from .base_padding import BasePadding
 
@@ -101,13 +102,14 @@ class PadDynamicalDecoupling(BasePadding):
 
     def __init__(
         self,
-        durations: InstructionDurations,
-        dd_sequence: List[Gate],
+        durations: InstructionDurations = None,
+        dd_sequence: List[Gate] = None,
         qubits: Optional[List[int]] = None,
         spacing: Optional[List[float]] = None,
         skip_reset_qubits: bool = True,
         pulse_alignment: int = 1,
         extra_slack_distribution: str = "middle",
+        target: Target = None,
     ):
         """Dynamical decoupling initializer.
 
@@ -140,14 +142,20 @@ class PadDynamicalDecoupling(BasePadding):
                     - "middle": Put the extra slack to the interval at the middle of the sequence.
                     - "edges": Divide the extra slack as evenly as possible into
                       intervals at beginning and end of the sequence.
+            target: The :class:`~.Target` representing the target backend, if both
+                  ``durations`` and this are specified then this argument will take
+                  precedence and ``durations`` will be ignored.
 
         Raises:
             TranspilerError: When invalid DD sequence is specified.
             TranspilerError: When pulse gate with the duration which is
                 non-multiple of the alignment constraint value is found.
+            TypeError: If ``dd_sequence`` is not specified
         """
         super().__init__()
         self._durations = durations
+        if dd_sequence is None:
+            raise TypeError("required argument 'dd_sequence' is not specified")
         self._dd_sequence = dd_sequence
         self._qubits = qubits
         self._skip_reset_qubits = skip_reset_qubits
@@ -155,8 +163,10 @@ class PadDynamicalDecoupling(BasePadding):
         self._spacing = spacing
         self._extra_slack_distribution = extra_slack_distribution
 
-        self._dd_sequence_lengths = dict()
+        self._dd_sequence_lengths = {}
         self._sequence_phase = 0
+        if target is not None:
+            self._durations = target.durations()
 
     def _pre_runhook(self, dag: DAGCircuit):
         super()._pre_runhook(dag)

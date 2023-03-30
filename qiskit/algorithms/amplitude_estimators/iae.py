@@ -22,11 +22,10 @@ from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
-from .ae_utils import _probabilities_from_sampler_result
 from ..exceptions import AlgorithmError
 
 
@@ -51,6 +50,12 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
              `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         epsilon_target: float,
@@ -96,13 +101,6 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         super().__init__()
 
         # set quantum instance
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
-            )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.quantum_instance = quantum_instance
@@ -133,12 +131,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_function(
-        "The IterativeAmplitudeEstimation.quantum_instance getter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-    )
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
     def quantum_instance(self) -> QuantumInstance | None:
         """Pending deprecation; Get the quantum instance.
 
@@ -148,12 +141,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The IterativeAmplitudeEstimation.quantum_instance setter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-    )
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Pending deprecation; Set quantum instance.
 
@@ -426,12 +414,11 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                             ) from exc
 
                         # calculate the probability of measuring '1'
-                        prob = _probabilities_from_sampler_result(
-                            circuit.num_qubits, ret, estimation_problem
-                        )
-                        prob = cast(
-                            float, prob
-                        )  # tell MyPy it's a float and not Tuple[int, float ]
+                        prob = 0.0
+                        for bit, probabilities in ret.quasi_dists[0].binary_probabilities().items():
+                            # check if it is a good state
+                            if estimation_problem.is_good_state(bit):
+                                prob += probabilities
 
                         a_confidence_interval = [prob, prob]  # type: list[float]
                         a_intervals.append(a_confidence_interval)
@@ -444,8 +431,8 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                         break
 
                     counts = {
-                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
-                        for k, v in ret.quasi_dists[0].items()
+                        k: round(v * shots)
+                        for k, v in ret.quasi_dists[0].binary_probabilities().items()
                     }
 
                 # calculate the probability of measuring '1', 'prob' is a_i in the paper

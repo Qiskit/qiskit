@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -97,12 +97,7 @@ class TimeEvolutionProblem:
     def time(self, time: float) -> None:
         """
         Sets time and validates it.
-
-        Raises:
-            ValueError: If time is not positive.
         """
-        if time <= 0:
-            raise ValueError(f"Evolution time must be > 0 but was {time}.")
         self._time = time
 
     def validate_params(self) -> None:

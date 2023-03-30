@@ -174,7 +174,6 @@ class TestLoadFromQPY(QpyScheduleTestCase):
     @unpack
     def test_parameterized(self, channel, *params):
         """Test playing parameterized pulse."""
-        # pylint: disable=no-value-for-parameter
         with builder.build() as test_sched:
             builder.play(Gaussian(*params), DriveChannel(channel))
         self.assert_roundtrip_equal(test_sched)

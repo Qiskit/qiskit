@@ -28,15 +28,16 @@ from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
 from qiskit.transpiler.passes import TranslateParameterizedGates
 
-from .. import AlgorithmJob
 from .qgt_result import QGTResult
 from .utils import (
     DerivativeType,
     GradientCircuit,
     _assign_unique_parameters,
-    _make_gradient_parameter_set,
+    _make_gradient_parameters,
     _make_gradient_parameter_values,
 )
+
+from ..algorithm_job import AlgorithmJob
 
 
 class BaseQGT(ABC):
@@ -144,22 +145,22 @@ class BaseQGT(ABC):
 
         if parameters is None:
             # If parameters is None, we calculate the gradients of all parameters in each circuit.
-            parameter_sets = [set(circuit.parameters) for circuit in circuits]
+            parameters = [circuit.parameters for circuit in circuits]
         else:
             # If parameters is not None, we calculate the gradients of the specified parameters.
             # None in parameters means that the gradients of all parameters in the corresponding
             # circuit are calculated.
-            parameter_sets = [
-                set(parameters_) if parameters_ is not None else set(circuits[i].parameters)
-                for i, parameters_ in enumerate(parameters)
+            parameters = [
+                params if params is not None else circuits[i].parameters
+                for i, params in enumerate(parameters)
             ]
         # Validate the arguments.
-        self._validate_arguments(circuits, parameter_values, parameter_sets)
+        self._validate_arguments(circuits, parameter_values, parameters)
         # The priority of run option is as follows:
         # options in ``run`` method > QGT's default options > primitive's default setting.
         opts = copy(self._default_options)
         opts.update_options(**options)
-        job = AlgorithmJob(self._run, circuits, parameter_values, parameter_sets, **opts.__dict__)
+        job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **opts.__dict__)
         job.submit()
         return job
 
@@ -168,7 +169,7 @@ class BaseQGT(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[Sequence[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> QGTResult:
         """Compute the QGTs on the given circuits."""
@@ -178,9 +179,9 @@ class BaseQGT(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         supported_gates: Sequence[str],
-    ) -> tuple[Sequence[QuantumCircuit], Sequence[Sequence[float]], Sequence[set[Parameter]]]:
+    ) -> tuple[Sequence[QuantumCircuit], Sequence[Sequence[float]], Sequence[Sequence[Parameter]]]:
         """Preprocess the gradient. This makes a gradient circuit for each circuit. The gradient
         circuit is a transpiled circuit by using the supported gates, and has unique parameters.
         ``parameter_values`` and ``parameters`` are also updated to match the gradient circuit.
@@ -188,7 +189,7 @@ class BaseQGT(ABC):
         Args:
             circuits: The list of quantum circuits to compute the gradients.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameter_sets: The sequence of parameters to calculate only the gradients of the specified
+            parameters: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
             supported_gates: The supported gates used to transpile the circuit.
 
@@ -197,10 +198,8 @@ class BaseQGT(ABC):
             parameter_values and parameters are updated to match the gradient circuit.
         """
         translator = TranslateParameterizedGates(supported_gates)
-        g_circuits, g_parameter_values, g_parameter_sets = [], [], []
-        for circuit, parameter_value_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
-        ):
+        g_circuits, g_parameter_values, g_parameters = [], [], []
+        for circuit, parameter_value_, parameters_ in zip(circuits, parameter_values, parameters):
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._gradient_circuit_cache:
                 unrolled = translator(circuit)
@@ -210,15 +209,20 @@ class BaseQGT(ABC):
             g_parameter_values.append(
                 _make_gradient_parameter_values(circuit, gradient_circuit, parameter_value_)
             )
-            g_parameter_sets.append(_make_gradient_parameter_set(gradient_circuit, parameter_set))
-        return g_circuits, g_parameter_values, g_parameter_sets
+            g_parameters_ = [
+                g_param
+                for g_param in gradient_circuit.gradient_circuit.parameters
+                if g_param in _make_gradient_parameters(gradient_circuit, parameters_)
+            ]
+            g_parameters.append(g_parameters_)
+        return g_circuits, g_parameter_values, g_parameters
 
     def _postprocess(
         self,
         results: QGTResult,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
     ) -> QGTResult:
         """Postprocess the QGTs. This method computes the QGTs of the original circuits
         by applying the chain rule to the QGTs of the circuits with unique parameters.
@@ -227,36 +231,33 @@ class BaseQGT(ABC):
             results: The computed QGT for the circuits with unique parameters.
             circuits: The list of original circuits submitted for gradient computation.
             parameter_values: The list of parameter values to be bound to the circuits.
-            parameter_sets: An optional subset of parameters with respect to which the QGTs should
-                be calculated.
+            parameters: The sequence of parameters to calculate only the gradients of the specified
+                parameters.
 
         Returns:
             The QGTs of the original circuits.
         """
         qgts, metadata = [], []
-        for idx, (circuit, parameter_values_, parameter_set) in enumerate(
-            zip(circuits, parameter_values, parameter_sets)
+        for idx, (circuit, parameter_values_, parameters_) in enumerate(
+            zip(circuits, parameter_values, parameters)
         ):
             dtype = complex if self.derivative_type == DerivativeType.COMPLEX else float
-            qgt = np.zeros((len(parameter_set), len(parameter_set)), dtype=dtype)
+            qgt = np.zeros((len(parameters_), len(parameters_)), dtype=dtype)
 
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
-            g_parameter_set = _make_gradient_parameter_set(gradient_circuit, parameter_set)
+            g_parameters = _make_gradient_parameters(gradient_circuit, parameters_)
             # Make a map from the gradient parameter to the respective index in the gradient.
-            parameter_indices = [param for param in circuit.parameters if param in parameter_set]
+            # parameters_ = [param for param in circuit.parameters if param in parameters_]
             g_parameter_indices = [
                 param
                 for param in gradient_circuit.gradient_circuit.parameters
-                if param in g_parameter_set
+                if param in g_parameters
             ]
             g_parameter_indices = {param: i for i, param in enumerate(g_parameter_indices)}
-
-            rows, cols = np.triu_indices(len(parameter_indices))
+            rows, cols = np.triu_indices(len(parameters_))
             for row, col in zip(rows, cols):
-                for g_parameter1, coeff1 in gradient_circuit.parameter_map[parameter_indices[row]]:
-                    for g_parameter2, coeff2 in gradient_circuit.parameter_map[
-                        parameter_indices[col]
-                    ]:
+                for g_parameter1, coeff1 in gradient_circuit.parameter_map[parameters_[row]]:
+                    for g_parameter2, coeff2 in gradient_circuit.parameter_map[parameters_[col]]:
                         if isinstance(coeff1, ParameterExpression):
                             local_map = {
                                 p: parameter_values_[circuit.parameters.data.index(p)]
@@ -280,12 +281,13 @@ class BaseQGT(ABC):
                                 g_parameter_indices[g_parameter1], g_parameter_indices[g_parameter2]
                             ]
                         )
+
             if self.derivative_type == DerivativeType.IMAG:
                 qgt += -1 * np.triu(qgt, k=1).T
             else:
                 qgt += np.triu(qgt, k=1).conjugate().T
             qgts.append(qgt)
-            metadata.append([{"parameters": parameter_indices}])
+            metadata.append([{"parameters": parameters_}])
         return QGTResult(
             qgts=qgts,
             derivative_type=self.derivative_type,
@@ -293,19 +295,19 @@ class BaseQGT(ABC):
             options=results.options,
         )
 
+    @staticmethod
     def _validate_arguments(
-        self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
     ) -> None:
         """Validate the arguments of the ``run`` method.
 
         Args:
             circuits: The list of quantum circuits to compute the QGTs.
             parameter_values: The list of parameter values to be bound to the circuits.
-            parameter_sets: The sequence of parameter sets with respect to which the QGTs should be
-                computed. Each set of parameters corresponds to a circuit in ``circuits``.
+            parameters: The sequence of parameters with respect to which the QGTs should be
+                computed.
 
         Raises:
             ValueError: Invalid arguments are given.
@@ -313,13 +315,13 @@ class BaseQGT(ABC):
         if len(circuits) != len(parameter_values):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of parameter value sets ({len(parameter_values)})."
+                f"the number of parameter values ({len(parameter_values)})."
             )
 
-        if len(circuits) != len(parameter_sets):
+        if len(circuits) != len(parameters):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of the specified parameter sets ({len(parameter_sets)})."
+                f"the number of the specified parameter sets ({len(parameters)})."
             )
 
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
@@ -329,6 +331,19 @@ class BaseQGT(ABC):
                 raise ValueError(
                     f"The number of values ({len(parameter_value)}) does not match "
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
+                )
+
+        if len(circuits) != len(parameters):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of the list of specified parameters ({len(parameters)})."
+            )
+
+        for i, (circuit, parameters_) in enumerate(zip(circuits, parameters)):
+            if not set(parameters_).issubset(circuit.parameters):
+                raise ValueError(
+                    f"The {i}-th parameters contains parameters not present in the "
+                    f"{i}-th circuit."
                 )
 
     @property
