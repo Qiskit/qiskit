@@ -213,7 +213,7 @@ class HighLevelSynthesis(TransformationPass):
             except TypeError as err:
                 raise TranspilerError(
                     f"HighLevelSynthesis was unable to extract definition for {op.name}: {err}"
-                )
+                ) from err
             except AttributeError:
                 # definition is None
                 definition = None
