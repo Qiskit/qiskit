@@ -44,8 +44,9 @@ class CircuitInstruction:
         the advent of the :class:`~.circuit.Operation` interface for adding more complex objects to
         circuits, we took the opportunity to correct the historical naming.  For the time being,
         this leads to an awkward case where :attr:`.CircuitInstruction.operation` is often an
-        :class:`~.circuit.Instruction` instance, but as the :class:`.Operation` interface gains more
-        use, this confusion will hopefully abate.
+        :class:`~.circuit.Instruction` instance (:class:`~.circuit.Instruction` implements the
+        :class:`.Operation` interface), but as the :class:`.Operation` interface gains more use,
+        this confusion will hopefully abate.
 
     .. warning::
 
