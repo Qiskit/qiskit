@@ -55,7 +55,8 @@ class SwitchCaseOp(ControlFlowOp):
     builder interface.  At the low level, you must ensure that all the circuit blocks contain equal
     numbers of qubits and clbits, and that the order the virtual bits of the containing circuit
     should be bound is the same for all blocks.  This will likely mean that each circuit block is
-    wider than its natural width, as each block must span the space covered by _any_ of the blocks.
+    wider than its natural width, as each block must span the union of all the spaces covered by
+    _any_ of the blocks.
 
     Args:
         target: the runtime value to switch on.
@@ -135,8 +136,9 @@ class SwitchCaseOp(ControlFlowOp):
         )
 
     def cases_specifier(self) -> Iterable[Tuple[Tuple, QuantumCircuit]]:
-        """Return an iterable where each element is a 2-tuple whose first element is a tuple of the
-        all the jump values that are associated with the circuit block in the second element.
+        """Return an iterable where each element is a 2-tuple whose first element is a tuple of
+        jump values, and whose second is the single circuit block that is associated with those
+        values.
 
         This is an abstract specification of the jump table suitable for creating new
         :class:`.SwitchCaseOp` instances.
