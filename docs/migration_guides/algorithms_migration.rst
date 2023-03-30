@@ -18,7 +18,7 @@ There have been **3 types of refactoring**:
        **Careful with import paths!!** The legacy algorithms are still importable directly from
        :mod:`qiskit.algorithms`. Until the legacy imports are removed, this convenience import is not available
        for the refactored algorithms. Thus, to import the refactored algorithms you must always
-       **speficy the full import path** (i.e ``from qiskit.algorithms.eigensolvers import VQD``)
+       **specify the full import path** (i.e., ``from qiskit.algorithms.eigensolvers import VQD``)
 
     - `Minimum Eigensolvers`_
     - `Eigensolvers`_
@@ -47,7 +47,7 @@ Background
 
 The :mod:`qiskit.algorithms` module was originally built on top of the :mod:`qiskit.opflow` library and the
 :class:`~qiskit.utils.QuantumInstance` utility. The development of the :mod:`~qiskit.primitives`
-introduced a higher level execution paradigm, with the ``Estimator`` for computation of
+introduced a higher-level execution paradigm, with the ``Estimator`` for computation of
 expectation values for observables, and ``Sampler`` for executing circuits and returning probability
 distributions. These tools allowed to refactor the :mod:`qiskit.algorithms` module, and deprecate both
 :mod:`qiskit.opflow` and :class:`~qiskit.utils.QuantumInstance`.
@@ -88,7 +88,7 @@ the `Quantum Instance migration guide <https://qisk.it/qi_migration>`_.
 In this guide, we will cover 3 different common configurations for algorithms that determine
 **which primitive import** you should be selecting:
 
-1. Running an algorithm with a statevector simulator (ie. using :mod:`qiskit.opflow`\'s legacy
+1. Running an algorithm with a statevector simulator (i.e., using :mod:`qiskit.opflow`\'s legacy
    :class:`.MatrixExpectation`), when you want the ideal outcome without shot noise:
 
         - Reference Primitives with default configuration (see `QAOA`_ example):
@@ -103,11 +103,11 @@ In this guide, we will cover 3 different common configurations for algorithms th
 
             from qiskit_aer.primitives import Sampler, Estimator
 
-            sampler = Sampler(backend_options={"method": "statevector"}.
+            sampler = Sampler(backend_options={"method": "statevector"})
             estimator = Estimator(backend_options={"method": "statevector"})
 
 2. Running an algorithm using a simulator/device with shot noise
-   (i.e. using :mod:`qiskit.opflow`\'s legacy :class:`.PauliExpectation`):
+   (i.e., using :mod:`qiskit.opflow`\'s legacy :class:`.PauliExpectation`):
 
         - Reference Primitives **with shots** (see `VQE`_ examples):
 
@@ -138,7 +138,7 @@ In this guide, we will cover 3 different common configurations for algorithms th
             from qiskit_ibm_runtime import Sampler, Estimator
 
 
-3. Running an algorithm on an Aer simulator using a custom instruction (ie. using :mod:`qiskit.opflow`\'s legacy
+3. Running an algorithm on an Aer simulator using a custom instruction (i.e., using :mod:`qiskit.opflow`\'s legacy
 :class:`.AerPauliExpectation`):
 
         - Aer Primitives with ``shots=None``, ``approximation=True`` (see `TrotterQRTE`_ example):
