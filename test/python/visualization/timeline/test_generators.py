@@ -55,15 +55,17 @@ class TestGates(QiskitTestCase):
             [-0.5 * self.formatter["box_height.gate"], 0.5 * self.formatter["box_height.gate"]],
         )
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        ref_meta = {
-            "name": "u3",
-            "label": "n/a",
-            "bits": str(self.qubit.register.name),
-            "t0": 100,
-            "duration": 20,
-            "unitary": "[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]",
-            "parameters": "0, 0, 0",
-        }
+        # TODO: rewrite this to not use the deprecated `register` property.
+        with self.assertWarns(DeprecationWarning):
+            ref_meta = {
+                "name": "u3",
+                "label": "n/a",
+                "bits": str(self.qubit.register.name),
+                "t0": 100,
+                "duration": 20,
+                "unitary": "[[1.+0.j 0.-0.j]\n [0.+0.j 1.+0.j]]",
+                "parameters": "0, 0, 0",
+            }
         self.assertDictEqual(ref_meta, drawing_obj.meta)
 
         ref_styles = {
@@ -244,10 +246,12 @@ class TestTimeslot(QiskitTestCase):
         self.assertListEqual(list(drawing_obj.xvals), [types.AbstractCoordinate.LEFT])
         self.assertListEqual(list(drawing_obj.yvals), [0])
         self.assertListEqual(drawing_obj.bits, [self.qubit])
-        self.assertEqual(drawing_obj.text, str(self.qubit.register.name))
-        ref_latex = r"{{\rm {register}}}_{{{index}}}".format(
-            register=self.qubit.register.prefix, index=self.qubit.index
-        )
+        # TODO: rewrite this to not use the deprecated `register` property.
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(drawing_obj.text, str(self.qubit.register.name))
+            ref_latex = r"{{\rm {register}}}_{{{index}}}".format(
+                register=self.qubit.register.prefix, index=self.qubit.index
+            )
         self.assertEqual(drawing_obj.latex, ref_latex)
 
         ref_styles = {

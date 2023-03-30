@@ -105,7 +105,7 @@ class InstructionSet:
             "indices to be resolved incorrectly if any registers overlap.)"
         ),
     )
-    def __init__(
+    def __init__(  # pylint: disable=bad-docstring-quotes
         self,
         circuit_cregs: list[ClassicalRegister] | None = None,
         *,
