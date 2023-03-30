@@ -873,21 +873,15 @@ class TestStandard1Q(QiskitTestCase):
         )
 
     def test_global_phase_consistency(self):
+        from qiskit.quantum_info import Operator
         """Tests compatibility of GlobalPhaseGate with QuantumCircuit.global_phase"""
         theta = 0.1
         qc1 = QuantumCircuit(0, global_phase=theta)
-        # result_qc1 = Statevector(qc1)
         qc2 = QuantumCircuit(0)
         qc2.append(GlobalPhaseGate(theta), [])
-        # result_qc2 = Statevector(qc2)
-        # np.testing.assert_allclose(
-        #     np.array([[result_qc1[0]]]),
-        #     GlobalPhaseGate(theta).__array__(),
-        #     atol=1e-7,
-        # )
         np.testing.assert_allclose(
-            np.array(Operator(qc1)),
-            np.array(Operator(qc2)),
+            Operator(qc1),
+            Operator(qc2),
             atol=1e-7,
         )
 
