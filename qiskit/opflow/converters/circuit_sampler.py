@@ -54,7 +54,7 @@ class CircuitSampler(ConverterBase):
 
     @deprecate_func(
         since="0.24.0",
-        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def __init__(
         self,
@@ -84,9 +84,7 @@ class CircuitSampler(ConverterBase):
         super().__init__()
 
         self._quantum_instance = (
-            backend
-            if isinstance(backend, QuantumInstance)
-            else QuantumInstance(backend=backend)
+            backend if isinstance(backend, QuantumInstance) else QuantumInstance(backend=backend)
         )
         self._statevector = (
             statevector if statevector is not None else self.quantum_instance.is_statevector

@@ -27,7 +27,7 @@ class EvolutionFactory:
     @staticmethod
     @deprecate_func(
         since="0.24.0",
-        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration."
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
     )
     def build(operator: OperatorBase = None) -> EvolutionBase:
         r"""
