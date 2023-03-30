@@ -80,7 +80,6 @@ Generally ``result.quasi_dists[i]`` would be the quasi-probability distribution 
     quasi_dist = result.quasi_dists[0]
     print(quasi_dist)
 
-
 .. testoutput::
 
     {0: 0.4999999999999999, 3: 0.4999999999999999}
