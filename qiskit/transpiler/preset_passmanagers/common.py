@@ -84,7 +84,7 @@ def _without_control_flow(property_set):
     return not any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
 
 
-class _invalid_control_flow_for_backend:
+class _InvalidControlFlowForBackend:
     # Explicitly stateful closure to allow pickling.
 
     def __init__(self, basis_gates=(), target=None):
@@ -151,7 +151,7 @@ def generate_control_flow_options_check(
     out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
     if bad_options:
         out.append(Error(message), condition=_has_control_flow)
-    backend_control = _invalid_control_flow_for_backend(basis_gates, target)
+    backend_control = _InvalidControlFlowForBackend(basis_gates, target)
     out.append(Error(backend_control.message), condition=backend_control.condition)
     return out
 
