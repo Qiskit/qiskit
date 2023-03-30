@@ -39,6 +39,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
@@ -450,6 +451,7 @@ class Target(Mapping):
             qiskit_inst_name_map.update(inst_name_map)
 
         for inst_name in inst_map.instructions:
+            # Prepare dictionary of instruction properties
             out_props = {}
             for qargs in inst_map.qubits_with_instruction(inst_name):
                 try:
@@ -486,7 +488,9 @@ class Target(Mapping):
                 out_props[qargs] = props
             if not out_props:
                 continue
+            # Prepare Qiskit Gate object assigned to the entries
             if inst_name not in self._gate_map:
+                # Entry not found: Add new instruction
                 if inst_name in qiskit_inst_name_map:
                     # Remove qargs with length that doesn't match with instruction qubit number
                     inst_obj = qiskit_inst_name_map[inst_name]
@@ -497,20 +501,31 @@ class Target(Mapping):
                         normalized_props[qargs] = prop
                     self.add_instruction(inst_obj, normalized_props, name=inst_name)
                 else:
-                    # Assumes qubit number and parameter names are consistent
-                    qargs0 = inst_map.qubits_with_instruction(inst_name)[0]
-                    try:
-                        qargs0 = tuple(qargs0)
-                    except TypeError:
-                        qargs0 = (qargs0,)
-                    cal = getattr(out_props[qargs0], "_calibration")
+                    # Check qubit length parameter name uniformity.
+                    qlen = set()
+                    param_names = set()
+                    for qargs in inst_map.qubits_with_instruction(inst_name):
+                        if isinstance(qargs, int):
+                            qargs = (qargs, )
+                        qlen.add(len(qargs))
+                        cal = getattr(out_props[tuple(qargs)], "_calibration")
+                        param_names.add(tuple(cal.get_signature().parameters.keys()))
+                    if len(qlen) > 1 or len(param_names) > 1:
+                        raise QiskitError(
+                            f"Schedules for {inst_name} are defined non-uniformly for "
+                            f"multiple qubit lengths {qlen}, "
+                            f"or different parameter names {param_names}. "
+                            "Provide these schedules with inst_name_map or define them with "
+                            "different names for different gate parameters."
+                        )
                     inst_obj = Gate(
                         name=inst_name,
-                        num_qubits=len(qargs0),
-                        params=list(map(Parameter, cal.get_signature().parameters.keys())),
+                        num_qubits=next(iter(qlen)),
+                        params=list(map(Parameter, next(iter(param_names)))),
                     )
                     self.add_instruction(inst_obj, out_props, name=inst_name)
             else:
+                # Entry found: Update "existing" instructions.
                 for qargs, prop in out_props.items():
                     if qargs not in self._gate_map[inst_name]:
                         continue
