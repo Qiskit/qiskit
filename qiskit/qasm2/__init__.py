@@ -41,7 +41,7 @@ directory names to use when searching for files in ``include`` statements.  The 
 tried from index 0 onwards, and the first match is used.  The import ``qelib1.inc`` is treated
 specially; it is always found before looking in the include path, and contains exactly the content
 of the `paper describing the OpenQASM 2 language <https://arxiv.org/abs/1707.03429>`__.  The gates
-in this include file are mapped to standard gates provided by Qiskit.
+in this include file are mapped to circuit-library gate objects defined by Qiskit.
 
 .. _qasm2-custom-instructions:
 
@@ -103,8 +103,7 @@ file it occurred.
 Examples
 ========
 
-The most basic example is to use :func:`loads` to import an OpenQASM 2 program in a Python string
-into a :class:`.QuantumCircuit`:
+Use :func:`loads` to import an OpenQASM 2 program in a string into a :class:`.QuantumCircuit`:
 
 .. code-block:: python
 
@@ -120,7 +119,8 @@ into a :class:`.QuantumCircuit`:
 
         measure q -> c;
     '''
-    qiskit.qasm2.loads(program).draw()
+    circuit = qiskit.qasm2.loads(program)
+    circuit.draw()
 
 .. code-block:: text
 
@@ -154,25 +154,27 @@ influence the search path used for finding these files with the ``include_path``
     circuit = qiskit.qasm2.loads(program, include_path=("/path/to/a", "/path/to/b", "."))
 
 For :func:`load` only, there is an extra argument ``include_input_directory``, which can be used to
-either *append*, *prepend* or ignore (``None``) the directory of the loaded file in the include
-path.  By default, this directory is appended to the search path, so it is tried last, but you can
-change this.
+either ``'append'``, ``'prepend'`` or ignore (``None``) the directory of the loaded file in the
+include path.  By default, this directory is appended to the search path, so it is tried last, but
+you can change this.
 
 .. code-block:: python
 
     import qiskit.qasm2
-    paths = ["./subdirectory/a.qasm", "/path/to/b.qasm", "~/my.qasm"]
+    filenames = ["./subdirectory/a.qasm", "/path/to/b.qasm", "~/my.qasm"]
     # Search the directory of each file before other parts of the include path.
-    circuits = [qiskit.qasm2.load(path, include_input_directory="prepend") for path in paths]
+    circuits = [
+        qiskit.qasm2.load(filename, include_input_directory="prepend") for filename in filenames
+    ]
     # Override the include path, and don't search the directory of each file unless it's in the
     # absolute path list.
     circuits = [
         qiskit.qasm2.load(
-            path,
+            filename,
             include_path=("/usr/include/qasm", "~/qasm/include"),
             include_input_directory=None,
         )
-        for path in paths
+        for filename in filenames
     ]
 
 Sometimes you may want to influence the :class:`.Gate` objects that the importer emits for given
