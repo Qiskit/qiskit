@@ -284,6 +284,20 @@ class TestDensityMatrix(QiskitTestCase):
             target = DensityMatrix(np.dot(op_full.data, rho).dot(op_full.adjoint().data))
             self.assertEqual(state.evolve(op, qargs=[2, 1, 0]), target)
 
+    def test_evolve_qudit_subsystems(self):
+        """Test nested evolve calls on qudit subsystems."""
+        dims = (3, 4, 5)
+        init = self.rand_rho(np.prod(dims))
+        ops = [random_unitary((dim,)) for dim in dims]
+        state = DensityMatrix(init, dims)
+        for i, op in enumerate(ops):
+            state = state.evolve(op, [i])
+        target_op = np.eye(1)
+        for op in ops:
+            target_op = np.kron(op.data, target_op)
+        target = DensityMatrix(np.dot(target_op, init).dot(target_op.conj().T), dims)
+        self.assertEqual(state, target)
+
     def test_conjugate(self):
         """Test conjugate method."""
         for _ in range(10):
@@ -663,6 +677,67 @@ class TestDensityMatrix(QiskitTestCase):
             with self.subTest(msg=f"P({qargs})"):
                 counts = state.sample_counts(shots, qargs=qargs)
                 self.assertDictAlmostEqual(counts, target, threshold)
+
+    def test_probabilities_dict_unequal_dims(self):
+        """Test probabilities_dict for a state with unequal subsystem dimensions."""
+
+        vec = np.zeros(60, dtype=float)
+        vec[15:20] = np.ones(5)
+        vec[40:46] = np.ones(6)
+        state = DensityMatrix(vec / np.sqrt(11.0), dims=[3, 4, 5])
+
+        p = 1.0 / 11.0
+
+        self.assertDictEqual(
+            state.probabilities_dict(),
+            {
+                s: p
+                for s in [
+                    "110",
+                    "111",
+                    "112",
+                    "120",
+                    "121",
+                    "311",
+                    "312",
+                    "320",
+                    "321",
+                    "322",
+                    "330",
+                ]
+            },
+        )
+
+        # differences due to rounding
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0]), {"0": 4 * p, "1": 4 * p, "2": 3 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1]), {"1": 5 * p, "2": 5 * p, "3": p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[2]), {"1": 5 * p, "3": 6 * p}, delta=1e-10
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 1]),
+            {"10": p, "11": 2 * p, "12": 2 * p, "20": 2 * p, "21": 2 * p, "22": p, "30": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[1, 0]),
+            {"01": p, "11": 2 * p, "21": 2 * p, "02": 2 * p, "12": 2 * p, "22": p, "03": p},
+            delta=1e-10,
+        )
+
+        self.assertDictAlmostEqual(
+            state.probabilities_dict(qargs=[0, 2]),
+            {"10": 2 * p, "11": 2 * p, "12": p, "31": 2 * p, "32": 2 * p, "30": 2 * p},
+            delta=1e-10,
+        )
 
     def test_sample_counts_qutrit(self):
         """Test sample_counts method for qutrit state"""
@@ -1126,6 +1201,27 @@ class TestDensityMatrix(QiskitTestCase):
         for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 dm.draw(drawtype)
+
+    def test_clip_probabilities(self):
+        """Test probabilities are clipped to [0, 1]."""
+        dm = DensityMatrix([[1.1, 0], [0, 0]])
+
+        self.assertEqual(list(dm.probabilities()), [1.0, 0.0])
+        # The "1" key should be exactly zero and therefore omitted.
+        self.assertEqual(dm.probabilities_dict(), {"0": 1.0})
+
+    def test_round_probabilities(self):
+        """Test probabilities are correctly rounded.
+
+        This is good to test to ensure clipping, renormalizing and rounding work together.
+        """
+        p = np.sqrt(1 / 3)
+        amplitudes = [p, p, p, 0]
+        dm = DensityMatrix(np.outer(amplitudes, amplitudes))
+        expected = [0.33, 0.33, 0.33, 0]
+
+        # Exact floating-point check because fixing the rounding should ensure this is exact.
+        self.assertEqual(list(dm.probabilities(decimals=2)), expected)
 
 
 if __name__ == "__main__":

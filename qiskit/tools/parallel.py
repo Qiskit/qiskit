@@ -106,7 +106,7 @@ def _task_wrapper(param):
 
 
 def parallel_map(  # pylint: disable=dangerous-default-value
-    task, values, task_args=tuple(), task_kwargs={}, num_processes=CPU_COUNT
+    task, values, task_args=(), task_kwargs={}, num_processes=CPU_COUNT
 ):
     """
     Parallel execution of a mapping of `values` to the function `task`. This
@@ -137,6 +137,17 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         terra.parallel.start: The collection of parallel tasks are about to start.
         terra.parallel.update: One of the parallel task has finished.
         terra.parallel.finish: All the parallel tasks have finished.
+
+    Examples:
+
+        .. code-block:: python
+
+            import time
+            from qiskit.tools.parallel import parallel_map
+            def func(_):
+                    time.sleep(0.1)
+                    return 0
+            parallel_map(func, list(range(10)));
     """
     if len(values) == 0:
         return []
@@ -160,7 +171,7 @@ def parallel_map(  # pylint: disable=dangerous-default-value
         try:
             results = []
             with ProcessPoolExecutor(max_workers=num_processes) as executor:
-                param = map(lambda value: (task, value, task_args, task_kwargs), values)
+                param = ((task, value, task_args, task_kwargs) for value in values)
                 future = executor.map(_task_wrapper, param)
 
             results = list(future)

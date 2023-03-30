@@ -12,6 +12,8 @@
 
 """Tests for swap strategy routers."""
 
+from ddt import ddt, data
+
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister
 from qiskit.transpiler import PassManager, CouplingMap, Layout, TranspilerError
 
@@ -25,6 +27,8 @@ from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
 from qiskit.transpiler.passes import SetLayout
+from qiskit.transpiler.passes import CXCancellation
+from qiskit.transpiler.passes import Decompose
 
 from qiskit.test import QiskitTestCase
 
@@ -38,6 +42,7 @@ from qiskit.transpiler.passes.routing.commuting_2q_gate_routing import (
 )
 
 
+@ddt
 class TestPauliEvolutionSwapStrategies(QiskitTestCase):
     """A class to test the swap strategies transpiler passes."""
 
@@ -458,7 +463,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             return op.name, param, qreg.index(qargs[0]), qreg.index(qargs[1])
 
         qreg = swapped.qregs["q"]
-        inst_list = list(inst_info(node.op, node.qargs, qreg) for node in swapped.op_nodes())
+        inst_list = [inst_info(node.op, node.qargs, qreg) for node in swapped.op_nodes()]
 
         # First block has the Rzz gates ("IIIZZ", 1), ("IIZZI", 5), ("IZIZI", 6), ("ZZIII", 10)
         expected = {
@@ -496,6 +501,67 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
         circ.append(PauliEvolutionGate(op, 1), range(4))
 
         self.assertEqual(circ, self.pm_.run(circ))
+
+    @data(
+        {(0, 1): 0, (2, 3): 0, (1, 2): 1},  # better coloring for the swap strategy
+        {(0, 1): 1, (2, 3): 1, (1, 2): 0},  # worse, i.e., less CX cancellation.
+    )
+    def test_edge_coloring(self, edge_coloring):
+        """Test that the edge coloring works."""
+        op = PauliSumOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
+        swaps = (((1, 2),),)
+
+        cmap = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        cmap.make_symmetric()
+
+        swap_strat = SwapStrategy(cmap, swaps)
+
+        circ = QuantumCircuit(4)
+        circ.append(PauliEvolutionGate(op, 1), range(4))
+
+        pm_ = PassManager(
+            [
+                FindCommutingPauliEvolutions(),
+                Commuting2qGateRouter(swap_strat, edge_coloring=edge_coloring),
+                Decompose(),  # double decompose gets to CX
+                Decompose(),
+                CXCancellation(),
+            ]
+        )
+
+        expected = QuantumCircuit(4)
+        if edge_coloring[(0, 1)] == 1:
+            expected.cx(1, 2)
+            expected.rz(4, 2)
+            expected.cx(1, 2)
+            expected.cx(0, 1)
+            expected.rz(2, 1)
+            expected.cx(0, 1)
+            expected.cx(2, 3)
+            expected.rz(6, 3)
+            expected.cx(2, 3)
+            expected.cx(1, 2)
+            expected.cx(2, 1)
+            expected.cx(1, 2)
+            expected.cx(2, 3)
+            expected.rz(8, 3)
+            expected.cx(2, 3)
+        else:
+            expected.cx(0, 1)
+            expected.rz(2, 1)
+            expected.cx(0, 1)
+            expected.cx(2, 3)
+            expected.rz(6, 3)
+            expected.cx(2, 3)
+            expected.cx(1, 2)
+            expected.rz(4, 2)
+            expected.cx(2, 1)
+            expected.cx(1, 2)
+            expected.cx(2, 3)
+            expected.rz(8, 3)
+            expected.cx(2, 3)
+
+        self.assertEqual(pm_.run(circ), expected)
 
 
 class TestSwapRouterExceptions(QiskitTestCase):

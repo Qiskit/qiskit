@@ -11,66 +11,7 @@
 # that they have been altered from the originals.
 
 """
-=============================================================
-Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
-=============================================================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   C3XGate
-   C3SXGate
-   C4XGate
-   CCXGate
-   DCXGate
-   CHGate
-   CPhaseGate
-   CRXGate
-   CRYGate
-   CRZGate
-   CSwapGate
-   CSXGate
-   CUGate
-   CU1Gate
-   CU3Gate
-   CXGate
-   CYGate
-   CZGate
-   CCZGate
-   HGate
-   IGate
-   MCPhaseGate
-   PhaseGate
-   RCCXGate
-   RC3XGate
-   RXGate
-   RXXGate
-   RYGate
-   RYYGate
-   RZGate
-   RZZGate
-   RZXGate
-   XXMinusYYGate
-   XXPlusYYGate
-   ECRGate
-   SGate
-   SdgGate
-   CSGate
-   CSdgGate
-   SwapGate
-   iSwapGate
-   SXGate
-   SXdgGate
-   TGate
-   TdgGate
-   UGate
-   U1Gate
-   U2Gate
-   U3Gate
-   XGate
-   YGate
-   ZGate
-
+Standard gates
 """
 
 from .h import HGate, CHGate
@@ -103,3 +44,72 @@ from .y import YGate, CYGate
 from .z import ZGate, CZGate, CCZGate
 
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
+
+
+def get_standard_gate_name_mapping():
+    """Return a dictionary mapping the name of standard gates and instructions to an object for
+    that name."""
+    from qiskit.circuit.parameter import Parameter
+    from qiskit.circuit.measure import Measure
+    from qiskit.circuit.delay import Delay
+    from qiskit.circuit.reset import Reset
+
+    # Standard gates library mapping, multicontrolled gates not included since they're
+    # variable width
+    gates = [
+        IGate(),
+        SXGate(),
+        XGate(),
+        CXGate(),
+        RZGate(Parameter("λ")),
+        RGate(Parameter("ϴ"), Parameter("φ")),
+        Reset(),
+        C3SXGate(),
+        CCXGate(),
+        DCXGate(),
+        CHGate(),
+        CPhaseGate(Parameter("ϴ")),
+        CRXGate(Parameter("ϴ")),
+        CRYGate(Parameter("ϴ")),
+        CRZGate(Parameter("ϴ")),
+        CSwapGate(),
+        CSXGate(),
+        CUGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ"), Parameter("γ")),
+        CU1Gate(Parameter("λ")),
+        CU3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        CYGate(),
+        CZGate(),
+        CCZGate(),
+        HGate(),
+        PhaseGate(Parameter("ϴ")),
+        RCCXGate(),
+        RC3XGate(),
+        RXGate(Parameter("ϴ")),
+        RXXGate(Parameter("ϴ")),
+        RYGate(Parameter("ϴ")),
+        RYYGate(Parameter("ϴ")),
+        RZZGate(Parameter("ϴ")),
+        RZXGate(Parameter("ϴ")),
+        XXMinusYYGate(Parameter("ϴ")),
+        XXPlusYYGate(Parameter("ϴ")),
+        ECRGate(),
+        SGate(),
+        SdgGate(),
+        CSGate(),
+        CSdgGate(),
+        SwapGate(),
+        iSwapGate(),
+        SXdgGate(),
+        TGate(),
+        TdgGate(),
+        UGate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        U1Gate(Parameter("λ")),
+        U2Gate(Parameter("φ"), Parameter("λ")),
+        U3Gate(Parameter("ϴ"), Parameter("φ"), Parameter("λ")),
+        YGate(),
+        ZGate(),
+        Delay(Parameter("t")),
+        Measure(),
+    ]
+    name_mapping = {gate.name: gate for gate in gates}
+    return name_mapping

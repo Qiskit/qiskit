@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Added new backend classes to :mod:`qiskit.providers.fake_provider`:
+
+     * :class:`~.FakeAuckland`
+     * :class:`~.FakeOslo`
+     * :class:`~.FakeGeneva`
+     * :class:`~.FakePerth`
+
+    These new classes implement the :class:`~.BackendV2` interface and
+    are created using stored snapshots of the backend information from the
+    IBM Quantum systems ``ibm_auckland``, ``ibm_oslo``, ``ibm_geneva``, and
+    ``ibm_perth`` systems respectively.

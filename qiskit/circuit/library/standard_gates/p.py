@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Phase Gate."""
+
+from __future__ import annotations
 from cmath import exp
-from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -74,7 +75,7 @@ class PhaseGate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta: ParameterValueType, label: Optional[str] = None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new Phase gate."""
         super().__init__("p", 1, [theta], label=label)
 
@@ -91,8 +92,8 @@ class PhaseGate(Gate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[int, str]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Return a (multi-)controlled-Phase gate.
 
@@ -124,6 +125,11 @@ class PhaseGate(Gate):
         """Return a numpy.array for the Phase gate."""
         lam = float(self.params[0])
         return numpy.array([[1, 0], [0, exp(1j * lam)]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return PhaseGate(exponent * theta)
 
 
 class CPhaseGate(ControlledGate):
@@ -169,8 +175,8 @@ class CPhaseGate(ControlledGate):
     def __init__(
         self,
         theta: ParameterValueType,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Create new CPhase gate."""
         super().__init__(
@@ -195,10 +201,10 @@ class CPhaseGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
 
         #      ┌────────┐
-        # q_0: ┤ P(λ/2) ├──■──────────────■────────────
-        #      └────────┘┌─┴─┐┌────────┐┌─┴─┐┌────────┐
-        # q_1: ──────────┤ X ├┤ P(λ/2) ├┤ X ├┤ P(λ/2) ├
-        #                └───┘└────────┘└───┘└────────┘
+        # q_0: ┤ P(λ/2) ├──■───────────────■────────────
+        #      └────────┘┌─┴─┐┌─────────┐┌─┴─┐┌────────┐
+        # q_1: ──────────┤ X ├┤ P(-λ/2) ├┤ X ├┤ P(λ/2) ├
+        #                └───┘└─────────┘└───┘└────────┘
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         qc.p(self.params[0] / 2, 0)
@@ -211,8 +217,8 @@ class CPhaseGate(ControlledGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Controlled version of this gate.
 
@@ -244,6 +250,11 @@ class CPhaseGate(ControlledGate):
             )
         return numpy.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype)
 
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        (theta,) = self.params
+        return CPhaseGate(exponent * theta)
+
 
 class MCPhaseGate(ControlledGate):
     r"""Multi-controlled-Phase gate.
@@ -273,7 +284,7 @@ class MCPhaseGate(ControlledGate):
         The singly-controlled-version of this gate.
     """
 
-    def __init__(self, lam: ParameterValueType, num_ctrl_qubits: int, label: Optional[str] = None):
+    def __init__(self, lam: ParameterValueType, num_ctrl_qubits: int, label: str | None = None):
         """Create new MCPhase gate."""
         super().__init__(
             "mcphase",
@@ -307,8 +318,8 @@ class MCPhaseGate(ControlledGate):
     def control(
         self,
         num_ctrl_qubits: int = 1,
-        label: Optional[str] = None,
-        ctrl_state: Optional[Union[str, int]] = None,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
     ):
         """Controlled version of this gate.
 

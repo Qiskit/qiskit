@@ -148,6 +148,77 @@ as the ``config`` kwarg. If your plugin has these configuration options you
 should clearly document how a user should specify these configuration options
 and how they're used as it's a free form field.
 
+High-Level Synthesis Plugins
+----------------------------
+
+Writing a high-level synthesis plugin is conceptually similar to writing a
+unitary synthesis plugin. The first step is to create a subclass of the
+abstract plugin class:
+:class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin`,
+which defines the interface and contract for high-level synthesis plugins.
+The primary method is
+:meth:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin.run`.
+It takes in a single positional argument, a "higher-level-object" to be
+synthesized, which is any object of type :class:`~qiskit.circuit.Operation`
+(including, for example,
+:class:`~qiskit.circuit.library.generalized_gates.linear_function.LinearFunction` or
+:class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford`).
+The method
+:meth:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin.run`
+is expected to return a :class:`~qiskit.circuit.QuantumCircuit` object
+representing the synthesized circuit from that higher-level-object.
+It is also allowed to return ``None`` representing that the synthesis method is
+unable to synthesize the given higher-level-object.
+The actual synthesis of higher-level objects is performed by
+:class:`~qiskit.transpiler.passes.synthesis.high_level_synthesis.HighLevelSynthesis`
+transpiler pass.
+In the near future,
+:class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin`
+will be extended with additional information necessary to run this transpiler
+pass, for instance whether the plugin supports and/or requires ``coupling_map``
+to perform synthesis.
+For the full details refer to the
+:class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin`
+documentation for all the required fields. An example plugin class would look
+something like::
+
+    from qiskit.transpiler.passes.synthesis.plugin import HighLevelSynthesisPlugin
+    from qiskit.synthesis.clifford import synth_clifford_bm
+
+
+    class SpecialSynthesisClifford(HighLevelSynthesisPlugin):
+
+    def run(self, high_level_object, **options):
+        if higher_level_object.num_qubits <= 3:
+            return synth_clifford_bm(high_level_object)
+        else:
+            return None
+
+The above example creates a plugin to synthesize objects of type
+:class:`~qiskit.quantum_info.operators.symplectic.clifford.Clifford that have
+at most 3 qubits, using the method ``synth_clifford_bm``.
+
+The second step is to expose the
+:class:`~qiskit.transpiler.passes.synthesis.plugin.HighLevelSynthesisPlugin` as
+a setuptools entry point in the package metadata. This is done by adding
+an ``entry_points`` entry to the ``setuptools.setup`` call in the ``setup.py``
+for the plugin package with the necessary entry points under the
+``qiskit.synthesis`` namespace. For example::
+
+    entry_points = {
+        'qiskit.synthesis': [
+            'clifford.special = qiskit_plugin_pkg.module.plugin:SpecialSynthesisClifford',
+        ]
+    },
+
+(note that the entry point ``name = path`` is a single string not a Python
+expression). The ``name`` consists of two parts separated by dot ".": the
+name of the
+type of :class:`~qiskit.circuit.Operation` to which the synthesis plugin applies
+(``clifford``), and the name of the plugin (``special``).
+There isn't a limit to the number of plugins a single package can
+include as long as each plugin has a unique name.
+
 Using Plugins
 =============
 
@@ -174,6 +245,15 @@ Unitary Synthesis Plugins
    UnitarySynthesisPlugin
    UnitarySynthesisPluginManager
    unitary_synthesis_plugin_names
+
+High-Level Synthesis Plugins
+----------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   HighLevelSynthesisPlugin
+   HighLevelSynthesisPluginManager
 
 """
 
@@ -266,11 +346,11 @@ class UnitarySynthesisPlugin(abc.ABC):
         """Return whether the plugin supports taking ``gate_lengths``
 
         ``gate_lengths`` will be a dictionary in the form of
-        ``{gate_name: {(qubit_1, qubit_2): length}}``. For example::
+        ``{(qubits,): [Gate, length]}``. For example::
 
             {
-            'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
-            'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
+            (0,): [SXGate(): 0.0006149355812506126, RZGate(): 0.0],
+            (0, 1): [CXGate(): 0.012012477900732316]
             }
 
         where the ``length`` value is in units of seconds.
@@ -287,11 +367,11 @@ class UnitarySynthesisPlugin(abc.ABC):
         """Return whether the plugin supports taking ``gate_errors``
 
         ``gate_errors`` will be a dictionary in the form of
-        ``{gate_name: {(qubit_1, qubit_2): error}}``. For example::
+        ``{(qubits,): [Gate, error]}``. For example::
 
             {
-            'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
-            'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
+            (0,): [SXGate(): 0.0006149355812506126, RZGate(): 0.0],
+            (0, 1): [CXGate(): 0.012012477900732316]
             }
 
         Do note that this dictionary might not be complete or could be empty
@@ -395,3 +475,56 @@ def unitary_synthesis_plugin_names():
     # at load time for the default plugin.
     plugins = UnitarySynthesisPluginManager()
     return plugins.ext_plugins.names()
+
+
+class HighLevelSynthesisPlugin(abc.ABC):
+    """Abstract high-level synthesis plugin class.
+
+    This abstract class defines the interface for high-level synthesis plugins.
+    """
+
+    @abc.abstractmethod
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Operation.
+
+        Args:
+            high_level_object (Operation): The Operation to synthesize to a
+                :class:`~qiskit.dagcircuit.DAGCircuit` object
+            options: The optional kwargs.
+
+        Returns:
+            QuantumCircuit: The quantum circuit representation of the Operation
+                when successful, and ``None`` otherwise.
+        """
+        pass
+
+
+class HighLevelSynthesisPluginManager:
+    """Class tracking the installed high-level-synthesis plugins."""
+
+    def __init__(self):
+        self.plugins = stevedore.ExtensionManager(
+            "qiskit.synthesis", invoke_on_load=True, propagate_map_exceptions=True
+        )
+
+        # The registered plugin names should be of the form <OperationName.SynthesisMethodName>.
+
+        # Create a dict, mapping <OperationName> to the list of its <SynthesisMethodName>s.
+        self.plugins_by_op = {}
+        for plugin_name in self.plugins.names():
+            op_name, method_name = plugin_name.split(".")
+            if op_name not in self.plugins_by_op.keys():
+                self.plugins_by_op[op_name] = []
+            self.plugins_by_op[op_name].append(method_name)
+
+    def method_names(self, op_name):
+        """Returns plugin methods for op_name."""
+        if op_name in self.plugins_by_op.keys():
+            return self.plugins_by_op[op_name]
+        else:
+            return []
+
+    def method(self, op_name, method_name):
+        """Returns the plugin for ``op_name`` and ``method_name``."""
+        plugin_name = op_name + "." + method_name
+        return self.plugins[plugin_name].obj

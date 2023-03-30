@@ -21,7 +21,7 @@ from ddt import ddt, data, unpack
 
 from qiskit import QuantumRegister, QuantumCircuit, execute, BasicAer, QiskitError
 from qiskit.test import QiskitTestCase
-from qiskit.circuit import ControlledGate, Parameter
+from qiskit.circuit import ControlledGate, Parameter, Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.quantum_info.random import random_unitary
@@ -129,6 +129,20 @@ class TestControlledGate(QiskitTestCase):
         """Test the creation of a controlled RZ gate."""
         theta = 0.5
         self.assertEqual(RZGate(theta).control(), CRZGate(theta))
+
+    def test_control_parameters(self):
+        """Test different ctrl_state formats for control function."""
+        theta = 0.5
+
+        self.assertEqual(
+            CRYGate(theta).control(2, ctrl_state="01"), CRYGate(theta).control(2, ctrl_state=1)
+        )
+        self.assertEqual(
+            CRYGate(theta).control(2, ctrl_state=None), CRYGate(theta).control(2, ctrl_state=3)
+        )
+
+        self.assertEqual(CCXGate().control(2, ctrl_state="01"), CCXGate().control(2, ctrl_state=1))
+        self.assertEqual(CCXGate().control(2, ctrl_state=None), CCXGate().control(2, ctrl_state=3))
 
     def test_controlled_ry(self):
         """Test the creation of a controlled RY gate."""
@@ -1135,6 +1149,29 @@ class TestControlledGate(QiskitTestCase):
                 name="cgate", num_qubits=num_qubits, params=[], num_ctrl_qubits=num_ctrl_qubits
             )
 
+    def test_improper_num_ctrl_qubits_base_gate(self):
+        """Test that the allowed number of control qubits takes the base gate into account."""
+        with self.assertRaises(CircuitError):
+            ControlledGate(
+                name="cx?", num_qubits=2, params=[], num_ctrl_qubits=2, base_gate=XGate()
+            )
+        self.assertIsInstance(
+            ControlledGate(
+                name="cx?", num_qubits=2, params=[], num_ctrl_qubits=1, base_gate=XGate()
+            ),
+            ControlledGate,
+        )
+        self.assertIsInstance(
+            ControlledGate(
+                name="p",
+                num_qubits=1,
+                params=[np.pi],
+                num_ctrl_qubits=1,
+                base_gate=Gate("gphase", 0, [np.pi]),
+            ),
+            ControlledGate,
+        )
+
     def test_open_controlled_equality(self):
         """
         Test open controlled gates are equal if their base gates and control states are equal.
@@ -1219,6 +1256,19 @@ class TestControlledGate(QiskitTestCase):
         base_mat = Operator(qc).data
         target = _compute_control_matrix(base_mat, num_ctrl_qubits)
         self.assertEqual(Operator(ctrl_qc), Operator(target))
+
+    @data(1, 2)
+    def test_control_zero_operand_gate(self, num_ctrl_qubits):
+        """Test that a zero-operand gate (such as a make-shift global-phase gate) can be
+        controlled."""
+        gate = QuantumCircuit(global_phase=np.pi).to_gate()
+        controlled = gate.control(num_ctrl_qubits)
+        self.assertIsInstance(controlled, ControlledGate)
+        self.assertEqual(controlled.num_ctrl_qubits, num_ctrl_qubits)
+        self.assertEqual(controlled.num_qubits, num_ctrl_qubits)
+        target = np.eye(2**num_ctrl_qubits, dtype=np.complex128)
+        target.flat[-1] = -1
+        self.assertEqual(Operator(controlled), Operator(target))
 
 
 @ddt

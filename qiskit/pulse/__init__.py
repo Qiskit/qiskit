@@ -74,6 +74,7 @@ from qiskit.pulse.builder import (
     call,
     delay,
     play,
+    reference,
     set_frequency,
     set_phase,
     shift_frequency,
@@ -140,8 +141,14 @@ from qiskit.pulse.library import (
     Drag,
     Gaussian,
     GaussianSquare,
+    GaussianSquareDrag,
+    Sin,
+    Cos,
+    Sawtooth,
+    Triangle,
     ParametricPulse,
     SymbolicPulse,
+    ScalableSymbolicPulse,
     Waveform,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse

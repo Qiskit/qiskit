@@ -12,10 +12,11 @@
 
 """Linear Function."""
 
-from typing import Union, List, Optional
+from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.synthesis.linear import check_invertible_binary_matrix
 
 
 class LinearFunction(Gate):
@@ -62,8 +63,8 @@ class LinearFunction(Gate):
 
     def __init__(
         self,
-        linear: Union[List[List[int]], np.ndarray, QuantumCircuit],
-        validate_input: Optional[bool] = False,
+        linear: list[list[int]] | np.ndarray | QuantumCircuit,
+        validate_input: bool | None = False,
     ) -> None:
         """Create a new linear function.
 
@@ -110,8 +111,7 @@ class LinearFunction(Gate):
 
             # Optionally, check that the matrix is invertible
             if validate_input:
-                det = np.linalg.det(linear) % 2
-                if not np.allclose(det, 1):
+                if not check_invertible_binary_matrix(linear):
                     raise CircuitError(
                         "A linear function must be represented by an invertible matrix."
                     )
@@ -134,9 +134,9 @@ class LinearFunction(Gate):
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
         """
-        from qiskit.transpiler.synthesis import cnot_synth
+        from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
-        return cnot_synth(self.linear)
+        return synth_cnot_count_full_pmh(self.linear)
 
     @property
     def linear(self):

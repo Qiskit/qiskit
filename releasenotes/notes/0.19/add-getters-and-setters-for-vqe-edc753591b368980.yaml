@@ -3,8 +3,10 @@ features:
   - |
     Every attribute of the :class:`~qiskit.algorithms.VQE` class that is set at
     the initialization is now accessible with getters and setters. Further, the
-    default values of the VQE attributes :attr:`~.VQE.ansatz` and
-    :attr:`~.VQE.optimizer` can be reset by assigning ``None`` to them::
+    default values of the VQE attributes 
+    :attr:`~qiskit.algorithms.minimimum_eigen_solvers.VQE.ansatz` and
+    :attr:`~qiskit.algorithms.minimimum_eigen_solvers.VQE.optimizer` can be 
+    reset by assigning ``None`` to them::
     
         vqe = VQE(my_ansatz, my_optimizer)
         vqe.ansatz = None   # reset to default: RealAmplitudes ansatz

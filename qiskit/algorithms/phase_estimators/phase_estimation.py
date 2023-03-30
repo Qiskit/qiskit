@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,19 +13,22 @@
 
 """The Quantum Phase Estimation Algorithm."""
 
+from __future__ import annotations
 
-import warnings
-from typing import Optional, Union
 import numpy
+
 from qiskit.circuit import QuantumCircuit
 import qiskit
 from qiskit import circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import Result
+from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
 from .phase_estimator import PhaseEstimator
+from ...primitives import BaseSampler
 
 
 class PhaseEstimation(PhaseEstimator):
@@ -59,7 +62,7 @@ class PhaseEstimation(PhaseEstimator):
     For phase estimation, there are two methods:
 
     first. `estimate`, which takes a state preparation circuit to prepare an input state, and
-      a unitary that will act on the the input state. In this case, an instance of
+      a unitary that will act on the input state. In this case, an instance of
       :class:`qiskit.circuit.PhaseEstimation`, a QPE circuit, containing
       the state preparation and input unitary will be constructed.
     second. `estimate_from_pe_circuit`, which takes a quantum-phase-estimation circuit in which
@@ -78,18 +81,33 @@ class PhaseEstimation(PhaseEstimator):
 
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         num_evaluation_qubits: int,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
-        """
+        r"""
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
-            quantum_instance: The quantum instance on which the circuit will be run.
-        """
+            quantum_instance: Pending deprecation\: The quantum instance on which the
+                circuit will be run.
+            sampler: The sampler primitive on which the circuit will be sampled.
 
+        Raises:
+            AlgorithmError: If neither sampler nor quantum instance is provided.
+        """
+        if sampler is None and quantum_instance is None:
+            raise AlgorithmError(
+                "Neither a sampler nor a quantum instance was provided. Please provide one of them."
+            )
         self._measurements_added = False
         if num_evaluation_qubits is not None:
             self._num_evaluation_qubits = num_evaluation_qubits
@@ -97,9 +115,10 @@ class PhaseEstimation(PhaseEstimator):
         if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
+        self._sampler = sampler
 
     def construct_circuit(
-        self, unitary: QuantumCircuit, state_preparation: Optional[QuantumCircuit] = None
+        self, unitary: QuantumCircuit, state_preparation: QuantumCircuit | None = None
     ) -> QuantumCircuit:
         """Return the circuit to be executed to estimate phases.
 
@@ -122,7 +141,7 @@ class PhaseEstimation(PhaseEstimator):
         return pe_circuit
 
     def _add_measurement_if_required(self, pe_circuit):
-        if not self._quantum_instance.is_statevector:
+        if self._sampler is not None or not self._quantum_instance.is_statevector:
             # Measure only the evaluation qubits.
             regname = "meas"
             creg = ClassicalRegister(self._num_evaluation_qubits, regname)
@@ -136,7 +155,7 @@ class PhaseEstimation(PhaseEstimator):
 
     def _compute_phases(
         self, num_unitary_qubits: int, circuit_result: Result
-    ) -> Union[numpy.ndarray, qiskit.result.Counts]:
+    ) -> numpy.ndarray | qiskit.result.Counts:
         """Compute frequencies/counts of phases from the result of running the QPE circuit.
 
         How the frequencies are computed depends on whether the backend computes amplitude or
@@ -188,7 +207,7 @@ class PhaseEstimation(PhaseEstimator):
     def estimate_from_pe_circuit(
         self, pe_circuit: QuantumCircuit, num_unitary_qubits: int
     ) -> PhaseEstimationResult:
-        """Run the the phase estimation algorithm on a phase estimation circuit
+        """Run the phase estimation algorithm on a phase estimation circuit
 
         Args:
             pe_circuit: The phase estimation circuit.
@@ -196,22 +215,37 @@ class PhaseEstimation(PhaseEstimator):
 
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
+
+        Raises:
+            AlgorithmError: Primitive job failed.
         """
+
         self._add_measurement_if_required(pe_circuit)
-        circuit_result = self._quantum_instance.execute(pe_circuit)
-        phases = self._compute_phases(num_unitary_qubits, circuit_result)
+
+        if self._sampler is not None:
+            try:
+                circuit_job = self._sampler.run([pe_circuit])
+                circuit_result = circuit_job.result()
+            except Exception as exc:
+                raise AlgorithmError("The primitive job failed!") from exc
+            phases = circuit_result.quasi_dists[0]
+            phases_bitstrings = {}
+            for key, phase in phases.items():
+                bitstring_key = self._get_reversed_bitstring(self._num_evaluation_qubits, key)
+                phases_bitstrings[bitstring_key] = phase
+            phases = phases_bitstrings
+
+        else:
+            circuit_result = self._quantum_instance.execute(pe_circuit)
+            phases = self._compute_phases(num_unitary_qubits, circuit_result)
         return PhaseEstimationResult(
             self._num_evaluation_qubits, circuit_result=circuit_result, phases=phases
         )
 
-    # pylint: disable=missing-raises-doc
-    # pylint: disable=missing-param-doc
     def estimate(
         self,
-        unitary: Optional[QuantumCircuit] = None,
-        state_preparation: Optional[QuantumCircuit] = None,
-        pe_circuit: Optional[QuantumCircuit] = None,
-        num_unitary_qubits: Optional[int] = None,
+        unitary: QuantumCircuit,
+        state_preparation: QuantumCircuit | None = None,
     ) -> PhaseEstimationResult:
         """Build a phase estimation circuit and run the corresponding algorithm.
 
@@ -226,24 +260,7 @@ class PhaseEstimation(PhaseEstimator):
         Returns:
             An instance of qiskit.algorithms.phase_estimator_result.PhaseEstimationResult.
         """
-        if unitary is not None:
-            if pe_circuit is not None:
-                raise ValueError("Only one of `pe_circuit` and `unitary` may be passed.")
-            pe_circuit = self.construct_circuit(unitary, state_preparation)
-            num_unitary_qubits = unitary.num_qubits
-
-        elif pe_circuit is not None:
-            warnings.warn(
-                "Passing `pe_circuit` to the PhaseEstimation.estimate() method "
-                "is deprecated as of 0.18, and will be removed no earlier than "
-                "3 months after that release date. "
-                "You should use the PhaseEstimation.estimate_from_pe_circuit() method "
-                "instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        else:
-            raise ValueError("One of `pe_circuit` and `unitary` must be passed.")
+        pe_circuit = self.construct_circuit(unitary, state_preparation)
+        num_unitary_qubits = unitary.num_qubits
 
         return self.estimate_from_pe_circuit(pe_circuit, num_unitary_qubits)

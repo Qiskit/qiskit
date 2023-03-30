@@ -14,22 +14,30 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from typing import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.primitives import BaseSampler
+from qiskit.providers import Options
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
+
+from ..exceptions import AlgorithmError
 
 
 class SPSASamplerGradient(BaseSamplerGradient):
     """
     Compute the gradients of the sampling probability by the Simultaneous Perturbation Stochastic
-    Approximation (SPSA).
+    Approximation (SPSA) [1].
+
+    **Reference:**
+    [1] J. C. Spall, Adaptive stochastic approximation by the simultaneous perturbation method in
+    IEEE Transactions on Automatic Control, vol. 45, no. 10, pp. 1839-1853, Oct 2020,
+    `doi: 10.1109/TAC.2000.880982 <https://ieeexplore.ieee.org/document/880982>`_.
     """
 
     def __init__(
@@ -38,7 +46,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
         epsilon: float,
         batch_size: int = 1,
         seed: int | None = None,
-        **run_options,
+        options: Options | None = None,
     ):
         """
         Args:
@@ -46,9 +54,10 @@ class SPSASamplerGradient(BaseSamplerGradient):
             epsilon: The offset size for the SPSA gradients.
             batch_size: number of gradients to average.
             seed: The seed for a random perturbation vector.
-            run_options: Backend runtime options used for circuit execution. The order of priority is:
-                run_options in `run` method > gradient's default run_options > primitive's default
-                setting. Higher priority setting overrides lower priority setting.
+            options: Primitive backend runtime options used for circuit execution.
+                The order of priority is: options in ``run`` method > gradient's
+                default options > primitive's default setting.
+                Higher priority setting overrides lower priority setting
 
         Raises:
             ValueError: If ``epsilon`` is not positive.
@@ -59,25 +68,22 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self._epsilon = epsilon
         self._seed = np.random.default_rng(seed)
 
-        super().__init__(sampler, **run_options)
+        super().__init__(sampler, options)
 
     def _run(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[Sequence[Parameter] | None],
-        **run_options,
+        parameters: Sequence[Sequence[Parameter]],
+        **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
-        jobs, offsets, metadata_ = [], [], []
+        job_circuits, job_param_values, metadata, offsets = [], [], [], []
+        all_n = []
         for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
-            # indices of parameters to be differentiated
-            if parameters_ is None:
-                indices = list(range(circuit.num_parameters))
-            else:
-                indices = [circuit.parameters.data.index(p) for p in parameters_]
-            metadata_.append({"parameters": [circuit.parameters[idx] for idx in indices]})
-
+            # Indices of parameters to be differentiated.
+            indices = [circuit.parameters.data.index(p) for p in parameters_]
+            metadata.append({"parameters": parameters_})
             offset = np.array(
                 [
                     (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
@@ -88,37 +94,43 @@ class SPSASamplerGradient(BaseSamplerGradient):
             minus = [parameter_values_ - self._epsilon * offset_ for offset_ in offset]
             offsets.append(offset)
 
-            job = self._sampler.run([circuit] * 2 * self._batch_size, plus + minus, **run_options)
-            jobs.append(job)
+            # Combine inputs into a single job to reduce overhead.
+            n = 2 * self._batch_size
+            job_circuits.extend([circuit] * n)
+            job_param_values.extend(plus + minus)
+            all_n.append(n)
 
-        # combine the results
+        # Run the single job with all circuits.
+        job = self._sampler.run(job_circuits, job_param_values, **options)
         try:
-            results = [job.result() for job in jobs]
+            results = job.result()
         except Exception as exc:
             raise AlgorithmError("Sampler job failed.") from exc
 
+        # Compute the gradients.
         gradients = []
-        for i, result in enumerate(results):
-            dist_diffs = np.zeros((self._batch_size, 2 ** circuits[i].num_qubits))
-            for j, (dist_plus, dist_minus) in enumerate(
-                zip(result.quasi_dists[: self._batch_size], result.quasi_dists[self._batch_size :])
-            ):
-                dist_diffs[j, list(dist_plus.keys())] += list(dist_plus.values())
-                dist_diffs[j, list(dist_minus.keys())] -= list(dist_minus.values())
-            dist_diffs /= 2 * self._epsilon
+        partial_sum_n = 0
+        for i, n in enumerate(all_n):
+            dist_diffs = {}
+            result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
+            for j, (dist_plus, dist_minus) in enumerate(zip(result[: n // 2], result[n // 2 :])):
+                dist_diff = defaultdict(float)
+                for key, value in dist_plus.items():
+                    dist_diff[key] += value / (2 * self._epsilon)
+                for key, value in dist_minus.items():
+                    dist_diff[key] -= value / (2 * self._epsilon)
+                dist_diffs[j] = dist_diff
             gradient = []
-            indices = [circuits[i].parameters.data.index(p) for p in metadata_[i]["parameters"]]
-            for j in range(circuits[i].num_parameters):
-                if not j in indices:
-                    continue
-                # the gradient for jth parameter is the average of the gradients of the jth parameter
-                # for each batch.
-                batch_gradients = np.array(
-                    [offset * dist_diff for dist_diff, offset in zip(dist_diffs, offsets[i][:, j])]
-                )
-                gradient_j = np.mean(batch_gradients, axis=0)
-                gradient.append(dict(enumerate(gradient_j)))
+            indices = [circuits[i].parameters.data.index(p) for p in metadata[i]["parameters"]]
+            for j in indices:
+                gradient_j = defaultdict(float)
+                for k in range(self._batch_size):
+                    for key, value in dist_diffs[k].items():
+                        gradient_j[key] += value * offsets[i][k][j]
+                gradient_j = {key: value / self._batch_size for key, value in gradient_j.items()}
+                gradient.append(gradient_j)
             gradients.append(gradient)
+            partial_sum_n += n
 
-        run_opt = self._get_local_run_options(run_options)
-        return SamplerGradientResult(gradients=gradients, metadata=metadata_, run_options=run_opt)
+        opt = self._get_local_options(options)
+        return SamplerGradientResult(gradients=gradients, metadata=metadata, options=opt)

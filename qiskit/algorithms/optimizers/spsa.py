@@ -25,7 +25,7 @@ import scipy
 import numpy as np
 
 from qiskit.utils import algorithm_globals
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
@@ -647,11 +647,13 @@ class SPSA(Optimizer):
         }
 
     # pylint: disable=bad-docstring-quotes
-    @deprecate_function(
-        "The SPSA.optimize method is deprecated as of Qiskit Terra 0.21.0 and will be removed no "
-        "sooner than 3 months after the release date. Instead, use SPSA.minimize as a replacement, "
-        "which supports the same arguments but follows the interface of scipy.optimize and returns "
-        "a complete result object containing additional information."
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use ``SPSA.minimize`` as a replacement, which supports the same arguments "
+            "but follows the interface of scipy.optimize and returns a complete result object "
+            "containing additional information."
+        ),
+        since="0.21.0",
     )
     def optimize(
         self,
@@ -711,9 +713,15 @@ def constant(eta=0.01):
         yield eta
 
 
-def _batch_evaluate(function, points, max_evals_grouped):
+def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
+    """Evaluate a function on all points with batches of max_evals_grouped.
+
+    The points are a list of inputs, as ``[in1, in2, in3, ...]``. If the individual
+    inputs are tuples (because the function takes multiple inputs), set ``unpack_points`` to ``True``.
+    """
+
     # if the function cannot handle lists of points as input, cover this case immediately
-    if max_evals_grouped == 1:
+    if max_evals_grouped is None or max_evals_grouped == 1:
         # support functions with multiple arguments where the points are given in a tuple
         return [
             function(*point) if isinstance(point, tuple) else function(point) for point in points
@@ -731,9 +739,30 @@ def _batch_evaluate(function, points, max_evals_grouped):
 
     results = []
     for batch in batched_points:
-        results += function(batch).tolist()
+        if unpack_points:
+            batch = _repack_points(batch)
+            results += _as_list(function(*batch))
+        else:
+            results += _as_list(function(batch))
 
     return results
+
+
+def _as_list(obj):
+    """Convert a list or numpy array into a list."""
+    return obj.tolist() if isinstance(obj, np.ndarray) else obj
+
+
+def _repack_points(points):
+    """Turn a list of tuples of points into a tuple of lists of points.
+    E.g. turns
+        [(a1, a2, a3), (b1, b2, b3)]
+    into
+        ([a1, b1], [a2, b2], [a3, b3])
+    where all elements are np.ndarray.
+    """
+    num_sets = len(points[0])  # length of (a1, a2, a3)
+    return ([x[i] for x in points] for i in range(num_sets))
 
 
 def _make_spd(matrix, bias=0.01):

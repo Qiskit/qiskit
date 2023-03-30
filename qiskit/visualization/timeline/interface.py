@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-type-doc
-
 """Qiskit timeline drawer.
 
 This module provides a common user interface to the timeline drawer.
@@ -287,47 +285,50 @@ def draw(
 
         Drawing with the default stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
+            qc = transpile(qc, FakeBoeblingen(), scheduling_method='alap', layout_method='trivial')
             draw(qc)
 
         Drawing with the simple stylesheet.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw, IQXSimple
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
+            qc = transpile(qc, FakeBoeblingen(), scheduling_method='alap', layout_method='trivial')
             draw(qc, style=IQXSimple())
 
         Drawing with the stylesheet suited for program debugging.
 
-        .. jupyter-execute::
+        .. plot::
+           :include-source:
 
             from qiskit import QuantumCircuit, transpile, schedule
             from qiskit.visualization.timeline import draw, IQXDebugging
-            from qiskit.providers.fake_provider import FakeAlmaden
+            from qiskit.providers.fake_provider import FakeBoeblingen
 
             qc = QuantumCircuit(2)
             qc.h(0)
             qc.cx(0,1)
 
-            qc = transpile(qc, FakeAlmaden(), scheduling_method='alap', layout_method='trivial')
+            qc = transpile(qc, FakeBoeblingen(), scheduling_method='alap', layout_method='trivial')
             draw(qc, style=IQXDebugging())
 
         You can partially customize a preset stylesheet when call it::

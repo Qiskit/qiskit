@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,9 +14,11 @@
 
 from typing import List, Optional, Union, Callable
 import logging
+import warnings
 import numpy as np
 
 from qiskit.opflow import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 from ..list_or_dict import ListOrDict
@@ -26,9 +28,23 @@ logger = logging.getLogger(__name__)
 
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
-    The Numpy Minimum Eigensolver algorithm.
+    Pending deprecation: Numpy Minimum Eigensolver algorithm.
+
+    The NumPyMinimumEigensolver class has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class "
+            "``qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver``."
+        ),
+        since="0.23.0",
+        pending=True,
+    )
     def __init__(
         self,
         filter_criterion: Callable[
@@ -44,6 +60,9 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
                 whether to consider this value or not. If there is no
                 feasible element, the result can even be empty.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._ces = NumPyEigensolver(filter_criterion=filter_criterion)
         self._ret = MinimumEigensolverResult()
 

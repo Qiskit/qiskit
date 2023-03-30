@@ -12,7 +12,7 @@
 
 """Graph State circuit."""
 
-from typing import Union, List
+from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -39,15 +39,14 @@ class GraphState(QuantumCircuit):
 
     **Reference Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GraphState
-        import qiskit.tools.jupyter
-        import retworkx as rx
-        G = rx.generators.cycle_graph(5)
-        circuit = GraphState(rx.adjacency_matrix(G))
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GraphState
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import rustworkx as rx
+       G = rx.generators.cycle_graph(5)
+       circuit = GraphState(rx.adjacency_matrix(G))
+       _generate_circuit_library_visualization(circuit)
 
     **References:**
 
@@ -57,7 +56,7 @@ class GraphState(QuantumCircuit):
         `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
     """
 
-    def __init__(self, adjacency_matrix: Union[List, np.array]) -> None:
+    def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
         """Create graph state preparation circuit.
 
         Args:

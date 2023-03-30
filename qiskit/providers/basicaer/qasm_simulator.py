@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ
-
 """Contains a (slow) Python simulator.
 
 It simulates a qasm quantum circuit (an experiment) that has been compiled
@@ -194,7 +192,7 @@ class QasmSimulatorPy(BackendV1):
         """
         # Get unique qubits that are actually measured and sort in
         # ascending order
-        measured_qubits = sorted(list({qubit for qubit, cmembit in measure_params}))
+        measured_qubits = sorted({qubit for qubit, cmembit in measure_params})
         num_measured = len(measured_qubits)
         # We use the axis kwarg for numpy.sum to compute probabilities
         # this sums over all non-measured qubits to return a vector
@@ -295,7 +293,10 @@ class QasmSimulatorPy(BackendV1):
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if "initial_statevector" in backend_options:
+        if (
+            "initial_statevector" in backend_options
+            and backend_options["initial_statevector"] is not None
+        ):
             self._initial_statevector = np.array(
                 backend_options["initial_statevector"], dtype=complex
             )

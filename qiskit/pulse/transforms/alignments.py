@@ -19,7 +19,8 @@ import numpy as np
 from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
-from qiskit.pulse.utils import instruction_duration_validation, deprecated_functionality
+from qiskit.pulse.utils import instruction_duration_validation
+from qiskit.utils.deprecation import deprecate_func
 
 
 class AlignmentKind(abc.ABC):
@@ -44,7 +45,7 @@ class AlignmentKind(abc.ABC):
         """
         pass
 
-    @deprecated_functionality
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"alignment": self.__class__.__name__}
@@ -329,7 +330,7 @@ class AlignEquispaced(AlignmentKind):
 
         return aligned
 
-    @deprecated_functionality
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"alignment": self.__class__.__name__, "duration": self.duration}
@@ -413,7 +414,7 @@ class AlignFunc(AlignmentKind):
 
         return aligned
 
-    @deprecated_functionality
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment.
 

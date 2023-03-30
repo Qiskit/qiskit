@@ -19,7 +19,6 @@ from warnings import warn
 import numpy as np
 
 from qiskit.circuit import (
-    BooleanExpression,
     Clbit,
     ControlledGate,
     Delay,
@@ -35,6 +34,14 @@ from qiskit.converters import circuit_to_dag
 from qiskit.utils import optionals as _optionals
 
 from ..exceptions import VisualizationError
+
+
+def _is_boolean_expression(gate_text, op):
+    if not _optionals.HAS_TWEEDLEDUM:
+        return False
+    from qiskit.circuit.classicalfunction import BooleanExpression
+
+    return isinstance(op, BooleanExpression) and gate_text == op.name
 
 
 def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
@@ -76,9 +83,7 @@ def get_gate_ctrl_text(op, drawer, style=None, calibrations=None):
 
     elif drawer == "latex":
         # Special formatting for Booleans in latex (due to '~' causing crash)
-        if (gate_text == op.name and op_type is BooleanExpression) or (
-            gate_text == base_name and base_type is BooleanExpression
-        ):
+        if _is_boolean_expression(gate_text, op):
             gate_text = gate_text.replace("~", "$\\neg$").replace("&", "\\&")
             gate_text = f"$\\texttt{{{gate_text}}}$"
         # Capitalize if not a user-created gate or instruction
@@ -399,8 +404,8 @@ def _get_layered_instructions(
     # default to left
     justify = justify if justify in ("right", "none") else "left"
 
-    qubits = circuit.qubits
-    clbits = circuit.clbits
+    qubits = circuit.qubits.copy()
+    clbits = circuit.clbits.copy()
     nodes = []
 
     # Create a mapping of each register to the max layer number for all measure ops
@@ -548,7 +553,7 @@ class _LayerSpooler(list):
             curr_index = index
             last_insertable_index = -1
             index_stop = -1
-            if node.op.condition:
+            if getattr(node.op, "condition", None):
                 if isinstance(node.op.condition[0], Clbit):
                     cond_bit = [clbit for clbit in self.clbits if node.op.condition[0] == clbit]
                     index_stop = self.measure_map[cond_bit[0]]

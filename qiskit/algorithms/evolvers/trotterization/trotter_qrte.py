@@ -13,6 +13,7 @@
 """An algorithm to implement a Trotterization real time-evolution."""
 
 from typing import Union, Optional
+import warnings
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.aux_ops_evaluator import eval_observables
@@ -32,15 +33,20 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_func
 
 
 class TrotterQRTE(RealEvolver):
-    """Quantum Real Time Evolution using Trotterization.
+    """Pending deprecation: Quantum Real Time Evolution using Trotterization.
+
+    The TrotterQRTE class has been superseded by the
+    :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
     Type of Trotterization is defined by a ProductFormula provided.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             from qiskit.opflow import X, Z, Zero
             from qiskit.algorithms import EvolutionProblem, TrotterQRTE
@@ -58,6 +64,13 @@ class TrotterQRTE(RealEvolver):
             evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE``."
+        ),
+        since="0.23.0",
+        pending=True,
+    )
     def __init__(
         self,
         product_formula: Optional[ProductFormula] = None,
@@ -73,6 +86,9 @@ class TrotterQRTE(RealEvolver):
             quantum_instance: A quantum instance used for calculating expectation values of
                 EvolutionProblem.aux_operators.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         if product_formula is None:
             product_formula = LieTrotter()
         self._product_formula = product_formula

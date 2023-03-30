@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,17 +18,31 @@ from typing import Optional, List, Tuple
 import numpy as np
 
 from qiskit.opflow import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
 
 class Eigensolver(ABC):
-    """The Eigensolver Interface.
+    """Pending deprecation: Eigensolver Interface.
+
+    The Eigensolver interface has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.Eigensolver` interface.
+    This interface will be deprecated in a future release and subsequently
+    removed after that.
 
     Algorithms that can compute eigenvalues for an operator
     may implement this interface to allow different algorithms to be
     used interchangeably.
     """
+
+    @deprecate_func(
+        additional_msg="Instead, use the interface ``qiskit.algorithms.eigensolvers.Eigensolver``",
+        since="0.23.0",
+        pending=True,
+    )
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def compute_eigenvalues(
@@ -63,8 +77,22 @@ class Eigensolver(ABC):
 
 
 class EigensolverResult(AlgorithmResult):
-    """Eigensolver Result."""
+    """Pending deprecation: Eigensolver Result.
 
+    The EigensolverResult class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.EigensolverResult` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
+    """
+
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.EigensolverResult``."
+        ),
+        since="0.23.0",
+        pending=True,
+    )
     def __init__(self) -> None:
         super().__init__()
         self._eigenvalues = None

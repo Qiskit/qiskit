@@ -14,9 +14,10 @@
 Instruction collection.
 """
 
+from __future__ import annotations
 import functools
 import warnings
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable
 
 from qiskit.circuit.exceptions import CircuitError
 from .classicalregister import Clbit, ClassicalRegister
@@ -28,7 +29,9 @@ from .quantumcircuitdata import CircuitInstruction
 # its creation, so caching this allows us to only pay the register-unrolling penalty once.  The
 # cache does not need to be large, because in general only one circuit is constructed at once.
 @functools.lru_cache(4)
-def _requester_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
+def _requester_from_cregs(
+    cregs: tuple[ClassicalRegister],
+) -> Callable[[Clbit | ClassicalRegister | int], ClassicalRegister | Clbit]:
     """Get a classical resource requester from an iterable of classical registers.
 
     This implements the deprecated functionality of constructing an :obj:`.InstructionSet` with a
@@ -60,7 +63,7 @@ def _requester_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
     clbit_set = frozenset(clbit_flat)
     creg_set = frozenset(cregs)
 
-    def requester(classical):
+    def requester(classical: Clbit | ClassicalRegister | int) -> ClassicalRegister | Clbit:
         if isinstance(classical, Clbit):
             if classical not in clbit_set:
                 raise CircuitError(
@@ -92,17 +95,22 @@ class InstructionSet:
 
     __slots__ = ("_instructions", "_requester")
 
-    def __init__(self, circuit_cregs=None, *, resource_requester: Optional[Callable] = None):
+    def __init__(
+        self,
+        circuit_cregs: list[ClassicalRegister] | None = None,
+        *,
+        resource_requester: Callable[..., ClassicalRegister | Clbit] | None = None,
+    ):
         """New collection of instructions.
 
-        The context (qargs and cargs that each instruction is attached to) is also stored separately
-        for each instruction.
+        The context (``qargs`` and ``cargs`` that each instruction is attached to) is also stored
+        separately for each instruction.
 
         Args:
-            circuit_cregs (list[ClassicalRegister]): Optional. List of cregs of the
+            circuit_cregs (list[ClassicalRegister]): Optional. List of ``cregs`` of the
                 circuit to which the instruction is added. Default: `None`.
 
-                .. deprecated:: qiskit-terra 0.19
+                .. deprecated:: 0.19
                     The classical registers are insufficient to access all classical resources in a
                     circuit, as there may be loose classical bits as well.  It can also cause
                     integer indices to be resolved incorrectly if any registers overlap.  Instead,
@@ -124,7 +132,7 @@ class InstructionSet:
             CircuitError: if both ``resource_requester`` and ``circuit_cregs`` are passed.  Only one
                 of these may be passed, and it should be ``resource_requester``.
         """
-        self._instructions = []
+        self._instructions: list[CircuitInstruction] = []
         if circuit_cregs is not None:
             if resource_requester is not None:
                 raise CircuitError("Cannot pass both 'circuit_cregs' and 'resource_requester'.")
@@ -135,7 +143,9 @@ class InstructionSet:
                 DeprecationWarning,
                 stacklevel=2,
             )
-            self._requester: Optional[Callable] = _requester_from_cregs(tuple(circuit_cregs))
+            self._requester: Callable[..., ClassicalRegister | Clbit] = _requester_from_cregs(
+                tuple(circuit_cregs)
+            )
         else:
             self._requester = resource_requester
 
@@ -163,7 +173,7 @@ class InstructionSet:
             self._instructions[i] = instruction.replace(operation=instruction.operation.inverse())
         return self
 
-    def c_if(self, classical: Union[Clbit, ClassicalRegister, int], val: int) -> "InstructionSet":
+    def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
         """Set a classical equality condition on all the instructions in this set between the
         :obj:`.ClassicalRegister` or :obj:`.Clbit` ``classical`` and value ``val``.
 
@@ -186,6 +196,27 @@ class InstructionSet:
         Raises:
             CircuitError: if the passed classical resource is invalid, or otherwise not resolvable
                 to a concrete resource that these instructions are permitted to access.
+
+        Example:
+            .. plot::
+               :include-source:
+
+               from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+
+               qr = QuantumRegister(2)
+               cr = ClassicalRegister(2)
+               qc = QuantumCircuit(qr, cr)
+               qc.h(range(2))
+               qc.measure(range(2), range(2))
+
+               # apply x gate if the classical register has the value 2 (10 in binary)
+               qc.x(0).c_if(cr, 2)
+
+               # apply y gate if bit 0 is set to 1
+               qc.y(1).c_if(0, 1)
+
+               qc.draw('mpl')
+
         """
         if self._requester is None and not isinstance(classical, (Clbit, ClassicalRegister)):
             raise CircuitError(

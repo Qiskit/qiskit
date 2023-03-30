@@ -21,15 +21,18 @@ from typing import Any
 import numpy as np
 
 from qiskit.circuit import Parameter, QuantumCircuit
-from qiskit.circuit.parametertable import ParameterView
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import Statevector
 from qiskit.result import QuasiDistribution
 
-from .base_sampler import BaseSampler
+from .base import BaseSampler, SamplerResult
 from .primitive_job import PrimitiveJob
-from .sampler_result import SamplerResult
-from .utils import bound_circuit_to_instruction, final_measurement_mapping, init_circuit
+from .utils import (
+    _circuit_key,
+    bound_circuit_to_instruction,
+    final_measurement_mapping,
+    init_circuit,
+)
 
 
 class Sampler(BaseSampler):
@@ -53,14 +56,14 @@ class Sampler(BaseSampler):
         self,
         circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
         parameters: Iterable[Iterable[Parameter]] | None = None,
-        run_options: dict | None = None,
+        options: dict | None = None,
     ):
         """
         Args:
             circuits: circuits to be executed
             parameters: Parameters of each of the quantum circuits.
                 Defaults to ``[circ.parameters for circ in circuits]``.
-            run_options: Default runtime options.
+            options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
@@ -76,7 +79,7 @@ class Sampler(BaseSampler):
                 preprocessed_circuits.append(circuit)
         else:
             preprocessed_circuits = None
-        super().__init__(preprocessed_circuits, parameters, run_options)
+        super().__init__(preprocessed_circuits, parameters, options)
         self._is_closed = False
 
     def _call(
@@ -98,7 +101,7 @@ class Sampler(BaseSampler):
             rng = np.random.default_rng(seed)
 
         # Initialize metadata
-        metadata: list[dict[str, Any]] = [{}] * len(circuits)
+        metadata: list[dict[str, Any]] = [{} for _ in range(len(circuits))]
 
         bound_circuits = []
         qargs_list = []
@@ -115,16 +118,20 @@ class Sampler(BaseSampler):
             )
             qargs_list.append(self._qargs_list[i])
         probabilities = [
-            Statevector(bound_circuit_to_instruction(circ)).probabilities(qargs=qargs)
+            Statevector(bound_circuit_to_instruction(circ)).probabilities_dict(
+                qargs=qargs, decimals=16
+            )
             for circ, qargs in zip(bound_circuits, qargs_list)
         ]
         if shots is not None:
-            probabilities = [
-                rng.multinomial(shots, probability) / shots for probability in probabilities
-            ]
+            for i, prob_dict in enumerate(probabilities):
+                counts = rng.multinomial(shots, np.fromiter(prob_dict.values(), dtype=float))
+                probabilities[i] = {
+                    key: count / shots for key, count in zip(prob_dict.keys(), counts) if count > 0
+                }
             for metadatum in metadata:
                 metadatum["shots"] = shots
-        quasis = [QuasiDistribution(dict(enumerate(p))) for p in probabilities]
+        quasis = [QuasiDistribution(p, shots=shots) for p in probabilities]
 
         return SamplerResult(quasis, metadata)
 
@@ -133,23 +140,23 @@ class Sampler(BaseSampler):
 
     def _run(
         self,
-        circuits: Sequence[QuantumCircuit],
-        parameter_values: Sequence[Sequence[float]],
-        parameters: Sequence[ParameterView],
+        circuits: tuple[QuantumCircuit, ...],
+        parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> PrimitiveJob:
         circuit_indices = []
-        for i, circuit in enumerate(circuits):
-            index = self._circuit_ids.get(id(circuit))
+        for circuit in circuits:
+            key = _circuit_key(circuit)
+            index = self._circuit_ids.get(key)
             if index is not None:
                 circuit_indices.append(index)
             else:
                 circuit_indices.append(len(self._circuits))
-                self._circuit_ids[id(circuit)] = len(self._circuits)
+                self._circuit_ids[key] = len(self._circuits)
                 circuit, qargs = self._preprocess_circuit(circuit)
                 self._circuits.append(circuit)
                 self._qargs_list.append(qargs)
-                self._parameters.append(parameters[i])
+                self._parameters.append(circuit.parameters)
         job = PrimitiveJob(self._call, circuit_indices, parameter_values, **run_options)
         job.submit()
         return job
@@ -158,6 +165,12 @@ class Sampler(BaseSampler):
     def _preprocess_circuit(circuit: QuantumCircuit):
         circuit = init_circuit(circuit)
         q_c_mapping = final_measurement_mapping(circuit)
+        if set(range(circuit.num_clbits)) != set(q_c_mapping.values()):
+            raise QiskitError(
+                "Some classical bits are not used for measurements."
+                f" the number of classical bits ({circuit.num_clbits}),"
+                f" the used classical bits ({set(q_c_mapping.values())})."
+            )
         c_q_mapping = sorted((c, q) for q, c in q_c_mapping.items())
         qargs = [q for _, q in c_q_mapping]
         circuit = circuit.remove_final_measurements(inplace=False)

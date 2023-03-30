@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,16 +13,20 @@
 
 """The Iterative Quantum Phase Estimation Algorithm."""
 
+from __future__ import annotations
 
-from typing import Optional, Union
 import numpy
+
 import qiskit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
+from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimator import PhaseEstimator
 from .phase_estimator import PhaseEstimatorResult
+from ...primitives import BaseSampler
 
 
 class IterativePhaseEstimation(PhaseEstimator):
@@ -35,32 +39,47 @@ class IterativePhaseEstimation(PhaseEstimator):
        qubit benchmark, `arxiv/quant-ph/0610214 <https://arxiv.org/abs/quant-ph/0610214>`_
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         num_iterations: int,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
-
-        """Args:
-          num_iterations: The number of iterations (rounds) of the phase estimation to run.
-          quantum_instance: The quantum instance on which the circuit will be run.
+        r"""
+        Args:
+            num_iterations: The number of iterations (rounds) of the phase estimation to run.
+            quantum_instance: Pending deprecation\: The quantum instance on which the
+                circuit will be run.
+            sampler: The sampler primitive on which the circuit will be sampled.
 
         Raises:
-          ValueError: if num_iterations is not greater than zero.
+            ValueError: if num_iterations is not greater than zero.
+            AlgorithmError: If neither sampler nor quantum instance is provided.
         """
+        if sampler is None and quantum_instance is None:
+            raise AlgorithmError(
+                "Neither a sampler nor a quantum instance was provided. Please provide one of them."
+            )
         if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
         if num_iterations <= 0:
             raise ValueError("`num_iterations` must be greater than zero.")
         self._num_iterations = num_iterations
+        self._sampler = sampler
 
     def construct_circuit(
         self,
         unitary: QuantumCircuit,
         state_preparation: QuantumCircuit,
         k: int,
-        omega: float = 0,
+        omega: float = 0.0,
         measurement: bool = False,
     ) -> QuantumCircuit:
         """Construct the kth iteration Quantum Phase Estimation circuit.
@@ -69,15 +88,15 @@ class IterativePhaseEstimation(PhaseEstimator):
 
         Args:
             unitary: The circuit representing the unitary operator whose eigenvalue (via phase)
-                     will be measured.
+                 will be measured.
             state_preparation: The circuit that prepares the state whose eigenphase will be
-                     measured.  If this parameter is omitted, no preparation circuit
-                     will be run and input state will be the all-zero state in the
-                     computational basis.
+                 measured.  If this parameter is omitted, no preparation circuit
+                 will be run and input state will be the all-zero state in the
+                 computational basis.
             k: the iteration idx.
             omega: the feedback angle.
             measurement: Boolean flag to indicate if measurement should
-                    be included in the circuit.
+                be included in the circuit.
 
         Returns:
             QuantumCircuit: the quantum circuit per iteration
@@ -117,7 +136,20 @@ class IterativePhaseEstimation(PhaseEstimator):
         # k runs from the number of iterations back to 1
         for k in range(self._num_iterations, 0, -1):
             omega_coef /= 2
-            if self._quantum_instance.is_statevector:
+
+            if self._sampler is not None:
+
+                qc = self.construct_circuit(
+                    unitary, state_preparation, k, -2 * numpy.pi * omega_coef, True
+                )
+                try:
+                    sampler_job = self._sampler.run([qc])
+                    result = sampler_job.result().quasi_dists[0]
+                except Exception as exc:
+                    raise AlgorithmError("The primitive job failed!") from exc
+                x = 1 if result.get(1, 0) > result.get(0, 0) else 0
+
+            elif self._quantum_instance.is_statevector:
                 qc = self.construct_circuit(
                     unitary, state_preparation, k, -2 * numpy.pi * omega_coef, measurement=False
                 )
@@ -140,7 +172,7 @@ class IterativePhaseEstimation(PhaseEstimator):
             omega_coef = omega_coef + x / 2
         return omega_coef
 
-    # pylint: disable=arguments-differ
+    # pylint: disable=signature-differs
     def estimate(
         self, unitary: QuantumCircuit, state_preparation: QuantumCircuit
     ) -> "IterativePhaseEstimationResult":
@@ -157,8 +189,10 @@ class IterativePhaseEstimation(PhaseEstimator):
 
         Returns:
             Estimated phase in an IterativePhaseEstimationResult object.
-        """
 
+        Raises:
+            AlgorithmError: If neither sampler nor quantum instance is provided.
+        """
         phase = self._estimate_phase_iteratively(unitary, state_preparation)
 
         return IterativePhaseEstimationResult(self._num_iterations, phase)

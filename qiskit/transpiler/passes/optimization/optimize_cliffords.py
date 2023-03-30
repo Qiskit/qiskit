@@ -13,6 +13,7 @@
 """Combine consecutive Cliffords over the same qubits."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.quantum_info.operators import Clifford
 
 
@@ -22,6 +23,7 @@ class OptimizeCliffords(TransformationPass):
     Cliffords natively on the circuit.
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the OptimizeCliffords pass on `dag`.
 
@@ -73,7 +75,7 @@ class OptimizeCliffords(TransformationPass):
             if len(cur_nodes) <= 1:
                 continue
 
-            wire_pos_map = dict((qb, ix) for ix, qb in enumerate(cur_nodes[0].qargs))
+            wire_pos_map = {qb: ix for ix, qb in enumerate(cur_nodes[0].qargs)}
 
             # Construct a linear circuit
             cliff = cur_nodes[0].op

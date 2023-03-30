@@ -13,6 +13,7 @@
 """Replace resets after measure with a conditional XGate."""
 
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.passes.utils import control_flow
 from qiskit.circuit.library.standard_gates.x import XGate
 from qiskit.circuit.reset import Reset
 from qiskit.circuit.measure import Measure
@@ -29,6 +30,7 @@ class ResetAfterMeasureSimplification(TransformationPass):
     differently.
     """
 
+    @control_flow.trivial_recurse
     def run(self, dag):
         """Run the pass on a dag."""
         for node in dag.op_nodes(Measure):
