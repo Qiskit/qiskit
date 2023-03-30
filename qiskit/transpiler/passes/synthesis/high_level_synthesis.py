@@ -140,6 +140,7 @@ class HighLevelSynthesis(TransformationPass):
             # When the config file is not provided, we will use the "default" method
             # to synthesize Operations (when available).
             self.hls_config = HLSConfig(True)
+        self.hls_plugin_manager = HighLevelSynthesisPluginManager()
 
         self.hls_plugin_manager = HighLevelSynthesisPluginManager()
 
@@ -165,6 +166,7 @@ class HighLevelSynthesis(TransformationPass):
 
         # copy dag_op_nodes because we are modifying the DAG below
         dag_op_nodes = dag.op_nodes()
+
 
         for node in dag_op_nodes:
             decomposition = self._recursively_handle_op(node.op)
