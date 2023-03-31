@@ -25,6 +25,7 @@ import scipy
 import numpy as np
 
 from qiskit.utils import algorithm_globals
+from qiskit.utils.deprecation import deprecate_func
 
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
@@ -108,6 +109,38 @@ class SPSA(Optimizer):
 
             two_spsa = SPSA(maxiter=300, second_order=True)
             result = two_spsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
+
+        The `termination_checker` can be used to implement a custom termination criterion.
+
+        .. code-block:: python
+
+            import numpy as np
+            from qiskit.algorithms.optimizers import SPSA
+
+            def objective(x):
+                return np.linalg.norm(x) + .04*np.random.rand(1)
+
+            class TerminationChecker:
+
+                def __init__(self, N : int):
+                    self.N = N
+                    self.values = []
+
+                def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
+                    self.values.append(value)
+
+                    if len(self.values) > self.N:
+                        last_values = self.values[-self.N:]
+                        pp = np.polyfit(range(self.N), last_values, 1)
+                        slope = pp[0] / self.N
+
+                        if slope > 0:
+                            return True
+                    return False
+
+            spsa = SPSA(maxiter=200, termination_checker=TerminationChecker(10))
+            parameters, value, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
+            print(f'SPSA completed after {niter} iterations')
 
 
     References:
@@ -204,38 +237,6 @@ class SPSA(Optimizer):
         Raises:
             ValueError: If ``learning_rate`` or ``perturbation`` is an array with less elements
                 than the number of iterations.
-
-        Example:
-            .. code-block::python
-
-                import numpy as np
-                from qiskit.algorithms.optimizers import SPSA
-
-                def objective(x):
-                    return np.linalg.norm(x) + .04*np.random.rand(1)
-
-                class TerminationChecker:
-
-                    def __init__(self, N : int):
-                        self.N = N
-                        self.values = []
-
-                    def __call__(self, nfev, parameters, value, stepsize, accepted) -> bool:
-                        self.values.append(value)
-
-                        if len(self.values) > self.N:
-                            last_values = self.values[-self.N:]
-                            pp = np.polyfit(range(self.N), last_values, 1)
-                            slope = pp[0] / self.N
-
-                            if slope > 0:
-                                return True
-                        return False
-
-                spsa = SPSA(maxiter=200, termination_checker=TerminationChecker(10))
-                parameters, value, niter = spsa.optimize(2, objective, initial_point=[0.5, 0.5])
-                print(f'SPSA completed after {niter} iterations')
-
 
 
         """
@@ -339,7 +340,7 @@ class SPSA(Optimizer):
         avg_magnitudes /= steps
 
         if modelspace:
-            a = target_magnitude / (avg_magnitudes ** 2)
+            a = target_magnitude / (avg_magnitudes**2)
         else:
             a = target_magnitude / avg_magnitudes
 
@@ -430,7 +431,7 @@ class SPSA(Optimizer):
         hessian_sample = None
         if self.second_order:
             diff = (values[2] - plus) - (values[3] - minus)
-            diff /= 2 * eps ** 2
+            diff /= 2 * eps**2
 
             rank_one = np.outer(delta1, delta2)
             hessian_sample = diff * (rank_one + rank_one.T) / 2
@@ -545,7 +546,11 @@ class SPSA(Optimizer):
         # keep track of the last few steps to return their average
         last_steps = deque([x])
 
-        for k in range(1, self.maxiter + 1):
+        # use a local variable and while loop to keep track of the number of iterations
+        # if the termination checker terminates early
+        k = 0
+        while k < self.maxiter:
+            k += 1
             iteration_start = time()
             # compute update
             fx_estimate, update = self._compute_update(fun, x, k, next(eps), lse_solver)
@@ -629,7 +634,7 @@ class SPSA(Optimizer):
         result.x = x
         result.fun = fun(x)
         result.nfev = self._nfev
-        result.nit = self.maxiter
+        result.nit = k
 
         return result
 
@@ -641,14 +646,38 @@ class SPSA(Optimizer):
             "initial_point": OptimizerSupportLevel.required,
         }
 
+    # pylint: disable=bad-docstring-quotes
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use ``SPSA.minimize`` as a replacement, which supports the same arguments "
+            "but follows the interface of scipy.optimize and returns a complete result object "
+            "containing additional information."
+        ),
+        since="0.21.0",
+    )
     def optimize(
         self,
-        num_vars,
+        num_vars,  # pylint: disable=unused-argument
         objective_function,
-        gradient_function=None,
-        variable_bounds=None,
+        gradient_function=None,  # pylint: disable=unused-argument
+        variable_bounds=None,  # pylint: disable=unused-argument
         initial_point=None,
     ):
+        """Perform optimization.
+
+        Args:
+            num_vars (int): Number of parameters to be optimized.
+            objective_function (callable): A function that computes the objective function.
+            gradient_function (callable): Not supported for SPSA.
+            variable_bounds (list[(float, float)]): Not supported for SPSA.
+            initial_point (numpy.ndarray[float]): Initial point.
+
+        Returns:
+            tuple: point, value, nfev
+               point: is a 1D numpy.ndarray[float] containing the solution
+               value: is a float with the objective function value
+               nfev: number of objective function calls made if available or None
+        """
         result = self.minimize(objective_function, initial_point)
         return result.x, result.fun, result.nfev
 
@@ -684,9 +713,15 @@ def constant(eta=0.01):
         yield eta
 
 
-def _batch_evaluate(function, points, max_evals_grouped):
+def _batch_evaluate(function, points, max_evals_grouped, unpack_points=False):
+    """Evaluate a function on all points with batches of max_evals_grouped.
+
+    The points are a list of inputs, as ``[in1, in2, in3, ...]``. If the individual
+    inputs are tuples (because the function takes multiple inputs), set ``unpack_points`` to ``True``.
+    """
+
     # if the function cannot handle lists of points as input, cover this case immediately
-    if max_evals_grouped == 1:
+    if max_evals_grouped is None or max_evals_grouped == 1:
         # support functions with multiple arguments where the points are given in a tuple
         return [
             function(*point) if isinstance(point, tuple) else function(point) for point in points
@@ -700,13 +735,34 @@ def _batch_evaluate(function, points, max_evals_grouped):
         num_batches += 1
 
     # split the points
-    batched_points = np.split(np.asarray(points), num_batches)
+    batched_points = np.array_split(np.asarray(points), num_batches)
 
     results = []
     for batch in batched_points:
-        results += function(batch).tolist()
+        if unpack_points:
+            batch = _repack_points(batch)
+            results += _as_list(function(*batch))
+        else:
+            results += _as_list(function(batch))
 
     return results
+
+
+def _as_list(obj):
+    """Convert a list or numpy array into a list."""
+    return obj.tolist() if isinstance(obj, np.ndarray) else obj
+
+
+def _repack_points(points):
+    """Turn a list of tuples of points into a tuple of lists of points.
+    E.g. turns
+        [(a1, a2, a3), (b1, b2, b3)]
+    into
+        ([a1, b1], [a2, b2], [a3, b3])
+    where all elements are np.ndarray.
+    """
+    num_sets = len(points[0])  # length of (a1, a2, a3)
+    return ([x[i] for x in points] for i in range(num_sets))
 
 
 def _make_spd(matrix, bias=0.01):

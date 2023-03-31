@@ -15,6 +15,7 @@
 import os
 import unittest
 import ply
+import ddt
 
 from qiskit.qasm import Qasm, QasmError
 from qiskit.qasm.node.node import Node
@@ -31,6 +32,7 @@ def parse(file_path):
     return qasm.parse().qasm()
 
 
+@ddt.ddt
 class TestParser(QiskitTestCase):
     """QasmParser"""
 
@@ -40,6 +42,11 @@ class TestParser(QiskitTestCase):
         self.qasm_file_path = os.path.join(self.qasm_dir, "example.qasm")
         self.qasm_file_path_fail = os.path.join(self.qasm_dir, "example_fail.qasm")
         self.qasm_file_path_if = os.path.join(self.qasm_dir, "example_if.qasm")
+        self.qasm_file_path_version_fail = os.path.join(self.qasm_dir, "example_version_fail.qasm")
+        self.qasm_file_path_version_2 = os.path.join(self.qasm_dir, "example_version_2.qasm")
+        self.qasm_file_path_minor_ver_fail = os.path.join(
+            self.qasm_dir, "example_minor_version_fail.qasm"
+        )
 
     def test_parser(self):
         """should return a correct response for a valid circuit."""
@@ -73,6 +80,21 @@ class TestParser(QiskitTestCase):
         self.assertRaisesRegex(
             QasmError, "Perhaps there is a missing", parse, file_path=self.qasm_file_path_fail
         )
+
+    @ddt.data("example_version_fail.qasm", "example_minor_version_fail.qasm")
+    def test_parser_version_fail(self, filename):
+        """Ensure versions other than 2.0 or 2 fail."""
+        filename = os.path.join(self.qasm_dir, filename)
+        with self.assertRaisesRegex(
+            QasmError, r"Invalid version: '.+'\. This module supports OpenQASM 2\.0 only\."
+        ):
+            parse(filename)
+
+    def test_parser_version_2(self):
+        """should succeed for OPENQASM version 2. Parser should automatically add minor verison."""
+        res = parse(self.qasm_file_path_version_2)
+        version_start = "OPENQASM 2.0;"
+        self.assertEqual(res[: len(version_start)], version_start)
 
     def test_all_valid_nodes(self):
         """Test that the tree contains only Node subclasses."""

@@ -14,9 +14,11 @@
 Template matching substitution, given a list of maximal matches it substitutes
 them in circuit and creates a new optimized dag version of the circuit.
 """
+import collections
 import copy
+import itertools
 
-from qiskit.circuit import ParameterExpression
+from qiskit.circuit import Parameter, ParameterExpression
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.dagcircuit.dagdependency import DAGDependency
 from qiskit.converters.dagdependency_to_dag import dagdependency_to_dag
@@ -175,7 +177,6 @@ class TemplateSubstitution:
         Returns:
             bool: True if the match respects the given rule for replacement, False otherwise.
         """
-
         if self._quantum_cost(template_sublist, template_complement):
             for elem in circuit_sublist:
                 for config in self.substitution_list:
@@ -269,11 +270,6 @@ class TemplateSubstitution:
         list_predecessors = []
         remove_list = []
 
-        # First remove any scenarios that have parameters in the template.
-        for scenario in self.substitution_list:
-            if scenario.has_parameters():
-                remove_list.append(scenario)
-
         # Initialize predecessors for each group of matches.
         for scenario in self.substitution_list:
             predecessors = set()
@@ -324,8 +320,7 @@ class TemplateSubstitution:
 
             # Fake bind any parameters in the template
             template = self._attempt_bind(template_sublist, circuit_sublist)
-
-            if template is None:
+            if template is None or self._incr_num_parameters(template):
                 continue
 
             template_list = range(0, self.template_dag_dep.size())
@@ -365,9 +360,7 @@ class TemplateSubstitution:
             circuit_list = circuit_list + elem.circuit_config + elem.pred_block
 
         # Unmatched gates that are not predecessors of any group of matches.
-        self.unmatched_list = sorted(
-            list(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
-        )
+        self.unmatched_list = sorted(set(range(0, self.circuit_dag_dep.size())) - set(circuit_list))
 
     def run_dag_opt(self):
         """
@@ -432,7 +425,6 @@ class TemplateSubstitution:
                         cargs = []
                     node = group.template_dag_dep.get_node(index)
                     inst = node.op.copy()
-
                     dag_dep_opt.add_op_node(inst.inverse(), qargs, cargs)
 
             # Add the unmatched gates.
@@ -455,19 +447,27 @@ class TemplateSubstitution:
         i.e. attempts to solve for a valid parameter assignment.
         template_sublist and circuit_sublist match up to the
         assignment of the parameters. For example the template
-             ┌───────────┐                  ┌────────┐
-        q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
-             ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
-        q_1: ┤ P(-1.0*β) ├┤ X ├┤ P(β) ├┤ X ├┤1       ├
-             └───────────┘└───┘└──────┘└───┘└────────┘
+
+        .. parsed-literal::
+
+                 ┌───────────┐                  ┌────────┐
+            q_0: ┤ P(-1.0*β) ├──■────────────■──┤0       ├
+                 ├───────────┤┌─┴─┐┌──────┐┌─┴─┐│  CZ(β) │
+            q_1: ┤ P(-1.0*β) ├┤ X ├┤ P(β) ├┤ X ├┤1       ├
+                 └───────────┘└───┘└──────┘└───┘└────────┘
+
         should only maximally match once in the circuit
-             ┌───────┐
-        q_0: ┤ P(-2) ├──■────────────■────────────────────────────
-             ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌──────┐
-        q_1: ┤ P(-2) ├┤ X ├┤ P(2) ├┤ X ├┤ P(3) ├──■────────────■──
-             └┬──────┤└───┘└──────┘└───┘└──────┘┌─┴─┐┌──────┐┌─┴─┐
-        q_2: ─┤ P(3) ├──────────────────────────┤ X ├┤ P(3) ├┤ X ├
-              └──────┘                          └───┘└──────┘└───┘
+
+        .. parsed-literal::
+
+                 ┌───────┐
+            q_0: ┤ P(-2) ├──■────────────■────────────────────────────
+                 ├───────┤┌─┴─┐┌──────┐┌─┴─┐┌──────┐
+            q_1: ┤ P(-2) ├┤ X ├┤ P(2) ├┤ X ├┤ P(3) ├──■────────────■──
+                 └┬──────┤└───┘└──────┘└───┘└──────┘┌─┴─┐┌──────┐┌─┴─┐
+            q_2: ─┤ P(3) ├──────────────────────────┤ X ├┤ P(3) ├┤ X ├
+                  └──────┘                          └───┘└──────┘└───┘
+
         However, up until attempt bind is called, the soft matching
         will have found two matches due to the parameters.
         The first match can be satisfied with β=2. However, the
@@ -477,6 +477,11 @@ class TemplateSubstitution:
         value of the parameters in the gates of the sub-circuit. If a
         solution is found then the match is valid and the parameters
         are assigned. If not, None is returned.
+
+        In order to resolve the conflict of the same parameter names in the
+        circuit and template, each variable in the template sublist is
+        re-assigned to a new dummy parameter with a completely separate name
+        if it clashes with one that exists in an input circuit.
 
         Args:
             template_sublist (list): part of the matched template.
@@ -491,51 +496,127 @@ class TemplateSubstitution:
         from sympy.parsing.sympy_parser import parse_expr
 
         circuit_params, template_params = [], []
+        # Set of all parameter names that are present in the circuits to be optimised.
+        circuit_params_set = set()
 
         template_dag_dep = copy.deepcopy(self.template_dag_dep)
 
-        for idx, t_idx in enumerate(template_sublist):
+        # add parameters from circuit to circuit_params
+        for idx, _ in enumerate(template_sublist):
             qc_idx = circuit_sublist[idx]
-            circuit_params += self.circuit_dag_dep.get_node(qc_idx).op.params
-            template_params += template_dag_dep.get_node(t_idx).op.params
+            parameters = self.circuit_dag_dep.get_node(qc_idx).op.params
+            circuit_params += parameters
+            for parameter in parameters:
+                if isinstance(parameter, ParameterExpression):
+                    circuit_params_set.update(x.name for x in parameter.parameters)
+
+        _dummy_counter = itertools.count()
+
+        def dummy_parameter():
+            # Strictly not _guaranteed_ to avoid naming clashes, but if someone's calling their
+            # parameters this then that's their own fault.
+            return Parameter(f"_qiskit_template_dummy_{next(_dummy_counter)}")
+
+        # Substitutions for parameters that have clashing names between the input circuits and the
+        # defined templates.
+        template_clash_substitutions = collections.defaultdict(dummy_parameter)
+
+        # add parameters from template to template_params, replacing parameters with names that
+        # clash with those in the circuit.
+        for t_idx in template_sublist:
+            node = template_dag_dep.get_node(t_idx)
+            sub_node_params = []
+            for t_param_exp in node.op.params:
+                if isinstance(t_param_exp, ParameterExpression):
+                    for t_param in t_param_exp.parameters:
+                        if t_param.name in circuit_params_set:
+                            new_param = template_clash_substitutions[t_param.name]
+                            t_param_exp = t_param_exp.assign(t_param, new_param)
+                sub_node_params.append(t_param_exp)
+                template_params.append(t_param_exp)
+            node.op.params = sub_node_params
+
+        for node in template_dag_dep.get_nodes():
+            sub_node_params = []
+            for param_exp in node.op.params:
+                if isinstance(param_exp, ParameterExpression):
+                    for param in param_exp.parameters:
+                        if param.name in template_clash_substitutions:
+                            param_exp = param_exp.assign(
+                                param, template_clash_substitutions[param.name]
+                            )
+                sub_node_params.append(param_exp)
+
+            node.op.params = sub_node_params
 
         # Create the fake binding dict and check
-        equations, symbols, sol, fake_bind = [], set(), {}, {}
-        for t_idx, params in enumerate(template_params):
-            if isinstance(params, ParameterExpression):
-                equations.append(sym.Eq(parse_expr(str(params)), circuit_params[t_idx]))
-                for param in params.parameters:
-                    symbols.add(param)
+        equations, circ_dict, temp_symbols, sol, fake_bind = [], {}, {}, {}, {}
+        for circuit_param, template_param in zip(circuit_params, template_params):
+            if isinstance(template_param, ParameterExpression):
+                if isinstance(circuit_param, ParameterExpression):
+                    circ_param_sym = circuit_param.sympify()
+                else:
+                    circ_param_sym = parse_expr(str(circuit_param))
+                equations.append(sym.Eq(template_param.sympify(), circ_param_sym))
 
-        if not symbols:
+                for param in template_param.parameters:
+                    temp_symbols[param] = param.sympify()
+
+                if isinstance(circuit_param, ParameterExpression):
+                    for param in circuit_param.parameters:
+                        circ_dict[param] = param.sympify()
+            elif template_param != circuit_param:
+                # Both are numeric parameters, but aren't equal.
+                return None
+
+        if not temp_symbols:
             return template_dag_dep
 
         # Check compatibility by solving the resulting equation
-        sym_sol = sym.solve(equations)
+        sym_sol = sym.solve(equations, set(temp_symbols.values()))
         for key in sym_sol:
             try:
-                sol[str(key)] = float(sym_sol[key])
+                sol[str(key)] = ParameterExpression(circ_dict, sym_sol[key])
             except TypeError:
                 return None
 
         if not sol:
             return None
 
-        for param in symbols:
-            fake_bind[param] = sol[str(param)]
+        for key in temp_symbols:
+            fake_bind[key] = sol[str(key)]
 
         for node in template_dag_dep.get_nodes():
             bound_params = []
-
-            for param in node.op.params:
-                if isinstance(param, ParameterExpression):
-                    try:
-                        bound_params.append(float(param.bind(fake_bind)))
-                    except KeyError:
-                        return None
+            for param_exp in node.op.params:
+                if isinstance(param_exp, ParameterExpression):
+                    for param in param_exp.parameters:
+                        if param in fake_bind:
+                            if fake_bind[param] not in bound_params:
+                                param_exp = param_exp.assign(param, fake_bind[param])
                 else:
-                    bound_params.append(param)
+                    param_exp = float(param_exp)
+                bound_params.append(param_exp)
 
             node.op.params = bound_params
 
         return template_dag_dep
+
+    def _incr_num_parameters(self, template):
+        """
+        Checks if template substitution would increase the number of
+        parameters in the circuit.
+        """
+        template_params = set()
+        for param_list in (node.op.params for node in template.get_nodes()):
+            for param_exp in param_list:
+                if isinstance(param_exp, ParameterExpression):
+                    template_params.update(param_exp.parameters)
+
+        circuit_params = set()
+        for param_list in (node.op.params for node in self.circuit_dag_dep.get_nodes()):
+            for param_exp in param_list:
+                if isinstance(param_exp, ParameterExpression):
+                    circuit_params.update(param_exp.parameters)
+
+        return len(template_params) > len(circuit_params)

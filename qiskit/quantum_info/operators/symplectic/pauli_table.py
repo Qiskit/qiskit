@@ -20,10 +20,11 @@ import numpy as np
 
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.quantum_info.operators.custom_iterator import CustomIterator
+from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-from qiskit.quantum_info.operators.custom_iterator import CustomIterator
-from qiskit.quantum_info.operators.mixins import generate_apidocs, AdjointMixin
+from qiskit.utils.deprecation import deprecate_func
 
 
 class PauliTable(BaseOperator, AdjointMixin):
@@ -126,6 +127,7 @@ class PauliTable(BaseOperator, AdjointMixin):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
+    @deprecate_func(additional_msg="Instead, use the class PauliList", since="0.23.0", pending=True)
     def __init__(self, data):
         """Initialize the PauliTable.
 
@@ -419,7 +421,7 @@ class PauliTable(BaseOperator, AdjointMixin):
 
         Consider sorting all a random ordering of all 2-qubit Paulis
 
-        .. jupyter-execute::
+        .. code-block::
 
             from numpy.random import shuffle
             from qiskit.quantum_info.operators import PauliTable
@@ -443,6 +445,25 @@ class PauliTable(BaseOperator, AdjointMixin):
             print('Weight sorted')
             print(srt)
 
+
+        .. parsed-literal::
+
+            Initial Ordering
+            PauliTable: [
+                'IZ', 'XZ', 'ZY', 'YI', 'YZ', 'IX', 'II', 'ZI', 'IY', 'XY', 'XI', 'YY', 'ZX',
+                'XX', 'ZZ', 'YX'
+            ]
+            Lexicographically sorted
+            PauliTable: [
+                'II', 'IX', 'IY', 'IZ', 'XI', 'XX', 'XY', 'XZ', 'YI', 'YX', 'YY', 'YZ', 'ZI',
+                'ZX', 'ZY', 'ZZ'
+            ]
+            Weight sorted
+            PauliTable: [
+                'II', 'IX', 'IY', 'IZ', 'XI', 'YI', 'ZI', 'XX', 'XY', 'XZ', 'YX', 'YY', 'YZ',
+                'ZX', 'ZY', 'ZZ'
+            ]
+
         Args:
             weight (bool): optionally sort by weight if True (Default: False).
 
@@ -456,13 +477,17 @@ class PauliTable(BaseOperator, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import PauliTable
 
             pt = PauliTable.from_labels(['X', 'Y', 'X', 'I', 'I', 'Z', 'X', 'Z'])
             unique = pt.unique()
             print(unique)
+
+        .. parsed-literal::
+
+            PauliTable: ['X', 'Y', 'I', 'Z']
 
         Args:
             return_index (bool): If True, also return the indices that
@@ -515,13 +540,17 @@ class PauliTable(BaseOperator, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import PauliTable
 
             current = PauliTable.from_labels(['I', 'X'])
             other =  PauliTable.from_labels(['Y', 'Z'])
             print(current.tensor(other))
+
+        .. parsed-literal::
+
+            PauliTable: ['IY', 'IZ', 'XY', 'XZ']
 
         Args:
             other (PauliTable): another PauliTable.
@@ -546,13 +575,17 @@ class PauliTable(BaseOperator, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import PauliTable
 
             current = PauliTable.from_labels(['I', 'X'])
             other =  PauliTable.from_labels(['Y', 'Z'])
             print(current.expand(other))
+
+        .. parsed-literal::
+
+            PauliTable: ['YI', 'YX', 'ZI', 'ZX']
 
         Args:
             other (PauliTable): another PauliTable.
@@ -578,13 +611,17 @@ class PauliTable(BaseOperator, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import PauliTable
 
             current = PauliTable.from_labels(['I', 'X'])
             other =  PauliTable.from_labels(['Y', 'Z'])
             print(current.compose(other))
+
+        .. parsed-literal::
+
+            PauliTable: ['Y', 'Z', 'Z', 'Y']
 
         Args:
             other (PauliTable): another PauliTable.
@@ -631,13 +668,17 @@ class PauliTable(BaseOperator, AdjointMixin):
 
         **Example**
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit.quantum_info.operators import PauliTable
 
             current = PauliTable.from_labels(['I', 'X'])
             other =  PauliTable.from_labels(['Y', 'Z'])
             print(current.dot(other))
+
+        .. parsed-literal::
+
+            PauliTable: ['Y', 'Z', 'Z', 'Y']
 
         Args:
             other (PauliTable): another PauliTable.
@@ -935,7 +976,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         # For efficiency we also allow returning a single rank-3
         # array where first index is the Pauli row, and second two
         # indices are the matrix indices
-        dim = 2 ** self.num_qubits
+        dim = 2**self.num_qubits
         ret = np.zeros((self.size, dim, dim), dtype=complex)
         for i in range(self.size):
             ret[i] = self._to_matrix(self._array[i])
@@ -1013,7 +1054,7 @@ class PauliTable(BaseOperator, AdjointMixin):
         x = symp[0:num_qubits]
         z = symp[num_qubits : 2 * num_qubits]
 
-        dim = 2 ** num_qubits
+        dim = 2**num_qubits
         twos_array = 1 << np.arange(num_qubits)
         x_indices = np.array(x).dot(twos_array)
         z_indices = np.array(z).dot(twos_array)

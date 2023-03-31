@@ -13,8 +13,8 @@
 
 """Polynomially controlled Pauli-rotations."""
 
+from __future__ import annotations
 import warnings
-from typing import List, Optional, Dict, Sequence
 
 from itertools import product
 
@@ -25,7 +25,7 @@ from .functional_pauli_rotations import FunctionalPauliRotations
 
 
 def _binomial_coefficients(n):
-    """ "Return a dictionary of binomial coefficients
+    """Return a dictionary of binomial coefficients
 
     Based-on/forked from sympy's binomial_coefficients() function [#]
 
@@ -41,7 +41,7 @@ def _binomial_coefficients(n):
 
 
 def _large_coefficients_iter(m, n):
-    """ "Return an iterator of multinomial coefficients
+    """Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients_iterator() function [#]
 
@@ -87,7 +87,7 @@ def _large_coefficients_iter(m, n):
 
 
 def _multinomial_coefficients(m, n):
-    """ "Return an iterator of multinomial coefficients
+    """Return an iterator of multinomial coefficients
 
     Based-on/forked from sympy's multinomial_coefficients() function [#]
 
@@ -135,7 +135,7 @@ def _multinomial_coefficients(m, n):
 class PolynomialPauliRotations(FunctionalPauliRotations):
     r"""A circuit implementing polynomial Pauli rotations.
 
-    For a polynomial :math`p(x)`, a basis state :math:`|i\rangle` and a target qubit
+    For a polynomial :math:`p(x)`, a basis state :math:`|i\rangle` and a target qubit
     :math:`|0\rangle` this operator acts as:
 
     .. math::
@@ -160,10 +160,9 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     def __init__(
         self,
-        num_state_qubits: Optional[int] = None,
-        coeffs: Optional[List[float]] = None,
+        num_state_qubits: int | None = None,
+        coeffs: list[float] | None = None,
         basis: str = "Y",
-        reverse: bool = False,
         name: str = "poly",
     ) -> None:
         """Prepare an approximation to a state with amplitudes specified by a polynomial.
@@ -173,25 +172,16 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             coeffs: The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
                 i-th power of x. Defaults to linear: [0, 1].
             basis: The type of Pauli rotation ('X', 'Y', 'Z').
-            reverse: If True, apply the polynomial with the reversed list of qubits
-                (i.e. q_n as q_0, q_n-1 as q_1, etc).
             name: The name of the circuit.
         """
         # set default internal parameters
         self._coeffs = coeffs or [0, 1]
-        self._reverse = reverse
-        if self._reverse is True:
-            warnings.warn(
-                "The reverse flag has been deprecated. "
-                "Use circuit.reverse_bits() to reverse order of qubits.",
-                DeprecationWarning,
-            )
 
         # initialize super (after setting coeffs)
         super().__init__(num_state_qubits=num_state_qubits, basis=basis, name=name)
 
     @property
-    def coeffs(self) -> List[float]:
+    def coeffs(self) -> list[float]:
         """The multiplicative factor in the rotation angle of the controlled rotations.
 
         The rotation angles are ``slope * 2^0``, ``slope * 2^1``, ... , ``slope * 2^(n-1)`` where
@@ -203,7 +193,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         return self._coeffs
 
     @coeffs.setter
-    def coeffs(self, coeffs: List[float]) -> None:
+    def coeffs(self, coeffs: list[float]) -> None:
         """Set the multiplicative factor of the rotation angles.
 
         Args:
@@ -222,15 +212,6 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
         if self.coeffs:
             return len(self.coeffs) - 1
         return 0
-
-    @property
-    def reverse(self) -> bool:
-        """Whether to apply the rotations on the reversed list of qubits.
-
-        Returns:
-            True, if the rotations are applied on the reversed list, False otherwise.
-        """
-        return self._reverse
 
     @property
     def num_ancilla_qubits(self):
@@ -274,7 +255,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         return valid
 
-    def _get_rotation_coefficients(self) -> Dict[Sequence[int], float]:
+    def _get_rotation_coefficients(self) -> dict[tuple[int, ...], float]:
         """Compute the coefficient of each monomial.
 
         Returns:
@@ -288,7 +269,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
             if 0 < sum(combination) <= self.degree:
                 valid_combinations += [combination]
 
-        rotation_coeffs = {control_state: 0 for control_state in valid_combinations}
+        rotation_coeffs = {control_state: 0.0 for control_state in valid_combinations}
 
         # compute the coefficients for the control states
         for i, coeff in enumerate(self.coeffs[1:]):
@@ -296,7 +277,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
             # iterate over the multinomial coefficients
             for comb, num_combs in _multinomial_coefficients(self.num_state_qubits, i).items():
-                control_state = ()
+                control_state: tuple[int, ...] = ()
                 power = 1
                 for j, qubit in enumerate(comb):
                     if qubit > 0:  # means we control on qubit i
@@ -332,14 +313,9 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
         for c in rotation_coeffs:
             qr_control = []
-            if self.reverse:
-                for i, _ in enumerate(c):
-                    if c[i] > 0:
-                        qr_control.append(qr_state[qr_state.size - i - 1])
-            else:
-                for i, _ in enumerate(c):
-                    if c[i] > 0:
-                        qr_control.append(qr_state[i])
+            for i, _ in enumerate(c):
+                if c[i] > 0:
+                    qr_control.append(qr_state[i])
 
             # apply controlled rotations
             if len(qr_control) > 1:

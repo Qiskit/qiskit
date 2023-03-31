@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ExpectationFactory Class """
+"""ExpectationFactory Class"""
 
 import logging
 from typing import Optional, Union
@@ -21,7 +21,7 @@ from qiskit.opflow.expectations.expectation_base import ExpectationBase
 from qiskit.opflow.expectations.matrix_expectation import MatrixExpectation
 from qiskit.opflow.expectations.pauli_expectation import PauliExpectation
 from qiskit.opflow.operator_base import OperatorBase
-from qiskit.providers import Backend, BaseBackend
+from qiskit.providers import Backend
 from qiskit.utils.backend_utils import has_aer, is_aer_qasm, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
 
@@ -36,7 +36,7 @@ class ExpectationFactory:
     @staticmethod
     def build(
         operator: OperatorBase,
-        backend: Optional[Union[Backend, BaseBackend, QuantumInstance]] = None,
+        backend: Optional[Union[Backend, QuantumInstance]] = None,
         include_custom: bool = True,
     ) -> ExpectationBase:
         """
@@ -85,8 +85,8 @@ class ExpectationFactory:
                             "the BasicAer qasm backend for this expectation to avoid having to "
                             "construct the %dx%d operator matrix.",
                             operator.num_qubits,
-                            2 ** operator.num_qubits,
-                            2 ** operator.num_qubits,
+                            2**operator.num_qubits,
+                            2**operator.num_qubits,
                         )
                         backend_to_check = BasicAer.get_backend("qasm_simulator")
 

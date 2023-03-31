@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test AerPauliExpectation """
+"""Test AerPauliExpectation"""
 
 import itertools
 import unittest
@@ -38,6 +38,7 @@ from qiskit.opflow import (
     Y,
     Z,
     Zero,
+    MatrixOp,
 )
 from qiskit.utils import QuantumInstance
 
@@ -48,7 +49,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
     def setUp(self) -> None:
         super().setUp()
         try:
-            from qiskit import Aer
+            from qiskit_aer import Aer
 
             self.seed = 97
             self.backend = Aer.get_backend("aer_simulator")
@@ -98,7 +99,7 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         sampled_zero = self.sampler.convert(zero_mean)
         np.testing.assert_array_almost_equal(sampled_zero.eval(), [0, 0, 1, 1], decimal=1)
 
-        sum_zero = (Plus + Minus) * (0.5 ** 0.5)
+        sum_zero = (Plus + Minus) * (0.5**0.5)
         sum_zero_mean = converted_meas @ sum_zero
         sampled_zero_mean = self.sampler.convert(sum_zero_mean)
         # !!NOTE!!: Depolarizing channel (Sampling) means interference
@@ -119,6 +120,29 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
             self.assertTrue(hasattr(composed_op[0], "execution_results"))
 
         np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1, -1], decimal=1)
+
+    def test_pauli_expect_non_hermitian_matrixop(self):
+        """pauli expect state vector with non hermitian operator test"""
+        states_op = ListOp([One, Zero, Plus, Minus])
+
+        op_mat = np.array([[0, 1], [2, 3]])
+        op = MatrixOp(op_mat)
+
+        converted_meas = self.expect.convert(StateFn(op, is_measurement=True) @ states_op)
+        sampled = self.sampler.convert(converted_meas)
+
+        np.testing.assert_array_almost_equal(sampled.eval(), [3, 0, 3, 0], decimal=1)
+
+    def test_pauli_expect_non_hermitian_pauliop(self):
+        """pauli expect state vector with non hermitian operator test"""
+        states_op = ListOp([One, Zero, Plus, Minus])
+
+        op = 1j * X
+
+        converted_meas = self.expect.convert(StateFn(op, is_measurement=True) @ states_op)
+        sampled = self.sampler.convert(converted_meas)
+
+        np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1j, -1j], decimal=1)
 
     def test_pauli_expect_op_vector_state_vector(self):
         """pauli expect op vector state vector test"""
@@ -143,10 +167,9 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         plus_mean = converted_meas @ Plus
         sampled_plus = self.sampler.convert(plus_mean)
         np.testing.assert_array_almost_equal(
-            sampled_plus.eval(), [1, 0.5 ** 0.5, (1 + 0.5 ** 0.5), 1], decimal=1
+            sampled_plus.eval(), [1, 0.5**0.5, (1 + 0.5**0.5), 1], decimal=1
         )
 
-    @unittest.skip("Skip until https://github.com/Qiskit/qiskit-aer/issues/1249 is closed.")
     def test_parameterized_qobj(self):
         """grouped pauli expectation test"""
         two_qubit_h2 = (
@@ -255,12 +278,12 @@ class TestAerPauliExpectation(QiskitOpflowTestCase):
         with self.subTest("integer coefficients"):
             exp = 3 * ~StateFn(X) @ (2 * Minus)
             target = self.sampler.convert(self.expect.convert(exp)).eval()
-            self.assertEqual(target, -12)
+            self.assertAlmostEqual(target, -12)
 
         with self.subTest("complex coefficients"):
             exp = 3j * ~StateFn(X) @ (2j * Minus)
             target = self.sampler.convert(self.expect.convert(exp)).eval()
-            self.assertEqual(target, -12j)
+            self.assertAlmostEqual(target, -12j)
 
 
 if __name__ == "__main__":

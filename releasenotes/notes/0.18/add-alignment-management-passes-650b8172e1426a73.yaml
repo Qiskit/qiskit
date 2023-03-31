@@ -31,10 +31,10 @@ features:
     The backends from IBM Quantum Services (accessible via the
     `qiskit-ibmq-provider <https://pypi.org/project/qiskit-ibmq-provider/>`__
     package) will provide the alignment information in the near future.
-     
+
      For example:
 
-    .. jupyter-execute::
+    .. code-block:: python
 
       from qiskit import circuit, transpile
       from qiskit.test.mock import FakeArmonk
@@ -47,7 +47,7 @@ features:
       qc.measure(0, 0)
       qc.draw('mpl')
 
-    .. jupyter-execute::
+    .. code-block::
 
       qct = transpile(qc, backend, scheduling_method='alap',
                       timing_constraints={'acquire_alignment': 16})

@@ -10,11 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test of scikit-quant optimizers. """
+"""Test of scikit-quant optimizers."""
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
+
+from ddt import ddt, data, unpack
+
+import numpy
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.utils import QuantumInstance, algorithm_globals
@@ -24,6 +27,7 @@ from qiskit.algorithms import VQE
 from qiskit.algorithms.optimizers import BOBYQA, SNOBFIT, IMFIL
 
 
+@ddt
 class TestOptimizers(QiskitAlgorithmsTestCase):
     """Test scikit-quant optimizers."""
 
@@ -60,11 +64,34 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
+    @unittest.skipIf(
+        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
+    )
     def test_snobfit(self):
         """SNOBFIT optimizer test."""
         try:
             optimizer = SNOBFIT(maxiter=100, maxfail=100, maxmp=20)
             self._optimize(optimizer)
+        except MissingOptionalLibraryError as ex:
+            self.skipTest(str(ex))
+
+    @unittest.skipIf(
+        tuple(map(int, numpy.__version__.split("."))) >= (1, 24, 0),
+        "scikit's SnobFit currently incompatible with NumPy 1.24.0.",
+    )
+    @data((None,), ([(-1, 1), (None, None)],))
+    @unpack
+    def test_snobfit_missing_bounds(self, bounds):
+        """SNOBFIT optimizer test with missing bounds."""
+        try:
+            optimizer = SNOBFIT()
+            with self.assertRaises(ValueError):
+                optimizer.minimize(
+                    fun=lambda _: 1,  # using dummy function (never called)
+                    x0=[0.1, 0.1],  # dummy initial point
+                    bounds=bounds,
+                )
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 

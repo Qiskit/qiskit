@@ -14,20 +14,24 @@
 Instruction collection.
 """
 
+from __future__ import annotations
 import functools
 import warnings
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable
 
 from qiskit.circuit.exceptions import CircuitError
-from .instruction import Instruction
 from .classicalregister import Clbit, ClassicalRegister
+from .operation import Operation
+from .quantumcircuitdata import CircuitInstruction
 
 
 # ClassicalRegister is hashable, and generally the registers in a circuit are completely fixed after
 # its creation, so caching this allows us to only pay the register-unrolling penalty once.  The
 # cache does not need to be large, because in general only one circuit is constructed at once.
 @functools.lru_cache(4)
-def _requester_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
+def _requester_from_cregs(
+    cregs: tuple[ClassicalRegister],
+) -> Callable[[Clbit | ClassicalRegister | int], ClassicalRegister | Clbit]:
     """Get a classical resource requester from an iterable of classical registers.
 
     This implements the deprecated functionality of constructing an :obj:`.InstructionSet` with a
@@ -59,7 +63,7 @@ def _requester_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
     clbit_set = frozenset(clbit_flat)
     creg_set = frozenset(cregs)
 
-    def requester(classical):
+    def requester(classical: Clbit | ClassicalRegister | int) -> ClassicalRegister | Clbit:
         if isinstance(classical, Clbit):
             if classical not in clbit_set:
                 raise CircuitError(
@@ -89,19 +93,24 @@ def _requester_from_cregs(cregs: Tuple[ClassicalRegister]) -> Callable:
 class InstructionSet:
     """Instruction collection, and their contexts."""
 
-    __slots__ = ("instructions", "qargs", "cargs", "_requester")
+    __slots__ = ("_instructions", "_requester")
 
-    def __init__(self, circuit_cregs=None, *, resource_requester: Optional[Callable] = None):
+    def __init__(
+        self,
+        circuit_cregs: list[ClassicalRegister] | None = None,
+        *,
+        resource_requester: Callable[..., ClassicalRegister | Clbit] | None = None,
+    ):
         """New collection of instructions.
 
-        The context (qargs and cargs that each instruction is attached to) is also stored separately
-        for each instruction.
+        The context (``qargs`` and ``cargs`` that each instruction is attached to) is also stored
+        separately for each instruction.
 
         Args:
-            circuit_cregs (list[ClassicalRegister]): Optional. List of cregs of the
+            circuit_cregs (list[ClassicalRegister]): Optional. List of ``cregs`` of the
                 circuit to which the instruction is added. Default: `None`.
 
-                .. deprecated:: qiskit-terra 0.19
+                .. deprecated:: 0.19
                     The classical registers are insufficient to access all classical resources in a
                     circuit, as there may be loose classical bits as well.  It can also cause
                     integer indices to be resolved incorrectly if any registers overlap.  Instead,
@@ -123,9 +132,7 @@ class InstructionSet:
             CircuitError: if both ``resource_requester`` and ``circuit_cregs`` are passed.  Only one
                 of these may be passed, and it should be ``resource_requester``.
         """
-        self.instructions = []
-        self.qargs = []
-        self.cargs = []
+        self._instructions: list[CircuitInstruction] = []
         if circuit_cregs is not None:
             if resource_requester is not None:
                 raise CircuitError("Cannot pass both 'circuit_cregs' and 'resource_requester'.")
@@ -136,33 +143,37 @@ class InstructionSet:
                 DeprecationWarning,
                 stacklevel=2,
             )
-            self._requester: Optional[Callable] = _requester_from_cregs(tuple(circuit_cregs))
+            self._requester: Callable[..., ClassicalRegister | Clbit] = _requester_from_cregs(
+                tuple(circuit_cregs)
+            )
         else:
             self._requester = resource_requester
 
     def __len__(self):
         """Return number of instructions in set"""
-        return len(self.instructions)
+        return len(self._instructions)
 
     def __getitem__(self, i):
         """Return instruction at index"""
-        return self.instructions[i]
+        return self._instructions[i]
 
-    def add(self, gate, qargs, cargs):
+    def add(self, instruction, qargs=None, cargs=None):
         """Add an instruction and its context (where it is attached)."""
-        if not isinstance(gate, Instruction):
-            raise CircuitError("attempt to add non-Instruction" + " to InstructionSet")
-        self.instructions.append(gate)
-        self.qargs.append(qargs)
-        self.cargs.append(cargs)
+        if not isinstance(instruction, CircuitInstruction):
+            if not isinstance(instruction, Operation):
+                raise CircuitError("attempt to add non-Operation to InstructionSet")
+            if qargs is None or cargs is None:
+                raise CircuitError("missing qargs or cargs in old-style InstructionSet.add")
+            instruction = CircuitInstruction(instruction, tuple(qargs), tuple(cargs))
+        self._instructions.append(instruction)
 
     def inverse(self):
         """Invert all instructions."""
-        for index, instruction in enumerate(self.instructions):
-            self.instructions[index] = instruction.inverse()
+        for i, instruction in enumerate(self._instructions):
+            self._instructions[i] = instruction.replace(operation=instruction.operation.inverse())
         return self
 
-    def c_if(self, classical: Union[Clbit, ClassicalRegister, int], val: int) -> "InstructionSet":
+    def c_if(self, classical: Clbit | ClassicalRegister | int, val: int) -> "InstructionSet":
         """Set a classical equality condition on all the instructions in this set between the
         :obj:`.ClassicalRegister` or :obj:`.Clbit` ``classical`` and value ``val``.
 
@@ -185,6 +196,27 @@ class InstructionSet:
         Raises:
             CircuitError: if the passed classical resource is invalid, or otherwise not resolvable
                 to a concrete resource that these instructions are permitted to access.
+
+        Example:
+            .. plot::
+               :include-source:
+
+               from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
+
+               qr = QuantumRegister(2)
+               cr = ClassicalRegister(2)
+               qc = QuantumCircuit(qr, cr)
+               qc.h(range(2))
+               qc.measure(range(2), range(2))
+
+               # apply x gate if the classical register has the value 2 (10 in binary)
+               qc.x(0).c_if(cr, 2)
+
+               # apply y gate if bit 0 is set to 1
+               qc.y(1).c_if(0, 1)
+
+               qc.draw('mpl')
+
         """
         if self._requester is None and not isinstance(classical, (Clbit, ClassicalRegister)):
             raise CircuitError(
@@ -193,6 +225,27 @@ class InstructionSet:
             )
         if self._requester is not None:
             classical = self._requester(classical)
-        for gate in self.instructions:
-            gate.c_if(classical, val)
+        for instruction in self._instructions:
+            instruction.operation.c_if(classical, val)
         return self
+
+    # Legacy support for properties.  Added in Terra 0.21 to support the internal switch in
+    # `QuantumCircuit.data` from the 3-tuple to `CircuitInstruction`.
+
+    @property
+    def instructions(self):
+        """Legacy getter for the instruction components of an instruction set.  This does not
+        support mutation."""
+        return [instruction.operation for instruction in self._instructions]
+
+    @property
+    def qargs(self):
+        """Legacy getter for the qargs components of an instruction set.  This does not support
+        mutation."""
+        return [list(instruction.qubits) for instruction in self._instructions]
+
+    @property
+    def cargs(self):
+        """Legacy getter for the cargs components of an instruction set.  This does not support
+        mutation."""
+        return [list(instruction.clbits) for instruction in self._instructions]

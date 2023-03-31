@@ -10,12 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" TaperedPauliSumOp Class and Z2Symmetries"""
+"""TaperedPauliSumOp Class and Z2Symmetries"""
 
 import itertools
 import logging
 from copy import deepcopy
-from typing import List, Optional, Union, cast, Dict
+from typing import Dict, List, Optional, Union, cast
 
 import numpy as np
 
@@ -89,6 +89,7 @@ class Z2Symmetries:
         sq_paulis: List[Pauli],
         sq_list: List[int],
         tapering_values: Optional[List[int]] = None,
+        tol: float = 1e-14,
     ):
         """
         Args:
@@ -98,6 +99,8 @@ class Z2Symmetries:
             sq_list: the list of support of the single-qubit Pauli objects used to build
                                  the Clifford operators
             tapering_values: values determines the sector.
+            tol: Tolerance threshold for ignoring real and complex parts of a coefficient.
+
         Raises:
             OpflowError: Invalid paulis
         """
@@ -122,6 +125,17 @@ class Z2Symmetries:
         self._sq_paulis = sq_paulis
         self._sq_list = sq_list
         self._tapering_values = tapering_values
+        self._tol = tol
+
+    @property
+    def tol(self):
+        """Tolerance threshold for ignoring real and complex parts of a coefficient."""
+        return self._tol
+
+    @tol.setter
+    def tol(self, value):
+        """Set the tolerance threshold for ignoring real and complex parts of a coefficient."""
+        self._tol = value
 
     @property
     def symmetries(self):
@@ -303,7 +317,7 @@ class Z2Symmetries:
                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 1
                     ):
                         sq_paulis.append(
-                            Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2))
+                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
                         )
                         sq_paulis[row].z[col] = True
                         sq_paulis[row].x[col] = False
@@ -333,7 +347,7 @@ class Z2Symmetries:
                         and stacked_symmetries[row, col + symm_shape[1] // 2] == 0
                     ):
                         sq_paulis.append(
-                            Pauli(np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2))
+                            Pauli((np.zeros(symm_shape[1] // 2), np.zeros(symm_shape[1] // 2)))
                         )
                         sq_paulis[row].z[col] = True
                         sq_paulis[row].x[col] = True
@@ -342,31 +356,59 @@ class Z2Symmetries:
 
         return cls(pauli_symmetries, sq_paulis, sq_list, None)
 
-    def taper(self, operator: PauliSumOp) -> OperatorBase:
-        """
-        Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
-        The `tapering_values` will be stored into the resulted operator for a record.
+    def convert_clifford(self, operator: PauliSumOp) -> OperatorBase:
+        """This method operates the first part of the tapering.
+        It converts the operator by composing it with the clifford unitaries defined in the current
+        symmetry.
 
         Args:
-            operator: the to-be-tapered operator.
+            operator: to-be-tapered operator
 
         Returns:
-            If tapering_values is None: [:class`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+            :class:`PauliSumOp` corresponding to the converted operator.
+
         Raises:
             OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+
         """
+
         if not self._symmetries or not self._sq_paulis or not self._sq_list:
             raise OpflowError(
                 "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
             )
 
-        # If the operator is zero then we can skip the following. We still need to taper the
-        # operator to reduce its size i.e. the number of qubits so for example 0*"IIII" could
-        # taper to 0*"II" when symmetries remove two qubits.
         if not operator.is_zero():
             for clifford in self.cliffords:
                 operator = cast(PauliSumOp, clifford @ operator @ clifford)
+                operator = operator.reduce(atol=0)
 
+        return operator
+
+    def taper_clifford(self, operator: PauliSumOp) -> OperatorBase:
+        """This method operates the second part of the tapering.
+        This function assumes that the input operators have already been transformed using
+        :meth:`convert_clifford`. The redundant qubits due to the symmetries are dropped and
+        replaced by their two possible eigenvalues.
+        The `tapering_values` will be stored into the resulted operator for a record.
+
+        Args:
+            operator: Partially tapered operator resulting from a call to :meth:`convert_clifford`
+
+        Returns:
+            If tapering_values is None: [:class:`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+
+        Raises:
+            OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+
+        """
+
+        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+            raise OpflowError(
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
+            )
+        # If the operator is zero then we can skip the following. We still need to taper the
+        # operator to reduce its size i.e. the number of qubits so for example 0*"IIII" could
+        # taper to 0*"II" when symmetries remove two qubits.
         if self._tapering_values is None:
             tapered_ops_list = [
                 self._taper(operator, list(coeff))
@@ -375,6 +417,42 @@ class Z2Symmetries:
             tapered_ops: OperatorBase = ListOp(tapered_ops_list)
         else:
             tapered_ops = self._taper(operator, self._tapering_values)
+
+        return tapered_ops
+
+    def taper(self, operator: PauliSumOp) -> OperatorBase:
+        """
+        Taper an operator based on the z2_symmetries info and sector defined by `tapering_values`.
+        The `tapering_values` will be stored into the resulted operator for a record.
+
+        The tapering is a two-step algorithm which first converts the operator into a
+        :class:`PauliSumOp` with same eigenvalues but where some qubits are only acted upon
+        with the Pauli operators I or X.
+        The number M of these redundant qubits is equal to the number M of identified symmetries.
+
+        The second step of the reduction consists in replacing these qubits with the possible
+        eigenvalues of the corresponding Pauli X, giving 2^M new operators with M less qubits.
+        If an eigenvalue sector was previously identified for the solution, then this reduces to
+        1 new operator with M less qubits.
+
+        Args:
+            operator: the to-be-tapered operator
+
+        Returns:
+            If tapering_values is None: [:class:`PauliSumOp`]; otherwise, :class:`PauliSumOp`
+
+        Raises:
+            OpflowError: Z2 symmetries, single qubit pauli and single qubit list cannot be empty
+
+        """
+
+        if not self._symmetries or not self._sq_paulis or not self._sq_list:
+            raise OpflowError(
+                "Z2 symmetries, single qubit pauli and single qubit list cannot be empty."
+            )
+
+        converted_ops = self.convert_clifford(operator)
+        tapered_ops = self.taper_clifford(converted_ops)
 
         return tapered_ops
 
@@ -391,7 +469,9 @@ class Z2Symmetries:
             z_temp = np.delete(pauli_term.primitive.paulis.z[0].copy(), np.asarray(self._sq_list))
             x_temp = np.delete(pauli_term.primitive.paulis.x[0].copy(), np.asarray(self._sq_list))
             pauli_list.append((Pauli((z_temp, x_temp)).to_label(), coeff_out))
+
         spo = SparsePauliOp.from_list(pauli_list).simplify(atol=0.0)
+        spo = spo.chop(self.tol)
         z2_symmetries = self.copy()
         z2_symmetries.tapering_values = curr_tapering_values
 

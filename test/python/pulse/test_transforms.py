@@ -29,10 +29,16 @@ from qiskit.pulse import (
     Constant,
 )
 from qiskit.pulse import transforms, instructions
-from qiskit.pulse.channels import MemorySlot, DriveChannel, AcquireChannel
+from qiskit.pulse.channels import (
+    MemorySlot,
+    DriveChannel,
+    AcquireChannel,
+    RegisterSlot,
+    SnapshotChannel,
+)
 from qiskit.pulse.instructions import directives
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q
 
 
 class TestAlignMeasures(QiskitTestCase):
@@ -261,11 +267,13 @@ class TestPad(QiskitTestCase):
         )
 
         ref_sched = (
-            sched
+            sched  # pylint: disable=unsupported-binary-operation
             | Delay(delay, DriveChannel(0))
             | Delay(delay, DriveChannel(0)).shift(20)
             | Delay(delay, DriveChannel(1))
-            | Delay(2 * delay, DriveChannel(1)).shift(20)
+            | Delay(  # pylint: disable=unsupported-binary-operation
+                2 * delay, DriveChannel(1)
+            ).shift(20)
         )
 
         self.assertEqual(transforms.pad(sched), ref_sched)
@@ -284,11 +292,13 @@ class TestPad(QiskitTestCase):
         )
 
         ref_sched = (
-            sched
+            sched  # pylint: disable=unsupported-binary-operation
             | Delay(delay, DriveChannel(0))
             | Delay(delay, DriveChannel(0)).shift(20)
             | Delay(delay, DriveChannel(1))
-            | Delay(2 * delay, DriveChannel(1)).shift(20)
+            | Delay(  # pylint: disable=unsupported-binary-operation
+                2 * delay, DriveChannel(1)
+            ).shift(20)
         )
 
         self.assertEqual(transforms.pad(sched), ref_sched)
@@ -310,10 +320,10 @@ class TestPad(QiskitTestCase):
         sched = Delay(delay, DriveChannel(0)).shift(10) + Delay(delay, DriveChannel(1))
 
         ref_sched = (
-            sched
+            sched  # pylint: disable=unsupported-binary-operation
             | Delay(delay, DriveChannel(0))
             | Delay(30, DriveChannel(0)).shift(20)
-            | Delay(40, DriveChannel(1)).shift(10)
+            | Delay(40, DriveChannel(1)).shift(10)  # pylint: disable=unsupported-binary-operation
         )
 
         self.assertEqual(transforms.pad(sched, until=50), ref_sched)
@@ -348,6 +358,23 @@ class TestPad(QiskitTestCase):
         )
 
         self.assertEqual(transforms.pad(sched, until=30, inplace=True), ref_sched)
+
+    def test_pad_no_delay_on_classical_io_channels(self):
+        """Test padding does not apply to classical IO channels."""
+        delay = 10
+        sched = (
+            Delay(delay, MemorySlot(0)).shift(20)
+            + Delay(delay, RegisterSlot(0)).shift(10)
+            + Delay(delay, SnapshotChannel())
+        )
+
+        ref_sched = (
+            Delay(delay, MemorySlot(0)).shift(20)
+            + Delay(delay, RegisterSlot(0)).shift(10)
+            + Delay(delay, SnapshotChannel())
+        )
+
+        self.assertEqual(transforms.pad(sched, until=15), ref_sched)
 
 
 def get_pulse_ids(schedules: List[Schedule]) -> Set[int]:

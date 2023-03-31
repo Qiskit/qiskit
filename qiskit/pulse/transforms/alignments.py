@@ -12,24 +12,23 @@
 """A collection of passes to reallocate the timeslots of instructions according to context."""
 
 import abc
-from typing import Callable, Dict, Any, Union
+from typing import Callable, Dict, Any, Union, Tuple
 
 import numpy as np
 
-from qiskit.circuit.parameterexpression import ParameterExpression
+from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
 from qiskit.pulse.exceptions import PulseError
 from qiskit.pulse.schedule import Schedule, ScheduleComponent
 from qiskit.pulse.utils import instruction_duration_validation
+from qiskit.utils.deprecation import deprecate_func
 
 
 class AlignmentKind(abc.ABC):
     """An abstract class for schedule alignment."""
 
-    is_sequential = None
-
-    def __init__(self):
+    def __init__(self, context_params: Tuple[ParameterValueType, ...]):
         """Create new context."""
-        self._context_params = tuple()
+        self._context_params = tuple(context_params)
 
     @abc.abstractmethod
     def align(self, schedule: Schedule) -> Schedule:
@@ -46,20 +45,52 @@ class AlignmentKind(abc.ABC):
         """
         pass
 
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"alignment": self.__class__.__name__}
 
+    @property
+    @abc.abstractmethod
+    def is_sequential(self) -> bool:
+        """Return ``True`` if this is sequential alignment context.
+
+        This information is used to evaluate DAG equivalency of two :class:`.ScheduleBlock`s.
+        When the context has two pulses in different channels,
+        a sequential context subtype intends to return following scheduling outcome.
+
+        .. parsed-literal::
+
+                ┌────────┐
+            D0: ┤ pulse1 ├────────────
+                └────────┘  ┌────────┐
+            D1: ────────────┤ pulse2 ├
+                            └────────┘
+
+        On the other hand, parallel context with ``is_sequential=False`` returns
+
+        .. parsed-literal::
+
+                ┌────────┐
+            D0: ┤ pulse1 ├
+                ├────────┤
+            D1: ┤ pulse2 ├
+                └────────┘
+
+        All subclasses must implement this method according to scheduling strategy.
+        """
+        pass
+
     def __eq__(self, other):
         """Check equality of two transforms."""
-        return isinstance(other, type(self)) and self.to_dict() == other.to_dict()
+        if type(self) is not type(other):
+            return False
+        if self._context_params != other._context_params:
+            return False
+        return True
 
     def __repr__(self):
-        name = self.__class__.__name__
-        opts = self.to_dict()
-        opts.pop("alignment")
-        opts_str = ", ".join(f"{key}={val}" for key, val in opts.items())
-        return f"{name}({opts_str})"
+        return f"{self.__class__.__name__}({', '.join(self._context_params)})"
 
 
 class AlignLeft(AlignmentKind):
@@ -68,7 +99,13 @@ class AlignLeft(AlignmentKind):
     Instructions are placed at earliest available timeslots.
     """
 
-    is_sequential = False
+    def __init__(self):
+        """Create new left-justified context."""
+        super().__init__(context_params=())
+
+    @property
+    def is_sequential(self) -> bool:
+        return False
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -129,7 +166,13 @@ class AlignRight(AlignmentKind):
     Instructions are placed at latest available timeslots.
     """
 
-    is_sequential = False
+    def __init__(self):
+        """Create new right-justified context."""
+        super().__init__(context_params=())
+
+    @property
+    def is_sequential(self) -> bool:
+        return False
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -192,7 +235,13 @@ class AlignSequential(AlignmentKind):
     No buffer time is inserted in between instructions.
     """
 
-    is_sequential = True
+    def __init__(self):
+        """Create new sequential context."""
+        super().__init__(context_params=())
+
+    @property
+    def is_sequential(self) -> bool:
+        return True
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -220,8 +269,6 @@ class AlignEquispaced(AlignmentKind):
     This alignment is convenient to create dynamical decoupling sequences such as PDD.
     """
 
-    is_sequential = True
-
     def __init__(self, duration: Union[int, ParameterExpression]):
         """Create new equispaced context.
 
@@ -231,9 +278,11 @@ class AlignEquispaced(AlignmentKind):
                 no alignment is performed and the input schedule is just returned.
                 This duration can be parametrized.
         """
-        super().__init__()
+        super().__init__(context_params=(duration,))
 
-        self._context_params = (duration,)
+    @property
+    def is_sequential(self) -> bool:
+        return True
 
     @property
     def duration(self):
@@ -281,6 +330,7 @@ class AlignEquispaced(AlignmentKind):
 
         return aligned
 
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment."""
         return {"alignment": self.__class__.__name__, "duration": self.duration}
@@ -301,9 +351,13 @@ class AlignFunc(AlignmentKind):
 
         def udd10_pos(j):
         return np.sin(np.pi*j/(2*10 + 2))**2
-    """
 
-    is_sequential = True
+    .. note::
+
+        This context cannot be QPY serialized because of the callable. If you use this context,
+        your program cannot be saved in QPY format.
+
+    """
 
     def __init__(self, duration: Union[int, ParameterExpression], func: Callable):
         """Create new equispaced context.
@@ -317,15 +371,21 @@ class AlignFunc(AlignmentKind):
                 fractional coordinate of of that sub-schedule. The returned value should be
                 defined within [0, 1]. The pulse index starts from 1.
         """
-        super().__init__()
+        super().__init__(context_params=(duration, func))
 
-        self._context_params = (duration,)
-        self._func = func
+    @property
+    def is_sequential(self) -> bool:
+        return True
 
     @property
     def duration(self):
         """Return context duration."""
         return self._context_params[0]
+
+    @property
+    def func(self):
+        """Return context alignment function."""
+        return self._context_params[1]
 
     def align(self, schedule: Schedule) -> Schedule:
         """Reallocate instructions according to the policy.
@@ -346,7 +406,7 @@ class AlignFunc(AlignmentKind):
 
         aligned = Schedule.initialize_from(schedule)
         for ind, (_, child) in enumerate(schedule.children):
-            _t_center = self.duration * self._func(ind + 1)
+            _t_center = self.duration * self.func(ind + 1)
             _t0 = int(_t_center - 0.5 * child.duration)
             if _t0 < 0 or _t0 > self.duration:
                 PulseError("Invalid schedule position t=%d is specified at index=%d" % (_t0, ind))
@@ -354,6 +414,7 @@ class AlignFunc(AlignmentKind):
 
         return aligned
 
+    @deprecate_func(since="0.21")
     def to_dict(self) -> Dict[str, Any]:
         """Returns dictionary to represent this alignment.
 
@@ -361,6 +422,6 @@ class AlignFunc(AlignmentKind):
         """
         return {
             "alignment": self.__class__.__name__,
-            "duration": self._context_params[0],
-            "func": self._func.__name__,
+            "duration": self.duration,
+            "func": self.func.__name__,
         }

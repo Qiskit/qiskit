@@ -12,15 +12,19 @@
 
 """Tests for quantum synthesis methods."""
 
+import pickle
 import unittest
 import contextlib
 import logging
+import math
 from test import combine
 
-from ddt import ddt
 import numpy as np
+import scipy
+import scipy.stats
+from ddt import ddt, data
 
-from qiskit import execute, QiskitError
+from qiskit import execute, QiskitError, transpile
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.converters import dag_to_circuit, circuit_to_dag
 from qiskit.extensions import UnitaryGate
@@ -69,9 +73,11 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     TwoQubitControlledUDecomposer,
     Ud,
     decompose_two_qubit_product_gate,
+    TwoQubitDecomposeUpToDiagonal,
 )
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
+import qiskit.quantum_info.synthesis.qsd as qsd
 from qiskit.test import QiskitTestCase
 
 
@@ -96,14 +102,14 @@ ONEQ_CLIFFORDS = make_oneq_cliffords()
 def make_hard_thetas_oneq(smallest=1e-18, factor=3.2, steps=22, phi=0.7, lam=0.9):
     """Make 1q gates with theta/2 close to 0, pi/2, pi, 3pi/2"""
     return (
-        [U3Gate(smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(-smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(np.pi / 2 + smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(np.pi / 2 - smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(np.pi + smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(np.pi - smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(3 * np.pi / 2 + smallest * factor ** i, phi, lam) for i in range(steps)]
-        + [U3Gate(3 * np.pi / 2 - smallest * factor ** i, phi, lam) for i in range(steps)]
+        [U3Gate(smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(-smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(np.pi / 2 + smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(np.pi / 2 - smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(np.pi + smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(np.pi - smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(3 * np.pi / 2 + smallest * factor**i, phi, lam) for i in range(steps)]
+        + [U3Gate(3 * np.pi / 2 - smallest * factor**i, phi, lam) for i in range(steps)]
     )
 
 
@@ -173,6 +179,28 @@ class CheckDecompositions(QiskitTestCase):
         self.assertEqual(maxdiff, 0, msg=f"K2r matrix differs by {maxdiff}" + msg_base)
         self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
 
+    def assertRoundTripPickle(self, weyl1: TwoQubitWeylDecomposition):
+        """Fail if loads(dumps(weyl1)) not equal to weyl1"""
+
+        pkl = pickle.dumps(weyl1, protocol=max(4, pickle.DEFAULT_PROTOCOL))
+        weyl2 = pickle.loads(pkl)
+        msg_base = f"weyl1:\n{weyl1}\nweyl2:\n{repr(weyl2)}"
+        self.assertEqual(type(weyl1), type(weyl2), msg_base)
+        maxdiff = np.max(abs(weyl1.unitary_matrix - weyl2.unitary_matrix))
+        self.assertEqual(maxdiff, 0, msg=f"Unitary matrix differs by {maxdiff}\n" + msg_base)
+        self.assertEqual(weyl1.a, weyl2.a, msg=msg_base)
+        self.assertEqual(weyl1.b, weyl2.b, msg=msg_base)
+        self.assertEqual(weyl1.c, weyl2.c, msg=msg_base)
+        maxdiff = np.max(np.abs(weyl1.K1l - weyl2.K1l))
+        self.assertEqual(maxdiff, 0, msg=f"K1l matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K1r - weyl2.K1r))
+        self.assertEqual(maxdiff, 0, msg=f"K1r matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K2l - weyl2.K2l))
+        self.assertEqual(maxdiff, 0, msg=f"K2l matrix differs by {maxdiff}" + msg_base)
+        maxdiff = np.max(np.abs(weyl1.K2r - weyl2.K2r))
+        self.assertEqual(maxdiff, 0, msg=f"K2r matrix differs by {maxdiff}" + msg_base)
+        self.assertEqual(weyl1.requested_fidelity, weyl2.requested_fidelity, msg_base)
+
     def check_two_qubit_weyl_decomposition(self, target_unitary, tolerance=1.0e-12):
         """Check TwoQubitWeylDecomposition() works for a given operator"""
         # pylint: disable=invalid-name
@@ -207,6 +235,7 @@ class CheckDecompositions(QiskitTestCase):
             with self.assertDebugOnly():
                 decomp = decomposer(target_unitary, fidelity=fidelity)
             self.assertRoundTrip(decomp)
+            self.assertRoundTripPickle(decomp)
             self.assertEqual(
                 np.max(np.abs(decomp.unitary_matrix - target_unitary)),
                 0,
@@ -228,6 +257,7 @@ class CheckDecompositions(QiskitTestCase):
         with self.assertDebugOnly():
             decomp2 = expected_specialization(target_unitary, fidelity=None)  # Shouldn't raise
         self.assertRoundTrip(decomp2)
+        self.assertRoundTripPickle(decomp2)
         if expected_specialization is not TwoQubitWeylGeneral:
             with self.assertRaises(QiskitError) as exc:
                 _ = expected_specialization(target_unitary, fidelity=1.0)
@@ -349,14 +379,14 @@ class TestOneQubitEulerSpecial(CheckDecompositions):
         """Check OneQubitEulerDecomposer produces the expected gates"""
         decomposer = OneQubitEulerDecomposer(basis)
         circ = decomposer(target, simplify=True)
-        data = Operator(circ).data
-        maxdist = np.max(np.abs(target.data - data))
-        trace = np.trace(data.T.conj() @ target)
+        cdata = Operator(circ).data
+        maxdist = np.max(np.abs(target.data - cdata))
+        trace = np.trace(cdata.T.conj() @ target)
         self.assertLess(
             np.abs(maxdist),
             tolerance,
             f"Worst case distance: {maxdist}, trace: {trace}\n"
-            f"Target:\n{target}\nActual:\n{data}\n{circ}",
+            f"Target:\n{target}\nActual:\n{cdata}\n{circ}",
         )
         if expected_gates is not None:
             self.assertDictEqual(dict(circ.count_ops()), expected_gates, f"Circuit:\n{circ}")
@@ -561,6 +591,44 @@ class TestOneQubitEulerDecomposer(CheckDecompositions):
             self.assertTrue(np.allclose(unitary, Operator(qc_zsx).data))
             self.assertTrue(np.allclose(unitary, Operator(qc_zsxx).data))
 
+    def test_float_input_angles_and_phase(self):
+        """Test angles and phase with float input."""
+        decomposer = OneQubitEulerDecomposer("PSX")
+        input_matrix = np.array(
+            [
+                [0.70710678, 0.70710678],
+                [0.70710678, -0.70710678],
+            ],
+            dtype=np.float64,
+        )
+        (theta, phi, lam, gamma) = decomposer.angles_and_phase(input_matrix)
+        expected_theta = 1.5707963267948966
+        expected_phi = 0.0
+        expected_lam = 3.141592653589793
+        expected_gamma = -0.7853981633974483
+        self.assertAlmostEqual(theta, expected_theta)
+        self.assertAlmostEqual(phi, expected_phi)
+        self.assertAlmostEqual(lam, expected_lam)
+        self.assertAlmostEqual(gamma, expected_gamma)
+
+    def test_float_input_angles(self):
+        """Test angles with float input."""
+        decomposer = OneQubitEulerDecomposer("PSX")
+        input_matrix = np.array(
+            [
+                [0.70710678, 0.70710678],
+                [0.70710678, -0.70710678],
+            ],
+            dtype=np.float64,
+        )
+        (theta, phi, lam) = decomposer.angles(input_matrix)
+        expected_theta = 1.5707963267948966
+        expected_phi = 0.0
+        expected_lam = 3.141592653589793
+        self.assertAlmostEqual(theta, expected_theta)
+        self.assertAlmostEqual(phi, expected_phi)
+        self.assertAlmostEqual(lam, expected_lam)
+
 
 # FIXME: streamline the set of test cases
 class TestTwoQubitWeylDecomposition(CheckDecompositions):
@@ -571,6 +639,12 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
         target = random_unitary(4, seed=seed)
         weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
         self.assertRoundTrip(weyl1)
+
+    def test_TwoQubitWeylDecomposition_pickle(self, seed=42):
+        """Check that loads(dumps()) is exact round trip"""
+        target = random_unitary(4, seed=seed)
+        weyl1 = TwoQubitWeylDecomposition(target, fidelity=0.99)
+        self.assertRoundTripPickle(weyl1)
 
     def test_two_qubit_weyl_decomposition_cnot(self):
         """Verify Weyl KAK decomposition for U~CNOT"""
@@ -607,8 +681,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_a00(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,0,0)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for k1l, k1r, k2l, k2r in K1K2S:
@@ -620,8 +694,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_aa0(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,a,0)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for k1l, k1r, k2l, k2r in K1K2S:
@@ -633,8 +707,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_aaa(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,a,a)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for k1l, k1r, k2l, k2r in K1K2S:
@@ -646,8 +720,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_aama(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,a,-a)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for k1l, k1r, k2l, k2r in K1K2S:
@@ -659,8 +733,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_ab0(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,b,0)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for bbb in np.linspace(0, aaa, 10):
@@ -673,8 +747,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_abb(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,b,b)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for bbb in np.linspace(0, aaa, 6):
@@ -687,8 +761,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_abmb(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,b,-b)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for bbb in np.linspace(0, aaa, 6):
@@ -701,8 +775,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_aac(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,a,c)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for ccc in np.linspace(-aaa, aaa, 6):
@@ -715,8 +789,8 @@ class TestTwoQubitWeylDecomposition(CheckDecompositions):
     def test_two_qubit_weyl_decomposition_abc(self, smallest=1e-18, factor=9.8, steps=11):
         """Verify Weyl KAK decomposition for U~Ud(a,b,c)"""
         for aaa in (
-            [smallest * factor ** i for i in range(steps)]
-            + [np.pi / 4 - smallest * factor ** i for i in range(steps)]
+            [smallest * factor**i for i in range(steps)]
+            + [np.pi / 4 - smallest * factor**i for i in range(steps)]
             + [np.pi / 8, 0.113 * np.pi, 0.1972 * np.pi]
         ):
             for bbb in np.linspace(0, aaa, 4):
@@ -1358,6 +1432,273 @@ class TestDecomposeProductRaises(QiskitTestCase):
         with self.assertRaises(QiskitError) as exc:
             decompose_two_qubit_product_gate(klkr)
         self.assertIn("decomposition failed", exc.exception.message)
+
+
+@ddt
+class TestQuantumShannonDecomposer(QiskitTestCase):
+    """
+    Test Quantum Shannon Decomposition.
+    """
+
+    def setUp(self):
+        super().setUp()
+        np.random.seed(657)  # this seed should work for calls to scipy.stats.<method>.rvs()
+        self.qsd = qsd.qs_decomposition
+
+    def _get_lower_cx_bound(self, n):
+        return 1 / 4 * (4**n - 3 * n - 1)
+
+    def _qsd_l2_cx_count(self, n):
+        """expected unoptimized cnot count for down to 2q"""
+        return 9 / 16 * 4**n - 3 / 2 * 2**n
+
+    def _qsd_l2_a1_mod(self, n):
+        return (4 ** (n - 2) - 1) // 3
+
+    def _qsd_l2_a2_mod(self, n):
+        return 4 ** (n - 1) - 1
+
+    @data(*list(range(1, 5)))
+    def test_random_decomposition_l2_no_opt(self, nqubits):
+        """test decomposition of random SU(n) down to 2 qubits without optimizations."""
+        dim = 2**nqubits
+        mat = scipy.stats.unitary_group.rvs(dim, random_state=1559)
+        circ = self.qsd(mat, opt_a1=False, opt_a2=False)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        if nqubits > 1:
+            self.assertLessEqual(ccirc.count_ops().get("cx"), self._qsd_l2_cx_count(nqubits))
+        else:
+            self.assertEqual(sum(ccirc.count_ops().values()), 1)
+
+    @data(*list(range(1, 5)))
+    def test_random_decomposition_l2_a1_opt(self, nqubits):
+        """test decomposition of random SU(n) down to 2 qubits with 'a1' optimization."""
+        dim = 2**nqubits
+        mat = scipy.stats.unitary_group.rvs(dim, random_state=789)
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        if nqubits > 1:
+            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
+            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
+
+    def test_SO3_decomposition_l2_a1_opt(self):
+        """test decomposition of random So(3) down to 2 qubits with 'a1' optimization."""
+        nqubits = 3
+        dim = 2**nqubits
+        mat = scipy.stats.ortho_group.rvs(dim)
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
+        self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
+
+    def test_identity_decomposition(self):
+        """Test decomposition on identity matrix"""
+        nqubits = 3
+        dim = 2**nqubits
+        mat = np.identity(dim)
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        self.assertTrue(np.allclose(mat, Operator(circ).data))
+        self.assertEqual(sum(circ.count_ops().values()), 0)
+
+    @data(*list(range(1, 4)))
+    def test_diagonal(self, nqubits):
+        """Test decomposition on diagonal -- qsd is not optimal"""
+        dim = 2**nqubits
+        mat = np.diag(np.exp(1j * np.random.normal(size=dim)))
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        if nqubits > 1:
+            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
+            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
+
+    @data(*list(range(2, 4)))
+    def test_hermitian(self, nqubits):
+        """Test decomposition on hermitian -- qsd is not optimal"""
+        # better might be (arXiv:1405.6741)
+        dim = 2**nqubits
+        umat = scipy.stats.unitary_group.rvs(dim, random_state=750)
+        dmat = np.diag(np.exp(1j * np.random.normal(size=dim)))
+        mat = umat.T.conjugate() @ dmat @ umat
+        circ = self.qsd(mat, opt_a1=True, opt_a2=False)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(np.allclose(mat, Operator(ccirc).data))
+        if nqubits > 1:
+            expected_cx = self._qsd_l2_cx_count(nqubits) - self._qsd_l2_a1_mod(nqubits)
+            self.assertLessEqual(ccirc.count_ops().get("cx"), expected_cx)
+
+    @data(*list(range(3, 6)))
+    def test_opt_a1a2(self, nqubits):
+        """Test decomposition with both optimization a1 and a2 from shende2006"""
+        dim = 2**nqubits
+        umat = scipy.stats.unitary_group.rvs(dim, random_state=1224)
+        circ = self.qsd(umat, opt_a1=True, opt_a2=True)
+        ccirc = transpile(circ, basis_gates=["u", "cx"], optimization_level=0)
+        self.assertTrue(Operator(umat) == Operator(ccirc))
+        self.assertEqual(
+            ccirc.count_ops().get("cx"), (23 / 48) * 4**nqubits - (3 / 2) * 2**nqubits + 4 / 3
+        )
+
+
+class TestTwoQubitDecomposeUpToDiagonal(QiskitTestCase):
+    """test TwoQubitDecomposeUpToDiagonal class"""
+
+    def test_prop31(self):
+        """test proposition III.1: no CNOTs needed"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        # test identity
+        mat = np.identity(4)
+        self.assertTrue(dec._cx0_test(mat))
+
+        sz = np.array([[1, 0], [0, -1]])
+        zz = np.kron(sz, sz)
+        self.assertTrue(dec._cx0_test(zz))
+
+        had = np.matrix([[1, 1], [1, -1]]) / np.sqrt(2)
+        hh = np.kron(had, had)
+        self.assertTrue(dec._cx0_test(hh))
+
+        sy = np.array([[0, -1j], [1j, 0]])
+        hy = np.kron(had, sy)
+        self.assertTrue(dec._cx0_test(hy))
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        self.assertFalse(dec._cx0_test(Operator(qc).data))
+
+    def test_prop32_true(self):
+        """test proposition III.2: 1 CNOT sufficient"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        qc = QuantumCircuit(2)
+        qc.ry(np.pi / 4, 0)
+        qc.ry(np.pi / 3, 1)
+        qc.cx(0, 1)
+        qc.ry(np.pi / 4, 0)
+        qc.y(1)
+        mat = Operator(qc).data
+        self.assertTrue(dec._cx1_test(mat))
+
+        qc = QuantumCircuit(2)
+        qc.ry(np.pi / 5, 0)
+        qc.ry(np.pi / 3, 1)
+        qc.cx(1, 0)
+        qc.ry(np.pi / 2, 0)
+        qc.y(1)
+        mat = Operator(qc).data
+        self.assertTrue(dec._cx1_test(mat))
+
+        # this SU4 is non-local
+        mat = scipy.stats.unitary_group.rvs(4, random_state=84)
+        self.assertFalse(dec._cx1_test(mat))
+
+    def test_prop32_false(self):
+        """test proposition III.2: 1 CNOT not sufficient"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        qc = QuantumCircuit(2)
+        qc.ry(np.pi / 4, 0)
+        qc.ry(np.pi / 3, 1)
+        qc.cx(0, 1)
+        qc.ry(np.pi / 4, 0)
+        qc.y(1)
+        qc.cx(0, 1)
+        qc.ry(np.pi / 3, 0)
+        qc.rx(np.pi / 2, 1)
+        mat = Operator(qc).data
+        self.assertFalse(dec._cx1_test(mat))
+
+    def test_prop33_true(self):
+        """test proposition III.3: 2 CNOT sufficient"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        qc = QuantumCircuit(2)
+        qc.rx(np.pi / 4, 0)
+        qc.ry(np.pi / 2, 1)
+        qc.cx(0, 1)
+        qc.rx(np.pi / 4, 0)
+        qc.ry(np.pi / 2, 1)
+        qc.cx(0, 1)
+        qc.rx(np.pi / 4, 0)
+        qc.y(1)
+        mat = Operator(qc).data
+        self.assertTrue(dec._cx2_test(mat))
+
+    def test_prop33_false(self):
+        """test whether circuit which requires 3 cx fails 2 cx test"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        qc = QuantumCircuit(2)
+        qc.u(0.1, 0.2, 0.3, 0)
+        qc.u(0.4, 0.5, 0.6, 1)
+        qc.cx(0, 1)
+        qc.u(0.1, 0.2, 0.3, 0)
+        qc.u(0.4, 0.5, 0.6, 1)
+        qc.cx(0, 1)
+        qc.u(0.5, 0.2, 0.3, 0)
+        qc.u(0.2, 0.4, 0.1, 1)
+        qc.cx(1, 0)
+        qc.u(0.1, 0.2, 0.3, 0)
+        qc.u(0.4, 0.5, 0.6, 1)
+        mat = Operator(qc).data
+        self.assertFalse(dec._cx2_test(mat))
+
+    def test_ortho_local_map(self):
+        """test map of SO4 to SU2⊗SU2"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        emap = np.array([[1, 1j, 0, 0], [0, 0, 1j, 1], [0, 0, 1j, -1], [1, -1j, 0, 0]]) / math.sqrt(
+            2
+        )
+        so4 = scipy.stats.ortho_group.rvs(4, random_state=284)
+        sy = np.array([[0, -1j], [1j, 0]])
+        self.assertTrue(np.allclose(-np.kron(sy, sy), emap @ emap.T))
+        self.assertFalse(dec._cx0_test(so4))
+        self.assertTrue(dec._cx0_test(emap @ so4 @ emap.T.conj()))
+
+    def test_ortho_local_map2(self):
+        """test map of SO4 to SU2⊗SU2"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        emap = np.array([[1, 0, 0, 1j], [0, 1j, 1, 0], [0, 1j, -1, 0], [1, 0, 0, -1j]]) / math.sqrt(
+            2
+        )
+        so4 = scipy.stats.ortho_group.rvs(4, random_state=284)
+        sy = np.array([[0, -1j], [1j, 0]])
+        self.assertTrue(np.allclose(-np.kron(sy, sy), emap @ emap.T))
+        self.assertFalse(dec._cx0_test(so4))
+        self.assertTrue(dec._cx0_test(emap @ so4 @ emap.T.conj()))
+
+    def test_real_trace_transform(self):
+        """test finding diagonal factor of unitary"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        u4 = scipy.stats.unitary_group.rvs(4, random_state=83)
+        su4, _ = dec._u4_to_su4(u4)
+        real_map = dec._real_trace_transform(su4)
+        self.assertTrue(dec._cx2_test(real_map @ su4))
+
+    def test_call_decompose(self):
+        """
+        test __call__ method to decompose
+        """
+        dec = TwoQubitDecomposeUpToDiagonal()
+        u4 = scipy.stats.unitary_group.rvs(4, random_state=47)
+        dmat, circ2cx = dec(u4)
+        dec_diag = dmat @ Operator(circ2cx).data
+        self.assertTrue(Operator(u4) == Operator(dec_diag))
+
+    def test_circuit_decompose(self):
+        """test applying decomposed gates as circuit elements"""
+        dec = TwoQubitDecomposeUpToDiagonal()
+        u4 = scipy.stats.unitary_group.rvs(4, random_state=47)
+        dmat, circ2cx = dec(u4)
+
+        qc1 = QuantumCircuit(2)
+        qc1.append(UnitaryGate(u4), range(2))
+
+        qc2 = QuantumCircuit(2)
+        qc2.compose(circ2cx, range(2), front=False, inplace=True)
+        qc2.append(UnitaryGate(dmat), range(2))
+
+        self.assertEqual(Operator(u4), Operator(qc1))
+        self.assertEqual(Operator(qc1), Operator(qc2))
 
 
 if __name__ == "__main__":

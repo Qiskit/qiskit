@@ -15,10 +15,10 @@
 import copy
 import pprint
 from types import SimpleNamespace
-
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.qobj.pulse_qobj import PulseQobjInstruction, PulseLibraryItem
 from qiskit.qobj.common import QobjDictField, QobjHeader
+from qiskit.utils.deprecation import deprecate_arg
 
 
 class QasmQobjInstruction:
@@ -279,6 +279,14 @@ class QasmQobjExperiment:
 class QasmQobjConfig(SimpleNamespace):
     """A configuration for a QASM Qobj."""
 
+    @deprecate_arg(
+        "max_credits",
+        since="0.20.0",
+        additional_msg=(
+            "This argument has no effect on modern IBM Quantum systems, and no alternative is"
+            "necessary."
+        ),
+    )
     def __init__(
         self,
         shots=None,
@@ -301,7 +309,9 @@ class QasmQobjConfig(SimpleNamespace):
 
         Args:
             shots (int): the number of shots.
-            max_credits (int): the max_credits to use on the IBMQ public devices.
+            max_credits (int): DEPRECATED This parameter is deprecated as of
+                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
+                no effect on modern IBM Quantum systems, and no alternative is necessary.
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend (per-shot readouts)
             parameter_binds (list[dict]): List of parameter bindings

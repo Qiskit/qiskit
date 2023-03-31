@@ -10,10 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,import-error
+# pylint: disable=no-name-in-module
 
 
-""" Test Operator construction, including OpPrimitives and singletons. """
+"""Test Operator construction, including OpPrimitives and singletons."""
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
@@ -24,6 +24,7 @@ from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.utils import QuantumInstance
 from qiskit.opflow import StateFn, Zero, One, H, X, I, Z, Plus, Minus, CircuitSampler, ListOp
 from qiskit.opflow.exceptions import OpflowError
+from qiskit.quantum_info import Statevector
 
 
 @ddt
@@ -42,7 +43,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
     def test_wf_evals_x(self):
         """wf evals x test"""
         qbits = 4
-        wf = ((Zero ^ qbits) + (One ^ qbits)) * (1 / 2 ** 0.5)
+        wf = ((Zero ^ qbits) + (One ^ qbits)) * (1 / 2**0.5)
         # Note: wf = Plus^qbits fails because TensoredOp can't handle it.
         wf_vec = StateFn(wf.to_matrix())
         op = X ^ qbits
@@ -54,7 +55,7 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
 
         # op = (H^X^Y)^2
         op = H ^ 6
-        wf = ((Zero ^ 6) + (One ^ 6)) * (1 / 2 ** 0.5)
+        wf = ((Zero ^ 6) + (One ^ 6)) * (1 / 2**0.5)
         wf_vec = StateFn(wf.to_matrix())
         # print(wf.adjoint().to_matrix() @ op.to_matrix() @ wf.to_matrix())
         self.assertAlmostEqual(wf.adjoint().eval(op.eval(wf)), 0.25)
@@ -216,6 +217,18 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         sampler = CircuitSampler(backend)
         res = sampler.convert(~Plus @ Plus).eval()
         self.assertAlmostEqual(res, 1 + 0j, places=2)
+
+    def test_adjoint_vector_to_circuit_fn(self):
+        """Test it is possible to adjoint a VectorStateFn that was converted to a CircuitStateFn."""
+        left = StateFn([0, 1])
+        left_circuit = left.to_circuit_op().primitive
+
+        right_circuit = QuantumCircuit(1)
+        right_circuit.x(0)
+
+        circuit = left_circuit.inverse().compose(right_circuit)
+
+        self.assertTrue(Statevector(circuit).equiv([1, 0]))
 
 
 if __name__ == "__main__":

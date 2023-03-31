@@ -124,7 +124,7 @@ class QasmLexer:
         return t
 
     def t_STRING(self, t):
-        r"\"([^\\\"]|\\.)*\" "
+        r"\"([^\\\"]|\\.)*\""  # fmt: skip
         return t
 
     def t_INCLUDE(self, _):
@@ -160,7 +160,7 @@ class QasmLexer:
         return self.lexer.token()
 
     def t_FORMAT(self, t):
-        r"OPENQASM\s+(\d+)\.(\d+)"
+        r"OPENQASM\s+[0-9]+(\.[0-9]+)?"
         return t
 
     def t_COMMENT(self, _):

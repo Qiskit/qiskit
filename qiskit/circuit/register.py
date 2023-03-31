@@ -15,21 +15,45 @@
 """
 Base register reference object.
 """
+
+from __future__ import annotations
 import re
 import itertools
+import warnings
 import numpy as np
 
 from qiskit.circuit.exceptions import CircuitError
 
 
+class _NameFormat:
+    REGEX = re.compile("[a-z][a-zA-Z0-9_]*")
+
+    def __get__(self, obj, objtype=None):
+        warnings.warn(
+            "Register.name_format is deprecated as of Qiskit Terra 0.23, and will be removed in a"
+            " future release. There is no longer a restriction on the names of registers, so the"
+            " attribute has no meaning any more.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.REGEX
+
+
 class Register:
-    """Implement a generic register."""
+    """Implement a generic register.
+
+    .. note::
+        This class should not be instantiated directly. This is just a superclass
+        for :class:`~.ClassicalRegister` and :class:`~.QuantumRegister`.
+
+    """
 
     __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
 
-    # Register name should conform to OpenQASM 2.0 specification
-    # See appendix A of https://arxiv.org/pdf/1707.03429v2.pdf
-    name_format = re.compile("[a-z][a-zA-Z0-9_]*")
+    # In historical version of Terra, registers' name had to conform to the OpenQASM 2 specification
+    # (see appendix A of https://arxiv.org/pdf/1707.03429v2.pdf), and this regex enforced it.  That
+    # restriction has been relaxed, so this is no longer necessary.
+    name_format = _NameFormat()
 
     # Counter for the number of instances in this class.
     instances_counter = itertools.count()
@@ -37,7 +61,7 @@ class Register:
     prefix = "reg"
     bit_type = None
 
-    def __init__(self, size=None, name=None, bits=None):
+    def __init__(self, size: int | None = None, name: str | None = None, bits=None):
         """Create a new generic register.
 
         Either the ``size`` or the ``bits`` argument must be provided. If
@@ -57,6 +81,7 @@ class Register:
             CircuitError: if ``size`` is not valid.
             CircuitError: if ``name`` is not a valid name according to the
                 OpenQASM spec.
+            CircuitError: if ``bits`` contained duplicated bits.
             CircuitError: if ``bits`` contained bits of an incorrect type.
         """
 
@@ -99,11 +124,6 @@ class Register:
                     "The circuit name should be castable to a string "
                     "(or None for autogenerate a name)."
                 ) from ex
-            if self.name_format.match(name) is None:
-                raise CircuitError(
-                    "%s is an invalid OPENQASM register name. See appendix"
-                    " A of https://arxiv.org/pdf/1707.03429v2.pdf." % name
-                )
 
         self._name = name
         self._size = size
@@ -111,6 +131,9 @@ class Register:
         self._hash = hash((type(self), self._name, self._size))
         self._repr = "%s(%d, '%s')" % (self.__class__.__qualname__, self.size, self.name)
         if bits is not None:
+            # check duplicated bits
+            if self._size != len(set(bits)):
+                raise CircuitError(f"Register bits must not be duplicated. bits={bits}")
             # pylint: disable=isinstance-second-argument-not-valid-type
             if any(not isinstance(bit, self.bit_type) for bit in bits):
                 raise CircuitError(f"Provided bits did not all match register type. bits={bits}")

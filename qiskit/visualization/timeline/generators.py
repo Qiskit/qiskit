@@ -227,11 +227,11 @@ def gen_full_gate_name(
         "ha": "center",
     }
     # find latex representation
-    default_name = fr"{{\rm {gate.operand.name}}}"
+    default_name = rf"{{\rm {gate.operand.name}}}"
     latex_name = formatter["latex_symbol.gates"].get(gate.operand.name, default_name)
 
     label_plain = f"{gate.operand.name}"
-    label_latex = fr"{latex_name}"
+    label_latex = rf"{latex_name}"
 
     # bit index
     with warnings.catch_warnings():
@@ -313,7 +313,7 @@ def gen_short_gate_name(
         "ha": "center",
     }
     # find latex representation
-    default_name = fr"{{\rm {gate.operand.name}}}"
+    default_name = rf"{{\rm {gate.operand.name}}}"
     latex_name = formatter["latex_symbol.gates"].get(gate.operand.name, default_name)
 
     label_plain = f"{gate.operand.name}"

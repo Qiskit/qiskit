@@ -20,7 +20,7 @@ from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeTenerife, FakeRueschlikon
+from qiskit.providers.fake_provider import FakeTenerife, FakeRueschlikon
 
 
 class TestTrivialLayout(QiskitTestCase):

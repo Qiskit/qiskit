@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" VectorStateFn Class """
+"""VectorStateFn Class"""
 
 
 from typing import Dict, List, Optional, Set, Union, cast
@@ -130,7 +130,7 @@ class VectorStateFn(StateFn):
         return DictStateFn(new_dict, coeff=self.coeff, is_measurement=self.is_measurement)
 
     def _expand_dim(self, num_qubits: int) -> "VectorStateFn":
-        primitive = np.zeros(2 ** num_qubits, dtype=complex)
+        primitive = np.zeros(2**num_qubits, dtype=complex)
         return VectorStateFn(
             self.primitive.tensor(primitive), coeff=self.coeff, is_measurement=self.is_measurement
         )

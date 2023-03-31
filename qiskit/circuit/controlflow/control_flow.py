@@ -12,8 +12,9 @@
 
 "Container to encapsulate all control flow operations."
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Tuple
+from typing import Iterable
 
 from qiskit.circuit import QuantumCircuit, Instruction
 
@@ -23,9 +24,20 @@ class ControlFlowOp(Instruction, ABC):
 
     @property
     @abstractmethod
-    def blocks(self) -> Tuple[QuantumCircuit, ...]:
+    def blocks(self) -> tuple[QuantumCircuit, ...]:
         """Tuple of QuantumCircuits which may be executed as part of the
         execution of this ControlFlowOp. May be parameterized by a loop
         parameter to be resolved at run time.
+        """
+        pass
+
+    @abstractmethod
+    def replace_blocks(self, blocks: Iterable[QuantumCircuit]) -> "ControlFlowOp":
+        """Replace blocks and return new instruction.
+        Args:
+            blocks: Tuple of QuantumCircuits to replace in instruction.
+
+        Returns:
+            New ControlFlowOp with replaced blocks.
         """
         pass

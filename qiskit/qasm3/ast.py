@@ -262,6 +262,24 @@ class Integer(Expression):
     """Integer : Digit+ ;"""
 
 
+class DurationUnit(enum.Enum):
+    """Valid values for the unit of durations."""
+
+    NANOSECOND = "ns"
+    MICROSECOND = "us"
+    MILLISECOND = "ms"
+    SECOND = "s"
+    SAMPLE = "dt"
+
+
+class DurationLiteral(Expression):
+    """Duration literal."""
+
+    def __init__(self, value: float, unit: DurationUnit):
+        self.value = value
+        self.unit = unit
+
+
 class Designator(ASTNode):
     """
     designator
@@ -372,6 +390,14 @@ class QuantumReset(QuantumInstruction):
 
     def __init__(self, identifier: Identifier):
         self.identifier = identifier
+
+
+class QuantumDelay(QuantumInstruction):
+    """A built-in ``delay[duration] q0;`` statement."""
+
+    def __init__(self, duration: Expression, qubits: List[Identifier]):
+        self.duration = duration
+        self.qubits = qubits
 
 
 class ProgramBlock(ASTNode):

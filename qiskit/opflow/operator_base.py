@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" OperatorBase Class """
+"""OperatorBase Class"""
 
 import itertools
 from abc import ABC, abstractmethod
@@ -259,7 +259,6 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     # Scalar Multiplication
 
-    # pylint: disable=arguments-differ
     @abstractmethod
     def mul(self, scalar: Union[complex, ParameterExpression]) -> "OperatorBase":
         r"""
@@ -446,7 +445,6 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
 
     # Composition
 
-    # pylint: disable=arguments-differ
     @abstractmethod
     def compose(
         self, other: "OperatorBase", permutation: Optional[List[int]] = None, front: bool = False
@@ -487,7 +485,7 @@ class OperatorBase(StarAlgebraMixin, TensorMixin, ABC):
             ValueError: Massive is False and number of qubits is greater than 16
         """
         if num_qubits > 16 and not massive and not algorithm_globals.massive:
-            dim = 2 ** num_qubits
+            dim = 2**num_qubits
             if matrix:
                 obj_type = "matrix"
                 dimensions = f"{dim}x{dim}"

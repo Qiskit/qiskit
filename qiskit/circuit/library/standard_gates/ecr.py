@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Two-qubit ZX-rotation gate."""
-
+from math import sqrt
 import numpy as np
 
 from qiskit.circuit.gate import Gate
@@ -21,11 +21,15 @@ from .x import XGate
 
 
 class ECRGate(Gate):
-    r"""An echoed RZX(pi/2) gate implemented using RZX(pi/4) and RZX(-pi/4).
+    r"""An echoed cross-resonance gate.
 
     This gate is maximally entangling and is equivalent to a CNOT up to
     single-qubit pre-rotations. The echoing procedure mitigates some
     unwanted terms (terms other than ZX) to cancel in an experiment.
+    More specifically, this gate implements :math:`\frac{1}{\sqrt{2}}(IX-XY)`.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ecr` method.
 
     **Circuit Symbol:**
 
@@ -99,11 +103,15 @@ class ECRGate(Gate):
 
         self.definition = qc
 
+    def inverse(self):
+        """Return inverse ECR gate (itself)."""
+        return ECRGate()  # self-inverse
+
     def to_matrix(self):
         """Return a numpy.array for the ECR gate."""
         return (
             1
-            / np.sqrt(2)
+            / sqrt(2)
             * np.array(
                 [[0, 1, 0, 1.0j], [1, 0, -1.0j, 0], [0, 1.0j, 0, 1], [-1.0j, 0, 1, 0]],
                 dtype=complex,

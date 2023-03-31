@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    A new transpiler pass :class:`.PadDelay` has been added. This pass fills
+    idle time on the qubit wires with :class:`~.circuit.Delay` instructions.
+    This pass is part of the new workflow for scheduling passes in the
+    transpiler and depends on a scheduling analysis pass (such as
+    :class:`~.ALAPScheduleAnalysis` or :class:`~ASAPScheduleAnalysis`) and
+    any alignment passes (such as :class:`~.ConstrainedReschedule`) to be
+    run prior to :class:`.PadDelay`.

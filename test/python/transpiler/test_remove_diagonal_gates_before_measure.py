@@ -212,6 +212,60 @@ class TesRemoveDiagonalGatesBeforeMeasure(QiskitTestCase):
 
         self.assertEqual(circuit_to_dag(expected), after)
 
+    def test_simple_if_else(self):
+        """Test that the pass recurses into an if-else."""
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+
+        base_test = QuantumCircuit(1, 1)
+        base_test.z(0)
+        base_test.measure(0, 0)
+
+        base_expected = QuantumCircuit(1, 1)
+        base_expected.measure(0, 0)
+
+        test = QuantumCircuit(1, 1)
+        test.if_else(
+            (test.clbits[0], True), base_test.copy(), base_test.copy(), test.qubits, test.clbits
+        )
+
+        expected = QuantumCircuit(1, 1)
+        expected.if_else(
+            (expected.clbits[0], True),
+            base_expected.copy(),
+            base_expected.copy(),
+            expected.qubits,
+            expected.clbits,
+        )
+
+        self.assertEqual(pass_(test), expected)
+
+    def test_nested_control_flow(self):
+        """Test that the pass recurses into nested control flow."""
+        pass_ = RemoveDiagonalGatesBeforeMeasure()
+
+        base_test = QuantumCircuit(2, 1)
+        base_test.cz(0, 1)
+        base_test.measure(0, 0)
+
+        base_expected = QuantumCircuit(2, 1)
+        base_expected.measure(1, 0)
+
+        body_test = QuantumCircuit(2, 1)
+        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, [])
+
+        body_expected = QuantumCircuit(2, 1)
+        body_expected.for_loop((0,), None, base_expected.copy(), body_expected.qubits, [])
+
+        test = QuantumCircuit(2, 1)
+        test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)
+
+        expected = QuantumCircuit(2, 1)
+        expected.while_loop(
+            (expected.clbits[0], True), body_expected, expected.qubits, expected.clbits
+        )
+
+        self.assertEqual(pass_(test), expected)
+
 
 class TesRemoveDiagonalControlGatesBeforeMeasure(QiskitTestCase):
     """Test remove diagonal control gates before measure."""

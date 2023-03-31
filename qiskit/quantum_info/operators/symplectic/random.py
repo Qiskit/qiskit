@@ -16,6 +16,8 @@ Random symplectic operator functions
 import numpy as np
 from numpy.random import default_rng
 
+from qiskit.utils.deprecation import deprecate_func
+
 from .clifford import Clifford
 from .pauli import Pauli
 from .pauli_list import PauliList
@@ -101,8 +103,12 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     return PauliTable(table)
 
 
+@deprecate_func(
+    additional_msg="Instead, use the function ``random_pauli_list``.",
+    since="0.22.0",
+)
 def random_stabilizer_table(num_qubits, size=1, seed=None):
-    """Return a random StabilizerTable.
+    """DEPRECATED: Return a random StabilizerTable.
 
     Args:
         num_qubits (int): the number of qubits.
@@ -188,11 +194,12 @@ def random_clifford(num_qubits, seed=None):
     table[lhs_inds, :] = table[rhs_inds, :]
 
     # Apply table
-    table = np.mod(np.matmul(table1, table), 2).astype(bool)
+    tableau = np.zeros((2 * num_qubits, 2 * num_qubits + 1), dtype=bool)
+    tableau[:, :-1] = np.mod(np.matmul(table1, table), 2)
 
     # Generate random phases
-    phase = rng.integers(2, size=2 * num_qubits).astype(bool)
-    return Clifford(StabilizerTable(table, phase))
+    tableau[:, -1] = rng.integers(2, size=2 * num_qubits)
+    return Clifford(tableau, validate=False)
 
 
 def _sample_qmallows(n, rng=None):

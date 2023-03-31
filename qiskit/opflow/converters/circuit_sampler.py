@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" CircuitSampler Class """
+"""CircuitSampler Class"""
 
 
 import logging
@@ -29,7 +29,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
-from qiskit.providers import Backend, BaseBackend
+from qiskit.providers import Backend
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
 
@@ -53,7 +53,7 @@ class CircuitSampler(ConverterBase):
 
     def __init__(
         self,
-        backend: Union[Backend, BaseBackend, QuantumInstance],
+        backend: Union[Backend, QuantumInstance],
         statevector: Optional[bool] = None,
         param_qobj: bool = False,
         attach_results: bool = False,
@@ -82,8 +82,6 @@ class CircuitSampler(ConverterBase):
         self._statevector = (
             statevector if statevector is not None else self.quantum_instance.is_statevector
         )
-        # Set to False until https://github.com/Qiskit/qiskit-aer/issues/1249 is closed.
-        param_qobj = False
         self._param_qobj = param_qobj
         self._attach_results = attach_results
 
@@ -129,20 +127,17 @@ class CircuitSampler(ConverterBase):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(
-        self, quantum_instance: Union[QuantumInstance, Backend, BaseBackend]
-    ) -> None:
+    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
         """Sets the QuantumInstance.
 
         Raises:
             ValueError: statevector or param_qobj are True when not supported by backend.
         """
-        if isinstance(quantum_instance, (Backend, BaseBackend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
         self._check_quantum_instance_and_modes_consistent()
 
-    # pylint: disable=arguments-differ
     def convert(
         self,
         operator: OperatorBase,
@@ -402,9 +397,9 @@ class CircuitSampler(ConverterBase):
             return float(inst_param.bind(param_mappings))
 
         gate_index = 0
-        for inst, _, _ in circuit.data:
+        for instruction in circuit.data:
             param_index = 0
-            for inst_param in inst.params:
+            for inst_param in instruction.operation.params:
                 val = resolve_param(inst_param)
                 if val is not None:
                     param_key = (gate_index, param_index)

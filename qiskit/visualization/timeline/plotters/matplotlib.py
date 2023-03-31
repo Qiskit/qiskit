@@ -120,7 +120,7 @@ class MplPlotter(BasePlotter):
             elif isinstance(data, drawings.TextData):
                 # text data
                 if data.latex is not None:
-                    s = fr"${data.latex}$"
+                    s = rf"${data.latex}$"
                 else:
                     s = data.text
 

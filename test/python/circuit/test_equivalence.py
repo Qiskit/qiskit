@@ -13,7 +13,10 @@
 
 """Test Qiskit's EquivalenceLibrary class."""
 
+import unittest
 import numpy as np
+
+import rustworkx as rx
 
 from qiskit.test import QiskitTestCase
 
@@ -21,8 +24,11 @@ from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import U2Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
-
 from qiskit.circuit import EquivalenceLibrary
+from qiskit.utils import optionals
+from qiskit.circuit.equivalence import Key, Equivalence, NodeData, EdgeData
+
+from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
 class OneQubitZeroParamGate(Gate):
@@ -151,6 +157,47 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
 
         self.assertFalse(eq_lib.has_entry(OneQubitZeroParamGate()))
 
+    def test_equivalence_graph(self):
+        """Verify valid graph created by add_equivalence"""
+
+        eq_lib = EquivalenceLibrary()
+
+        gate = OneQubitZeroParamGate()
+        first_equiv = QuantumCircuit(1)
+        first_equiv.h(0)
+        eq_lib.add_equivalence(gate, first_equiv)
+
+        equiv_copy = eq_lib._get_equivalences(Key(name="1q0p", num_qubits=1))[0].circuit
+
+        egraph = rx.PyDiGraph()
+        node_wt = NodeData(
+            key=Key(name="1q0p", num_qubits=1), equivs=[Equivalence(params=[], circuit=equiv_copy)]
+        )
+
+        egraph.add_node(node_wt)
+
+        node_wt = NodeData(key=Key(name="h", num_qubits=1), equivs=[])
+        egraph.add_node(node_wt)
+
+        edge_wt = EdgeData(
+            index=0,
+            num_gates=1,
+            rule=Equivalence(params=[], circuit=equiv_copy),
+            source=Key(name="h", num_qubits=1),
+        )
+        egraph.add_edge(0, 1, edge_wt)
+
+        for node in eq_lib.graph.nodes():
+            self.assertTrue(node in egraph.nodes())
+            for edge in eq_lib.graph.edges():
+                self.assertTrue(edge in egraph.edges())
+
+        self.assertEqual(len(eq_lib.graph.nodes()), len(egraph.nodes()))
+        self.assertEqual(len(eq_lib.graph.edges()), len(egraph.edges()))
+
+        keys = {Key(name="1q0p", num_qubits=1): 0, Key(name="h", num_qubits=1): 1}.keys()
+        self.assertEqual(keys, eq_lib.keys())
+
 
 class TestEquivalenceLibraryWithBase(QiskitTestCase):
     """Test cases for EquivalenceLibrary with base library."""
@@ -204,8 +251,9 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
         entry = eq_lib.get_entry(gate)
 
         self.assertEqual(len(entry), 2)
-        self.assertEqual(entry[0], second_equiv)
-        self.assertEqual(entry[1], first_equiv)
+        self.assertNotEqual(entry[0], entry[1])
+        self.assertTrue(entry[0] in [first_equiv, second_equiv])
+        self.assertTrue(entry[1] in [first_equiv, second_equiv])
 
     def test_set_entry(self):
         """Verify we find only equivalences from top when explicitly set."""
@@ -461,3 +509,26 @@ class TestSessionEquivalenceLibrary(QiskitTestCase):
 
         self.assertEqual(len(decomps), 1)
         self.assertEqual(decomps[0], qc2)
+
+
+class TestEquivalenceLibraryVisualization(QiskitVisualizationTestCase):
+    """Test cases for EquivalenceLibrary visualization."""
+
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    def test_equivalence_draw(self):
+        """Verify EquivalenceLibrary drawing with reference image."""
+        sel = EquivalenceLibrary()
+        gate = OneQubitZeroParamGate()
+        first_equiv = QuantumCircuit(1)
+        first_equiv.h(0)
+
+        sel.add_equivalence(gate, first_equiv)
+
+        second_equiv = QuantumCircuit(1)
+        second_equiv.append(U2Gate(0, np.pi), [0])
+
+        sel.add_equivalence(gate, second_equiv)
+
+        image = sel.draw()
+        image_ref = path_to_diagram_reference("equivalence_library.png")
+        self.assertImagesAreEqual(image, image_ref, 0.04)

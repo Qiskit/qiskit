@@ -81,10 +81,12 @@ class Arrow3D(Patch3D, FancyArrowPatch):
         # pylint: disable=super-init-not-called
         FancyArrowPatch.__init__(self, (0, 0), (0, 0), **kwargs)
         self.set_3d_properties(tuple(zip(xs, ys)), zs, zdir)
+        self._path2d = None
 
     def draw(self, renderer):
         xs3d, ys3d, zs3d = zip(*self._segment3d)
         x_s, y_s, _ = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
+        self._path2d = matplotlib.path.Path(np.column_stack([x_s, y_s]))
         self.set_positions((x_s[0], y_s[0]), (x_s[1], y_s[1]))
         FancyArrowPatch.draw(self, renderer)
 
@@ -147,7 +149,9 @@ class Bloch:
             Positions of +z and -z labels respectively.
     """
 
-    def __init__(self, fig=None, axes=None, view=None, figsize=None, background=False):
+    def __init__(
+        self, fig=None, axes=None, view=None, figsize=None, background=False, font_size=20
+    ):
 
         # Figure and axes
         self._ext_fig = False
@@ -192,7 +196,7 @@ class Bloch:
         # Color of fonts, default = 'black'
         self.font_color = plt.rcParams["axes.labelcolor"]
         # Size of fonts, default = 20
-        self.font_size = 20
+        self.font_size = font_size
 
         # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']

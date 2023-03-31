@@ -13,40 +13,32 @@
 PauliList utility functions.
 """
 
-import warnings
-
-import numpy as np
-
 from qiskit.quantum_info.operators.symplectic.pauli_list import PauliList
-from qiskit.quantum_info.operators.symplectic.pauli_table import PauliTable
+from qiskit.utils.deprecation import deprecate_arg
 
 
-def pauli_basis(num_qubits, weight=False, pauli_list=False):
+@deprecate_arg(
+    "pauli_basis",
+    since="0.22",
+    additional_msg=(
+        "The argument ``pauli_list`` has no effect as the function always returns a PauliList."
+    ),
+)
+def pauli_basis(num_qubits, weight=False, pauli_list=None):
     """Return the ordered PauliTable or PauliList for the n-qubit Pauli basis.
 
     Args:
         num_qubits (int): number of qubits
         weight (bool): if True optionally return the basis sorted by Pauli weight
                        rather than lexicographic order (Default: False)
-        pauli_list (bool): if True, the return type becomes PauliList, otherwise PauliTable.
+        pauli_list (bool): [Deprecated] This argument is deprecated and remains
+                           for backwards compatability. It has no effect.
 
     Returns:
-        PauliTable, PauliList: the Paulis for the basis
+        PauliList: the Paulis for the basis
     """
-    if pauli_list:
-        pauli_1q = PauliList(["I", "X", "Y", "Z"])
-    else:
-        warnings.warn(
-            "The return type of 'pauli_basis' will change from PauliTable to PauliList in a "
-            "future release of Qiskit Terra.  Returning PauliTable is deprecated as of "
-            "Qiskit Terra 0.19, and will be removed in a future release.  To immediately switch "
-            "to the new behaviour, pass the keyword argument 'pauli_list=True'.",
-            FutureWarning,
-            stacklevel=2,
-        )
-        pauli_1q = PauliTable(
-            np.array([[False, False], [True, False], [True, True], [False, True]], dtype=bool)
-        )
+    del pauli_list
+    pauli_1q = PauliList(["I", "X", "Y", "Z"])
     if num_qubits == 1:
         return pauli_1q
     pauli = pauli_1q

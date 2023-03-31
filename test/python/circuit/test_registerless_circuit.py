@@ -230,6 +230,18 @@ class TestGatesOnWires(QiskitTestCase):
 
         self.assertEqual(circuit, expected)
 
+    def test_circuit_initialize_single_qubit(self):
+        """Test initialize on single qubit."""
+        init_vector = [numpy.sqrt(0.5), numpy.sqrt(0.5)]
+        qreg = QuantumRegister(2)
+        circuit = QuantumCircuit(qreg)
+        circuit.initialize(init_vector, qreg[0])
+
+        expected = QuantumCircuit(qreg)
+        expected.initialize(init_vector, [qreg[0]])
+
+        self.assertEqual(circuit, expected)
+
     def test_mixed_register_and_registerless_indexing(self):
         """Test indexing if circuit contains bits in and out of registers."""
 

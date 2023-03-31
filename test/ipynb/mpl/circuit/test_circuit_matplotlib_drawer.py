@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Tests for circuit MPL drawer"""
+"""Tests for circuit MPL drawer"""
 
 import unittest
 
@@ -23,17 +23,28 @@ from numpy import pi
 
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.test.mock import FakeTenerife
-from qiskit.visualization.circuit_visualization import _matplotlib_circuit_drawer
-from qiskit.circuit.library import XGate, MCXGate, HGate, RZZGate, SwapGate, DCXGate, ZGate, SGate
+from qiskit.providers.fake_provider import FakeTenerife
+from qiskit.visualization.circuit.circuit_visualization import _matplotlib_circuit_drawer
+from qiskit.circuit.library import (
+    XGate,
+    MCXGate,
+    HGate,
+    RZZGate,
+    SwapGate,
+    DCXGate,
+    ZGate,
+    SGate,
+    U1Gate,
+    CPhaseGate,
+)
 from qiskit.circuit.library import MCXVChain
 from qiskit.extensions import HamiltonianGate
 from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
-from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.utils import optionals
 
-if HAS_MATPLOTLIB:
+if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
 else:
     raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
@@ -220,6 +231,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
 
         self.circuit_drawer(circuit, filename="long_name.png")
+
+    def test_multi_underscore_reg_names(self):
+        """Test that multi-underscores in register names display properly"""
+        q_reg1 = QuantumRegister(1, "q1_re__g__g")
+        q_reg3 = QuantumRegister(3, "q3_re_g__g")
+        c_reg1 = ClassicalRegister(1, "c1_re_g__g")
+        c_reg3 = ClassicalRegister(3, "c3_re_g__g")
+        circuit = QuantumCircuit(q_reg1, q_reg3, c_reg1, c_reg3)
+
+        self.circuit_drawer(circuit, cregbundle=True, filename="multi_underscore_true.png")
+        self.circuit_drawer(circuit, cregbundle=False, filename="multi_underscore_false.png")
 
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly"""
@@ -479,7 +501,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Tests scale
         See: https://github.com/Qiskit/qiskit-terra/issues/4179"""
         circuit = QuantumCircuit(5)
-        circuit.unitary(random_unitary(2 ** 5), circuit.qubits)
+        circuit.unitary(random_unitary(2**5), circuit.qubits)
 
         self.circuit_drawer(circuit, filename="scale_default.png")
         self.circuit_drawer(circuit, filename="scale_half.png", scale=0.5)
@@ -525,9 +547,9 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         self.circuit_drawer(circuit, filename="global_phase.png")
 
-    def test_iqx_colors(self):
-        """Tests with iqx color scheme"""
-        for style in ["iqx", "iqx-dark"]:
+    def test_alternative_colors(self):
+        """Tests alternative color schemes"""
+        for style in ["iqx", "iqx-dark", "textbook"]:
             with self.subTest(style=style):
                 circuit = QuantumCircuit(7)
                 circuit.h(0)
@@ -743,7 +765,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
     def test_overwide_gates(self):
         """Test gates don't exceed width of default fold"""
         circuit = QuantumCircuit(5)
-        initial_state = np.zeros(2 ** 5)
+        initial_state = np.zeros(2**5)
         initial_state[5] = 1
         circuit.initialize(initial_state)
         self.circuit_drawer(circuit, filename="wide_params.png")
@@ -830,6 +852,84 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[1]).c_if(cr[1], 0)
         circuit.h(qr[2]).c_if(cr[0], 0)
         self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_bits_right.png")
+
+    def test_conditions_with_bits_reverse(self):
+        """Test that gates with conditions work with bits reversed"""
+        bits = [Qubit(), Qubit(), Clbit(), Clbit()]
+        cr = ClassicalRegister(2, "cr")
+        crx = ClassicalRegister(2, "cs")
+        circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
+        circuit.x(0).c_if(bits[3], 0)
+        self.circuit_drawer(
+            circuit, cregbundle=False, reverse_bits=True, filename="cond_bits_reverse.png"
+        )
+
+    def test_sidetext_with_condition(self):
+        """Test that sidetext gates align properly with conditions"""
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
+        circuit = QuantumCircuit(qr, cr)
+        circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
+        self.circuit_drawer(circuit, cregbundle=False, filename="sidetext_condition.png")
+
+    def test_fold_with_conditions(self):
+        """Test that gates with conditions draw correctly when folding"""
+        qr = QuantumRegister(3)
+        cr = ClassicalRegister(5)
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 1)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 3)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 5)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 7)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 9)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 11)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 13)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 15)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 17)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 19)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 21)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 23)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 25)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 27)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 29)
+        circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
+        self.circuit_drawer(circuit, cregbundle=False, filename="fold_with_conditions.png")
+
+    def test_idle_wires_barrier(self):
+        """Test that idle_wires False works with barrier"""
+        circuit = QuantumCircuit(4, 4)
+        circuit.x(2)
+        circuit.barrier()
+        self.circuit_drawer(circuit, cregbundle=False, filename="idle_wires_barrier.png")
+
+    def test_wire_order(self):
+        """Test the wire_order option"""
+        qr = QuantumRegister(4, "q")
+        cr = ClassicalRegister(4, "c")
+        cr2 = ClassicalRegister(2, "cx")
+        circuit = QuantumCircuit(qr, cr, cr2)
+        circuit.h(0)
+        circuit.h(3)
+        circuit.x(1)
+        circuit.x(3).c_if(cr, 10)
+        self.circuit_drawer(
+            circuit,
+            cregbundle=False,
+            wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
+            filename="wire_order.png",
+        )
+
+    def test_barrier_label(self):
+        """Test the barrier label"""
+        circuit = QuantumCircuit(2)
+        circuit.x(0)
+        circuit.y(1)
+        circuit.barrier()
+        circuit.y(0)
+        circuit.x(1)
+        circuit.barrier(label="End Y/X")
+        self.circuit_drawer(circuit, filename="barrier_label.png")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,24 +14,28 @@
 
 import logging
 from typing import Callable, List, Optional, Tuple, Union
-
+import warnings
 import numpy as np
 from scipy import sparse as scisparse
 
 from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
+from qiskit.utils.deprecation import deprecate_func
 from ..exceptions import AlgorithmError
-from .eigen_solver import Eigensolver, EigensolverResult, ListOrDict
+from .eigen_solver import Eigensolver, EigensolverResult
+from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
-
 class NumPyEigensolver(Eigensolver):
     r"""
-    The NumPy Eigensolver algorithm.
+    Pending deprecation: NumPy Eigensolver algorithm.
+
+    The NumPyEigensolver class has been superseded by the
+    :class:`qiskit.algorithms.eigensolvers.NumPyEigensolver` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
 
     NumPy Eigensolver computes up to the first :math:`k` eigenvalues of a complex-valued square
     matrix of dimension :math:`n \times n`, with :math:`k \leq n`.
@@ -42,6 +46,13 @@ class NumPyEigensolver(Eigensolver):
         operator size, mostly in terms of number of qubits it represents, gets larger.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.NumPyEigensolver``."
+        ),
+        since="0.23.0",
+        pending=True,
+    )
     def __init__(
         self,
         k: int = 1,
@@ -60,7 +71,9 @@ class NumPyEigensolver(Eigensolver):
                 fewer elements and can even be empty.
         """
         validate_min("k", k, 1)
-        super().__init__()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
 
         self._in_k = k
         self._k = k
@@ -104,8 +117,8 @@ class NumPyEigensolver(Eigensolver):
 
     def _check_set_k(self, operator: OperatorBase) -> None:
         if operator is not None:
-            if self._in_k > 2 ** operator.num_qubits:
-                self._k = 2 ** operator.num_qubits
+            if self._in_k > 2**operator.num_qubits:
+                self._k = 2**operator.num_qubits
                 logger.debug(
                     "WARNING: Asked for %s eigenvalues but max possible is %s.", self._in_k, self._k
                 )
@@ -123,7 +136,7 @@ class NumPyEigensolver(Eigensolver):
             for i, idx in enumerate(indices):
                 eigvec[idx, i] = 1.0
         else:
-            if self._k >= 2 ** operator.num_qubits - 1:
+            if self._k >= 2**operator.num_qubits - 1:
                 logger.debug("SciPy doesn't support to get all eigenvalues, using NumPy instead.")
                 if operator.is_hermitian():
                     eigval, eigvec = np.linalg.eigh(operator.to_matrix())
@@ -131,13 +144,9 @@ class NumPyEigensolver(Eigensolver):
                     eigval, eigvec = np.linalg.eig(operator.to_matrix())
             else:
                 if operator.is_hermitian():
-                    eigval, eigvec = scisparse.linalg.eigsh(
-                        operator.to_spmatrix(), k=self._k, which="SA"
-                    )
+                    eigval, eigvec = scisparse.linalg.eigsh(sp_mat, k=self._k, which="SA")
                 else:
-                    eigval, eigvec = scisparse.linalg.eigs(
-                        operator.to_spmatrix(), k=self._k, which="SR"
-                    )
+                    eigval, eigvec = scisparse.linalg.eigs(sp_mat, k=self._k, which="SR")
             indices = np.argsort(eigval)[: self._k]
             eigval = eigval[indices]
             eigvec = eigvec[:, indices]
@@ -221,7 +230,7 @@ class NumPyEigensolver(Eigensolver):
         k_orig = self._k
         if self._filter_criterion:
             # need to consider all elements if a filter is set
-            self._k = 2 ** operator.num_qubits
+            self._k = 2**operator.num_qubits
 
         self._ret = EigensolverResult()
         self._solve(operator)

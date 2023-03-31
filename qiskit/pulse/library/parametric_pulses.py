@@ -48,12 +48,29 @@ from qiskit.pulse.library import continuous
 from qiskit.pulse.library.discrete import gaussian, gaussian_square, drag, constant
 from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.library.waveform import Waveform
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ParametricPulse(Pulse):
-    """The abstract superclass for parametric pulses."""
+    """The abstract superclass for parametric pulses.
+
+    .. warning::
+
+        This class is superseded by :class:`.SymbolicPulse` and will be deprecated
+        and eventually removed in the future because of the poor flexibility
+        for defining a new waveform type and serializing it through the :mod:`qiskit.qpy` framework.
+
+    """
 
     @abstractmethod
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use SymbolicPulse because of QPY serialization support. See "
+            "qiskit.pulse.library.symbolic_pulses for details."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -101,14 +118,28 @@ class ParametricPulse(Pulse):
 
 
 class Gaussian(ParametricPulse):
-    """A truncated pulse envelope shaped according to the Gaussian function whose mean is centered
-    at the center of the pulse (duration / 2):
+    r"""A lifted and truncated pulse envelope shaped according to the Gaussian function whose
+    mean is centered at the center of the pulse (duration / 2):
 
     .. math::
 
-        f(x) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2 )  ,  0 <= x < duration
+        f'(x) &= \exp\Bigl( -\frac12 \frac{{(x - \text{duration}/2)}^2}{\text{sigma}^2} \Bigr)\\
+        f(x) &= \text{amp} \times \frac{f'(x) - f'(-1)}{1-f'(-1)}, \quad 0 \le x < \text{duration}
+
+    where :math:`f'(x)` is the gaussian waveform without lifting or amplitude scaling.
+
+    This pulse would be more accurately named as ``LiftedGaussian``, however, for historical
+    and practical DSP reasons it has the name ``Gaussian``.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use Gaussian from qiskit.pulse.library.symbolic_pulses because of "
+            "QPY serialization support."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -149,7 +180,7 @@ class Gaussian(ParametricPulse):
         return gaussian(duration=self.duration, amp=self.amp, sigma=self.sigma, zero_ends=True)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
@@ -172,38 +203,55 @@ class Gaussian(ParametricPulse):
 
 
 class GaussianSquare(ParametricPulse):
-    """A square pulse with a Gaussian shaped risefall on both sides. Either risefall_sigma_ratio
-     or width parameter has to be specified.
+    # Not a raw string because we need to be able to split lines.
+    """A square pulse with a Gaussian shaped risefall on both sides lifted such that
+    its first sample is zero.
 
-    If risefall_sigma_ratio is not None and width is None:
+    Either the ``risefall_sigma_ratio`` or ``width`` parameter has to be specified.
 
-    :math:`risefall = risefall` _ :math:`to` _ :math:`sigma * sigma`
-
-    :math:`width = duration - 2 * risefall`
-
-    If width is not None and risefall_sigma_ratio is None:
+    If ``risefall_sigma_ratio`` is not None and ``width`` is None:
 
     .. math::
 
-        risefall = (duration - width) / 2
+        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
 
-    In both cases, the pulse is defined as:
+    If ``width`` is not None and ``risefall_sigma_ratio`` is None:
+
+    .. math:: \\text{risefall} = \\frac{\\text{duration} - \\text{width}}{2}
+
+    In both cases, the lifted gaussian square pulse :math:`f'(x)` is defined as:
 
     .. math::
 
-        0 <= x < risefall
+        f'(x) &= \\begin{cases}\
+            \\exp\\biggl(-\\frac12 \\frac{(x - \\text{risefall})^2}{\\text{sigma}^2}\\biggr)\
+                & x < \\text{risefall}\\\\
+            1\
+                & \\text{risefall} \\le x < \\text{risefall} + \\text{width}\\\\
+            \\exp\\biggl(-\\frac12\
+                    \\frac{{\\bigl(x - (\\text{risefall} + \\text{width})\\bigr)}^2}\
+                          {\\text{sigma}^2}\
+                    \\biggr)\
+                & \\text{risefall} + \\text{width} \\le x\
+        \\end{cases}\\\\
+        f(x) &= \\text{amp} \\times \\frac{f'(x) - f'(-1)}{1-f'(-1)},\
+            \\quad 0 \\le x < \\text{duration}
 
-        f(x) = amp * exp( -(1/2) * (x - risefall)^2 / sigma^2 )
+    where :math:`f'(x)` is the gaussian square waveform without lifting or amplitude scaling.
 
-        risefall <= x < risefall + width
-
-        f(x) = amp
-
-        risefall + width <= x < duration
-
-        f(x) = amp * exp( -(1/2) * (x - (risefall + width))^2 / sigma^2 )
+    This pulse would be more accurately named as ``LiftedGaussianSquare``, however, for historical
+    and practical DSP reasons it has the name ``GaussianSquare``.
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use GaussianSquare from qiskit.pulse.library.symbolic_pulses because of "
+            "QPY serialization support."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -227,6 +275,9 @@ class GaussianSquare(ParametricPulse):
             limit_amplitude: If ``True``, then limit the amplitude of the
                              waveform to 1. The default is ``True`` and the
                              amplitude is constrained to 1.
+
+        Raises:
+            PulseError: If the parameters passed are not valid.
         """
         if not _is_parameterized(amp):
             amp = complex(amp)
@@ -234,6 +285,13 @@ class GaussianSquare(ParametricPulse):
         self._sigma = sigma
         self._risefall_sigma_ratio = risefall_sigma_ratio
         self._width = width
+
+        if self.width is not None and self.risefall_sigma_ratio is not None:
+            raise PulseError(
+                "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
+                " but not both."
+            )
+
         super().__init__(duration=duration, name=name, limit_amplitude=limit_amplitude)
 
     @property
@@ -262,18 +320,13 @@ class GaussianSquare(ParametricPulse):
         )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
             )
         if not _is_parameterized(self.sigma) and self.sigma <= 0:
             raise PulseError("Sigma must be greater than 0.")
-        if self.width is not None and self.risefall_sigma_ratio is not None:
-            raise PulseError(
-                "Either the pulse width or the risefall_sigma_ratio parameter can be specified"
-                " but not both."
-            )
         if self.width is None and self.risefall_sigma_ratio is None:
             raise PulseError(
                 "Either the pulse width or the risefall_sigma_ratio parameter must be specified."
@@ -323,21 +376,26 @@ class GaussianSquare(ParametricPulse):
 
 
 class Drag(ParametricPulse):
-    r"""The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
-    with an additional Gaussian derivative component. It is designed to reduce the frequency
-    spectrum of a normal gaussian pulse near the :math:`|1\rangle` - :math:`|2\rangle` transition,
-    reducing the chance of leakage to the :math:`|2\rangle` state.
+    """The Derivative Removal by Adiabatic Gate (DRAG) pulse is a standard Gaussian pulse
+    with an additional Gaussian derivative component and lifting applied.
+
+    It is designed to reduce the frequency spectrum of a standard Gaussian pulse near
+    the :math:`|1\\rangle\\leftrightarrow|2\\rangle` transition,
+    reducing the chance of leakage to the :math:`|2\\rangle` state.
 
     .. math::
 
-        f(x) = Gaussian + 1j * beta * d/dx [Gaussian]
-             = Gaussian + 1j * beta * (-(x - duration/2) / sigma^2) [Gaussian]
+        g(x) &= \\exp\\Bigl(-\\frac12 \\frac{(x - \\text{duration}/2)^2}{\\text{sigma}^2}\\Bigr)\\\\
+        g'(x) &= \\text{amp}\\times\\frac{g(x)-g(-1)}{1-g(-1)}\\\\
+        f(x) &=  g'(x) \\times \\Bigl(1 + 1j \\times \\text{beta} \\times\
+            \\Bigl(-\\frac{x - \\text{duration}/2}{\\text{sigma}^2}\\Bigr)  \\Bigr),
+            \\quad 0 \\le x < \\text{duration}
 
-    where 'Gaussian' is:
+    where :math:`g(x)` is a standard unlifted Gaussian waveform and
+    :math:`g'(x)` is the lifted :class:`~qiskit.pulse.library.Gaussian` waveform.
 
-    .. math::
-
-        Gaussian(x, amp, sigma) = amp * exp( -(1/2) * (x - duration/2)^2 / sigma^2 )
+    This pulse, defined by :math:`f(x)`, would be more accurately named as ``LiftedDrag``, however,
+    for historical and practical DSP reasons it has the name ``Drag``.
 
     References:
         1. |citation1|_
@@ -356,6 +414,14 @@ class Drag(ParametricPulse):
            Phys. Rev. Lett. 103, 110501 – Published 8 September 2009.*
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use Drag from qiskit.pulse.library.symbolic_pulses because of "
+            "QPY serialization support."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -406,7 +472,7 @@ class Drag(ParametricPulse):
         )
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."
@@ -419,8 +485,8 @@ class Drag(ParametricPulse):
         if (
             not _is_parameterized(self.beta)
             and not _is_parameterized(self.sigma)
-            and self.beta > self.sigma
-            and self.limit_amplitude
+            and np.abs(self.beta) > self.sigma
+            and self._limit_amplitude
         ):
             # If beta <= sigma, then the maximum amplitude is at duration / 2, which is
             # already constrained by self.amp <= 1
@@ -430,7 +496,7 @@ class Drag(ParametricPulse):
             #    There is a second maxima mirrored around the center of the pulse with the same
             #    norm as the first, so checking the value at the first x maxima is sufficient.
             argmax_x = self.duration / 2 - (self.sigma / self.beta) * math.sqrt(
-                self.beta ** 2 - self.sigma ** 2
+                self.beta**2 - self.sigma**2
             )
             # If the max point is out of range, either end of the pulse will do
             argmax_x = max(argmax_x, 0)
@@ -471,6 +537,14 @@ class Constant(ParametricPulse):
         f(x) = 0      ,  elsewhere
     """
 
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use Constant from qiskit.pulse.library.symbolic_pulses because of "
+            "QPY serialization support."
+        ),
+        since="0.22",
+        pending=True,
+    )
     def __init__(
         self,
         duration: Union[int, ParameterExpression],
@@ -503,7 +577,7 @@ class Constant(ParametricPulse):
         return constant(duration=self.duration, amp=self.amp)
 
     def validate_parameters(self) -> None:
-        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self.limit_amplitude:
+        if not _is_parameterized(self.amp) and abs(self.amp) > 1.0 and self._limit_amplitude:
             raise PulseError(
                 f"The amplitude norm must be <= 1, found: {abs(self.amp)}"
                 + "This can be overruled by setting Pulse.limit_amplitude."

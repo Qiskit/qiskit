@@ -10,9 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=attribute-defined-outside-init,invalid-name,missing-type-doc
-# pylint: disable=unused-argument,broad-except,bad-staticmethod-argument
-# pylint: disable=inconsistent-return-statements
+# pylint: disable=invalid-name
 
 """Base TestCases for the unit tests.
 
@@ -30,14 +28,9 @@ import warnings
 import unittest
 from unittest.util import safe_repr
 
-try:
-    import fixtures
-    import testtools
-
-    HAS_FIXTURES = True
-except ImportError:
-    HAS_FIXTURES = False
-
+from qiskit.tools.parallel import get_platform_parallel_default
+from qiskit.utils import optionals as _optionals
+from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call
 from .utils import Path, setup_test_logging
 
@@ -48,7 +41,8 @@ __unittest = True  # Allows shorter stack trace for .assertDictAlmostEqual
 # If testtools is installed use that as a (mostly) drop in replacement for
 # unittest's TestCase. This will enable the fixtures used for capturing stdout
 # stderr, and pylogging to attach the output to stestr's result stream.
-if HAS_FIXTURES:
+if _optionals.HAS_TESTTOOLS:
+    import testtools
 
     class BaseTestCase(testtools.TestCase):
         """Base test class."""
@@ -84,6 +78,7 @@ class BaseQiskitTestCase(BaseTestCase):
 
     def setUp(self):
         super().setUp()
+        self.addTypeEqualityFunc(QuantumCircuit, self.assertQuantumCircuitEqual)
         if self.__setup_called:
             raise ValueError(
                 "In File: %s\n"
@@ -117,6 +112,20 @@ class BaseQiskitTestCase(BaseTestCase):
         """
         return os.path.normpath(os.path.join(path.value, filename))
 
+    def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
+        """Extra assertion method to give a better error message when two circuits are unequal."""
+        if qc1 == qc2:
+            return
+        if msg is None:
+            msg = "The two circuits are not equal."
+        msg += f"""
+Left circuit:
+{qc1}
+
+Right circuit:
+{qc2}"""
+        raise self.failureException(msg)
+
     def assertDictAlmostEqual(
         self, dict1, dict2, delta=None, msg=None, places=None, default_value=0
     ):
@@ -149,6 +158,24 @@ class BaseQiskitTestCase(BaseTestCase):
         if error_msg:
             msg = self._formatMessage(msg, error_msg)
             raise self.failureException(msg)
+
+    def enable_parallel_processing(self):
+        """
+        Enables parallel processing, for the duration of a test, on platforms
+        that support it. This is done by temporarily overriding the value of
+        the QISKIT_PARALLEL environment variable with the platform specific default.
+        """
+        parallel_default = str(get_platform_parallel_default()).upper()
+
+        def set_parallel_env(name, value):
+            os.environ[name] = value
+
+        self.addCleanup(
+            lambda value: set_parallel_env("QISKIT_PARALLEL", value),
+            os.getenv("QISKIT_PARALLEL", parallel_default),
+        )
+
+        os.environ["QISKIT_PARALLEL"] = parallel_default
 
 
 class QiskitTestCase(BaseQiskitTestCase):
@@ -197,24 +224,19 @@ class QiskitTestCase(BaseQiskitTestCase):
         for mod in allow_DeprecationWarning_modules:
             warnings.filterwarnings("default", category=DeprecationWarning, module=mod)
         allow_DeprecationWarning_message = [
-            r".*LogNormalDistribution.*",
-            r".*NormalDistribution.*",
-            r".*UniformDistribution.*",
-            r".*QuantumCircuit\.combine.*",
-            r".*QuantumCircuit\.__add__.*",
-            r".*QuantumCircuit\.__iadd__.*",
-            r".*QuantumCircuit\.extend.*",
-            r".*qiskit\.circuit\.library\.standard_gates\.ms import.*",
             r"elementwise comparison failed.*",
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
-            r"Back-references to from Bit instances.*",
-            r"The QuantumCircuit.u. method.*",
-            r"The QuantumCircuit.cu.",
+            r"'Bit\.(register|index)' is deprecated.*",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
-            # TODO: remove the following ignore after seaborn 0.12.0 releases
-            r"distutils Version classes are deprecated. Use packaging\.version",
+            # Caused by internal scikit-learn scipy usage
+            r"The 'sym_pos' keyword is deprecated and should be replaced by using",
+            # jupyter_client 7.4.8 uses deprecated shims in pyzmq that raise warnings with pyzmq 25.
+            # These are due to be fixed by jupyter_client 8, see:
+            #   - https://github.com/jupyter/jupyter_client/issues/913
+            #   - https://github.com/jupyter/jupyter_client/pull/842
+            r"zmq\.eventloop\.ioloop is deprecated in pyzmq .*",
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
@@ -228,7 +250,10 @@ class FullQiskitTestCase(QiskitTestCase):
     If you derive directly from it, you may try and instantiate the class without satisfying its
     dependencies."""
 
+    @_optionals.HAS_FIXTURES.require_in_call("output-capturing test cases")
     def setUp(self):
+        import fixtures
+
         super().setUp()
         if os.environ.get("QISKIT_TEST_CAPTURE_STREAMS"):
             stdout = self.useFixture(fixtures.StringStream("stdout")).stream
@@ -300,5 +325,5 @@ def dicts_almost_equal(dict1, dict2, delta=None, places=None, default_value=0):
 # Maintain naming backwards compatibility for downstream packages.
 BasicQiskitTestCase = QiskitTestCase
 
-if HAS_FIXTURES:
+if _optionals.HAS_TESTTOOLS and _optionals.HAS_FIXTURES:
     QiskitTestCase = FullQiskitTestCase

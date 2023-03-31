@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    The primitives interface has been extended to accept objects in addition to indices
+    as arguments to the ``__call__`` method.  The ``parameter_values`` argument can now be optional.
+deprecations:
+  - |
+    The arguments' names when calling an :class:`~.primitives.Estimator` or
+    :class:`~.primitives.Sampler` object as a function are renamed from
+    ``circuit_indices`` and ``observable_indices`` to ``circuits`` and
+    ``observables``.

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The method :meth:`.QuantumCircuit.while_loop` will now resolve classical bit
+    references in its condition in the same way that :meth:`.QuantumCircuit.if_test`
+    and :meth:`.InstructionSet.c_if` do.

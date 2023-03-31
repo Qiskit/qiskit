@@ -13,6 +13,7 @@
 """Test library of n-local circuits."""
 
 import unittest
+from test import combine
 
 import numpy as np
 
@@ -40,6 +41,7 @@ from qiskit.circuit.library import (
 )
 from qiskit.circuit.random.utils import random_circuit
 from qiskit.converters.circuit_to_dag import circuit_to_dag
+from qiskit.quantum_info import Operator
 
 
 @ddt
@@ -296,7 +298,16 @@ class TestNLocal(QiskitTestCase):
                 idle = set(dag.idle_wires())
                 self.assertEqual(skipped_set, idle)
 
-    @data("linear", "full", "circular", "sca", ["linear", "full"], ["circular", "linear", "sca"])
+    @data(
+        "linear",
+        "full",
+        "circular",
+        "sca",
+        "reverse_linear",
+        ["linear", "full"],
+        ["reverse_linear", "full"],
+        ["circular", "linear", "sca"],
+    )
     def test_entanglement_by_str(self, entanglement):
         """Test setting the entanglement of the layers by str."""
         reps = 3
@@ -311,6 +322,8 @@ class TestNLocal(QiskitTestCase):
         def get_expected_entangler_map(rep_num, mode):
             if mode == "linear":
                 return [(0, 1, 2), (1, 2, 3), (2, 3, 4)]
+            elif mode == "reverse_linear":
+                return [(2, 3, 4), (1, 2, 3), (0, 1, 2)]
             elif mode == "full":
                 return [
                     (0, 1, 2),
@@ -343,7 +356,7 @@ class TestNLocal(QiskitTestCase):
 
             with self.subTest(rep_num=rep_num):
                 # using a set here since the order does not matter
-                self.assertEqual(set(entangler_map), set(expected))
+                self.assertEqual(entangler_map, expected)
 
     def test_pairwise_entanglement(self):
         """Test pairwise entanglement."""
@@ -423,6 +436,11 @@ class TestNLocal(QiskitTestCase):
 
     def test_initial_state_as_circuit_object(self):
         """Test setting `initial_state` to `QuantumCircuit` object"""
+        #           ┌───┐          ┌───┐
+        # q_0: ──■──┤ X ├───────■──┤ X ├
+        #      ┌─┴─┐├───┤┌───┐┌─┴─┐├───┤
+        # q_1: ┤ X ├┤ H ├┤ X ├┤ X ├┤ X ├
+        #      └───┘└───┘└───┘└───┘└───┘
         ref = QuantumCircuit(2)
         ref.cx(0, 1)
         ref.x(0)
@@ -518,7 +536,7 @@ class TestTwoLocal(QiskitTestCase):
         rotation = two.rotation_blocks[0]
 
         # decompose
-        self.assertIsInstance(rotation.data[0][0], RXGate)
+        self.assertIsInstance(rotation.data[0].operation, RXGate)
 
     def test_parameter_setters(self):
         """Test different possibilities to set parameters."""
@@ -565,6 +583,13 @@ class TestTwoLocal(QiskitTestCase):
         circuit = QuantumCircuit(3)
         circuit.compose(two, inplace=True)
 
+        #      ┌──────────┐┌──────────┐ ░           ░ ┌──────────┐ ┌──────────┐
+        # q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├─░──■──■─────░─┤ Ry(θ[6]) ├─┤ Rz(θ[9]) ├
+        #      ├──────────┤├──────────┤ ░  │  │     ░ ├──────────┤┌┴──────────┤
+        # q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├─░──■──┼──■──░─┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├
+        #      ├──────────┤├──────────┤ ░     │  │  ░ ├──────────┤├───────────┤
+        # q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├─░─────■──■──░─┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├
+        #      └──────────┘└──────────┘ ░           ░ └──────────┘└───────────┘
         reference = QuantumCircuit(3)
         param_iter = iter(two.ordered_parameters)
         for i in range(3):
@@ -602,20 +627,49 @@ class TestTwoLocal(QiskitTestCase):
         two = RealAmplitudes(4)
         with self.subTest(msg="test rotation gate"):
             self.assertEqual(len(two.rotation_blocks), 1)
-            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0].operation, RYGate)
 
         with self.subTest(msg="test parameter bounds"):
             expected = [(-np.pi, np.pi)] * two.num_parameters
             np.testing.assert_almost_equal(two.parameter_bounds, expected)
 
-    def test_ry_circuit(self):
-        """Test an RealAmplitudes circuit."""
+    def test_ry_circuit_reverse_linear(self):
+        """Test a RealAmplitudes circuit with entanglement = "reverse_linear"."""
+        num_qubits = 3
+        reps = 2
+        entanglement = "reverse_linear"
+        parameters = ParameterVector("theta", num_qubits * (reps + 1))
+        param_iter = iter(parameters)
+
+        expected = QuantumCircuit(3)
+        for _ in range(reps):
+            for i in range(num_qubits):
+                expected.ry(next(param_iter), i)
+            expected.cx(1, 2)
+            expected.cx(0, 1)
+        for i in range(num_qubits):
+            expected.ry(next(param_iter), i)
+
+        library = RealAmplitudes(
+            num_qubits, reps=reps, entanglement=entanglement
+        ).assign_parameters(parameters)
+        self.assertCircuitEqual(library, expected)
+
+    def test_ry_circuit_full(self):
+        """Test a RealAmplitudes circuit with entanglement = "full"."""
         num_qubits = 3
         reps = 2
         entanglement = "full"
         parameters = ParameterVector("theta", num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
+        #      ┌──────────┐          ┌──────────┐                      ┌──────────┐
+        # q_0: ┤ Ry(θ[0]) ├──■────■──┤ Ry(θ[3]) ├──────────────■────■──┤ Ry(θ[6]) ├────────────
+        #      ├──────────┤┌─┴─┐  │  └──────────┘┌──────────┐┌─┴─┐  │  └──────────┘┌──────────┐
+        # q_1: ┤ Ry(θ[1]) ├┤ X ├──┼─────────■────┤ Ry(θ[4]) ├┤ X ├──┼─────────■────┤ Ry(θ[7]) ├
+        #      ├──────────┤└───┘┌─┴─┐     ┌─┴─┐  ├──────────┤└───┘┌─┴─┐     ┌─┴─┐  ├──────────┤
+        # q_2: ┤ Ry(θ[2]) ├─────┤ X ├─────┤ X ├──┤ Ry(θ[5]) ├─────┤ X ├─────┤ X ├──┤ Ry(θ[8]) ├
+        #      └──────────┘     └───┘     └───┘  └──────────┘     └───┘     └───┘  └──────────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
@@ -629,7 +683,6 @@ class TestTwoLocal(QiskitTestCase):
         library = RealAmplitudes(
             num_qubits, reps=reps, entanglement=entanglement
         ).assign_parameters(parameters)
-
         self.assertCircuitEqual(library, expected)
 
     def test_ryrz_blocks(self):
@@ -637,8 +690,8 @@ class TestTwoLocal(QiskitTestCase):
         two = EfficientSU2(3)
         with self.subTest(msg="test rotation gate"):
             self.assertEqual(len(two.rotation_blocks), 2)
-            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RYGate)
-            self.assertIsInstance(two.rotation_blocks[1].data[0][0], RZGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0].operation, RYGate)
+            self.assertIsInstance(two.rotation_blocks[1].data[0].operation, RZGate)
 
         with self.subTest(msg="test parameter bounds"):
             expected = [(-np.pi, np.pi)] * two.num_parameters
@@ -652,6 +705,20 @@ class TestTwoLocal(QiskitTestCase):
         parameters = ParameterVector("theta", 2 * num_qubits * (reps + 1))
         param_iter = iter(parameters)
 
+        #      ┌──────────┐┌──────────┐┌───┐     ┌──────────┐┌──────────┐             »
+        # q_0: ┤ Ry(θ[0]) ├┤ Rz(θ[3]) ├┤ X ├──■──┤ Ry(θ[6]) ├┤ Rz(θ[9]) ├─────────────»
+        #      ├──────────┤├──────────┤└─┬─┘┌─┴─┐└──────────┘├──────────┤┌───────────┐»
+        # q_1: ┤ Ry(θ[1]) ├┤ Rz(θ[4]) ├──┼──┤ X ├─────■──────┤ Ry(θ[7]) ├┤ Rz(θ[10]) ├»
+        #      ├──────────┤├──────────┤  │  └───┘   ┌─┴─┐    ├──────────┤├───────────┤»
+        # q_2: ┤ Ry(θ[2]) ├┤ Rz(θ[5]) ├──■──────────┤ X ├────┤ Ry(θ[8]) ├┤ Rz(θ[11]) ├»
+        #      └──────────┘└──────────┘             └───┘    └──────────┘└───────────┘»
+        # «     ┌───┐     ┌───────────┐┌───────────┐
+        # «q_0: ┤ X ├──■──┤ Ry(θ[12]) ├┤ Rz(θ[15]) ├─────────────
+        # «     └─┬─┘┌─┴─┐└───────────┘├───────────┤┌───────────┐
+        # «q_1: ──┼──┤ X ├──────■──────┤ Ry(θ[13]) ├┤ Rz(θ[16]) ├
+        # «       │  └───┘    ┌─┴─┐    ├───────────┤├───────────┤
+        # «q_2: ──■───────────┤ X ├────┤ Ry(θ[14]) ├┤ Rz(θ[17]) ├
+        # «                   └───┘    └───────────┘└───────────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
@@ -677,14 +744,14 @@ class TestTwoLocal(QiskitTestCase):
         two = ExcitationPreserving(5)
         with self.subTest(msg="test rotation gate"):
             self.assertEqual(len(two.rotation_blocks), 1)
-            self.assertIsInstance(two.rotation_blocks[0].data[0][0], RZGate)
+            self.assertIsInstance(two.rotation_blocks[0].data[0].operation, RZGate)
 
         with self.subTest(msg="test entanglement gate"):
             self.assertEqual(len(two.entanglement_blocks), 1)
             block = two.entanglement_blocks[0]
             self.assertEqual(len(block.data), 2)
-            self.assertIsInstance(block.data[0][0], RXXGate)
-            self.assertIsInstance(block.data[1][0], RYYGate)
+            self.assertIsInstance(block.data[0].operation, RXXGate)
+            self.assertIsInstance(block.data[1].operation, RYYGate)
 
         with self.subTest(msg="test parameter bounds"):
             expected = [(-np.pi, np.pi)] * two.num_parameters
@@ -698,6 +765,27 @@ class TestTwoLocal(QiskitTestCase):
         parameters = ParameterVector("theta", num_qubits * (reps + 1) + reps * (num_qubits - 1))
         param_iter = iter(parameters)
 
+        #      ┌──────────┐┌────────────┐┌────────────┐ ┌──────────┐               »
+        # q_0: ┤ Rz(θ[0]) ├┤0           ├┤0           ├─┤ Rz(θ[5]) ├───────────────»
+        #      ├──────────┤│  Rxx(θ[3]) ││  Ryy(θ[3]) │┌┴──────────┴┐┌────────────┐»
+        # q_1: ┤ Rz(θ[1]) ├┤1           ├┤1           ├┤0           ├┤0           ├»
+        #      ├──────────┤└────────────┘└────────────┘│  Rxx(θ[4]) ││  Ryy(θ[4]) │»
+        # q_2: ┤ Rz(θ[2]) ├────────────────────────────┤1           ├┤1           ├»
+        #      └──────────┘                            └────────────┘└────────────┘»
+        # «                 ┌────────────┐┌────────────┐┌───────────┐               »
+        # «q_0: ────────────┤0           ├┤0           ├┤ Rz(θ[10]) ├───────────────»
+        # «     ┌──────────┐│  Rxx(θ[8]) ││  Ryy(θ[8]) │├───────────┴┐┌────────────┐»
+        # «q_1: ┤ Rz(θ[6]) ├┤1           ├┤1           ├┤0           ├┤0           ├»
+        # «     ├──────────┤└────────────┘└────────────┘│  Rxx(θ[9]) ││  Ryy(θ[9]) │»
+        # «q_2: ┤ Rz(θ[7]) ├────────────────────────────┤1           ├┤1           ├»
+        # «     └──────────┘                            └────────────┘└────────────┘»
+        # «
+        # «q_0: ─────────────
+        # «     ┌───────────┐
+        # «q_1: ┤ Rz(θ[11]) ├
+        # «     ├───────────┤
+        # «q_2: ┤ Rz(θ[12]) ├
+        # «     └───────────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
@@ -727,6 +815,27 @@ class TestTwoLocal(QiskitTestCase):
         parameters = [1] * (num_qubits * (reps + 1) + reps * (1 + num_qubits))
         param_iter = iter(parameters)
 
+        #      ┌───────┐┌─────────┐┌─────────┐        ┌───────┐                   »
+        # q_0: ┤ Rz(1) ├┤0        ├┤0        ├─■──────┤ Rz(1) ├───────────────────»
+        #      ├───────┤│  Rxx(1) ││  Ryy(1) │ │P(1) ┌┴───────┴┐┌─────────┐       »
+        # q_1: ┤ Rz(1) ├┤1        ├┤1        ├─■─────┤0        ├┤0        ├─■─────»
+        #      ├───────┤└─────────┘└─────────┘       │  Rxx(1) ││  Ryy(1) │ │P(1) »
+        # q_2: ┤ Rz(1) ├─────────────────────────────┤1        ├┤1        ├─■─────»
+        #      └───────┘                             └─────────┘└─────────┘       »
+        # «              ┌─────────┐┌─────────┐        ┌───────┐                   »
+        # «q_0: ─────────┤0        ├┤0        ├─■──────┤ Rz(1) ├───────────────────»
+        # «     ┌───────┐│  Rxx(1) ││  Ryy(1) │ │P(1) ┌┴───────┴┐┌─────────┐       »
+        # «q_1: ┤ Rz(1) ├┤1        ├┤1        ├─■─────┤0        ├┤0        ├─■─────»
+        # «     ├───────┤└─────────┘└─────────┘       │  Rxx(1) ││  Ryy(1) │ │P(1) »
+        # «q_2: ┤ Rz(1) ├─────────────────────────────┤1        ├┤1        ├─■─────»
+        # «     └───────┘                             └─────────┘└─────────┘       »
+        # «
+        # «q_0: ─────────
+        # «     ┌───────┐
+        # «q_1: ┤ Rz(1) ├
+        # «     ├───────┤
+        # «q_2: ┤ Rz(1) ├
+        # «     └───────┘
         expected = QuantumCircuit(3)
         for _ in range(reps):
             for i in range(num_qubits):
@@ -754,6 +863,11 @@ class TestTwoLocal(QiskitTestCase):
         two = TwoLocal(2, "ry", "cx", entanglement="circular", reps=1)
         parameters = np.arange(two.num_parameters)
 
+        #      ┌───────┐     ┌───────┐
+        # q_0: ┤ Ry(0) ├──■──┤ Ry(2) ├
+        #      ├───────┤┌─┴─┐├───────┤
+        # q_1: ┤ Ry(1) ├┤ X ├┤ Ry(3) ├
+        #      └───────┘└───┘└───────┘
         ref = QuantumCircuit(2)
         ref.ry(parameters[0], 0)
         ref.ry(parameters[1], 1)
@@ -787,6 +901,19 @@ class TestTwoLocal(QiskitTestCase):
 
         self.assertEqual(two_np32.decompose().count_ops()["cx"], expected_cx)
         self.assertEqual(two_np64.decompose().count_ops()["cx"], expected_cx)
+
+    @combine(num_qubits=[4, 5])
+    def test_full_vs_reverse_linear(self, num_qubits):
+        """Test that 'full' and 'reverse_linear' provide the same unitary element."""
+        reps = 2
+        full = RealAmplitudes(num_qubits=num_qubits, entanglement="full", reps=reps)
+        num_params = (reps + 1) * num_qubits
+        np.random.seed(num_qubits)
+        params = np.random.rand(num_params)
+        reverse = RealAmplitudes(num_qubits=num_qubits, entanglement="reverse_linear", reps=reps)
+        full.assign_parameters(params, inplace=True)
+        reverse.assign_parameters(params, inplace=True)
+        assert Operator(full) == Operator(reverse)
 
 
 if __name__ == "__main__":

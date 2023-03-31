@@ -24,6 +24,8 @@ class Pulse(ABC):
     modulation phase and frequency are specified separately from ``Pulse``s.
     """
 
+    __slots__ = ("duration", "name", "_limit_amplitude")
+
     limit_amplitude = True
 
     @abstractmethod
@@ -43,11 +45,12 @@ class Pulse(ABC):
                              by default but may be set by the user to disable amplitude
                              checks globally.
         """
+        if limit_amplitude is None:
+            limit_amplitude = self.__class__.limit_amplitude
 
         self.duration = duration
         self.name = name
-        if limit_amplitude is not None:
-            self.limit_amplitude = limit_amplitude
+        self._limit_amplitude = limit_amplitude
 
     @property
     def id(self) -> int:  # pylint: disable=invalid-name
@@ -107,10 +110,10 @@ class Pulse(ABC):
             The returned data type depends on the ``plotter``.
             If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
         """
-        # pylint: disable=cyclic-import, missing-return-type-doc
-        from qiskit.visualization import pulse_drawer_v2
+        # pylint: disable=cyclic-import
+        from qiskit.visualization import pulse_drawer
 
-        return pulse_drawer_v2(
+        return pulse_drawer(
             program=self,
             style=style,
             backend=backend,

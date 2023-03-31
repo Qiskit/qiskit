@@ -25,7 +25,7 @@ Overview of all available backends
 
 .. code-block::
 
-    from qiskit import IBMQ
+    from qiskit.providers.ibmq import IBMQ
     import qiskit.tools.jupyter
     %matplotlib inline
 
@@ -39,7 +39,7 @@ Detailed information on a single backend
 
 .. code-block::
 
-    from qiskit import IBMQ
+    from qiskit.providers.ibmq import IBMQ
     import qiskit.tools.jupyter
     %matplotlib inline
 
@@ -61,7 +61,7 @@ Load Qiskit Job Watcher
 HTMLProgressBar
 ===============
 
-.. jupyter-execute::
+.. code-block::
 
     import numpy as np
     from qiskit.tools.parallel import parallel_map
@@ -74,7 +74,7 @@ HTMLProgressBar
 Qiskit version table
 ====================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %qiskit_version_table
@@ -83,7 +83,7 @@ Qiskit version table
 Qiskit copyright
 ================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %qiskit_copyright
@@ -91,7 +91,7 @@ Qiskit copyright
 Monospaced output
 =================
 
-.. jupyter-execute::
+.. code-block::
 
     import qiskit.tools.jupyter
     %monospaced_output
@@ -100,26 +100,14 @@ Monospaced output
 import warnings
 
 from IPython import get_ipython
-from qiskit.test.mock import FakeBackend
-from qiskit.tools.visualization import HAS_MATPLOTLIB
+from qiskit.providers.fake_provider import FakeBackend
+from qiskit.utils import optionals as _optionals
 from .jupyter_magics import ProgressBarMagic, StatusMagic
 from .progressbar import HTMLProgressBar
 from .version_table import VersionTable
 from .copyright import Copyright
 from .monospace import MonospacedOutput
 from .job_watcher import JobWatcher, JobWatcherMagic
-
-if HAS_MATPLOTLIB:
-    from .backend_overview import BackendOverview
-    from .backend_monitor import _backend_monitor
-
-try:
-    from qiskit.providers.ibmq.ibmqbackend import IBMQBackend
-
-    HAS_IBMQ = True
-except ImportError:
-    HAS_IBMQ = False
-
 
 _IP = get_ipython()
 if _IP is not None:
@@ -128,9 +116,14 @@ if _IP is not None:
     _IP.register_magics(MonospacedOutput)
     _IP.register_magics(Copyright)
     _IP.register_magics(JobWatcherMagic)
-    if HAS_MATPLOTLIB:
+    if _optionals.HAS_MATPLOTLIB:
+        from .backend_overview import BackendOverview
+        from .backend_monitor import _backend_monitor
+
         _IP.register_magics(BackendOverview)
-        if HAS_IBMQ:
+        if _optionals.HAS_IBMQ:
+            from qiskit.providers.ibmq import IBMQBackend  # pylint: disable=no-name-in-module
+
             HTML_FORMATTER = _IP.display_formatter.formatters["text/html"]
             # Make _backend_monitor the html repr for IBM Q backends
             HTML_FORMATTER.for_type(IBMQBackend, _backend_monitor)

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Operator construction, including OpPrimitives and singletons. """
+"""Test Operator construction, including OpPrimitives and singletons."""
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
@@ -94,20 +94,20 @@ class TestStateConstruction(QiskitOpflowTestCase):
         ).result()
 
         np.testing.assert_array_almost_equal(
-            StateFn(sv_res).to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0]
+            StateFn(sv_res).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]
         )
         np.testing.assert_array_almost_equal(
-            StateFn(sv_vector).to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0]
+            StateFn(sv_vector).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]
         )
         np.testing.assert_array_almost_equal(
-            StateFn(qasm_res).to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0], decimal=1
+            StateFn(qasm_res).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0], decimal=1
         )
 
         np.testing.assert_array_almost_equal(
-            ((I ^ I ^ H) @ Zero).to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0]
+            ((I ^ I ^ H) @ Zero).to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]
         )
         np.testing.assert_array_almost_equal(
-            qc_op.to_matrix(), [0.5 ** 0.5, 0.5 ** 0.5, 0, 0, 0, 0, 0, 0]
+            qc_op.to_matrix(), [0.5**0.5, 0.5**0.5, 0, 0, 0, 0, 0, 0]
         )
 
     def test_state_meas_composition(self):
@@ -235,6 +235,15 @@ class TestStateConstruction(QiskitOpflowTestCase):
         ex = ~StateFn(I) @ (CircuitOp(circuit) @ StateFn(vector))
         self.assertEqual(len(ex), 3)
         self.assertEqual(ex.eval(), 1)
+
+    def test_tensorstate_to_matrix(self):
+        """Test tensored states to matrix works correctly with a global coefficient.
+
+        Regression test of Qiskit/qiskit-terra#9398.
+        """
+        state = 0.5 * (Plus ^ Zero)
+        expected = 1 / (2 * np.sqrt(2)) * np.array([1, 0, 1, 0])
+        np.testing.assert_almost_equal(state.to_matrix(), expected)
 
 
 if __name__ == "__main__":

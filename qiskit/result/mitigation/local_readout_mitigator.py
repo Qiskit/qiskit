@@ -14,7 +14,7 @@ Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
 
 
-from typing import Optional, List, Tuple, Iterable, Callable, Union
+from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -38,43 +38,43 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
     def __init__(
         self,
-        amats: Optional[List[np.ndarray]] = None,
+        assignment_matrices: Optional[List[np.ndarray]] = None,
         qubits: Optional[Iterable[int]] = None,
         backend=None,
     ):
         """Initialize a LocalReadoutMitigator
 
         Args:
-            amats: Optional, list of single-qubit readout error assignment matrices.
+            assignment_matrices: Optional, list of single-qubit readout error assignment matrices.
             qubits: Optional, the measured physical qubits for mitigation.
             backend: Optional, backend name.
 
         Raises:
             QiskitError: matrices sizes do not agree with number of qubits
         """
-        if amats is None:
-            amats = self._from_backend(backend, qubits)
+        if assignment_matrices is None:
+            assignment_matrices = self._from_backend(backend, qubits)
         else:
-            amats = [np.asarray(amat, dtype=float) for amat in amats]
-        for amat in amats:
+            assignment_matrices = [np.asarray(amat, dtype=float) for amat in assignment_matrices]
+        for amat in assignment_matrices:
             if np.any(amat < 0) or not np.allclose(np.sum(amat, axis=0), 1):
                 raise QiskitError(
                     "Assignment matrix columns must be valid probability distributions"
                 )
         if qubits is None:
-            self._num_qubits = len(amats)
+            self._num_qubits = len(assignment_matrices)
             self._qubits = range(self._num_qubits)
         else:
-            if len(qubits) != len(amats):
+            if len(qubits) != len(assignment_matrices):
                 raise QiskitError(
                     "The number of given qubits ({}) is different than the number of qubits "
-                    "inferred from the matrices ({})".format(len(qubits), len(amats))
+                    "inferred from the matrices ({})".format(len(qubits), len(assignment_matrices))
                 )
             self._qubits = qubits
             self._num_qubits = len(self._qubits)
 
         self._qubit_index = dict(zip(self._qubits, range(self._num_qubits)))
-        self._assignment_mats = amats
+        self._assignment_mats = assignment_matrices
         self._mitigation_mats = np.zeros([self._num_qubits, 2, 2], dtype=float)
         self._gammas = np.zeros(self._num_qubits, dtype=float)
 
@@ -90,6 +90,11 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             except np.linalg.LinAlgError:
                 ainv = np.linalg.pinv(mat)
             self._mitigation_mats[i] = ainv
+
+    @property
+    def settings(self) -> Dict:
+        """Return settings."""
+        return {"assignment_matrices": self._assignment_mats, "qubits": self._qubits}
 
     def expectation_value(
         self,
@@ -142,7 +147,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         # Get operator coeffs
         if diagonal is None:
-            diagonal = z_diagonal(2 ** num_qubits)
+            diagonal = z_diagonal(2**num_qubits)
         elif isinstance(diagonal, str):
             diagonal = str2diag(diagonal)
 
@@ -164,7 +169,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         data: Counts,
         qubits: Optional[List[int]] = None,
         clbits: Optional[List[int]] = None,
-        shots: Optional[bool] = False,
+        shots: Optional[int] = None,
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
@@ -172,7 +177,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             data: counts object
             qubits: qubits the count bitstrings correspond to.
             clbits: Optional, marginalize counts to just these bits.
-            shots: the number of shots.
+            shots: Optional, the total number of shots, if None shots will
+                be calculated as the sum of all counts.
 
         Returns:
             QuasiDistibution: A dictionary containing pairs of [output, mean] where "output"
@@ -188,9 +194,11 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         num_qubits = len(qubits)
 
-        probs_vec, shots = counts_probability_vector(
+        probs_vec, calculated_shots = counts_probability_vector(
             data, qubit_index=self._qubit_index, clbits=clbits, qubits=qubits
         )
+        if shots is None:
+            shots = calculated_shots
 
         # Get qubit mitigation matrix and mitigate probs
         qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
@@ -209,7 +217,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             probs_dict[index] = probs_vec[index]
 
         quasi_dist = QuasiDistribution(
-            probs_dict, stddev_upper_bound=self.stddev_upper_bound(shots, qubits)
+            probs_dict, shots=shots, stddev_upper_bound=self.stddev_upper_bound(shots, qubits)
         )
         return quasi_dist
 
@@ -231,8 +239,9 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             qubits = self._qubits
         if isinstance(qubits, int):
             qubits = [self._qubits[qubits]]
-        mat = self._mitigation_mats[qubits[0]]
-        for i in qubits[1:]:
+        qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
+        mat = self._mitigation_mats[qubit_indices[0]]
+        for i in qubit_indices[1:]:
             mat = np.kron(self._mitigation_mats[i], mat)
         return mat
 
@@ -253,9 +262,10 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             qubits = self._qubits
         if isinstance(qubits, int):
             qubits = [qubits]
-        mat = self._assignment_mats[qubits[0]]
-        for i in qubits[1:]:
-            mat = np.kron(self._assignment_mats[qubits[i]], mat)
+        qubit_indices = [self._qubit_index[qubit] for qubit in qubits]
+        mat = self._assignment_mats[qubit_indices[0]]
+        for i in qubit_indices[1:]:
+            mat = np.kron(self._assignment_mats[i], mat)
         return mat
 
     def _compute_gamma(self, qubits=None):

@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ
-
 """Contains a (slow) Python simulator.
 
 It simulates a qasm quantum circuit (an experiment) that has been compiled
@@ -56,7 +54,7 @@ logger = logging.getLogger(__name__)
 class QasmSimulatorPy(BackendV1):
     """Python implementation of a qasm simulator."""
 
-    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024 ** 3) / 16))
+    MAX_QUBITS_MEMORY = int(log2(local_hardware_info()["memory"] * (1024**3) / 16))
 
     DEFAULT_CONFIGURATION = {
         "backend_name": "qasm_simulator",
@@ -68,7 +66,7 @@ class QasmSimulatorPy(BackendV1):
         "conditional": True,
         "open_pulse": False,
         "memory": True,
-        "max_shots": 65536,
+        "max_shots": 0,
         "coupling_map": None,
         "description": "A python simulator for qasm experiments",
         "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
@@ -194,7 +192,7 @@ class QasmSimulatorPy(BackendV1):
         """
         # Get unique qubits that are actually measured and sort in
         # ascending order
-        measured_qubits = sorted(list({qubit for qubit, cmembit in measure_params}))
+        measured_qubits = sorted({qubit for qubit, cmembit in measure_params})
         num_measured = len(measured_qubits)
         # We use the axis kwarg for numpy.sum to compute probabilities
         # this sums over all non-measured qubits to return a vector
@@ -205,12 +203,12 @@ class QasmSimulatorPy(BackendV1):
             # with respect to position from end of the list
             axis.remove(self._number_of_qubits - 1 - qubit)
         probabilities = np.reshape(
-            np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis)), 2 ** num_measured
+            np.sum(np.abs(self._statevector) ** 2, axis=tuple(axis)), 2**num_measured
         )
         # Generate samples on measured qubits as ints with qubit
         # position in the bit-string for each int given by the qubit
         # position in the sorted measured_qubits list
-        samples = self._local_random.choice(range(2 ** num_measured), num_samples, p=probabilities)
+        samples = self._local_random.choice(range(2**num_measured), num_samples, p=probabilities)
         # Convert the ints to bitstrings
         memory = []
         for sample in samples:
@@ -279,7 +277,7 @@ class QasmSimulatorPy(BackendV1):
             return
         # Check statevector is correct length for number of qubits
         length = len(self._initial_statevector)
-        required_dim = 2 ** self._number_of_qubits
+        required_dim = 2**self._number_of_qubits
         if length != required_dim:
             raise BasicAerError(
                 f"initial statevector is incorrect length: {length} != {required_dim}"
@@ -295,7 +293,10 @@ class QasmSimulatorPy(BackendV1):
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if "initial_statevector" in backend_options:
+        if (
+            "initial_statevector" in backend_options
+            and backend_options["initial_statevector"] is not None
+        ):
             self._initial_statevector = np.array(
                 backend_options["initial_statevector"], dtype=complex
             )
@@ -317,7 +318,7 @@ class QasmSimulatorPy(BackendV1):
         """Set the initial statevector for simulation"""
         if self._initial_statevector is None:
             # Set to default state of all qubits in |0>
-            self._statevector = np.zeros(2 ** self._number_of_qubits, dtype=complex)
+            self._statevector = np.zeros(2**self._number_of_qubits, dtype=complex)
             self._statevector[0] = 1
         else:
             self._statevector = self._initial_statevector.copy()
@@ -326,7 +327,7 @@ class QasmSimulatorPy(BackendV1):
 
     def _get_statevector(self):
         """Return the current statevector"""
-        vec = np.reshape(self._statevector, 2 ** self._number_of_qubits)
+        vec = np.reshape(self._statevector, 2**self._number_of_qubits)
         vec[abs(vec) < self._chop_threshold] = 0.0
         return vec
 

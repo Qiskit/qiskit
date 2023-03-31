@@ -39,7 +39,8 @@ from collections import defaultdict
 from typing import Dict, List, Union, Optional
 
 from qiskit import pulse
-from qiskit.providers import BaseBackend, BackendConfigurationError
+from qiskit.providers import BackendConfigurationError
+from qiskit.providers.backend import Backend
 
 
 class DrawerBackendInfo(ABC):
@@ -67,7 +68,7 @@ class DrawerBackendInfo(ABC):
 
     @classmethod
     @abstractmethod
-    def create_from_backend(cls, backend: BaseBackend):
+    def create_from_backend(cls, backend: Backend):
         """Initialize a class with backend information provided by provider.
 
         Args:
@@ -96,7 +97,7 @@ class OpenPulseBackendInfo(DrawerBackendInfo):
     """Drawing information of backend that conforms to OpenPulse specification."""
 
     @classmethod
-    def create_from_backend(cls, backend: BaseBackend):
+    def create_from_backend(cls, backend: Backend):
         """Initialize a class with backend information provided by provider.
 
         Args:

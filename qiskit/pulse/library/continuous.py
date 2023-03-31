@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-return-doc, invalid-unary-operand-type
+# pylint: disable=invalid-unary-operand-type
 
 """Module for builtin continuous pulse functions."""
 
@@ -173,7 +173,7 @@ def gaussian(
     """
     times = np.asarray(times, dtype=np.complex_)
     x = (times - center) / sigma
-    gauss = amp * np.exp(-(x ** 2) / 2).astype(np.complex_)
+    gauss = amp * np.exp(-(x**2) / 2).astype(np.complex_)
 
     if zeroed_width is not None:
         gauss = _fix_gaussian_width(

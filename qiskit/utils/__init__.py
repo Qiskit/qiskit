@@ -21,12 +21,16 @@ Utilities (:mod:`qiskit.utils`)
 .. autosummary::
    :toctree: ../stubs/
 
+   add_deprecation_to_docstring
+   deprecate_arg
    deprecate_arguments
+   deprecate_func
    deprecate_function
    local_hardware_info
    is_main_process
    apply_prefix
    detach_prefix
+   wrap_method
 
 Algorithm Utilities
 ===================
@@ -55,14 +59,28 @@ runtime parameters controlling circuit compilation and execution. Quantum
 are run on a device or simulator by passing a QuantumInstance setup with the desired
 backend etc.
 
+
+Optional Depedency Checkers (:mod:`qiskit.utils.optionals`)
+===========================================================
+
+.. automodule:: qiskit.utils.optionals
 """
 
 from .quantum_instance import QuantumInstance
-from .deprecation import deprecate_arguments
-from .deprecation import deprecate_function
+from .deprecation import (
+    add_deprecation_to_docstring,
+    deprecate_arg,
+    deprecate_arguments,
+    deprecate_func,
+    deprecate_function,
+)
 from .multiprocessing import local_hardware_info
 from .multiprocessing import is_main_process
 from .units import apply_prefix, detach_prefix
+from .classtools import wrap_method
+from .lazy_tester import LazyDependencyManager, LazyImportTester, LazySubprocessTester
+
+from . import optionals
 
 from .circuit_utils import summarize_circuits
 from .entangler_map import get_entangler_map, validate_entangler_map
@@ -72,6 +90,9 @@ from .algorithm_globals import algorithm_globals
 
 
 __all__ = [
+    "LazyDependencyManager",
+    "LazyImportTester",
+    "LazySubprocessTester",
     "QuantumInstance",
     "summarize_circuits",
     "get_entangler_map",
@@ -80,7 +101,10 @@ __all__ = [
     "has_aer",
     "name_args",
     "algorithm_globals",
+    "add_deprecation_to_docstring",
+    "deprecate_arg",
     "deprecate_arguments",
+    "deprecate_func",
     "deprecate_function",
     "local_hardware_info",
     "is_main_process",

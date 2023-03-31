@@ -18,7 +18,7 @@ from qiskit import pulse, circuit
 from qiskit.pulse import transforms
 from qiskit.pulse.exceptions import PulseError
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeOpenPulse2Q, FakeArmonk
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeArmonk
 from qiskit.utils import has_aer
 
 
@@ -376,10 +376,12 @@ class TestBlockOperation(BaseTestBlock):
 
         with pulse.build(name="test_block") as sched_block:
             pulse.play(pulse.Constant(160, 1.0), pulse.DriveChannel(0))
-            pulse.acquire(50, pulse.MeasureChannel(0), pulse.MemorySlot(0))
+            pulse.acquire(50, pulse.AcquireChannel(0), pulse.MemorySlot(0))
 
         backend = FakeArmonk()
-        test_result = backend.run(sched_block).result()
+        # TODO: Rewrite test to simulate with qiskit-dynamics
+        with self.assertWarns(DeprecationWarning):
+            test_result = backend.run(sched_block).result()
         self.assertDictEqual(test_result.get_counts(), {"0": 1024})
 
 
@@ -478,6 +480,24 @@ class TestBlockEquality(BaseTestBlock):
         block1 += pulse.Play(self.test_waveform0, self.d1)
 
         block2 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block2 += pulse.Play(self.test_waveform0, self.d1)
+        block2 += pulse.Play(self.test_waveform0, self.d0)
+
+        self.assertNotEqual(block1, block2)
+
+    def test_instruction_out_of_order_sequential_more(self):
+        """Test equality is False if three blocks have instructions in different order.
+
+        This could detect a particular bug as discussed in this thread:
+        https://github.com/Qiskit/qiskit-terra/pull/8005#discussion_r966191018
+        """
+        block1 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block1 += pulse.Play(self.test_waveform0, self.d0)
+        block1 += pulse.Play(self.test_waveform0, self.d0)
+        block1 += pulse.Play(self.test_waveform0, self.d1)
+
+        block2 = pulse.ScheduleBlock(alignment_context=self.sequential_context)
+        block2 += pulse.Play(self.test_waveform0, self.d0)
         block2 += pulse.Play(self.test_waveform0, self.d1)
         block2 += pulse.Play(self.test_waveform0, self.d0)
 

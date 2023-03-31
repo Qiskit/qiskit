@@ -117,6 +117,10 @@ class ForLoopOp(ControlFlowOp):
     def blocks(self):
         return (self._params[2],)
 
+    def replace_blocks(self, blocks):
+        (body,) = blocks
+        return ForLoopOp(self.params[0], self.params[1], body, label=self.label)
+
 
 class ForLoopContext:
     """A context manager for building up ``for`` loops onto circuits in a natural order, without
@@ -138,7 +142,7 @@ class ForLoopContext:
         from qiskit import QuantumCircuit
         qc = QuantumCircuit(2, 1)
 
-        with qc.for_loop(None, range(5)) as i:
+        with qc.for_loop(range(5)) as i:
             qc.rx(i * math.pi/4, 0)
             qc.cx(0, 1)
             qc.measure(0, 0)

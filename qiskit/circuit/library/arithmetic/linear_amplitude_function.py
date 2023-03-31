@@ -12,7 +12,7 @@
 
 """A class implementing a (piecewise-) linear function on qubit amplitudes."""
 
-from typing import Optional, List, Union, Tuple
+from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit
 
@@ -77,12 +77,12 @@ class LinearAmplitudeFunction(QuantumCircuit):
     def __init__(
         self,
         num_state_qubits: int,
-        slope: Union[float, List[float]],
-        offset: Union[float, List[float]],
-        domain: Tuple[float, float],
-        image: Tuple[float, float],
+        slope: float | list[float],
+        offset: float | list[float],
+        domain: tuple[float, float],
+        image: tuple[float, float],
         rescaling_factor: float = 1,
-        breakpoints: Optional[List[float]] = None,
+        breakpoints: list[float] | None = None,
         name: str = "F",
     ) -> None:
         r"""
@@ -127,13 +127,13 @@ class LinearAmplitudeFunction(QuantumCircuit):
         mapped_slope = []
         mapped_offset = []
         for i, point in enumerate(breakpoints):
-            mapped_breakpoint = (point - a) / (b - a) * (2 ** num_state_qubits - 1)
+            mapped_breakpoint = (point - a) / (b - a) * (2**num_state_qubits - 1)
             mapped_breakpoints += [mapped_breakpoint]
 
             # factor (upper - lower) / (2^n - 1) is for the scaling of x to [l,u]
             # note that the +l for mapping to [l,u] is already included in
             # the offsets given as parameters
-            mapped_slope += [slope[i] * (b - a) / (2 ** num_state_qubits - 1)]
+            mapped_slope += [slope[i] * (b - a) / (2**num_state_qubits - 1)]
             mapped_offset += [offset[i]]
 
         # approximate linear behavior by scaling and contracting around pi/4

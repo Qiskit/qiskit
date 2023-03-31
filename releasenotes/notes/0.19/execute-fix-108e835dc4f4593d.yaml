@@ -13,7 +13,7 @@ upgrade:
       from qiskit.test.mock import FakeMumbai
       from qiskit import QuantumCircuit, execute
 
-      circuit = QuantumCircuit(2)
+      qc = QuantumCircuit(2)
       qc.h(0)
       qc.cx(0, 1)
       qc.measure_all()
