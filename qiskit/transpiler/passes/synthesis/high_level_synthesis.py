@@ -140,7 +140,6 @@ class HighLevelSynthesis(TransformationPass):
             # When the config file is not provided, we will use the "default" method
             # to synthesize Operations (when available).
             self.hls_config = HLSConfig(True)
-        self.hls_plugin_manager = HighLevelSynthesisPluginManager()
 
         self.hls_plugin_manager = HighLevelSynthesisPluginManager()
 
