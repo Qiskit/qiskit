@@ -95,14 +95,14 @@ class InstructionSet:
     def __init__(self, circuit_cregs=None, *, resource_requester: Optional[Callable] = None):
         """New collection of instructions.
 
-        The context (qargs and cargs that each instruction is attached to) is also stored separately
-        for each instruction.
+        The context (``qargs`` and ``cargs`` that each instruction is attached to) is also stored
+        separately for each instruction.
 
         Args:
-            circuit_cregs (list[ClassicalRegister]): Optional. List of cregs of the
+            circuit_cregs (list[ClassicalRegister]): Optional. List of ``cregs`` of the
                 circuit to which the instruction is added. Default: `None`.
 
-                .. deprecated:: qiskit-terra 0.19
+                .. deprecated:: 0.19
                     The classical registers are insufficient to access all classical resources in a
                     circuit, as there may be loose classical bits as well.  It can also cause
                     integer indices to be resolved incorrectly if any registers overlap.  Instead,
