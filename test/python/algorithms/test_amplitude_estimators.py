@@ -128,7 +128,8 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     @unpack
     def test_statevector(self, prob, qae, expect):
         """statevector test"""
-        qae.quantum_instance = self._statevector
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._statevector
         problem = EstimationProblem(BernoulliStateIn(prob), 0, BernoulliGrover(prob))
 
         result = qae.estimate(problem)
@@ -185,7 +186,8 @@ class TestBernoulli(QiskitAlgorithmsTestCase):
     @unpack
     def test_qasm(self, prob, shots, qae, expect):
         """qasm test"""
-        qae.quantum_instance = self._qasm(shots)
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._qasm(shots)
         problem = EstimationProblem(BernoulliStateIn(prob), [0], BernoulliGrover(prob))
 
         result = qae.estimate(problem)
@@ -409,7 +411,8 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         """Statevector end-to-end test"""
         # construct factories for A and Q
         # qae.state_preparation = SineIntegral(n)
-        qae.quantum_instance = self._statevector
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._statevector
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         # result = qae.run(self._statevector)
@@ -454,7 +457,8 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def test_qasm(self, n, shots, qae, expect):
         """QASM simulator end-to-end test."""
         # construct factories for A and Q
-        qae.quantum_instance = self._qasm(shots)
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._qasm(shots)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         result = qae.estimate(estimation_problem)
@@ -510,7 +514,8 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def test_confidence_intervals(self, qae, key, expect):
         """End-to-end test for all confidence intervals."""
         n = 3
-        qae.quantum_instance = self._statevector
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._statevector
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
         # statevector simulator
@@ -527,7 +532,8 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         # qasm simulator
         shots = 100
         alpha = 0.01
-        qae.quantum_instance = self._qasm(shots)
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._qasm(shots)
         result = qae.estimate(estimation_problem)
         for method, expected_confint in expect.items():
             confint = qae.compute_confidence_interval(result, alpha, method)
@@ -551,7 +557,8 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
 
         # qasm simulator
         shots = 100
-        qae.quantum_instance = self._qasm(shots)
+        with self.assertWarns(DeprecationWarning):
+            qae.quantum_instance = self._qasm(shots)
         result = qae.estimate(estimation_problem)
         confint = result.confidence_interval
         np.testing.assert_array_almost_equal(confint, expected_confint)

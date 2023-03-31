@@ -90,18 +90,19 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_basic_aer_statevector(self):
         """Test the VQD on BasicAer's statevector simulator."""
         wavefunction = self.ryrz_wavefunction
-        vqd = VQD(
-            k=2,
-            ansatz=wavefunction,
-            optimizer=COBYLA(),
-            quantum_instance=QuantumInstance(
-                BasicAer.get_backend("statevector_simulator"),
-                basis_gates=["u1", "u2", "u3", "cx", "id"],
-                coupling_map=[[0, 1]],
-                seed_simulator=algorithm_globals.random_seed,
-                seed_transpiler=algorithm_globals.random_seed,
-            ),
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=2,
+                ansatz=wavefunction,
+                optimizer=COBYLA(),
+                quantum_instance=QuantumInstance(
+                    BasicAer.get_backend("statevector_simulator"),
+                    basis_gates=["u1", "u2", "u3", "cx", "id"],
+                    coupling_map=[[0, 1]],
+                    seed_simulator=algorithm_globals.random_seed,
+                    seed_transpiler=algorithm_globals.random_seed,
+                ),
+            )
 
         result = vqd.compute_eigenvalues(operator=self.h2_op)
 
@@ -123,12 +124,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Ensuring circuit and operator mismatch is caught"""
         wavefunction = QuantumCircuit(1)
         optimizer = SLSQP(maxiter=50)
-        vqd = VQD(
-            k=1,
-            ansatz=wavefunction,
-            optimizer=optimizer,
-            quantum_instance=self.statevector_simulator,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=1,
+                ansatz=wavefunction,
+                optimizer=optimizer,
+                quantum_instance=self.statevector_simulator,
+            )
         with self.assertRaises(AlgorithmError):
             _ = vqd.compute_eigenvalues(operator=self.h2_op)
 
@@ -142,7 +144,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Test construct circuits returns QuantumCircuits and the right number of them."""
         try:
             wavefunction = EfficientSU2(2, reps=1)
-            vqd = VQD(k=2, ansatz=wavefunction, expectation=expectation)
+            with self.assertWarns(DeprecationWarning):
+                vqd = VQD(k=2, ansatz=wavefunction, expectation=expectation)
             params = [0] * wavefunction.num_parameters
             circuits = vqd.construct_circuit(parameter=params, operator=self.h2_op)
 
@@ -156,9 +159,10 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_missing_varform_params(self):
         """Test specifying a variational form with no parameters raises an error."""
         circuit = QuantumCircuit(self.h2_op.num_qubits)
-        vqd = VQD(
-            k=1, ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator")
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=1, ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator")
+            )
         with self.assertRaises(RuntimeError):
             vqd.compute_eigenvalues(operator=self.h2_op)
 
@@ -167,12 +171,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
         optimizer = COBYLA(maxiter=1000)
         wavefunction = self.ry_wavefunction
 
-        vqd = VQD(
-            ansatz=wavefunction,
-            optimizer=optimizer,
-            max_evals_grouped=1,
-            quantum_instance=self.qasm_simulator,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                ansatz=wavefunction,
+                optimizer=optimizer,
+                max_evals_grouped=1,
+                quantum_instance=self.qasm_simulator,
+            )
 
         # TODO benchmark this later.
         result = vqd.compute_eigenvalues(operator=self.h2_op)
@@ -192,13 +197,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )
-        vqd = VQD(
-            k=2,
-            ansatz=wavefunction,
-            optimizer=optimizer,
-            max_evals_grouped=1,
-            quantum_instance=quantum_instance,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=2,
+                ansatz=wavefunction,
+                optimizer=optimizer,
+                max_evals_grouped=1,
+                quantum_instance=quantum_instance,
+            )
 
         result = vqd.compute_eigenvalues(operator=self.h2_op)
         np.testing.assert_array_almost_equal(
@@ -218,13 +224,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
             seed_transpiler=algorithm_globals.random_seed,
         )
 
-        vqd = VQD(
-            k=2,
-            ansatz=wavefunction,
-            optimizer=optimizer,
-            expectation=PauliExpectation(),
-            quantum_instance=quantum_instance,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=2,
+                ansatz=wavefunction,
+                optimizer=optimizer,
+                expectation=PauliExpectation(),
+                quantum_instance=quantum_instance,
+            )
 
         result = vqd.compute_eigenvalues(operator=self.h2_op)
 
@@ -246,13 +253,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )
-        vqd = VQD(
-            k=2,
-            ansatz=wavefunction,
-            optimizer=optimizer,
-            expectation=AerPauliExpectation(),
-            quantum_instance=quantum_instance,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=2,
+                ansatz=wavefunction,
+                optimizer=optimizer,
+                expectation=AerPauliExpectation(),
+                quantum_instance=quantum_instance,
+            )
 
         result = vqd.compute_eigenvalues(operator=self.test_op)
         np.testing.assert_array_almost_equal(result.eigenvalues.real, self.test_results, decimal=1)
@@ -271,12 +279,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
 
-        vqd = VQD(
-            ansatz=wavefunction,
-            optimizer=optimizer,
-            callback=store_intermediate_result,
-            quantum_instance=self.qasm_simulator,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                ansatz=wavefunction,
+                optimizer=optimizer,
+                callback=store_intermediate_result,
+                quantum_instance=self.qasm_simulator,
+            )
         vqd.compute_eigenvalues(operator=self.h2_op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
@@ -298,7 +307,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
     def test_reuse(self):
         """Test re-using a VQD algorithm instance."""
-        vqd = VQD(k=1)
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(k=1)
         with self.subTest(msg="assert running empty raises AlgorithmError"):
             with self.assertRaises(AlgorithmError):
                 _ = vqd.compute_eigenvalues(operator=self.h2_op)
@@ -323,11 +333,12 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
     def test_vqd_optimizer(self):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
-        vqd = VQD(
-            k=2,
-            optimizer=SLSQP(),
-            quantum_instance=QuantumInstance(BasicAer.get_backend("statevector_simulator")),
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=2,
+                optimizer=SLSQP(),
+                quantum_instance=QuantumInstance(BasicAer.get_backend("statevector_simulator")),
+            )
 
         def run_check():
             result = vqd.compute_eigenvalues(operator=self.h2_op)
@@ -347,13 +358,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
     @data(MatrixExpectation(), None)
     def test_backend_change(self, user_expectation):
         """Test that VQE works when backend changes."""
-        vqd = VQD(
-            k=1,
-            ansatz=TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz"),
-            optimizer=SLSQP(maxiter=2),
-            expectation=user_expectation,
-            quantum_instance=BasicAer.get_backend("statevector_simulator"),
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=1,
+                ansatz=TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz"),
+                optimizer=SLSQP(maxiter=2),
+                expectation=user_expectation,
+                quantum_instance=BasicAer.get_backend("statevector_simulator"),
+            )
         result0 = vqd.compute_eigenvalues(operator=self.h2_op)
         if user_expectation is not None:
             with self.subTest("User expectation kept."):
@@ -373,30 +385,33 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
     def test_set_ansatz_to_none(self):
         """Tests that setting the ansatz to None results in the default behavior"""
-        vqd = VQD(
-            k=1,
-            ansatz=self.ryrz_wavefunction,
-            optimizer=L_BFGS_B(),
-            quantum_instance=self.statevector_simulator,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=1,
+                ansatz=self.ryrz_wavefunction,
+                optimizer=L_BFGS_B(),
+                quantum_instance=self.statevector_simulator,
+            )
         vqd.ansatz = None
         self.assertIsInstance(vqd.ansatz, RealAmplitudes)
 
     def test_set_optimizer_to_none(self):
         """Tests that setting the optimizer to None results in the default behavior"""
-        vqd = VQD(
-            k=1,
-            ansatz=self.ryrz_wavefunction,
-            optimizer=L_BFGS_B(),
-            quantum_instance=self.statevector_simulator,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=1,
+                ansatz=self.ryrz_wavefunction,
+                optimizer=L_BFGS_B(),
+                quantum_instance=self.statevector_simulator,
+            )
         vqd.optimizer = None
         self.assertIsInstance(vqd.optimizer, SLSQP)
 
     def test_aux_operators_list(self):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
-        vqd = VQD(k=2, ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(k=2, ansatz=wavefunction, quantum_instance=self.statevector_simulator)
 
         # Start with an empty list
         result = vqd.compute_eigenvalues(self.h2_op, aux_operators=[])
@@ -441,7 +456,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_aux_operators_dict(self):
         """Test dictionary compatibility of aux_operators"""
         wavefunction = self.ry_wavefunction
-        vqd = VQD(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
 
         # Start with an empty dictionary
         result = vqd.compute_eigenvalues(self.h2_op, aux_operators={})
@@ -490,22 +506,23 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_aux_operator_std_dev_pauli(self):
         """Test non-zero standard deviations of aux operators with PauliExpectation."""
         wavefunction = self.ry_wavefunction
-        vqd = VQD(
-            ansatz=wavefunction,
-            expectation=PauliExpectation(),
-            initial_point=[
-                1.70256666,
-                -5.34843975,
-                -0.39542903,
-                5.99477786,
-                -2.74374986,
-                -4.85284669,
-                0.2442925,
-                -1.51638917,
-            ],
-            optimizer=COBYLA(maxiter=0),
-            quantum_instance=self.qasm_simulator,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                ansatz=wavefunction,
+                expectation=PauliExpectation(),
+                initial_point=[
+                    1.70256666,
+                    -5.34843975,
+                    -0.39542903,
+                    5.99477786,
+                    -2.74374986,
+                    -4.85284669,
+                    0.2442925,
+                    -1.51638917,
+                ],
+                optimizer=COBYLA(maxiter=0),
+                quantum_instance=self.qasm_simulator,
+            )
 
         # Go again with two auxiliary operators
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
@@ -547,17 +564,18 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_aux_operator_std_dev_aer_pauli(self):
         """Test non-zero standard deviations of aux operators with AerPauliExpectation."""
         wavefunction = self.ry_wavefunction
-        vqd = VQD(
-            ansatz=wavefunction,
-            expectation=AerPauliExpectation(),
-            optimizer=COBYLA(maxiter=0),
-            quantum_instance=QuantumInstance(
-                backend=Aer.get_backend("qasm_simulator"),
-                shots=1,
-                seed_simulator=algorithm_globals.random_seed,
-                seed_transpiler=algorithm_globals.random_seed,
-            ),
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                ansatz=wavefunction,
+                expectation=AerPauliExpectation(),
+                optimizer=COBYLA(maxiter=0),
+                quantum_instance=QuantumInstance(
+                    backend=Aer.get_backend("qasm_simulator"),
+                    shots=1,
+                    seed_simulator=algorithm_globals.random_seed,
+                    seed_transpiler=algorithm_globals.random_seed,
+                ),
+            )
 
         # Go again with two auxiliary operators
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])

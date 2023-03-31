@@ -85,9 +85,10 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[OperatorBase],
         quantum_instance: Union[QuantumInstance, Backend],
     ):
-        result = eval_observables(
-            quantum_instance, quantum_state, observables, expectation, self.threshold
-        )
+        with self.assertWarns(DeprecationWarning):
+            result = eval_observables(
+                quantum_instance, quantum_state, observables, expectation, self.threshold
+            )
 
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))

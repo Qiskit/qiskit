@@ -152,7 +152,8 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         optimizer = SPSA(maxiter=200)
         ansatz = EfficientSU2(2, reps=1)
 
-        vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
@@ -201,11 +202,12 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )
-        qaoa = QAOA(
-            optimizer=COBYLA(maxiter=3),
-            quantum_instance=quantum_instance,
-            initial_point=initial_point,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(
+                optimizer=COBYLA(maxiter=3),
+                quantum_instance=quantum_instance,
+                initial_point=initial_point,
+            )
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         ref_eigenvalue = result.eigenvalue.real
 
@@ -224,11 +226,12 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             shots=10000,
         )
 
-        qaoa = QAOA(
-            optimizer=COBYLA(maxiter=3),
-            quantum_instance=quantum_instance,
-            initial_point=initial_point,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(
+                optimizer=COBYLA(maxiter=3),
+                quantum_instance=quantum_instance,
+                initial_point=initial_point,
+            )
         result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, ref_eigenvalue, delta=0.05)
 

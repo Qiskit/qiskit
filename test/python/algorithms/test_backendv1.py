@@ -47,12 +47,13 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         qasm_simulator = QuantumInstance(
             self._qasm, shots=1024, seed_simulator=self.seed, seed_transpiler=self.seed
         )
-        vqe = VQE(
-            ansatz=wavefunction,
-            optimizer=optimizer,
-            max_evals_grouped=1,
-            quantum_instance=qasm_simulator,
-        )
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(
+                ansatz=wavefunction,
+                optimizer=optimizer,
+                max_evals_grouped=1,
+                quantum_instance=qasm_simulator,
+            )
 
         result = vqe.compute_minimum_eigenvalue(operator=h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
@@ -65,7 +66,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         qi = QuantumInstance(
             self._provider.get_backend("fake_vigo"), seed_simulator=12, seed_transpiler=32
         )
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
@@ -78,7 +79,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         backend = self._provider.get_backend("fake_vigo")
         backend._configuration.max_experiments = 1
         qi = QuantumInstance(backend, seed_simulator=12, seed_transpiler=32)
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             grover = Grover(quantum_instance=qi)
         result = grover.amplify(problem)
         self.assertIn(result.top_measurement, ["11"])
@@ -118,7 +119,8 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         optimizer = SPSA(maxiter=200)
         ansatz = EfficientSU2(2, reps=1)
 
-        vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
         result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
