@@ -1967,13 +1967,23 @@ class TestTranspileParallel(QiskitTestCase):
         cmap = CouplingMap.from_line(7)
         cmap.add_edge(0, 2)
 
-        tqc = transpile([qc] * 2, backend, coupling_map=[None, cmap], initial_layout=(0, 1, 2))
+        with self.assertWarnsRegex(
+            DeprecationWarning, "Passing in a list of arguments for coupling_map is deprecated"
+        ):
+            # Initial layout needed to prevent transpiler from relabeling
+            # qubits to avoid doing the swap
+            tqc = transpile(
+                [qc] * 2,
+                backend,
+                coupling_map=[backend.coupling_map, cmap],
+                initial_layout=(0, 1, 2),
+            )
 
         # Check that the two coupling maps were used. The default should
         # require swapping (extra cx's) and the second one should not (just the
         # original cx).
-        self.assertEqual(tqc[0].count_ops("cx"), 4)
-        self.assertEqual(tqc[1].count_ops("cx"), 1)
+        self.assertEqual(tqc[0].count_ops()["cx"], 4)
+        self.assertEqual(tqc[1].count_ops()["cx"], 1)
 
     @data(0, 1, 2, 3)
     def test_backend_and_custom_gate(self, opt_level):
