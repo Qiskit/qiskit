@@ -5,20 +5,19 @@ Algorithms Migration Guide
 TL;DR
 =====
 
-The :mod:`qiskit.algorithms` module has been fully refactored to use the :mod:`~qiskit.primitives` instead of the
-:class:`~qiskit.utils.QuantumInstance`, which is now deprecated, for circuit execution.
+The :mod:`qiskit.algorithms` module has been fully refactored to use the :mod:`~qiskit.primitives`, for circuit execution, instead of the :class:`~qiskit.utils.QuantumInstance`, which is now deprecated.
 
 There have been **3 types of refactoring**:
 
 1. Algorithms refactored in a new location to support :mod:`~qiskit.primitives`. These algorithms have the same
-   class names as the :class:`~qiskit.utils.QuantumInstance`\-based ones but are in a new namespace.
+   class names as the :class:`~qiskit.utils.QuantumInstance`\-based ones but are in a new sub-package.
 
     .. attention::
 
        **Careful with import paths!!** The legacy algorithms are still importable directly from
        :mod:`qiskit.algorithms`. Until the legacy imports are removed, this convenience import is not available
        for the refactored algorithms. Thus, to import the refactored algorithms you must always
-       **specify the full import path** (i.e., ``from qiskit.algorithms.eigensolvers import VQD``)
+       **specify the full import path** (e.g., ``from qiskit.algorithms.eigensolvers import VQD``)
 
     - `Minimum Eigensolvers`_
     - `Eigensolvers`_
@@ -33,7 +32,7 @@ There have been **3 types of refactoring**:
     - `Phase Estimators`_
 
 
-3. Algorithms deprecated entirely in :mod:`qiskit.algorithms`. These are algorithms that do not currently serve
+3. Algorithms that were deprecated and are now removed entirely from :mod:`qiskit.algorithms`. These are algorithms that do not currently serve
    as building blocks for applications. Their main value is educational, and as such, will be kept as tutorials
    in the qiskit textbook. You can consult the tutorials in the following links:
 
