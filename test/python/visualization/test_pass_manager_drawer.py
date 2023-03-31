@@ -18,9 +18,8 @@ import os
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passmanager import PassManager
 from qiskit import QuantumRegister
-from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import GateDirection, Unroller
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
@@ -55,7 +54,7 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.pass_manager.append(Unroller(basis_gates))
         self.pass_manager.append(CheckMap(coupling_map))
         self.pass_manager.append(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
-        self.pass_manager.append(CXDirection(coupling_map))
+        self.pass_manager.append(GateDirection(coupling_map))
         self.pass_manager.append(RemoveResetInZeroState())
 
     def test_pass_manager_drawer_basic(self):
@@ -63,8 +62,12 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         filename = "current_standard.dot"
         self.pass_manager.draw(filename=filename, raw=True)
 
-        self.assertFilesAreEqual(filename, path_to_diagram_reference("pass_manager_standard.dot"))
-        os.remove(filename)
+        try:
+            self.assertFilesAreEqual(
+                filename, path_to_diagram_reference("pass_manager_standard.dot")
+            )
+        finally:
+            os.remove(filename)
 
     def test_pass_manager_drawer_style(self):
         """Test to see if the colours are updated when provided by the user"""
@@ -79,8 +82,10 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         filename = "current_style.dot"
         self.pass_manager.draw(filename=filename, style=style, raw=True)
 
-        self.assertFilesAreEqual(filename, path_to_diagram_reference("pass_manager_style.dot"))
-        os.remove(filename)
+        try:
+            self.assertFilesAreEqual(filename, path_to_diagram_reference("pass_manager_style.dot"))
+        finally:
+            os.remove(filename)
 
 
 if __name__ == "__main__":
