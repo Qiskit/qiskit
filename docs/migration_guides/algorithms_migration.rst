@@ -25,8 +25,7 @@ There have been **3 types of refactoring**:
     - `Time Evolvers`_
 
 2. Algorithms refactored in-place (same namespace) to support both :class:`~qiskit.utils.QuantumInstance` and
-   :mod:`~qiskit.primitives`. In the future, the use of :class:`~qiskit.utils.QuantumInstance` will be removed,
-   but the namespace will not change.
+   :mod:`~qiskit.primitives`. In the future, the use of :class:`~qiskit.utils.QuantumInstance` will be removed.
 
     - `Amplitude Amplifiers`_
     - `Amplitude Estimators`_
@@ -37,8 +36,12 @@ There have been **3 types of refactoring**:
    as building blocks for applications. Their main value is educational, and as such, will be kept as tutorials
    in the qiskit textbook. You can consult the tutorials in the following links:
 
-    - `Linear Solvers (HHL) <https://qiskit.org/textbook/ch-applications/hhl_tutorial.html>`_
-    - `Factorizers (Shor) <https://qiskit.org/textbook/ch-algorithms/shor.html>`_
+    - `Linear Solvers (HHL) <https://learn.qiskit.org/course/ch-applications/solving-linear-systems-of-equations-using-hhl-and-its-qiskit-implementation>`_ ,
+    - `Factorizers (Shor) <https://learn.qiskit.org/course/ch-algorithms/shors-algorithm>`_
+
+
+The remainder of this migration guide will focus on the algorithms with migration alternatives within
+:mod:`qiskit.algorithms`, that is, those under refactoring types 1 and 2.
 
 Background
 ==========
@@ -155,6 +158,8 @@ Minimum Eigensolvers
 ====================
 *Back to* `TL;DR`_
 
+The minimum eigensolver algorithms belong to the first type of refactoring listed above
+(Algorithms refactored in a new location to support :mod:`~qiskit.primitives`).
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.minimum_eigensolvers` are now initialized
 using an instance of the :mod:`~qiskit.primitives.Sampler` or :mod:`~qiskit.primitives.Estimator` primitive, depending
 on the algorithm. The legacy classes can still be found in :mod:`qiskit.algorithms.minimum_eigen_solvers`.
@@ -165,8 +170,8 @@ on the algorithm. The legacy classes can still be found in :mod:`qiskit.algorith
     you will access either the primitive-based or the quantum-instance-based
     implementation. You have to be extra-careful, because the class name does not change.
 
-    * Old import path (Quantum Instance): ``from qiskit.algorithms import VQE, QAOA, NumPyMinimumEigensolver``
-    * New import path (Primitives): ``from qiskit.algorithms.minimum_eigensolvers import VQE, SamplingVQE, QAOA, NumPyMinimumEigensolver``
+    * Old import (Quantum Instance based): ``from qiskit.algorithms import VQE, QAOA, NumPyMinimumEigensolver``
+    * New import (Primitives based): ``from qiskit.algorithms.minimum_eigensolvers import VQE, SamplingVQE, QAOA, NumPyMinimumEigensolver``
 
 VQE
 ---
@@ -462,7 +467,8 @@ NumPyMinimumEigensolver
 
 Because this is a classical solver, the workflow has not changed between the old and new implementation.
 The import has however changed from :class:`qiskit.algorithms.minimum_eigen_solvers.NumPyMinimumEigensolver`
-to :class:`qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver` for consistency.
+to :class:`qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver` to conform to the new interfaces
+and result classes.
 
 .. dropdown:: NumPyMinimumEigensolver Example
     :animate: fade-in-slide-down
@@ -521,7 +527,9 @@ Eigensolvers
 ============
 *Back to* `TL;DR`_
 
-Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.eigensolvers` are now initialized
+The eigensolver algorithms also belong to the first type of refactoring
+(Algorithms refactored in a new location to support :mod:`~qiskit.primitives`). Instead of a
+:class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.eigensolvers` are now initialized
 using an instance of the :class:`~qiskit.primitives.Sampler` or :class:`~qiskit.primitives.Estimator` primitive, or
 **a primitive-based subroutine**, depending on the algorithm. The legacy classes can still be found
 in :mod:`qiskit.algorithms.eigen_solvers`.
@@ -560,7 +568,8 @@ from :mod:`qiskit.algorithms.state_fidelities`.
 
     Similarly to VQE, the new :class:`~qiskit.algorithms.eigensolvers.VQDResult` class does not include
     the state anymore. If your application requires the final probability distribution, you can instantiate
-    a ``Sampler`` and run it with the optimal circuit after :class:`~qiskit.algorithms.eigensolvers.VQD`.
+    a ``Sampler`` and run it with the optimal circuit for the desired excited state
+    after running :class:`~qiskit.algorithms.eigensolvers.VQD`.
 
 
 .. dropdown:: VQD Example
@@ -639,7 +648,11 @@ from :mod:`qiskit.algorithms.state_fidelities`.
 
         [ 0.01765114+0.0e+00j -0.58507654+0.0e+00j -0.15003642-2.8e-17j]
 
-For complete code examples, see the following updated tutorials:
+.. raw:: html
+    <br>
+
+
+For complete code examples, see the following updated tutorial:
 
 - `VQD <https://qiskit.org/documentation/tutorials/algorithms/04_vqd.html>`_
 
@@ -648,7 +661,7 @@ NumPyEigensolver
 Similarly to its minimum eigensolver counterpart, because this is a classical solver, the workflow has not changed
 between the old and new implementation.
 The import has however changed from :class:`qiskit.algorithms.eigen_solvers.NumPyEigensolver`
-to :class:`qiskit.algorithms.eigensolvers.MinimumEigensolver` for consistency.
+to :class:`qiskit.algorithms.eigensolvers.MinimumEigensolver` to conform to the new interfaces and result classes.
 
 .. dropdown:: NumPyEigensolver Example
     :animate: fade-in-slide-down
@@ -703,6 +716,8 @@ Time Evolvers
 =============
 *Back to* `TL;DR`_
 
+The time evolvers are the last group of algorithms to undergo the first type of refactoring
+(Algorithms refactored in a new location to support :mod:`~qiskit.primitives`).
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.time_evolvers` are now initialized
 using an instance of the :class:`~qiskit.primitives.Estimator` primitive. The legacy classes can still be found
 in :mod:`qiskit.algorithms.evolvers`.
@@ -801,8 +816,9 @@ Amplitude Amplifiers
 ====================
 *Back to* `TL;DR`_
 
+The amplitude amplifier algorithms belong to the second type of refactoring (Algorithms refactored in-place).
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.amplitude_amplifiers` are now initialized
-using any instance of the :mod:`~qiskit.primitives.Sampler` primitive.
+using an instance of any "Sampler" primitive e.g. :mod:`~qiskit.primitives.Sampler`.
 
 .. note::
    The full :mod:`qiskit.algorithms.amplitude_amplifiers` module has been refactored in place. No need to
@@ -840,8 +856,10 @@ Amplitude Estimators
 ====================
 *Back to* `TL;DR`_
 
+Similarly to the amplitude amplifiers, the amplitude estimators also belong to the second type of refactoring
+(Algorithms refactored in-place).
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.amplitude_estimators` are now initialized
-using any instance of the :mod:`qiskit.primitives.Sampler` primitive.
+using an instance of any "Sampler" primitive e.g. :mod:`~qiskit.primitives.Sampler`.
 
 .. note::
    The full :mod:`qiskit.algorithms.amplitude_estimators` module has been refactored in place. No need to
@@ -885,8 +903,10 @@ Phase Estimators
 ================
 *Back to* `TL;DR`_
 
+Finally, the phase estimators are the last group of algorithms to undergo the first type of refactoring
+(Algorithms refactored in-place).
 Instead of a :class:`~qiskit.utils.QuantumInstance`, :mod:`qiskit.algorithms.phase_estimators` are now initialized
-using any instance of the :mod:`qiskit.primitives.Sampler` primitive.
+using an instance of any "Sampler" primitive e.g. :mod:`~qiskit.primitives.Sampler`.
 
 .. note::
    The full :mod:`qiskit.algorithms.phase_estimators` module has been refactored in place. No need to
