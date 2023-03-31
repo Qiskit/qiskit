@@ -20,9 +20,11 @@ from qiskit.circuit.gate import Gate
 class IGate(Gate):
     r"""Identity gate.
 
-    Logically this gate is a quantum no-op and the transpiler will largely treat it as such, but
-    some older hardware may choose to interpret it as a short-hand for the shortest-possible delay
-    cycle.
+    This gate is a quantum no-op and represents an identity channel on a single qubit.  It will not
+    have a logical effect on the qubit state, and will likely be optimized away by the compiler at
+    all optimization levels (except zero, if ``id`` is specified in the basis of the target).
+    Certain hardware backends *may* choose to implement this instruction with a potentially non-zero
+    idle duration, for example a delay of length equal to that of a single-qubit gate.
 
     Can be applied to a :class:`~qiskit.circuit.QuantumCircuit` with the
     :meth:`~qiskit.circuit.QuantumCircuit.i` and :meth:`~qiskit.circuit.QuantumCircuit.id` methods.
