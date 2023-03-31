@@ -1,12 +1,12 @@
 .. _how_to:
 
-######
-How to
-######
+#############
+How-to Guides
+#############
 
 
 Use the primitives
-------------------
+==================
 
 .. toctree::
   :maxdepth: 1
