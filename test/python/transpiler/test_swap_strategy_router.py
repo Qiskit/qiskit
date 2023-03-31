@@ -463,7 +463,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
             return op.name, param, qreg.index(qargs[0]), qreg.index(qargs[1])
 
         qreg = swapped.qregs["q"]
-        inst_list = list(inst_info(node.op, node.qargs, qreg) for node in swapped.op_nodes())
+        inst_list = [inst_info(node.op, node.qargs, qreg) for node in swapped.op_nodes()]
 
         # First block has the Rzz gates ("IIIZZ", 1), ("IIZZI", 5), ("IZIZI", 6), ("ZZIII", 10)
         expected = {

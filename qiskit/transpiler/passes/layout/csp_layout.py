@@ -19,6 +19,7 @@ import random
 
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.utils import optionals as _optionals
 
 
@@ -60,6 +61,11 @@ class CSPLayout(AnalysisPass):
 
     def run(self, dag):
         """run the layout method"""
+        if not self.coupling_map.is_connected():
+            raise TranspilerError(
+                "Coupling Map is disjoint, this pass can't be used with a disconnected coupling "
+                "map."
+            )
         qubits = dag.qubits
         cxs = set()
 

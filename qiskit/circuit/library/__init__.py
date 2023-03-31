@@ -81,6 +81,8 @@ For example:
    CRXGate
    CRYGate
    CRZGate
+   CSGate
+   CSdgGate
    CSwapGate
    CSXGate
    CUGate
@@ -89,6 +91,8 @@ For example:
    CXGate
    CYGate
    CZGate
+   CCZGate
+   ECRGate
    HGate
    IGate
    MSGate
@@ -103,9 +107,8 @@ For example:
    RZGate
    RZZGate
    RZXGate
-   XXPlusYYGate
    XXMinusYYGate
-   ECRGate
+   XXPlusYYGate
    SGate
    SdgGate
    SwapGate
@@ -180,6 +183,7 @@ set the amount of qubits involved at instantiation time.
    MCMT
    MCMTVChain
    Permutation
+   PermutationGate
    GMS
    GR
    GRX
@@ -497,6 +501,7 @@ from .generalized_gates import (
     MCMT,
     MCMTVChain,
     Permutation,
+    PermutationGate,
     GMS,
     MSGate,
     GR,

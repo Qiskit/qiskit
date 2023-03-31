@@ -201,7 +201,6 @@ class EstimationProblem:
 
         # add the scaling qubit to the good state qualifier
         def is_good_state(bitstr):
-            # pylint: disable=not-callable
             return self.is_good_state(bitstr[1:]) and bitstr[0] == "1"
 
         # rescaled estimation problem
