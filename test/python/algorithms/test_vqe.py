@@ -185,8 +185,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
             vqe = VQE(
                 ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator")
             )
-        with self.assertRaises(RuntimeError):
-            vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            with self.assertRaises(RuntimeError):
+                vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
     @data(
         (SLSQP(maxiter=50), 5, 4),
@@ -398,13 +398,13 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.assertWarns(DeprecationWarning):
             vqe = VQE()
         with self.subTest(msg="assert running empty raises AlgorithmError"):
-            with self.assertRaises(AlgorithmError):
+            with self.assertWarns(DeprecationWarning), self.assertRaises(AlgorithmError):
                 _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
         vqe.ansatz = ansatz
         with self.subTest(msg="assert missing operator raises AlgorithmError"):
-            with self.assertRaises(AlgorithmError):
+            with self.assertWarns(DeprecationWarning), self.assertRaises(AlgorithmError):
                 _ = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         vqe.expectation = MatrixExpectation()
@@ -488,7 +488,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         wrapped_backend.run = partial(wrapped_run, callcount=callcount)
 
-        fidelity = QNSPSA.get_fidelity(ansatz, backend=wrapped_backend)
+        with self.assertWarns(DeprecationWarning):
+            fidelity = QNSPSA.get_fidelity(ansatz, backend=wrapped_backend)
         qnspsa = QNSPSA(fidelity, maxiter=5)
 
         with self.assertWarns(DeprecationWarning):

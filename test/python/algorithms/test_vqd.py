@@ -131,8 +131,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 optimizer=optimizer,
                 quantum_instance=self.statevector_simulator,
             )
-        with self.assertRaises(AlgorithmError):
-            _ = vqd.compute_eigenvalues(operator=self.h2_op)
+            with self.assertRaises(AlgorithmError):
+                _ = vqd.compute_eigenvalues(operator=self.h2_op)
 
     @data(
         (MatrixExpectation(), 1),
@@ -163,8 +163,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
             vqd = VQD(
                 k=1, ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator")
             )
-        with self.assertRaises(RuntimeError):
-            vqd.compute_eigenvalues(operator=self.h2_op)
+            with self.assertRaises(RuntimeError):
+                vqd.compute_eigenvalues(operator=self.h2_op)
 
     def test_basic_aer_qasm(self):
         """Test the VQD on BasicAer's QASM simulator."""
@@ -309,13 +309,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.assertWarns(DeprecationWarning):
             vqd = VQD(k=1)
         with self.subTest(msg="assert running empty raises AlgorithmError"):
-            with self.assertRaises(AlgorithmError):
+            with self.assertWarns(DeprecationWarning), self.assertRaises(AlgorithmError):
                 _ = vqd.compute_eigenvalues(operator=self.h2_op)
 
         ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
         vqd.ansatz = ansatz
         with self.subTest(msg="assert missing operator raises AlgorithmError"):
-            with self.assertRaises(AlgorithmError):
+            with self.assertWarns(DeprecationWarning), self.assertRaises(AlgorithmError):
                 _ = vqd.compute_eigenvalues(operator=self.h2_op)
 
         vqd.expectation = MatrixExpectation()
