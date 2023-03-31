@@ -8,11 +8,14 @@
 # Style
 black[jupyter]~=22.0
 
+
 # Lint
+#
 # These versions are pinned precisely because pylint frequently includes new
 # on-by-default lint failures in new versions, which breaks our CI.
 astroid==2.14.2
 pylint==2.16.2
+
 
 # Tests
 coverage>=4.4.0
@@ -20,10 +23,14 @@ hypothesis>=4.24.3
 stestr>=2.0.0,!=4.0.0
 ddt>=1.2.0,!=1.4.0,!=1.4.3
 
-# Documentation
+
+# Documentation tooling.
+#
+# This alone is not sufficient to fully build the documentation, because several
+# components of Terra use some of its optional dependencies in order to document
+# themselves.  These are the requirements that are _only_ required for the docs
+# build, and are not used by Terra itself.
 reno>=3.4.0
 Sphinx>=5.0
 qiskit-sphinx-theme>=1.6
 sphinx-design>=0.2.0
-pygments>=2.4
-matplotlib>=3.3

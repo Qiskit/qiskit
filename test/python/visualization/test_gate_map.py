@@ -41,6 +41,7 @@ if optionals.HAS_PIL:
 
 @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
 @unittest.skipUnless(optionals.HAS_PIL, "PIL not available")
+@unittest.skipUnless(optionals.HAS_SEABORN, "seaborn not available")
 @ddt
 class TestGateMap(QiskitVisualizationTestCase):
     """visual tests for plot_gate_map"""
