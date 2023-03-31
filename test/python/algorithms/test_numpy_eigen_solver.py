@@ -42,7 +42,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         """Test basics"""
         with self.assertWarns(DeprecationWarning):
             algo = NumPyEigensolver()
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -52,7 +52,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         """Test for k=4 eigenvalues"""
         with self.assertWarns(DeprecationWarning):
             algo = NumPyEigensolver(k=4)
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 4)
         self.assertEqual(len(result.eigenstates), 4)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -70,7 +70,7 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
         with self.assertWarns(DeprecationWarning):
             algo = NumPyEigensolver(k=4, filter_criterion=criterion)
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
