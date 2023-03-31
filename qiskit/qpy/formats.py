@@ -176,6 +176,19 @@ SCHEDULE_BLOCK_HEADER = namedtuple(
 SCHEDULE_BLOCK_HEADER_PACK = "!HQH"
 SCHEDULE_BLOCK_HEADER_SIZE = struct.calcsize(SCHEDULE_BLOCK_HEADER_PACK)
 
+# SCHEDULE BLOCK binary format after qpy version 7
+SCHEDULE_BLOCK_HEADER_V7 = namedtuple(
+    "SCHEDULE_BLOCK",
+    [
+        "name_size",
+        "metadata_size",
+        "num_elements",
+        "num_references",
+    ],
+)
+SCHEDULE_BLOCK_HEADER_PACK_V7 = "!HQHH"
+SCHEDULE_BLOCK_HEADER_SIZE_V7 = struct.calcsize(SCHEDULE_BLOCK_HEADER_PACK_V7)
+
 # WAVEFORM binary format
 WAVEFORM = namedtuple("WAVEFORM", ["epsilon", "data_size", "amp_limited"])
 WAVEFORM_PACK = "!fI?"
