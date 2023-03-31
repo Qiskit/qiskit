@@ -298,21 +298,26 @@ class HighLevelSynthesis(TransformationPass):
         if isinstance(op, AnnotatedOperation):
             synthesized_op = self._recursively_handle_op(op.base_op)
 
+            # Currently, we depend on recursive synthesis producing either a QuantumCircuit or a Gate.
+            # If in the future we will want to allow HighLevelSynthesis to synthesize, say,
+            # a LinearFunction to a Clifford, we will need to rethink this.
             if not synthesized_op or not isinstance(synthesized_op, (QuantumCircuit, Gate)):
                 raise TranspilerError(f"HighLevelSynthesis was unable to synthesize {op.base_op}.")
 
             for modifier in op.modifiers:
                 if isinstance(modifier, InverseModifier):
-                    # ToDo: what do we do for clifford or Operation without inverse method?
+                    # Both QuantumCircuit and Gate have inverse method
                     synthesized_op = synthesized_op.inverse()
                 elif isinstance(modifier, ControlModifier):
-                    # Above we checked that we either have a gate or a quantum circuit
+                    # Both QuantumCircuit and Gate have inverse method
                     synthesized_op = synthesized_op.control(
                         num_ctrl_qubits=modifier.num_ctrl_qubits,
                         label=None,
                         ctrl_state=modifier.ctrl_state,
                     )
                 elif isinstance(modifier, PowerModifier):
+                    # QuantumCircuit has power method, and Gate needs to be converted
+                    # to a quantum circuit.
                     if isinstance(synthesized_op, QuantumCircuit):
                         qc = synthesized_op
                     else:
