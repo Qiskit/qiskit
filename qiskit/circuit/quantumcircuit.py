@@ -71,6 +71,7 @@ except Exception:  # pylint: disable=broad-except
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
+    from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -356,6 +357,23 @@ class QuantumCircuit:
         return circuit
 
     @property
+    def layout(self) -> Optional[TranspileLayout]:
+        r"""Return any associated layout information anout the circuit
+
+        This attribute contains an optional :class:`~.TranspileLayout`
+        object. This is typically set on the output from :func:`~.transpile`
+        or :meth:`.PassManager.run` to retain information about the
+        permutations caused on the input circuit by transpilation.
+
+        There are two types of permutations caused by the :func:`~.transpile`
+        function, an initial layout which permutes the qubits based on the
+        selected physical qubits on the :class:`~.Target`, and a final layout
+        which is an output permutation caused by :class:`~.SwapGate`\s
+        inserted during routing.
+        """
+        return self._layout
+
+    @property
     def data(self) -> QuantumCircuitData:
         """Return the circuit data (instructions and context).
 
@@ -478,7 +496,9 @@ class QuantumCircuit:
         # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
 
-        return circuit_to_dag(self) == circuit_to_dag(other)
+        return circuit_to_dag(self, copy_operations=False) == circuit_to_dag(
+            other, copy_operations=False
+        )
 
     @classmethod
     def _increment_instances(cls):
