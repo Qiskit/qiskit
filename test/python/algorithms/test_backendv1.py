@@ -54,8 +54,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
                 max_evals_grouped=1,
                 quantum_instance=qasm_simulator,
             )
-
-        result = vqe.compute_minimum_eigenvalue(operator=h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
     def test_run_circuit_oracle(self):
@@ -121,7 +120,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
 
         with self.assertWarns(DeprecationWarning):
             vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
-        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+            result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)

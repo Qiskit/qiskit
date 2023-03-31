@@ -54,8 +54,7 @@ class TestBackendV2(QiskitAlgorithmsTestCase):
                 max_evals_grouped=1,
                 quantum_instance=qasm_simulator,
             )
-
-        result = vqe.compute_minimum_eigenvalue(operator=h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
     def test_run_circuit_oracle(self):

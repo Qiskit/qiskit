@@ -14,6 +14,8 @@
 
 from __future__ import annotations
 
+import warnings
+
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_arg
@@ -113,11 +115,14 @@ class HamiltonianPhaseEstimation:
                 the circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
         """
-        self._phase_estimation = PhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits,
-            quantum_instance=quantum_instance,
-            sampler=sampler,
-        )
+        # Avoid double warning on deprecated used of `quantum_instance`.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            self._phase_estimation = PhaseEstimation(
+                num_evaluation_qubits=num_evaluation_qubits,
+                quantum_instance=quantum_instance,
+                sampler=sampler,
+            )
 
     def _get_scale(self, hamiltonian, bound=None) -> PhaseEstimationScale:
         if bound is None:

@@ -95,7 +95,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         with self.assertWarns(DeprecationWarning):
             qaoa = QAOA(COBYLA(), prob, mixer=m, quantum_instance=self.statevector_simulator)
 
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, solutions)
@@ -130,7 +130,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         with self.assertWarns(DeprecationWarning):
             qaoa = QAOA(optimizer, prob, mixer=mixer, quantum_instance=self.statevector_simulator)
 
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, solutions)
@@ -148,7 +148,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
         with self.assertWarns(DeprecationWarning):
             qaoa = QAOA(optimizer, reps=2, mixer=mixer, quantum_instance=self.statevector_simulator)
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         self.log.debug(x)
         graph_solution = self._get_graph_solution(x)
@@ -165,7 +165,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
 
         with self.assertWarns(DeprecationWarning):
             qaoa = QAOA(COBYLA(), reps=1, mixer=mixer, quantum_instance=self.statevector_simulator)
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         # we just assert that we get a result, it is not meaningful.
         self.assertIsNotNone(result.eigenstate)
 
@@ -176,7 +176,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         )
         with self.assertWarns(DeprecationWarning):
             qaoa = QAOA(COBYLA(), 1, quantum_instance=self.statevector_simulator)
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="QAOA 4x4"):
@@ -195,7 +195,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             )
         )
 
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="QAOA 6x6"):
@@ -222,7 +223,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                 quantum_instance=self.statevector_simulator,
             )
 
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
 
@@ -306,7 +307,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             qaoa = QAOA(
                 optimizer=NELDER_MEAD(disp=True), reps=1, quantum_instance=self.qasm_simulator
             )
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
         self.assertLess(result.eigenvalue, -0.97)
 
@@ -329,7 +330,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                 optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
                 quantum_instance=self.statevector_simulator,
             )
-        result = qaoa.compute_minimum_eigenvalue(Z)
+            result = qaoa.compute_minimum_eigenvalue(Z)
         self.assertEqual(result.cost_function_evals, 4)
 
     def _get_operator(self, weight_matrix):

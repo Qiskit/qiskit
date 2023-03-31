@@ -95,7 +95,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         with self.assertWarns(DeprecationWarning):
             evolution_problem = EvolutionProblem(operator, time, initial_state)
             trotter_qrte = TrotterQRTE(product_formula=product_formula)
-        evolution_result_state_circuit = trotter_qrte.evolve(evolution_problem).evolved_state
+            evolution_result_state_circuit = trotter_qrte.evolve(evolution_problem).evolved_state
 
         np.testing.assert_equal(evolution_result_state_circuit.eval(), expected_state)
 
@@ -129,7 +129,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
                 )
                 with self.assertWarns(DeprecationWarning):
                     trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
-                evolution_result = trotter_qrte.evolve(evolution_problem)
+                    evolution_result = trotter_qrte.evolve(evolution_problem)
 
                 np.testing.assert_equal(
                     evolution_result.evolved_state.eval(), expected_evolved_state
@@ -174,7 +174,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         with self.assertWarns(DeprecationWarning):
             evolution_problem = EvolutionProblem(operator, 1, initial_state)
             trotter_qrte = TrotterQRTE()
-        evolution_result = trotter_qrte.evolve(evolution_problem)
+            evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     def test_trotter_qrte_trotter_two_qubits_with_params(self):
@@ -194,7 +194,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
                 operator, time, initial_state, param_value_dict=params_dict
             )
             trotter_qrte = TrotterQRTE()
-        evolution_result = trotter_qrte.evolve(evolution_problem)
+            evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     @data(
@@ -220,7 +220,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         with self.assertWarns(DeprecationWarning):
             evolution_problem = EvolutionProblem(operator, time, initial_state)
             trotter_qrte = TrotterQRTE(product_formula=QDrift())
-        evolution_result = trotter_qrte.evolve(evolution_problem)
+            evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))

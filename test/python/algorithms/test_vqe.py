@@ -129,8 +129,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                     seed_transpiler=algorithm_globals.random_seed,
                 ),
             )
-
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         with self.subTest(msg="test eigenvalue"):
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy)
@@ -154,7 +153,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 optimizer=optimizer,
                 quantum_instance=self.statevector_simulator,
             )
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
     @data(
@@ -203,7 +202,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 max_evals_grouped=max_evals_grouped,
                 quantum_instance=self.statevector_simulator,
             )
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=places)
 
     def test_basic_aer_qasm(self):
@@ -219,8 +218,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 quantum_instance=self.qasm_simulator,
             )
 
-        # TODO benchmark this later.
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            # TODO benchmark this later.
+            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.86823, places=2)
 
     def test_qasm_eigenvector_normalized(self):
@@ -228,7 +227,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
         with self.assertWarns(DeprecationWarning):
             vqe = VQE(ansatz=wavefunction, quantum_instance=self.qasm_simulator)
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         amplitudes = list(result.eigenstate.values())
         self.assertAlmostEqual(np.linalg.norm(amplitudes), 1.0, places=4)
@@ -253,7 +252,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 quantum_instance=quantum_instance,
             )
 
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
@@ -277,7 +276,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 quantum_instance=quantum_instance,
             )
 
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         self.assertAlmostEqual(result.eigenvalue.real, -1.86305, places=2)
 
@@ -303,7 +302,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 quantum_instance=quantum_instance,
             )
 
-        result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
@@ -331,7 +330,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 quantum_instance=quantum_instance,
                 max_evals_grouped=1000,
             )
-        vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
     def test_with_two_qubit_reduction(self):
         """Test the VQE using TwoQubitReduction."""
@@ -386,7 +385,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 callback=store_intermediate_result,
                 quantum_instance=self.qasm_simulator,
             )
-        vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
@@ -410,13 +409,17 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         vqe.expectation = MatrixExpectation()
         vqe.quantum_instance = self.statevector_simulator
-        with self.subTest(msg="assert VQE works once all info is available"):
+        with self.subTest(msg="assert VQE works once all info is available"), self.assertWarns(
+            DeprecationWarning
+        ):
             result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
 
         operator = PrimitiveOp(np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 2, 0], [0, 0, 0, 3]]))
 
-        with self.subTest(msg="assert minimum eigensolver interface works"):
+        with self.subTest(msg="assert minimum eigensolver interface works"), self.assertWarns(
+            DeprecationWarning
+        ):
             result = vqe.compute_minimum_eigenvalue(operator=operator)
             self.assertAlmostEqual(result.eigenvalue.real, -1.0, places=5)
 
@@ -429,7 +432,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
             )
 
         def run_check():
-            result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            with self.assertWarns(DeprecationWarning):
+                result = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertAlmostEqual(result.eigenvalue.real, -1.85727503, places=5)
 
         run_check()
@@ -451,7 +455,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 expectation=user_expectation,
                 quantum_instance=BasicAer.get_backend("statevector_simulator"),
             )
-        result0 = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+            result0 = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
         if user_expectation is not None:
             with self.subTest("User expectation kept."):
                 self.assertEqual(vqe.expectation, user_expectation)
@@ -459,7 +463,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         vqe.quantum_instance = BasicAer.get_backend("qasm_simulator")
 
         # works also if no expectation is set, since it will be determined automatically
-        result1 = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
+        with self.assertWarns(DeprecationWarning):
+            result1 = vqe.compute_minimum_eigenvalue(operator=self.h2_op)
 
         if user_expectation is not None:
             with self.subTest("Change backend with user expectation, it is kept."):
@@ -493,7 +498,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 max_evals_grouped=100,
                 quantum_instance=wrapped_backend,
             )
-        _ = vqe.compute_minimum_eigenvalue(Z ^ Z)
+            _ = vqe.compute_minimum_eigenvalue(Z ^ Z)
 
         # 1 calibration + 1 stddev estimation + 1 initial blocking
         # + 5 (1 loss + 1 fidelity + 1 blocking) + 1 return loss + 1 VQE eval
@@ -530,7 +535,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 optimizer=partial(scipy_minimize, method="L-BFGS-B", options={"maxiter": 2}),
                 quantum_instance=self.statevector_simulator,
             )
-        result = vqe.compute_minimum_eigenvalue(Z)
+            result = vqe.compute_minimum_eigenvalue(Z)
         self.assertEqual(result.cost_function_evals, 20)
 
     def test_optimizer_callable(self):
@@ -542,7 +547,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 optimizer=_mock_optimizer,
                 quantum_instance=self.statevector_simulator,
             )
-        result = vqe.compute_minimum_eigenvalue(Z)
+            result = vqe.compute_minimum_eigenvalue(Z)
         self.assertTrue(np.all(result.optimal_point == np.zeros(ansatz.num_parameters)))
 
     def test_aux_operators_list(self):
@@ -551,8 +556,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         with self.assertWarns(DeprecationWarning):
             vqe = VQE(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
 
-        # Start with an empty list
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=[])
+            # Start with an empty list
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=[])
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertIsNone(result.aux_operator_eigenvalues)
 
@@ -560,7 +565,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
@@ -572,7 +578,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
@@ -593,7 +600,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
             vqe = VQE(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
 
         # Start with an empty dictionary
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators={})
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators={})
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertIsNone(result.aux_operator_eigenvalues)
 
@@ -601,7 +609,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
@@ -613,7 +622,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
         self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
         self.assertEqual(len(result.aux_operator_eigenvalues), 3)
         # expectation values
@@ -641,7 +651,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
@@ -652,7 +663,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
@@ -688,7 +700,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
@@ -699,7 +712,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
-        result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0], 2.0, places=6)
@@ -735,9 +749,9 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         with self.assertWarns(DeprecationWarning):
             vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
-        _ = vqe.compute_minimum_eigenvalue(Z)
+            _ = vqe.compute_minimum_eigenvalue(Z)
 
-        with self.assertLogs(logger, level="INFO") as cm:
+        with self.assertLogs(logger, level="INFO") as cm, self.assertWarns(DeprecationWarning):
             _ = vqe.compute_minimum_eigenvalue(Z)
 
         expected = [
@@ -769,7 +783,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
         )
         with self.assertWarns(DeprecationWarning):
             vqe = VQE(optimizer=optimizer, quantum_instance=quantum_instance)
-        result = vqe.compute_minimum_eigenvalue(hamiltonian)
+            result = vqe.compute_minimum_eigenvalue(hamiltonian)
 
         optimal_circuit = vqe.ansatz.bind_parameters(result.optimal_point)
         self.assertTrue(Statevector(result.eigenstate).equiv(optimal_circuit))

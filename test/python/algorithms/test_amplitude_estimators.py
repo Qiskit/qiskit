@@ -543,7 +543,8 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
     def test_iqae_confidence_intervals(self):
         """End-to-end test for the IQAE confidence interval."""
         n = 3
-        qae = IterativeAmplitudeEstimation(0.1, 0.01, quantum_instance=self._statevector)
+        with self.assertWarns(DeprecationWarning):
+            qae = IterativeAmplitudeEstimation(0.1, 0.01, quantum_instance=self._statevector)
         expected_confint = (0.1984050, 0.3511015)
         estimation_problem = EstimationProblem(SineIntegral(n), objective_qubits=[n])
 
@@ -596,7 +597,8 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
         # construct algo without rescaling
         backend = BasicAer.get_backend("statevector_simulator")
-        fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, quantum_instance=backend)
+        with self.assertWarns(DeprecationWarning):
+            fae = FasterAmplitudeEstimation(0.1, 1, rescale=False, quantum_instance=backend)
 
         # run the algo
         result = fae.estimate(problem)
@@ -640,7 +642,8 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
 
         # construct algo without rescaling
         backend = BasicAer.get_backend("statevector_simulator")
-        fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
+        with self.assertWarns(DeprecationWarning):
+            fae = FasterAmplitudeEstimation(0.1, 1, quantum_instance=backend)
 
         # run the algo
         with self.assertWarns(Warning):
@@ -675,7 +678,8 @@ class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
             BasicAer.get_backend(backend_str), seed_simulator=2, seed_transpiler=2
         )
         # cannot use rescaling with a custom grover operator
-        fae = FasterAmplitudeEstimation(0.01, 5, rescale=False, quantum_instance=backend)
+        with self.assertWarns(DeprecationWarning):
+            fae = FasterAmplitudeEstimation(0.01, 5, rescale=False, quantum_instance=backend)
 
         # run the algo
         result = fae.estimate(problem)

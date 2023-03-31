@@ -104,7 +104,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 ),
             )
 
-        result = vqd.compute_eigenvalues(operator=self.h2_op)
+            result = vqd.compute_eigenvalues(operator=self.h2_op)
 
         with self.subTest(msg="test eigenvalue"):
             np.testing.assert_array_almost_equal(
@@ -179,8 +179,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 quantum_instance=self.qasm_simulator,
             )
 
-        # TODO benchmark this later.
-        result = vqd.compute_eigenvalues(operator=self.h2_op)
+            # TODO benchmark this later.
+            result = vqd.compute_eigenvalues(operator=self.h2_op)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=1
         )
@@ -205,8 +205,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 max_evals_grouped=1,
                 quantum_instance=quantum_instance,
             )
+            result = vqd.compute_eigenvalues(operator=self.h2_op)
 
-        result = vqd.compute_eigenvalues(operator=self.h2_op)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -232,8 +232,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 expectation=PauliExpectation(),
                 quantum_instance=quantum_instance,
             )
-
-        result = vqd.compute_eigenvalues(operator=self.h2_op)
+            result = vqd.compute_eigenvalues(operator=self.h2_op)
 
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=1
@@ -262,7 +261,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 quantum_instance=quantum_instance,
             )
 
-        result = vqd.compute_eigenvalues(operator=self.test_op)
+            result = vqd.compute_eigenvalues(operator=self.test_op)
         np.testing.assert_array_almost_equal(result.eigenvalues.real, self.test_results, decimal=1)
 
     def test_callback(self):
@@ -286,7 +285,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 callback=store_intermediate_result,
                 quantum_instance=self.qasm_simulator,
             )
-        vqd.compute_eigenvalues(operator=self.h2_op)
+            vqd.compute_eigenvalues(operator=self.h2_op)
 
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
@@ -322,13 +321,15 @@ class TestVQD(QiskitAlgorithmsTestCase):
         vqd.expectation = MatrixExpectation()
         vqd.quantum_instance = self.statevector_simulator
         with self.subTest(msg="assert VQE works once all info is available"):
-            result = vqd.compute_eigenvalues(operator=self.h2_op)
+            with self.assertWarns(DeprecationWarning):
+                result = vqd.compute_eigenvalues(operator=self.h2_op)
             np.testing.assert_array_almost_equal(result.eigenvalues.real, self.h2_energy, decimal=2)
 
         operator = PrimitiveOp(np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 2, 0], [0, 0, 0, 3]]))
 
         with self.subTest(msg="assert minimum eigensolver interface works"):
-            result = vqd.compute_eigenvalues(operator=operator)
+            with self.assertWarns(DeprecationWarning):
+                result = vqd.compute_eigenvalues(operator=operator)
             self.assertAlmostEqual(result.eigenvalues.real[0], -1.0, places=5)
 
     def test_vqd_optimizer(self):
@@ -341,7 +342,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
             )
 
         def run_check():
-            result = vqd.compute_eigenvalues(operator=self.h2_op)
+            with self.assertWarns(DeprecationWarning):
+                result = vqd.compute_eigenvalues(operator=self.h2_op)
             np.testing.assert_array_almost_equal(
                 result.eigenvalues.real, self.h2_energy_excited, decimal=3
             )
@@ -366,7 +368,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 expectation=user_expectation,
                 quantum_instance=BasicAer.get_backend("statevector_simulator"),
             )
-        result0 = vqd.compute_eigenvalues(operator=self.h2_op)
+        with self.assertWarns(DeprecationWarning):
+            result0 = vqd.compute_eigenvalues(operator=self.h2_op)
         if user_expectation is not None:
             with self.subTest("User expectation kept."):
                 self.assertEqual(vqd.expectation, user_expectation)
@@ -374,7 +377,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         vqd.quantum_instance = BasicAer.get_backend("qasm_simulator")
 
         # works also if no expectation is set, since it will be determined automatically
-        result1 = vqd.compute_eigenvalues(operator=self.h2_op)
+        with self.assertWarns(DeprecationWarning):
+            result1 = vqd.compute_eigenvalues(operator=self.h2_op)
 
         if user_expectation is not None:
             with self.subTest("Change backend with user expectation, it is kept."):
@@ -414,7 +418,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
             vqd = VQD(k=2, ansatz=wavefunction, quantum_instance=self.statevector_simulator)
 
         # Start with an empty list
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=[])
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=[])
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -424,7 +429,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -438,7 +444,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -460,7 +467,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
             vqd = VQD(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
 
         # Start with an empty dictionary
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators={})
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators={})
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -470,7 +478,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
@@ -486,7 +495,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
@@ -528,7 +538,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
@@ -543,7 +554,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
@@ -581,7 +593,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
@@ -594,7 +607,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
-        result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operator_eigenvalues[-1]), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=6)
