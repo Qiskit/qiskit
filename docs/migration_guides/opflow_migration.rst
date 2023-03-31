@@ -48,9 +48,9 @@ and find new paths for developing algorithms based on the :mod:`~qiskit.primitiv
 the :mod:`~qiskit.quantum_info` module.
 
 This guide traverses the opflow submodules and provides either a direct alternative
-(i.e. using :mod:`~qiskit.quantum_info`), or an explanation of how to replace their functionality in algorithms.
+(i.e., using :mod:`~qiskit.quantum_info`), or an explanation of how to replace their functionality in algorithms.
 
-The function equivalency can be roughly summarized as follows:
+The functional equivalency can be roughly summarized as follows:
 
 .. list-table::
    :header-rows: 1
@@ -79,7 +79,7 @@ The function equivalency can be roughly summarized as follows:
 Contents
 ========
 
-This document covers the migration from these opflow sub-modules:
+This document covers the migration from these opflow submodules:
 
 **Operators**
 
@@ -408,7 +408,7 @@ Primitive and List Ops
 ======================
 *Back to* `Contents`_
 
-Most of the workflows that previously relied in components from :mod:`~qiskit.opflow.primitive_ops` and
+Most of the workflows that previously relied on components from :mod:`~qiskit.opflow.primitive_ops` and
 :mod:`~qiskit.opflow.list_ops` can now leverage elements from :mod:`~qiskit.quantum_info`\'s
 operators instead.
 Some of these classes do not require a 1-1 replacement because they were created to interface with other
@@ -430,7 +430,7 @@ to initialize it.
        :header-rows: 1
 
        * - Class passed to :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`
-         - Sub-class returned
+         - Subclass returned
 
        * - :class:`~qiskit.quantum_info.Pauli`
          - :class:`~qiskit.opflow.primitive_ops.PauliOp`
@@ -646,7 +646,7 @@ The :mod:`~qiskit.opflow.state_fns` module can be generally replaced by subclass
 :class:`qiskit.quantum_info.QuantumState`.
 
 Similarly to :class:`~qiskit.opflow.primitive_ops.PrimitiveOp`, :class:`~qiskit.opflow.state_fns.StateFn`
-acts as a factory to create the corresponding sub-class depending on the computational primitive used to initialize it.
+acts as a factory to create the corresponding subclass depending on the computational primitive used to initialize it.
 
 .. tip::
 
@@ -671,7 +671,7 @@ acts as a factory to create the corresponding sub-class depending on the computa
          - :class:`~qiskit.opflow.state_fns.OperatorStateFn`
 
 This means that references to :class:`~qiskit.opflow.state_fns.StateFn` in opflow code should be examined to
-identify the sub-class that is being used, to then look for an alternative.
+identify the subclass that is being used, to then look for an alternative.
 
 .. list-table::
    :header-rows: 1
@@ -780,7 +780,7 @@ Converters
 
 *Back to* `Contents`_
 
-The role of the :class:`qiskit.opflow.converters` sub-module was to convert the operators into other opflow operator classes
+The role of the :class:`qiskit.opflow.converters` submodule was to convert the operators into other opflow operator classes
 (:class:`~qiskit.opflow.converters.TwoQubitReduction`, :class:`~qiskit.opflow.converters.PauliBasisChange`...).
 In the case of the :class:`~qiskit.opflow.converters.CircuitSampler`, it traversed an operator and outputted
 approximations of its state functions using a quantum backend.
@@ -982,24 +982,24 @@ Evolutions
 ==========
 *Back to* `Contents`_
 
-The :mod:`qiskit.opflow.evolutions` sub-module was created to provide building blocks for Hamiltonian simulation algorithms,
-including various methods for trotterization. The original opflow workflow for hamiltonian simulation did not allow for
+The :mod:`qiskit.opflow.evolutions` submodule was created to provide building blocks for Hamiltonian simulation algorithms,
+including various methods for Trotterization. The original opflow workflow for Hamiltonian simulation did not allow for
 delayed synthesis of the gates or efficient transpilation of the circuits, so this functionality was migrated to the
 ``qiskit.synthesis`` :ref:`Evolution <evolution_synthesis>` module.
 
 .. note::
 
     The :class:`qiskit.opflow.evolutions.PauliTrotterEvolution` class computes evolutions for exponentiated
-    sums of Paulis by converting to the Z basis, rotating with an RZ, changing back, and trotterizing.
+    sums of Paulis by converting to the Z basis, rotating with an RZ, changing back, and Trotterizing.
     When calling ``.convert()``, the class follows a recursive strategy that involves creating
     :class:`~qiskit.opflow.evolutions.EvolvedOp` placeholders for the operators,
     constructing :class:`.PauliEvolutionGate`\s out of the operator primitives, and supplying one of
-    the desired synthesis methods to perform the trotterization. The methods can be specified via
+    the desired synthesis methods to perform the Trotterization. The methods can be specified via
     ``string``, which is then inputted into a :class:`~qiskit.opflow.evolutions.TrotterizationFactory`,
     or by supplying a method instance of :class:`qiskit.opflow.evolutions.Trotter`,
     :class:`qiskit.opflow.evolutions.Suzuki` or :class:`qiskit.opflow.evolutions.QDrift`.
 
-    The different trotterization methods that extend :class:`qiskit.opflow.evolutions.TrotterizationBase` were migrated to
+    The different Trotterization methods that extend :class:`qiskit.opflow.evolutions.TrotterizationBase` were migrated to
     :mod:`qiskit.synthesis`,
     and now extend the :class:`qiskit.synthesis.ProductFormula` base class. They no longer contain a ``.convert()`` method for
     standalone use, but are now designed to be plugged into the :class:`.PauliEvolutionGate` and called via ``.synthesize()``.
