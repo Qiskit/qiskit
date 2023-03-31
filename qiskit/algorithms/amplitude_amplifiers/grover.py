@@ -183,7 +183,7 @@ class Grover(AmplitudeAmplifier):
         self._quantum_instance = None
         if quantum_instance is not None:
             with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+                warnings.simplefilter("ignore", DeprecationWarning)
                 self.quantum_instance = quantum_instance
 
         self._sampler = sampler

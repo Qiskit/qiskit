@@ -253,8 +253,16 @@ class QNSPSA(SPSA):
         return settings
 
     @staticmethod
-    @deprecate_arg("backend", since="0.24", additional_msg="See http://qisk.it/algo_migration for a migration guide.")
-    @deprecate_arg("expectation", since="0.24", additional_msg="See http://qisk.it/algo_migration for a migration guide.")
+    @deprecate_arg(
+        "backend",
+        since="0.24.0",
+        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+    )
+    @deprecate_arg(
+        "expectation",
+        since="0.24.0",
+        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+    )
     def get_fidelity(
         circuit: QuantumCircuit,
         backend: Backend | QuantumInstance | None = None,
