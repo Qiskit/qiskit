@@ -229,7 +229,7 @@ def circuit_drawer(
     if (
         circuit.clbits
         and (reverse_bits or wire_order is not None)
-        and not set(wire_order).issubset(set(range(circuit.num_qubits)))
+        and not set(wire_order or []).issubset(set(range(circuit.num_qubits)))
     ):
         if cregbundle:
             warn(
