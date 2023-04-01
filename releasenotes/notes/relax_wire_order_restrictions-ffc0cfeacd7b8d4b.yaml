@@ -1,0 +1,34 @@
+---
+features:
+  - |
+    Some restrictions when using ``wire_order`` in the circuit drawers had been relaxed.
+    Now, ``wire_order`` does not need to be a complete list and it can be used
+    with ``cregbundle=True`` when the order is not affecting the classical bits.
+
+    .. code-block::
+
+      from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+
+      qr = QuantumRegister(4, "q")
+      cr = ClassicalRegister(4, "c")
+      cr2 = ClassicalRegister(2, "ca")
+      circuit = QuantumCircuit(qr, cr, cr2)
+      circuit.h(0)
+      circuit.h(3)
+      circuit.x(1)
+      circuit.x(3).c_if(cr, 10)
+      circuit.draw('text', wire_order=[2, 3], cregbundle=True)
+
+    .. parsed-literal::
+
+       q_2: ────────────
+            ┌───┐ ┌───┐
+       q_3: ┤ H ├─┤ X ├─
+            ├───┤ └─╥─┘
+       q_0: ┤ H ├───╫───
+            ├───┤   ║
+       q_1: ┤ X ├───╫───
+            └───┘┌──╨──┐
+       c: 4/═════╡ 0xa ╞
+                 └─────┘
+      ca: 2/════════════
