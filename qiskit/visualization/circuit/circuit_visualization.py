@@ -226,19 +226,19 @@ def circuit_drawer(
             rest_of_wires.remove(wire)
         complete_wire_order = wire_order + rest_of_wires
 
-        if (
-            circuit.clbits
-            and (reverse_bits or wire_order is not None)
-            and not set(wire_order).issubset(set(range(circuit.num_qubits)))
-        ):
-            if cregbundle:
-                warn(
-                    "cregbundle set to False since either reverse_bits or wire_order "
-                    "(over classical bit) has been set.",
-                    RuntimeWarning,
-                    2,
-                )
-            cregbundle = False
+    if (
+        circuit.clbits
+        and (reverse_bits or wire_order is not None)
+        and not set(wire_order).issubset(set(range(circuit.num_qubits)))
+    ):
+        if cregbundle:
+            warn(
+                "cregbundle set to False since either reverse_bits or wire_order "
+                "(over classical bit) has been set.",
+                RuntimeWarning,
+                2,
+            )
+        cregbundle = False
 
     if output == "text":
         return _text_circuit_drawer(
@@ -268,7 +268,7 @@ def circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     elif output == "latex_source":
         return _generate_latex_source(
@@ -283,7 +283,7 @@ def circuit_drawer(
             with_layout=with_layout,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     elif output == "mpl":
         image = _matplotlib_circuit_drawer(
@@ -300,7 +300,7 @@ def circuit_drawer(
             ax=ax,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     else:
         raise VisualizationError(
