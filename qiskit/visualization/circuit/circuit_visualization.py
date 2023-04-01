@@ -197,15 +197,6 @@ def circuit_drawer(
     if output is None:
         output = default_output
 
-    if circuit.clbits and (reverse_bits is not None):
-        if cregbundle:
-            warn(
-                "cregbundle set to False since either reverse_bits or wire_order has been set.",
-                RuntimeWarning,
-                2,
-            )
-        cregbundle = False
-
     if reverse_bits is None:
         reverse_bits = default_reverse_bits
 
@@ -235,14 +226,20 @@ def circuit_drawer(
             rest_of_wires.remove(wire)
         complete_wire_order = wire_order + rest_of_wires
 
-    # if circuit.clbits and (reverse_bits is not None):
-    #     if cregbundle:
-    #         warn(
-    #             "cregbundle set to False since either reverse_bits or wire_order has been set.",
-    #             RuntimeWarning,
-    #             2,
-    #         )
-    #     cregbundle = False
+        if (
+            circuit.clbits
+            and (reverse_bits or wire_order is not None)
+            and not set(wire_order).issubset(set(range(circuit.num_qubits)))
+        ):
+            if cregbundle:
+                warn(
+                    "cregbundle set to False since either reverse_bits or wire_order "
+                    "(over classical bit) has been set.",
+                    RuntimeWarning,
+                    2,
+                )
+            cregbundle = False
+
     if output == "text":
         return _text_circuit_drawer(
             circuit,
