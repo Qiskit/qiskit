@@ -197,27 +197,7 @@ def circuit_drawer(
     if output is None:
         output = default_output
 
-    if reverse_bits is None:
-        reverse_bits = default_reverse_bits
-
-    if wire_order is not None and reverse_bits:
-        raise VisualizationError(
-            "The wire_order option cannot be set when the reverse_bits option is True."
-        )
-    if wire_order is not None and len(wire_order) != circuit.num_qubits + circuit.num_clbits:
-        raise VisualizationError(
-            "The wire_order list must be the same "
-            "length as the sum of the number of qubits and clbits in the circuit."
-        )
-    if wire_order is not None and set(wire_order) != set(
-        range(circuit.num_qubits + circuit.num_clbits)
-    ):
-        raise VisualizationError(
-            "There must be one and only one entry in the "
-            "wire_order list for the index of each qubit and each clbit in the circuit."
-        )
-
-    if circuit.clbits and (reverse_bits or wire_order is not None):
+    if circuit.clbits and (reverse_bits is not None):
         if cregbundle:
             warn(
                 "cregbundle set to False since either reverse_bits or wire_order has been set.",
@@ -225,6 +205,44 @@ def circuit_drawer(
                 2,
             )
         cregbundle = False
+
+    if reverse_bits is None:
+        reverse_bits = default_reverse_bits
+
+    if wire_order is not None and reverse_bits:
+        raise VisualizationError(
+            "The wire_order option cannot be set when the reverse_bits option is True."
+        )
+    complete_wire_order = None
+    if wire_order is not None:
+        if set(wire_order) > set(range(circuit.num_qubits + circuit.num_clbits)):
+            raise VisualizationError(
+                "The wire_order list should be a subset of the index for each qubit "
+                "and each clbit in the circuit."
+            )
+
+        if len(set(wire_order)) != len(wire_order):
+            raise VisualizationError(
+                "There must be one and only one entry in the "
+                "wire_order list for the index of each qubit and each clbit in the circuit."
+            )
+
+        if len(set(wire_order)) != len(wire_order):
+            raise VisualizationError("The wire_order list should not have repeated elements.")
+
+        rest_of_wires = list(range(circuit.num_qubits + circuit.num_clbits))
+        for wire in set(wire_order):
+            rest_of_wires.remove(wire)
+        complete_wire_order = wire_order + rest_of_wires
+
+    # if circuit.clbits and (reverse_bits is not None):
+    #     if cregbundle:
+    #         warn(
+    #             "cregbundle set to False since either reverse_bits or wire_order has been set.",
+    #             RuntimeWarning,
+    #             2,
+    #         )
+    #     cregbundle = False
     if output == "text":
         return _text_circuit_drawer(
             circuit,
@@ -238,7 +256,7 @@ def circuit_drawer(
             fold=fold,
             initial_state=initial_state,
             cregbundle=cregbundle,
-            wire_order=wire_order,
+            wire_order=complete_wire_order,
         )
     elif output == "latex":
         image = _latex_circuit_drawer(

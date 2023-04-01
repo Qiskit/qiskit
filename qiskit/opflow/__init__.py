@@ -19,7 +19,7 @@ Operators (:mod:`qiskit.opflow`)
 
 Operators and State functions are the building blocks of Quantum Algorithms.
 
-A library for Quantum Algorithms & Applications is more than a collection of
+A library for Quantum Algorithms & Applications (QA&A) is more than a collection of
 algorithms wrapped in Python functions. It needs to provide tools to make writing
 algorithms simple and easy. This is the layer of modules between the circuits and algorithms,
 providing the language and computational primitives for QA&A research.
