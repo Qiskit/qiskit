@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fix the top-right corner of low-compression circuit text-visualisations
