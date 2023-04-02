@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The return type of `qiskit.transpiler.passmanager.PassManager.run` is now
+    always the same as that of its first argument. Passing a single circuit
+    returns a single circuit, passing a list of circuits, even of length 1,
+    returns a list of circuits.
+    See `#9798 <https://github.com/Qiskit/qiskit-terra/issues/9798>`.
