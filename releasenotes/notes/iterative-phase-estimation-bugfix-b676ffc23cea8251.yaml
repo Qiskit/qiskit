@@ -1,4 +1,5 @@
 ---
 fixes:
   - |
-    Fixed a bug where the iterative phase estimation algorithm was generating the wrong circuit, causing the algorithm to fail for simple cases. Refer to `#9280 https://github.com/Qiskit/qiskit-terra/issues/9280` for more details.
+    Fixed a bug where :class:`.IterativePhaseEstimation` was generating the wrong circuit, causing the
+    algorithm to fail for simple cases. Fixed `#9280 https://github.com/Qiskit/qiskit-terra/issues/9280`__.
