@@ -170,6 +170,11 @@ autosummary_generate = True
 autosummary_generate_overwrite = False
 autoclass_content = 'both'
 
+# Plot directive configuration
+# ----------------------------
+
+plot_html_show_formats = False
+
 # -- Extension configuration -------------------------------------------------
 
 def setup(app):
