@@ -97,8 +97,9 @@ def eval_observables(
     values = np.real(observables_expect_sampled.eval())
 
     # compute standard deviations
+    # We use sampler.quantum_instance to take care of case in which quantum_instance is Backend
     std_devs = _compute_std_devs(
-        observables_expect_sampled, observables, expectation, quantum_instance
+        observables_expect_sampled, observables, expectation, sampler.quantum_instance
     )
 
     # Discard values below threshold
