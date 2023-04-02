@@ -168,7 +168,8 @@ def generate_unroll_3q(
             gates on the backend target
         approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_method (str): The unitary synthesis method to use. You can see
+            a list of installed plugins with :func:`~unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
@@ -358,7 +359,8 @@ def generate_translation_passmanager(
             documentation for how to use.
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_method (str): The unitary synthesis method to use. You can
+            see a list of installed plugins with :func:`~unitary_synthesis_plugin_names`.
         hls_config (HLSConfig): An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
