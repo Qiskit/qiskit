@@ -93,6 +93,7 @@ def _evaluate_aux_ops(
         Tuple of the mean and standard deviation of the aux operators for a given state.
     """
     op_means = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_ops])
+    # TODO: returns only means? what about std?
     return op_means
 
 

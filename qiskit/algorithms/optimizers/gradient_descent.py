@@ -13,8 +13,9 @@
 """A standard gradient descent optimizer."""
 from __future__ import annotations
 
+from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterator, SupportsFloat
+from typing import Any, Callable, SupportsFloat
 import numpy as np
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from .steppable_optimizer import AskData, TellData, OptimizerState, SteppableOptimizer
@@ -176,7 +177,10 @@ class GradientDescent(SteppableOptimizer):
     def __init__(
         self,
         maxiter: int = 100,
-        learning_rate: float | list[float] | np.ndarray | Callable[[], Iterator] = 0.01,
+        learning_rate: float
+        | list[float]
+        | np.ndarray
+        | Callable[[], Generator[float, None, None]] = 0.01,
         tol: float = 1e-7,
         callback: CALLBACK | None = None,
         perturbation: float | None = None,

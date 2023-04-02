@@ -555,8 +555,7 @@ def _fisher_confint(
     confint = np.real(result.estimation) + normal_quantile / np.sqrt(fisher_information) * np.array(
         [-1, 1]
     )
-    mapped_confint = tuple(result.post_processing(bound) for bound in confint)
-    return mapped_confint
+    return result.post_processing(confint[0]), result.post_processing(confint[1])
 
 
 def _likelihood_ratio_confint(

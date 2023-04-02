@@ -13,7 +13,7 @@
 """A class to represent the Learning Rate."""
 from __future__ import annotations
 
-from collections.abc import Generator, Callable, Iterator
+from collections.abc import Generator, Callable
 from itertools import tee
 import numpy as np
 
@@ -27,7 +27,13 @@ class LearningRate(Generator):
     This class wraps ``Generator`` so that we can also access the last yielded value.
     """
 
-    def __init__(self, learning_rate: float | list[float] | np.ndarray | Callable[[], Iterator]):
+    def __init__(
+        self,
+        learning_rate: float
+        | list[float]
+        | np.ndarray
+        | Callable[[], Generator[float, None, None]],
+    ):
         """
         Args:
             learning_rate: Used to create a generator to iterate on.
