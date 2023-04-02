@@ -75,7 +75,7 @@ class TestStabDecomposeLayers(QiskitTestCase):
             self.assertEqual(stab.probabilities_dict(), stab_target.probabilities_dict())
 
     @combine(num_qubits=[4, 5])
-    def test_reduced_inverse_clifford(self, num_qubits=4):
+    def test_reduced_inverse_clifford(self, num_qubits):
         """Test that one can use this stabilizer state synthesis method to calculate an inverse Clifford
         that preserves the ground state |0...0>, with a reduced circuit depth.
         This is useful for multi-qubit Randomized Benchmarking."""
