@@ -2,9 +2,9 @@
 Quantum Instance Migration Guide
 ################################
 
-The :class:`~qiskit.utils.QuantumInstance` is a utility class that allowed to jointly
-configure the circuit transpilation and execution steps, and provided functions
-at a higher level of abstraction for a more convenient integration with algorihthms.
+The :class:`~qiskit.utils.QuantumInstance` is a utility class that allows the joint
+configuration of the circuit transpilation and execution steps, and provides functions
+at a higher level of abstraction for a more convenient integration with algorithms.
 These include measurement error mitigation, splitting/combining execution to
 conform to job limits,
 and ensuring reliable execution of circuits with additional job management tools.
@@ -81,7 +81,7 @@ at the algorithm level, to save the user from defining the same parameters for e
 The :mod:`qiskit.primitives` share some of these features, but unlike the :class:`~qiskit.utils.QuantumInstance`,
 there are multiple primitive classes, and each is optimized for a specific
 purpose. Selecting the right primitive (``Sampler`` or ``Estimator``) requires some knowledge about
-**what** is it expected to do and **where/how** is it expected to run.
+**what** it is expected to do and **where/how** it is expected to run.
 
 .. note::
 
@@ -367,7 +367,7 @@ Code examples
 
     **Using Primitives**
 
-    Now, the primitives have allowed to combine the opflow and quantum instance functionality in a single ``Estimator``.
+    The primitives now allow the combination of the opflow and quantum instance functionality in a single ``Estimator``.
     In this case, for local noisy simulation, this will be the Aer Estimator.
 
     .. testcode::
@@ -415,7 +415,7 @@ Code examples
 
     **Using Quantum Instance**
 
-    The QuantumInstance interface allowed to configure measurement error mitigation settings such as the method, the
+    The ``QuantumInstance`` interface allowed the configuration of measurement error mitigation settings such as the method, the
     matrix refresh period or the mitigation pattern. This configuration is no longer available in the primitives
     interface.
 
@@ -526,7 +526,7 @@ Code examples
     Note that the primitives **do** handle parameter bindings, meaning that even if a ``bound_pass_manager`` is defined in a
     Backend Primitive, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
 
-    Let's see an example with a parametrized quantum circuit and different custom transpiler passes, ran on an ``AerSimulator``.
+    Let's see an example with a parametrized quantum circuit and different custom transpiler passes run on an ``AerSimulator``.
 
     **Using Quantum Instance**
 
