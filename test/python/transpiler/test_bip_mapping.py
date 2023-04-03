@@ -139,7 +139,7 @@ class TestBIPMapping(QiskitTestCase):
         circuit.measure(qr[1], cr[0])
         circuit.measure(qr[2], cr[1])
 
-        actual = BIPMapping(target=target)(circuit)
+        actual = BIPMapping(target)(circuit)
 
         q = QuantumRegister(3, "q")
         expected = QuantumCircuit(q, cr)
