@@ -10,7 +10,7 @@ community in this goal.
 Before You Start
 ****************
 
-If you are new to Qiskit contributing we recommend before diving in to the code you should do the following:
+If you are new to Qiskit contributing we recommend you do the following before diving into the code:
 
 #. Read the `Code of Conduct <https://github.com/Qiskit/qiskit/blob/master/CODE_OF_CONDUCT.md>`__
 #. :ref:`Decide what to work on <decide-what-to-work-on>`
@@ -40,32 +40,9 @@ Contributing to a Specific Repo
 Each Qiskit package has its own set of Contributing Guidelines (kept in the ``CONTRIBUTING.md`` file) which
 details specific information on contributing to that repository. Make sure you read through the repo-specific
 Contributing Guidelines prior to making your contribution to a specific repo as each project may have
-slightly different requirements and processes.
-
-=========================== =============================================
-Repo                        Contributing Guidelines
-=========================== =============================================
-Qiskit Terra                https://github.com/Qiskit/qiskit-terra/blob/main/CONTRIBUTING.md
-Qiskit Aer                  https://github.com/Qiskit/qiskit-aer/blob/main/CONTRIBUTING.md
-
-Qiskit Nature               https://github.com/Qiskit/qiskit-nature/blob/main/CONTRIBUTING.md
-Qiskit Machine Learning     https://github.com/Qiskit/qiskit-machine-learning/blob/main/CONTRIBUTING.md
-Qiskit Finance              https://github.com/Qiskit/qiskit-finance/blob/main/CONTRIBUTING.md
-Qiskit Optimization         https://github.com/Qiskit/qiskit-optimization/blob/main/CONTRIBUTING.md
-
-
-Qiskit Experiments          https://github.com/Qiskit/qiskit-experiments/blob/main/CONTRIBUTING.md
-Qiskit Dynamics             https://github.com/Qiskit/qiskit-dynamics/blob/main/CONTRIBUTING.md
-Qiskit Metal                https://github.com/Qiskit/qiskit-metal/blob/main/CONTRIBUTING.md
-
-Qiskit Textbook (legacy)    https://github.com/qiskit-community/qiskit-textbook/blob/main/CONTRIBUTING.md
-Qiskit Textbook (beta)      https://github.com/Qiskit/platypus/blob/main/CONTRIBUTING.md
-Qiskit Tutorials            https://github.com/Qiskit/qiskit-tutorials/blob/master/CONTRIBUTING.md
-
-Rustworkx                   https://github.com/Qiskit/rustworkx/blob/main/CONTRIBUTING.md
-Qiskit (meta-package)       https://github.com/Qiskit/qiskit/blob/master/CONTRIBUTING.md
-=========================== =============================================
-
+slightly different requirements and processes. For Qiskit Terra, the main repository, the contributing guidelines
+may be be found `here <https://github.com/Qiskit/qiskit-terra/blob/main/CONTRIBUTING.md>`__. Other Qiskit packages that
+are able to receive contributions may be found as seperate repositories in the official `Qiskit Github <https://github.com/Qiskit>`__.
 
 .. _dev-env-setup:
 
