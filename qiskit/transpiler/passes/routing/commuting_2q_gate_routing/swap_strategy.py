@@ -81,7 +81,7 @@ class SwapStrategy:
                         f"part of the underlying coupling map with {edge_set} edges."
                     )
 
-            layer_qubits = list(qubit for edge in layer for qubit in edge)
+            layer_qubits = [qubit for edge in layer for qubit in edge]
             if len(layer_qubits) != len(set(layer_qubits)):
                 raise QiskitError(f"The {i}th swap layer contains a qubit with multiple swaps.")
 

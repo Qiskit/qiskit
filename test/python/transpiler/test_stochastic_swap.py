@@ -1217,7 +1217,7 @@ class TestStochasticSwapRandomCircuitValidOutput(QiskitTestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.backend = FakeMumbai()
-        cls.coupling_edge_set = set(tuple(x) for x in cls.backend.configuration().coupling_map)
+        cls.coupling_edge_set = {tuple(x) for x in cls.backend.configuration().coupling_map}
         cls.basis_gates = set(cls.backend.configuration().basis_gates)
         cls.basis_gates.update(["for_loop", "while_loop", "if_else"])
 

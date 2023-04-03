@@ -58,7 +58,6 @@ class SciPyOptimizer(Optimizer):
             kwargs: additional kwargs for scipy.optimize.minimize.
             max_evals_grouped: Max number of default gradient evaluations performed simultaneously.
         """
-        # pylint: disable=super-init-not-called
         self._method = method.lower() if isinstance(method, str) else method
         # Set support level
         if self._method in self._bounds_support_methods:

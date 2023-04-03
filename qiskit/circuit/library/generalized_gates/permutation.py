@@ -15,7 +15,7 @@ backward compatibility and which will be eventually deprecated) and the permutat
 gate (the new way to specify permutations, allowing a variety of synthesis algorithms).
 """
 
-from typing import List, Optional
+from __future__ import annotations
 
 import numpy as np
 
@@ -30,8 +30,8 @@ class Permutation(QuantumCircuit):
     def __init__(
         self,
         num_qubits: int,
-        pattern: Optional[List[int]] = None,
-        seed: Optional[int] = None,
+        pattern: list[int] | np.ndarray | None = None,
+        seed: int | None = None,
     ) -> None:
         """Return an n_qubit permutation circuit implemented using SWAPs.
 
@@ -99,7 +99,7 @@ class PermutationGate(Gate):
 
     def __init__(
         self,
-        pattern: List[int],
+        pattern: list[int],
     ) -> None:
         """Return a permutation gate.
 
