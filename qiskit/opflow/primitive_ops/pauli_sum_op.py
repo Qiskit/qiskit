@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""PauliSumOp Class """
+"""PauliSumOp Class"""
 
 from collections import defaultdict
 from typing import Dict, List, Optional, Set, Tuple, Union, cast
@@ -401,7 +401,6 @@ class PauliSumOp(PrimitiveOp):
         """
         return len(self.primitive)
 
-    # pylint: disable=arguments-differ
     def reduce(self, atol: Optional[float] = None, rtol: Optional[float] = None) -> "PauliSumOp":
         """Simplify the primitive ``SparsePauliOp``.
 
@@ -431,19 +430,22 @@ class PauliSumOp(PrimitiveOp):
     @classmethod
     def from_list(
         cls,
-        pauli_list: List[Tuple[str, complex]],
+        pauli_list: List[Tuple[str, Union[complex, ParameterExpression]]],
         coeff: Union[complex, ParameterExpression] = 1.0,
+        dtype: type = complex,
     ) -> "PauliSumOp":
         """Construct from a pauli_list with the form [(pauli_str, coeffs)]
 
         Args:
             pauli_list: A list of Tuple of pauli_str and coefficient.
             coeff: A coefficient multiplying the primitive.
+            dtype: The dtype to use to construct the internal SparsePauliOp.
+                Defaults to ``complex``.
 
         Returns:
             The PauliSumOp constructed from the pauli_list.
         """
-        return cls(SparsePauliOp.from_list(pauli_list), coeff=coeff)
+        return cls(SparsePauliOp.from_list(pauli_list, dtype=dtype), coeff=coeff)
 
     def is_zero(self) -> bool:
         """

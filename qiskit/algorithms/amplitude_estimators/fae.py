@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2023.
+# (C) Copyright IBM 2017, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,12 +20,11 @@ from qiskit.circuit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.algorithms.exceptions import AlgorithmError
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
-from .ae_utils import _probabilities_from_sampler_result
 
 
 class FasterAmplitudeEstimation(AmplitudeEstimator):
@@ -49,6 +48,12 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         delta: float,
@@ -62,7 +67,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             delta: The probability that the true value is outside of the final confidence interval.
             maxiter: The number of iterations, the maximal power of Q is `2 ** (maxiter - 1)`.
             rescale: Whether to rescale the problem passed to `estimate`.
-            quantum_instance: Deprecated\: The quantum instance or backend
+            quantum_instance: Pending deprecation\: The quantum instance or backend
                 to run the circuits.
             sampler: A sampler primitive to evaluate the circuits.
 
@@ -74,13 +79,6 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         """
         super().__init__()
         # set quantum instance
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument is deprecated as of Qiskit Terra 0.23.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, use "
-                "the sampler argument as a replacement.",
-                category=DeprecationWarning,
-            )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.quantum_instance = quantum_instance
@@ -110,14 +108,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_function(
-        "The FasterAmplitudeEstimation.quantum_instance getter is deprecated "
-        "as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date.",
-        category=DeprecationWarning,
-    )
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
     def quantum_instance(self) -> QuantumInstance | None:
-        """Deprecated; Get the quantum instance.
+        """Pending deprecation; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -125,14 +118,9 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The FasterAmplitudeEstimation.quantum_instance setter is deprecated "
-        "as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date.",
-        category=DeprecationWarning,
-    )
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Deprecated; Set quantum instance.
+        """Pending deprecation; Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -156,10 +144,14 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             if shots is None:
                 shots = 1
             self._num_oracle_calls += (2 * k + 1) * shots
+
             # sum over all probabilities where the objective qubits are 1
-            prob = _probabilities_from_sampler_result(
-                circuit.num_qubits, result, estimation_problem
-            )
+            prob = 0
+            for bit, probabilities in result.quasi_dists[0].binary_probabilities().items():
+                # check if it is a good state
+                if estimation_problem.is_good_state(bit):
+                    prob += probabilities
+
             cos_estimate = 1 - 2 * prob
         elif self._quantum_instance.is_statevector:
             circuit = self.construct_circuit(estimation_problem, k, measurement=False)

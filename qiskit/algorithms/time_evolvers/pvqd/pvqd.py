@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2022.
+# (C) Copyright IBM 2019, 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -74,17 +74,16 @@ class PVQD(RealTimeEvolver):
             import numpy as np
 
             from qiskit.algorithms.state_fidelities import ComputeUncompute
-            from qiskit.algorithms.time_evolvers.pvqd import PVQD
-            from qiskit.primitives import Estimator
-            from qiskit import BasicAer
+            from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, PVQD
+            from qiskit.primitives import Estimator, Sampler
             from qiskit.circuit.library import EfficientSU2
-            from qiskit.quantum_info import Pauli, SparsePauliOp
+            from qiskit.quantum_info import SparsePauliOp, Pauli
             from qiskit.algorithms.optimizers import L_BFGS_B
 
             sampler = Sampler()
             fidelity = ComputeUncompute(sampler)
             estimator = Estimator()
-            hamiltonian = 0.1 * SparsePauliOp([Pauli("ZZ"), Pauli("IX"), Pauli("XI")])
+            hamiltonian = 0.1 * SparsePauliOp(["ZZ", "IX", "XI"])
             observable = Pauli("ZZ")
             ansatz = EfficientSU2(2, reps=1)
             initial_parameters = np.zeros(ansatz.num_parameters)
@@ -96,14 +95,14 @@ class PVQD(RealTimeEvolver):
             pvqd = PVQD(
                 fidelity,
                 ansatz,
-                estimator,
                 initial_parameters,
+                estimator,
                 num_timesteps=100,
                 optimizer=optimizer,
             )
 
             # specify the evolution problem
-            problem = EvolutionProblem(
+            problem = TimeEvolutionProblem(
                 hamiltonian, time, aux_operators=[hamiltonian, observable]
             )
 
@@ -217,7 +216,6 @@ class PVQD(RealTimeEvolver):
         dt: float,
         current_parameters: np.ndarray,
     ) -> tuple[Callable[[np.ndarray], float], Callable[[np.ndarray], np.ndarray]] | None:
-
         """Get a function to evaluate the infidelity between Trotter step and ansatz.
 
         Args:
@@ -270,7 +268,7 @@ class PVQD(RealTimeEvolver):
             # the first state does not have free parameters so values_1 will be None by default
             try:
                 job = self.fidelity_primitive.run(states1, states2, values_2=param_dicts2)
-                fidelities = job.result().fidelities
+                fidelities = np.array(job.result().fidelities)
             except Exception as exc:
                 raise AlgorithmError("The primitive job failed!") from exc
 
@@ -279,7 +277,7 @@ class PVQD(RealTimeEvolver):
 
             # in principle, we could add different loss functions here, but we're currently
             # not aware of a use-case for a different one than in the paper
-            return 1 - np.abs(fidelities) ** 2
+            return 1 - fidelities
 
         if _is_gradient_supported(ansatz) and self.use_parameter_shift:
 

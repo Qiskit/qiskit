@@ -36,7 +36,7 @@ _1q_inverses = {
     "t": "tdg",
     "tdg": "t",
     "s": "sdg",
-    "sgd": "s",
+    "sdg": "s",
 }
 
 _1q_gates = {

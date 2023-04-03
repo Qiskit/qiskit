@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -201,9 +201,12 @@ class TestSPSA(QiskitAlgorithmsTestCase):
     def test_qnspsa_fidelity_deprecation(self):
         """Test using a backend and expectation converter in get_fidelity warns."""
         ansatz = PauliTwoDesign(2, reps=1, seed=2)
-
-        with self.assertWarns(DeprecationWarning):
-            _ = QNSPSA.get_fidelity(ansatz, StatevectorSimulatorPy(), MatrixExpectation())
+        with self.assertWarns(PendingDeprecationWarning):
+            QNSPSA.get_fidelity(ansatz, backend=StatevectorSimulatorPy())
+        with self.assertWarns(PendingDeprecationWarning):
+            QNSPSA.get_fidelity(ansatz, expectation=MatrixExpectation())
+        # No warning when used correctly.
+        QNSPSA.get_fidelity(ansatz)
 
     def test_qnspsa_fidelity_primitives(self):
         """Test the primitives can be used in get_fidelity."""
@@ -255,3 +258,27 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         with self.subTest("check number of function calls"):
             expected_nfev = 8  # 7 * maxiter + 1
             self.assertEqual(result.nfev, expected_nfev)
+
+    def test_point_sample(self):
+        """Test point sample function in QNSPSA"""
+
+        def fidelity(x, _y):
+            x = np.asarray(x)
+            return np.ones_like(x, dtype=float)  # some float
+
+        def objective(x):
+            return x
+
+        def get_perturbation():
+            def perturbation():
+                while True:
+                    yield 1
+
+            return perturbation
+
+        qnspsa = QNSPSA(fidelity, maxiter=1, learning_rate=0.1, perturbation=get_perturbation())
+        initial_point = 1.0
+        result = qnspsa.minimize(objective, initial_point)
+
+        expected_nfev = 8  # 7 * maxiter + 1
+        self.assertEqual(result.nfev, expected_nfev)

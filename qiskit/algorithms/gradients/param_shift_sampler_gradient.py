@@ -18,12 +18,13 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Sequence
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 
 from .base_sampler_gradient import BaseSamplerGradient
 from .sampler_gradient_result import SamplerGradientResult
 from .utils import _make_param_shift_parameter_values
+
+from ..exceptions import AlgorithmError
 
 
 class ParamShiftSamplerGradient(BaseSamplerGradient):
@@ -57,33 +58,31 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> SamplerGradientResult:
         """Compute the estimator gradients on the given circuits."""
-        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
-            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
+        g_circuits, g_parameter_values, g_parameters = self._preprocess(
+            circuits, parameter_values, parameters, self.SUPPORTED_GATES
         )
-        results = self._run_unique(g_circuits, g_parameter_values, g_parameter_sets, **options)
-        return self._postprocess(results, circuits, parameter_values, parameter_sets)
+        results = self._run_unique(g_circuits, g_parameter_values, g_parameters, **options)
+        return self._postprocess(results, circuits, parameter_values, parameters)
 
     def _run_unique(
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         job_circuits, job_param_values, metadata = [], [], []
         all_n = []
-        for circuit, parameter_values_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
-        ):
-            metadata.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
+            metadata.append({"parameters": parameters_})
             # Make parameter values for the parameter shift rule.
             param_shift_parameter_values = _make_param_shift_parameter_values(
-                circuit, parameter_values_, parameter_set
+                circuit, parameter_values_, parameters_
             )
             # Combine inputs into a single job to reduce overhead.
             n = len(param_shift_parameter_values)

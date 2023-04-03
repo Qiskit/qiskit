@@ -142,8 +142,13 @@ from qiskit.pulse.library import (
     Gaussian,
     GaussianSquare,
     GaussianSquareDrag,
+    Sin,
+    Cos,
+    Sawtooth,
+    Triangle,
     ParametricPulse,
     SymbolicPulse,
+    ScalableSymbolicPulse,
     Waveform,
 )
 from qiskit.pulse.library.samplers.decorators import functional_pulse

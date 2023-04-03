@@ -186,4 +186,27 @@ def _linear_circuit_check_map(qc: QuantumCircuit, coupling_list: list) -> bool:
         q1 = bit_indices[circuit_instruction.qubits[1]]
         if (q0, q1) not in coupling_list_set:
             return False
+
+def check_lnn_connectivity(qc: QuantumCircuit) -> bool:
+    """Check that the synthesized circuit qc fits linear nearest neighbor connectivity.
+
+    Args:
+        qc: a QuantumCircuit containing only CX and single qubit gates.
+
+    Returns:
+        bool: True if the circuit has linear nearest neighbor connectivity.
+
+    Raises:
+        CircuitError: if qc has a non-CX two-qubit gate.
+    """
+    for instruction in qc.data:
+        if instruction.operation.num_qubits > 1:
+            if instruction.operation.name == "cx":
+                q0 = qc.find_bit(instruction.qubits[0]).index
+                q1 = qc.find_bit(instruction.qubits[1]).index
+                dist = abs(q0 - q1)
+                if dist != 1:
+                    return False
+            else:
+                raise CircuitError("The circuit has two-qubits gates different than CX.")
     return True

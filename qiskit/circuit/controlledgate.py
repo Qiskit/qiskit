@@ -12,8 +12,9 @@
 
 """Controlled unitary gate."""
 
+from __future__ import annotations
 import copy
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from qiskit.circuit.exceptions import CircuitError
 
@@ -31,7 +32,7 @@ class ControlledGate(Gate):
         self,
         name: str,
         num_qubits: int,
-        params: List,
+        params: list,
         label: Optional[str] = None,
         num_ctrl_qubits: Optional[int] = 1,
         definition: Optional["QuantumCircuit"] = None,
@@ -103,7 +104,7 @@ class ControlledGate(Gate):
         self._name = name
 
     @property
-    def definition(self) -> List:
+    def definition(self) -> QuantumCircuit:
         """Return definition in terms of other basic gates. If the gate has
         open controls, as determined from `self.ctrl_state`, the returned
         definition is conjugated with X without changing the internal
@@ -131,7 +132,8 @@ class ControlledGate(Gate):
         """Set controlled gate definition with closed controls.
 
         Args:
-            excited_def: The circuit with all closed controls."""
+            excited_def: The circuit with all closed controls.
+        """
         self._definition = excited_def
 
     @property

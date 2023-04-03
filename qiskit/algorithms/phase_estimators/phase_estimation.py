@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,7 +14,6 @@
 """The Quantum Phase Estimation Algorithm."""
 
 from __future__ import annotations
-import warnings
 
 import numpy
 
@@ -24,6 +23,7 @@ from qiskit import circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import Result
 from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
@@ -81,6 +81,12 @@ class PhaseEstimation(PhaseEstimator):
 
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         num_evaluation_qubits: int,
@@ -91,7 +97,7 @@ class PhaseEstimation(PhaseEstimator):
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
-            quantum_instance: Deprecated\: The quantum instance on which the
+            quantum_instance: Pending deprecation\: The quantum instance on which the
                 circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
 
@@ -101,13 +107,6 @@ class PhaseEstimation(PhaseEstimator):
         if sampler is None and quantum_instance is None:
             raise AlgorithmError(
                 "Neither a sampler nor a quantum instance was provided. Please provide one of them."
-            )
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument is deprecated as of Qiskit Terra 0.23.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, use "
-                "the sampler argument as a replacement.",
-                category=DeprecationWarning,
             )
         self._measurements_added = False
         if num_evaluation_qubits is not None:
@@ -243,7 +242,6 @@ class PhaseEstimation(PhaseEstimator):
             self._num_evaluation_qubits, circuit_result=circuit_result, phases=phases
         )
 
-    # pylint: disable=missing-param-doc
     def estimate(
         self,
         unitary: QuantumCircuit,

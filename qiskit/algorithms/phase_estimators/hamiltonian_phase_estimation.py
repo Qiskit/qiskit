@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2023.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,10 +14,9 @@
 
 from __future__ import annotations
 
-import warnings
-
 from qiskit import QuantumCircuit
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.opflow import (
     SummedOp,
     PauliOp,
@@ -92,6 +91,12 @@ class HamiltonianPhaseEstimation:
 
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         num_evaluation_qubits: int,
@@ -102,17 +107,10 @@ class HamiltonianPhaseEstimation:
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
-            quantum_instance: Deprecated\: The quantum instance on which
+            quantum_instance: Pending deprecation\: The quantum instance on which
                 the circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
         """
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument is deprecated as of Qiskit Terra 0.23.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, use "
-                "the sampler argument as a replacement.",
-                category=DeprecationWarning,
-            )
         self._phase_estimation = PhaseEstimation(
             num_evaluation_qubits=num_evaluation_qubits,
             quantum_instance=quantum_instance,

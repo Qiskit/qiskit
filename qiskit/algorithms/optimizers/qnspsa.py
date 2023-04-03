@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,13 +14,13 @@
 
 from __future__ import annotations
 from typing import Any, Iterator, Callable
-import warnings
 
 import numpy as np
 from qiskit.providers import Backend
 from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 
 from qiskit.primitives import BaseSampler, Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
@@ -89,7 +89,7 @@ class QNSPSA(SPSA):
             result = qnspsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
 
         This is a legacy version solving the same problem but using Qiskit Opflow instead
-        of the Qiskit Primitives. Note however, that this usage is deprecated.
+        of the Qiskit Primitives. Note however, that this usage is pending deprecation.
 
         .. code-block:: python
 
@@ -228,9 +228,10 @@ class QNSPSA(SPSA):
         gradient_estimate = (loss_values[0] - loss_values[1]) / (2 * eps) * delta1
 
         # compute the preconditioner point estimate
+        fidelity_values = np.asarray(fidelity_values, dtype=float)
         diff = fidelity_values[2] - fidelity_values[0]
-        diff -= fidelity_values[3] - fidelity_values[1]
-        diff /= 2 * eps**2
+        diff = diff - (fidelity_values[3] - fidelity_values[1])
+        diff = diff / (2 * eps**2)
 
         rank_one = np.outer(delta1, delta2)
         # -0.5 factor comes from the fact that we need -0.5 * fidelity
@@ -252,6 +253,8 @@ class QNSPSA(SPSA):
         return settings
 
     @staticmethod
+    @deprecate_arg("backend", since="0.22", pending=True)
+    @deprecate_arg("expectation", since="0.22", pending=True)
     def get_fidelity(
         circuit: QuantumCircuit,
         backend: Backend | QuantumInstance | None = None,
@@ -263,7 +266,7 @@ class QNSPSA(SPSA):
 
         .. note::
 
-            Using this function with a backend and expectation converter is deprecated,
+            Using this function with a backend and expectation converter is pending deprecation,
             instead pass a Qiskit Primitive sampler, such as :class:`~.Sampler`.
             The sampler can be passed as keyword argument or, positionally, as second argument.
 
@@ -276,13 +279,13 @@ class QNSPSA(SPSA):
             F(\theta, \phi) = \big|\langle 0 | U^\dagger(\theta) U(\phi) |0\rangle  \big|^2.
 
         The output of this function can be used as input for the ``fidelity`` to the
-        :class:~`qiskit.algorithms.optimizers.QNSPSA` optimizer.
+        :class:`~.QNSPSA` optimizer.
 
         Args:
             circuit: The circuit preparing the parameterized ansatz.
-            backend: *Deprecated.* A backend of quantum instance to evaluate the circuits.
+            backend: *Pending deprecation.* A backend of quantum instance to evaluate the circuits.
                 If None, plain matrix multiplication will be used.
-            expectation: *Deprecated.* An expectation converter to specify how the expected
+            expectation: *Pending deprecation.* An expectation converter to specify how the expected
                 value is computed. If a shot-based readout is used this should be set to
                 ``PauliExpectation``.
             sampler: A sampler primitive to sample from a quantum state.
@@ -300,14 +303,6 @@ class QNSPSA(SPSA):
             sampler = Sampler()
 
         if expectation is not None or backend is not None:
-            warnings.warn(
-                "Passing a backend and expectation converter to QNSPSA.get_fidelity "
-                "is deprecated as of Qiskit Terra 0.23.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, pass a "
-                "sampler primitive.",
-                stacklevel=2,
-                category=DeprecationWarning,
-            )
             return QNSPSA._legacy_get_fidelity(circuit, backend, expectation)
 
         fid = ComputeUncompute(sampler)
@@ -334,11 +329,11 @@ class QNSPSA(SPSA):
         backend: Backend | QuantumInstance | None = None,
         expectation: ExpectationBase | None = None,
     ) -> Callable[[np.ndarray, np.ndarray], float]:
-        r"""Deprecated. Get a function to compute the fidelity of ``circuit`` with itself.
+        r"""PENDING DEPRECATION. Get a function to compute the fidelity of ``circuit`` with itself.
 
         .. note::
 
-            This method is deprecated. Instead use the :class:`~.ComputeUncompute`
+            This method is pending deprecation. Instead use the :class:`~.ComputeUncompute`
             class which implements the fidelity calculation in the same fashion as this method.
 
         Let ``circuit`` be a parameterized quantum circuit performing the operation

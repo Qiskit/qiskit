@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -38,7 +38,7 @@ from qiskit.opflow import (
 from qiskit.opflow.gradients import GradientBase
 from qiskit.utils.validation import validate_min
 from qiskit.utils.backend_utils import is_aer_provider
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils import QuantumInstance
 from ..list_or_dict import ListOrDict
 from ..optimizers import Optimizer, SLSQP, Minimizer
@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 class VQD(VariationalAlgorithm, Eigensolver):
-    r"""Deprecated: Variational Quantum Deflation algorithm.
+    r"""Pending deprecation: Variational Quantum Deflation algorithm.
 
     The VQD class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.VQD` class.
@@ -96,11 +96,10 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     """
 
-    @deprecate_function(
-        "The VQD class is deprecated as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.eigensolvers.VQD class.",
-        category=DeprecationWarning,
+    @deprecate_func(
+        additional_msg="Instead, use the class ``qiskit.algorithms.eigensolvers.VQD``",
+        since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,
@@ -756,7 +755,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
 
 class VQDResult(VariationalResult, EigensolverResult):
-    """Deprecated: VQD Result.
+    """Pending deprecation: VQD Result.
 
     The VQDResult class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.VQDResult` class.
@@ -765,11 +764,10 @@ class VQDResult(VariationalResult, EigensolverResult):
 
     """
 
-    @deprecate_function(
-        "The VQDResult class is deprecated as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.eigensolvers.VQDResult class.",
-        category=DeprecationWarning,
+    @deprecate_func(
+        additional_msg="Instead, use the class ``qiskit.algorithms.eigensolvers.VQDResult``.",
+        since="0.23.0",
+        pending=True,
     )
     def __init__(self) -> None:
         super().__init__()

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,12 +17,12 @@ from typing import Union, Optional, Dict
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from ..list_or_dict import ListOrDict
 
 
 class EvolutionProblem:
-    """Deprecated: Evolution problem class.
+    """Pending deprecation: Evolution problem class.
 
     The EvolutionProblem class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.TimeEvolutionProblem` class.
@@ -33,11 +33,12 @@ class EvolutionProblem:
     evolution time, a quantum state to be evolved and under which Hamiltonian the state is evolved.
     """
 
-    @deprecate_function(
-        "The EvolutionProblem class is deprecated as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.time_evolvers.TimeEvolutionProblem class.",
-        category=DeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.TimeEvolutionProblem``."
+        ),
+        since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,

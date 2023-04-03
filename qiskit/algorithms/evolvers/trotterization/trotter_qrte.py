@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2023.
+# (C) Copyright IBM 2021, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -33,11 +33,11 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 
 class TrotterQRTE(RealEvolver):
-    """Deprecated: Quantum Real Time Evolution using Trotterization.
+    """Pending deprecation: Quantum Real Time Evolution using Trotterization.
 
     The TrotterQRTE class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class.
@@ -64,11 +64,12 @@ class TrotterQRTE(RealEvolver):
             evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
     """
 
-    @deprecate_function(
-        "The TrotterQRTE class is deprecated as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE class.",
-        category=DeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE``."
+        ),
+        since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,

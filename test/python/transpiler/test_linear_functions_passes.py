@@ -21,6 +21,7 @@ from qiskit.circuit import QuantumCircuit, Qubit, Clbit
 from qiskit.transpiler.passes.optimization import CollectLinearFunctions
 from qiskit.transpiler.passes.synthesis import (
     LinearFunctionsSynthesis,
+    HighLevelSynthesis,
     LinearFunctionsToPermutations,
     HighLevelSynthesis,
     HLSConfig,
@@ -44,6 +45,45 @@ class TestLinearFunctionsPasses(QiskitTestCase):
     the pass that synthesizes LinearFunctions into CX and SWAP gates,
     and the pass that promotes LinearFunctions to Permutations whenever possible.
     """
+
+    def test_deprecated_synthesis_method(self):
+        """Test that when all gates in a circuit are either CX or SWAP,
+        we end up with a single LinearFunction."""
+
+        # original circuit
+        circuit = QuantumCircuit(4)
+        circuit.cx(0, 1)
+        circuit.cx(0, 2)
+        circuit.cx(0, 3)
+        circuit.swap(2, 3)
+        circuit.cx(0, 1)
+        circuit.cx(0, 3)
+
+        # new circuit with linear functions extracted using transpiler pass
+        optimized_circuit = PassManager(CollectLinearFunctions()).run(circuit)
+
+        # check that this circuit consists of a single LinearFunction
+        self.assertIn("linear_function", optimized_circuit.count_ops().keys())
+        self.assertEqual(len(optimized_circuit.data), 1)
+        inst1 = optimized_circuit.data[0]
+        self.assertIsInstance(inst1.operation, LinearFunction)
+
+        # construct a circuit with linear function directly, without the transpiler pass
+        expected_circuit = QuantumCircuit(4)
+        expected_circuit.append(LinearFunction(circuit), [0, 1, 2, 3])
+
+        # check that we have an equivalent circuit
+        self.assertEqual(Operator(optimized_circuit), Operator(expected_circuit))
+
+        # now a circuit with linear functions synthesized
+        with self.assertWarns(DeprecationWarning):
+            synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(optimized_circuit)
+
+        # check that there are no LinearFunctions present in synthesized_circuit
+        self.assertNotIn("linear_function", synthesized_circuit.count_ops().keys())
+
+        # check that we have an equivalent circuit
+        self.assertEqual(Operator(optimized_circuit), Operator(synthesized_circuit))
 
     # Most of CollectLinearFunctions tests should work correctly both without and with
     # commutativity analysis.
@@ -81,7 +121,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(Operator(optimized_circuit), Operator(expected_circuit))
 
         # now a circuit with linear functions synthesized
-        synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(optimized_circuit)
+        synthesized_circuit = PassManager(HighLevelSynthesis()).run(optimized_circuit)
 
         # check that there are no LinearFunctions present in synthesized_circuit
         self.assertNotIn("linear_function", synthesized_circuit.count_ops().keys())
@@ -137,7 +177,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(Operator(resulting_subcircuit2), Operator(expected_subcircuit2))
 
         # now a circuit with linear functions synthesized
-        synthesized_circuit = PassManager(LinearFunctionsSynthesis()).run(circuit2)
+        synthesized_circuit = PassManager(HighLevelSynthesis()).run(circuit2)
 
         # check that there are no LinearFunctions present in synthesized_circuit
         self.assertNotIn("linear_function", synthesized_circuit.count_ops().keys())
@@ -175,7 +215,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
 
         # check that there is one linear function and one permutation
         self.assertEqual(circuit3.count_ops()["linear_function"], 1)
-        self.assertEqual(circuit3.count_ops()["permutation_[2,0,1]"], 1)
+        self.assertEqual(circuit3.count_ops()["permutation"], 1)
 
         # check that the final circuit is still equivalent to the original circuit
         self.assertEqual(Operator(circuit1), Operator(circuit3))
@@ -203,7 +243,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         ).run(circuit1)
 
         # synthesize linear functions
-        circuit3 = PassManager(LinearFunctionsSynthesis()).run(circuit2)
+        circuit3 = PassManager(HighLevelSynthesis()).run(circuit2)
 
         # check that we have an equivalent circuit
         self.assertEqual(Operator(circuit1), Operator(circuit3))
@@ -238,7 +278,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         ).run(circuit1)
 
         # synthesize linear functions
-        circuit3 = PassManager(LinearFunctionsSynthesis()).run(circuit2)
+        circuit3 = PassManager(HighLevelSynthesis()).run(circuit2)
 
         # check that we have an equivalent circuit
         self.assertEqual(Operator(circuit1), Operator(circuit3))
@@ -259,7 +299,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(circuit2.count_ops()["linear_function"], 2)
 
         # synthesize linear functions
-        circuit3 = PassManager(LinearFunctionsSynthesis()).run(circuit2)
+        circuit3 = PassManager(HighLevelSynthesis()).run(circuit2)
         self.assertEqual(circuit3.count_ops()["cx"], 6)
 
     @combine(do_commutative_analysis=[False, True])
@@ -278,7 +318,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         self.assertEqual(circuit2.count_ops()["linear_function"], 2)
 
         # synthesize linear functions
-        circuit3 = PassManager(LinearFunctionsSynthesis()).run(circuit2)
+        circuit3 = PassManager(HighLevelSynthesis()).run(circuit2)
         self.assertEqual(circuit3.count_ops()["cx"], 8)
 
     @combine(do_commutative_analysis=[False, True])

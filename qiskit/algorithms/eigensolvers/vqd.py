@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -193,7 +193,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQDResult:
-
         super().compute_eigenvalues(operator, aux_operators)
 
         # this sets the size of the ansatz, so it must be called before the initial point
@@ -226,7 +225,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
             aux_operators = None
 
         if self.betas is None:
-
             if isinstance(operator, PauliSumOp):
                 operator = operator.coeff * operator.primitive
 
@@ -254,7 +252,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         prev_states = []
 
         for step in range(1, self.k + 1):
-
             # update list of optimal circuits
             if step > 1:
                 prev_states.append(self.ansatz.bind_parameters(result.optimal_points[-1]))
@@ -268,9 +265,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             # TODO: add gradient support after FidelityGradients are implemented
             if callable(self.optimizer):
-                opt_result = self.optimizer(  # pylint: disable=not-callable
-                    fun=energy_evaluation, x0=initial_point, bounds=bounds
-                )
+                opt_result = self.optimizer(fun=energy_evaluation, x0=initial_point, bounds=bounds)
             else:
                 # we always want to submit as many estimations per job as possible for minimal
                 # overhead on the hardware
@@ -365,22 +360,28 @@ class VQD(VariationalAlgorithm, Eigensolver):
         self._check_operator_ansatz(operator)
 
         def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
+            # handle broadcasting: ensure parameters is of shape [array, array, ...]
+            if len(parameters.shape) == 1:
+                parameters = np.reshape(parameters, (-1, num_parameters))
+            batch_size = len(parameters)
 
             estimator_job = self.estimator.run(
-                circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
+                batch_size * [self.ansatz], batch_size * [operator], parameters
             )
 
-            total_cost = 0
+            total_cost = np.zeros(batch_size)
+
             if step > 1:
                 # compute overlap cost
+                batched_prev_states = [state for state in prev_states for _ in range(batch_size)]
                 fidelity_job = self.fidelity.run(
-                    [self.ansatz] * (step - 1),
-                    prev_states,
-                    [parameters] * (step - 1),
+                    batch_size * [self.ansatz] * (step - 1),
+                    batched_prev_states,
+                    np.tile(parameters, (step - 1, 1)),
                 )
-
                 costs = fidelity_job.result().fidelities
 
+                costs = np.reshape(costs, (step - 1, -1))
                 for state, cost in enumerate(costs):
                     total_cost += np.real(betas[state] * cost)
 
@@ -394,7 +395,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             if self.callback is not None:
                 metadata = estimator_result.metadata
-                for params, value, meta in zip([parameters], values, metadata):
+                for params, value, meta in zip(parameters, values, metadata):
                     self._eval_count += 1
                     self.callback(self._eval_count, params, value, meta, step)
             else:
@@ -406,7 +407,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @staticmethod
     def _build_vqd_result() -> VQDResult:
-
         result = VQDResult()
         result.optimal_points = []
         result.optimal_parameters = []
@@ -420,7 +420,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @staticmethod
     def _update_vqd_result(result, opt_result, eval_time, ansatz) -> VQDResult:
-
         result.optimal_points.append(opt_result.x)
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
         result.optimal_values.append(opt_result.fun)

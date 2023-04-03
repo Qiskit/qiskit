@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`~.CommutationChecker` class where it would
+    attempt to internally allocate an array for :math:`2^{n}` qubits when it
+    only needed an array to represent :math:`n` qubits. This could cause
+    an excessive amount of memory for wide gates, for example a 4 qubit
+    gate would require 32 gigabytes instead of 2 kilobytes.
+    Fixed `#9197 <https://github.com/Qiskit/qiskit-terra/issues/9197>`__

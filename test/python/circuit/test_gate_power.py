@@ -212,6 +212,17 @@ class TestPowerInvariant(QiskitTestCase):
 
 
 @ddt
+class TestGatePow(QiskitTestCase):
+    """Test gate __pow__ method."""
+
+    @data(2, 3, 4, 5)
+    def test_gate_pow(self, degree):
+        """Test gate __pow__ method."""
+        self.assertEqual(SGate() ** (1 / degree), SGate().power(1 / degree))
+        self.assertEqual(CXGate() ** (1 / degree), CXGate().power(1 / degree))
+
+
+@ddt
 class TestEfficientGatePowering(QiskitTestCase):
     """Test gate powering is efficient where expected."""
 

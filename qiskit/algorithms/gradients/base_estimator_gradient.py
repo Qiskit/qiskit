@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,7 +22,6 @@ from copy import copy
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmJob
 from qiskit.circuit import Parameter, ParameterExpression, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -36,9 +35,11 @@ from .utils import (
     DerivativeType,
     GradientCircuit,
     _assign_unique_parameters,
-    _make_gradient_parameter_set,
+    _make_gradient_parameters,
     _make_gradient_parameter_values,
 )
+
+from ..algorithm_job import AlgorithmJob
 
 
 class BaseEstimatorGradient(ABC):
@@ -48,20 +49,42 @@ class BaseEstimatorGradient(ABC):
         self,
         estimator: BaseEstimator,
         options: Options | None = None,
+        derivative_type: DerivativeType = DerivativeType.REAL,
     ):
-        """
+        r"""
         Args:
             estimator: The estimator used to compute the gradients.
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > gradient's
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting
+            derivative_type: The type of derivative. Can be either ``DerivativeType.REAL``
+                ``DerivativeType.IMAG``, or ``DerivativeType.COMPLEX``.
+
+                    - ``DerivativeType.REAL`` computes :math:`2 \mathrm{Re}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.IMAG`` computes :math:`2 \mathrm{Im}[⟨ψ(ω)|O(θ)|dω ψ(ω)〉]`.
+                    - ``DerivativeType.COMPLEX`` computes :math:`2 ⟨ψ(ω)|O(θ)|dω ψ(ω)〉`.
+
+                Defaults to ``DerivativeType.REAL``, as this yields e.g. the commonly-used energy
+                gradient and this type is the only supported type for function-level schemes like
+                finite difference.
         """
         self._estimator: BaseEstimator = estimator
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
+        self._derivative_type = derivative_type
+
         self._gradient_circuit_cache: dict[QuantumCircuit, GradientCircuit] = {}
+
+    @property
+    def derivative_type(self) -> DerivativeType:
+        """Return the derivative type (real, imaginary or complex).
+
+        Returns:
+            The derivative type.
+        """
+        return self._derivative_type
 
     def run(
         self,
@@ -80,7 +103,8 @@ class BaseEstimatorGradient(ABC):
             parameters: The sequence of parameters to calculate only the gradients of
                 the specified parameters. Each sequence of parameters corresponds to a circuit in
                 ``circuits``. Defaults to None, which means that the gradients of all parameters in
-                each circuit are calculated.
+                each circuit are calculated. None in the sequence means that the gradients of all
+                parameters in the corresponding circuit are calculated.
             options: Primitive backend runtime options used for circuit execution.
                 The order of priority is: options in ``run`` method > gradient's
                 default options > primitive's default setting.
@@ -104,24 +128,24 @@ class BaseEstimatorGradient(ABC):
 
         if parameters is None:
             # If parameters is None, we calculate the gradients of all parameters in each circuit.
-            parameter_sets = [set(circuit.parameters) for circuit in circuits]
+            parameters = [circuit.parameters for circuit in circuits]
         else:
             # If parameters is not None, we calculate the gradients of the specified parameters.
             # None in parameters means that the gradients of all parameters in the corresponding
             # circuit are calculated.
-            parameter_sets = [
-                set(parameters_) if parameters_ is not None else set(circuits[i].parameters)
-                for i, parameters_ in enumerate(parameters)
+            parameters = [
+                params if params is not None else circuits[i].parameters
+                for i, params in enumerate(parameters)
             ]
         # Validate the arguments.
-        self._validate_arguments(circuits, observables, parameter_values, parameter_sets)
+        self._validate_arguments(circuits, observables, parameter_values, parameters)
         # The priority of run option is as follows:
         # options in ``run`` method > gradient's default options > primitive's default setting.
         opts = copy(self._default_options)
         opts.update_options(**options)
         # Run the job.
         job = AlgorithmJob(
-            self._run, circuits, observables, parameter_values, parameter_sets, **opts.__dict__
+            self._run, circuits, observables, parameter_values, parameters, **opts.__dict__
         )
         job.submit()
         return job
@@ -132,7 +156,7 @@ class BaseEstimatorGradient(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
@@ -142,9 +166,9 @@ class BaseEstimatorGradient(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         supported_gates: Sequence[str],
-    ) -> tuple[Sequence[QuantumCircuit], Sequence[Sequence[float]], Sequence[set[Parameter]]]:
+    ) -> tuple[Sequence[QuantumCircuit], Sequence[Sequence[float]], Sequence[Sequence[Parameter]]]:
         """Preprocess the gradient. This makes a gradient circuit for each circuit. The gradient
         circuit is a transpiled circuit by using the supported gates, and has unique parameters.
         ``parameter_values`` and ``parameters`` are also updated to match the gradient circuit.
@@ -161,10 +185,8 @@ class BaseEstimatorGradient(ABC):
             parameter_values and parameters are updated to match the gradient circuit.
         """
         translator = TranslateParameterizedGates(supported_gates)
-        g_circuits, g_parameter_values, g_parameter_sets = [], [], []
-        for circuit, parameter_value_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
-        ):
+        g_circuits, g_parameter_values, g_parameters = [], [], []
+        for circuit, parameter_value_, parameters_ in zip(circuits, parameter_values, parameters):
             circuit_key = _circuit_key(circuit)
             if circuit_key not in self._gradient_circuit_cache:
                 unrolled = translator(circuit)
@@ -174,53 +196,47 @@ class BaseEstimatorGradient(ABC):
             g_parameter_values.append(
                 _make_gradient_parameter_values(circuit, gradient_circuit, parameter_value_)
             )
-            g_parameter_sets.append(_make_gradient_parameter_set(gradient_circuit, parameter_set))
-        return g_circuits, g_parameter_values, g_parameter_sets
+            g_parameters.append(_make_gradient_parameters(gradient_circuit, parameters_))
+        return g_circuits, g_parameter_values, g_parameters
 
     def _postprocess(
         self,
         results: EstimatorGradientResult,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter] | None],
+        parameters: Sequence[Sequence[Parameter]],
     ) -> EstimatorGradientResult:
-        """Postprocess the gradient. This computes the gradient of the original circuit from the
-        gradient of the gradient circuit by using the chain rule.
+        """Postprocess the gradients. This method computes the gradient of the original circuits
+        by applying the chain rule to the gradient of the circuits with unique parameters.
 
         Args:
-            results: The results of the gradient of the gradient circuits.
-            circuits: The list of quantum circuits to compute the gradients.
-            parameter_values: The list of parameter values to be bound to the circuit.
+            results: The computed gradients for the circuits with unique parameters.
+            circuits: The list of original circuits submitted for gradient computation.
+            parameter_values: The list of parameter values to be bound to the circuits.
             parameters: The sequence of parameters to calculate only the gradients of the specified
                 parameters.
 
         Returns:
-            The results of the gradient of the original circuits.
+            The gradients of the original circuits.
         """
         gradients, metadata = [], []
-        for idx, (circuit, parameter_values_, parameter_set) in enumerate(
-            zip(circuits, parameter_values, parameter_sets)
+        for idx, (circuit, parameter_values_, parameters_) in enumerate(
+            zip(circuits, parameter_values, parameters)
         ):
-            unique_gradient = np.zeros(len(parameter_set))
+            gradient = np.zeros(len(parameters_))
             if (
                 "derivative_type" in results.metadata[idx]
                 and results.metadata[idx]["derivative_type"] == DerivativeType.COMPLEX
             ):
                 # If the derivative type is complex, cast the gradient to complex.
-                unique_gradient = unique_gradient.astype("complex")
+                gradient = gradient.astype("complex")
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
-            g_parameter_set = _make_gradient_parameter_set(gradient_circuit, parameter_set)
+            g_parameters = _make_gradient_parameters(gradient_circuit, parameters_)
             # Make a map from the gradient parameter to the respective index in the gradient.
-            parameter_indices = [param for param in circuit.parameters if param in parameter_set]
-            g_parameter_indices = [
-                param
-                for param in gradient_circuit.gradient_circuit.parameters
-                if param in g_parameter_set
-            ]
-            g_parameter_indices = {param: i for i, param in enumerate(g_parameter_indices)}
+            g_parameter_indices = {param: i for i, param in enumerate(g_parameters)}
             # Compute the original gradient from the gradient of the gradient circuit
             # by using the chain rule.
-            for i, parameter in enumerate(parameter_indices):
+            for i, parameter in enumerate(parameters_):
                 for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
                     # Compute the coefficient
                     if isinstance(coeff, ParameterExpression):
@@ -233,12 +249,12 @@ class BaseEstimatorGradient(ABC):
                         bound_coeff = coeff
                     # The original gradient is a sum of the gradients of the parameters in the
                     # gradient circuit multiplied by the coefficients.
-                    unique_gradient[i] += (
+                    gradient[i] += (
                         float(bound_coeff)
                         * results.gradients[idx][g_parameter_indices[g_parameter]]
                     )
-            gradients.append(unique_gradient)
-            metadata.append([{"parameters": parameter_indices}])
+            gradients.append(gradient)
+            metadata.append({"parameters": parameters_})
         return EstimatorGradientResult(
             gradients=gradients, metadata=metadata, options=results.options
         )
@@ -248,7 +264,7 @@ class BaseEstimatorGradient(ABC):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
     ) -> None:
         """Validate the arguments of the ``run`` method.
 
@@ -256,10 +272,8 @@ class BaseEstimatorGradient(ABC):
             circuits: The list of quantum circuits to compute the gradients.
             observables: The list of observables.
             parameter_values: The list of parameter values to be bound to the circuit.
-            parameters: The Sequence of Sequence of Parameters to calculate only the gradients of
-                the specified parameters. Each Sequence of Parameters corresponds to a circuit in
-                ``circuits``. Defaults to None, which means that the gradients of all parameters in
-                each circuit are calculated.
+            parameters: The sequence of parameters to calculate only the gradients of the specified
+                parameters.
 
         Raises:
             ValueError: Invalid arguments are given.
@@ -268,18 +282,6 @@ class BaseEstimatorGradient(ABC):
             raise ValueError(
                 f"The number of circuits ({len(circuits)}) does not match "
                 f"the number of parameter value sets ({len(parameter_values)})."
-            )
-
-        if len(circuits) != len(observables):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of observables ({len(observables)})."
-            )
-
-        if len(circuits) != len(parameter_sets):
-            raise ValueError(
-                f"The number of circuits ({len(circuits)}) does not match "
-                f"the number of the specified parameter sets ({len(parameter_sets)})."
             )
 
         for i, (circuit, parameter_value) in enumerate(zip(circuits, parameter_values)):
@@ -291,6 +293,12 @@ class BaseEstimatorGradient(ABC):
                     f"the number of parameters ({circuit.num_parameters}) for the {i}-th circuit."
                 )
 
+        if len(circuits) != len(observables):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of observables ({len(observables)})."
+            )
+
         for i, (circuit, observable) in enumerate(zip(circuits, observables)):
             if circuit.num_qubits != observable.num_qubits:
                 raise ValueError(
@@ -299,10 +307,16 @@ class BaseEstimatorGradient(ABC):
                     f"({observable.num_qubits})."
                 )
 
-        for i, (circuit, parameter_set) in enumerate(zip(circuits, parameter_sets)):
-            if not set(parameter_set).issubset(circuit.parameters):
+        if len(circuits) != len(parameters):
+            raise ValueError(
+                f"The number of circuits ({len(circuits)}) does not match "
+                f"the number of the list of specified parameters ({len(parameters)})."
+            )
+
+        for i, (circuit, parameters_) in enumerate(zip(circuits, parameters)):
+            if not set(parameters_).issubset(circuit.parameters):
                 raise ValueError(
-                    f"The {i}-th parameter set contains parameters not present in the "
+                    f"The {i}-th parameters contains parameters not present in the "
                     f"{i}-th circuit."
                 )
 

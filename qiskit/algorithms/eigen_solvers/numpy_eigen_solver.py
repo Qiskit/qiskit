@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,7 +20,7 @@ from scipy import sparse as scisparse
 
 from qiskit.opflow import I, ListOp, OperatorBase, StateFn
 from qiskit.utils.validation import validate_min
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from ..exceptions import AlgorithmError
 from .eigen_solver import Eigensolver, EigensolverResult
 from ..list_or_dict import ListOrDict
@@ -28,12 +28,9 @@ from ..list_or_dict import ListOrDict
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
-
 class NumPyEigensolver(Eigensolver):
     r"""
-    Deprecated: NumPy Eigensolver algorithm.
+    Pending deprecation: NumPy Eigensolver algorithm.
 
     The NumPyEigensolver class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.NumPyEigensolver` class.
@@ -49,11 +46,12 @@ class NumPyEigensolver(Eigensolver):
         operator size, mostly in terms of number of qubits it represents, gets larger.
     """
 
-    @deprecate_function(
-        "The NumPyEigensolver class is deprecated as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date. Instead, use "
-        "the qiskit.algorithms.eigensolvers.NumPyEigensolver class.",
-        category=DeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.NumPyEigensolver``."
+        ),
+        since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,

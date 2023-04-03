@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """Read and write schedule and schedule instructions."""
 import json
 import struct
@@ -77,16 +75,37 @@ def _loads_symbolic_expr(expr_bytes):
     return expr
 
 
-def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
-    # In the transition to Qiskit Terra 0.23, the representation of library pulses was changed from
-    # complex "amp" to float "amp" and "angle". The existing library pulses in previous versions are
-    # handled here separately to conform with the new representation. To avoid role assumption for
-    # "amp" for custom pulses, only the library pulses are handled this way.
+def _read_symbolic_pulse(file_obj, version):
+    make = formats.SYMBOLIC_PULSE._make
+    pack = formats.SYMBOLIC_PULSE_PACK
+    size = formats.SYMBOLIC_PULSE_SIZE
 
-    # Note that parameters is mutated during the function call
+    header = make(
+        struct.unpack(
+            pack,
+            file_obj.read(size),
+        )
+    )
+    pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
+    envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
+    constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
+    valid_amp_conditions = _loads_symbolic_expr(file_obj.read(header.valid_amp_conditions_size))
+    parameters = common.read_mapping(
+        file_obj,
+        deserializer=value.loads_value,
+        version=version,
+        vectors={},
+    )
+
+    # In the transition to Qiskit Terra 0.23 (QPY version 6), the representation of library pulses
+    # was changed from complex "amp" to float "amp" and "angle". The existing library pulses in
+    # previous versions are handled here separately to conform with the new representation. To
+    # avoid role assumption for "amp" for custom pulses, only the library pulses are handled this
+    # way.
 
     # List of pulses in the library in QPY version 5 and below:
     legacy_library_pulses = ["Gaussian", "GaussianSquare", "Drag", "Constant"]
+    class_name = "SymbolicPulse"  # Default class name, if not in the library
 
     if pulse_type in legacy_library_pulses:
         # Once complex amp support will be deprecated we will need:
@@ -101,20 +120,55 @@ def _format_legacy_qiskit_pulse(pulse_type, envelope, parameters):
         # And warn that this will change in future releases:
         warnings.warn(
             "Complex amp support for symbolic library pulses will be deprecated. "
-            "Once deprecated, library pulses loaded from old QPY files (Terra version <=0.22.2),"
+            "Once deprecated, library pulses loaded from old QPY files (Terra version < 0.23),"
             " will be converted automatically to float (amp,angle) representation.",
             PendingDeprecationWarning,
         )
-    return envelope
+        class_name = "ScalableSymbolicPulse"
+
+    duration = value.read_value(file_obj, version, {})
+    name = value.read_value(file_obj, version, {})
+
+    if class_name == "SymbolicPulse":
+        return library.SymbolicPulse(
+            pulse_type=pulse_type,
+            duration=duration,
+            parameters=parameters,
+            name=name,
+            limit_amplitude=header.amp_limited,
+            envelope=envelope,
+            constraints=constraints,
+            valid_amp_conditions=valid_amp_conditions,
+        )
+    elif class_name == "ScalableSymbolicPulse":
+        return library.ScalableSymbolicPulse(
+            pulse_type=pulse_type,
+            duration=duration,
+            amp=parameters["amp"],
+            angle=parameters["angle"],
+            parameters=parameters,
+            name=name,
+            limit_amplitude=header.amp_limited,
+            envelope=envelope,
+            constraints=constraints,
+            valid_amp_conditions=valid_amp_conditions,
+        )
+    else:
+        raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
-def _read_symbolic_pulse(file_obj, version, qiskit_version):
-    header = formats.SYMBOLIC_PULSE._make(
+def _read_symbolic_pulse_v6(file_obj, version):
+    make = formats.SYMBOLIC_PULSE_V2._make
+    pack = formats.SYMBOLIC_PULSE_PACK_V2
+    size = formats.SYMBOLIC_PULSE_SIZE_V2
+
+    header = make(
         struct.unpack(
-            formats.SYMBOLIC_PULSE_PACK,
-            file_obj.read(formats.SYMBOLIC_PULSE_SIZE),
+            pack,
+            file_obj.read(size),
         )
     )
+    class_name = file_obj.read(header.class_name_size).decode(common.ENCODE)
     pulse_type = file_obj.read(header.type_size).decode(common.ENCODE)
     envelope = _loads_symbolic_expr(file_obj.read(header.envelope_size))
     constraints = _loads_symbolic_expr(file_obj.read(header.constraints_size))
@@ -125,23 +179,36 @@ def _read_symbolic_pulse(file_obj, version, qiskit_version):
         version=version,
         vectors={},
     )
-    if qiskit_version < (0, 23, 0):
-        envelope = _format_legacy_qiskit_pulse(pulse_type, envelope, parameters)
-        # Note that parameters is mutated during the function call
 
     duration = value.read_value(file_obj, version, {})
     name = value.read_value(file_obj, version, {})
 
-    return library.SymbolicPulse(
-        pulse_type=pulse_type,
-        duration=duration,
-        parameters=parameters,
-        name=name,
-        limit_amplitude=header.amp_limited,
-        envelope=envelope,
-        constraints=constraints,
-        valid_amp_conditions=valid_amp_conditions,
-    )
+    if class_name == "SymbolicPulse":
+        return library.SymbolicPulse(
+            pulse_type=pulse_type,
+            duration=duration,
+            parameters=parameters,
+            name=name,
+            limit_amplitude=header.amp_limited,
+            envelope=envelope,
+            constraints=constraints,
+            valid_amp_conditions=valid_amp_conditions,
+        )
+    elif class_name == "ScalableSymbolicPulse":
+        return library.ScalableSymbolicPulse(
+            pulse_type=pulse_type,
+            duration=duration,
+            amp=parameters["amp"],
+            angle=parameters["angle"],
+            parameters=parameters,
+            name=name,
+            limit_amplitude=header.amp_limited,
+            envelope=envelope,
+            constraints=constraints,
+            valid_amp_conditions=valid_amp_conditions,
+        )
+    else:
+        raise NotImplementedError(f"Unknown class '{class_name}'")
 
 
 def _read_alignment_context(file_obj, version):
@@ -161,30 +228,27 @@ def _read_alignment_context(file_obj, version):
     return instance
 
 
-def _loads_operand(type_key, data_bytes, version, qiskit_version):
+def _loads_operand(type_key, data_bytes, version):
     if type_key == type_keys.ScheduleOperand.WAVEFORM:
         return common.data_from_binary(data_bytes, _read_waveform, version=version)
     if type_key == type_keys.ScheduleOperand.SYMBOLIC_PULSE:
-        return common.data_from_binary(
-            data_bytes, _read_symbolic_pulse, version=version, qiskit_version=qiskit_version
-        )
+        if version < 6:
+            return common.data_from_binary(data_bytes, _read_symbolic_pulse, version=version)
+        else:
+            return common.data_from_binary(data_bytes, _read_symbolic_pulse_v6, version=version)
     if type_key == type_keys.ScheduleOperand.CHANNEL:
         return common.data_from_binary(data_bytes, _read_channel, version=version)
 
     return value.loads_value(type_key, data_bytes, version, {})
 
 
-def _read_element(file_obj, version, metadata_deserializer, qiskit_version=None):
+def _read_element(file_obj, version, metadata_deserializer):
     type_key = common.read_type_key(file_obj)
 
     if type_key == type_keys.Program.SCHEDULE_BLOCK:
-        return read_schedule_block(
-            file_obj, version, metadata_deserializer, qiskit_version=qiskit_version
-        )
+        return read_schedule_block(file_obj, version, metadata_deserializer)
 
-    operands = common.read_sequence(
-        file_obj, deserializer=_loads_operand, version=version, qiskit_version=qiskit_version
-    )
+    operands = common.read_sequence(file_obj, deserializer=_loads_operand, version=version)
     name = value.read_value(file_obj, version, {})
 
     instance = object.__new__(type_keys.ScheduleInstruction.retrieve(type_key))
@@ -226,13 +290,15 @@ def _dumps_symbolic_expr(expr):
 
 
 def _write_symbolic_pulse(file_obj, data):
+    class_name_bytes = data.__class__.__name__.encode(common.ENCODE)
     pulse_type_bytes = data.pulse_type.encode(common.ENCODE)
     envelope_bytes = _dumps_symbolic_expr(data.envelope)
     constraints_bytes = _dumps_symbolic_expr(data.constraints)
     valid_amp_conditions_bytes = _dumps_symbolic_expr(data.valid_amp_conditions)
 
     header_bytes = struct.pack(
-        formats.SYMBOLIC_PULSE_PACK,
+        formats.SYMBOLIC_PULSE_PACK_V2,
+        len(class_name_bytes),
         len(pulse_type_bytes),
         len(envelope_bytes),
         len(constraints_bytes),
@@ -240,6 +306,7 @@ def _write_symbolic_pulse(file_obj, data):
         data._limit_amplitude,
     )
     file_obj.write(header_bytes)
+    file_obj.write(class_name_bytes)
     file_obj.write(pulse_type_bytes)
     file_obj.write(envelope_bytes)
     file_obj.write(constraints_bytes)
@@ -294,7 +361,7 @@ def _write_element(file_obj, element, metadata_serializer):
         value.write_value(file_obj, element.name)
 
 
-def read_schedule_block(file_obj, version, metadata_deserializer=None, qiskit_version=None):
+def read_schedule_block(file_obj, version, metadata_deserializer=None):
     """Read a single ScheduleBlock from the file like object.
 
     Args:
@@ -307,7 +374,6 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, qiskit_ve
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-        qiskit_version (tuple): tuple with major, minor and patch versions of qiskit.
 
     Returns:
         ScheduleBlock: The schedule block object from the file.
@@ -337,9 +403,7 @@ def read_schedule_block(file_obj, version, metadata_deserializer=None, qiskit_ve
         alignment_context=context,
     )
     for _ in range(data.num_elements):
-        block_elm = _read_element(
-            file_obj, version, metadata_deserializer, qiskit_version=qiskit_version
-        )
+        block_elm = _read_element(file_obj, version, metadata_deserializer)
         block.append(block_elm, inplace=True)
 
     return block

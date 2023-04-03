@@ -13,7 +13,7 @@
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 
 # pylint: disable=cyclic-import
-from typing import Optional, List, Tuple
+from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
@@ -35,7 +35,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self,
         cost_operator=None,
         reps: int = 1,
-        initial_state: Optional[QuantumCircuit] = None,
+        initial_state: QuantumCircuit | None = None,
         mixer_operator=None,
         name: str = "QAOA",
     ):
@@ -59,11 +59,11 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         self._cost_operator = None
         self._reps = reps
-        self._initial_state = initial_state
+        self._initial_state: QuantumCircuit | None = initial_state
         self._mixer = mixer_operator
 
         # set this circuit as a not-built circuit
-        self._bounds = None
+        self._bounds: list[tuple[float | None, float | None]] | None = None
 
         # store cost operator and set the registers if the operator is not None
         self.cost_operator = cost_operator
@@ -105,7 +105,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return valid
 
     @property
-    def parameter_bounds(self) -> Optional[List[Tuple[Optional[float], Optional[float]]]]:
+    def parameter_bounds(self) -> list[tuple[float | None, float | None]] | None:
         """The parameter bounds for the unbound parameters in the circuit.
 
         Returns:
@@ -123,7 +123,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         # default bounds: None for gamma (cost operator), [0, 2pi] for gamma (mixer operator)
         beta_bounds = (0, 2 * np.pi)
         gamma_bounds = (None, None)
-        bounds = []
+        bounds: list[tuple[float | None, float | None]] = []
 
         if not _is_pauli_identity(self.mixer_operator):
             bounds += self.reps * [beta_bounds]
@@ -134,9 +134,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return bounds
 
     @parameter_bounds.setter
-    def parameter_bounds(
-        self, bounds: Optional[List[Tuple[Optional[float], Optional[float]]]]
-    ) -> None:
+    def parameter_bounds(self, bounds: list[tuple[float | None, float | None]] | None) -> None:
         """Set the parameter bounds.
 
         Args:
@@ -145,7 +143,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._bounds = bounds
 
     @property
-    def operators(self):
+    def operators(self) -> list:
         """The operators that are evolved in this circuit.
 
         Returns:
@@ -186,7 +184,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._invalidate()
 
     @property
-    def initial_state(self) -> Optional[QuantumCircuit]:
+    def initial_state(self) -> QuantumCircuit | None:
         """Returns an optional initial state as a circuit"""
         if self._initial_state is not None:
             return self._initial_state
@@ -201,7 +199,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return None
 
     @initial_state.setter
-    def initial_state(self, initial_state: Optional[QuantumCircuit]) -> None:
+    def initial_state(self, initial_state: QuantumCircuit | None) -> None:
         """Sets initial state."""
         self._initial_state = initial_state
         self._invalidate()

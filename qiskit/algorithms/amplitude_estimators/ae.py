@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2023.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,7 +23,7 @@ from qiskit import QuantumCircuit, ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .ae_utils import pdf_a, derivative_log_pdf_a, bisect_max
 from .estimation_problem import EstimationProblem
@@ -57,6 +57,12 @@ class AmplitudeEstimation(AmplitudeEstimator):
              `arXiv:1912.05559 <https://arxiv.org/abs/1912.05559>`_.
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
         num_eval_qubits: int,
@@ -73,7 +79,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
                 `qiskit.circuit.library.PhaseEstimation` when None.
             iqft: The inverse quantum Fourier transform component, defaults to using a standard
                 implementation from `qiskit.circuit.library.QFT` when None.
-            quantum_instance: Deprecated\: The backend (or `QuantumInstance`) to execute
+            quantum_instance: Pending deprecation\: The backend (or `QuantumInstance`) to execute
                 the circuits on.
             sampler: A sampler primitive to evaluate the circuits.
 
@@ -86,19 +92,12 @@ class AmplitudeEstimation(AmplitudeEstimator):
         super().__init__()
 
         # set quantum instance
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument is deprecated as of Qiskit Terra 0.23.0 and "
-                "will be removed no sooner than 3 months after the release date. Instead, use "
-                "the sampler argument as a replacement.",
-                category=DeprecationWarning,
-            )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.quantum_instance = quantum_instance
 
         # get parameters
-        self._m = num_eval_qubits  # pylint: disable=invalid-name
+        self._m = num_eval_qubits
         self._M = 2**num_eval_qubits  # pylint: disable=invalid-name
 
         self._iqft = iqft
@@ -124,13 +123,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_function(
-        "The AmplitudeEstimation.quantum_instance getter is deprecated as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date.",
-        category=DeprecationWarning,
-    )
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
     def quantum_instance(self) -> QuantumInstance | None:
-        """Deprecated; Get the quantum instance.
+        """Pending deprecation; Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -138,13 +133,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The AmplitudeEstimation.quantum_instance setter is deprecated as of Qiskit Terra 0.23.0 and "
-        "will be removed no sooner than 3 months after the release date.",
-        category=DeprecationWarning,
-    )
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Deprecated; Set quantum instance.
+        """Pending deprecation; Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -385,15 +376,12 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
                 shots = ret.metadata[0].get("shots")
                 if shots is None:
-                    result.circuit_results = {
-                        np.binary_repr(k, circuit.num_qubits): v
-                        for k, v in ret.quasi_dists[0].items()
-                    }
+                    result.circuit_results = ret.quasi_dists[0].binary_probabilities()
                     shots = 1
                 else:
                     result.circuit_results = {
-                        np.binary_repr(k, circuit.num_qubits): round(v * shots)
-                        for k, v in ret.quasi_dists[0].items()
+                        k: round(v * shots)
+                        for k, v in ret.quasi_dists[0].binary_probabilities().items()
                     }
 
         # store shots
