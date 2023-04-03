@@ -545,9 +545,10 @@ in :mod:`qiskit.algorithms.eigen_solvers`.
 VQD
 ---
 
-The new :class:`qiskit.algorithms.eigensolvers.VQD` class is initialized with an :class:`~qiskit.primitives.Estimator`
-primitive, as well as a :class:`~qiskit.primitives.Sampler`-based fidelity class
-from :mod:`qiskit.algorithms.state_fidelities`.
+The new :class:`qiskit.algorithms.eigensolvers.VQD` class is initialized with an instance of the
+:class:`~qiskit.primitives.Estimator` primitive instead of a :class:`~qiskit.utils.QuantumInstance`.
+In addition to this, it takes an instance of a state fidelity class from mod:`qiskit.algorithms.state_fidelities`,
+such as the :class:`~qiskit.primitives.Sampler`-based :class:`~qiskit.algorithms.state_fidelities.ComputeUncompute`.
 
 .. note::
 
@@ -648,8 +649,8 @@ from :mod:`qiskit.algorithms.state_fidelities`.
         [ 0.01765114+0.0e+00j -0.58507654+0.0e+00j -0.15003642-2.8e-17j]
 
 .. raw:: html
-    <br>
 
+    <br>
 
 For complete code examples, see the following updated tutorial:
 
