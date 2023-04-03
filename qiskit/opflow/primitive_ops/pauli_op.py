@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""PauliOp Class """
+"""PauliOp Class"""
 
 from math import pi
 from typing import Dict, List, Optional, Set, Union, cast
@@ -84,7 +84,7 @@ class PauliOp(PrimitiveOp):
         return SummedOp([self, other])
 
     def adjoint(self) -> "PauliOp":
-        return PauliOp(self.primitive, coeff=self.coeff.conjugate())
+        return PauliOp(self.primitive.adjoint(), coeff=self.coeff.conjugate())
 
     def equals(self, other: OperatorBase) -> bool:
         if isinstance(other, PauliOp) and self.coeff == other.coeff:

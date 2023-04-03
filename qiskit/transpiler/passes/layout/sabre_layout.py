@@ -166,7 +166,11 @@ class SabreLayout(TransformationPass):
         """
         if len(dag.qubits) > self.coupling_map.size():
             raise TranspilerError("More virtual qubits exist than physical.")
-
+        if not self.coupling_map.is_connected():
+            raise TranspilerError(
+                "Coupling Map is disjoint, this pass can't be used with a disconnected coupling "
+                "map."
+            )
         # Choose a random initial_layout.
         if self.routing_pass is not None:
             if self.seed is None:

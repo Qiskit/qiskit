@@ -41,7 +41,7 @@ from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.backend_utils import is_aer_provider
 from qiskit.utils.validation import validate_min
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 from ..aux_ops_evaluator import eval_observables
 from ..exceptions import AlgorithmError
@@ -127,12 +127,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     """
 
-    @deprecate_function(
-        "The VQE class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.VQE class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg="Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.VQE``.",
+        since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,
@@ -666,12 +664,12 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     """
 
-    @deprecate_function(
-        "The VQEResult class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.VQEResult class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.VQEResult``."
+        ),
+        since="0.23.0",
+        pending=True,
     )
     def __init__(self) -> None:
         with warnings.catch_warnings():
