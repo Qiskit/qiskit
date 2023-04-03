@@ -1210,6 +1210,7 @@ Layout and Topology
 
    Layout
    CouplingMap
+   TranspileLayout
 
 Scheduling
 ----------
@@ -1256,7 +1257,7 @@ from .exceptions import TranspilerError, TranspilerAccessError
 from .fencedobjs import FencedDAGCircuit, FencedPropertySet
 from .basepasses import AnalysisPass, TransformationPass
 from .coupling import CouplingMap
-from .layout import Layout
+from .layout import Layout, TranspileLayout
 from .instruction_durations import InstructionDurations
 from .target import Target
 from .target import InstructionProperties

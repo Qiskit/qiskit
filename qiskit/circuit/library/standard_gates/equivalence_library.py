@@ -12,9 +12,17 @@
 
 """Standard gates."""
 
-
+from __future__ import annotations
 from qiskit.qasm import pi
-from qiskit.circuit import EquivalenceLibrary, Parameter, QuantumCircuit, QuantumRegister
+from qiskit.circuit import (
+    EquivalenceLibrary,
+    Parameter,
+    QuantumCircuit,
+    QuantumRegister,
+    Gate,
+    Qubit,
+    Clbit,
+)
 
 from qiskit.quantum_info.synthesis.ion_decompose import cnot_rxx_decompose
 
@@ -1488,7 +1496,7 @@ q = QuantumRegister(2, "q")
 xxplusyy = QuantumCircuit(q)
 beta = Parameter("beta")
 theta = Parameter("theta")
-rules = [
+rules: list[tuple[Gate, list[Qubit], list[Clbit]]] = [
     (RZGate(beta), [q[0]], []),
     (RZGate(-pi / 2), [q[1]], []),
     (SXGate(), [q[1]], []),
@@ -1523,7 +1531,7 @@ q = QuantumRegister(2, "q")
 xxminusyy = QuantumCircuit(q)
 beta = Parameter("beta")
 theta = Parameter("theta")
-rules = [
+rules: list[tuple[Gate, list[Qubit], list[Clbit]]] = [
     (RZGate(-beta), [q[1]], []),
     (RZGate(-pi / 2), [q[0]], []),
     (SXGate(), [q[0]], []),
