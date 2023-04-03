@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    Fix the top-right corner of low-compression circuit text-visualisations
+    Fixed the top-right corner of gates when using ``vertical_compression="low"`` in text visualizations of circuits.
