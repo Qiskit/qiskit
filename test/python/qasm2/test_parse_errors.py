@@ -424,6 +424,7 @@ class TestTyping(QiskitTestCase):
             qiskit.qasm2.loads(program)
 
 
+@ddt.ddt
 class TestGateDefinition(QiskitTestCase):
     def test_no_zero_qubit(self):
         program = "gate zero {}"
@@ -465,6 +466,14 @@ class TestGateDefinition(QiskitTestCase):
     def test_qubit_cannot_shadow_parameter(self):
         program = "gate my_gate(a) a {}"
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
+            qiskit.qasm2.loads(program)
+
+    @ddt.data("measure q -> c;", "reset q", "if (c == 0) U(0, 0, 0) q;", "gate my_x q {}")
+    def test_definition_cannot_contain_nonunitary(self, statement):
+        program = f"OPENQASM 2.0; creg c[5]; gate my_gate q {{ {statement} }}"
+        with self.assertRaisesRegex(
+            qiskit.qasm2.QASM2ParseError, "only gate applications are valid"
+        ):
             qiskit.qasm2.loads(program)
 
 
