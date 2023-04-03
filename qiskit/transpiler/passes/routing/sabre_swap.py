@@ -21,6 +21,7 @@ from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.target import Target
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.tools.parallel import CPU_COUNT
 
@@ -72,13 +73,11 @@ class SabreSwap(TransformationPass):
     `arXiv:1809.02573 <https://arxiv.org/pdf/1809.02573.pdf>`_
     """
 
-    def __init__(
-        self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None, target=None
-    ):
+    def __init__(self, coupling_map, heuristic="basic", seed=None, fake_run=False, trials=None):
         r"""SabreSwap initializer.
 
         Args:
-            coupling_map (CouplingMap): CouplingMap of the target backend.
+            coupling_map (Union[CouplingMap, Target]): CouplingMap of the target backend.
             heuristic (str): The type of heuristic to use when deciding best
                 swap strategy ('basic' or 'lookahead' or 'decay').
             seed (int): random seed used to tie-break among candidate swaps.
@@ -90,9 +89,6 @@ class SabreSwap(TransformationPass):
                 CPUs on the local system. For reproducible results it is recommended
                 that you set this explicitly, as the output will be deterministic for
                 a fixed number of trials.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and the other argument will be ignored.
 
         Raises:
             TranspilerError: If the specified heuristic is not valid.
@@ -144,10 +140,12 @@ class SabreSwap(TransformationPass):
         super().__init__()
 
         # Assume bidirectional couplings, fixing gate direction is easy later.
-        self.coupling_map = coupling_map
-        self.target = target
-        if self.target is not None:
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
             self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.coupling_map = coupling_map
+            self.target = None
         if self.coupling_map is not None and not self.coupling_map.is_symmetric:
             # A deepcopy is needed here to avoid modifications updating
             # shared references in passes which require directional
@@ -155,7 +153,7 @@ class SabreSwap(TransformationPass):
             self.coupling_map = deepcopy(coupling_map)
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
-        if coupling_map is not None:
+        if self.coupling_map is not None:
             self._neighbor_table = NeighborTable(
                 rustworkx.adjacency_matrix(self.coupling_map.graph)
             )

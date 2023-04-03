@@ -15,6 +15,7 @@
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class TrivialLayout(AnalysisPass):
@@ -29,21 +30,22 @@ class TrivialLayout(AnalysisPass):
     Does not assume any ancilla.
     """
 
-    def __init__(self, coupling_map=None, target=None):
+    def __init__(self, coupling_map):
         """TrivialLayout initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and ``coupling_map`` will be ignored.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
 
         Raises:
             TranspilerError: if invalid options
         """
         super().__init__()
-        self.coupling_map = coupling_map
-        self.target = target
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
 
     def run(self, dag):
         """Run the TrivialLayout pass on `dag`.

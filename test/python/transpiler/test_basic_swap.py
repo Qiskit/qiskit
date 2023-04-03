@@ -135,7 +135,7 @@ class TestBasicSwap(QiskitTestCase):
         expected.swap(qr[1], qr[0])
         expected.cx(qr[0], qr[2])
 
-        pass_ = BasicSwap(target=target)
+        pass_ = BasicSwap(target)
         after = pass_.run(dag)
 
         self.assertEqual(circuit_to_dag(expected), after)

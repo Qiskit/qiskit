@@ -19,7 +19,7 @@ import rustworkx as rx
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.transpiler.target import target_to_backend_properties
+from qiskit.transpiler.target import target_to_backend_properties, Target
 
 
 class NoiseAdaptiveLayout(AnalysisPass):
@@ -55,11 +55,11 @@ class NoiseAdaptiveLayout(AnalysisPass):
          by being set in `property_set`.
     """
 
-    def __init__(self, backend_prop=None, target=None):
+    def __init__(self, backend_prop):
         """NoiseAdaptiveLayout initializer.
 
         Args:
-            backend_prop (BackendProperties): backend properties object
+            backend_prop (Union[BackendProperties, Target]): backend properties object
             target (Target): A target representing the target backend, if both
                 ``backend_prop`` and this are specified then this argument will take
                 precedence and ``coupling_map`` will be ignored.
@@ -68,7 +68,12 @@ class NoiseAdaptiveLayout(AnalysisPass):
             TranspilerError: if invalid options
         """
         super().__init__()
-        self.backend_prop = backend_prop
+        if isinstance(backend_prop, Target):
+            self.target = backend_prop
+            self.backend_prop = target_to_backend_properties(self.target)
+        else:
+            self.target = None
+            self.backend_prop = backend_prop
         self.swap_graph = rx.PyDiGraph()
         self.cx_reliability = {}
         self.readout_reliability = {}
@@ -81,9 +86,6 @@ class NoiseAdaptiveLayout(AnalysisPass):
         self.qarg_to_id = {}
         self.pending_program_edges = []
         self.prog2hw = {}
-        self.target = target
-        if self.target is not None:
-            self.backend_prop = target_to_backend_properties(self.target)
 
     def _initialize_backend_prop(self):
         """Extract readout and CNOT errors and compute swap costs."""

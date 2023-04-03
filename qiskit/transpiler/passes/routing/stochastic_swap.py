@@ -24,6 +24,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.target import Target
 from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp, Instruction
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 from qiskit._accelerate import nlayout
@@ -48,9 +49,7 @@ class StochasticSwap(TransformationPass):
            the circuit.
     """
 
-    def __init__(
-        self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None, target=None
-    ):
+    def __init__(self, coupling_map, trials=20, seed=None, fake_run=False, initial_layout=None):
         """StochasticSwap initializer.
 
         The coupling map is a connected graph
@@ -58,19 +57,21 @@ class StochasticSwap(TransformationPass):
         If these are not satisfied, the behavior is undefined.
 
         Args:
-            coupling_map (CouplingMap): Directed graph representing a coupling
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling
                 map.
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
             initial_layout (Layout): starting layout at beginning of pass.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and ``coupling_map`` will be ignored.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.trials = trials
         self.seed = seed
         self.rng = None
@@ -79,9 +80,6 @@ class StochasticSwap(TransformationPass):
         self.initial_layout = initial_layout
         self._qubit_to_int = None
         self._int_to_qubit = None
-        self.target = target
-        if self.target is not None:
-            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """Run the StochasticSwap pass on `dag`.

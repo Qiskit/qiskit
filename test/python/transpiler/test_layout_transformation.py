@@ -73,9 +73,7 @@ class TestLayoutTransformation(QiskitTestCase):
         target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None, (2, 3): None})
         from_layout = Layout({v[0]: 0, v[1]: 1, v[2]: 2, v[3]: 3})
         to_layout = Layout({v[0]: 3, v[1]: 0, v[2]: 1, v[3]: 2})
-        ltpass = LayoutTransformation(
-            target=target, from_layout=from_layout, to_layout=to_layout, seed=42
-        )
+        ltpass = LayoutTransformation(target, from_layout=from_layout, to_layout=to_layout, seed=42)
         qc = QuantumCircuit(4)  # input (empty) physical circuit
         dag = circuit_to_dag(qc)
         output_dag = ltpass.run(dag)

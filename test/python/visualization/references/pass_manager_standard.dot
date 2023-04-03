@@ -13,81 +13,77 @@ fontname=helvetica;
 label="[1] condition";
 labeljust=l;
 4 [color=red, fontname=helvetica, label=TrivialLayout, shape=rectangle];
-5 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=dashed];
+5 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
 5 -> 4;
-6 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
-6 -> 4;
 1 -> 4;
 }
 
-subgraph cluster_7 {
+subgraph cluster_6 {
 fontname=helvetica;
 label="[2] ";
 labeljust=l;
-8 [color=red, fontname=helvetica, label=FullAncillaAllocation, shape=rectangle];
-9 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=dashed];
-9 -> 8;
-10 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
-10 -> 8;
-4 -> 8;
+7 [color=red, fontname=helvetica, label=FullAncillaAllocation, shape=rectangle];
+8 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+8 -> 7;
+4 -> 7;
+}
+
+subgraph cluster_9 {
+fontname=helvetica;
+label="[3] ";
+labeljust=l;
+10 [color=blue, fontname=helvetica, label=EnlargeWithAncilla, shape=rectangle];
+7 -> 10;
 }
 
 subgraph cluster_11 {
 fontname=helvetica;
-label="[3] ";
-labeljust=l;
-12 [color=blue, fontname=helvetica, label=EnlargeWithAncilla, shape=rectangle];
-8 -> 12;
-}
-
-subgraph cluster_13 {
-fontname=helvetica;
 label="[4] ";
 labeljust=l;
-14 [color=blue, fontname=helvetica, label=Unroller, shape=rectangle];
-15 [color=black, fontname=helvetica, fontsize=10, label=basis, shape=ellipse, style=dashed];
-15 -> 14;
-16 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
-16 -> 14;
-12 -> 14;
+12 [color=blue, fontname=helvetica, label=Unroller, shape=rectangle];
+13 [color=black, fontname=helvetica, fontsize=10, label=basis, shape=ellipse, style=dashed];
+13 -> 12;
+14 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
+14 -> 12;
+10 -> 12;
 }
 
-subgraph cluster_17 {
+subgraph cluster_15 {
 fontname=helvetica;
 label="[5] ";
 labeljust=l;
-18 [color=red, fontname=helvetica, label=CheckMap, shape=rectangle];
-19 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=dashed];
-19 -> 18;
-20 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
-20 -> 18;
-14 -> 18;
+16 [color=red, fontname=helvetica, label=CheckMap, shape=rectangle];
+17 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=dashed];
+17 -> 16;
+18 [color=black, fontname=helvetica, fontsize=10, label=target, shape=ellipse, style=dashed];
+18 -> 16;
+12 -> 16;
+}
+
+subgraph cluster_19 {
+fontname=helvetica;
+label="[6] do_while";
+labeljust=l;
+20 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
+16 -> 20;
 }
 
 subgraph cluster_21 {
 fontname=helvetica;
-label="[6] do_while";
-labeljust=l;
-22 [color=blue, fontname=helvetica, label=BarrierBeforeFinalMeasurements, shape=rectangle];
-18 -> 22;
-}
-
-subgraph cluster_23 {
-fontname=helvetica;
 label="[7] ";
 labeljust=l;
-24 [color=blue, fontname=helvetica, label=CXDirection, shape=rectangle];
-25 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
-25 -> 24;
-22 -> 24;
+22 [color=blue, fontname=helvetica, label=CXDirection, shape=rectangle];
+23 [color=black, fontname=helvetica, fontsize=10, label=coupling_map, shape=ellipse, style=solid];
+23 -> 22;
+20 -> 22;
 }
 
-subgraph cluster_26 {
+subgraph cluster_24 {
 fontname=helvetica;
 label="[8] ";
 labeljust=l;
-27 [color=blue, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
-24 -> 27;
+25 [color=blue, fontname=helvetica, label=RemoveResetInZeroState, shape=rectangle];
+22 -> 25;
 }
 
 }

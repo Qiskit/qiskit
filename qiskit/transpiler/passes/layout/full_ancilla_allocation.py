@@ -15,6 +15,7 @@
 from qiskit.circuit import QuantumRegister
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class FullAncillaAllocation(AnalysisPass):
@@ -31,21 +32,20 @@ class FullAncillaAllocation(AnalysisPass):
         circuit.
     """
 
-    def __init__(self, coupling_map=None, target=None):
+    def __init__(self, coupling_map):
         """FullAncillaAllocation initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and ``coupling_map`` will be ignored.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
         """
         super().__init__()
-        self.coupling_map = coupling_map
-        self.ancilla_name = "ancilla"
-        self.target = target
-        if self.target is not None:
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
             self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
+        self.ancilla_name = "ancilla"
 
     def run(self, dag):
         """Run the FullAncillaAllocation pass on `dag`.

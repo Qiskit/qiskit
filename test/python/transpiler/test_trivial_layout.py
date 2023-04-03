@@ -60,7 +60,7 @@ class TestTrivialLayout(QiskitTestCase):
         dag = circuit_to_dag(circuit)
         target = Target()
         target.add_instruction(CXGate(), {tuple(edge): None for edge in self.cmap5})
-        pass_ = TrivialLayout(target=target)
+        pass_ = TrivialLayout(target)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 

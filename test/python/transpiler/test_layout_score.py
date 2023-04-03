@@ -122,7 +122,7 @@ class TestTrivialLayoutScore(QiskitTestCase):
         layout = Layout().generate_trivial_layout(qr)
 
         dag = circuit_to_dag(circuit)
-        pass_ = Layout2qDistance(target=target)
+        pass_ = Layout2qDistance(target)
         pass_.property_set["layout"] = layout
         pass_.run(dag)
 
@@ -145,7 +145,7 @@ class TestTrivialLayoutScore(QiskitTestCase):
         layout = Layout().generate_trivial_layout(qr)
 
         dag = circuit_to_dag(circuit)
-        pass_ = Layout2qDistance(target=target)
+        pass_ = Layout2qDistance(target)
         pass_.property_set["layout"] = layout
         pass_.run(dag)
 

@@ -34,6 +34,7 @@ from qiskit._accelerate.sabre_swap import (
     NeighborTable,
 )
 from qiskit.transpiler.passes.routing.sabre_swap import process_swaps, apply_gate
+from qiskit.transpiler.target import Target
 from qiskit.tools.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
@@ -80,14 +81,13 @@ class SabreLayout(TransformationPass):
         seed=None,
         max_iterations=3,
         swap_trials=None,
-        target=None,
         layout_trials=None,
         skip_routing=False,
     ):
         """SabreLayout initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
             routing_pass (BasePass): the routing pass to use while iterating.
                 If specified this pass operates as an :class:`~.AnalysisPass` and
                 will only populate the ``layout`` field in the property set and
@@ -107,9 +107,6 @@ class SabreLayout(TransformationPass):
                 on the number of trials run. This option is mutually exclusive
                 with the ``routing_pass`` argument and an error will be raised
                 if both are used.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and ``coupling_map`` will be ignored.
             layout_trials (int): The number of random seed trials to run
                 layout with. When > 1 the trial that resuls in the output with
                 the fewest swap gates will be selected. If this is not specified
@@ -128,7 +125,12 @@ class SabreLayout(TransformationPass):
             both ``routing_pass`` and ``layout_trials`` are specified
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self._neighbor_table = None
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
             raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
@@ -136,9 +138,6 @@ class SabreLayout(TransformationPass):
         self.seed = seed
         self.max_iterations = max_iterations
         self.trials = swap_trials
-        self.target = target
-        if self.target is not None:
-            self.coupling_map = self.target.build_coupling_map()
         if swap_trials is None:
             self.swap_trials = CPU_COUNT
         else:

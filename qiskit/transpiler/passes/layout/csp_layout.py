@@ -20,6 +20,7 @@ import random
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.utils import optionals as _optionals
+from qiskit.transpiler.target import Target
 
 
 @_optionals.HAS_CONSTRAINT.require_in_instance
@@ -28,12 +29,11 @@ class CSPLayout(AnalysisPass):
 
     def __init__(
         self,
-        coupling_map=None,
+        coupling_map,
         strict_direction=False,
         seed=None,
         call_limit=1000,
         time_limit=10,
-        target=None,
     ):
         """If possible, chooses a Layout as a CSP, using backtracking.
 
@@ -47,7 +47,7 @@ class CSPLayout(AnalysisPass):
         * time limit reached: If no perfect layout was found and the time limit was reached.
 
         Args:
-            coupling_map (Coupling): Directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling map.
             strict_direction (bool): If True, considers the direction of the coupling map.
                                      Default is False.
             seed (int): Sets the seed of the PRNG.
@@ -56,19 +56,19 @@ class CSPLayout(AnalysisPass):
                 None means no call limit. Default: 1000.
             time_limit (int): Amount of seconds that the pass will try to find a solution.
                 None means no time limit. Default: 10 seconds.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and ``coupling_map`` will be ignored.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
+
         self.strict_direction = strict_direction
         self.call_limit = call_limit
         self.time_limit = time_limit
         self.seed = seed
-        self.target = target
-        if self.target is not None:
-            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """run the layout method"""

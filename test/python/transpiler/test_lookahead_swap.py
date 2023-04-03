@@ -149,7 +149,7 @@ class TestLookaheadSwap(QiskitTestCase):
         target = Target()
         target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None})
 
-        mapped_dag = LookaheadSwap(target=target).run(dag_circuit)
+        mapped_dag = LookaheadSwap(target).run(dag_circuit)
 
         mapped_measure_qargs = {op.qargs[0] for op in mapped_dag.named_nodes("measure")}
 

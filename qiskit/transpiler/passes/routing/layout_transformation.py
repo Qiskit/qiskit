@@ -19,6 +19,7 @@ from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
+from qiskit.transpiler.target import Target
 
 
 class LayoutTransformation(TransformationPass):
@@ -30,17 +31,16 @@ class LayoutTransformation(TransformationPass):
 
     def __init__(
         self,
-        coupling_map: CouplingMap = None,
-        from_layout: Union[Layout, str] = None,
-        to_layout: Union[Layout, str] = None,
+        coupling_map: Union[CouplingMap, Target, None],
+        from_layout: Union[Layout, str],
+        to_layout: Union[Layout, str],
         seed: Union[int, np.random.default_rng] = None,
         trials=4,
-        target=None,
     ):
         """LayoutTransformation initializer.
 
         Args:
-            coupling_map (CouplingMap):
+            coupling_map:
                 Directed graph representing a coupling map.
 
             from_layout (Union[Layout, str]):
@@ -56,25 +56,16 @@ class LayoutTransformation(TransformationPass):
 
             trials (int):
                 How many randomized trials to perform, taking the best circuit as output.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and the other argument will be ignored.
-
-        Raises:
-            TypeError: If requried arguments ``from_layout`` or ``to_layout`` are not
-                specified.
         """
         super().__init__()
-        if from_layout is None:
-            raise TypeError("Required from_layout argument not provided.")
-        if to_layout is None:
-            raise TypeError("Required to_layout argument not provided.")
         self.from_layout = from_layout
         self.to_layout = to_layout
-        self.coupling_map = coupling_map
-        self.target = target
-        if self.target is not None:
-            self.coupling_map = target.build_coupling_map()
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         if self.coupling_map is None:
             self.coupling_map = CouplingMap.from_full(len(to_layout))
         graph = self.coupling_map.graph.to_undirected()

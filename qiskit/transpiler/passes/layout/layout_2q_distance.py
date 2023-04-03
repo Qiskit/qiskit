@@ -19,6 +19,7 @@ Therefore, 0 is a perfect layout selection.
 """
 
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.target import Target
 
 
 class Layout2qDistance(AnalysisPass):
@@ -30,23 +31,21 @@ class Layout2qDistance(AnalysisPass):
     No CX direction is considered.
     """
 
-    def __init__(self, coupling_map=None, property_name="layout_score", target=None):
+    def __init__(self, coupling_map, property_name="layout_score"):
         """Layout2qDistance initializer.
 
         Args:
-            coupling_map (CouplingMap): Directed graph represented a coupling map.
+            coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
             property_name (str): The property name to save the score. Default: layout_score
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and ``coupling_map`` will be ignored.
-
         """
         super().__init__()
-        self.coupling_map = coupling_map
-        self.property_name = property_name
-        self.target = target
-        if self.target is not None:
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
             self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
+        self.property_name = property_name
 
     def run(self, dag):
         """

@@ -22,6 +22,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.transpiler.target import Target
 
 logger = logging.getLogger(__name__)
 
@@ -81,13 +82,11 @@ class LookaheadSwap(TransformationPass):
     https://medium.com/qiskit/improving-a-quantum-compiler-48410d7a7084
     """
 
-    def __init__(
-        self, coupling_map=None, search_depth=4, search_width=4, fake_run=False, target=None
-    ):
+    def __init__(self, coupling_map, search_depth=4, search_width=4, fake_run=False):
         """LookaheadSwap initializer.
 
         Args:
-            coupling_map (CouplingMap): CouplingMap of the target backend.
+            coupling_map (Union[CouplingMap, Target]): CouplingMap of the target backend.
             search_depth (int): lookahead tree depth when ranking best SWAP options.
             search_width (int): lookahead tree width when ranking best SWAP options.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
@@ -98,13 +97,15 @@ class LookaheadSwap(TransformationPass):
         """
 
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.search_depth = search_depth
         self.search_width = search_width
         self.fake_run = fake_run
-        self.target = target
-        if self.target is not None:
-            self.coupling_map = self.target.build_coupling_map()
 
     def run(self, dag):
         """Run the LookaheadSwap pass on `dag`.

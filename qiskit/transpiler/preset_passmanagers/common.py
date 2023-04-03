@@ -211,9 +211,12 @@ def generate_embed_passmanager(coupling_map=None, target=None):
         PassManager: The embedding passmanager that assumes the layout property
             set has been set in earlier stages
     """
-    return PassManager(
-        [FullAncillaAllocation(coupling_map, target=target), EnlargeWithAncilla(), ApplyLayout()]
-    )
+    if coupling_map is None:
+        cmap = target
+    else:
+        cmap = coupling_map
+
+    return PassManager([FullAncillaAllocation(cmap), EnlargeWithAncilla(), ApplyLayout()])
 
 
 def _layout_not_perfect(property_set):

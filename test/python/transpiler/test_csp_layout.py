@@ -89,7 +89,7 @@ class TestCSPLayout(QiskitTestCase):
         circuit.cx(qr[1], qr[2])  # qr1 -> qr2
 
         dag = circuit_to_dag(circuit)
-        pass_ = CSPLayout(target=target, strict_direction=False, seed=self.seed)
+        pass_ = CSPLayout(target, strict_direction=False, seed=self.seed)
         pass_.run(dag)
         layout = pass_.property_set["layout"]
 
