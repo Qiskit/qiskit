@@ -59,8 +59,7 @@ class TrivialLayout(AnalysisPass):
         if self.target is not None:
             if dag.num_qubits() > self.target.num_qubits:
                 raise TranspilerError("Number of qubits greater than device.")
-        else:
-            if dag.num_qubits() > self.coupling_map.size():
+        elif dag.num_qubits() > self.coupling_map.size():
                 raise TranspilerError("Number of qubits greater than device.")
         if not self.coupling_map.is_connected():
             raise TranspilerError(

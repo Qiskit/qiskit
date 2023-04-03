@@ -7,7 +7,7 @@ features:
     the constraints of a target backend. If the ``target`` keyword argument is
     specified it will be used as the source of truth for any hardware
     constraints used in the operation of the transpiler pass. It will
-    superscede any other arguments for specifying hardware constraints,
+    supersede any other arguments for specifying hardware constraints,
     typically those arguments which take a :class:`~.CouplingMap` or a
     :class:`~.BackendProperties` object.
 
@@ -31,4 +31,4 @@ features:
     has a new keyword argument ``target`` which is used to specify a :class:`~.Target`
     object to model the constraints of the target backend being compiled for
     when generating a new :class:~.PassManager`. If specified this new argument will
-    superscede the other argument ``coupling_map``.
+    supersede the other argument ``coupling_map``.

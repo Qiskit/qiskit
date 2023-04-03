@@ -60,9 +60,6 @@ class NoiseAdaptiveLayout(AnalysisPass):
 
         Args:
             backend_prop (Union[BackendProperties, Target]): backend properties object
-            target (Target): A target representing the target backend, if both
-                ``backend_prop`` and this are specified then this argument will take
-                precedence and ``coupling_map`` will be ignored.
 
         Raises:
             TranspilerError: if invalid options
