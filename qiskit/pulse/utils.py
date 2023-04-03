@@ -41,7 +41,6 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
     return qubit_mapping
 
 
-@functools.lru_cache(maxsize=None)
 def format_parameter_value(
     operand: ParameterExpression,
     decimal: int = 10,
