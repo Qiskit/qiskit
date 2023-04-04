@@ -57,7 +57,7 @@ Then you need to create the :class:`~qiskit.circuit.QuantumCircuit` for which yo
 Initialize the ``Estimator``
 ============================
 
-Then, you need to create an :class:`~qiskit.primitives.Estimator` object.
+Then, you need to instantiate an :class:`~qiskit.primitives.Estimator`.
 
 .. testcode::
 
