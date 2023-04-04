@@ -121,20 +121,20 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     )
 
-    if coupling_map is None:
-        coupling_map_layout = target
-    else:
+    if target is None:
         coupling_map_layout = coupling_map
+    else:
+        coupling_map_layout = target
 
     if layout_method == "trivial":
         _choose_layout_1 = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        if backend_properties is None:
-            _choose_layout_1 = NoiseAdaptiveLayout(target)
-        else:
+        if target is None:
             _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
+        else:
+            _choose_layout_1 = NoiseAdaptiveLayout(target)
     elif layout_method == "sabre":
         _choose_layout_1 = SabreLayout(
             coupling_map_layout,

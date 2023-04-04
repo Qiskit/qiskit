@@ -87,10 +87,10 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     elif layout_method == "dense":
         _choose_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        if backend_properties is None:
-            _choose_layout = NoiseAdaptiveLayout(target)
-        else:
+        if target is None:
             _choose_layout = NoiseAdaptiveLayout(backend_properties)
+        else:
+            _choose_layout = NoiseAdaptiveLayout(target)
     elif layout_method == "sabre":
         skip_routing = pass_manager_config.routing_method is not None and routing_method != "sabre"
         _choose_layout = SabreLayout(

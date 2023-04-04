@@ -32,10 +32,11 @@ class BasicSwapPassManager(PassManagerStagePlugin):
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
         backend_properties = pass_manager_config.backend_properties
-        if coupling_map is None:
-            routing_pass = BasicSwap(target)
-        else:
+        if target is None:
             routing_pass = BasicSwap(coupling_map)
+        else:
+            routing_pass = BasicSwap(target)
+
         vf2_call_limit = common.get_vf2_call_limit(
             optimization_level,
             pass_manager_config.layout_method,
@@ -91,9 +92,9 @@ class StochasticSwapPassManager(PassManagerStagePlugin):
         seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
-        coupling_map_routing = coupling_map
+        coupling_map_routing = target
         if coupling_map_routing is None:
-            coupling_map_routing = target
+            coupling_map_routing = coupling_map
         backend_properties = pass_manager_config.backend_properties
         vf2_call_limit = common.get_vf2_call_limit(
             optimization_level,
@@ -145,9 +146,9 @@ class LookaheadSwapPassManager(PassManagerStagePlugin):
         seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
-        coupling_map_routing = coupling_map
+        coupling_map_routing = target
         if coupling_map_routing is None:
-            coupling_map_routing = target
+            coupling_map_routing = coupling_map
         backend_properties = pass_manager_config.backend_properties
         vf2_call_limit = common.get_vf2_call_limit(
             optimization_level,
@@ -208,9 +209,9 @@ class SabreSwapPassManager(PassManagerStagePlugin):
         seed_transpiler = pass_manager_config.seed_transpiler
         target = pass_manager_config.target
         coupling_map = pass_manager_config.coupling_map
-        coupling_map_routing = coupling_map
+        coupling_map_routing = target
         if coupling_map_routing is None:
-            coupling_map_routing = target
+            coupling_map_routing = coupling_map
         backend_properties = pass_manager_config.backend_properties
         vf2_call_limit = common.get_vf2_call_limit(
             optimization_level,

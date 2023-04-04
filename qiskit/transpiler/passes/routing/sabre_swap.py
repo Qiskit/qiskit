@@ -150,7 +150,7 @@ class SabreSwap(TransformationPass):
             # A deepcopy is needed here to avoid modifications updating
             # shared references in passes which require directional
             # constraints
-            self.coupling_map = deepcopy(coupling_map)
+            self.coupling_map = deepcopy(self.coupling_map)
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
         if self.coupling_map is not None:
