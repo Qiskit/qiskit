@@ -157,7 +157,7 @@ For reproducibility purposes, a ``seed`` will also be set in the following examp
 
 There are two main ways of setting options in the :class:`~qiskit.primitives.Estimator`:
 
-* Setting keyword arguments in the :meth:`~qiskit.primitives.Estimator.run` method.
+* Set keyword arguments in the :meth:`~qiskit.primitives.Estimator.run` method.
 * Modify :class:`~qiskit.primitives.Estimator` options.
 
 Set keyword arguments for :meth:`~qiskit.primitives.Estimator.run`
