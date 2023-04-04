@@ -93,7 +93,7 @@ Even though there is only one circuit in this example, :attr:`~qiskit.primitives
 Probability distribution with binary outputs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you prefer to see the outputs as binary strings instead of decimal, you can use the
+If you prefer to see the output keys as binary strings instead of decimal numbers, you can use the
 :meth:`~qiskit.result.QuasiDistribution.binary_probabilities` method.
 
 .. testcode::
