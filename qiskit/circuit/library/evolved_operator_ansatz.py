@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 from collections.abc import Sequence
-import warnings
 
 import numpy as np
 
@@ -229,15 +228,6 @@ def _validate_operators(operators):
         num_qubits = operators[0].num_qubits
         if any(operators[i].num_qubits != num_qubits for i in range(1, len(operators))):
             raise ValueError("All operators must act on the same number of qubits.")
-
-    if any(isinstance(op, OperatorBase) for op in operators):
-        warnings.warn(
-            "Using qiskit.opflow operators in the EvolvedOperatorAnsatz is pending deprecation "
-            "and will be deprecated no sooner than 3 months after the Qiskit Terra 0.24 release. "
-            "Instead, pass operators from the qiskit.quantum_info module.",
-            stacklevel=2,
-            category=PendingDeprecationWarning,
-        )
 
     return operators
 
