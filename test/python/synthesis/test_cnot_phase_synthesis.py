@@ -21,6 +21,10 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.extensions.unitary import UnitaryGate
 from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 from qiskit.synthesis.linear_phase import synth_cnot_phase_aam
+from qiskit.transpiler.synthesis.graysynth import (
+    cnot_synth,
+    graysynth,
+)
 from qiskit.test import QiskitTestCase
 
 
@@ -28,7 +32,8 @@ from qiskit.test import QiskitTestCase
 class TestGraySynth(QiskitTestCase):
     """Test the Gray-Synth algorithm."""
 
-    def test_gray_synth(self):
+    @ddt.data(synth_cnot_phase_aam, graysynth)
+    def test_gray_synth(self, synth_func):
         """Test synthesis of a small parity network via gray_synth.
 
         The algorithm should take the following matrix as an input:
@@ -70,7 +75,7 @@ class TestGraySynth(QiskitTestCase):
             [0, 1, 0, 0, 1, 0],
         ]
         angles = ["s", "t", "z", "s", "t", "t"]
-        c_gray = synth_cnot_phase_aam(cnots, angles)
+        c_gray = synth_func(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
@@ -99,7 +104,8 @@ class TestGraySynth(QiskitTestCase):
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_gray, unitary_compare)
 
-    def test_paper_example(self):
+    @ddt.data(synth_cnot_phase_aam, graysynth)
+    def test_paper_example(self, synth_func):
         """Test synthesis of a diagonal operator from the paper.
 
         The diagonal operator in Example 4.2
@@ -127,7 +133,7 @@ class TestGraySynth(QiskitTestCase):
         """
         cnots = [[0, 1, 1, 1, 1, 1], [1, 0, 0, 1, 1, 1], [1, 0, 0, 1, 0, 0], [0, 0, 1, 0, 1, 0]]
         angles = ["t"] * 6
-        c_gray = synth_cnot_phase_aam(cnots, angles)
+        c_gray = synth_func(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
@@ -153,7 +159,8 @@ class TestGraySynth(QiskitTestCase):
         # Check if the two circuits are equivalent
         self.assertEqual(unitary_gray, unitary_compare)
 
-    def test_ccz(self):
+    @ddt.data(synth_cnot_phase_aam, graysynth)
+    def test_ccz(self, synth_func):
         """Test synthesis of the doubly-controlled Z gate.
 
         The diagonal operator in Example 4.3
@@ -179,7 +186,7 @@ class TestGraySynth(QiskitTestCase):
         """
         cnots = [[1, 0, 0, 1, 1, 0, 1], [0, 1, 0, 1, 0, 1, 1], [0, 0, 1, 0, 1, 1, 1]]
         angles = ["t", "t", "t", "tdg", "tdg", "tdg", "t"]
-        c_gray = synth_cnot_phase_aam(cnots, angles)
+        c_gray = synth_func(cnots, angles)
         unitary_gray = UnitaryGate(Operator(c_gray))
 
         # Create the circuit displayed above:
@@ -209,7 +216,8 @@ class TestPatelMarkovHayes(QiskitTestCase):
     """Test the Patel-Markov-Hayes algorithm for synthesizing linear
     CNOT-only circuits."""
 
-    def test_patel_markov_hayes(self):
+    @ddt.data(synth_cnot_count_full_pmh, cnot_synth)
+    def test_patel_markov_hayes(self, synth_func):
         """Test synthesis of a small linear circuit
         (example from paper, Figure 3).
 
@@ -244,7 +252,7 @@ class TestPatelMarkovHayes(QiskitTestCase):
             [1, 1, 0, 1, 1, 1],
             [0, 0, 1, 1, 1, 0],
         ]
-        c_patel = synth_cnot_count_full_pmh(state)
+        c_patel = synth_func(state)
         unitary_patel = UnitaryGate(Operator(c_patel))
 
         # Create the circuit displayed above:
