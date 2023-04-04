@@ -22,14 +22,13 @@ from __future__ import annotations
 
 import warnings
 
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional, Dict, List, Any
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
 import io
 import logging
 import inspect
-from typing import Optional, Dict, List, Any, Union
 
 import rustworkx as rx
 
