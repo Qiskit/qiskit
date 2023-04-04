@@ -160,10 +160,10 @@ Change run options
 
 It is also possible that you may want to change any other option.
 
-For example, in the previous sections the :class:`~qiskit.primitives.Sampler`
-is :class:`~qiskit.quantum_info.Statevector`-based but it can be changed
-to shot-based by setting a number of ``shots``. For reproducibility purposes, in this
-guide a ``seed`` will also be set.
+By default, the reference :class:`~qiskit.primitives.Sampler` class performs an exact statevector
+calculation based on the :class:`~qiskit.quantum_info.Statevector` class. However, this can be 
+modified to include shot noise if the number of ``shots`` is set. 
+For reproducibility purposes, a ``seed`` will also be set in the following examples.
 
 There are two main ways of doing this:
 
