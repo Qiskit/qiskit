@@ -73,7 +73,7 @@ Get the probability distribution
 From these results you can extract the quasi-probability distributions with the attribute :attr:`~qiskit.primitives.SamplerResult.quasi_dists`.
 
 Even though there is only one circuit in this example, :attr:`~qiskit.primitives.SamplerResult.quasi_dists` returns a list of :class:`~qiskit.result.QuasiDistribution`\ s.
-Generally ``result.quasi_dists[i]`` would be the quasi-probability distribution of the ``i``-th circuit.
+``result.quasi_dists[i]`` is the quasi-probability distribution of the ``i``-th circuit.
 
 .. note::
 
