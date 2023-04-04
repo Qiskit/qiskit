@@ -158,7 +158,7 @@ that corresponds to the ``i``-th circuit.
 Change run options
 ==================
 
-It is also possible that you may want to change any other option.
+Your workflow might require tuning primitive run options, such as shots.
 
 By default, the reference :class:`~qiskit.primitives.Sampler` class performs an exact statevector
 calculation based on the :class:`~qiskit.quantum_info.Statevector` class. However, this can be 
