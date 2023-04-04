@@ -53,9 +53,9 @@ Then, you need to create a :class:`~qiskit.primitives.Sampler` object.
 Run and get results
 ===================
 
-Now that you have defined ``sampler``, you can create a :class:`~.PrimitiveJob` (subclass of :class:`~qiskit.providers.JobV1`) with the
-:meth:`~qiskit.primitives.Sampler.run` method and, then, you can get the results (as a :class:`~qiskit.primitives.SamplerResult` object) with
-the results with the :meth:`~qiskit.providers.JobV1.result` method.
+Now that you have defined your ``sampler``, you can run it by calling the :meth:`~qiskit.primitives.Sampler.run` method, 
+which returns an instance of :class:`~.PrimitiveJob` (subclass of :class:`~qiskit.providers.JobV1`). You can get the results from the job (as a :class:`~qiskit.primitives.SamplerResult` object) 
+with the :meth:`~qiskit.providers.JobV1.result` method.
 
 .. testcode::
 
