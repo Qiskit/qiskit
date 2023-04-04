@@ -50,7 +50,7 @@ class EvolvedOperatorAnsatz(NLocal):
             reps: The number of times to repeat the evolved operators.
             evolution (EvolutionBase | EvolutionSynthesis | None):
                 A specification of which evolution synthesis to use for the
-                :class:`.PauliEvolutionGate`, if the operator from :mod:`qiskit.quantum_info`
+                :class:`.PauliEvolutionGate`, if the operator is from :mod:`qiskit.quantum_info`
                 or an opflow converter object if the operator is from :mod:`qiskit.opflow`.
                 Defaults to first order Trotterization.
             insert_barriers: Whether to insert barriers in between each evolution.
