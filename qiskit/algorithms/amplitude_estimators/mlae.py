@@ -13,8 +13,10 @@
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
 from __future__ import annotations
-from typing import Sequence, Callable, List, Tuple
 import warnings
+from collections.abc import Sequence
+from typing import Callable, List, Tuple
+
 import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2

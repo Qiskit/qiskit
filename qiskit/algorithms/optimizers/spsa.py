@@ -16,12 +16,13 @@ This implementation allows both, standard first-order as well as second-order SP
 """
 from __future__ import annotations
 
-from typing import Iterator, Callable, Any, SupportsFloat
+from collections import deque
+from collections.abc import Iterator
+from typing import Callable, Any, SupportsFloat
 import logging
 import warnings
 from time import time
 
-from collections import deque
 import scipy
 import numpy as np
 
