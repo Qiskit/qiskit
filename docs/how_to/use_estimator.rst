@@ -157,7 +157,7 @@ calculation based on the :class:`~qiskit.quantum_info.Statevector` class. Howeve
 modified to include shot noise if the number of ``shots`` is set. 
 For reproducibility purposes, a ``seed`` will also be set in the following examples.
 
-There are two main ways of doing this:
+There are two main ways of setting options in the :class:`~qiskit.primitives.Estimator`:
 
 * Setting keyword arguments in the :meth:`~qiskit.primitives.Estimator.run` method.
 * Modify :class:`~qiskit.primitives.Estimator` options.
