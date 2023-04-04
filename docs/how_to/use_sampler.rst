@@ -107,8 +107,8 @@ If you prefer to see the output keys as binary strings instead of decimal number
 Parameterized circuits with ``Sampler``
 =========================================
 
-The :class:`~qiskit.primitives.Sampler` primitive also has the option to include unbound parameterized circuits like the one below.
-You can also bind values to the parameters of the circuit and follow the steps
+The :class:`~qiskit.primitives.Sampler` primitive can be run with unbound parameterized circuits like the one below.
+You can also manually bind values to the parameters of the circuit and follow the steps
 of the previous example.
 
 .. testcode::
