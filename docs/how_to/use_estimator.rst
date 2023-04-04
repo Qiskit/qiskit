@@ -85,7 +85,7 @@ Get the expected value
 
 From these results you can extract the expected values with the attribute :attr:`~qiskit.primitives.EstimatorResult.values`.
 
-Generally, :attr:`~qiskit.primitives.EstimatorResult.values` returns a :class:`numpy.ndarray`
+:attr:`~qiskit.primitives.EstimatorResult.values` returns a :class:`numpy.ndarray`
 whose ``i``-th element is the expectation value corresponding to the ``i``-th circuit and ``i``-th observable.
 
 .. testcode::
