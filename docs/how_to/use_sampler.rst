@@ -40,7 +40,7 @@ The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` from whi
 Initialize the ``Sampler``
 ==========================
 
-Then, you need to create a :class:`~qiskit.primitives.Sampler` object.
+Then, you need to create a :class:`~qiskit.primitives.Sampler` instance.
 
 .. testcode::
 
