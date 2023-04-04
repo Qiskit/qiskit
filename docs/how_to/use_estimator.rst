@@ -124,7 +124,7 @@ of the previous example.
     q_1: ─────────┤ X ├
                   └───┘
 
-The main difference from the previous case is that now you need to include the parameter values
+The main difference with the previous case is that now you need to specify the sets of parameter values
 for which you want to evaluate the expectation value as a ``list`` of ``list``\ s of ``float``\ s.
 The idea is that the ``i``-th element of the outer``list`` is the set of parameter values
 that corresponds to the ``i``-th circuit and observable.
