@@ -35,7 +35,7 @@ from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
-from qiskit.pulse.calibration_entries import CalibrationPublisher
+from qiskit.pulse.calibration_entries import CalibrationPublisher, ScheduleDef
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
@@ -1173,8 +1173,10 @@ Instructions:
         inst_map.add("sx", 1, custom_sx)
         self.pulse_target.update_from_instruction_schedule_map(inst_map, {"sx": SXGate()})
         self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
-        self.assertIsNone(self.pulse_target["sx"][(0,)].duration)
-        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+        # Calibration doesn't change for q0
+        self.assertEqual(self.pulse_target["sx"][(0,)].duration, 35.5e-9)
+        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
+        # Calibration is updated for q1 without error dict and gate time
         self.assertIsNone(self.pulse_target["sx"][(1,)].duration)
         self.assertIsNone(self.pulse_target["sx"][(1,)].error)
 
@@ -1183,16 +1185,17 @@ Instructions:
         inst_map = InstructionScheduleMap()
         inst_map.add("sx", 0, self.custom_sx_q0)
         inst_map.add("sx", 1, self.custom_sx_q1)
-        with self.assertRaises(ValueError):
-            target.update_from_instruction_schedule_map(inst_map)
+        target.update_from_instruction_schedule_map(inst_map)
+        self.assertEqual(target["sx"][(0,)].calibration, self.custom_sx_q0)
+        self.assertEqual(target["sx"][(1,)].calibration, self.custom_sx_q1)
 
     def test_update_from_instruction_schedule_map_new_qarg_raises(self):
         inst_map = InstructionScheduleMap()
         inst_map.add("sx", 0, self.custom_sx_q0)
         inst_map.add("sx", 1, self.custom_sx_q1)
         inst_map.add("sx", 2, self.custom_sx_q1)
-        with self.assertRaises(KeyError):
-            self.pulse_target.update_from_instruction_schedule_map(inst_map)
+        self.pulse_target.update_from_instruction_schedule_map(inst_map)
+        self.assertFalse(self.pulse_target.instruction_supported("sx", (2,)))
 
     def test_update_from_instruction_schedule_map_with_dt_set(self):
         inst_map = InstructionScheduleMap()
@@ -1206,7 +1209,11 @@ Instructions:
         self.assertEqual(inst_map, self.pulse_target.instruction_schedule_map())
         self.assertEqual(self.pulse_target["sx"][(1,)].duration, 1000.0)
         self.assertIsNone(self.pulse_target["sx"][(1,)].error)
-        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+        # This is an edge case.
+        # System dt is read-only property and changing it will break all underlying calibrations.
+        # duration of sx0 returns previous value since calibration doesn't change.
+        self.assertEqual(self.pulse_target["sx"][(0,)].duration, 35.5e-9)
+        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
 
     def test_update_from_instruction_schedule_map_with_error_dict(self):
         inst_map = InstructionScheduleMap()
@@ -1222,7 +1229,7 @@ Instructions:
             inst_map, {"sx": SXGate()}, error_dict=error_dict
         )
         self.assertEqual(self.pulse_target["sx"][(1,)].error, 1.0)
-        self.assertIsNone(self.pulse_target["sx"][(0,)].error)
+        self.assertEqual(self.pulse_target["sx"][(0,)].error, 0.000413)
 
     def test_timing_constraints(self):
         generated_constraints = self.pulse_target.timing_constraints()
@@ -1271,6 +1278,33 @@ Instructions:
         target.add_instruction(XGate(), properties)
 
         self.assertIsNone(target["x"][(0,)].calibration)
+
+    def test_loading_legacy_ugate_instmap(self):
+        # This is typical IBM backend situation.
+        # IBM provider used to have u1, u2, u3 in the basis gates and
+        # these have been replaced with sx and rz.
+        # However, IBM provider still provides calibration of these u gates,
+        # and the inst map loads them as backend calibrations.
+        # Target is implicitly updated with inst map when it is set in transpile.
+        # If u gates are not excluded, they may appear in the transpiled circuit.
+        # These gates are no longer supported by hardware.
+        entry = ScheduleDef()
+        entry.define(pulse.Schedule(name="fake_u3"), user_provided=False)  # backend provided
+        instmap = InstructionScheduleMap()
+        instmap._add("u3", (0,), entry)
+
+        # Today's standard IBM backend target with sx, rz basis
+        target = Target()
+        target.add_instruction(SXGate(), {(0,): InstructionProperties()})
+        target.add_instruction(RZGate(Parameter("θ")), {(0,): InstructionProperties()})
+        target.add_instruction(Measure(), {(0,): InstructionProperties()})
+        names_before = set(target.operation_names)
+
+        target.update_from_instruction_schedule_map(instmap)
+        names_after = set(target.operation_names)
+
+        # Otherwise u3 and sx-rz basis conflict in 1q decomposition.
+        self.assertSetEqual(names_before, names_after)
 
 
 class TestGlobalVariableWidthOperations(QiskitTestCase):

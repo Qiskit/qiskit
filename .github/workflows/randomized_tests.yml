@@ -15,6 +15,7 @@ jobs:
           python-version: '3.8'
       - name: Install dependencies
         run: |
+          pip install -U pip setuptools wheel
           pip install -U -r requirements.txt -c constraints.txt
           pip install -U -r requirements-dev.txt coveralls -c constraints.txt
           pip install -c constraints.txt -e .

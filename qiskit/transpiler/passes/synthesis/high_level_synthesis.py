@@ -31,8 +31,23 @@ class HLSConfig:
     of higher-level-objects. A higher-level object is an object of type
     :class:`~.Operation` (e.g., "clifford", "linear_function", etc.), and the list
     of applicable synthesis methods is strictly tied to the name of the operation.
-    In the config, each method is represented by a pair consisting of a name of the synthesis
-    algorithm and of a dictionary providing additional arguments for this algorithm.
+    In the config, each method is specified as a tuple consisting of the name of the
+    synthesis algorithm and of a dictionary providing additional arguments for this
+    algorithm. Additionally, a synthesis method can be specified as a tuple consisting
+    of an instance of :class:`.HighLevelSynthesisPlugin` and additional arguments.
+    Moreover, when there are no additional arguments, a synthesis
+    method can be specified simply by name or by an instance
+    of :class:`.HighLevelSynthesisPlugin`. The following example illustrates different
+    ways how a config file can be created::
+
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import ACGSynthesisPermutation
+
+        # All the ways to specify hls_config are equivalent
+        hls_config = HLSConfig(permutation=[("acg", {})])
+        hls_config = HLSConfig(permutation=["acg"])
+        hls_config = HLSConfig(permutation=[(ACGSynthesisPermutation(), {})])
+        hls_config = HLSConfig(permutation=[ACGSynthesisPermutation()])
 
     The names of the synthesis algorithms should be declared in ``entry_points`` for
     ``qiskit.synthesis`` in ``setup.py``, in the form
@@ -44,7 +59,7 @@ class HLSConfig:
 
     To avoid synthesizing a given higher-level-object, one can give it an empty list of methods.
 
-    For an explicit example of creating and using such config files, refer to the
+    For an explicit example of using such config files, refer to the
     documentation for :class:`~.HighLevelSynthesis`.
     """
 
@@ -73,9 +88,10 @@ class HLSConfig:
 
 
 class HighLevelSynthesis(TransformationPass):
-    """Synthesize higher-level objects by choosing the appropriate synthesis method
-    based on the object's name and the high-level-synthesis config of type
-    :class:`~.HLSConfig` (if provided).
+    """Synthesize higher-level objects using synthesis plugins.
+
+    Synthesis plugins apply synthesis methods specified in the high-level-synthesis
+    config (refer to the documentation for :class:`~.HLSConfig`).
 
     As an example, let us assume that ``op_a`` and ``op_b`` are names of two higher-level objects,
     that ``op_a``-objects have two synthesis methods ``default`` which does require any additional
@@ -100,6 +116,7 @@ class HighLevelSynthesis(TransformationPass):
             # When the config file is not provided, we will use the "default" method
             # to synthesize Operations (when available).
             self.hls_config = HLSConfig(True)
+        self.hls_plugin_manager = HighLevelSynthesisPluginManager()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -113,8 +130,6 @@ class HighLevelSynthesis(TransformationPass):
             TranspilerError: when the specified synthesis method is not available.
         """
 
-        hls_plugin_manager = HighLevelSynthesisPluginManager()
-
         for node in dag.op_nodes():
             if node.name in self.hls_config.methods.keys():
                 # the operation's name appears in the user-provided config,
@@ -122,25 +137,43 @@ class HighLevelSynthesis(TransformationPass):
                 methods = self.hls_config.methods[node.name]
             elif (
                 self.hls_config.use_default_on_unspecified
-                and "default" in hls_plugin_manager.method_names(node.name)
+                and "default" in self.hls_plugin_manager.method_names(node.name)
             ):
                 # the operation's name does not appear in the user-specified config,
                 # we use the "default" method when instructed to do so and the "default"
                 # method is available
-                methods = [("default", {})]
+                methods = ["default"]
             else:
                 methods = []
 
             for method in methods:
-                plugin_name, plugin_args = method
+                # There are two ways to specify a synthesis method. The more explicit
+                # way is to specify it as a tuple consisting of a synthesis algorithm and a
+                # list of additional arguments, e.g.,
+                #   ("kms", {"all_mats": 1, "max_paths": 100, "orig_circuit": 0}), or
+                #   ("pmh", {}).
+                # When the list of additional arguments is empty, one can also specify
+                # just the synthesis algorithm, e.g.,
+                #   "pmh".
+                if isinstance(method, tuple):
+                    plugin_specifier, plugin_args = method
+                else:
+                    plugin_specifier = method
+                    plugin_args = {}
 
-                if plugin_name not in hls_plugin_manager.method_names(node.name):
-                    raise TranspilerError(
-                        "Specified method: %s not found in available plugins for %s"
-                        % (plugin_name, node.name)
-                    )
-
-                plugin_method = hls_plugin_manager.method(node.name, plugin_name)
+                # There are two ways to specify a synthesis algorithm being run,
+                # either by name, e.g. "kms" (which then should be specified in entry_points),
+                # or directly as a class inherited from HighLevelSynthesisPlugin (which then
+                # does not need to be specified in entry_points).
+                if isinstance(plugin_specifier, str):
+                    if plugin_specifier not in self.hls_plugin_manager.method_names(node.name):
+                        raise TranspilerError(
+                            "Specified method: %s not found in available plugins for %s"
+                            % (plugin_specifier, node.name)
+                        )
+                    plugin_method = self.hls_plugin_manager.method(node.name, plugin_specifier)
+                else:
+                    plugin_method = plugin_specifier
 
                 # ToDo: similarly to UnitarySynthesis, we should pass additional parameters
                 #       e.g. coupling_map to the synthesis algorithm.
