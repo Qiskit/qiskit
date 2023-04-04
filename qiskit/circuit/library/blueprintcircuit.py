@@ -12,9 +12,10 @@
 
 """Blueprint circuit object."""
 
-from typing import Optional
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from qiskit.circuit import QuantumCircuit
+
+from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.parametertable import ParameterTable, ParameterView
 
 
@@ -29,11 +30,11 @@ class BlueprintCircuit(QuantumCircuit, ABC):
     accessed, the ``_build`` method is called. There the configuration of the circuit is checked.
     """
 
-    def __init__(self, *regs, name: Optional[str] = None) -> None:
+    def __init__(self, *regs, name: str | None = None) -> None:
         """Create a new blueprint circuit."""
         super().__init__(*regs, name=name)
-        self._qregs = []
-        self._cregs = []
+        self._qregs: list[QuantumRegister] = []
+        self._cregs: list[ClassicalRegister] = []
         self._qubits = []
         self._qubit_indices = {}
         self._is_built = False
