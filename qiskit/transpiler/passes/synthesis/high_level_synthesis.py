@@ -22,6 +22,7 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
     synth_clifford_layers,
+    synth_clifford_depth_lnn,
     synth_clifford_greedy,
     synth_clifford_ag,
     synth_clifford_bm,
@@ -205,6 +206,8 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
     For N <= 3 qubits this is the optimal CX cost decomposition by Bravyi, Maslov.
     For N > 3 qubits this is done using the general non-optimal greedy compilation
     routine from reference by Bravyi, Hu, Maslov, Shaydulin.
+
+    This plugin is called ``clifford.default`` in ``setup.py``.
     """
 
     def run(self, high_level_object, **options):
@@ -214,7 +217,10 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
 
 
 class AGSynthesisClifford(HighLevelSynthesisPlugin):
-    """Clifford synthesis plugin based on the Aaronson-Gottesman method."""
+    """Clifford synthesis plugin based on the Aaronson-Gottesman method.
+
+    This plugin is called ``clifford.ag`` in ``setup.py``.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Clifford."""
@@ -224,9 +230,12 @@ class AGSynthesisClifford(HighLevelSynthesisPlugin):
 
 class BMSynthesisClifford(HighLevelSynthesisPlugin):
     """Clifford synthesis plugin based on the Bravyi-Maslov method.
+    The plugin is named
 
     The method only works on Cliffords with at most 3 qubits, for which it
     constructs the optimal CX cost decomposition.
+
+    This plugin is called ``clifford.bm`` in ``setup.py``.
     """
 
     def run(self, high_level_object, **options):
@@ -240,7 +249,10 @@ class BMSynthesisClifford(HighLevelSynthesisPlugin):
 
 class GreedySynthesisClifford(HighLevelSynthesisPlugin):
     """Clifford synthesis plugin based on the greedy synthesis
-    Bravyi-Hu-Maslov-Shaydulin method."""
+    Bravyi-Hu-Maslov-Shaydulin method.
+
+    This plugin is called ``clifford.greedy`` in ``setup.py``.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Clifford."""
@@ -250,7 +262,10 @@ class GreedySynthesisClifford(HighLevelSynthesisPlugin):
 
 class LayerSynthesisClifford(HighLevelSynthesisPlugin):
     """Clifford synthesis plugin based on the Bravyi-Maslov method
-    to synthesize Cliffords into layers."""
+    to synthesize Cliffords into layers.
+
+    This plugin is called ``clifford.layers`` in ``setup.py``.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Clifford."""
@@ -258,8 +273,37 @@ class LayerSynthesisClifford(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class LayerLnnSynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the Bravyi-Maslov method
+    to synthesize Cliffords into layers, with each layer synthesized
+    adhering to LNN connectivity.
+
+    This plugin is called ``clifford.lnn`` in ``setup.py``.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        decomposition = synth_clifford_depth_lnn(high_level_object)
+        return decomposition
+
+
+class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """The default linear function synthesis plugin.
+
+    This plugin is called ``linear_function.default`` in ``setup.py``.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given LinearFunction."""
+        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+        return decomposition
+
+
 class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
-    """Linear function synthesis plugin based on the Kutin-Moulton-Smithline method."""
+    """Linear function synthesis plugin based on the Kutin-Moulton-Smithline method.
+
+    This plugin is called ``linear_function.kms`` in ``setup.py``.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
@@ -268,7 +312,10 @@ class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
 
 class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
-    """Linear function synthesis plugin based on the Patel-Markov-Hayes method."""
+    """Linear function synthesis plugin based on the Patel-Markov-Hayes method.
+
+    This plugin is called ``linear_function.pmh`` in ``setup.py``.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
@@ -277,7 +324,10 @@ class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
 
 class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on the Kutin, Moulton, Smithline method."""
+    """The permutation synthesis plugin based on the Kutin, Moulton, Smithline method.
+
+    This plugin is called ``permutation.kms`` in ``setup.py``.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
@@ -285,17 +335,11 @@ class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
         return decomposition
 
 
-class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
-    """The default linear function synthesis plugin."""
-
-    def run(self, high_level_object, **options):
-        """Run synthesis for the given LinearFunction."""
-        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
-        return decomposition
-
-
 class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on sorting."""
+    """The permutation synthesis plugin based on sorting.
+
+    This plugin is called ``permutation.basic`` in ``setup.py``.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
@@ -304,7 +348,10 @@ class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
 
 
 class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on the Alon, Chung, Graham method."""
+    """The permutation synthesis plugin based on the Alon, Chung, Graham method.
+
+    This plugin is called ``permutation.acg`` in ``setup.py``.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
