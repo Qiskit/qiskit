@@ -6,9 +6,7 @@ This guide shows how to get the probability distribution of a quantum circuit wi
 
 .. note::
 
-    While this guide only uses Qiskit Terra's implementation of the ``Sampler`` primitive, there are other
-    implementations of this primitive like Qiskit Terra's :class:`~qiskit.primitives.BackendSampler`, Qiskit Aer's :class:`~qiskit_aer.primitives.Sampler`
-    and Qiskit Runtime's :class:`~qiskit_ibm_runtime.Sampler`.
+    While this guide uses Qiskit’s reference implementation, the ``Sampler`` primitive can be run with any provider using :class:`~qiskit.primitives.BackendSampler`.
 
 Initialize quantum circuits
 ===========================
