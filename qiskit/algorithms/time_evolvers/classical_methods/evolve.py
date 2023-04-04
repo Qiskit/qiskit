@@ -86,14 +86,13 @@ def _create_obs_final(
 def _evaluate_aux_ops(
     aux_ops: list[csr_matrix],
     state: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> np.ndarray:
     """Evaluates the aux operators if they are provided and stores their value.
 
     Returns:
-        Tuple of the mean and standard deviation of the aux operators for a given state.
+        Mean of the aux operators for a given state.
     """
     op_means = np.array([np.real(state.conjugate().dot(op.dot(state))) for op in aux_ops])
-    # TODO: returns only means? what about std?
     return op_means
 
 

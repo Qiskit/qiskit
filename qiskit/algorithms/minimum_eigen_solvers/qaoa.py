@@ -142,8 +142,7 @@ class QAOA(VQE):
                 quantum_instance=quantum_instance,
             )
 
-    def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
-        # TODO: should return something?
+    def _check_operator_ansatz(self, operator: OperatorBase) -> None:
         # Recreates a circuit based on operator parameter.
         if operator != self._cost_operator:
             self._cost_operator = operator

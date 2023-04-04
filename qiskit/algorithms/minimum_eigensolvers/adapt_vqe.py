@@ -295,7 +295,7 @@ class AdaptVQEResult(VQEResult):
     def __init__(self) -> None:
         super().__init__()
         self._num_iterations: int | None = None
-        self._final_max_gradient: float | None = None  # TODO: should be complex?
+        self._final_max_gradient: float | None = None
         self._termination_criterion: str = ""
         self._eigenvalue_history: list[float] | None = None
 

@@ -121,6 +121,8 @@ class GSLS(Optimizer):
             var_lb = np.array([l for (l, _) in bounds])
             var_ub = np.array([u for (_, u) in bounds])
 
+        # TODO: ls_optimize last element of return tuple is norm of gradient,
+        #  not number of gradient evaluations
         x, fun, nfev, njev = self.ls_optimize(x0.size, fun, x0, var_lb, var_ub)
 
         result = OptimizerResult()

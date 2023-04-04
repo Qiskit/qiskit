@@ -231,7 +231,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
         # if statevector simulator the estimate is exact
         if all(isinstance(data, (list, np.ndarray)) for data in result.circuit_results):
-            interval = 2 * [result.estimation]
+            interval = (result.estimation, result.estimation)
 
         elif kind in ["likelihood_ratio", "lr"]:
             interval = _likelihood_ratio_confint(result, alpha)
@@ -246,7 +246,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             raise NotImplementedError(f"CI `{kind}` is not implemented.")
 
         if apply_post_processing:
-            return tuple(result.post_processing(value) for value in interval)
+            return result.post_processing(interval[0]), result.post_processing(interval[1])
 
         return interval
 

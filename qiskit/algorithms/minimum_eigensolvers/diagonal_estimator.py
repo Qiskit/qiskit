@@ -191,8 +191,7 @@ def _evaluate_sparsepauli(state: int, observable: SparsePauliOp) -> complex:
     return np.sum(observable.coeffs * _PARITY[reduced])
 
 
-def _check_observable_is_diagonal(observable: SparsePauliOp) -> bool:
-    # TODO: should return anything?
+def _check_observable_is_diagonal(observable: SparsePauliOp) -> None:
     is_diagonal = not np.any(observable.paulis.x)
     if not is_diagonal:
         raise ValueError("The observable must be diagonal.")

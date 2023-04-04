@@ -94,7 +94,7 @@ class TrotterQRTE(RealEvolver):
             product_formula = LieTrotter()
         self._product_formula = product_formula
         self._quantum_instance = None
-        self._circuit_sampler = None
+        self._circuit_sampler: CircuitSampler | None = None
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
         self._expectation = expectation
