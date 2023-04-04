@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The :class:`.AmplitudeEstimation` class now correctly warns if an :class:`.EstimationProblem`
+    with a set ``is_good_state`` property is passed as input, as it is not supported and ignored.
+    Previously, the algorithm would silently ignore this option leading to unexpected results.
