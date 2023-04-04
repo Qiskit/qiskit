@@ -125,8 +125,6 @@ pub enum GlobalSymbol {
         num_params: usize,
         num_qubits: usize,
         index: GateId,
-        custom: bool,
-        defined: bool,
     },
     Classical {
         callable: PyObject,
@@ -141,6 +139,25 @@ impl GlobalSymbol {
             Self::Creg { .. } => "a classical register",
             Self::Gate { .. } => "a gate",
             Self::Classical { .. } => "a custom classical function",
+        }
+    }
+}
+
+/// Information about a gate that permits a new definition in the OQ3 file only in the case that
+/// the number of parameters and qubits matches.  This is used when the user specifies custom gates
+/// that are not
+struct OverridableGate {
+    num_params: usize,
+    num_qubits: usize,
+    index: GateId,
+}
+
+impl From<OverridableGate> for GlobalSymbol {
+    fn from(value: OverridableGate) -> Self {
+        Self::Gate {
+            num_params: value.num_params,
+            num_qubits: value.num_qubits,
+            index: value.index,
         }
     }
 }
@@ -222,6 +239,12 @@ pub struct State {
     /// of the parsing of one gate definition, but we can save allocations by re-using the same
     /// object between calls.
     gate_symbols: HashMap<String, GateSymbol>,
+    /// Gate names that can accept a definition, even if they are already in the symbol table as
+    /// gates. For example, if a user defines a custom gate as a `builtin`, we don't error out if
+    /// we see a compatible definition later.  Regardless of whether the symbol was already in the
+    /// symbol table or not, any gate-based definition of this symbol must match the signature we
+    /// expect for it.
+    overridable_gates: HashMap<String, OverridableGate>,
     num_qubits: usize,
     num_clbits: usize,
     num_cregs: usize,
@@ -253,6 +276,7 @@ impl State {
                 N_BUILTIN_GATES + QELIB1.len() + custom_instructions.len() + custom_classical.len(),
             ),
             gate_symbols: HashMap::new(),
+            overridable_gates: HashMap::new(),
             num_qubits: 0,
             num_clbits: 0,
             num_cregs: 0,
@@ -261,24 +285,31 @@ impl State {
             strict,
         };
         for inst in custom_instructions {
-            if state
-                .symbols
-                .insert(
-                    inst.name.clone(),
-                    GlobalSymbol::Gate {
-                        num_params: inst.num_params,
-                        num_qubits: inst.num_qubits,
-                        index: GateId::new(state.num_gates),
-                        custom: true,
-                        defined: inst.name == "U" || inst.name == "CX" || inst.builtin,
-                    },
-                )
-                .is_some()
+            if state.symbols.contains_key(&inst.name)
+                || state.overridable_gates.contains_key(&inst.name)
             {
                 return Err(QASM2ParseError::new_err(message_generic(
                     None,
                     &format!("duplicate custom instruction '{}'", inst.name),
                 )));
+            }
+            state.overridable_gates.insert(
+                inst.name.clone(),
+                OverridableGate {
+                    num_params: inst.num_params,
+                    num_qubits: inst.num_qubits,
+                    index: GateId::new(state.num_gates),
+                },
+            );
+            if inst.builtin {
+                state.symbols.insert(
+                    inst.name.clone(),
+                    GlobalSymbol::Gate {
+                        num_params: inst.num_params,
+                        num_qubits: inst.num_qubits,
+                        index: GateId::new(state.num_gates),
+                    },
+                );
             }
             state.num_gates += 1;
         }
@@ -879,25 +910,7 @@ impl State {
                 num_params,
                 num_qubits,
                 index,
-                custom,
-                defined,
-            }) => {
-                if *custom && !defined {
-                    Err(QASM2ParseError::new_err(message_generic(
-                        Some(&Position::new(
-                            self.current_filename(),
-                            name_token.line,
-                            name_token.col,
-                        )),
-                        &format!(
-                            "cannot use non-builtin custom instruction '{}' before definition",
-                            name,
-                        ),
-                    )))
-                } else {
-                    Ok((*index, *num_params, *num_qubits))
-                }
-            }
+            }) => Ok((*index, *num_params, *num_qubits)),
             Some(symbol) => Err(QASM2ParseError::new_err(message_generic(
                 Some(&Position::new(
                     self.current_filename(),
@@ -906,14 +919,21 @@ impl State {
                 )),
                 &format!("'{}' is {}, not a gate", name, symbol.describe()),
             ))),
-            None => Err(QASM2ParseError::new_err(message_generic(
-                Some(&Position::new(
-                    self.current_filename(),
-                    name_token.line,
-                    name_token.col,
-                )),
-                &format!("'{}' is not defined in this scope", name),
-            ))),
+            None => {
+                let pos = Position::new(self.current_filename(), name_token.line, name_token.col);
+                let message = if self.overridable_gates.contains_key(&name) {
+                    format!(
+                        "cannot use non-builtin custom instruction '{}' before definition",
+                        name,
+                    )
+                } else {
+                    format!("'{}' is not defined in this scope", name)
+                };
+                Err(QASM2ParseError::new_err(message_generic(
+                    Some(&pos),
+                    &message,
+                )))
+            }
         }?;
         let parameters = self.expect_gate_parameters(&name_token, num_params, in_gate)?;
         let mut qargs = Vec::<Operand<QubitId>>::with_capacity(num_qubits);
@@ -1496,28 +1516,25 @@ impl State {
             .int(&self.context);
         self.expect(TokenType::RBracket, "']'", &lbracket_token)?;
         self.expect(TokenType::Semicolon, "';'", &creg_token)?;
-        match self.symbols.insert(
-            name.clone(),
-            GlobalSymbol::Creg {
-                size,
-                start: ClbitId::new(self.num_clbits),
-                index: CregId::new(self.num_cregs),
-            },
-        ) {
-            None | Some(GlobalSymbol::Gate { defined: false, .. }) => {
-                self.num_clbits += size;
-                self.num_cregs += 1;
-                bc.push(Some(InternalBytecode::DeclareCreg { name, size }));
-                Ok(1)
-            }
-            _ => Err(QASM2ParseError::new_err(message_generic(
+        let symbol = GlobalSymbol::Creg {
+            size,
+            start: ClbitId::new(self.num_clbits),
+            index: CregId::new(self.num_cregs),
+        };
+        if self.symbols.insert(name.clone(), symbol).is_none() {
+            self.num_clbits += size;
+            self.num_cregs += 1;
+            bc.push(Some(InternalBytecode::DeclareCreg { name, size }));
+            Ok(1)
+        } else {
+            Err(QASM2ParseError::new_err(message_generic(
                 Some(&Position::new(
                     self.current_filename(),
                     name_token.line,
                     name_token.col,
                 )),
                 &format!("'{}' is already defined", name_token.id(&self.context)),
-            ))),
+            )))
         }
     }
 
@@ -1534,26 +1551,23 @@ impl State {
             .int(&self.context);
         self.expect(TokenType::RBracket, "']'", &lbracket_token)?;
         self.expect(TokenType::Semicolon, "';'", &qreg_token)?;
-        match self.symbols.insert(
-            name.clone(),
-            GlobalSymbol::Qreg {
-                size,
-                start: QubitId::new(self.num_qubits),
-            },
-        ) {
-            None | Some(GlobalSymbol::Gate { defined: false, .. }) => {
-                self.num_qubits += size;
-                bc.push(Some(InternalBytecode::DeclareQreg { name, size }));
-                Ok(1)
-            }
-            _ => Err(QASM2ParseError::new_err(message_generic(
+        let symbol = GlobalSymbol::Qreg {
+            size,
+            start: QubitId::new(self.num_qubits),
+        };
+        if self.symbols.insert(name.clone(), symbol).is_none() {
+            self.num_qubits += size;
+            bc.push(Some(InternalBytecode::DeclareQreg { name, size }));
+            Ok(1)
+        } else {
+            Err(QASM2ParseError::new_err(message_generic(
                 Some(&Position::new(
                     self.current_filename(),
                     name_token.line,
                     name_token.col,
                 )),
                 &format!("'{}' is already defined", name_token.id(&self.context)),
-            ))),
+            )))
         }
     }
 
@@ -1627,71 +1641,73 @@ impl State {
         num_params: usize,
         num_qubits: usize,
     ) -> PyResult<bool> {
-        match self.symbols.get_mut(&name) {
-            None => {
-                self.symbols.insert(
-                    name,
-                    GlobalSymbol::Gate {
-                        num_params,
-                        num_qubits,
-                        index: GateId::new(self.num_gates),
-                        custom: false,
-                        defined: true,
-                    },
-                );
-                self.num_gates += 1;
-                Ok(true)
+        let already_defined = |state: &Self, name: String| {
+            let pos = owner.map(|tok| Position::new(state.current_filename(), tok.line, tok.col));
+            Err(QASM2ParseError::new_err(message_generic(
+                pos.as_ref(),
+                &format!("'{}' is already defined", name),
+            )))
+        };
+        let mismatched_definitions = |state: &Self, name: String, previous: OverridableGate| {
+            let plural = |count: usize, singular: &str| {
+                let mut out = format!("{} {}", count, singular);
+                if count != 1 {
+                    out.push('s');
+                }
+                out
+            };
+            let from_custom = format!(
+                "{} and {}",
+                plural(previous.num_params, "parameter"),
+                plural(previous.num_qubits, "qubit")
+            );
+            let from_program = format!(
+                "{} and {}",
+                plural(num_params, "parameter"),
+                plural(num_qubits, "qubit")
+            );
+            let pos = owner.map(|tok| Position::new(state.current_filename(), tok.line, tok.col));
+            Err(QASM2ParseError::new_err(message_generic(
+                pos.as_ref(),
+                &format!(
+                    concat!(
+                        "custom instruction '{}' is mismatched with its definition: ",
+                        "OpenQASM program has {}, custom has {}",
+                    ),
+                    name, from_program, from_custom
+                ),
+            )))
+        };
+
+        if let Some(symbol) = self.overridable_gates.remove(&name) {
+            if num_params != symbol.num_params || num_qubits != symbol.num_qubits {
+                return mismatched_definitions(self, name, symbol);
             }
-            Some(GlobalSymbol::Gate {
-                num_params: defined_n_params,
-                num_qubits: defined_n_qubits,
-                custom: true,
-                defined,
-                ..
-            }) => {
-                if num_params != *defined_n_params || num_qubits != *defined_n_qubits {
-                    let plural = |count: usize, singular: &str| {
-                        let mut out = format!("{} {}", count, singular);
-                        if count != 1 {
-                            out.push('s');
-                        }
-                        out
-                    };
-                    let from_custom = format!(
-                        "{} and {}",
-                        plural(*defined_n_params, "parameter"),
-                        plural(*defined_n_qubits, "qubit")
-                    );
-                    let from_program = format!(
-                        "{} and {}",
-                        plural(num_params, "parameter"),
-                        plural(num_qubits, "qubit")
-                    );
-                    let pos =
-                        owner.map(|tok| Position::new(self.current_filename(), tok.line, tok.col));
-                    Err(QASM2ParseError::new_err(message_generic(
-                        pos.as_ref(),
-                        &format!(
-                            concat!(
-                                "custom instruction '{}' is mismatched with its definition: ",
-                                "OpenQASM program has {}, custom has {}",
-                            ),
-                            name, from_program, from_custom
-                        ),
-                    )))
-                } else {
-                    *defined = true;
+            match self.symbols.get(&name) {
+                None => {
+                    self.symbols.insert(name, symbol.into());
+                    self.num_gates += 1;
+                    Ok(true)
+                }
+                Some(GlobalSymbol::Gate { .. }) => {
+                    self.symbols.insert(name, symbol.into());
                     Ok(false)
                 }
+                _ => already_defined(self, name),
             }
-            _ => {
-                let pos =
-                    owner.map(|tok| Position::new(self.current_filename(), tok.line, tok.col));
-                Err(QASM2ParseError::new_err(message_generic(
-                    pos.as_ref(),
-                    &format!("'{}' is already defined", name),
-                )))
-            }
+        } else if self.symbols.contains_key(&name) {
+            already_defined(self, name)
+        } else {
+            self.symbols.insert(
+                name,
+                GlobalSymbol::Gate {
+                    num_params,
+                    num_qubits,
+                    index: GateId::new(self.num_gates),
+                },
+            );
+            self.num_gates += 1;
+            Ok(true)
         }
     }
 

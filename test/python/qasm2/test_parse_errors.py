@@ -476,6 +476,16 @@ class TestGateDefinition(QiskitTestCase):
         ):
             qiskit.qasm2.loads(program)
 
+    def test_cannot_redefine_u(self):
+        program = "gate U(a, b, c) q {}"
+        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
+            qiskit.qasm2.loads(program)
+
+    def test_cannot_redefine_cx(self):
+        program = "gate CX a, b {}"
+        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
+            qiskit.qasm2.loads(program)
+
 
 @ddt.ddt
 class TestBitResolution(QiskitTestCase):
@@ -606,6 +616,36 @@ class TestCustomInstructions(QiskitTestCase):
                 ],
             )
 
+    def test_cannot_define_builtin_twice(self):
+        program = "gate builtin q {}; gate builtin q {};"
+        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "'builtin' is already defined"):
+            qiskit.qasm2.loads(
+                program,
+                custom_instructions=[
+                    qiskit.qasm2.CustomInstruction("builtin", 0, 1, lambda: Gate("builtin", 1, []))
+                ],
+            )
+
+    def test_cannot_redefine_custom_u(self):
+        program = "gate U(a, b, c) q {}"
+        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
+            qiskit.qasm2.loads(
+                program,
+                custom_instructions=[
+                    qiskit.qasm2.CustomInstruction("U", 3, 1, lib.UGate, builtin=True)
+                ],
+            )
+
+    def test_cannot_redefine_custom_cx(self):
+        program = "gate CX a, b {}"
+        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "already defined"):
+            qiskit.qasm2.loads(
+                program,
+                custom_instructions=[
+                    qiskit.qasm2.CustomInstruction("CX", 0, 2, lib.CXGate, builtin=True)
+                ],
+            )
+
     @combine(
         program=["gate my(a) q {}", "opaque my(a) q;"],
         builtin=[True, False],
@@ -672,7 +712,9 @@ class TestCustomClassical(QiskitTestCase):
         ):
             qiskit.qasm2.loads(
                 "",
-                custom_instructions=[qiskit.qasm2.CustomInstruction("f", 0, 1, lib.RXGate)],
+                custom_instructions=[
+                    qiskit.qasm2.CustomInstruction("f", 0, 1, lib.RXGate, builtin=True)
+                ],
                 custom_classical=[qiskit.qasm2.CustomClassical("f", 1, math.exp)],
             )
 
