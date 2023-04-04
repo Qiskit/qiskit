@@ -76,21 +76,7 @@ class BaseEstimatorGradient(ABC):
         self._derivative_type = derivative_type
 
         self._gradient_circuit_cache: dict[
-            tuple[
-                int,
-                int,
-                int,
-                tuple,
-                tuple[int, ...] | None,
-            ]
-            | tuple[
-                str,
-                int,
-                int,
-                int,
-                tuple,
-                tuple[int, ...] | None,
-            ],
+            tuple,
             GradientCircuit,
         ] = {}
 

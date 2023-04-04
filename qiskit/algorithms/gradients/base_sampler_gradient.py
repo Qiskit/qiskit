@@ -54,7 +54,7 @@ class BaseSamplerGradient(ABC):
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
-        self._gradient_circuit_cache: dict[QuantumCircuit | tuple, GradientCircuit] = {}
+        self._gradient_circuit_cache: dict[tuple, GradientCircuit] = {}
 
     def run(
         self,

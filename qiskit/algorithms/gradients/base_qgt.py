@@ -98,8 +98,8 @@ class BaseQGT(ABC):
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
-        self._qgt_circuit_cache: dict[QuantumCircuit | tuple, GradientCircuit] = {}
-        self._gradient_circuit_cache: dict[QuantumCircuit | tuple, GradientCircuit] = {}
+        self._qgt_circuit_cache: dict[tuple, GradientCircuit] = {}
+        self._gradient_circuit_cache: dict[tuple, GradientCircuit] = {}
 
     @property
     def derivative_type(self) -> DerivativeType:
