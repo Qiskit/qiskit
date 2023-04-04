@@ -29,6 +29,7 @@ from qiskit.synthesis.linear.linear_circuits_utils import (
     _linear_circuit_check_map,
 )
 from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms
+from qiskit.transpiler.target import Target
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
@@ -114,19 +115,24 @@ class HighLevelSynthesis(TransformationPass):
     ``default`` methods for all other high-level objects, including ``op_a``-objects.
     """
 
-    def __init__(self, coupling_map: CouplingMap = None, hls_config=None):
+    def __init__(self, hls_config=None, coupling_map=None, target=None):
         """
         HighLevelSynthesis initializer.
 
         Args:
+            hls_config (HLSConfig): the high-level-synthesis config file
+                specifying synthesis methods and parameters.
             coupling_map (CouplingMap): the coupling map of the backend
                 in case synthesis is done on a physical circuit.
-            hls_config (HLSConfig): the high-level-synthesis config file
-            specifying synthesis methods and parameters.
+            target (Target): A target representing the target backend.
         """
         super().__init__()
 
         self._coupling_map = coupling_map
+        self._target = target
+        if target is not None:
+            self._coupling_map = self._target.build_coupling_map()
+        print(f"HLS: {self._coupling_map = }")
 
         if hls_config is not None:
             self.hls_config = hls_config
@@ -194,7 +200,7 @@ class HighLevelSynthesis(TransformationPass):
                     plugin_method = self.hls_plugin_manager.method(node.name, plugin_specifier)
                 else:
                     plugin_method = plugin_specifier
-                    
+
                 if self._coupling_map:
                     plugin_args["coupling_map"] = self._coupling_map
                     plugin_args["qubits"] = [dag_bit_indices[x] for x in node.qargs]
