@@ -1980,6 +1980,36 @@ class TestTranspileParallel(QiskitTestCase):
                 qubit_1 = tqc.find_bit(inst.qubits[1]).index
                 self.assertEqual(qubit_1, qubit_0 + 1)
 
+    def test_transpile_with_multiple_coupling_maps(self):
+        """Test passing a different coupling map for every circuit"""
+        backend = FakeNairobiV2()
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 2)
+
+        # Add a connection between 0 and 2 so that transpile does not change
+        # the gates
+        cmap = CouplingMap.from_line(7)
+        cmap.add_edge(0, 2)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning, "Passing in a list of arguments for coupling_map is deprecated"
+        ):
+            # Initial layout needed to prevent transpiler from relabeling
+            # qubits to avoid doing the swap
+            tqc = transpile(
+                [qc] * 2,
+                backend,
+                coupling_map=[backend.coupling_map, cmap],
+                initial_layout=(0, 1, 2),
+            )
+
+        # Check that the two coupling maps were used. The default should
+        # require swapping (extra cx's) and the second one should not (just the
+        # original cx).
+        self.assertEqual(tqc[0].count_ops()["cx"], 4)
+        self.assertEqual(tqc[1].count_ops()["cx"], 1)
+
     @data(0, 1, 2, 3)
     def test_backend_and_custom_gate(self, opt_level):
         """Test transpile() with BackendV2, custom basis pulse gate."""
