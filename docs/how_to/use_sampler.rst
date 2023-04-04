@@ -167,7 +167,7 @@ For reproducibility purposes, a ``seed`` will also be set in the following examp
 
 There are two main ways of setting options in the :class:`~qiskit.primitives.Sampler`:
 
-* Setting keyword arguments in the :meth:`~qiskit.primitives.Sampler.run` method.
+* Set keyword arguments in the :meth:`~qiskit.primitives.Sampler.run` method.
 * Modify :class:`~qiskit.primitives.Sampler` options.
 
 Set keyword arguments for :meth:`~qiskit.primitives.Sampler.run`
