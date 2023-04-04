@@ -106,7 +106,7 @@ def graysynth(cnots, angles, section_size=2):
         QiskitError: when dimensions of cnots and angles don't align.
 
     References:
-        1. Amy, Matthew, Parsiad Azimzadeh, and Michele Mosca.
+        1. Matthew Amy, Parsiad Azimzadeh, and Michele Mosca.
            *On the controlled-NOT complexity of controlled-NOT–phase circuits.*,
            Quantum Science and Technology 4.1 (2018): 015002.
            `arXiv:1712.01859 <https://arxiv.org/abs/1712.01859>`_
