@@ -77,10 +77,10 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _choose_layout_condition(property_set):
         return not property_set["layout"]
 
-    if coupling_map is None:
-        coupling_map_layout = target
-    else:
+    if target is None:
         coupling_map_layout = coupling_map
+    else:
+        coupling_map_layout = target
 
     if layout_method == "trivial":
         _choose_layout = TrivialLayout(coupling_map_layout)
