@@ -6,9 +6,7 @@ This guide shows how to get the expected value of an observable for a given quan
 
 .. note::
 
-    While this guide only uses Qiskit Terra's implementation of the ``Estimator`` primitive, there are other
-    implementations of this primitive like Qiskit Terra's :class:`~qiskit.primitives.BackendEstimator`, Qiskit Aer's :class:`~qiskit_aer.primitives.Estimator`
-    and Qiskit Runtime's :class:`~qiskit_ibm_runtime.Estimator`.
+    While this guide uses Qiskit’s reference implementation, the ``Estimator`` primitive can be run with any provider using :class:`~qiskit.primitives.BackendEstimator` .
 
 
 Initialize observable
