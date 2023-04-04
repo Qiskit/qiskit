@@ -27,6 +27,7 @@ from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
     Optional,
+    Tuple,
     Type,
     TypeVar,
     Sequence,
@@ -4613,6 +4614,39 @@ class QuantumCircuit:
 
         condition = (self._resolve_classical_resource(condition[0]), condition[1])
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
+
+    def switch(
+        self,
+        target: Union[ClbitSpecifier, ClassicalRegister],
+        cases: Iterable[Tuple[typing.Any, QuantumCircuit]],
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        *,
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Create a ``switch``/``case`` structure on this circuit.
+
+        Args:
+            target (Union[ClassicalRegister, Clbit]): The classical value to switch one.  This must
+                be integer valued.
+            cases (Iterable[Tuple[typing.Any, QuantumCircuit]]): A sequence of case specifiers.  Each
+                tuple defines one case body (the second item).  The first item of the tuple can be
+                either a single integer value, the special value :data:`.CASE_DEFAULT`, or a tuple
+                of several integer values.  Each of the integer values will be tried in turn; control
+                will then pass to the body corresponding to the first match.  :data:`.CASE_DEFAULT`
+                matches all possible values.
+            qubits (Sequence[Qubit]): The circuit qubits over which all case bodies execute.
+            clbits (Sequence[Clbit]): The circuit clbits over which all case bodies execute.
+            label (Optional[str]): The string label of the instruction in the circuit.
+
+        Returns:
+            InstructionSet: A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+
+        target = self._resolve_classical_resource(target)
+        return self.append(SwitchCaseOp(target, cases, label=label), qubits, clbits)
 
     def break_loop(self) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.BreakLoopOp`.
