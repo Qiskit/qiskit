@@ -103,7 +103,7 @@ Parameterized circuits with ``Estimator``
 =========================================
 
 The :class:`~qiskit.primitives.Estimator` primitive also has the option to include unbound parameterized circuits like the one below.
-You can also bind values to the parameters of the circuit and follow the steps
+You can also manually bind values to the parameters of the circuit and follow the steps
 of the previous example.
 
 .. testcode::
