@@ -404,7 +404,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     @staticmethod
     def _build_vqd_result() -> VQDResult:
         result = VQDResult()
-        result.optimal_points = None
+        result.optimal_points = np.array([])
         result.optimal_parameters = []
         result.optimal_values = np.array([])
         result.cost_function_evals = np.array([], dtype=int)
@@ -420,7 +420,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     ) -> VQDResult:
         result.optimal_points = (
             np.concatenate([result.optimal_points, [opt_result.x]])
-            if result.optimal_points is not None
+            if len(result.optimal_points) > 0
             else np.array([opt_result.x])
         )
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
