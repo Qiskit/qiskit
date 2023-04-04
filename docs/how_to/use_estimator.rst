@@ -102,7 +102,7 @@ whose ``i``-th element is the expectation value corresponding to the ``i``-th ci
 Parameterized circuits with ``Estimator``
 =========================================
 
-The :class:`~qiskit.primitives.Estimator` primitive also has the option to include unbound parameterized circuits like the one below.
+The :class:`~qiskit.primitives.Estimator` primitive can be run with unbound parameterized circuits like the one below.
 You can also manually bind values to the parameters of the circuit and follow the steps
 of the previous example.
 
