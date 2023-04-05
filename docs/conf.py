@@ -16,6 +16,7 @@
 
 # -- General configuration ---------------------------------------------------
 import datetime
+import doctest
 
 project = "Qiskit"
 copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
@@ -38,7 +39,9 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
+    "sphinx.ext.doctest"
 ]
+
 templates_path = ["_templates"]
 
 # Number figures, tables and code-blocks if they have a caption.
@@ -113,17 +116,14 @@ autosummary_filename_map = {
 
 autoclass_content = "both"
 
+
 # -- Options for Doctest --------------------------------------------------------
 
-import sphinx.ext.doctest
-
-# This option will make doctest ignore whitespace when testing code.
-# It's specially important for circuit representation as it gives an
-# error otherwise
-doctest_default_flags = sphinx.ext.doctest.doctest.NORMALIZE_WHITESPACE
+doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL | doctest.DONT_ACCEPT_TRUE_FOR_1
 
 # Leaving this string empty disables testing of doctest blocks from docstrings.
 # Doctest blocks are structures like this one:
 # >> code
 # output
 doctest_test_doctest_blocks = ""
+
