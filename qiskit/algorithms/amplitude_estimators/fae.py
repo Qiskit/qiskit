@@ -185,7 +185,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         return cos_estimate
 
-    def _chernoff(self, cos, shots):
+    def _chernoff(self, cos, shots) -> list[float]:
         width = np.sqrt(np.log(2 / self._delta) * 12 / shots)
         confint = [np.maximum(-1, cos - width), np.minimum(1, cos + width)]
         return confint
@@ -306,14 +306,14 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         theta = np.mean(theta_ci)
         rescaling = 4 if self._rescale else 1
         value = (rescaling * np.sin(theta)) ** 2
-        value_ci = [(rescaling * np.sin(x)) ** 2 for x in theta_ci]
+        value_ci = ((rescaling * np.sin(theta_ci[0])) ** 2, (rescaling * np.sin(theta_ci[1])) ** 2)
 
         result = FasterAmplitudeEstimationResult()
         result.num_oracle_queries = self._num_oracle_calls
         result.num_steps = num_steps
         result.num_first_state_steps = num_first_stage_steps
         if self._quantum_instance is not None and self._quantum_instance.is_statevector:
-            result.success_probability = 1
+            result.success_probability = 1.0
         else:
             result.success_probability = 1 - (2 * self._maxiter - j_0) * self._delta
 
@@ -335,18 +335,18 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._success_probability = None
-        self._num_steps = None
-        self._num_first_state_steps = None
-        self._theta_intervals = None
+        self._success_probability: float | None = None
+        self._num_steps: int | None = None
+        self._num_first_state_steps: int | None = None
+        self._theta_intervals: list[list[float]] | None = None
 
     @property
-    def success_probability(self) -> int:
+    def success_probability(self) -> float:
         """Return the success probability of the algorithm."""
         return self._success_probability
 
     @success_probability.setter
-    def success_probability(self, probability: int) -> None:
+    def success_probability(self, probability: float) -> None:
         """Set the success probability of the algorithm."""
         self._success_probability = probability
 

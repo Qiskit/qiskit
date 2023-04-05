@@ -18,9 +18,10 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
 from qiskit.circuit.library import ZGate, XGate, HGate, IGate
-from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
+from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector, Operator
 from qiskit.synthesis import MatrixExponential, SuzukiTrotter
 from qiskit.primitives import Sampler
+from qiskit.algorithms import PhaseEstimationScale
 from qiskit.algorithms.phase_estimators import (
     PhaseEstimation,
     HamiltonianPhaseEstimation,
@@ -549,6 +550,13 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         state_preparation = None
         with self.assertRaises(ValueError):
             self.one_phase_sampler(unitary_circuit, state_preparation, num_iterations=-1)
+
+    def test_phase_estimation_scale_from_operator(self):
+        """test that PhaseEstimationScale from_pauli_sum works with Operator"""
+        circ = QuantumCircuit(2)
+        op = Operator(circ)
+        scale = PhaseEstimationScale.from_pauli_sum(op)
+        self.assertEqual(scale._bound, 4.0)
 
     def phase_estimation_sampler(
         self,
