@@ -15,7 +15,8 @@
 import io
 from typing import Sequence
 
-from . import ast, ExperimentalFeatures
+from . import ast
+from .experimental import ExperimentalFeatures
 from .exceptions import QASM3ExporterError
 
 
