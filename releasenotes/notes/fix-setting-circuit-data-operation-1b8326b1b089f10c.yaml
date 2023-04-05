@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Manually setting an item in :attr:`.QuantumCircuit.data` will now correctly allow the operation
+    to be any object that implements :class:`.Operation`, not just a :class:`.circuit.Instruction`.
+    Note that any manual mutation of :attr:`.QuantumCircuit.data` is discouraged; it is not
+    *usually* any more efficient than building a new circuit object, as checking the invariants
+    surrounding parametrised objects can be surprisingly expensive.

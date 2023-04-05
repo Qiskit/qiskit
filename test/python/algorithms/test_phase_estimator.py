@@ -28,7 +28,18 @@ from qiskit.algorithms.phase_estimators import (
 )
 import qiskit
 from qiskit import QuantumCircuit
-from qiskit.opflow import H, X, Y, Z, I, StateFn, PauliTrotterEvolution, MatrixEvolution, PauliSumOp
+from qiskit.opflow import (
+    H,
+    X,
+    Y,
+    Z,
+    I,
+    T,
+    StateFn,
+    PauliTrotterEvolution,
+    MatrixEvolution,
+    PauliSumOp,
+)
 from qiskit.test import slow_test
 
 
@@ -508,6 +519,23 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         alpha = np.pi / 2
         unitary_circuit = QuantumCircuit(1)
         unitary_circuit.rz(alpha, 0)
+        phase = self.one_phase_sampler(
+            unitary_circuit,
+            state_preparation,
+            phase_estimator,
+        )
+        self.assertEqual(phase, expected_phase)
+
+    @data(
+        ((X ^ X).to_circuit(), 0.25, IterativePhaseEstimation),
+        ((I ^ X).to_circuit(), 0.125, IterativePhaseEstimation),
+        ((X ^ X).to_circuit(), 0.25, PhaseEstimation),
+        ((I ^ X).to_circuit(), 0.125, PhaseEstimation),
+    )
+    @unpack
+    def test_qpe_two_qubit_unitary(self, state_preparation, expected_phase, phase_estimator):
+        """two qubit unitary T ^ T"""
+        unitary_circuit = (T ^ T).to_circuit()
         phase = self.one_phase_sampler(
             unitary_circuit,
             state_preparation,
