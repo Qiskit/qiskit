@@ -12,8 +12,10 @@
 
 """Model for schema-conformant Results."""
 
+from __future__ import annotations
 import copy
 import warnings
+from collections.abc import Sequence
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.pulse.schedule import Schedule
@@ -242,7 +244,9 @@ class Result:
                 "or a measurement level 0/1 job.".format(repr(experiment))
             ) from ex
 
-    def get_counts(self, experiment=None):
+    def get_counts(
+        self, experiment: str | QuantumCircuit | Schedule | int | None = None
+    ) -> dict[str, int] | Counts | list[dict[str, int] | Counts]:
         """Get the histogram data of an experiment.
 
         Args:
@@ -260,11 +264,13 @@ class Result:
             QiskitError: if there are no counts for the experiment.
         """
         if experiment is None:
-            exp_keys = range(len(self.results))
+            exp_keys: list[str | QuantumCircuit | Schedule | int] | Sequence[int] = range(
+                len(self.results)
+            )
         else:
             exp_keys = [experiment]
 
-        dict_list = []
+        dict_list: list[dict[str, int] | Counts] = []
         for key in exp_keys:
             exp = self._get_experiment(key)
             try:
