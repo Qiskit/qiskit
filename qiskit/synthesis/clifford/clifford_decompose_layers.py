@@ -135,10 +135,23 @@ def synth_clifford_layers(
     )
 
     layeredCircuit.append(S2_circ, qubit_list)
-    layeredCircuit.append(CZ2_circ, qubit_list)
 
-    CXinv = CX_circ.copy().inverse()
-    layeredCircuit.append(CXinv, qubit_list)
+################################################################################
+#### Changed Part ##############################################################
+
+    if cx_cz_synth_func is None:
+        layeredCircuit.append(CZ2_circ, qubit_list)
+
+        CXinv = CX_circ.copy().inverse()
+        layeredCircuit.append(CXinv, qubit_list)
+
+    else:
+        # note CZ2_circ is None and built into the CX_circ when 
+        # cx_cz_synth_func is not None
+        layeredCircuit.append(CX_circ, qubit_list)
+        
+################################################################################
+
 
     layeredCircuit.append(H2_circ, qubit_list)
     layeredCircuit.append(S1_circ, qubit_list)
@@ -346,11 +359,26 @@ def _decompose_hadamard_free(
         if destabz_update[i][i]:
             S2_circ.s(i)
 
+################################################################################
+#### Changed Part ##############################################################
+
     if cx_cz_synth_func is not None:
-        CZ2_circ, CX_circ = cx_cz_synth_func(
-            destabz_update, cliff.destab_x.transpose(), num_qubits=num_qubits
-        )
-        return S2_circ, CZ2_circ, CX_circ
+
+        # The cx_cz_synth_func takes as input Mx/Mz representing a CX/CZ circuit
+        # and returns the circuit -CZ-CX- implementing them both
+        for i in range(num_qubits):
+            destabz_update[i][i] = 0
+
+        mat_z = destabz_update
+        mat_x = calc_inverse_matrix(destabx.transpose())
+
+        CXCZ_circ = cx_cz_synth_func(mat_x, mat_z)
+
+
+        return S2_circ, QuantumCircuit(num_qubits), CXCZ_circ
+
+################################################################################
+
 
     CZ2_circ = cz_synth_func(destabz_update)
 
