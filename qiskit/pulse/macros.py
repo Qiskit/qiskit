@@ -17,11 +17,13 @@ from typing import Dict, List, Optional, Union
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
+from qiskit.transpiler.target import Target
 
 
 def measure(
     qubits: List[int],
     backend=None,
+    target: Optional[Target] = None,
     inst_map: Optional[InstructionScheduleMap] = None,
     meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
     qubit_mem_slots: Optional[Dict[int, int]] = None,
@@ -52,10 +54,23 @@ def measure(
         PulseError: If both ``inst_map`` or ``meas_map``, and ``backend`` is None.
     """
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
+
     try:
-        inst_map = inst_map or backend.defaults().instruction_schedule_map
-        meas_map = meas_map or backend.configuration().meas_map
+        # backend is V2.
+        if backend is None or hasattr(backend, "target"):
+            if target is None:
+                target = backend.target
+            if meas_map is not None:
+                target.meas_map = meas_map
+            inst_map = generate_schedule(*target.meas_map.get_qubit_groups(*qubits))
+            meas_map = meas_map or target.meas_map
+        else:
+            inst_map = inst_map or backend.defaults().instruction_schedule_map
+            meas_map = meas_map or backend.configuration().meas_map
     except AttributeError as ex:
+        # Need to correct the below message when using backendV2.
+        # Both inst_map and backend can be allowed to be None because 
+        # inst_map is generated from target. 
         raise exceptions.PulseError(
             "inst_map or meas_map, and backend cannot be None simultaneously"
         ) from ex
