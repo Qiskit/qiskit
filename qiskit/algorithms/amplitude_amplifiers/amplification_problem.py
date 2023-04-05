@@ -167,9 +167,7 @@ class AmplificationProblem:
             return self._is_good_state  # returns None if no is_good_state arg has been set
         elif isinstance(self._is_good_state, list):
             if all(isinstance(good_bitstr, str) for good_bitstr in self._is_good_state):
-                return (
-                    lambda bitstr: bitstr in self._is_good_state
-                )  # error due to https://github.com/python/mypy/issues/4297
+                return lambda bitstr: bitstr in self._is_good_state
             else:
                 return lambda bitstr: all(
                     bitstr[good_index] == "1" for good_index in self._is_good_state
