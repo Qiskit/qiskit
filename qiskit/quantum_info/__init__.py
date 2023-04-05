@@ -182,4 +182,3 @@ from .synthesis import (
     decompose_clifford,
     two_qubit_cnot_decompose,
 )
-
