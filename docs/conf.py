@@ -16,6 +16,7 @@
 
 # -- General configuration ---------------------------------------------------
 import datetime
+import doctest
 
 project = "Qiskit"
 copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
@@ -37,7 +38,9 @@ extensions = [
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
+    "sphinx.ext.doctest"
 ]
+
 templates_path = ["_templates"]
 
 # Number figures, tables and code-blocks if they have a caption.
@@ -62,6 +65,7 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
+    "qiskit_ibm_runtime": ("https://qiskit.org/documentation/partners/qiskit_ibm_runtime/", None)
 }
 
 # -- Options for HTML output -------------------------------------------------
@@ -108,3 +112,7 @@ autosummary_filename_map = {
 }
 
 autoclass_content = "both"
+
+# -- Options for doctest -------------------------------------
+
+doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE | doctest.IGNORE_EXCEPTION_DETAIL | doctest.DONT_ACCEPT_TRUE_FOR_1
