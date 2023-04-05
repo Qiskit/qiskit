@@ -58,8 +58,8 @@ distributions. These tools allowed to refactor the :mod:`qiskit.algorithms` modu
 
     The transition away from :mod:`qiskit.opflow` affects the classes that algorithms take as part of the problem
     setup. As a rule of thumb, most :mod:`qiskit.opflow` dependencies have a direct :mod:`qiskit.quantum_info`
-    replacement. One common example is the class :mod:`qiskit.opflow.PauliSumOp`, used to define hamiltonian
-    operators (for example, to plug into VQE), that can be replaced by :mod:`qiskit.quantum_info.SparsePauliOp`.
+    replacement. One common example is the class :mod:`qiskit.opflow.PauliSumOp`, used to define Hamiltonians
+    (for example, to plug into VQE), that can be replaced by :mod:`qiskit.quantum_info.SparsePauliOp`.
     For information on how to migrate other :mod:`~qiskit.opflow` objects, you can refer to the
     `Opflow migration guide <https://qisk.it/opflow_migration>`_.
 
@@ -69,7 +69,7 @@ For further background and detailed migration steps, see the:
 * `Quantum Instance migration guide <https://qisk.it/qi_migration>`_
 
 
-How to Choose a Primitive Configuration for your Algorithm
+How to choose a primitive configuration for your algorithm
 ==========================================================
 
 *Back to* `TL;DR`_
@@ -177,9 +177,9 @@ VQE
 
 The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.VQE` class has now been split according to the use-case:
 
-- For general-purpose hamiltonians, you can use the Estimator-based :class:`qiskit.algorithms.minimum_eigensolvers.VQE`
+- For general-purpose Hamiltonians, you can use the Estimator-based :class:`qiskit.algorithms.minimum_eigensolvers.VQE`
   class.
-- If you have a diagonal hamiltonian, and would like the algorithm to return a sampling of the state, you can use
+- If you have a diagonal Hamiltonian, and would like the algorithm to return a sampling of the state, you can use
   the new Sampler-based :class:`qiskit.algorithms.minimum_eigensolvers.SamplingVQE` algorithm. This could formerly
   be realized using the legacy :class:`~qiskit.algorithms.minimum_eigen_solvers.VQE` with
   :class:`~qiskit.opflow.expectations.CVaRExpectation`.
@@ -304,7 +304,7 @@ The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.VQE` class has now be
         expectation = CVaRExpectation(alpha=0.2)
         vqe = VQE(ansatz, optimizer=opt, expectation=expectation, quantum_instance=qi)
 
-        # diagonal hamiltonian
+        # diagonal Hamiltonian
         hamiltonian = PauliSumOp.from_list([("ZZ",1), ("IZ", -0.5), ("II", 0.12)])
         result = vqe.compute_minimum_eigenvalue(hamiltonian)
 
@@ -341,7 +341,7 @@ The legacy :class:`qiskit.algorithms.minimum_eigen_solvers.VQE` class has now be
         aer_sampler = AerSampler(run_options={"shots": 2048, "seed": 42})
         vqe = SamplingVQE(aer_sampler, ansatz, opt, aggregation=0.2)
 
-        # diagonal hamiltonian
+        # diagonal Hamiltonian
         hamiltonian = SparsePauliOp.from_list([("ZZ",1), ("IZ", -0.5), ("II", 0.12)])
         result = vqe.compute_minimum_eigenvalue(hamiltonian)
 
