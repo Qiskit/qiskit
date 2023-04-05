@@ -214,6 +214,8 @@ class BackendEstimator(BaseEstimator):
                             for i, v in enumerate(layout.final_layout.get_virtual_bits().values())
                         }
                         perm_pattern = [final_mapping[i] for i in perm_pattern]
+                else:
+                    perm_pattern = list(range(transpiled_circuit.num_qubits))
             else:
                 transpiled_circuit = common_circuit.copy()
                 perm_pattern = list(range(common_circuit.num_qubits))
