@@ -199,18 +199,24 @@ class BackendEstimator(BaseEstimator):
         self._transpiled_circuits = []
         for common_circuit, diff_circuits in self.preprocessed_circuits:
             # 1. transpile a common circuit
-            common_circuit = common_circuit.copy()
-            num_qubits = common_circuit.num_qubits
-            transpiled_circuit = (
-                transpile(common_circuit, self.backend, **self.transpile_options.__dict__)
-                if not self._skip_transpilation
-                else common_circuit
-            )
-            layout = transpiled_circuit.layout
-            perm_pattern = [layout.initial_layout.get_virtual_bits()[v] for v in common_circuit.qubits]
-            if layout.final_layout is not None:
-                final_mapping = {i: v for i, v in enumerate(layout.final_layout.get_virtual_bits().values())}
-                perm_pattern = [final_mapping[i] for i in perm_pattern]
+            if not self._skip_transpilation:
+                transpiled_circuit = transpile(
+                    common_circuit, self.backend, **self.transpile_options.__dict__
+                )
+                if transpiled_circuit.layout is not None:
+                    layout = transpiled_circuit.layout
+                    perm_pattern = [
+                        layout.initial_layout.get_virtual_bits()[v] for v in common_circuit.qubits
+                    ]
+                    if layout.final_layout is not None:
+                        final_mapping = {
+                            i: v
+                            for i, v in enumerate(layout.final_layout.get_virtual_bits().values())
+                        }
+                        perm_pattern = [final_mapping[i] for i in perm_pattern]
+            else:
+                transpiled_circuit = common_circuit.copy()
+                perm_pattern = list(range(common_circuit.num_qubits))
 
             # 2. transpile diff circuits
             transpile_opts = copy.copy(self.transpile_options)
