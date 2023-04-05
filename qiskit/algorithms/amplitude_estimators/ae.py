@@ -355,7 +355,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         if estimation_problem.objective_qubits is None:
             raise ValueError("The objective_qubits property of the estimation problem must be set.")
 
-        if estimation_problem._is_good_state is not None:
+        if estimation_problem.has_good_state:
             warnings.warn(
                 "The AmplitudeEstimation class does not support an is_good_state function to "
                 "identify good states. The oracle has to be set using the grover_operator, otherwise "
