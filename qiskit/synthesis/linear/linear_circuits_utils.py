@@ -186,6 +186,8 @@ def _linear_circuit_check_map(qc: QuantumCircuit, coupling_list: list) -> bool:
         q1 = bit_indices[circuit_instruction.qubits[1]]
         if (q0, q1) not in coupling_list_set:
             return False
+    return True
+
 
 def check_lnn_connectivity(qc: QuantumCircuit) -> bool:
     """Check that the synthesized circuit qc fits linear nearest neighbor connectivity.
