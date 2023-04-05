@@ -201,28 +201,31 @@ class BackendEstimator(BaseEstimator):
             # 1. transpile a common circuit
             common_circuit = common_circuit.copy()
             num_qubits = common_circuit.num_qubits
-            common_circuit.measure_all()
-            if not self._skip_transpilation:
-                common_circuit = transpile(
-                    common_circuit, self.backend, **self.transpile_options.__dict__
-                )
-            bit_map = {bit: index for index, bit in enumerate(common_circuit.qubits)}
-            layout = [bit_map[qr[0]] for _, qr, _ in common_circuit[-num_qubits:]]
-            common_circuit.remove_final_measurements()
+            transpiled_circuit = (
+                transpile(common_circuit, self.backend, **self.transpile_options.__dict__)
+                if not self._skip_transpilation
+                else common_circuit
+            )
+            layout = transpiled_circuit.layout
+            perm_pattern = [layout.initial_layout.get_virtual_bits()[v] for v in common_circuit.qubits]
+            if layout.final_layout is not None:
+                final_mapping = {i: v for i, v in enumerate(layout.final_layout.get_virtual_bits().values())}
+                perm_pattern = [final_mapping[i] for i in perm_pattern]
+
             # 2. transpile diff circuits
             transpile_opts = copy.copy(self.transpile_options)
-            transpile_opts.update_options(initial_layout=layout)
+            transpile_opts.update_options(initial_layout=perm_pattern)
             diff_circuits = transpile(diff_circuits, self.backend, **transpile_opts.__dict__)
             # 3. combine
             transpiled_circuits = []
             for diff_circuit in diff_circuits:
-                transpiled_circuit = common_circuit.copy()
+                transpiled_circuit_copy = transpiled_circuit.copy()
                 for creg in diff_circuit.cregs:
-                    if creg not in transpiled_circuit.cregs:
-                        transpiled_circuit.add_register(creg)
-                transpiled_circuit.compose(diff_circuit, inplace=True)
-                transpiled_circuit.metadata = diff_circuit.metadata
-                transpiled_circuits.append(transpiled_circuit)
+                    if creg not in transpiled_circuit_copy.cregs:
+                        transpiled_circuit_copy.add_register(creg)
+                transpiled_circuit_copy.compose(diff_circuit, inplace=True)
+                transpiled_circuit_copy.metadata = diff_circuit.metadata
+                transpiled_circuits.append(transpiled_circuit_copy)
             self._transpiled_circuits += transpiled_circuits
 
     def _call(
