@@ -12,10 +12,11 @@
 """
 Readout mitigator class based on the 1-qubit local tensored mitigation method
 """
-
+from __future__ import annotations
 
 import math
-from typing import Optional, List, Tuple, Iterable, Callable, Union, Dict
+from collections.abc import Sequence, Callable, Collection
+from typing import Any
 import numpy as np
 
 from qiskit.exceptions import QiskitError
@@ -39,8 +40,8 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
     def __init__(
         self,
-        assignment_matrices: Optional[List[np.ndarray]] = None,
-        qubits: Optional[Iterable[int]] = None,
+        assignment_matrices: list[np.ndarray] | None = None,
+        qubits: Sequence[int] | None = None,
         backend=None,
     ):
         """Initialize a LocalReadoutMitigator
@@ -64,7 +65,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
                 )
         if qubits is None:
             self._num_qubits = len(assignment_matrices)
-            self._qubits = range(self._num_qubits)
+            self._qubits: Sequence[int] | None = range(self._num_qubits)
         else:
             if len(qubits) != len(assignment_matrices):
                 raise QiskitError(
@@ -93,18 +94,18 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             self._mitigation_mats[i] = ainv
 
     @property
-    def settings(self) -> Dict:
+    def settings(self) -> dict[str, Any]:
         """Return settings."""
         return {"assignment_matrices": self._assignment_mats, "qubits": self._qubits}
 
     def expectation_value(
         self,
         data: Counts,
-        diagonal: Union[Callable, dict, str, np.ndarray] = None,
-        qubits: Iterable[int] = None,
-        clbits: Optional[List[int]] = None,
-        shots: Optional[int] = None,
-    ) -> Tuple[float, float]:
+        diagonal: Callable | dict | str | np.ndarray | None = None,
+        qubits: Sequence[int] | None = None,
+        clbits: Collection[int] | None = None,
+        shots: int | None = None,
+    ) -> tuple[float, float]:
         r"""Compute the mitigated expectation value of a diagonal observable.
 
         This computes the mitigated estimator of
@@ -154,7 +155,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         # Apply transpose of mitigation matrix
         coeffs = np.reshape(diagonal, num_qubits * [2])
-        einsum_args = [coeffs, list(range(num_qubits))]
+        einsum_args: list[np.ndarray | list[int]] = [coeffs, list(range(num_qubits))]
         for i, ainv in enumerate(reversed(ainvs)):
             einsum_args += [ainv.T, [num_qubits + i, i]]
         einsum_args += [list(range(num_qubits, 2 * num_qubits))]
@@ -168,9 +169,9 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
     def quasi_probabilities(
         self,
         data: Counts,
-        qubits: Optional[List[int]] = None,
-        clbits: Optional[List[int]] = None,
-        shots: Optional[int] = None,
+        qubits: Sequence[int] | None = None,
+        clbits: Collection[int] | None = None,
+        shots: int | None = None,
     ) -> QuasiDistribution:
         """Compute mitigated quasi probabilities value.
 
@@ -207,7 +208,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
 
         # Apply transpose of mitigation matrix
         prob_tens = np.reshape(probs_vec, num_qubits * [2])
-        einsum_args = [prob_tens, list(range(num_qubits))]
+        einsum_args: list[np.ndarray | list[int]] = [prob_tens, list(range(num_qubits))]
         for i, ainv in enumerate(reversed(ainvs)):
             einsum_args += [ainv, [num_qubits + i, i]]
         einsum_args += [list(range(num_qubits, 2 * num_qubits))]
@@ -222,7 +223,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         )
         return quasi_dist
 
-    def mitigation_matrix(self, qubits: Optional[Union[List[int], int]] = None) -> np.ndarray:
+    def mitigation_matrix(self, qubits: Sequence[int] | int | None = None) -> np.ndarray:
         r"""Return the measurement mitigation matrix for the specified qubits.
 
         The mitigation matrix :math:`A^{-1}` is defined as the inverse of the
@@ -246,7 +247,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             mat = np.kron(self._mitigation_mats[i], mat)
         return mat
 
-    def assignment_matrix(self, qubits: List[int] = None) -> np.ndarray:
+    def assignment_matrix(self, qubits: Collection[int] | int | None = None) -> np.ndarray:
         r"""Return the measurement assignment matrix for specified qubits.
 
         The assignment matrix is the stochastic matrix :math:`A` which assigns
@@ -278,7 +279,7 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
             gammas = self._gammas[qubit_indices]
         return np.prod(gammas)
 
-    def stddev_upper_bound(self, shots: int, qubits: List[int] = None):
+    def stddev_upper_bound(self, shots: int, qubits: Collection[int] | None = None):
         """Return an upper bound on standard deviation of expval estimator.
 
         Args:
@@ -315,6 +316,6 @@ class LocalReadoutMitigator(BaseReadoutMitigator):
         return amats
 
     @property
-    def qubits(self) -> Tuple[int]:
+    def qubits(self) -> tuple[int]:
         """The device qubits for this mitigator"""
-        return self._qubits
+        return self._qubits  # TODO: cast to tuple or change return type
