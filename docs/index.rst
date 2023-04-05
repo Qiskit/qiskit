@@ -7,7 +7,6 @@ Qiskit Terra documentation
   :hidden:
 
   API References <apidocs/terra>
-  Migration Guides <migration_guides/index>
   Release Notes <release_notes>
   Migration Guides <migration_guides/index>
   
