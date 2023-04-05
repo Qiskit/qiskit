@@ -132,7 +132,6 @@ class HighLevelSynthesis(TransformationPass):
         self._target = target
         if target is not None:
             self._coupling_map = self._target.build_coupling_map()
-        print(f"HLS: {self._coupling_map = }")
 
         if hls_config is not None:
             self.hls_config = hls_config
