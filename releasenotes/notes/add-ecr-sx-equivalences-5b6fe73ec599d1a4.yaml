@@ -1,5 +1,5 @@
 ---
-feature:
+features:
   - |
     Added a decomposition of an :class:`.CXGate` into :class:`.ECRGate` and 1-qubit Clifford gates
     (up to a global phase) into the :class:`.EquivalenceLibrary`.
