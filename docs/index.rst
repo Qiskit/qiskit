@@ -8,7 +8,8 @@ Qiskit Terra documentation
 
   API References <apidocs/terra>
   Release Notes <release_notes>
-
+  Migration Guides <migration_guides/index>
+  
 .. Hiding - Indices and tables
    :ref:`genindex`
    :ref:`modindex`
