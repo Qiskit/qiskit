@@ -130,7 +130,7 @@ Synthesis
    XXDecomposer
 """
 
-from .analysis import hellinger_distance, hellinger_fidelity
+from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
 from .operators import (
     Clifford,
     Operator,
@@ -182,4 +182,4 @@ from .synthesis import (
     decompose_clifford,
     two_qubit_cnot_decompose,
 )
-from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
+
