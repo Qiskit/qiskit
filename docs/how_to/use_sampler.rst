@@ -7,6 +7,17 @@ This guide shows how to get the probability distribution of a quantum circuit wi
 .. note::
 
     While this guide uses Qiskit’s reference implementation, the ``Sampler`` primitive can be run with any provider using :class:`~qiskit.primitives.BackendSampler`.
+    
+    .. code-block::
+
+        from qiskit.primitives import BackendSampler
+        from qiskit_provider import QiskitProvider
+
+        provider = QiskitProvider()
+        backend = provider.get_backend('backend_name')
+        sampler = BackendSampler(backend)
+
+    There are some providers that implement primitives natively (see `this page <http://qiskit.org/providers/#primitives>`_ for more details).
 
 Initialize quantum circuits
 ===========================

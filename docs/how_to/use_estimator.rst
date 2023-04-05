@@ -7,6 +7,17 @@ This guide shows how to get the expected value of an observable for a given quan
 .. note::
 
     While this guide uses Qiskit’s reference implementation, the ``Estimator`` primitive can be run with any provider using :class:`~qiskit.primitives.BackendEstimator` .
+    
+    .. code-block::
+
+        from qiskit.primitives import BackendEstimator
+        from qiskit_provider import QiskitProvider
+
+        provider = QiskitProvider()
+        backend = provider.get_backend('backend_name')
+        estimator = BackendEstimator(backend)
+
+    There are some providers that implement primitives natively (see `this page <http://qiskit.org/providers/#primitives>`_ for more details).
 
 
 Initialize observable
