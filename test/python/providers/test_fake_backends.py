@@ -14,6 +14,7 @@
 # pylint: disable=missing-module-docstring
 
 import datetime
+import itertools
 import operator
 import unittest
 
@@ -568,3 +569,27 @@ class TestFakeBackends(QiskitTestCase):
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
         for i in range(v2_backend.num_qubits):
             self.assertIn((i,), v2_backend.target.qargs)
+
+    @data(0, 1, 2, 3)
+    def test_faulty_full_path_transpile_connected_cmap(self, opt_level):
+        backend = FakeYorktown()
+        non_operational_gate = {
+            "date": datetime.datetime.utcnow(),
+            "name": "operational",
+            "unit": "",
+            "value": 0,
+        }
+        props = backend.properties().to_dict()
+        for gate in props["gates"]:
+            if tuple(sorted(gate["qubits"])) == (0, 1):
+                gate["parameters"].append(non_operational_gate)
+        backend._properties = BackendProperties.from_dict(props)
+        v2_backend = BackendV2Converter(backend, filter_faulty=True)
+        qc = QuantumCircuit(5)
+        for x, y in itertools.product(range(5), range(5)):
+            if x == y:
+                continue
+            qc.cx(x, y)
+        tqc = transpile(qc, v2_backend, seed_transpiler=433, optimization_level=opt_level)
+        connections = [tuple(sorted(tqc.find_bit(q).index for q in x.qubits)) for x in tqc.data]
+        self.assertNotIn((0, 1), connections)
