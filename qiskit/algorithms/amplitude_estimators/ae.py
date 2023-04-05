@@ -187,7 +187,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         self,
         circuit_results: dict[str, int] | np.ndarray,
         threshold: float = 1e-6,
-    ) -> tuple[dict[int, float], dict[float, float]]:
+    ) -> tuple[dict[float, float], dict[int, float]]:
         """Evaluate the results from the circuit simulation.
 
         Given the probabilities from statevector simulation of the QAE circuit, compute the
@@ -249,10 +249,10 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
         return samples, measurements
 
-    def _evaluate_count_results(self, counts):
+    def _evaluate_count_results(self, counts) -> tuple[dict[float, float], dict[int, float]]:
         # construct probabilities
-        measurements = OrderedDict()
-        samples = OrderedDict()
+        measurements: dict[int, float] = OrderedDict()
+        samples: dict[float, float] = OrderedDict()
         shots = sum(counts.values())
         for state, count in counts.items():
             y = int(state.replace(" ", "")[: self._m][::-1], 2)
@@ -405,7 +405,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         # store the number of oracle queries
         result.num_oracle_queries = result.shots * (self._M - 1)
 
-        # run the MLE post processing
+        # run the MLE post-processing
         mle = self.compute_mle(result)
         result.mle = mle
         result.mle_processed = estimation_problem.post_processing(mle)
@@ -457,13 +457,13 @@ class AmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._num_evaluation_qubits = None
-        self._mle = None
-        self._mle_processed = None
-        self._samples = None
-        self._samples_processed = None
-        self._y_measurements = None
-        self._max_probability = None
+        self._num_evaluation_qubits: int | None = None
+        self._mle: float | None = None
+        self._mle_processed: float | None = None
+        self._samples: dict[float, float] | None = None
+        self._samples_processed: dict[float, float] | None = None
+        self._y_measurements: dict[int, float] | None = None
+        self._max_probability: float | None = None
 
     @property
     def num_evaluation_qubits(self) -> int:
@@ -571,7 +571,7 @@ def _compute_fisher_information(result: AmplitudeEstimationResult, observed: boo
 
 def _fisher_confint(
     result: AmplitudeEstimationResult, alpha: float, observed: bool = False
-) -> list[float]:
+) -> tuple[float, float]:
     """Compute the Fisher information confidence interval for the MLE of the previous run.
 
     Args:
@@ -588,10 +588,12 @@ def _fisher_confint(
     confint = result.mle + norm.ppf(1 - alpha / 2) / std * np.array([-1, 1])
 
     # transform the confidence interval from [0, 1] to the target interval
-    return tuple(result.post_processing(bound) for bound in confint)
+    return result.post_processing(confint[0]), result.post_processing(confint[1])
 
 
-def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -> list[float]:
+def _likelihood_ratio_confint(
+    result: AmplitudeEstimationResult, alpha: float
+) -> tuple[float, float]:
     """Compute the likelihood ratio confidence interval for the MLE of the previous run.
 
     Args:
@@ -659,5 +661,4 @@ def _likelihood_ratio_confint(result: AmplitudeEstimationResult, alpha: float) -
                 upper = np.maximum(upper, right)
 
     # Put together CI
-    confint = [lower, upper]
-    return tuple(result.post_processing(bound) for bound in confint)
+    return result.post_processing(lower), result.post_processing(upper)
