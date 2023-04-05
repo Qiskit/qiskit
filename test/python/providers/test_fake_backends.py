@@ -13,6 +13,8 @@
 # pylint: disable=missing-class-docstring,missing-function-docstring
 # pylint: disable=missing-module-docstring
 
+import datetime
+import itertools
 import operator
 import unittest
 
@@ -31,8 +33,10 @@ from qiskit.providers.fake_provider import (
     FakeMumbaiV2,
     FakeYorktown,
     FakeMumbai,
+    FakeWashington,
 )
 from qiskit.providers.backend_compat import BackendV2Converter
+from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.providers.backend import BackendV2
 from qiskit.utils import optionals
 from qiskit.circuit.library import (
@@ -460,3 +464,132 @@ class TestFakeBackends(QiskitTestCase):
         counts = result.get_counts()
         max_count = max(counts.items(), key=operator.itemgetter(1))[0]
         self.assertEqual(max_count, "11")
+
+    def test_filter_faulty_qubits_backend_v2_converter(self):
+        """Test faulty qubits in v2 conversion."""
+        backend = FakeWashington()
+        # Get properties dict to make it easier to work with the properties API
+        # is difficult to edit because of the multiple layers of nesting and
+        # different object types
+        props_dict = backend.properties().to_dict()
+        for i in range(62, 67):
+            non_operational = {
+                "date": datetime.datetime.utcnow(),
+                "name": "operational",
+                "unit": "",
+                "value": 0,
+            }
+            props_dict["qubits"][i].append(non_operational)
+        backend._properties = BackendProperties.from_dict(props_dict)
+        v2_backend = BackendV2Converter(backend, filter_faulty=True)
+        for i in range(62, 67):
+            for qarg in v2_backend.target.qargs:
+                self.assertNotIn(i, qarg)
+
+    def test_filter_faulty_qubits_and_gates_backend_v2_converter(self):
+        """Test faulty gates and qubits."""
+        backend = FakeWashington()
+        # Get properties dict to make it easier to work with the properties API
+        # is difficult to edit because of the multiple layers of nesting and
+        # different object types
+        props_dict = backend.properties().to_dict()
+        for i in range(62, 67):
+            non_operational = {
+                "date": datetime.datetime.utcnow(),
+                "name": "operational",
+                "unit": "",
+                "value": 0,
+            }
+            props_dict["qubits"][i].append(non_operational)
+        invalid_cx_edges = {
+            (113, 114),
+            (114, 113),
+            (96, 100),
+            (100, 96),
+            (114, 109),
+            (109, 114),
+            (24, 34),
+            (34, 24),
+        }
+        non_operational_gate = {
+            "date": datetime.datetime.utcnow(),
+            "name": "operational",
+            "unit": "",
+            "value": 0,
+        }
+        for gate in props_dict["gates"]:
+            if tuple(gate["qubits"]) in invalid_cx_edges:
+                gate["parameters"].append(non_operational_gate)
+
+        backend._properties = BackendProperties.from_dict(props_dict)
+        v2_backend = BackendV2Converter(backend, filter_faulty=True)
+        for i in range(62, 67):
+            for qarg in v2_backend.target.qargs:
+                self.assertNotIn(i, qarg)
+        for edge in invalid_cx_edges:
+            self.assertNotIn(edge, v2_backend.target["cx"])
+
+    def test_filter_faulty_gates_v2_converter(self):
+        """Test just faulty gates in conversion."""
+        backend = FakeWashington()
+        # Get properties dict to make it easier to work with the properties API
+        # is difficult to edit because of the multiple layers of nesting and
+        # different object types
+        props_dict = backend.properties().to_dict()
+        invalid_cx_edges = {
+            (113, 114),
+            (114, 113),
+            (96, 100),
+            (100, 96),
+            (114, 109),
+            (109, 114),
+            (24, 34),
+            (34, 24),
+        }
+        non_operational_gate = {
+            "date": datetime.datetime.utcnow(),
+            "name": "operational",
+            "unit": "",
+            "value": 0,
+        }
+        for gate in props_dict["gates"]:
+            if tuple(gate["qubits"]) in invalid_cx_edges:
+                gate["parameters"].append(non_operational_gate)
+
+        backend._properties = BackendProperties.from_dict(props_dict)
+        v2_backend = BackendV2Converter(backend, filter_faulty=True)
+        for i in range(62, 67):
+            self.assertIn((i,), v2_backend.target.qargs)
+        for edge in invalid_cx_edges:
+            self.assertNotIn(edge, v2_backend.target["cx"])
+
+    def test_filter_faulty_no_faults_v2_converter(self):
+        """Test that faulty qubit filtering does nothing with all operational qubits and gates."""
+        backend = FakeWashington()
+        v2_backend = BackendV2Converter(backend, filter_faulty=True)
+        for i in range(v2_backend.num_qubits):
+            self.assertIn((i,), v2_backend.target.qargs)
+
+    @data(0, 1, 2, 3)
+    def test_faulty_full_path_transpile_connected_cmap(self, opt_level):
+        backend = FakeYorktown()
+        non_operational_gate = {
+            "date": datetime.datetime.utcnow(),
+            "name": "operational",
+            "unit": "",
+            "value": 0,
+        }
+        props = backend.properties().to_dict()
+        for gate in props["gates"]:
+            if tuple(sorted(gate["qubits"])) == (0, 1):
+                gate["parameters"].append(non_operational_gate)
+        backend._properties = BackendProperties.from_dict(props)
+        v2_backend = BackendV2Converter(backend, filter_faulty=True)
+        qc = QuantumCircuit(5)
+        for x, y in itertools.product(range(5), range(5)):
+            if x == y:
+                continue
+            qc.cx(x, y)
+        tqc = transpile(qc, v2_backend, seed_transpiler=433, optimization_level=opt_level)
+        connections = [tuple(sorted(tqc.find_bit(q).index for q in x.qubits)) for x in tqc.data]
+        self.assertNotIn((0, 1), connections)
