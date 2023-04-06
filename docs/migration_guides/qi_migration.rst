@@ -99,6 +99,12 @@ yourself two questions:
     b. **Probability distribution** (from sampling the device) - you will need a ``Sampler``
 
 2. How do you want to execute your circuits?
+
+    This question is not new. In the legacy algorithm workflow, you would have to decide to set up a
+    :class:`~qiskit.utils.QuantumInstance` with either a real backend from a provider, or a simulator.
+    Now, this "backend selection" process is translated to **where** do you import your primitives
+    from:
+
     a. Using **local** statevector simulators for quick prototyping: **Reference Primitives**
     b. Using **local** noisy simulations for finer algorithm tuning: **Aer Primitives**
     c. Accessing **runtime-enabled backends** (or cloud simulators): **Runtime Primitives**
@@ -192,13 +198,15 @@ primitives **expose a similar setting through their interface**:
 Code examples
 =============
 
-.. dropdown:: Example 1: Circuit Sampling with Local Statevector Simulation
+.. dropdown:: Example 1: Circuit Sampling with Local Simulation
     :animate: fade-in-slide-down
 
     **Using Quantum Instance**
 
-    The only alternative for local simulations using the quantum instance was using an Aer Simulator backend.
-    Please note that ``QuantumInstance.execute()`` returned the counts bitstrings in hexadecimal format.
+    The only alternative for local simulations using the quantum instance was using an Aer simulator backend.
+    If no simulation method is specified, the Aer simulator will default to an exact simulation
+    (statevector/stabilizer), if shots are specified, it will add shot noise.
+    Please note that ``QuantumInstance.execute()`` returned the counts in hexadecimal format.
 
     .. code-block:: python
 
@@ -212,7 +220,7 @@ Code examples
         circuit.measure_all()
 
         simulator = AerSimulator()
-        qi = QuantumInstance(backend=simulator, shots=200, backend_options={"method": "statevector"})
+        qi = QuantumInstance(backend=simulator, shots=200)
         result = qi.execute(circuit).results[0]
         data = result.data
         counts = data.counts
@@ -225,26 +233,19 @@ Code examples
 
         Counts: {'0x3': 200}
         Data: ExperimentResultData(counts={'0x3': 200})
-        Result: ExperimentResult(shots=200, success=True, meas_level=2, data=ExperimentResultData(counts={'0x3': 200}), header=QobjExperimentHeader(clbit_labels=[['meas', 0], ['meas', 1]], creg_sizes=[['meas', 2]], global_phase=0.0, memory_slots=2, metadata={}, n_qubits=2, name='circuit-112', qreg_sizes=[['q', 2]], qubit_labels=[['q', 0], ['q', 1]]), status=DONE, seed_simulator=3116700546, metadata={'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 6.0573e-05, 'noise': 'ideal', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1], 'measure_sampling': True, 'num_clbits': 2, 'input_qubit_map': [[1, 1], [0, 0]], 'num_qubits': 2, 'method': 'statevector', 'fusion': {'applied': False, 'max_fused_qubits': 5, 'threshold': 14, 'enabled': True}}, time_taken=0.000426016)
-
+        Result:  ExperimentResult(shots=200, success=True, meas_level=2, data=ExperimentResultData(counts={'0x3': 200}), header=QobjExperimentHeader(clbit_labels=[['meas', 0], ['meas', 1]], creg_sizes=[['meas', 2]], global_phase=0.0, memory_slots=2, metadata={}, n_qubits=2, name='circuit-99', qreg_sizes=[['q', 2]], qubit_labels=[['q', 0], ['q', 1]]), status=DONE, seed_simulator=2846213898, metadata={'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 0.00025145, 'noise': 'ideal', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1], 'measure_sampling': True, 'num_clbits': 2, 'input_qubit_map': [[1, 1], [0, 0]], 'num_qubits': 2, 'method': 'stabilizer', 'fusion': {'enabled': False}}, time_taken=0.000672166)
 
     **Using Primitives**
 
-    The primitives offer two alternatives for local statevector simulation, one with the Reference primitives
+    The primitives offer two alternatives for local simulation, one with the Reference primitives
     and one with the Aer primitives. As mentioned above the closest alternative to ``QuantumInstance.execute()``
     for sampling is the ``Sampler`` primitive.
 
     **a. Using the Reference Primitives**
 
-    Basic statevector simulation based on the :class:`qiskit.quantum_info.Statevector` class. Please note that
+    Basic statevector simulation based on the :class:`qiskit.quantum_info.Statevector` class. If shots are
+    specified, the results will include shot noise. Please note that
     the resulting quasi-probability distribution does not use bitstrings but **integers** to identify the states.
-
-    .. attention::
-
-        In some cases, a setting might not be exposed through the interface, but there might an alternative path to make
-        it work. This is the case for custom transpiler passes, which cannot be set through the primitives interface,
-        but pre-transpiled circuits can be sent if setting the option ``skip_transpilation=True``. For more information,
-        please refer to the API reference or source code of the desired primitive implementation.
 
     .. code-block:: python
 
@@ -270,15 +271,16 @@ Code examples
 
     **b. Using the Aer Primitives**
 
-    Aer simulation following the statevector method. This would be the direct 1-1 replacement of the :class:`~qiskit.utils.QuantumInstance`
+    Aer simulation following the statevector method. This would be the closer replacement of the
+    :class:`~qiskit.utils.QuantumInstance`
     example, as they are both accessing the same simulator. For this reason, the output metadata is
     closer to the Quantum Instance's output. Please note that
     the resulting quasi-probability distribution does not use bitstrings but **integers** to identify the states.
 
     .. note::
 
-        The :class:`qiskit.result.QuasiDistribution` class returned by the ``Sampler`` exposes two methods to convert
-        the result keys from integer to binary strings/hexadecimal:
+        The :class:`qiskit.result.QuasiDistribution` class returned as part of the :class:`qiskit.primitives.SamplerResult`
+        exposes two methods to convert the result keys from integer to binary strings/hexadecimal:
 
             - :meth:`qiskit.result.QuasiDistribution.binary_probabilities`
             - :meth:`qiskit.result.QuasiDistribution.hex_probabilities`
@@ -299,15 +301,18 @@ Code examples
         sampler = Sampler()
         result = sampler.run(circuit, shots=200).result()
         quasi_dists = result.quasi_dists
+        # convert keys to binary bitstrings
+        binary_dist = quasi_dists[0].binary_probabilities()
 
         print("Quasi-dists: ", quasi_dists)
         print("Result: ", result)
+        print("Binary quasi-dist: ", binary_dist)
 
     .. code-block:: text
 
         Quasi-dists: [{3: 1.0}]
         Result: SamplerResult(quasi_dists=[{3: 1.0}], metadata=[{'shots': 200, 'simulator_metadata': {'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 9.016e-05, 'noise': 'ideal', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1], 'measure_sampling': True, 'num_clbits': 2, 'input_qubit_map': [[1, 1], [0, 0]], 'num_qubits': 2, 'method': 'statevector', 'fusion': {'applied': False, 'max_fused_qubits': 5, 'threshold': 14, 'enabled': True}}}])
-
+        Binary quasi-dist:  {'11': 1.0}
 
 .. dropdown:: Example 2: Expectation Value Calculation with Local Noisy Simulation
     :animate: fade-in-slide-down
