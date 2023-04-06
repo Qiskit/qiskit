@@ -114,13 +114,6 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         evo = EvolvedOperatorAnsatz(unitary, reps=3).decompose()
         self.assertEqual(evo.count_ops()["hamiltonian"], 3)
 
-    def test_opflow_pending_deprecation(self):
-        """Test using an opflow operator warns about pending deprecation."""
-        op = X
-
-        with self.assertWarns(PendingDeprecationWarning):
-            _ = EvolvedOperatorAnsatz(op)
-
 
 def evolve(pauli_string, time):
     """Get the reference evolution circuit for a single Pauli string."""

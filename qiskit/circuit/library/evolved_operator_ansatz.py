@@ -219,8 +219,6 @@ class EvolvedOperatorAnsatz(NLocal):
 
 
 def _validate_operators(operators):
-    from qiskit.opflow import OperatorBase
-
     if not isinstance(operators, list):
         operators = [operators]
 
