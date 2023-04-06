@@ -136,7 +136,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
 
     @property
     @deprecate_func(
-        since="0.23.0",
+        since="0.24.0",
         pending=True,
         is_property=True,
         additional_msg="Instead, use the gradient_threshold attribute.",
@@ -150,6 +150,12 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
         return self.gradient_threshold
 
     @threshold.setter
+    @deprecate_func(
+        since="0.24.0",
+        pending=True,
+        is_property=True,
+        additional_msg="Instead, use the gradient_threshold attribute.",
+    )
     def threshold(self, threshold: float) -> None:
         self.gradient_threshold = threshold
 
