@@ -67,21 +67,17 @@ class ForLoopBodyOptimizer(TransformationPass):
         self._global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
         for node in dag.op_nodes(op=ForLoopOp):
             # Optimize order here with pass manager?
-            print(dag_to_circuit(dag))
-            print(repr(dag.op_nodes()[3]))
-            self._optimize_pre(dag, node)
-            print(dag_to_circuit(dag))
-            print(repr(dag.op_nodes()[3]))
-            self._optimize_post(dag, node)
-            print(dag_to_circuit(dag))
-            print(repr(dag.op_nodes()[3]))
+            if self._pre_opt_cnt:
+                self._optimize_pre(dag, node)
+            if self._post_opt_cnt:
+                self._optimize_post(dag, node)
         return dag
 
     def _optimize_pre(self, dag, node):
         indexset, loop_parameter, body = node.op.params
         trial_dag_in, block = _get_predecessor_dag(dag, node, self._pre_opt_cnt)
         #TODO: elliminate this conversion
-        trial_dag_out = circuit_to_dag(self._opt.run([dag_to_circuit(trial_dag_in)]))
+        trial_dag_out = circuit_to_dag(self._opt.run([dag_to_circuit(trial_dag_in)])[0])
         if sum(trial_dag_out.count_ops().values()) < sum(trial_dag_in.count_ops().values()):
             # trim idle qubits so block qubits matches trial_dag_out
             trial_dag_out.remove_qubits(*trial_dag_out.idle_wires())
@@ -98,7 +94,7 @@ class ForLoopBodyOptimizer(TransformationPass):
         indexset, loop_parameter, body = node.op.params
         trial_dag_in, block = _get_successor_dag(dag, node, self._post_opt_cnt)
         #TODO: elliminate this conversion
-        trial_dag_out = circuit_to_dag(self._opt.run([dag_to_circuit(trial_dag_in)]))
+        trial_dag_out = circuit_to_dag(self._opt.run([dag_to_circuit(trial_dag_in)])[0])
         if sum(trial_dag_out.count_ops().values()) < sum(trial_dag_in.count_ops().values()):
             # trim idle qubits so block qubits matches trial_dag_out
             trial_dag_out.remove_qubits(*trial_dag_out.idle_wires())
@@ -125,22 +121,23 @@ def _get_predecessor_dag(dag, node, cnt):
         qargs = [qubit_map[qubit] for qubit in circ_instr.qubits]
         cargs = [clbit_map[qubit] for clbit in circ_instr.clbits]        
         trial_dag.apply_operation_back(circ_instr.operation, qargs=qargs, cargs=cargs)
-
     # add predecessor nodes from dag
-    pre_iter = dag.predecessors(node)
+    pre_iter = dag.bfs_predecessors(node)
     block = [] # tracks the nodes added from _outside_ the loop
     while cnt > 0:
-        print(f"cnt: {cnt}")
+        print(f"cnt: {cnt} {node.name}")
         try:
-            this_node = next(pre_iter)
+            node_rec = next(pre_iter)
+            print(node_rec)
         except StopIteration:
+            print('stop iteration')
+            breakpoint()
             break
-        else:
+        for child_node in node_rec[1]:
+            print(repr(child_node))
+            block.append(child_node)
+            trial_dag.apply_operation_front(child_node.op, qargs=child_node.qargs, cargs=child_node.cargs)
             cnt -= 1
-        if isinstance(this_node, DAGInNode):
-            break
-        block.append(this_node)
-        trial_dag.apply_operation_front(this_node.op, qargs=this_node.qargs, cargs=this_node.cargs)
     return trial_dag, block
 
 def _get_successor_dag(dag, node, cnt):
@@ -159,24 +156,22 @@ def _get_successor_dag(dag, node, cnt):
         trial_dag.apply_operation_back(circ_instr.operation, qargs=qargs, cargs=cargs)
 
     # add predecessor nodes from dag
-    post_iter = dag.successors(node)
+    post_iter = dag.bfs_successors(node)
+
     block = [] # tracks the nodes added from _outside_ the loop
     while cnt > 0:
         print(f"cnt: {cnt}")
         try:
-            this_node = next(post_iter)
+            node_rec = next(post_iter)
         except StopIteration:
             print('stop iteration')
             breakpoint()
             break
-        else:
-            print(this_node.op)
+        for child_node in node_rec[1]:
+            print(repr(child_node))
+            block.append(child_node)
+            trial_dag.apply_operation_back(child_node.op, qargs=child_node.qargs, cargs=child_node.cargs)
             cnt -= 1
-        if isinstance(this_node, DAGOutNode):
-            print('dagoutnode')
-            break
-        block.append(this_node)
-        trial_dag.apply_operation_back(this_node.op, qargs=this_node.qargs, cargs=this_node.cargs)
     return trial_dag, block
 
 def _replace_block_with_dag(dag, block_a, dag_b):
@@ -184,7 +179,7 @@ def _replace_block_with_dag(dag, block_a, dag_b):
     Substitute a block of nodes with a dag
     There should be 1-to-1 correspondance between qubits in block_a and dag_b.
     """
-    block_qubit_inds = sorted([dag.qubits.index(bit) for node in block_a for bit in node.qargs])
+    block_qubit_inds = sorted({dag.qubits.index(bit) for node in block_a for bit in node.qargs})
     if len(block_qubit_inds) != dag_b.num_qubits():
         breakpoint()
         raise TranspilerError(f"Number of qubits in block does not match replacement DAG")

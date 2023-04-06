@@ -1530,6 +1530,30 @@ class DAGCircuit:
         """Returns set of the descendants of a node as DAGOpNodes and DAGOutNodes."""
         return {self._multi_graph[x] for x in rx.descendants(self._multi_graph, node._node_id)}
 
+    def bfs_predecessors(self, node):
+        """
+        Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node
+        and [DAGNode] is its predecessors in BFS order.
+        """
+        from collections import deque
+        queue = deque([(node, None)])
+        visited = set()
+        children = dict()
+        while queue:
+            node, pred = queue.popleft()
+            if node not in visited:
+                visited.add(node)
+                if pred is not None and isinstance(pred, DAGOpNode):
+                    if pred not in children:
+                        children[pred] = []
+                    children[pred].append(node)
+                for child_node in self.predecessors(node):
+                    if child_node not in visited and isinstance(child_node, DAGOpNode):
+                        queue.append((child_node, node))
+        for parent, child_list in children.items():
+            yield parent, child_list
+
+
     def bfs_successors(self, node):
         """
         Returns an iterator of tuples of (DAGNode, [DAGNodes]) where the DAGNode is the current node

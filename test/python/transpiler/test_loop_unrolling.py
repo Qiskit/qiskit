@@ -93,7 +93,8 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         super().setUpClass()
         cls._pass = UnrollForLoops()
 
-    def test_pre_opt(self):
+    def test_pre_opt_1(self):
+        pre_opt_cnt = 1
         circ = QuantumCircuit(2)
         circ.rx(0.1, 0)
         circ.rx(0.2, 0)        
@@ -108,7 +109,7 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
             CommutativeCancellation(basis_gates=basis_gates),
         ]
         pm_opt = PassManager(_opt)
-        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=1)
+        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
         ccirc = _pass(circ)
 
         expected = QuantumCircuit(2)
@@ -117,6 +118,110 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         expected.rx(3 * pi / 2, 0)
         expected.for_loop(range(1), None, body, [0], [])
 
+        self.assertEqual(ccirc, expected)
+
+    def test_pre_opt_2(self):
+        pre_opt_cnt = 2        
+        circ = QuantumCircuit(2)
+        circ.rx(0.1, 0)
+        circ.rx(0.2, 0)        
+        circ.x(0)
+        # define for loop
+        body = QuantumCircuit(1)
+        body.rx(pi/2, 0)
+        circ.for_loop(range(2), None, body, [0], [])
+        basis_gates = ["x", "rx"]
+        _opt = [
+            Optimize1qGatesDecomposition(basis=basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates),
+        ]
+        pm_opt = PassManager(_opt)
+        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
+        ccirc = _pass(circ)
+
+        expected = QuantumCircuit(2)
+        expected.rx(0.1, 0)
+        expected.rx(pi / 2 + pi + 0.2, 0)
+        expected.for_loop(range(1), None, body, [0], [])
+
+        self.assertEqual(ccirc, expected)
+
+    def test_pre_opt_cnot(self):
+        """
+        Test that the circuit,
+                ┌─────────┐┌───┐┌───┐┌───────────┐
+           q_0: ┤ Rx(0.1) ├┤ X ├┤ X ├┤0          ├
+                └─────────┘└─┬─┘└───┘│  For_loop │
+           q_1: ─────────────■───────┤1          ├
+                                     └───────────┘
+        where the body of the for-loop is
+                ┌─────────┐     
+           q_0: ┤ Rx(π/2) ├──■──
+                └─────────┘┌─┴─┐
+           q_1: ───────────┤ X ├
+                           └───┘
+        becomes,
+                ┌────────────┐┌───┐     ┌───────────┐
+           q_0: ┤ Rx(4.8124) ├┤ X ├──■──┤0          ├
+                └────────────┘└─┬─┘┌─┴─┐│  For_loop │
+           q_1: ────────────────■──┤ X ├┤1          ├
+                                   └───┘└───────────┘
+        """
+        pre_opt_cnt = 3   
+        circ = QuantumCircuit(2)
+        circ.rx(0.1, 0)
+        circ.cx(1, 0)        
+        circ.x(0)
+        # define for loop
+        body = QuantumCircuit(2)
+        body.rx(pi/2, 0)
+        body.cx(0, 1)
+        circ.for_loop(range(2), None, body, [0, 1], [])
+        basis_gates = ["x", "rx"]
+        _opt = [
+            Optimize1qGatesDecomposition(basis=basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates),
+        ]
+        pm_opt = PassManager(_opt)
+        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
+        ccirc = _pass(circ)
+
+        expected = QuantumCircuit(2)
+        expected.rx(0.1, 0)
+        expected.rx(pi / 2 + pi + 0.2, 0)
+        expected.for_loop(range(1), None, body, [0, 1], [])
+        breakpoint()
+        self.assertEqual(ccirc, expected)
+
+    def test_pre_opt_breadth(self):
+        """
+        Test that the circuit,
+        """
+        pre_opt_cnt = 40
+        circ = QuantumCircuit(3)
+        circ.rx(0.1, 0)
+        circ.x(0)
+        circ.cx(1, 2)
+        circ.y(2)
+        # define for loop
+        body = QuantumCircuit(2)
+        body.rx(pi/2, 0)
+        body.cx(0, 1)
+        circ.for_loop(range(2), None, body, [0, 1], [])
+        basis_gates = ["x", "rx"]
+        _opt = [
+            Optimize1qGatesDecomposition(basis=basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates),
+        ]
+        pm_opt = PassManager(_opt)
+        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
+        ccirc = _pass(circ)
+
+        expected = QuantumCircuit(2)
+        expected.rx(0.1, 0)
+        expected.rx(pi / 2 + pi + 0.2, 0)
+        expected.for_loop(range(1), None, body, [0, 1], [])
+        breakpoint()
         self.assertEqual(ccirc, expected)
         
     def test_post_opt(self):
@@ -133,6 +238,8 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
             Optimize1qGatesDecomposition(basis=basis_gates),
             CommutativeCancellation(basis_gates=basis_gates),
         ]
+        print('')
+
         pm_opt = PassManager(_opt)
         _pass = ForLoopBodyOptimizer(pm_opt, post_opt_cnt=3)
         ccirc = _pass(circ)
@@ -141,6 +248,8 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         expected.for_loop(range(1), None, body, [0], [])
         expected.rx(3 * pi / 2 + 0.1 + 0.2, 0)
 
+        print(circ)
         print(ccirc)
         print(expected)
+        breakpoint()
         self.assertEqual(ccirc, expected)
