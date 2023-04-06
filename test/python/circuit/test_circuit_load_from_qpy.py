@@ -20,6 +20,7 @@ import random
 import numpy as np
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
+from qiskit.circuit import CASE_DEFAULT
 from qiskit.circuit.classicalregister import Clbit
 from qiskit.circuit.quantumregister import Qubit
 from qiskit.circuit.random import random_circuit
@@ -1047,6 +1048,45 @@ class TestLoadFromQPY(QiskitTestCase):
         dump(qc, qpy_file)
         qpy_file.seek(0)
         new_circuit = load(qpy_file)[0]
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_qpy_clbit_switch(self):
+        """Test QPY serialisation for a switch statement with a Clbit target."""
+        case_t = QuantumCircuit(2, 1)
+        case_t.x(0)
+        case_f = QuantumCircuit(2, 1)
+        case_f.z(0)
+        qc = QuantumCircuit(2, 1)
+        qc.switch(0, [(True, case_t), (False, case_f)], qc.qubits, qc.clbits)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
+
+        self.assertEqual(qc, new_circuit)
+        self.assertDeprecatedBitProperties(qc, new_circuit)
+
+    def test_qpy_register_switch(self):
+        """Test QPY serialisation for a switch statement with a ClassicalRegister target."""
+        qreg = QuantumRegister(2, "q")
+        creg = ClassicalRegister(3, "c")
+
+        case_0 = QuantumCircuit(qreg, creg)
+        case_0.x(0)
+        case_1 = QuantumCircuit(qreg, creg)
+        case_1.z(1)
+        case_2 = QuantumCircuit(qreg, creg)
+        case_2.x(1)
+
+        qc = QuantumCircuit(qreg, creg)
+        qc.switch(creg, [(0, case_0), ((1, 2), case_1), ((3, 4, CASE_DEFAULT), case_2)], qreg, creg)
+
+        with io.BytesIO() as fptr:
+            dump(qc, fptr)
+            fptr.seek(0)
+            new_circuit = load(fptr)[0]
         self.assertEqual(qc, new_circuit)
         self.assertDeprecatedBitProperties(qc, new_circuit)
 

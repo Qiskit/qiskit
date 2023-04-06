@@ -126,6 +126,17 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_7:
+
+Version 7
+=========
+
+Version 7 is identical to version 6, except two new type keys are added to the INSTRUCTION_PARAM
+struct.  ``"d"`` is followed by no data and represents the literal value :data:`.CASE_DEFAULT` for
+switch-statement support.  ``"R"`` represents a :class:`.ClassicalRegister` or :class:`.Clbit`, and
+is followed by the same format as the description of register or classical bit as used in
+the first element of :ref:`the condition of an INSTRUCTION field <qpy_instructions>`.
+
 .. _qpy_version_6:
 
 Version 6
