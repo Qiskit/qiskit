@@ -47,7 +47,7 @@ class BIPMappingModel:
         additional_msg="This has been replaced by a new transpiler plugin package: "
         "qiskit-bip-mapper. More details can be found here: "
         "https://github.com/qiskit-community/qiskit-bip-mapper",
-    )
+    )  # pylint: disable=bad-docstring-quotes
     def __init__(self, dag, coupling_map, qubit_subset, dummy_timesteps=None):
         """
         Args:
