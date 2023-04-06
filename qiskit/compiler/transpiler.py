@@ -13,6 +13,7 @@
 # pylint: disable=invalid-sequence-index
 
 """Circuit transpile function"""
+import copy
 import io
 from itertools import cycle
 import logging
@@ -354,8 +355,8 @@ def transpile(
         ignore_backend_supplied_default_methods,
     )
     # Get transpile_args to configure the circuit transpilation job(s)
-    if coupling_map in unique_transpile_args:
-        cmap_conf = unique_transpile_args["coupling_map"]
+    if "coupling_map" not in shared_args:
+        cmap_conf = [a["pass_manager_config"]["coupling_map"] for a in unique_transpile_args]
     else:
         cmap_conf = [shared_args["coupling_map"]] * len(circuits)
     _check_circuits_coupling_map(circuits, cmap_conf, backend)
@@ -665,6 +666,10 @@ def _parse_transpile_args(
     callback = _parse_callback(callback, num_circuits)
     durations = _parse_instruction_durations(backend, instruction_durations, dt, circuits)
     timing_constraints = _parse_timing_constraints(backend, timing_constraints, num_circuits)
+    if inst_map is not None and inst_map.has_custom_gate() and target is not None:
+        # Do not mutate backend target
+        target = copy.deepcopy(target)
+        target.update_from_instruction_schedule_map(inst_map)
     if scheduling_method and any(d is None for d in durations):
         raise TranspilerError(
             "Transpiling a circuit with a scheduling method"

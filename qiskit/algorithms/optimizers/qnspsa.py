@@ -13,14 +13,16 @@
 """The QN-SPSA optimizer."""
 
 from __future__ import annotations
-from typing import Any, Iterator, Callable
-import warnings
+
+from collections.abc import Iterator
+from typing import Any, Callable
 
 import numpy as np
 from qiskit.providers import Backend
 from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 
 from qiskit.primitives import BaseSampler, Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
@@ -253,6 +255,8 @@ class QNSPSA(SPSA):
         return settings
 
     @staticmethod
+    @deprecate_arg("backend", since="0.22", pending=True)
+    @deprecate_arg("expectation", since="0.22", pending=True)
     def get_fidelity(
         circuit: QuantumCircuit,
         backend: Backend | QuantumInstance | None = None,
@@ -301,13 +305,6 @@ class QNSPSA(SPSA):
             sampler = Sampler()
 
         if expectation is not None or backend is not None:
-            warnings.warn(
-                "Passing a backend and expectation converter to QNSPSA.get_fidelity is pending "
-                "deprecation and will be deprecated in a future release. Instead, pass a "
-                "sampler primitive.",
-                stacklevel=2,
-                category=PendingDeprecationWarning,
-            )
             return QNSPSA._legacy_get_fidelity(circuit, backend, expectation)
 
         fid = ComputeUncompute(sampler)

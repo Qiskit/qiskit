@@ -11,11 +11,13 @@
 # that they have been altered from the originals.
 
 """Grover's search algorithm."""
+from __future__ import annotations
 
 import itertools
 import operator
 import warnings
-from typing import Iterator, List, Optional, Union
+from collections.abc import Iterator, Generator
+from typing import Any
 
 import numpy as np
 
@@ -23,9 +25,9 @@ from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.algorithms.exceptions import AlgorithmError
 from qiskit.primitives import BaseSampler
 from qiskit.providers import Backend
-from qiskit.quantum_info import partial_trace
+from qiskit.quantum_info import partial_trace, Statevector
 from qiskit.utils import QuantumInstance, algorithm_globals
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 
 from .amplification_problem import AmplificationProblem
 from .amplitude_amplifier import AmplitudeAmplifier, AmplitudeAmplifierResult
@@ -112,13 +114,19 @@ class Grover(AmplitudeAmplifier):
             `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg="Instead, use the ``sampler`` argument.",
+        since="0.22.0",
+        pending=True,
+    )
     def __init__(
         self,
-        iterations: Optional[Union[List[int], Iterator[int], int]] = None,
-        growth_rate: Optional[float] = None,
+        iterations: list[int] | Iterator[int] | int | None = None,
+        growth_rate: float | None = None,
         sample_from_iterations: bool = False,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
-        sampler: Optional[BaseSampler] = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
     ) -> None:
         r"""
         Args:
@@ -157,7 +165,9 @@ class Grover(AmplitudeAmplifier):
 
         if growth_rate is not None:
             # yield iterations ** 1, iterations ** 2, etc. and casts to int
-            self._iterations = (int(growth_rate**x) for x in itertools.count(1))
+            self._iterations: Generator[int, None, None] | list[int] = (
+                int(growth_rate**x) for x in itertools.count(1)
+            )
         elif isinstance(iterations, int):
             self._iterations = [iterations]
         else:
@@ -172,15 +182,8 @@ class Grover(AmplitudeAmplifier):
             sampler = quantum_instance
             quantum_instance = None
 
-        self._quantum_instance = None
+        self._quantum_instance: QuantumInstance | None = None
         if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
-                stacklevel=2,
-            )
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", category=PendingDeprecationWarning)
                 self.quantum_instance = quantum_instance
@@ -191,14 +194,8 @@ class Grover(AmplitudeAmplifier):
         self._iterations_arg = iterations
 
     @property
-    @deprecate_function(
-        "The Grover.quantum_instance getter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-        since="0.23.0",
-    )
-    def quantum_instance(self) -> Optional[QuantumInstance]:
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    def quantum_instance(self) -> QuantumInstance | None:
         r"""Pending deprecation\; Get the quantum instance.
 
         Returns:
@@ -207,14 +204,8 @@ class Grover(AmplitudeAmplifier):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The Grover.quantum_instance setter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-        since="0.23.0",
-    )
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         r"""Pending deprecation\; Set quantum instance.
 
         Args:
@@ -225,7 +216,7 @@ class Grover(AmplitudeAmplifier):
         self._quantum_instance = quantum_instance
 
     @property
-    def sampler(self) -> Optional[BaseSampler]:
+    def sampler(self) -> BaseSampler | None:
         """Get the sampler.
 
         Returns:
@@ -267,7 +258,7 @@ class Grover(AmplitudeAmplifier):
         if isinstance(self._iterations, list):
             max_iterations = len(self._iterations)
             max_power = np.inf  # no cap on the power
-            iterator = iter(self._iterations)
+            iterator: Iterator[int] = iter(self._iterations)
         else:
             max_iterations = max(10, 2**amplification_problem.oracle.num_qubits)
             max_power = np.ceil(
@@ -295,7 +286,7 @@ class Grover(AmplitudeAmplifier):
 
             # sample from [0, power) if specified
             if self._sample_from_iterations:
-                power = algorithm_globals.random.randint(power)
+                power = algorithm_globals.random.integers(power)
             # Run a grover experiment for a given power of the Grover operator.
             if self._sampler is not None:
                 qc = self.construct_circuit(amplification_problem, power, measurement=True)
@@ -307,7 +298,7 @@ class Grover(AmplitudeAmplifier):
                     raise AlgorithmError("Sampler job failed.") from exc
 
                 num_bits = len(amplification_problem.objective_qubits)
-                circuit_results = {
+                circuit_results: dict[str, Any] | Statevector | np.ndarray = {
                     np.binary_repr(k, num_bits): v for k, v in results.quasi_dists[0].items()
                 }
                 top_measurement, max_probability = max(circuit_results.items(), key=lambda x: x[1])
@@ -386,7 +377,7 @@ class Grover(AmplitudeAmplifier):
         return round(np.arccos(amplitude) / (2 * np.arcsin(amplitude)))
 
     def construct_circuit(
-        self, problem: AmplificationProblem, power: Optional[int] = None, measurement: bool = False
+        self, problem: AmplificationProblem, power: int | None = None, measurement: bool = False
     ) -> QuantumCircuit:
         """Construct the circuit for Grover's algorithm with ``power`` Grover operators.
 
@@ -425,10 +416,10 @@ class GroverResult(AmplitudeAmplifierResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._iterations = None
+        self._iterations: list[int] | None = None
 
     @property
-    def iterations(self) -> List[int]:
+    def iterations(self) -> list[int]:
         """All the powers of the Grover operator that have been tried.
 
         Returns:
@@ -437,7 +428,7 @@ class GroverResult(AmplitudeAmplifierResult):
         return self._iterations
 
     @iterations.setter
-    def iterations(self, value: List[int]) -> None:
+    def iterations(self, value: list[int]) -> None:
         """Set the powers of the Grover operator that have been tried.
 
         Args:

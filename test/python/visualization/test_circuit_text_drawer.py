@@ -1988,14 +1988,19 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
             [
                 "         ┌───┐     ┌─┐     ┌───┐",
                 "qr_2: |0>┤ H ├─────┤M├─────┤ X ├",
-                "         ├───┤     └╥┘     └─╥─┘",
+                "         └───┘     └╥┘     └─╥─┘",
+                "         ┌───┐      ║        ║  ",
                 "qr_1: |0>┤ H ├──────╫────────╫──",
-                "         ├───┤┌───┐ ║ ┌───┐  ║  ",
+                "         └───┘      ║        ║  ",
+                "         ┌───┐┌───┐ ║ ┌───┐  ║  ",
                 "qr_0: |0>┤ H ├┤ X ├─╫─┤ X ├──╫──",
                 "         └───┘└───┘ ║ └───┘  ║  ",
+                "                    ║        ║  ",
                 "  cr2: 0 ═══════════╬════════╬══",
                 "                    ║        ║  ",
+                "                    ║        ║  ",
                 " cr_1: 0 ═══════════╩════════■══",
+                "                             ║  ",
                 "                             ║  ",
                 " cr_0: 0 ════════════════════o══",
                 "                            0x2 ",
@@ -2003,7 +2008,12 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
         )
 
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
+            str(
+                _text_circuit_drawer(
+                    circuit, vertical_compression="low", cregbundle=False, reverse_bits=True
+                )
+            ),
+            expected,
         )
 
     def test_text_conditional_reverse_bits_false(self):
@@ -2024,22 +2034,32 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
             [
                 "         ┌───┐┌───┐┌───┐",
                 "qr_0: |0>┤ H ├┤ X ├┤ X ├",
-                "         ├───┤└───┘└───┘",
+                "         └───┘└───┘└───┘",
+                "         ┌───┐          ",
                 "qr_1: |0>┤ H ├──────────",
-                "         ├───┤ ┌─┐ ┌───┐",
+                "         └───┘          ",
+                "         ┌───┐ ┌─┐ ┌───┐",
                 "qr_2: |0>┤ H ├─┤M├─┤ X ├",
                 "         └───┘ └╥┘ └─╥─┘",
+                "                ║    ║  ",
                 " cr_0: 0 ═══════╬════o══",
+                "                ║    ║  ",
                 "                ║    ║  ",
                 " cr_1: 0 ═══════╩════■══",
                 "                    0x2 ",
+                "                        ",
                 "  cr2: 0 ═══════════════",
                 "                        ",
             ]
         )
 
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=False)), expected
+            str(
+                _text_circuit_drawer(
+                    circuit, vertical_compression="low", cregbundle=False, reverse_bits=False
+                )
+            ),
+            expected,
         )
 
     def test_text_justify_right(self):
