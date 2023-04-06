@@ -200,7 +200,7 @@ Code examples
     The only alternative for local simulations using the quantum instance was using an Aer Simulator backend.
     Please note that ``QuantumInstance.execute()`` returned the counts bitstrings in hexadecimal format.
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit import QuantumCircuit
         from qiskit_aer import AerSimulator
@@ -221,8 +221,7 @@ Code examples
         print("Data: ", data)
         print("Result: ", result)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
         Counts: {'0x3': 200}
         Data: ExperimentResultData(counts={'0x3': 200})
@@ -247,7 +246,7 @@ Code examples
         but pre-transpiled circuits can be sent if setting the option ``skip_transpilation=True``. For more information,
         please refer to the API reference or source code of the desired primitive implementation.
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit import QuantumCircuit
         from qiskit.primitives import Sampler
@@ -264,8 +263,7 @@ Code examples
         print("Quasi-dists: ", quasi_dists)
         print("Result: ", result)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
         Quasi-dists: [{3: 1.0}]
         Result: SamplerResult(quasi_dists=[{3: 1.0}], metadata=[{'shots': 200}])
@@ -286,7 +284,7 @@ Code examples
             - :meth:`qiskit.result.QuasiDistribution.hex_probabilities`
 
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit import QuantumCircuit
         from qiskit_aer.primitives import Sampler
@@ -305,8 +303,7 @@ Code examples
         print("Quasi-dists: ", quasi_dists)
         print("Result: ", result)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
         Quasi-dists: [{3: 1.0}]
         Result: SamplerResult(quasi_dists=[{3: 1.0}], metadata=[{'shots': 200, 'simulator_metadata': {'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 9.016e-05, 'noise': 'ideal', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1], 'measure_sampling': True, 'num_clbits': 2, 'input_qubit_map': [[1, 1], [0, 0]], 'num_qubits': 2, 'method': 'statevector', 'fusion': {'applied': False, 'max_fused_qubits': 5, 'threshold': 14, 'enabled': True}}}])
@@ -324,7 +321,7 @@ Code examples
     The most common use case for computing expectation values with the Quantum Instance was as in combination with the
     :mod:`~qiskit.opflow` library. You can see more information in the `opflow migration guide <http://qisk.it/opflow_migration>`_.
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit import QuantumCircuit
         from qiskit.opflow import StateFn, PauliSumOp, PauliExpectation, CircuitSampler
@@ -360,8 +357,7 @@ Code examples
 
         print(expectation_value)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
         -0.04687500000000008
 
@@ -370,7 +366,7 @@ Code examples
     The primitives now allow the combination of the opflow and quantum instance functionality in a single ``Estimator``.
     In this case, for local noisy simulation, this will be the Aer Estimator.
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit import QuantumCircuit
         from qiskit.quantum_info import SparsePauliOp
@@ -405,8 +401,7 @@ Code examples
 
         print(expectation_value)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
         [-0.04101562]
 
@@ -419,7 +414,7 @@ Code examples
     matrix refresh period or the mitigation pattern. This configuration is no longer available in the primitives
     interface.
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit import QuantumCircuit
         from qiskit.utils import QuantumInstance
@@ -444,8 +439,7 @@ Code examples
         result = qi.execute(circuit).results[0].data
         print(result)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
         ExperimentResultData(counts={'11': 4000})
 
@@ -460,7 +454,7 @@ Code examples
     For more information on the error mitigation options in the Runtime Primitives, you can check out the following
     `link <https://qiskit.org/documentation/partners/qiskit_ibm_runtime/stubs/qiskit_ibm_runtime.options.Options.html#qiskit_ibm_runtime.options.Options>`_.
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit import QuantumCircuit
         from qiskit_ibm_runtime import QiskitRuntimeService, Sampler, Options
@@ -482,8 +476,7 @@ Code examples
 
         print("Quasi dists: ", quasi_dists)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
         Quasi dists: [{2: 0.0008492371522941081, 3: 0.9968874384378738, 0: -0.0003921227905920063,
 		 1: 0.002655447200424097}]
@@ -530,7 +523,7 @@ Code examples
 
     **Using Quantum Instance**
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit
         from qiskit.transpiler import PassManager, CouplingMap
@@ -591,8 +584,7 @@ Code examples
         print("Result: ", result)
         print("Counts: ", result.data.counts)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
                 ┌───┐                                                     ░       ┌─┐
            q_0: ┤ H ├───────────────X─────────────────────────────────────░───────┤M├────────────
@@ -636,7 +628,7 @@ Code examples
 
     Let's see how the workflow changes with the Backend Sampler:
 
-    .. testcode::
+    .. code-block:: python
 
         from qiskit.circuit import QuantumRegister, Parameter
         from qiskit.transpiler import PassManager, CouplingMap
@@ -682,8 +674,7 @@ Code examples
         quasi_dists = sampler.run(transpiled_circuit, [[0.1]], shots=1024).result().quasi_dists
         print("Quasi-dists: ", quasi_dists)
 
-    .. testoutput::
-       :options: +SKIP
+    .. code-block:: text
 
                 ┌───┐                                                     ░       ┌─┐
            q_0: ┤ H ├───────────────X─────────────────────────────────────░───────┤M├────────────
