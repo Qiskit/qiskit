@@ -152,13 +152,22 @@ class Estimator(BaseEstimator):
     def close(self):
         self._is_closed = True
 
+    def run(
+        self,
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
+        **run_options,
+    ) -> PrimitiveJob[EstimatorResult]:
+        return super().run(circuits, observables, parameter_values, **run_options)
+
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
         observables: tuple[BaseOperator | PauliSumOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ) -> PrimitiveJob[EstimatorResult]:
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)

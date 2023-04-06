@@ -194,6 +194,15 @@ class BackendEstimator(BaseEstimator):
         """
         return self._backend
 
+    def run(
+        self,
+        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
+        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
+        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
+        **run_options,
+    ) -> PrimitiveJob[EstimatorResult]:
+        return super().run(circuits, observables, parameter_values, **run_options)
+
     def _transpile(self):
         """Split Transpile"""
         self._transpiled_circuits = []
@@ -263,7 +272,7 @@ class BackendEstimator(BaseEstimator):
         observables: tuple[BaseOperator | PauliSumOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ) -> PrimitiveJob[EstimatorResult]:
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))

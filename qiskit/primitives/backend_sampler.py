@@ -138,6 +138,14 @@ class BackendSampler(BaseSampler):
         """
         self._transpile_options.update_options(**fields)
 
+    def run(
+        self,
+        circuits: QuantumCircuit | Sequence[QuantumCircuit],
+        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
+        **run_options,
+    ) -> PrimitiveJob[SamplerResult]:
+        return super().run(circuits, parameter_values, **run_options)
+
     def _call(
         self,
         circuits: Sequence[int],
@@ -202,7 +210,7 @@ class BackendSampler(BaseSampler):
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ) -> PrimitiveJob[SamplerResult]:
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))
