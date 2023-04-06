@@ -141,6 +141,17 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         self.assertEqual(res.termination_criterion, TerminationCriterion.CONVERGED)
 
+    def test_threshold_attribute(self):
+        """Test the (pending deprecated) threshold attribute"""
+        with self.assertWarns(PendingDeprecationWarning):
+            calc = AdaptVQE(
+                VQE(Estimator(), self.ansatz, self.optimizer),
+                threshold=1e-3,
+            )
+            res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
+
+            self.assertEqual(res.termination_criterion, TerminationCriterion.CONVERGED)
+
     @data(
         ([1, 1], True),
         ([1, 11], False),
