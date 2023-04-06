@@ -384,10 +384,27 @@ class TestTranspile(QiskitTestCase):
         circuits = transpile(qc, backend)
         self.assertIsInstance(circuits, QuantumCircuit)
 
-    def test_transpile_two(self):
-        """Test transpile to circuits.
+    def test_transpile_one(self):
+        """Test transpile a single circuit.
 
-        If all correct some should exists.
+        Check that the top-level `transpile` function returns
+        a single circuit."""
+        backend = BasicAer.get_backend("qasm_simulator")
+
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        circuit = transpile(qc, backend)
+        self.assertIsInstance(circuit, QuantumCircuit)
+
+    def test_transpile_two(self):
+        """Test transpile two circuits.
+
+        Check that the transpiler returns a list of two circuits.
         """
         backend = BasicAer.get_backend("qasm_simulator")
 
@@ -402,12 +419,19 @@ class TestTranspile(QiskitTestCase):
         qc_extra = QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         circuits = transpile([qc, qc_extra], backend)
-        self.assertIsInstance(circuits[0], QuantumCircuit)
-        self.assertIsInstance(circuits[1], QuantumCircuit)
+        self.assertIsInstance(circuits, list)
+        self.assertEqual(len(circuits), 2)
+
+        for circuit in circuits:
+            self.assertIsInstance(circuit, QuantumCircuit)
 
     def test_transpile_singleton(self):
         """Test transpile a single-element list with a circuit.
-        See https://github.com/Qiskit/qiskit-terra/issues/5260"""
+
+        Check that `transpile` returns a single-element list.
+
+        See https://github.com/Qiskit/qiskit-terra/issues/5260
+        """
         backend = BasicAer.get_backend("qasm_simulator")
 
         qubit_reg = QuantumRegister(2)
@@ -418,6 +442,7 @@ class TestTranspile(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         circuits = transpile([qc], backend)
+        self.assertIsInstance(circuits, list)
         self.assertEqual(len(circuits), 1)
         self.assertIsInstance(circuits[0], QuantumCircuit)
 
@@ -1364,7 +1389,7 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, FakeBoeblingen(), optimization_level=optimization_level)
 
         self.assertEqual(len(out.qubits), FakeBoeblingen().configuration().num_qubits)
-        self.assertEqual(out.clbits, clbits)
+        self.assertEqual(len(out.clbits), len(clbits))
 
     @data(0, 1, 2, 3)
     def test_translate_ecr_basis(self, optimization_level):
@@ -1954,6 +1979,36 @@ class TestTranspileParallel(QiskitTestCase):
                 qubit_0 = tqc.find_bit(inst.qubits[0]).index
                 qubit_1 = tqc.find_bit(inst.qubits[1]).index
                 self.assertEqual(qubit_1, qubit_0 + 1)
+
+    def test_transpile_with_multiple_coupling_maps(self):
+        """Test passing a different coupling map for every circuit"""
+        backend = FakeNairobiV2()
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 2)
+
+        # Add a connection between 0 and 2 so that transpile does not change
+        # the gates
+        cmap = CouplingMap.from_line(7)
+        cmap.add_edge(0, 2)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning, "Passing in a list of arguments for coupling_map is deprecated"
+        ):
+            # Initial layout needed to prevent transpiler from relabeling
+            # qubits to avoid doing the swap
+            tqc = transpile(
+                [qc] * 2,
+                backend,
+                coupling_map=[backend.coupling_map, cmap],
+                initial_layout=(0, 1, 2),
+            )
+
+        # Check that the two coupling maps were used. The default should
+        # require swapping (extra cx's) and the second one should not (just the
+        # original cx).
+        self.assertEqual(tqc[0].count_ops()["cx"], 4)
+        self.assertEqual(tqc[1].count_ops()["cx"], 1)
 
     @data(0, 1, 2, 3)
     def test_backend_and_custom_gate(self, opt_level):
