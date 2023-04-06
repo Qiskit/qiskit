@@ -14,11 +14,11 @@ and ensuring reliable execution of circuits with additional job management tools
     such as basic error mitigation strategies.
 
 The :class:`~qiskit.utils.QuantumInstance` is being deprecated for several reasons:
-On one hand, the functionality of :class:`~qiskit.utils.QuantumInstance.execute` has
+On one hand, the functionality of :meth:`~qiskit.utils.QuantumInstance.execute` has
 now been delegated to the different implementations of the :mod:`~qiskit.primitives` base classes.
 On the other hand, with the direct implementation of transpilation at the primitives level,
 the algorithms no longer
-need to manage that aspect of execution, and thus :class:`~qiskit.utils.QuantumInstance.transpile` is no longer
+need to manage that aspect of execution, and thus :meth:`~qiskit.utils.QuantumInstance.transpile` is no longer
 required by the workflow. If desired, custom transpilation routines can still be performed at the
 user level through the :mod:`~qiskit.transpiler` module (see table below).
 
@@ -75,7 +75,7 @@ Choosing the right primitive for your task
 ===========================================
 
 The :class:`~qiskit.utils.QuantumInstance` was designed to be an abstraction over transpile/ run.
-It took inspiration from :class:`qiskit.execute_function`, but retained config information that could be set
+It took inspiration from :func:`qiskit.execute_function.execute`, but retained config information that could be set
 at the algorithm level, to save the user from defining the same parameters for every transpile/execute call.
 
 The :mod:`qiskit.primitives` share some of these features, but unlike the :class:`~qiskit.utils.QuantumInstance`,
@@ -106,9 +106,9 @@ yourself two questions:
 
 Arguably, the ``Sampler`` is the closest primitive to :class:`~qiskit.utils.QuantumInstance`, as they
 both execute circuits and provide a result back. However, with the :class:`~qiskit.utils.QuantumInstance`,
-the result data was backend dependent (it could be a counts ``dict``, a ``numpy.array`` for
+the result data was backend dependent (it could be a counts ``dict``, a :class:`numpy.array` for
 statevector simulations, etc), while the ``Sampler`` normalizes its ``SamplerResult`` to
-return a ``QuasiDistribution`` object with the resulting quasi-probability distribution.
+return a :class:`~qiskit.result.QuasiDistribution` object with the resulting quasi-probability distribution.
 
 The ``Estimator`` provides a specific abstraction for the expectation value calculation that can replace
 the use of ``QuantumInstance`` as well as the associated pre- and post-processing steps, usually performed
@@ -272,7 +272,7 @@ Code examples
 
     **b. Using the Aer Primitives**
 
-    Aer simulation following the statevector method. This would be the direct 1-1 replacement of the ``QuantumInstance``
+    Aer simulation following the statevector method. This would be the direct 1-1 replacement of the :class:`~qiskit.utils.QuantumInstance`
     example, as they are both accessing the same simulator. For this reason, the output metadata is
     closer to the Quantum Instance's output. Please note that
     the resulting quasi-probability distribution does not use bitstrings but **integers** to identify the states.
