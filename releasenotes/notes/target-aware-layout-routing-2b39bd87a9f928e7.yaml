@@ -2,16 +2,12 @@
 features:
   - |
     The following layout and routing transpiler passes from the
-    :mod:`.qiskit.transpiler.passes` modules have a new keyword argument,
-    ``target`` which takes in a :class:`~.Target` object which is used to model
-    the constraints of a target backend. If the ``target`` keyword argument is
-    specified it will be used as the source of truth for any hardware
-    constraints used in the operation of the transpiler pass. It will
-    supersede any other arguments for specifying hardware constraints,
-    typically those arguments which take a :class:`~.CouplingMap` or a
-    :class:`~.BackendProperties` object.
+    :mod:`.qiskit.transpiler.passes` modules now will support accepting a
+    :class:`~.Target` object which is used to model the constraints of a target
+    backend via the first positional argument (currently named either
+    ``coupling_map`` or ``backend_properties``).
 
-    The list of these passes with the new ``target`` argument are:
+    The list of these passes with the support for new ``target`` argument are:
 
       * :class:`~.CSPLayout`
       * :class:`~.FullAncillaAllocation`
