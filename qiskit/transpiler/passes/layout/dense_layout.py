@@ -192,9 +192,6 @@ def _build_error_matrix(num_qubits, qubit_map, target=None, coupling_map=None, b
         for index, qubit_data in enumerate(backend_prop.qubits):
             if index not in qubit_map:
                 continue
-            # Handle faulty qubits edge case
-            # if index >= num_qubits:
-            #   break
             for item in qubit_data:
                 if item.name == "readout_error":
                     mapped_index = qubit_map[index]
