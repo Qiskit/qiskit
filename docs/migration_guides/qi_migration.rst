@@ -243,7 +243,7 @@ Code examples
 
     **a. Using the Reference Primitives**
 
-    Basic statevector simulation based on the :class:`qiskit.quantum_info.Statevector` class. If shots are
+    Basic simulation implemented using the :mod:`qiskit.quantum_info` module. If shots are
     specified, the results will include shot noise. Please note that
     the resulting quasi-probability distribution does not use bitstrings but **integers** to identify the states.
 
