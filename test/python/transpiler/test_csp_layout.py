@@ -73,7 +73,7 @@ class TestCSPLayout(QiskitTestCase):
         self.assertEqual(pass_.property_set["CSPLayout_stop_reason"], "solution found")
 
     def test_3q_circuit_5q_coupling_with_target(self):
-        """3 qubits in Tenerife, without considering the direction
+        """3 qubits in Yorktown, without considering the direction
             qr1
            /  |
         qr0 - qr2 - 3

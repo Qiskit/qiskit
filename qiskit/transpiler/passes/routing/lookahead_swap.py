@@ -91,9 +91,6 @@ class LookaheadSwap(TransformationPass):
             search_width (int): lookahead tree width when ranking best SWAP options.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and the other argument will be ignored.
         """
 
         super().__init__()
