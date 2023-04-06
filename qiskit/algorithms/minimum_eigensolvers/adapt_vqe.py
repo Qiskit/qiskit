@@ -18,7 +18,6 @@ from enum import Enum
 
 import re
 import logging
-import warnings
 from typing import Any
 
 import numpy as np
@@ -28,7 +27,7 @@ from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import OperatorBase, PauliSumOp
 from qiskit.circuit.library import EvolvedOperatorAnsatz
-from qiskit.utils.deprecation import deprecate_arg
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 from qiskit.utils.validation import validate_min
 
 from .minimum_eigensolver import MinimumEigensolver
@@ -136,28 +135,22 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
         self._excitation_list: list[OperatorBase] = []
 
     @property
+    @deprecate_func(
+        since="0.23.0",
+        pending=True,
+        is_property=True,
+        additional_msg="Instead, use the gradient_threshold attribute.",
+    )
     def threshold(self) -> float:
         """The threshold for the gradients.
 
         Once all gradients have an absolute value smaller than this threshold, the algorithm has
         converged and terminates.
         """
-        msg = (
-            "threshold is pending deprecated as of qiskit-terra 0.24.0. It will be marked "
-            "deprecated in a future release, and then removed no earlier than 3 months after the "
-            "release date. Instead, use the gradient_threshold attribute."
-        )
-        warnings.warn(msg, category=PendingDeprecationWarning, stacklevel=3)
         return self.gradient_threshold
 
     @threshold.setter
     def threshold(self, threshold: float) -> None:
-        msg = (
-            "threshold is pending deprecated as of qiskit-terra 0.24.0. It will be marked "
-            "deprecated in a future release, and then removed no earlier than 3 months after the "
-            "release date. Instead, use the gradient_threshold attribute."
-        )
-        warnings.warn(msg, category=PendingDeprecationWarning, stacklevel=3)
         self.gradient_threshold = threshold
 
     @property
