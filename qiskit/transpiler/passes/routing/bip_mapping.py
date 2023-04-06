@@ -23,6 +23,7 @@ from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
 from qiskit.transpiler.target import target_to_backend_properties, Target
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,12 @@ class BIPMapping(TransformationPass):
     `arXiv:2106.06446 <https://arxiv.org/abs/2106.06446>`_
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This has been replaced by a new transpiler plugin package: "
+        "qiskit-bip-mapper. More details can be found here: "
+        "https://github.com/qiskit-community/qiskit-bip-mapper",
+    )
     def __init__(
         self,
         coupling_map,
