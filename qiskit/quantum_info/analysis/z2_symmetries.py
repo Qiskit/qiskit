@@ -22,7 +22,7 @@ from typing import Union, cast
 import numpy as np
 
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli, SparsePauliOp
+from ..operators import Pauli, SparsePauliOp
 
 
 class Z2Symmetries:
