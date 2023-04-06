@@ -21,7 +21,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Operator
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
 from qiskit.synthesis.evolution import LieTrotter
 
 from .pauli_evolution import PauliEvolutionGate
@@ -244,6 +244,13 @@ def _is_pauli_identity(operator):
 
     if isinstance(operator, PauliSumOp):
         operator = operator.to_pauli_op()
+    if isinstance(operator, SparsePauliOp):
+        if len(operator.paulis) == 1:
+            operator = operator.paulis[0]  # check if the single Pauli is identity below
+        else:
+            return False
     if isinstance(operator, PauliOp):
-        return not np.any(np.logical_or(operator.primitive.x, operator.primitive.z))
+        operator = operator.primitive
+    if isinstance(operator, Pauli):
+        return not np.any(np.logical_or(operator.x, operator.z))
     return False
