@@ -358,8 +358,9 @@ class AmplitudeEstimation(AmplitudeEstimator):
         if estimation_problem.has_good_state:
             warnings.warn(
                 "The AmplitudeEstimation class does not support an is_good_state function to "
-                "identify good states. The oracle has to be set using the grover_operator, otherwise "
-                "a good state is identified by the objective qubits being in state 1."
+                "identify good states. For this algorithm, a custom oracle has to be encoded directly "
+                "in the grover_operator. If no custom oracle is set, this algorithm identifies good "
+                "states as those, where all objective qubits are in state 1."
             )
 
         result = AmplitudeEstimationResult()
