@@ -56,7 +56,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
                 ("ZXZX", -0.04523279994605788),
             ]
         )
-        excitation_pool = [
+        self.excitation_pool = [
             PauliSumOp(
                 SparsePauliOp(["IIIY", "IIZY"], coeffs=[0.5 + 0.0j, -0.5 + 0.0j]), coeff=1.0
             ),
@@ -83,7 +83,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         self.initial_state = QuantumCircuit(QuantumRegister(4))
         self.initial_state.x(0)
         self.initial_state.x(1)
-        self.ansatz = EvolvedOperatorAnsatz(excitation_pool, initial_state=self.initial_state)
+        self.ansatz = EvolvedOperatorAnsatz(self.excitation_pool, initial_state=self.initial_state)
         self.optimizer = SLSQP()
 
     def test_default(self):
@@ -115,6 +115,43 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
         self.assertEqual(res.termination_criterion, TerminationCriterion.MAXIMUM)
+
+    def test_eigenvalue_threshold(self):
+        """Test for the eigenvalue_threshold attribute."""
+        operator = PauliSumOp.from_list(
+            [
+                ("XX", 1.0),
+                ("ZX", -0.5),
+                ("XZ", -0.5),
+            ]
+        )
+        ansatz = EvolvedOperatorAnsatz(
+            [
+                PauliSumOp(
+                    SparsePauliOp(
+                        ["XY"],
+                        coeffs=[0.5],
+                    ),
+                    coeff=1.0,
+                ),
+                PauliSumOp(
+                    SparsePauliOp(
+                        ["YX"],
+                        coeffs=[0.5],
+                    ),
+                    coeff=1.0,
+                ),
+            ],
+            initial_state=QuantumCircuit(QuantumRegister(2)),
+        )
+
+        calc = AdaptVQE(
+            VQE(Estimator(), ansatz, self.optimizer),
+            eigenvalue_threshold=1e-3,
+        )
+        res = calc.compute_minimum_eigenvalue(operator)
+
+        self.assertEqual(res.termination_criterion, TerminationCriterion.CONVERGED)
 
     @data(
         ([1, 1], True),

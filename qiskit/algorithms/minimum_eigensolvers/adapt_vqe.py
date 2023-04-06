@@ -89,6 +89,8 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
             :class:`qiskit.circuit.library.EvolvedOperatorAnsatz`.
         gradient_threshold: once all gradients have an absolute value smaller than this threshold,
             the algorithm has converged and terminates.
+        eigenvalue_threshold: once the eigenvalue has changed by less than this threshold from one
+            iteration to the next, the algorithm has converged and terminates.
         max_iterations: the maximum number of iterations for the adaptive loop. If ``None``, the
             algorithm is not bound in its number of iterations.
     """
@@ -104,6 +106,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
         solver: VQE,
         *,
         gradient_threshold: float = 1e-5,
+        eigenvalue_threshold: float = 1e-5,
         max_iterations: int | None = None,
         threshold: float | None = None,  # pylint: disable=unused-argument
     ) -> None:
@@ -114,15 +117,19 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
                 :class:`qiskit.circuit.library.EvolvedOperatorAnsatz`.
             gradient_threshold: once all gradients have an absolute value smaller than this
                 threshold, the algorithm has converged and terminates.
+            eigenvalue_threshold: once the eigenvalue has changed by less than this threshold from
+                one iteration to the next, the algorithm has converged and terminates.
             max_iterations: the maximum number of iterations for the adaptive loop. If ``None``, the
                 algorithm is not bound in its number of iterations.
             threshold: once all gradients have an absolute value smaller than this threshold, the
                 algorithm has converged and terminates. Defaults to ``1e-5``.
         """
         validate_min("gradient_threshold", gradient_threshold, 1e-15)
+        validate_min("eigenvalue_threshold", eigenvalue_threshold, 1e-15)
 
         self.solver = solver
         self.gradient_threshold = gradient_threshold
+        self.eigenvalue_threshold = eigenvalue_threshold
         self.max_iterations = max_iterations
         self._tmp_ansatz: EvolvedOperatorAnsatz | None = None
         self._excitation_pool: list[OperatorBase] = []
@@ -244,6 +251,8 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
         self.solver.ansatz = self._tmp_ansatz.initial_state
 
         prev_op_indices: list[int] = []
+        prev_raw_vqe_result: VQEResult | None = None
+        raw_vqe_result: VQEResult | None = None
         theta: list[float] = []
         max_grad: tuple[complex, dict[str, Any] | None] = (0.0, None)
         self._excitation_list = []
@@ -292,12 +301,35 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
             )
             self._excitation_list.append(self._excitation_pool[max_grad_index])
             theta.append(0.0)
-            # run VQE on current Ansatz
+            # setting up the ansatz for the VQE iteration
             self._tmp_ansatz.operators = self._excitation_list
             self.solver.ansatz = self._tmp_ansatz
             self.solver.initial_point = theta
+            # evaluating the eigenvalue with the internal VQE
+            prev_raw_vqe_result = raw_vqe_result
             raw_vqe_result = self.solver.compute_minimum_eigenvalue(operator)
             theta = raw_vqe_result.optimal_point.tolist()
+            # checking convergence based on the change in eigenvalue
+            if iteration > 1:
+                eigenvalue_diff = np.abs(raw_vqe_result.eigenvalue - history[-1])
+                if eigenvalue_diff < self.eigenvalue_threshold:
+                    logger.info(
+                        "AdaptVQE terminated successfully with a final change in eigenvalue: %s",
+                        str(eigenvalue_diff),
+                    )
+                    termination_criterion = TerminationCriterion.CONVERGED
+                    logger.debug(
+                        "Reverting the addition of the last excitation to the ansatz since it "
+                        "resulted in a change of the eigenvalue below the configured threshold."
+                    )
+                    self._excitation_list.pop()
+                    theta.pop()
+                    self._tmp_ansatz.operators = self._excitation_list
+                    self.solver.ansatz = self._tmp_ansatz
+                    self.solver.initial_point = theta
+                    raw_vqe_result = prev_raw_vqe_result
+                    break
+            # appending the computed eigenvalue to the tracking history
             history.append(raw_vqe_result.eigenvalue)
             logger.info("Current eigenvalue: %s", str(raw_vqe_result.eigenvalue))
         else:
@@ -320,7 +352,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
             )
             result.aux_operators_evaluated = aux_values
 
-        logger.info("The final energy is: %s", str(result.eigenvalue))
+        logger.info("The final eigenvalue is: %s", str(result.eigenvalue))
         self.solver.ansatz.operators = self._excitation_pool
         return result
 
