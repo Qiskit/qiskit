@@ -141,6 +141,16 @@ class VF2Layout(AnalysisPass):
         cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
             self.coupling_map, self.seed, self.strict_direction
         )
+        # Filter qubits without any supported operations. If they don't support any operations
+        # They're not valid for layout selection
+        if self.target is not None:
+            for qubit, graph_index in enumerate(cm_nodes):
+                for qargs in self.target.qargs:
+                    if qubit in qargs:
+                        break
+                else:
+                    cm_graph.remove_node(graph_index)
+
         # To avoid trying to over optimize the result by default limit the number
         # of trials based on the size of the graphs. For circuits with simple layouts
         # like an all 1q circuit we don't want to sit forever trying every possible
@@ -239,6 +249,10 @@ class VF2Layout(AnalysisPass):
                 reverse_im_graph_node_map,
                 self.avg_error_map,
             )
+            # No free qubits for free qubit mapping
+            if chosen_layout is None:
+                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
+                return
             self.property_set["layout"] = chosen_layout
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)

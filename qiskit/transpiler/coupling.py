@@ -420,7 +420,7 @@ class CouplingMap:
         """Return a set of qubits in the largest connected component."""
         return max(rx.weakly_connected_components(self.graph), key=len)
 
-    def connected_components(self) -> List["CouplingMap"]:
+    def connected_components(self, target=None) -> List["CouplingMap"]:
         """Separate a :Class:`~.CouplingMap` into subgraph :class:`~.CouplingMap`
         for each connected component.
 
@@ -463,20 +463,38 @@ class CouplingMap:
 
         will print ``3`` as index ``0`` in the second component is qubit 3 in the original cmap.
 
+        Args:
+            target (Target): If used the provided :class:`~.Target` will be used to filter any
+                qubits that do not have any supported operations so that those qubits
+                will not be included as a connected component in the output list. When not
+                specified these qubits without any supported operations will be included in
+                the output as a connected component of a single qubit.
+
         Returns:
             list: A list of :class:`~.CouplingMap` objects for each connected
                 components. The order of this list is deterministic but
                 implementation specific and shouldn't be relied upon as
                 part of the API.
         """
+        graph = self.graph
+        if target is not None:
+            qargs = target.qargs
+            graph = self.graph.copy()
+            for index in graph.node_indices():
+                for qargs in target.qargs:
+                    if index in qargs:
+                        break
+                else:
+                    graph.remove_node(index)
+
         # Set payload to index
-        for node in self.graph.node_indices():
-            self.graph[node] = node
-        components = rx.weakly_connected_components(self.graph)
+        for node in graph.node_indices():
+            graph[node] = node
+        components = rx.weakly_connected_components(graph)
         output_list = []
         for component in components:
             new_cmap = CouplingMap()
-            new_cmap.graph = self.graph.subgraph(list(sorted(component)))
+            new_cmap.graph = graph.subgraph(list(sorted(component)))
             output_list.append(new_cmap)
         return output_list
 

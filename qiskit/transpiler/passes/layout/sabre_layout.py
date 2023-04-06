@@ -218,7 +218,10 @@ class SabreLayout(TransformationPass):
             return dag
         # Combined
         layout_components = disjoint_utils.run_pass_over_connected_components(
-            dag, self.coupling_map, self._inner_run
+            dag,
+            self.coupling_map,
+            self._inner_run,
+            target=self.target,
         )
         initial_layout_dict = {}
         final_layout_dict = {}

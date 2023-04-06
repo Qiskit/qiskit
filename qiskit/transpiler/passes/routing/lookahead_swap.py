@@ -130,7 +130,9 @@ class LookaheadSwap(TransformationPass):
                 f"The number of DAG qubits ({len(dag.qubits)}) is greater than the number of "
                 f"available device qubits ({number_of_available_qubits})."
             )
-        disjoint_utils.require_layout_isolated_to_component(dag, self.coupling_map)
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map, target=self.target
+        )
 
         register = dag.qregs["q"]
         current_state = _SystemState(

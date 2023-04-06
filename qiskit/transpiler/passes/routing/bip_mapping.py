@@ -167,7 +167,9 @@ class BIPMapping(TransformationPass):
                 "BIPMapping requires the number of virtual and physical qubits to be the same. "
                 "Supply 'qubit_subset' to specify physical qubits to use."
             )
-        disjoint_utils.require_layout_isolated_to_component(dag, self.coupling_map)
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map, target=self.target
+        )
 
         original_dag = dag
 
