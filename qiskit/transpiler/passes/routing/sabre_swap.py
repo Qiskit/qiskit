@@ -188,8 +188,21 @@ class SabreSwap(TransformationPass):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Sabre swap runs on physical circuits only.")
 
-        if len(dag.qubits) > self.coupling_map.size():
-            raise TranspilerError("More virtual qubits exist than physical.")
+        num_dag_qubits = len(dag.qubits)
+        num_coupling_qubits = self.coupling_map.size()
+        if num_dag_qubits < num_coupling_qubits:
+            raise TranspilerError(
+                f"Fewer qubits in the circuit ({num_dag_qubits}) than the coupling map"
+                f" ({num_coupling_qubits})."
+                " Have you run a layout pass and then expanded your DAG with ancillas?"
+                " See `FullAncillaAllocation`, `EnlargeWithAncilla` and `ApplyLayout`."
+            )
+        if num_dag_qubits > num_coupling_qubits:
+            raise TranspilerError(
+                f"More qubits in the circuit ({num_dag_qubits}) than available in the coupling map"
+                f" ({num_coupling_qubits})."
+                " This circuit cannot be routed to this device."
+            )
 
         if self.heuristic == "basic":
             heuristic = Heuristic.Basic

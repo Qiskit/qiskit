@@ -16,7 +16,7 @@ Gradient of probabilities with parameter shift
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 from qiskit.circuit import Parameter, QuantumCircuit
 
@@ -104,7 +104,7 @@ class ParamShiftSamplerGradient(BaseSamplerGradient):
             gradient = []
             result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
             for dist_plus, dist_minus in zip(result[: n // 2], result[n // 2 :]):
-                grad_dist = defaultdict(float)
+                grad_dist: dict[int, float] = defaultdict(float)
                 for key, val in dist_plus.items():
                     grad_dist[key] += val / 2
                 for key, val in dist_minus.items():
