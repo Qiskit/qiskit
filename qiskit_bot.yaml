@@ -25,7 +25,7 @@ notifications:
         - "@woodsp-ibm"
         - "@Cryoris"
     "algorithms":
-        - "@elePT"
+        - "@ElePT"
         - "@woodsp-ibm"
     "circuit/library":
         - "@Cryoris"
