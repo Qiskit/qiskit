@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,6 +18,7 @@ from enum import Enum
 
 import re
 import logging
+import warnings
 from typing import Any
 
 import numpy as np
@@ -27,6 +28,7 @@ from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.opflow import OperatorBase, PauliSumOp
 from qiskit.circuit.library import EvolvedOperatorAnsatz
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.validation import validate_min
 
 from .minimum_eigensolver import MinimumEigensolver
@@ -85,37 +87,71 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
         solver: a :class:`~.VQE` instance used internally to compute the minimum eigenvalues.
             It is a requirement that the :attr:`~.VQE.ansatz` of this solver is of type
             :class:`qiskit.circuit.library.EvolvedOperatorAnsatz`.
-        threshold: the convergence threshold for the algorithm. Once all gradients have an absolute
-            value smaller than this threshold, the algorithm terminates.
+        gradient_threshold: once all gradients have an absolute value smaller than this threshold,
+            the algorithm has converged and terminates.
         max_iterations: the maximum number of iterations for the adaptive loop. If ``None``, the
             algorithm is not bound in its number of iterations.
     """
 
+    @deprecate_arg(
+        "threshold",
+        since="0.24.0",
+        pending=True,
+        new_alias="gradient_threshold",
+    )
     def __init__(
         self,
         solver: VQE,
         *,
-        threshold: float = 1e-5,
+        gradient_threshold: float = 1e-5,
         max_iterations: int | None = None,
+        threshold: float | None = None,  # pylint: disable=unused-argument
     ) -> None:
         """
         Args:
             solver: a :class:`~.VQE` instance used internally to compute the minimum eigenvalues.
                 It is a requirement that the :attr:`~.VQE.ansatz` of this solver is of type
                 :class:`qiskit.circuit.library.EvolvedOperatorAnsatz`.
-            threshold: the convergence threshold for the algorithm. Once all gradients have an
-                absolute value smaller than this threshold, the algorithm terminates.
+            gradient_threshold: once all gradients have an absolute value smaller than this
+                threshold, the algorithm has converged and terminates.
             max_iterations: the maximum number of iterations for the adaptive loop. If ``None``, the
                 algorithm is not bound in its number of iterations.
+            threshold: once all gradients have an absolute value smaller than this threshold, the
+                algorithm has converged and terminates. Defaults to ``1e-5``.
         """
-        validate_min("threshold", threshold, 1e-15)
+        validate_min("gradient_threshold", gradient_threshold, 1e-15)
 
         self.solver = solver
-        self.threshold = threshold
+        self.gradient_threshold = gradient_threshold
         self.max_iterations = max_iterations
         self._tmp_ansatz: EvolvedOperatorAnsatz | None = None
         self._excitation_pool: list[OperatorBase] = []
         self._excitation_list: list[OperatorBase] = []
+
+    @property
+    def threshold(self) -> float:
+        """The threshold for the gradients.
+
+        Once all gradients have an absolute value smaller than this threshold, the algorithm has
+        converged and terminates.
+        """
+        msg = (
+            "threshold is pending deprecated as of qiskit-terra 0.24.0. It will be marked "
+            "deprecated in a future release, and then removed no earlier than 3 months after the "
+            "release date. Instead, use the gradient_threshold attribute."
+        )
+        warnings.warn(msg, category=PendingDeprecationWarning, stacklevel=3)
+        return self.gradient_threshold
+
+    @threshold.setter
+    def threshold(self, threshold: float) -> None:
+        msg = (
+            "threshold is pending deprecated as of qiskit-terra 0.24.0. It will be marked "
+            "deprecated in a future release, and then removed no earlier than 3 months after the "
+            "release date. Instead, use the gradient_threshold attribute."
+        )
+        warnings.warn(msg, category=PendingDeprecationWarning, stacklevel=3)
+        self.gradient_threshold = threshold
 
     @property
     def initial_point(self) -> Sequence[float] | None:
@@ -229,7 +265,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
                 str(max_grad_index),
             )
             # log gradients
-            if np.abs(max_grad[0]) < self.threshold:
+            if np.abs(max_grad[0]) < self.gradient_threshold:
                 if iteration == 1:
                     raise QiskitError(
                         "All gradients have been evaluated to lie below the convergence threshold "
