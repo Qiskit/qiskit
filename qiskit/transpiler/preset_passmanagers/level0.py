@@ -130,7 +130,7 @@ def level_0_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout = PassManager()
             layout.append(_given_layout)
             layout.append(_choose_layout, condition=_choose_layout_condition)
-            embed = common.generate_embed_passmanager(coupling_map, target)
+            embed = common.generate_embed_passmanager(coupling_map_layout)
             layout.append(
                 [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
             )

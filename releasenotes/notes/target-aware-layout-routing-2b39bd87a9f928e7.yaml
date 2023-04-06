@@ -24,7 +24,7 @@ features:
       * :class:`~.CheckMap`
   - |
     The pass manager construction helper function :func:`~.generate_embed_passmanager`
-    has a new keyword argument ``target`` which is used to specify a :class:`~.Target`
-    object to model the constraints of the target backend being compiled for
-    when generating a new :class:~.PassManager`. If specified this new argument will
-    supersede the other argument ``coupling_map``.
+    will now also accept a :class:`~.Target` for it's sole positional argument
+    (currently named ``coupling_map``). This can be used to construct a layout
+    embedding :class:`~.PassManager` from a :class:`~.Target` object instead of
+    from a :class:`~.CouplingMap`.

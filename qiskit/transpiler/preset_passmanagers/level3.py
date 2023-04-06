@@ -223,7 +223,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout.append(
                 [BarrierBeforeFinalMeasurements(), _choose_layout_1], condition=_vf2_match_not_found
             )
-            embed = common.generate_embed_passmanager(coupling_map, target)
+            embed = common.generate_embed_passmanager(coupling_map_layout)
             layout.append(
                 [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
             )
