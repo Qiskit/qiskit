@@ -30,15 +30,15 @@ The following table summarizes the migration alternatives for the :class:`~qiski
 
    * - QuantumInstance method
      - Alternative
-   * - ``QuantumInstance.execute``
-     - ``Sampler.run`` or ``Estimator.run``
-   * - ``QuantumInstance.transpile``
-     - ``qiskit.transpiler.transpile``
-   * - ``QuantumInstance.assemble``
-     - Deprecated
+   * - :meth:`.QuantumInstance.execute`
+     - :meth:`qiskit.primitives.Sampler.run` or :meth:`qiskit.primitives.Estimator.run`
+   * - :meth:`.QuantumInstance.transpile`
+     - :meth:`qiskit.transpiler.transpile`
+   * - :meth:`.QuantumInstance.assemble`
+     - :meth:`qiskit.compiler.assemble`
 
-The remainder of this guide will focus on the :class:`~qiskit.utils.QuantumInstance` to :mod:`qiskit.primitives`
-migration path.
+The remainder of this guide will focus on the :meth:`.QuantumInstance.execute` to
+:mod:`~qiskit.primitives` migration path.
 
 Contents
 ========
