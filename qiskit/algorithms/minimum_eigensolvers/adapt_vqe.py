@@ -85,11 +85,14 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
     Attributes:
         solver: a :class:`~.VQE` instance used internally to compute the minimum eigenvalues.
             It is a requirement that the :attr:`~.VQE.ansatz` of this solver is of type
-            :class:`qiskit.circuit.library.EvolvedOperatorAnsatz`.
+            :class:`~qiskit.circuit.library.EvolvedOperatorAnsatz`.
         gradient_threshold: once all gradients have an absolute value smaller than this threshold,
             the algorithm has converged and terminates.
         eigenvalue_threshold: once the eigenvalue has changed by less than this threshold from one
-            iteration to the next, the algorithm has converged and terminates.
+            iteration to the next, the algorithm has converged and terminates. When this case
+            occurs, the excitation included in the final iteration did not result in a significant
+            improvement of the eigenvalue and, thus, the results from this iteration are not
+            considered.
         max_iterations: the maximum number of iterations for the adaptive loop. If ``None``, the
             algorithm is not bound in its number of iterations.
     """
@@ -113,11 +116,14 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
         Args:
             solver: a :class:`~.VQE` instance used internally to compute the minimum eigenvalues.
                 It is a requirement that the :attr:`~.VQE.ansatz` of this solver is of type
-                :class:`qiskit.circuit.library.EvolvedOperatorAnsatz`.
+                :class:`~qiskit.circuit.library.EvolvedOperatorAnsatz`.
             gradient_threshold: once all gradients have an absolute value smaller than this
                 threshold, the algorithm has converged and terminates.
             eigenvalue_threshold: once the eigenvalue has changed by less than this threshold from
-                one iteration to the next, the algorithm has converged and terminates.
+                one iteration to the next, the algorithm has converged and terminates. When this
+                case occurs, the excitation included in the final iteration did not result in a
+                significant improvement of the eigenvalue and, thus, the results from this iteration
+                are not considered.
             max_iterations: the maximum number of iterations for the adaptive loop. If ``None``, the
                 algorithm is not bound in its number of iterations.
             threshold: once all gradients have an absolute value smaller than this threshold, the
