@@ -23,17 +23,32 @@
 * @Qiskit/terra-core
 
 # Qiskit folders (also their corresponding tests)
-algorithms/           @Qiskit/terra-core @woodsp-ibm @ElePT
-opflow/               @Qiskit/terra-core @woodsp-ibm @ikkoham
-qiskit/utils/         @Qiskit/terra-core @woodsp-ibm
-providers/            @Qiskit/terra-core @jyu00
-quantum_info/         @Qiskit/terra-core @ikkoham
-qpy/                  @Qiskit/terra-core
-pulse/                @Qiskit/terra-core @eggerdj @wshanks
-synthesis/            @Qiskit/terra-core @alexanderivrii @ShellyGarion
-scheduler/            @Qiskit/terra-core @eggerdj @wshanks
-visualization/        @Qiskit/terra-core @nonhermitian
-primitives/           @Qiskit/terra-core @ikkoham @t-imamichi
+.azure/                @Qiskit/terra-core @Eric-Arellano
+.github/               @Qiskit/terra-core @Eric-Arellano
+algorithms/            @Qiskit/terra-core @woodsp-ibm @ElePT
+circuit/library/       @Qiskit/terra-core @Cryoris @ajavadia
+docs/                  @Qiskit/terra-core @javabster @HuangJunye @Eric-Arellano
+opflow/                @Qiskit/terra-core @woodsp-ibm @ikkoham @Cryoris
+qiskit/utils/          @Qiskit/terra-core @woodsp-ibm
+providers/             @Qiskit/terra-core @jyu00
+quantum_info/          @Qiskit/terra-core @ikkoham
+qpy/                   @Qiskit/terra-core @mtreinish @nkanazawa1989
+primitives/            @Qiskit/terra-core @ikkoham @t-imamichi @ajavadia @levbishop
+pulse/                 @Qiskit/terra-core @eggerdj @wshanks @nkanazawa1989
+synthesis/             @Qiskit/terra-core @alexanderivrii @ShellyGarion
+scheduler/             @Qiskit/terra-core @eggerdj @wshanks @nkanazawa1989
+visualization/         @Qiskit/terra-core @nonhermitian
+visualization/pulse_v2 @Qiskit/terra-core @nonhermitian @nkanazawa1989
+visualization/timeline @Qiskit/terra-core @nonhermitian @nkanazawa1989
+
+# Specific files / globs.
+*.rs                             @Qiskit/terra-core @mtreinish @kevinhartman @Eric-Arellano
+Cargo*                           @Qiskit/terra-core @mtreinish @kevinhartman @Eric-Arellano
+synthesis/two_qubit_decompose.py @Qiskit/terra-core @levbishop
+utils/run_circuits.py            @Qiskit/terra-core @woodsp-ibm
+utils/quantum_instance.py        @Qiskit/terra-core @woodsp-ibm
+utils/quantum_instance.py        @Qiskit/terra-core @woodsp-ibm
+
 # Override the release notes directories to have _no_ code owners, so any review
 # from somebody with write access is acceptable.
 /releasenotes/notes
