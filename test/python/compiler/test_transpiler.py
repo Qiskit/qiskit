@@ -46,7 +46,7 @@ from qiskit.circuit.library import (
     XGate,
     SXGate,
 )
-from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp
+from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, SwitchCaseOp, ControlFlowOp
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.delay import Delay
 from qiskit.test import QiskitTestCase
@@ -1522,6 +1522,7 @@ class TestTranspile(QiskitTestCase):
         target.add_instruction(ForLoopOp, name="for_loop")
         target.add_instruction(WhileLoopOp, name="while_loop")
         target.add_instruction(IfElseOp, name="if_else")
+        target.add_instruction(SwitchCaseOp, name="switch_case")
 
         circuit = QuantumCircuit(6, 1)
         circuit.h(0)
@@ -1545,6 +1546,15 @@ class TestTranspile(QiskitTestCase):
                 circuit.cx(3, 4)
                 circuit.cz(3, 5)
                 circuit.append(CustomCX(), [4, 5], [])
+        with circuit.switch(circuit.cregs[0]) as case_:
+            with case_(0):
+                circuit.cx(0, 1)
+                circuit.cz(0, 2)
+                circuit.append(CustomCX(), [1, 2], [])
+            with case_(1):
+                circuit.cx(1, 2)
+                circuit.cz(1, 3)
+                circuit.append(CustomCX(), [2, 3], [])
         transpiled = transpile(
             circuit, optimization_level=opt_level, target=target, seed_transpiler=12434
         )
@@ -1654,6 +1664,13 @@ class TestPostTranspileIntegration(QiskitTestCase):
             base.append(CustomCX(), [2, 4])
             base.ry(a, 4)
             base.measure(4, 2)
+        with base.switch(base.cregs[0]) as case_:
+            with case_(0, 1):
+                base.cz(3, 5)
+            with case_(case_.DEFAULT):
+                base.cz(1, 4)
+                base.append(CustomCX(), [2, 4])
+                base.append(CustomCX(), [3, 4])
         return base
 
     @data(0, 1, 2, 3)
@@ -1701,7 +1718,8 @@ class TestPostTranspileIntegration(QiskitTestCase):
         transpiled = transpile(
             self._control_flow_circuit(),
             backend=backend,
-            basis_gates=backend.configuration().basis_gates + ["if_else", "for_loop", "while_loop"],
+            basis_gates=backend.configuration().basis_gates
+            + ["if_else", "for_loop", "while_loop", "switch_case"],
             optimization_level=optimization_level,
             seed_transpiler=2022_10_17,
         )
@@ -1721,6 +1739,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         backend.target.add_instruction(IfElseOp, name="if_else")
         backend.target.add_instruction(ForLoopOp, name="for_loop")
         backend.target.add_instruction(WhileLoopOp, name="while_loop")
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         transpiled = transpile(
             self._control_flow_circuit(),
             backend=backend,
@@ -1757,6 +1776,7 @@ class TestPostTranspileIntegration(QiskitTestCase):
         backend.target.add_instruction(IfElseOp, name="if_else")
         backend.target.add_instruction(ForLoopOp, name="for_loop")
         backend.target.add_instruction(WhileLoopOp, name="while_loop")
+        backend.target.add_instruction(SwitchCaseOp, name="switch_case")
         transpiled = transpile(
             self._control_flow_circuit(),
             backend=backend,
@@ -1766,7 +1786,10 @@ class TestPostTranspileIntegration(QiskitTestCase):
         # TODO: There's not a huge amount we can sensibly test for the output here until we can
         # round-trip the OpenQASM 3 back into a Terra circuit.  Mostly we're concerned that the dump
         # itself doesn't throw an error, though.
-        self.assertIsInstance(qasm3.dumps(transpiled).strip(), str)
+        self.assertIsInstance(
+            qasm3.dumps(transpiled, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1).strip(),
+            str,
+        )
 
     @data(0, 1, 2, 3)
     def test_transpile_target_no_measurement_error(self, opt_level):
