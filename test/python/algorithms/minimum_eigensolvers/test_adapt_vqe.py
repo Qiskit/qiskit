@@ -127,22 +127,10 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         )
         ansatz = EvolvedOperatorAnsatz(
             [
-                PauliSumOp(
-                    SparsePauliOp(
-                        ["XY"],
-                        coeffs=[0.5],
-                    ),
-                    coeff=1.0,
-                ),
-                PauliSumOp(
-                    SparsePauliOp(
-                        ["YX"],
-                        coeffs=[0.5],
-                    ),
-                    coeff=1.0,
-                ),
+                PauliSumOp.from_list([("XY", 0.5)]),
+                PauliSumOp.from_list([("YX", 0.5)]),
             ],
-            initial_state=QuantumCircuit(QuantumRegister(2)),
+            initial_state=QuantumCircuit(2),
         )
 
         calc = AdaptVQE(
