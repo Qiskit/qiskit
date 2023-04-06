@@ -209,10 +209,9 @@ class BackendEstimator(BaseEstimator):
                         layout.initial_layout.get_virtual_bits()[v] for v in common_circuit.qubits
                     ]
                     if layout.final_layout is not None:
-                        final_mapping = {
-                            i: v
-                            for i, v in enumerate(layout.final_layout.get_virtual_bits().values())
-                        }
+                        final_mapping = dict(
+                            enumerate(layout.final_layout.get_virtual_bits().values())
+                        )
                         perm_pattern = [final_mapping[i] for i in perm_pattern]
                 else:
                     perm_pattern = list(range(transpiled_circuit.num_qubits))
