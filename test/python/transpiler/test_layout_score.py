@@ -13,8 +13,8 @@
 """Test the Layout Score pass"""
 
 import unittest
-
-from qiskit import QuantumRegister, QuantumCircuit
+import math
+from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.transpiler.passes import Layout2qDistance
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.converters import circuit_to_dag
@@ -100,6 +100,64 @@ class TestTrivialLayoutScore(QiskitTestCase):
         pass_.run(dag)
 
         self.assertEqual(pass_.property_set["layout_score"], 1)
+
+    def test_control_flow_if_else(self):
+        """Circuit with control flow if else blocks"""
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        circuit = QuantumCircuit(qr, cr)
+        true_body = QuantumCircuit(qr, cr)
+        false_body = QuantumCircuit(qr, cr)
+        true_body.cx(0, 2)
+        false_body.cx(0, 2)
+        false_body.cx(0, 3)
+        circuit.h(qr)
+        circuit.cx(0, 2)
+        circuit.if_else((cr, 0), true_body, false_body, qr, cr)
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        layout = Layout().generate_trivial_layout(qr)
+        dag = circuit_to_dag(circuit)
+        pass_ = Layout2qDistance(coupling)
+        pass_.property_set["layout"] = layout
+        pass_.run(dag)
+        self.assertEqual(pass_.property_set["layout_score"], 5)
+
+    def test_control_flow_for_loop(self):
+        """Circuit with control flow for loop"""
+        nloops = 5
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        circuit = QuantumCircuit(qr, cr)
+        body = QuantumCircuit(qr, cr)
+        body.cx(0, 3)
+        circuit.h(qr)
+        circuit.cx(0, 2)
+        circuit.for_loop(range(nloops), None, body, qr, cr)
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        layout = Layout().generate_trivial_layout(qr)
+        dag = circuit_to_dag(circuit)
+        pass_ = Layout2qDistance(coupling)
+        pass_.property_set["layout"] = layout
+        pass_.run(dag)
+        self.assertEqual(pass_.property_set["layout_score"], 11)
+
+    def test_control_flow_while_loop(self):
+        """Circuit with control flow while loop"""
+        qr = QuantumRegister(4)
+        cr = ClassicalRegister(4)
+        circuit = QuantumCircuit(qr, cr)
+        body = QuantumCircuit(qr, cr)
+        body.cx(0, 3)
+        circuit.h(qr)
+        circuit.cx(0, 2)
+        circuit.while_loop((cr, 0), body, qr, cr)
+        coupling = CouplingMap([[0, 1], [1, 2], [2, 3]])
+        layout = Layout().generate_trivial_layout(qr)
+        dag = circuit_to_dag(circuit)
+        pass_ = Layout2qDistance(coupling)
+        pass_.property_set["layout"] = layout
+        pass_.run(dag)
+        self.assertTrue(math.isnan(pass_.property_set["layout_score"]))
 
 
 if __name__ == "__main__":
