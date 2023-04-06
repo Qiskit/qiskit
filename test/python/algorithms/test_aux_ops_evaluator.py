@@ -171,6 +171,16 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                         quantum_instance,
                     )
 
+                with self.subTest(msg="Test QuantumCircuit with Backend."):
+                    self._run_test(
+                        expected_result,
+                        bound_ansatz,
+                        decimal,
+                        expectation,
+                        observables,
+                        backend,
+                    )
+
                 with self.subTest(msg="Test Statevector."):
                     statevector = Statevector(bound_ansatz)
                     self._run_test(

@@ -34,6 +34,7 @@ from qiskit.utils.backend_utils import (
     _get_backend_provider,
     _get_backend_interface_version,
 )
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
@@ -147,6 +148,14 @@ class QuantumInstance:
     @deprecate_func(
         since="0.24.0",
         additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+    )
+    @deprecate_arg(
+        "max_credits",
+        since="0.20.0",
+        additional_msg=(
+            "This parameter has no effect on modern IBM Quantum systems, and no "
+            "alternative is necessary."
+        ),
     )
     def __init__(
         self,
@@ -269,15 +278,6 @@ class QuantumInstance:
 
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig
-
-        if max_credits is not None:
-            warnings.warn(
-                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-                "and will be removed in a future release. This parameter has no effect on "
-                "modern IBM Quantum systems, and no alternative is necessary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
 
         run_config = RunConfig(shots=shots, max_credits=max_credits)
         if seed_simulator is not None:

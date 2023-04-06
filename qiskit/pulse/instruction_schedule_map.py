@@ -39,8 +39,8 @@ from qiskit.pulse.calibration_entries import (
     CalibrationEntry,
     ScheduleDef,
     CallableDef,
-    PulseQobjDef,
     # for backward compatibility
+    PulseQobjDef,
     CalibrationPublisher,
 )
 from qiskit.pulse.exceptions import PulseError
@@ -77,7 +77,7 @@ class InstructionScheduleMap:
         """Return ``True`` if the map has user provided instruction."""
         for qubit_inst in self._map.values():
             for entry in qubit_inst.values():
-                if not isinstance(entry, PulseQobjDef):
+                if entry.user_provided:
                     return True
         return False
 
@@ -264,7 +264,7 @@ class InstructionScheduleMap:
                 "Supplied schedule must be one of the Schedule, ScheduleBlock or a "
                 "callable that outputs a schedule."
             )
-        entry.define(schedule)
+        entry.define(schedule, user_provided=True)
         self._add(instruction, qubits, entry)
 
     def _add(

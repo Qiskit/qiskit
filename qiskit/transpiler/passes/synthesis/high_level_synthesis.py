@@ -15,13 +15,25 @@
 
 
 from qiskit.converters import circuit_to_dag
-from qiskit.synthesis import synth_permutation_basic, synth_permutation_acg
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
-from qiskit.synthesis import synth_clifford_full
-from qiskit.synthesis.linear import synth_cnot_count_full_pmh
-from qiskit.synthesis.permutation import synth_permutation_depth_lnn_kms
+
+from qiskit.synthesis.clifford import (
+    synth_clifford_full,
+    synth_clifford_layers,
+    synth_clifford_depth_lnn,
+    synth_clifford_greedy,
+    synth_clifford_ag,
+    synth_clifford_bm,
+)
+from qiskit.synthesis.linear import synth_cnot_count_full_pmh, synth_cnot_depth_line_kms
+from qiskit.synthesis.permutation import (
+    synth_permutation_basic,
+    synth_permutation_acg,
+    synth_permutation_depth_lnn_kms,
+)
+
 from .plugin import HighLevelSynthesisPluginManager, HighLevelSynthesisPlugin
 
 
@@ -116,6 +128,7 @@ class HighLevelSynthesis(TransformationPass):
             # When the config file is not provided, we will use the "default" method
             # to synthesize Operations (when available).
             self.hls_config = HLSConfig(True)
+        self.hls_plugin_manager = HighLevelSynthesisPluginManager()
 
     def run(self, dag: DAGCircuit) -> DAGCircuit:
         """Run the HighLevelSynthesis pass on `dag`.
@@ -129,8 +142,6 @@ class HighLevelSynthesis(TransformationPass):
             TranspilerError: when the specified synthesis method is not available.
         """
 
-        hls_plugin_manager = HighLevelSynthesisPluginManager()
-
         for node in dag.op_nodes():
             if node.name in self.hls_config.methods.keys():
                 # the operation's name appears in the user-provided config,
@@ -138,7 +149,7 @@ class HighLevelSynthesis(TransformationPass):
                 methods = self.hls_config.methods[node.name]
             elif (
                 self.hls_config.use_default_on_unspecified
-                and "default" in hls_plugin_manager.method_names(node.name)
+                and "default" in self.hls_plugin_manager.method_names(node.name)
             ):
                 # the operation's name does not appear in the user-specified config,
                 # we use the "default" method when instructed to do so and the "default"
@@ -167,12 +178,12 @@ class HighLevelSynthesis(TransformationPass):
                 # or directly as a class inherited from HighLevelSynthesisPlugin (which then
                 # does not need to be specified in entry_points).
                 if isinstance(plugin_specifier, str):
-                    if plugin_specifier not in hls_plugin_manager.method_names(node.name):
+                    if plugin_specifier not in self.hls_plugin_manager.method_names(node.name):
                         raise TranspilerError(
                             "Specified method: %s not found in available plugins for %s"
                             % (plugin_specifier, node.name)
                         )
-                    plugin_method = hls_plugin_manager.method(node.name, plugin_specifier)
+                    plugin_method = self.hls_plugin_manager.method(node.name, plugin_specifier)
                 else:
                     plugin_method = plugin_specifier
 
@@ -190,7 +201,15 @@ class HighLevelSynthesis(TransformationPass):
 
 
 class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
-    """The default clifford synthesis plugin."""
+    """The default clifford synthesis plugin.
+
+    For N <= 3 qubits this is the optimal CX cost decomposition by Bravyi, Maslov.
+    For N > 3 qubits this is done using the general non-optimal greedy compilation
+    routine from reference by Bravyi, Hu, Maslov, Shaydulin.
+
+    This plugin name is :``clifford.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Clifford."""
@@ -198,8 +217,114 @@ class DefaultSynthesisClifford(HighLevelSynthesisPlugin):
         return decomposition
 
 
+class AGSynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the Aaronson-Gottesman method.
+
+    This plugin name is :``clifford.ag`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        decomposition = synth_clifford_ag(high_level_object)
+        return decomposition
+
+
+class BMSynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the Bravyi-Maslov method.
+    The plugin is named
+
+    The method only works on Cliffords with at most 3 qubits, for which it
+    constructs the optimal CX cost decomposition.
+
+    This plugin name is :``clifford.bm`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        if high_level_object.num_qubits <= 3:
+            decomposition = synth_clifford_bm(high_level_object)
+        else:
+            decomposition = None
+        return decomposition
+
+
+class GreedySynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the greedy synthesis
+    Bravyi-Hu-Maslov-Shaydulin method.
+
+    This plugin name is :``clifford.greedy`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        decomposition = synth_clifford_greedy(high_level_object)
+        return decomposition
+
+
+class LayerSynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the Bravyi-Maslov method
+    to synthesize Cliffords into layers.
+
+    This plugin name is :``clifford.layers`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        decomposition = synth_clifford_layers(high_level_object)
+        return decomposition
+
+
+class LayerLnnSynthesisClifford(HighLevelSynthesisPlugin):
+    """Clifford synthesis plugin based on the Bravyi-Maslov method
+    to synthesize Cliffords into layers, with each layer synthesized
+    adhering to LNN connectivity.
+
+    This plugin name is :``clifford.lnn`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given Clifford."""
+        decomposition = synth_clifford_depth_lnn(high_level_object)
+        return decomposition
+
+
 class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
-    """The default linear function synthesis plugin."""
+    """The default linear function synthesis plugin.
+
+    This plugin name is :``linear_function.default`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given LinearFunction."""
+        decomposition = synth_cnot_count_full_pmh(high_level_object.linear)
+        return decomposition
+
+
+class KMSSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """Linear function synthesis plugin based on the Kutin-Moulton-Smithline method.
+
+    This plugin name is :``linear_function.kms`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
+
+    def run(self, high_level_object, **options):
+        """Run synthesis for the given LinearFunction."""
+        decomposition = synth_cnot_depth_line_kms(high_level_object.linear)
+        return decomposition
+
+
+class PMHSynthesisLinearFunction(HighLevelSynthesisPlugin):
+    """Linear function synthesis plugin based on the Patel-Markov-Hayes method.
+
+    This plugin name is :``linear_function.pmh`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given LinearFunction."""
@@ -208,7 +333,11 @@ class DefaultSynthesisLinearFunction(HighLevelSynthesisPlugin):
 
 
 class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on the Kutin, Moulton, Smithline method."""
+    """The permutation synthesis plugin based on the Kutin, Moulton, Smithline method.
+
+    This plugin name is :``permutation.kms`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
@@ -217,7 +346,11 @@ class KMSSynthesisPermutation(HighLevelSynthesisPlugin):
 
 
 class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on sorting."""
+    """The permutation synthesis plugin based on sorting.
+
+    This plugin name is :``permutation.basic`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
@@ -226,7 +359,11 @@ class BasicSynthesisPermutation(HighLevelSynthesisPlugin):
 
 
 class ACGSynthesisPermutation(HighLevelSynthesisPlugin):
-    """The permutation synthesis plugin based on the Alon, Chung, Graham method."""
+    """The permutation synthesis plugin based on the Alon, Chung, Graham method.
+
+    This plugin name is :``permutation.acg`` which can be used as the key on
+    an :class:`~.HLSConfig` object to use this method with :class:`~.HighLevelSynthesis`.
+    """
 
     def run(self, high_level_object, **options):
         """Run synthesis for the given Permutation."""
