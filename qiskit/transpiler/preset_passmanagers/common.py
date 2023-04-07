@@ -273,7 +273,10 @@ def generate_routing_passmanager(
         return False
 
     routing = PassManager()
-    routing.append(CheckMap(coupling_map, target=target))
+    if target is not None:
+        routing.append(CheckMap(target))
+    else:
+        routing.append(CheckMap(coupling_map))
 
     def _swap_condition(property_set):
         return not property_set["is_swap_mapped"]

@@ -13,6 +13,7 @@
 """Check if a DAG circuit is already mapped to a coupling map."""
 
 from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.target import Target
 from qiskit.circuit.controlflow import ControlFlowOp
 
 
@@ -27,30 +28,24 @@ class CheckMap(AnalysisPass):
     for a target use the :class:`~.CheckGateDirection` pass instead.
     """
 
-    def __init__(self, coupling_map=None, target=None):
+    def __init__(self, coupling_map):
         """CheckMap initializer.
 
         Args:
-            coupling_map (CouplingMap): Directed graph representing a coupling map.
-            target (Target): A target representing the target backend, if both
-                ``coupling_map`` and this are specified then this argument will take
-                precedence and ``coupling_map`` will be ignored.
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling map.
         """
         super().__init__()
-        if coupling_map is None and target is None:
+        if isinstance(coupling_map, Target):
+            cmap = coupling_map.build_coupling_map()
+        else:
+            cmap = coupling_map
+        if cmap is None:
             self.qargs = None
         else:
             self.qargs = set()
-            if target is not None:
-                if target.qargs is not None:
-                    for edge in target.qargs:
-                        if len(edge) == 2:
-                            self.qargs.add(edge)
-                            self.qargs.add((edge[1], edge[0]))
-            else:
-                for edge in coupling_map.get_edges():
-                    self.qargs.add(edge)
-                    self.qargs.add((edge[1], edge[0]))
+            for edge in cmap.get_edges():
+                self.qargs.add(edge)
+                self.qargs.add((edge[1], edge[0]))
 
     def run(self, dag):
         """Run the CheckMap pass on `dag`.
