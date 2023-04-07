@@ -355,8 +355,8 @@ def transpile(
         ignore_backend_supplied_default_methods,
     )
     # Get transpile_args to configure the circuit transpilation job(s)
-    if coupling_map in unique_transpile_args:
-        cmap_conf = unique_transpile_args["coupling_map"]
+    if "coupling_map" not in shared_args:
+        cmap_conf = [a["pass_manager_config"]["coupling_map"] for a in unique_transpile_args]
     else:
         cmap_conf = [shared_args["coupling_map"]] * len(circuits)
     _check_circuits_coupling_map(circuits, cmap_conf, backend)
