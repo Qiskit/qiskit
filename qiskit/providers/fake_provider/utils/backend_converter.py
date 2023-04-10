@@ -106,6 +106,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
         target.min_length = conf_dict["timing_constraints"].get("min_length")
         target.pulse_alignment = conf_dict["timing_constraints"].get("pulse_alignment")
         target.acquire_alignment = conf_dict["timing_constraints"].get("acquire_alignment")
+    target.add_measuregrouping(conf_dict.get("meas_map"))
     # If pulse defaults exists use that as the source of truth
     if defs_dict is not None:
         # TODO remove the usage of PulseDefaults as it will be deprecated in the future
