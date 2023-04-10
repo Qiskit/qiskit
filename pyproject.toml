@@ -23,7 +23,6 @@ before-all = "mkdir -p /tmp/qiskit-tests && cp -r {project}/test /tmp/qiskit-tes
 
 [tool.cibuildwheel.linux]
 before-all = "yum install -y wget && {package}/tools/install_rust.sh && cp -r {project}/test/python /tmp/qiskit-tests && cp .stestr.conf /tmp/qiskit-tests/."
-environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true"'
 environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable"'
 
 [tool.pylint.main]
