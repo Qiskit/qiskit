@@ -12,6 +12,9 @@
 
 """
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 57939ba279d95b5e3f56a08e186f5e1459c3c44f
 =============================================================
 Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
 =============================================================
@@ -72,9 +75,12 @@ Standard gates (:mod:`qiskit.circuit.library.standard_gates`)
    YGate
    ZGate
    GlobalPhaseGate
+<<<<<<< HEAD
 =======
 Standard gates
 >>>>>>> 5672c70649b4f83a6c7146c68a6a543d4a3908fd
+=======
+>>>>>>> 57939ba279d95b5e3f56a08e186f5e1459c3c44f
 """
 
 from .h import HGate, CHGate
