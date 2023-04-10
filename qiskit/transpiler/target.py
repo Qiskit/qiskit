@@ -34,6 +34,7 @@ from qiskit.pulse.schedule import Schedule, ScheduleBlock
 from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
+from qiskit.transpiler.measuregrouping import MeasureGrouping
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.utils.deprecation import deprecate_arguments
 
@@ -286,6 +287,7 @@ class Target(Mapping):
                         "length of the input qubit_properties list"
                     )
         self.qubit_properties = qubit_properties
+        self.meas_map = None
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -918,6 +920,10 @@ class Target(Mapping):
             return cmap
         else:
             return None
+    
+    def add_measuregrouping(self, meas_map=None):
+        self.meas_map = MeasureGrouping(meas_map)
+
 
     @property
     def physical_qubits(self):

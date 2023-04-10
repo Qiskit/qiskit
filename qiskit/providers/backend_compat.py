@@ -106,6 +106,8 @@ def convert_to_target(
                     "Use custom_name_mapping to map this name to an Operation object"
                 )
         target.add_instruction(Measure())
+    # add MeasuringGroup
+    target.add_measuregrouping(configuration.meas_map)
     # parse global configuration properties
     if hasattr(configuration, "dt"):
         target.dt = configuration.dt
