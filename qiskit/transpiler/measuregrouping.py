@@ -26,6 +26,7 @@ class MeasureGrouping:
         "description",
         "meas_map",
     )
+
     def __init__(self, meas_map=None, description=None):
         """
         Create a new "MeasureGrouping" object.
@@ -33,17 +34,14 @@ class MeasureGrouping:
         self.description = description
 
         self.meas_map = meas_map
-    
-    @meas_map.setter
-    def meas_map(self, meas_map):
-        # if specify meas_map, is it necessary to convert the type of meas_map?
-        self.meas_map = meas_map
-    
+
     def get_qubit_groups(self, qubits: List) -> List:
         """
-        Gets qubit groups including at least one qubit of `qubits` from meas_map. 
+        Gets qubit groups including at least one qubit of `qubits` from meas_map.
         """
-        return [meas_map_data for meas_map_data in self.meas_map if set(qubits) & set(meas_map_data)]
+        return [
+            meas_map_data for meas_map_data in self.meas_map if set(qubits) & set(meas_map_data)
+        ]
 
     def constraints(self):
         """

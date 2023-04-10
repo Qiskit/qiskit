@@ -204,6 +204,7 @@ class Target(Mapping):
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
+        "meas_map",
     )
 
     @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
@@ -920,10 +921,10 @@ class Target(Mapping):
             return cmap
         else:
             return None
-    
-    def add_measuregrouping(self, meas_map=None):
-        self.meas_map = MeasureGrouping(meas_map)
 
+    def add_measuregrouping(self, meas_map=None):
+        """Add a MeasureGrouping class to meas_map"""
+        self.meas_map = MeasureGrouping(meas_map)
 
     @property
     def physical_qubits(self):

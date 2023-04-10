@@ -21,7 +21,6 @@ from qiskit.providers.models.backendproperties import BackendProperties
 from qiskit.transpiler.target import Target, InstructionProperties
 
 
-
 def measure(
     qubits: List[int],
     backend=None,
@@ -42,6 +41,8 @@ def measure(
         qubits: List of qubits to be measured.
         backend (Union[Backend, BaseBackend]): A backend instance, which contains
             hardware-specific data required for scheduling.
+        target: The :class:`~.Target` representing the target backend, If None, defaults to the
+                  ``target`` of ``backend``.
         inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
                   ``instruction_schedule_map`` of ``backend``.
         meas_map: List of sets of qubits that must be measured together. If None, defaults to
@@ -64,15 +65,17 @@ def measure(
                 target = backend.target
             if meas_map is not None:
                 target.meas_map = meas_map
-            inst_map = generate_schedule_in_measure(backend.properties(), target.meas_map.get_qubit_groups(qubits))
+            inst_map = generate_schedule_in_measure(
+                backend.properties(), target.meas_map.get_qubit_groups(qubits)
+            )
             meas_map = meas_map or target.meas_map
         else:
             inst_map = inst_map or backend.defaults().instruction_schedule_map
             meas_map = meas_map or backend.configuration().meas_map
     except AttributeError as ex:
         # Need to correct the below message when using backendV2.
-        # Both inst_map and backend can be allowed to be None because 
-        # inst_map is generated from target. 
+        # Both inst_map and backend can be allowed to be None because
+        # inst_map is generated from target.
         raise exceptions.PulseError(
             "inst_map or meas_map, and backend cannot be None simultaneously"
         ) from ex
@@ -122,12 +125,30 @@ def measure_all(backend) -> Schedule:
     """
     return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)
 
-def generate_schedule_in_measure(properties: BackendProperties, qubits: List) -> InstructionScheduleMap:
+
+def generate_schedule_in_measure(
+    properties: BackendProperties, qubits: List
+) -> InstructionScheduleMap:
+    """
+    Returns a InstructionScheduleMap with InstructionProperties of specified qubits.
+
+    Args:
+        properties (BackendProperties): The backend properties for the backend, including
+            information on readout lengths and readout errors.
+        qubits (List): the list of integers representing qubits.
+
+    Returns:
+        A InstructionScheduleMap corresponding to the inputs provided.
+    """
     inst_schedule_map = InstructionScheduleMap()
     for qubit in qubits:
-        inst_schedule_map._add("measure", (qubit, ), InstructionProperties(
+        inst_schedule_map._add(
+            "measure",
+            (qubit,),
+            InstructionProperties(
                 duration=properties.readout_length(qubit),
                 error=properties.readout_error(qubit),
-            ))
+            ),
+        )
 
     return inst_schedule_map
