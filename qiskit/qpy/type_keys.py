@@ -309,9 +309,10 @@ class ScheduleOperand(TypeKeyBase):
     # Data format of these object is somewhat opaque and not defiend well.
     # It's rarely used in the Qiskit experiements. Of course these can be added later.
 
-    # A temp hack. If pulse instruction operands involve a string,
-    # this is encoded in the standard value encode path, which assigned "s" to type_key.
-    # Note that this key conflicts with SYMBOLIC_PULSE type key.
+    # We need to have own string type definition for operands of schedule instruction.
+    # Note that string type is already defined in the Value namespace,
+    # but its key "s" conflicts with the SYMBOLIC_PULSE in the ScheduleOperand namespace.
+    # New in QPY version 7.
     OPERAND_STR = b"o"
 
     @classmethod

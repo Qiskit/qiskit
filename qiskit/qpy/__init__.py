@@ -145,8 +145,8 @@ a :class:`.~ScheduleBlock` program while keeping its reference to subroutines::
     with open('template_ecr.qpy', 'wb') as fd:
         qpy.dump(schedule, fd)
 
-Conventional :ref:`qpy_schedule_block` data model is preserved,
-but it is immediately followed by an extra :ref:`qpy_mapping` utf8 bytes block
+The conventional :ref:`qpy_schedule_block` data model is preserved, but in
+version 7 it is immediately followed by an extra :ref:`qpy_mapping` utf8 bytes block
 representing the data of the referenced subroutines.
 
 New type key character is added to the :ref:`qpy_schedule_instructions` group
