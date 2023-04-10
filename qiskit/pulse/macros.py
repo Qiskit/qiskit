@@ -17,7 +17,9 @@ from typing import Dict, List, Optional, Union
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
-from qiskit.transpiler.target import Target
+from qiskit.providers.models.backendproperties import BackendProperties
+from qiskit.transpiler.target import Target, InstructionProperties
+
 
 
 def measure(
@@ -62,7 +64,7 @@ def measure(
                 target = backend.target
             if meas_map is not None:
                 target.meas_map = meas_map
-            inst_map = generate_schedule(*target.meas_map.get_qubit_groups(*qubits))
+            inst_map = generate_schedule_in_measure(backend.properties(), target.meas_map.get_qubit_groups(qubits))
             meas_map = meas_map or target.meas_map
         else:
             inst_map = inst_map or backend.defaults().instruction_schedule_map
@@ -119,3 +121,13 @@ def measure_all(backend) -> Schedule:
         A schedule corresponding to the inputs provided.
     """
     return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)
+
+def generate_schedule_in_measure(properties: BackendProperties, qubits: List) -> InstructionScheduleMap:
+    inst_schedule_map = InstructionScheduleMap()
+    for qubit in qubits:
+        inst_schedule_map._add("measure", (qubit, ), InstructionProperties(
+                duration=properties.readout_length(qubit),
+                error=properties.readout_error(qubit),
+            ))
+
+    return inst_schedule_map
