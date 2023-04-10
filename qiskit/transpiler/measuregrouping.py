@@ -39,11 +39,11 @@ class MeasureGrouping:
         # if specify meas_map, is it necessary to convert the type of meas_map?
         self.meas_map = meas_map
     
-    def get_qubit_groups(self, *qubits: List):
+    def get_qubit_groups(self, *qubits: List) -> List:
         """
         Gets qubit groups including at least one qubit of `qubits` from meas_map. 
         """
-        pass
+        return [meas_map_data for meas_map_data in self.meas_map if set(qubits) & set(meas_map_data)]
 
     def constraints(self):
         """
