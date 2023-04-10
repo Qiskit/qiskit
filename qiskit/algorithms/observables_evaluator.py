@@ -114,7 +114,7 @@ def _prepare_result(
 
     if isinstance(observables, list):
         # by construction, all None values will be overwritten
-        observables_eigenvalues = [None] * len(observables)
+        observables_eigenvalues: ListOrDict[tuple[complex, complex]] = [None] * len(observables)
         key_value_iterator = enumerate(observables_results)
     else:
         observables_eigenvalues = {}

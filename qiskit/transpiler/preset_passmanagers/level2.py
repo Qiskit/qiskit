@@ -121,15 +121,23 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     )
 
+    if target is None:
+        coupling_map_layout = coupling_map
+    else:
+        coupling_map_layout = target
+
     if layout_method == "trivial":
-        _choose_layout_1 = TrivialLayout(coupling_map)
+        _choose_layout_1 = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
-        _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
+        if target is None:
+            _choose_layout_1 = NoiseAdaptiveLayout(backend_properties)
+        else:
+            _choose_layout_1 = NoiseAdaptiveLayout(target)
     elif layout_method == "sabre":
         _choose_layout_1 = SabreLayout(
-            coupling_map,
+            coupling_map_layout,
             max_iterations=2,
             seed=seed_transpiler,
             swap_trials=10,
@@ -153,7 +161,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     _opt = [
         Optimize1qGatesDecomposition(basis=basis_gates, target=target),
-        CommutativeCancellation(basis_gates=basis_gates),
+        CommutativeCancellation(basis_gates=basis_gates, target=target),
     ]
 
     unroll_3q = None
@@ -182,7 +190,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             layout.append(
                 [BarrierBeforeFinalMeasurements(), _choose_layout_1], condition=_vf2_match_not_found
             )
-            embed = common.generate_embed_passmanager(coupling_map)
+            embed = common.generate_embed_passmanager(coupling_map_layout)
             layout.append(
                 [pass_ for x in embed.passes() for pass_ in x["passes"]], condition=_swap_mapped
             )
@@ -234,7 +242,11 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         )
     if scheduling_method is None or scheduling_method in {"alap", "asap"}:
         sched = common.generate_scheduling(
-            instruction_durations, scheduling_method, timing_constraints, inst_map
+            instruction_durations,
+            scheduling_method,
+            timing_constraints,
+            inst_map,
+            target=target,
         )
     else:
         sched = plugin_manager.get_passmanager_stage(

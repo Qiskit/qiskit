@@ -22,6 +22,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.transpiler.target import Target
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,7 @@ class LookaheadSwap(TransformationPass):
         """LookaheadSwap initializer.
 
         Args:
-            coupling_map (CouplingMap): CouplingMap of the target backend.
+            coupling_map (Union[CouplingMap, Target]): CouplingMap of the target backend.
             search_depth (int): lookahead tree depth when ranking best SWAP options.
             search_width (int): lookahead tree width when ranking best SWAP options.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
@@ -93,7 +94,12 @@ class LookaheadSwap(TransformationPass):
         """
 
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.search_depth = search_depth
         self.search_width = search_width
         self.fake_run = fake_run
@@ -108,8 +114,12 @@ class LookaheadSwap(TransformationPass):
                 the property_set.
         Raises:
             TranspilerError: if the coupling map or the layout are not
-            compatible with the DAG
+            compatible with the DAG, or if the coupling_map=None
         """
+
+        if self.coupling_map is None:
+            raise TranspilerError("LookaheadSwap cannot run with coupling_map=None")
+
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("Lookahead swap runs on physical circuits only")
 
@@ -155,8 +165,8 @@ class LookaheadSwap(TransformationPass):
 
             mapped_gates.extend(gates_mapped)
 
+        self.property_set["final_layout"] = current_state.layout
         if self.fake_run:
-            self.property_set["final_layout"] = current_state.layout
             return dag
 
         # Preserve input DAG's name, regs, wire_map, etc. but replace the graph.

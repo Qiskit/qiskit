@@ -18,6 +18,7 @@ from __future__ import annotations
 import numpy as np
 
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.gate import Gate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.synthesis.discrete_basis.solovay_kitaev import SolovayKitaevDecomposition
 from qiskit.synthesis.discrete_basis.generate_basis_approximations import (
@@ -62,11 +63,12 @@ class SolovayKitaev(TransformationPass):
 
     Examples:
 
+        Per default, the basis gate set is ``["t", "tdg", "h"]``:
+
         .. code-block::
 
             import numpy as np
             from qiskit.circuit import QuantumCircuit
-            from qiskit.circuit.library import TGate, HGate, TdgGate
             from qiskit.transpiler.passes.synthesis import SolovayKitaev
             from qiskit.quantum_info import Operator
 
@@ -76,7 +78,6 @@ class SolovayKitaev(TransformationPass):
             print("Original circuit:")
             print(circuit.draw())
 
-            basis_gates = [TGate(), TdgGate(), HGate()]
             skd = SolovayKitaev(recursion_degree=2)
 
             discretized = skd(circuit)
@@ -98,6 +99,18 @@ class SolovayKitaev(TransformationPass):
             q: ┤ H ├┤ T ├┤ H ├
                └───┘└───┘└───┘
             Error: 2.828408279166474
+
+        For individual basis gate sets, the ``generate_basic_approximations`` function can be used:
+
+        .. code-block::
+
+            from qiskit.synthesis import generate_basic_approximations
+            from qiskit.transpiler.passes import SolovayKitaev
+
+            basis = ["s", "sdg", "t", "tdg", "z", "h"]
+            approx = generate_basic_approximations(basis, depth=3)
+
+            skd = SolovayKitaev(recursion_degree=2, basic_approximations=approx)
 
     References:
 
@@ -146,16 +159,21 @@ class SolovayKitaev(TransformationPass):
             if not node.op.num_qubits == 1:
                 continue  # ignore all non-single qubit gates
 
+            # we do not check the input matrix as we know it comes from a Qiskit gate, as this
+            # we know it will generate a valid SU(2) matrix
+            check_input = not isinstance(node.op, Gate)
+
             if not hasattr(node.op, "to_matrix"):
                 raise TranspilerError(
-                    "SolovayKitaev does not support gate without "
-                    f"to_matrix method: {node.op.name}"
+                    f"SolovayKitaev does not support gate without to_matrix method: {node.op.name}"
                 )
 
             matrix = node.op.to_matrix()
 
             # call solovay kitaev
-            approximation = self._sk.run(matrix, self.recursion_degree, return_dag=True)
+            approximation = self._sk.run(
+                matrix, self.recursion_degree, return_dag=True, check_input=check_input
+            )
 
             # convert to a dag and replace the gate by the approximation
             dag.substitute_node_with_dag(node, approximation)
