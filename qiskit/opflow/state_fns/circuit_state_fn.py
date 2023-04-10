@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" CircuitStateFn Class """
+"""CircuitStateFn Class"""
 
 
 from typing import Dict, List, Optional, Set, Union, cast
@@ -228,7 +228,7 @@ class CircuitStateFn(StateFn):
             c_op = c_op_self.tensor(c_op_other)
             if isinstance(c_op, CircuitOp):
                 return CircuitStateFn(
-                    primitive=c_op.primitive,  # pylint: disable=no-member
+                    primitive=c_op.primitive,
                     coeff=c_op.coeff,
                     is_measurement=self.is_measurement,
                 )

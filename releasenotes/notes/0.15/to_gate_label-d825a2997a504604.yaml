@@ -6,7 +6,7 @@ features:
     ``label`` which can be used to set a label for for the output
     :class:`~qiskit.circuit.Gate` object. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.circuit import QuantumCircuit
 

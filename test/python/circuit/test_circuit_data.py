@@ -12,7 +12,7 @@
 
 """Test operations on circuit.data."""
 
-from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter, CircuitInstruction
+from qiskit.circuit import QuantumCircuit, QuantumRegister, Parameter, CircuitInstruction, Operation
 from qiskit.circuit.library import HGate, XGate, CXGate, RXGate
 
 from qiskit.test import QiskitTestCase
@@ -402,6 +402,53 @@ class TestQuantumCircuitInstructionData(QiskitTestCase):
             qc.data = [CircuitInstruction(HGate(), [qr[0], qr[1]], [])]
         with self.assertRaises(CircuitError):
             qc.data = [CircuitInstruction(HGate(), [], [qr[0]])]
+
+    def test_setting_data_coerces_to_instruction(self):
+        """Verify that the `to_instruction` coercion also happens when setting data using the legacy
+        3-tuple format."""
+        qc = QuantumCircuit(2)
+        qc.cz(0, 1)
+
+        class NotAnInstruction:
+            # pylint: disable=missing-class-docstring,missing-function-docstring
+            def to_instruction(self):
+                return CXGate()
+
+        qc.data[0] = (NotAnInstruction(), qc.qubits, [])
+
+        expected = QuantumCircuit(2)
+        expected.cx(0, 1)
+        self.assertEqual(qc, expected)
+
+    def test_setting_data_allows_operation(self):
+        """Test that using the legacy 3-tuple setter to the data allows arbitrary `Operation`
+        classes to be used, not just `Instruction`."""
+
+        class MyOp(Operation):
+            # pylint: disable=missing-class-docstring,missing-function-docstring
+
+            @property
+            def name(self):
+                return "myop"
+
+            @property
+            def num_qubits(self):
+                return 2
+
+            @property
+            def num_clbits(self):
+                return 0
+
+            def __eq__(self, other):
+                return isinstance(other, MyOp)
+
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.data[0] = (MyOp(), qc.qubits, [])
+
+        expected = QuantumCircuit(2)
+        expected.append(MyOp(), [0, 1], [])
+        self.assertEqual(qc, expected)
 
     def test_param_gate_instance(self):
         """Verify that the same Parameter gate instance is not being used in

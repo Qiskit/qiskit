@@ -7,7 +7,7 @@ Qiskit Terra documentation
   :hidden:
 
   API References <apidocs/terra>
-  Circuit Library <apidocs/circuit_library>
+  Migration Guides <migration_guides/index>
   Release Notes <release_notes>
 
 .. Hiding - Indices and tables

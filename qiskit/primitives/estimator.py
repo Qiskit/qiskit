@@ -109,7 +109,7 @@ class Estimator(BaseEstimator):
             rng = np.random.default_rng(seed)
 
         # Initialize metadata
-        metadata: list[dict[str, Any]] = [{}] * len(circuits)
+        metadata: list[dict[str, Any]] = [{} for _ in range(len(circuits))]
 
         bound_circuits = []
         for i, value in zip(circuits, parameter_values):

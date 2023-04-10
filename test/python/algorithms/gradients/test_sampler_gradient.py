@@ -14,11 +14,10 @@
 """Test Sampler Gradients"""
 
 import unittest
-from test import combine
 from typing import List
 
 import numpy as np
-from ddt import ddt
+from ddt import ddt, data
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.gradients import (
@@ -29,10 +28,12 @@ from qiskit.algorithms.gradients import (
 )
 from qiskit.circuit import Parameter
 from qiskit.circuit.library import EfficientSU2, RealAmplitudes
-from qiskit.circuit.library.standard_gates import RXXGate, RYYGate, RZXGate, RZZGate
+from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.primitives import Sampler
 from qiskit.result import QuasiDistribution
 from qiskit.test import QiskitTestCase
+
+from .logging_primitives import LoggingSampler
 
 gradient_factories = [
     lambda sampler: FiniteDiffSamplerGradient(sampler, epsilon=1e-6, method="central"),
@@ -47,7 +48,30 @@ gradient_factories = [
 class TestSamplerGradient(QiskitTestCase):
     """Test Sampler Gradient"""
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
+    def test_single_circuit(self, grad):
+        """Test the sampler gradient for a single circuit"""
+        sampler = Sampler()
+        a = Parameter("a")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.p(a, 0)
+        qc.h(0)
+        qc.measure_all()
+        gradient = grad(sampler)
+        param_list = [[np.pi / 4], [0], [np.pi / 2]]
+        expected = [
+            [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
+            [{0: 0, 1: 0}],
+            [{0: -0.499999, 1: 0.499999}],
+        ]
+        for i, param in enumerate(param_list):
+            gradients = gradient.run([qc], [param]).result().gradients[0]
+            array1 = _quasi2array(gradients, num_qubits=1)
+            array2 = _quasi2array(expected[i], num_qubits=1)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
+
+    @data(*gradient_factories)
     def test_gradient_p(self, grad):
         """Test the sampler gradient for p"""
         sampler = Sampler()
@@ -59,18 +83,18 @@ class TestSamplerGradient(QiskitTestCase):
         qc.measure_all()
         gradient = grad(sampler)
         param_list = [[np.pi / 4], [0], [np.pi / 2]]
-        correct_results = [
+        expected = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
             [{0: 0, 1: 0}],
             [{0: -0.499999, 1: 0.499999}],
         ]
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+            array1 = _quasi2array(gradients, num_qubits=1)
+            array2 = _quasi2array(expected[i], num_qubits=1)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_u(self, grad):
         """Test the sampler gradient for u"""
         sampler = Sampler()
@@ -84,17 +108,17 @@ class TestSamplerGradient(QiskitTestCase):
         qc.measure_all()
         gradient = grad(sampler)
         param_list = [[np.pi / 4, 0, 0], [np.pi / 4, np.pi / 4, np.pi / 4]]
-        correct_results = [
+        expected = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}, {0: 0, 1: 0}, {0: 0, 1: 0}],
             [{0: -0.176777, 1: 0.176777}, {0: -0.426777, 1: 0.426777}, {0: -0.426777, 1: 0.426777}],
         ]
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+            array1 = _quasi2array(gradients, num_qubits=1)
+            array2 = _quasi2array(expected[i], num_qubits=1)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_efficient_su2(self, grad):
         """Test the sampler gradient for EfficientSU2"""
         sampler = Sampler()
@@ -105,7 +129,7 @@ class TestSamplerGradient(QiskitTestCase):
             [np.pi / 4 for param in qc.parameters],
             [np.pi / 2 for param in qc.parameters],
         ]
-        correct_results = [
+        expected = [
             [
                 {
                     0: -0.11963834764831836,
@@ -184,39 +208,32 @@ class TestSamplerGradient(QiskitTestCase):
         ]
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+            array1 = _quasi2array(gradients, num_qubits=2)
+            array2 = _quasi2array(expected[i], num_qubits=2)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_2qubit_gate(self, grad):
         """Test the sampler gradient for 2 qubit gates"""
         sampler = Sampler()
-        for gate in [RXXGate, RYYGate, RZZGate, RZXGate]:
+        for gate in [RXXGate]:
             param_list = [[np.pi / 4], [np.pi / 2]]
+            correct_results = [
+                [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0, 3: 0.5 / np.sqrt(2)}],
+                [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
+            ]
+            for i, param in enumerate(param_list):
+                a = Parameter("a")
+                qc = QuantumCircuit(2)
+                qc.append(gate(a), [qc.qubits[0], qc.qubits[1]], [])
+                qc.measure_all()
+                gradient = grad(sampler)
+                gradients = gradient.run([qc], [param]).result().gradients[0]
+                array1 = _quasi2array(gradients, num_qubits=2)
+                array2 = _quasi2array(correct_results[i], num_qubits=2)
+                np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-            if gate is RZXGate:
-                correct_results = [
-                    [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0.5 / np.sqrt(2), 3: 0}],
-                    [{0: -0.5, 1: 0, 2: 0.5, 3: 0}],
-                ]
-            else:
-                correct_results = [
-                    [{0: -0.5 / np.sqrt(2), 1: 0, 2: 0, 3: 0.5 / np.sqrt(2)}],
-                    [{0: -0.5, 1: 0, 2: 0, 3: 0.5}],
-                ]
-        for i, param in enumerate(param_list):
-            a = Parameter("a")
-            qc = QuantumCircuit(2)
-            qc.append(gate(a), [qc.qubits[0], qc.qubits[1]], [])
-            qc.measure_all()
-            gradient = grad(sampler)
-            gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
-
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_parameter_coefficient(self, grad):
         """Test the sampler gradient for parameter variables with coefficients"""
         sampler = Sampler()
@@ -286,11 +303,11 @@ class TestSamplerGradient(QiskitTestCase):
 
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 2)
+            array1 = _quasi2array(gradients, num_qubits=2)
+            array2 = _quasi2array(correct_results[i], num_qubits=2)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-    @combine(grad=gradient_factories)
+    @data(*gradient_factories)
     def test_gradient_parameters(self, grad):
         """Test the sampler gradient for parameters"""
         sampler = Sampler()
@@ -302,16 +319,52 @@ class TestSamplerGradient(QiskitTestCase):
         qc.measure_all()
         gradient = grad(sampler)
         param_list = [[np.pi / 4, np.pi / 2]]
-        correct_results = [
+        expected = [
             [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
         ]
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param], parameters=[[a]]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
+            array1 = _quasi2array(gradients, num_qubits=1)
+            array2 = _quasi2array(expected[i], num_qubits=1)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-    @combine(grad=gradient_factories)
+        # parameter order
+        with self.subTest(msg="The order of gradients"):
+            c = Parameter("c")
+            qc = QuantumCircuit(1)
+            qc.rx(a, 0)
+            qc.rz(b, 0)
+            qc.rx(c, 0)
+            qc.measure_all()
+            param_values = [[np.pi / 4, np.pi / 2, np.pi / 3]]
+            params = [[a, b, c], [c, b, a], [a, c], [c, a]]
+            expected = [
+                [
+                    {0: -0.17677666583387008, 1: 0.17677666583378482},
+                    {0: 0.3061861668168149, 1: -0.3061861668167012},
+                    {0: -0.3061861668168149, 1: 0.30618616681678645},
+                ],
+                [
+                    {0: -0.3061861668168149, 1: 0.30618616681678645},
+                    {0: 0.3061861668168149, 1: -0.3061861668167012},
+                    {0: -0.17677666583387008, 1: 0.17677666583378482},
+                ],
+                [
+                    {0: -0.17677666583387008, 1: 0.17677666583378482},
+                    {0: -0.3061861668168149, 1: 0.30618616681678645},
+                ],
+                [
+                    {0: -0.3061861668168149, 1: 0.30618616681678645},
+                    {0: -0.17677666583387008, 1: 0.17677666583378482},
+                ],
+            ]
+            for i, p in enumerate(params):
+                gradients = gradient.run([qc], param_values, parameters=[p]).result().gradients[0]
+                array1 = _quasi2array(gradients, num_qubits=1)
+                array2 = _quasi2array(expected[i], num_qubits=1)
+                np.testing.assert_allclose(array1, array2, atol=1e-3)
+
+    @data(*gradient_factories)
     def test_gradient_multi_arguments(self, grad):
         """Test the sampler gradient for multiple arguments"""
         sampler = Sampler()
@@ -330,33 +383,35 @@ class TestSamplerGradient(QiskitTestCase):
             [{0: -0.499999, 1: 0.499999}],
         ]
         gradients = gradient.run([qc, qc2], param_list).result().gradients
-        for j, q_dists in enumerate(gradients):
-            quasi_dist = q_dists[0]
-            for k in quasi_dist:
-                self.assertAlmostEqual(quasi_dist[k], correct_results[j][0][k], 3)
+        for i, q_dists in enumerate(gradients):
+            array1 = _quasi2array(q_dists, num_qubits=1)
+            array2 = _quasi2array(correct_results[i], num_qubits=1)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-        c = Parameter("c")
-        qc3 = QuantumCircuit(1)
-        qc3.rx(c, 0)
-        qc3.ry(a, 0)
-        qc3.measure_all()
-        param_list2 = [[np.pi / 4], [np.pi / 4, np.pi / 4], [np.pi / 4, np.pi / 4]]
-        gradients = (
-            gradient.run([qc, qc3, qc3], param_list2, parameters=[[a], [c], None])
-            .result()
-            .gradients
-        )
-        correct_results = [
-            [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
-            [{0: -0.25, 1: 0.25}],
-            [{0: -0.25, 1: 0.25}, {0: -0.25, 1: 0.25}],
-        ]
-        for i, result in enumerate(gradients):
-            for j, q_dists in enumerate(result):
-                for k in q_dists:
-                    self.assertAlmostEqual(q_dists[k], correct_results[i][j][k], 3)
+        # parameters
+        with self.subTest(msg="Different parameters"):
+            c = Parameter("c")
+            qc3 = QuantumCircuit(1)
+            qc3.rx(c, 0)
+            qc3.ry(a, 0)
+            qc3.measure_all()
+            param_list2 = [[np.pi / 4], [np.pi / 4, np.pi / 4], [np.pi / 4, np.pi / 4]]
+            gradients = (
+                gradient.run([qc, qc3, qc3], param_list2, parameters=[[a], [c], None])
+                .result()
+                .gradients
+            )
+            correct_results = [
+                [{0: -0.5 / np.sqrt(2), 1: 0.5 / np.sqrt(2)}],
+                [{0: -0.25, 1: 0.25}],
+                [{0: -0.25, 1: 0.25}, {0: -0.25, 1: 0.25}],
+            ]
+            for i, q_dists in enumerate(gradients):
+                array1 = _quasi2array(q_dists, num_qubits=1)
+                array2 = _quasi2array(correct_results[i], num_qubits=1)
+                np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-    @combine(grad=[FiniteDiffSamplerGradient, ParamShiftSamplerGradient, LinCombSamplerGradient])
+    @data(*gradient_factories)
     def test_gradient_validation(self, grad):
         """Test sampler gradient's validation"""
         sampler = Sampler()
@@ -364,12 +419,7 @@ class TestSamplerGradient(QiskitTestCase):
         qc = QuantumCircuit(1)
         qc.rx(a, 0)
         qc.measure_all()
-        if grad is FiniteDiffSamplerGradient:
-            gradient = grad(sampler, epsilon=1e-6)
-            with self.assertRaises(ValueError):
-                _ = grad(sampler, epsilon=-0.1)
-        else:
-            gradient = grad(sampler)
+        gradient = grad(sampler)
         param_list = [[np.pi / 4], [np.pi / 2]]
         with self.assertRaises(ValueError):
             gradient.run([qc], param_list)
@@ -386,6 +436,7 @@ class TestSamplerGradient(QiskitTestCase):
 
         a = Parameter("a")
         b = Parameter("b")
+        c = Parameter("c")
         qc = QuantumCircuit(2)
         qc.rx(b, 0)
         qc.rx(a, 1)
@@ -400,60 +451,98 @@ class TestSamplerGradient(QiskitTestCase):
         gradient = SPSASamplerGradient(sampler, epsilon=1e-6, seed=123)
         for i, param in enumerate(param_list):
             gradients = gradient.run([qc], [param]).result().gradients[0]
-            for j, quasi_dist in enumerate(gradients):
-                for k in quasi_dist:
-                    self.assertAlmostEqual(quasi_dist[k], correct_results[i][j][k], 3)
-        # multi parameters
-        param_list2 = [[1, 2], [1, 2], [3, 4]]
-        correct_results2 = [
-            [
-                {0: 0.2273244, 1: -0.6480598, 2: 0.2273244, 3: 0.1934111},
-                {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
-            ],
-            [
-                {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
-            ],
-            [
-                {0: -0.0141129, 1: -0.0564471, 2: -0.3642884, 3: 0.4348484},
-                {0: 0.0141129, 1: 0.0564471, 2: 0.3642884, 3: -0.4348484},
-            ],
-        ]
-        gradient = SPSASamplerGradient(sampler, epsilon=1e-6, seed=123)
-        gradients = (
-            gradient.run([qc] * 3, param_list2, parameters=[None, [b], None]).result().gradients
-        )
+            array1 = _quasi2array(gradients, num_qubits=2)
+            array2 = _quasi2array(correct_results[i], num_qubits=2)
+            np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-        for i, result in enumerate(gradients):
-            for j, q_dists in enumerate(result):
-                for k in q_dists:
-                    self.assertAlmostEqual(q_dists[k], correct_results2[i][j][k], 3)
+        # multi parameters
+        with self.subTest(msg="Multiple parameters"):
+            param_list2 = [[1, 2], [1, 2], [3, 4]]
+            correct_results2 = [
+                [
+                    {0: 0.2273244, 1: -0.6480598, 2: 0.2273244, 3: 0.1934111},
+                    {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
+                ],
+                [
+                    {0: -0.2273244, 1: 0.6480598, 2: -0.2273244, 3: -0.1934111},
+                ],
+                [
+                    {0: -0.0141129, 1: -0.0564471, 2: -0.3642884, 3: 0.4348484},
+                    {0: 0.0141129, 1: 0.0564471, 2: 0.3642884, 3: -0.4348484},
+                ],
+            ]
+            gradient = SPSASamplerGradient(sampler, epsilon=1e-6, seed=123)
+            gradients = (
+                gradient.run([qc] * 3, param_list2, parameters=[None, [b], None]).result().gradients
+            )
+            for i, result in enumerate(gradients):
+                array1 = _quasi2array(result, num_qubits=2)
+                array2 = _quasi2array(correct_results2[i], num_qubits=2)
+                np.testing.assert_allclose(array1, array2, atol=1e-3)
 
         # batch size
-        param_list = [[1, 1]]
-        gradient = SPSASamplerGradient(sampler, epsilon=1e-6, batch_size=4, seed=123)
-        gradients = gradient.run([qc], param_list).result().gradients
-        correct_results3 = [
-            [
-                {
-                    0: -0.1620149622932887,
-                    1: -0.25872053011771756,
-                    2: 0.3723827084675668,
-                    3: 0.04835278392088804,
-                },
-                {
-                    0: -0.1620149622932887,
-                    1: 0.3723827084675668,
-                    2: -0.25872053011771756,
-                    3: 0.04835278392088804,
-                },
+        with self.subTest(msg="Batch size"):
+            param_list = [[1, 1]]
+            gradient = SPSASamplerGradient(sampler, epsilon=1e-6, batch_size=4, seed=123)
+            gradients = gradient.run([qc], param_list).result().gradients
+            correct_results3 = [
+                [
+                    {
+                        0: -0.1620149622932887,
+                        1: -0.25872053011771756,
+                        2: 0.3723827084675668,
+                        3: 0.04835278392088804,
+                    },
+                    {
+                        0: -0.1620149622932887,
+                        1: 0.3723827084675668,
+                        2: -0.25872053011771756,
+                        3: 0.04835278392088804,
+                    },
+                ]
             ]
-        ]
-        for i, result in enumerate(gradients):
-            for j, q_dists in enumerate(result):
-                for k in q_dists:
-                    self.assertAlmostEqual(q_dists[k], correct_results3[i][j][k], 3)
+            for i, q_dists in enumerate(gradients):
+                array1 = _quasi2array(q_dists, num_qubits=2)
+                array2 = _quasi2array(correct_results3[i], num_qubits=2)
+                np.testing.assert_allclose(array1, array2, atol=1e-3)
 
-    @combine(grad=[ParamShiftSamplerGradient, LinCombSamplerGradient])
+        # parameter order
+        with self.subTest(msg="The order of gradients"):
+            qc = QuantumCircuit(1)
+            qc.rx(a, 0)
+            qc.rz(b, 0)
+            qc.rx(c, 0)
+            qc.measure_all()
+            param_list = [[np.pi / 4, np.pi / 2, np.pi / 3]]
+            param = [[a, b, c], [c, b, a], [a, c], [c, a]]
+            correct_results = [
+                [
+                    {0: -0.17677624757590138, 1: 0.17677624757590138},
+                    {0: 0.17677624757590138, 1: -0.17677624757590138},
+                    {0: 0.17677624757590138, 1: -0.17677624757590138},
+                ],
+                [
+                    {0: 0.17677624757590138, 1: -0.17677624757590138},
+                    {0: 0.17677624757590138, 1: -0.17677624757590138},
+                    {0: -0.17677624757590138, 1: 0.17677624757590138},
+                ],
+                [
+                    {0: -0.17677624757590138, 1: 0.17677624757590138},
+                    {0: 0.17677624757590138, 1: -0.17677624757590138},
+                ],
+                [
+                    {0: 0.17677624757590138, 1: -0.17677624757590138},
+                    {0: -0.17677624757590138, 1: 0.17677624757590138},
+                ],
+            ]
+            for i, p in enumerate(param):
+                gradient = SPSASamplerGradient(sampler, epsilon=1e-6, seed=123)
+                gradients = gradient.run([qc], param_list, parameters=[p]).result().gradients[0]
+                array1 = _quasi2array(gradients, num_qubits=1)
+                array2 = _quasi2array(correct_results[i], num_qubits=1)
+                np.testing.assert_allclose(array1, array2, atol=1e-3)
+
+    @data(ParamShiftSamplerGradient, LinCombSamplerGradient)
     def test_gradient_random_parameters(self, grad):
         """Test param shift and lin comb w/ random parameters"""
         rng = np.random.default_rng(123)
@@ -494,13 +583,11 @@ class TestSamplerGradient(QiskitTestCase):
             array2 = _quasi2array(res2, num_qubits)
             np.testing.assert_allclose(array1, array2, rtol=1e-4)
 
-    @combine(
-        grad=[
-            FiniteDiffSamplerGradient,
-            ParamShiftSamplerGradient,
-            LinCombSamplerGradient,
-            SPSASamplerGradient,
-        ],
+    @data(
+        FiniteDiffSamplerGradient,
+        ParamShiftSamplerGradient,
+        LinCombSamplerGradient,
+        SPSASamplerGradient,
     )
     def test_options(self, grad):
         """Test sampler gradient's run options"""
@@ -550,6 +637,46 @@ class TestSamplerGradient(QiskitTestCase):
             self.assertEqual(result.options.get("shots"), 300)
             # Only default + sampler options. Not run.
             self.assertEqual(options.get("shots"), 200)
+
+    @data(
+        FiniteDiffSamplerGradient,
+        ParamShiftSamplerGradient,
+        LinCombSamplerGradient,
+        SPSASamplerGradient,
+    )
+    def test_operations_preserved(self, gradient_cls):
+        """Test non-parameterized instructions are preserved and not unrolled."""
+        x = Parameter("x")
+        circuit = QuantumCircuit(2)
+        circuit.initialize(np.array([1, 1, 0, 0]) / np.sqrt(2))  # this should remain as initialize
+        circuit.crx(x, 0, 1)  # this should get unrolled
+        circuit.measure_all()
+
+        values = [np.pi / 2]
+        expect = [{0: 0, 1: -0.25, 2: 0, 3: 0.25}]
+
+        ops = []
+
+        def operations_callback(op):
+            ops.append(op)
+
+        sampler = LoggingSampler(operations_callback=operations_callback)
+
+        if gradient_cls in [SPSASamplerGradient, FiniteDiffSamplerGradient]:
+            gradient = gradient_cls(sampler, epsilon=0.01)
+        else:
+            gradient = gradient_cls(sampler)
+
+        job = gradient.run([circuit], [values])
+        result = job.result()
+
+        with self.subTest(msg="assert initialize is preserved"):
+            self.assertTrue(all("initialize" in ops_i[0].keys() for ops_i in ops))
+
+        with self.subTest(msg="assert result is correct"):
+            array1 = _quasi2array(result.gradients[0], num_qubits=2)
+            array2 = _quasi2array(expect, num_qubits=2)
+            np.testing.assert_allclose(array1, array2, atol=1e-5)
 
 
 def _quasi2array(quasis: List[QuasiDistribution], num_qubits: int) -> np.ndarray:

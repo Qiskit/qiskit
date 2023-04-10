@@ -16,11 +16,11 @@ import unittest
 
 from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
 from qiskit.circuit import Barrier
-from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.circuit.library.standard_gates import SwapGate, CXGate
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeLima
-from qiskit.transpiler import CouplingMap, Layout, PassManager
+from qiskit.transpiler import CouplingMap, Layout, PassManager, Target
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BIPMapping
 from qiskit.transpiler.passes import CheckMap, Collect2qBlocks, ConsolidateBlocks, UnitarySynthesis
@@ -118,6 +118,28 @@ class TestBIPMapping(QiskitTestCase):
         circuit.measure(qr[2], cr[1])
 
         actual = BIPMapping(coupling)(circuit)
+
+        q = QuantumRegister(3, "q")
+        expected = QuantumCircuit(q, cr)
+        expected.cx(q[0], q[1])
+        expected.measure(q[0], cr[0])  # <- changed due to initial layout change
+        expected.measure(q[1], cr[1])  # <- changed due to initial layout change
+
+        self.assertEqual(expected, actual)
+
+    def test_can_map_measurements_correctly_with_target(self):
+        """Verify measurement nodes are updated to map correct cregs to re-mapped qregs."""
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (0, 2): None})
+
+        qr = QuantumRegister(3, "qr")
+        cr = ClassicalRegister(2)
+        circuit = QuantumCircuit(qr, cr)
+        circuit.cx(qr[1], qr[2])
+        circuit.measure(qr[1], cr[0])
+        circuit.measure(qr[2], cr[1])
+
+        actual = BIPMapping(target)(circuit)
 
         q = QuantumRegister(3, "q")
         expected = QuantumCircuit(q, cr)
@@ -304,7 +326,7 @@ class TestBIPMapping(QiskitTestCase):
             BIPMapping(coupling, qubit_subset=[0, 1, 2])(circuit)
 
     def test_objective_function(self):
-        """Test if ``objective`` functions priorities metrics correctly."""
+        """Test if ``objective`` functions prioritize metrics correctly."""
 
         #      ┌──────┐┌──────┐     ┌──────┐
         # q_0: ┤0     ├┤0     ├─────┤0     ├
@@ -331,11 +353,11 @@ class TestBIPMapping(QiskitTestCase):
             backend_prop=FakeLima().properties(),
         )(qc)
         # depth = number of su4 layers (mirrored gates have to be consolidated as single su4 gates)
-        pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx"])])
+        pm_ = PassManager([Collect2qBlocks(), ConsolidateBlocks(basis_gates=["cx", "u"])])
         dep_opt = pm_.run(dep_opt)
         err_opt = pm_.run(err_opt)
         self.assertLessEqual(dep_opt.depth(), err_opt.depth())
         # count CNOTs after synthesized
-        dep_opt = UnitarySynthesis(basis_gates=["cx"])(dep_opt)
-        err_opt = UnitarySynthesis(basis_gates=["cx"])(err_opt)
+        dep_opt = UnitarySynthesis(basis_gates=["cx", "u"])(dep_opt)
+        err_opt = UnitarySynthesis(basis_gates=["cx", "u"])(err_opt)
         self.assertGreater(dep_opt.count_ops()["cx"], err_opt.count_ops()["cx"])

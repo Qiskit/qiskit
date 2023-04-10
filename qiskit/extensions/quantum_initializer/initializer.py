@@ -119,7 +119,7 @@ def initialize(self, params, qubits=None):
     Examples:
         Prepare a qubit in the state :math:`(|0\rangle - |1\rangle) / \sqrt{2}`.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -142,7 +142,7 @@ def initialize(self, params, qubits=None):
         More information about labels for basis states are in
         :meth:`.Statevector.from_label`.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit
@@ -163,7 +163,7 @@ def initialize(self, params, qubits=None):
 
         Initialize two qubits from an array of complex amplitudes.
 
-        .. jupyter-execute::
+        .. code-block::
 
             import numpy as np
             from qiskit import QuantumCircuit

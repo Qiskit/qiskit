@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,8 +12,11 @@
 
 """Tests for BackendSampler."""
 
+import math
 import unittest
+from unittest.mock import patch
 from test import combine
+from test.python.transpiler._dummy_passes import DummyTP
 
 import numpy as np
 from ddt import ddt
@@ -23,7 +26,10 @@ from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import BackendSampler, SamplerResult
 from qiskit.providers import JobStatus, JobV1
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
+from qiskit.providers.basicaer import QasmSimulatorPy
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler import PassManager
+from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
@@ -95,11 +101,12 @@ class TestBackendSampler(QiskitTestCase):
         """Test Sampler.run()."""
         bell = self._circuit[1]
         sampler = BackendSampler(backend=backend)
-        job = sampler.run(circuits=[bell])
+        job = sampler.run(circuits=[bell], shots=1000)
         self.assertIsInstance(job, JobV1)
         result = job.result()
         self.assertIsInstance(result, SamplerResult)
-        # print([q.binary_probabilities() for q in result.quasi_dists])
+        self.assertEqual(result.quasi_dists[0].shots, 1000)
+        self.assertEqual(result.quasi_dists[0].stddev_upper_bound, math.sqrt(1 / 1000))
         self._compare_probs(result.quasi_dists, self._target[1])
 
     @combine(backend=BACKENDS)
@@ -319,6 +326,26 @@ class TestBackendSampler(QiskitTestCase):
         self.assertDictAlmostEqual(result.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result.quasi_dists[1], {1: 1}, 0.1)
 
+    @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
+    def test_circuit_with_dynamic_circuit(self):
+        """Test BackendSampler with QuantumCircuit with a dynamic circuit"""
+        from qiskit_aer import Aer
+
+        qc = QuantumCircuit(2, 1)
+
+        with qc.for_loop(range(5)):
+            qc.h(0)
+            qc.cx(0, 1)
+            qc.measure(0, 0)
+            qc.break_loop().c_if(0, True)
+
+        backend = Aer.get_backend("aer_simulator")
+        backend.set_options(seed_simulator=15)
+        sampler = BackendSampler(backend, skip_transpilation=True)
+        sampler.set_transpile_options(seed_transpiler=15)
+        result = sampler.run(qc).result()
+        self.assertDictAlmostEqual(result.quasi_dists[0], {0: 0.5029296875, 1: 0.4970703125})
+
     def test_sequential_run(self):
         """Test sequential run."""
         qc = QuantumCircuit(1)
@@ -334,6 +361,43 @@ class TestBackendSampler(QiskitTestCase):
         result3 = sampler.run([qc, qc2]).result()
         self.assertDictAlmostEqual(result3.quasi_dists[0], {0: 1}, 0.1)
         self.assertDictAlmostEqual(result3.quasi_dists[1], {1: 1}, 0.1)
+
+    def test_outcome_bitstring_size(self):
+        """Test that the result bitstrings are properly padded.
+
+        E.g. measuring '0001' should not get truncated to '1'.
+        """
+        qc = QuantumCircuit(4)
+        qc.x(0)
+        qc.measure_all()
+
+        # We need a noise-free backend here (shot noise is fine) to ensure that
+        # the only bit string measured is "0001". With device noise, it could happen that
+        # strings with a leading 1 are measured and then the truncation cannot be tested.
+        sampler = BackendSampler(backend=QasmSimulatorPy())
+
+        result = sampler.run(qc).result()
+        probs = result.quasi_dists[0].binary_probabilities()
+
+        self.assertIn("0001", probs.keys())
+        self.assertEqual(len(probs), 1)
+
+    def test_bound_pass_manager(self):
+        """Test bound pass manager."""
+
+        dummy_pass = DummyTP()
+
+        with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+            bound_pass = PassManager(dummy_pass)
+            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = sampler.run(self._circuit[0]).result()
+            self.assertTrue(mock_pass.call_count == 1)
+
+        with patch.object(DummyTP, "run", wraps=dummy_pass.run) as mock_pass:
+            bound_pass = PassManager(dummy_pass)
+            sampler = BackendSampler(backend=FakeNairobi(), bound_pass_manager=bound_pass)
+            _ = sampler.run([self._circuit[0], self._circuit[0]]).result()
+            self.assertTrue(mock_pass.call_count == 2)
 
 
 if __name__ == "__main__":

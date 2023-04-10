@@ -17,12 +17,45 @@ from qiskit.circuit.library import CXGate
 from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeMelbourne
-from qiskit.transpiler import Layout
+from qiskit.transpiler import Layout, PassManager
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 
 
 class TestPassManagerRun(QiskitTestCase):
     """Test default_pass_manager.run(circuit(s))."""
+
+    def test_bare_pass_manager_single(self):
+        """Test that PassManager.run(circuit) returns a single circuit."""
+        qc = QuantumCircuit(1)
+        pm = PassManager([])
+        new_qc = pm.run(qc)
+        self.assertIsInstance(new_qc, QuantumCircuit)
+        self.assertEqual(qc, new_qc)  # pm has no passes
+
+    def test_bare_pass_manager_single_list(self):
+        """Test that PassManager.run([circuit]) returns a list with a single circuit."""
+        qc = QuantumCircuit(1)
+        pm = PassManager([])
+        result = pm.run([qc])
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 1)
+        self.assertIsInstance(result[0], QuantumCircuit)
+        self.assertEqual(result[0], qc)  # pm has no passes
+
+    def test_bare_pass_manager_multiple(self):
+        """Test that PassManager.run(circuits) returns a list of circuits."""
+        qc0 = QuantumCircuit(1)
+        qc1 = QuantumCircuit(2)
+
+        pm = PassManager([])
+        result = pm.run([qc0, qc1])
+
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 2)
+
+        for qc, new_qc in zip([qc0, qc1], result):
+            self.assertIsInstance(new_qc, QuantumCircuit)
+            self.assertEqual(new_qc, qc)  # pm has no passes
 
     def test_default_pass_manager_single(self):
         """Test default_pass_manager.run(circuit).
@@ -61,6 +94,7 @@ class TestPassManagerRun(QiskitTestCase):
             )
         )
         new_circuit = pass_manager.run(circuit)
+        self.assertIsInstance(new_circuit, QuantumCircuit)
 
         bit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qregs[0])}
 
@@ -110,8 +144,11 @@ class TestPassManagerRun(QiskitTestCase):
             )
         )
         new_circuits = pass_manager.run([circuit1, circuit2])
+        self.assertIsInstance(new_circuits, list)
+        self.assertEqual(len(new_circuits), 2)
 
         for new_circuit in new_circuits:
+            self.assertIsInstance(new_circuit, QuantumCircuit)
             bit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qregs[0])}
 
             for instruction in new_circuit.data:
