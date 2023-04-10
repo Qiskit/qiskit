@@ -59,6 +59,7 @@ Basis Change
    Decompose
    UnrollCustomDefinitions
    BasisTranslator
+   TranslateParameterizedGates
 
 Optimizations
 =============
@@ -134,7 +135,7 @@ Circuit Analysis
    DAGLongestPath
 
 Synthesis
-=============
+=========
 
 .. autosummary::
    :toctree: ../stubs/
@@ -143,6 +144,8 @@ Synthesis
    LinearFunctionsSynthesis
    LinearFunctionsToPermutations
    HighLevelSynthesis
+   SolovayKitaev
+   SolovayKitaevSynthesis
 
 Post Layout (Post transpile qubit selection)
 ============================================
@@ -169,6 +172,7 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   MinimumPoint
    ContainsInstruction
    GatesInBasis
    ConvertConditionsToIfOps
@@ -203,6 +207,7 @@ from .basis import Unroller
 from .basis import UnrollCustomDefinitions
 from .basis import Unroll3qOrMore
 from .basis import BasisTranslator
+from .basis import TranslateParameterizedGates
 
 # optimization
 from .optimization import Optimize1qGates
@@ -245,6 +250,8 @@ from .synthesis import unitary_synthesis_plugin_names
 from .synthesis import LinearFunctionsSynthesis
 from .synthesis import LinearFunctionsToPermutations
 from .synthesis import HighLevelSynthesis
+from .synthesis import SolovayKitaev
+from .synthesis import SolovayKitaevSynthesis
 
 # calibration
 from .calibration import PulseGates
@@ -277,6 +284,7 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
+from .utils import MinimumPoint
 from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction

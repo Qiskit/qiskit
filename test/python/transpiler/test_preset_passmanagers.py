@@ -1042,7 +1042,7 @@ class TestOptimizationOnSize(QiskitTestCase):
         circ = transpile(qc, optimization_level=level).decompose()
 
         circ_data = circ.data
-        free_qubits = set([0, 1, 2, 3])
+        free_qubits = {0, 1, 2, 3}
 
         # ensure no gates are using qubits - [0,1,2,3]
         for gate in circ_data:

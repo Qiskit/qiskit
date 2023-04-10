@@ -16,23 +16,28 @@ import copy
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
 
 
-def circuit_to_dag(circuit):
+def circuit_to_dag(circuit, copy_operations=True):
     """Build a ``DAGCircuit`` object from a ``QuantumCircuit``.
 
     Args:
         circuit (QuantumCircuit): the input circuit.
+        copy_operations (bool): Deep copy the operation objects
+            in the :class:`~.QuantumCircuit` for the output :class:`~.DAGCircuit`.
+            This should only be set to ``False`` if the input :class:`~.QuantumCircuit`
+            will not be used anymore as the operations in the output
+            :class:`~.DAGCircuit` will be shared instances and modifications to
+            operations in the :class:`~.DAGCircuit` will be reflected in the
+            :class:`~.QuantumCircuit` (and vice versa).
 
     Return:
         DAGCircuit: the DAG representing the input circuit.
 
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.dagcircuit import DAGCircuit
             from qiskit.converters import circuit_to_dag
-            from qiskit.visualization import dag_drawer
-            %matplotlib inline
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
@@ -42,7 +47,6 @@ def circuit_to_dag(circuit):
             circ.measure(q[0], c[0])
             circ.rz(0.5, q[1]).c_if(c, 2)
             dag = circuit_to_dag(circ)
-            dag_drawer(dag)
     """
     dagcircuit = DAGCircuit()
     dagcircuit.name = circuit.name
@@ -60,9 +64,10 @@ def circuit_to_dag(circuit):
         dagcircuit.add_creg(register)
 
     for instruction in circuit.data:
-        dagcircuit.apply_operation_back(
-            copy.deepcopy(instruction.operation), instruction.qubits, instruction.clbits
-        )
+        op = instruction.operation
+        if copy_operations:
+            op = copy.deepcopy(op)
+        dagcircuit.apply_operation_back(op, instruction.qubits, instruction.clbits)
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit

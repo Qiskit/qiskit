@@ -25,7 +25,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.qpy import formats, common, binary_io, type_keys
 from qiskit.qpy.exceptions import QpyError
 from qiskit.version import __version__
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arg
 
 
 # pylint: disable=invalid-name
@@ -72,7 +72,7 @@ VERSION_PATTERN = (
 VERSION_PATTERN_REGEX = re.compile(VERSION_PATTERN, re.VERBOSE | re.IGNORECASE)
 
 
-@deprecate_arguments({"circuits": "programs"})
+@deprecate_arg("circuits", new_alias="programs", since="0.21.0")
 def dump(
     programs: Union[List[QPY_SUPPORTED_TYPES], QPY_SUPPORTED_TYPES],
     file_obj: BinaryIO,
@@ -270,7 +270,6 @@ def load(
                 file_obj,
                 data.qpy_version,
                 metadata_deserializer=metadata_deserializer,
-                qiskit_version=qiskit_version,
             )
         )
     return programs

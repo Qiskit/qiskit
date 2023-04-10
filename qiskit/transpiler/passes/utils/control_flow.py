@@ -25,7 +25,10 @@ def map_blocks(dag_mapping: Callable[[DAGCircuit], DAGCircuit], op: ControlFlowO
     ones.  Each block will be automatically converted to a :class:`.DAGCircuit` and then returned
     to a :class:`.QuantumCircuit`."""
     return op.replace_blocks(
-        [dag_to_circuit(dag_mapping(circuit_to_dag(block))) for block in op.blocks]
+        [
+            dag_to_circuit(dag_mapping(circuit_to_dag(block)), copy_operations=False)
+            for block in op.blocks
+        ]
     )
 
 

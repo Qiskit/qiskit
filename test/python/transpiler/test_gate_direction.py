@@ -17,9 +17,18 @@ from math import pi
 
 import ddt
 
-from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
-from qiskit.circuit import Parameter
-from qiskit.circuit.library import CXGate, CZGate, ECRGate, RZXGate
+from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit, pulse
+from qiskit.circuit import Parameter, Gate
+from qiskit.circuit.library import (
+    CXGate,
+    CZGate,
+    ECRGate,
+    RXXGate,
+    RYYGate,
+    RZXGate,
+    RZZGate,
+    SwapGate,
+)
 from qiskit.compiler import transpile
 from qiskit.transpiler import TranspilerError, CouplingMap, Target
 from qiskit.transpiler.passes import GateDirection
@@ -280,6 +289,34 @@ class TestGateDirection(QiskitTestCase):
         swapped.add_instruction(gate, {(1, 0): None})
         self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
 
+    @ddt.data(CZGate(), RZXGate(pi / 3), RXXGate(pi / 3), RYYGate(pi / 3), RZZGate(pi / 3))
+    def test_target_trivial(self, gate):
+        """Test that trivial 2q gates are swapped correctly both if available and not available."""
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [0, 1], [])
+
+        matching = Target(num_qubits=2)
+        matching.add_instruction(gate, {(0, 1): None})
+        self.assertEqual(GateDirection(None, target=matching)(circuit), circuit)
+
+        swapped = Target(num_qubits=2)
+        swapped.add_instruction(gate, {(1, 0): None})
+
+        self.assertNotEqual(GateDirection(None, target=swapped)(circuit), circuit)
+
+    @ddt.data(CZGate(), SwapGate(), RXXGate(pi / 3), RYYGate(pi / 3), RZZGate(pi / 3))
+    def test_symmetric_gates(self, gate):
+        """Test symmetric gates on single direction coupling map."""
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, [1, 0], [])
+
+        expected = QuantumCircuit(2)
+        expected.append(gate, [0, 1], [])
+
+        coupling = CouplingMap.from_line(2, bidirectional=False)
+        pass_ = GateDirection(coupling)
+        self.assertEqual(pass_(circuit), expected)
+
     def test_target_parameter_any(self):
         """Test that a parametrised 2q gate is replaced correctly both if available and not
         available."""
@@ -401,6 +438,76 @@ class TestGateDirection(QiskitTestCase):
         target.add_instruction(RZXGate(Parameter("a")), {(1, 2): None})
         pass_ = GateDirection(None, target)
         self.assertEqual(pass_(circuit), expected)
+
+    def test_target_cannot_flip_message(self):
+        """A suitable error message should be emitted if the gate would be supported if it were
+        flipped."""
+        gate = Gate("my_2q_gate", 2, [])
+        target = Target(num_qubits=2)
+        target.add_instruction(gate, properties={(0, 1): None})
+
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (1, 0))
+
+        pass_ = GateDirection(None, target)
+        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
+            pass_(circuit)
+
+    def test_target_cannot_flip_message_calibrated(self):
+        """A suitable error message should be emitted if the gate would be supported if it were
+        flipped."""
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), properties={(0, 1): None})
+
+        gate = Gate("my_2q_gate", 2, [])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (1, 0))
+        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+
+        pass_ = GateDirection(None, target)
+        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate' would be supported.*"):
+            pass_(circuit)
+
+    def test_target_unknown_gate_message(self):
+        """A suitable error message should be emitted if the gate isn't valid in either direction on
+        the target."""
+        gate = Gate("my_2q_gate", 2, [])
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), properties={(0, 1): None})
+
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (0, 1))
+
+        pass_ = GateDirection(None, target)
+        with self.assertRaisesRegex(TranspilerError, "'my_2q_gate'.*not supported on qubits .*"):
+            pass_(circuit)
+
+    def test_allows_calibrated_gates_coupling_map(self):
+        """Test that the gate direction pass allows a gate that's got a calibration to pass through
+        without error."""
+        cm = CouplingMap([(1, 0)])
+
+        gate = Gate("my_2q_gate", 2, [])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (0, 1))
+        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+
+        pass_ = GateDirection(cm)
+        self.assertEqual(pass_(circuit), circuit)
+
+    def test_allows_calibrated_gates_target(self):
+        """Test that the gate direction pass allows a gate that's got a calibration to pass through
+        without error."""
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), properties={(0, 1): None})
+
+        gate = Gate("my_2q_gate", 2, [])
+        circuit = QuantumCircuit(2)
+        circuit.append(gate, (0, 1))
+        circuit.add_calibration(gate, (0, 1), pulse.ScheduleBlock())
+
+        pass_ = GateDirection(None, target)
+        self.assertEqual(pass_(circuit), circuit)
 
 
 if __name__ == "__main__":

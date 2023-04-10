@@ -46,7 +46,8 @@ individual documentation for exact details.
 
 The following example demonstrates the common usage of these arguments:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    from qiskit.visualization import plot_histogram
 
@@ -58,7 +59,14 @@ The following example demonstrates the common usage of these arguments:
 
 You can specify ``legend``, ``title``, ``figsize`` and ``color`` by passing to the kwargs.
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
+
+   from qiskit.visualization import plot_histogram
+
+   counts1 = {'00': 499, '11': 501}
+   counts2 = {'00': 511, '11': 489}
+   data = [counts1, counts2]
 
    legend = ['First execution', 'Second execution']
    title = 'New histogram'
@@ -92,7 +100,8 @@ Example Usage
 
 Here is an example of using :func:`plot_histogram` to visualize measurement outcome counts:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    from qiskit.visualization import plot_histogram
 
@@ -132,7 +141,8 @@ Example Usage
 
 Here is an example of using :func:`plot_state_city` to visualize a quantum state:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    from qiskit.visualization import plot_state_city
 
@@ -144,10 +154,12 @@ The state can be array-like list of lists, ``numpy.array``, or more commonly
 :class:`~qiskit.quantum_info.Statevector` or :class:`~qiskit.quantum_info.DensityMatrix` objects
 obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
 
    from qiskit import QuantumCircuit
-   from qiskit.quantum_info import Statevector, DensityMatrix
+   from qiskit.quantum_info import Statevector
+   from qiskit.visualization import plot_state_city
 
    qc = QuantumCircuit(2)
    qc.h(0)
@@ -157,7 +169,16 @@ obtained from a :class:`~qiskit.circuit.QuantumCircuit`:
    state = Statevector(qc)
    plot_state_city(state)
 
-.. jupyter-execute::
+.. plot::
+   :include-source:
+
+   from qiskit import QuantumCircuit
+   from qiskit.quantum_info import DensityMatrix
+   from qiskit.visualization import plot_state_city
+
+   qc = QuantumCircuit(2)
+   qc.h(0)
+   qc.cx(0,1)
 
    # plot using a DensityMatrix
    state = DensityMatrix(qc)
@@ -265,6 +286,7 @@ from .transition_visualization import visualize_transition
 from .dag_visualization import dag_drawer
 from .gate_map import plot_gate_map, plot_circuit_layout, plot_error_map, plot_coupling_map
 from .pass_manager_visualization import pass_manager_drawer
+from .pass_manager_visualization import staged_pass_manager_drawer
 
 from .pulse.interpolation import step_wise, linear, cubic_spline
 from .pulse.qcstyle import PulseStyle, SchedStyle

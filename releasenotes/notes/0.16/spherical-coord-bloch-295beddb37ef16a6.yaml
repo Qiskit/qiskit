@@ -12,7 +12,7 @@ features:
     radius, ``theta`` is the inclination from +z direction, and ``phi`` is
     the azimuth from +x direction. For example:
     
-    .. jupyter-execute::
+    .. code-block::
 
       from numpy import pi
 
@@ -30,11 +30,11 @@ features:
       # for bloch vector 
       plot_bloch_vector([x,y,z])
 
-    .. jupyter-execute::
+    .. code-block::
 
       plot_bloch_vector([x,y,z], coord_type="cartesian")  # Same as line above
 
-    .. jupyter-execute::
+    .. code-block::
 
       # Spherical coordinates, where (r,theta,phi) are spherical coordinates
       # for bloch vector
