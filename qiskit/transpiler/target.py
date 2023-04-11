@@ -1339,7 +1339,13 @@ class Target(Mapping):
                             error = None
                     if inst_map is not None:
                         try:
-                            calibration = inst_map.get(gate, qubit)
+                            calibration = inst_map._get_calibration_entry(gate, qubit)
+                            # If we have dt defined and there is a custom calibration which is user
+                            # generate use that custom pulse schedule for the duration. If it is
+                            # not user generated than we assume it's the same duration as what is
+                            # defined in the backend properties
+                            if dt and calibration.user_provided:
+                                duration = calibration.get_schedule().duration * dt
                         except PulseError:
                             calibration = None
                     # Durations if specified manually should override model objects
@@ -1375,7 +1381,13 @@ class Target(Mapping):
                             error = None
                     if inst_map is not None:
                         try:
-                            calibration = inst_map.get(gate, qubit)
+                            calibration = inst_map._get_calibration_entry(gate, edge)
+                            # If we have dt defined and there is a custom calibration which is user
+                            # generate use that custom pulse schedule for the duration. If it is
+                            # not user generated than we assume it's the same duration as what is
+                            # defined in the backend properties
+                            if dt and calibration.user_provided:
+                                duration = calibration.get_schedule().duration * dt
                         except PulseError:
                             calibration = None
                     # Durations if specified manually should override model objects
