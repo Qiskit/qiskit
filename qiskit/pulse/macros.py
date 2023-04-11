@@ -18,7 +18,7 @@ from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 from qiskit.providers.models.backendproperties import BackendProperties
-from qiskit.transpiler.target import Target, InstructionProperties
+from qiskit.transpiler.target import Target
 
 
 def measure(
@@ -141,14 +141,5 @@ def generate_schedule_in_measure(
         A InstructionScheduleMap corresponding to the inputs provided.
     """
     inst_schedule_map = InstructionScheduleMap()
-    for qubit in qubits:
-        inst_schedule_map._add(
-            "measure",
-            (qubit,),
-            InstructionProperties(
-                duration=properties.readout_length(qubit),
-                error=properties.readout_error(qubit),
-            ),
-        )
 
     return inst_schedule_map
