@@ -274,12 +274,12 @@ def generate_routing_passmanager(
 
     routing = PassManager()
     if target is not None:
-        routing.append(CheckMap(target))
+        routing.append(CheckMap(target, property_set_field="routing_not_needed"))
     else:
-        routing.append(CheckMap(coupling_map))
+        routing.append(CheckMap(coupling_map, property_set_field="routing_not_needed"))
 
     def _swap_condition(property_set):
-        return not property_set["is_swap_mapped"]
+        return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
         routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
