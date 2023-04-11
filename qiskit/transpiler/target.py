@@ -1237,7 +1237,9 @@ class Target(Mapping):
                 ``instruction_durations`` is specified which would take
                 precedence) for instructions specified via ``coupling_map`` and
                 ``basis_gates``.
-            instruction_durations: Optional instruction durations for instructions.
+            instruction_durations: Optional instruction durations for instructions. If specified
+                it will take priority for setting the ``duration`` field in the
+                :class:`~InstructionProperties` objects for the instructions in the target.
             dt: The system time resolution of input signals in seconds
             timing_constraints: Optional timing constraints to include in the
                 :class:`~.Target`
@@ -1325,11 +1327,6 @@ class Target(Mapping):
                     error = None
                     duration = None
                     calibration = None
-                    if instruction_durations is not None:
-                        try:
-                            duration = instruction_durations.get(gate, qubit, unit="s")
-                        except TranspilerError:
-                            duration = None
                     if backend_properties is not None:
                         if duration is None:
                             try:
@@ -1345,6 +1342,12 @@ class Target(Mapping):
                             calibration = inst_map.get(gate, qubit)
                         except PulseError:
                             calibration = None
+                    # Durations if specified manually should override model objects
+                    if instruction_durations is not None:
+                        try:
+                            duration = instruction_durations.get(gate, qubit, unit="s")
+                        except TranspilerError:
+                            duration = None
 
                     if error is None and duration is None and calibration is None:
                         gate_properties[(qubit,)] = None
@@ -1360,11 +1363,6 @@ class Target(Mapping):
                     error = None
                     duration = None
                     calibration = None
-                    if instruction_durations is not None:
-                        try:
-                            duration = instruction_durations.get(gate, edge, unit="s")
-                        except TranspilerError:
-                            duration = None
                     if backend_properties is not None:
                         if duration is None:
                             try:
@@ -1380,6 +1378,13 @@ class Target(Mapping):
                             calibration = inst_map.get(gate, qubit)
                         except PulseError:
                             calibration = None
+                    # Durations if specified manually should override model objects
+                    if instruction_durations is not None:
+                        try:
+                            duration = instruction_durations.get(gate, edge, unit="s")
+                        except TranspilerError:
+                            duration = None
+
                     if error is None and duration is None and calibration is None:
                         gate_properties[edge] = None
                     else:
