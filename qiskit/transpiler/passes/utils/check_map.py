@@ -22,19 +22,27 @@ class CheckMap(AnalysisPass):
 
     Check if a DAGCircuit is mapped to `coupling_map` by checking that all
     2-qubit interactions are laid out to be on adjacent qubits in the global coupling
-    map of the device, setting the property ``is_swap_mapped`` to ``True`` or ``False``
-    accordingly. Note this does not validate directionality of the connectivity between
-    qubits. If you need to check gates are implemented in a native direction
-    for a target use the :class:`~.CheckGateDirection` pass instead.
+    map of the device, setting the property set field (either specified with ``property_set_field``
+    or the default ``is_swap_mapped``) to ``True`` or ``False`` accordingly. Note this does not
+    validate directionality of the connectivity between  qubits. If you need to check gates are
+    implemented in a native direction for a target use the :class:`~.CheckGateDirection` pass
+    instead.
     """
 
-    def __init__(self, coupling_map):
+    def __init__(self, coupling_map, property_set_field=None):
         """CheckMap initializer.
 
         Args:
             coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling map.
+            property_set_field (str): An optional string to specify the property set field to
+                store the result of the check. If not default the result is stored in
+                ``"is_swap_mapped"``.
         """
         super().__init__()
+        if property_set_field is None:
+            self.property_set_field = "is_swap_mapped"
+        else:
+            self.property_set_field = property_set_field
         if isinstance(coupling_map, Target):
             cmap = coupling_map.build_coupling_map()
         else:
@@ -58,7 +66,7 @@ class CheckMap(AnalysisPass):
         """
         from qiskit.converters import circuit_to_dag
 
-        self.property_set["is_swap_mapped"] = True
+        self.property_set[self.property_set_field] = True
 
         if not self.qargs:
             return
@@ -77,7 +85,7 @@ class CheckMap(AnalysisPass):
                         physical_q0,
                         physical_q1,
                     )
-                    self.property_set["is_swap_mapped"] = False
+                    self.property_set[self.property_set_field] = False
                     return
             elif is_controlflow_op:
                 order = [qubit_indices[bit] for bit in node.qargs]
@@ -86,5 +94,5 @@ class CheckMap(AnalysisPass):
                     mapped_dag = dag.copy_empty_like()
                     mapped_dag.compose(dag_block, qubits=order)
                     self.run(mapped_dag)
-                    if not self.property_set["is_swap_mapped"]:
+                    if not self.property_set[self.property_set_field]:
                         return

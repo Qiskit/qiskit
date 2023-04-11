@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    The :class:~.CheckMap` transpiler pass has a new keyword argument on its
+    constructor, ``property_set_field``. This argument can be used to specify
+    a field in the property set to store the results of the analysis.
+    Previously, it was only possible to store the result in the field
+    ``"is_swap_mapped"`` (which is the default). This enables you to store the
+    result of multiple instances of the pass in a :class:`~.PassManager` in
+    different fields.
+fixes:
+  - |
+    Fixed an issue in :func:`~.transpile` with ``optimization_level=1`` (as
+    well as in the preset pass managers returned by
+    :func:`~.generate_preset_pass_manager` and :func:`~.level_1_pass_manager`)
+    where previously if the ``routing_method`` and ``layout_method`` arguments
+    were not set and no control flow operations were present in the circuit
+    then in cases where routing was required the
+    :class:`~.VF2PostLayout` transpiler pass would not be run. This was the
+    opposite of the expected behavior because :class:`~.VF2PostLayout` is
+    intended to find a potentially better performing layout after a heuristic
+    layout pass and routing are run.
+    Fixed `#9936 <https://github.com/Qiskit/qiskit-terra/issues/9936>`__
