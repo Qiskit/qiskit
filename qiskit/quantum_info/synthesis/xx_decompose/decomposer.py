@@ -150,7 +150,7 @@ class XXDecomposer:
         heapq.heappush(priority_queue, (0, []))
         canonical_coordinate = np.array(canonical_coordinate)
 
-        while True:
+        while priority_queue:
             sequence_cost, sequence = heapq.heappop(priority_queue)
 
             strength_polytope = XXPolytope.from_strengths(*[x / 2 for x in sequence])

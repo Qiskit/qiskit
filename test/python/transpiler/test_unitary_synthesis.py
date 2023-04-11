@@ -24,7 +24,7 @@ from ddt import ddt, data
 
 from qiskit import transpile
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2
+from qiskit.providers.fake_provider import FakeVigo, FakeMumbaiFractionalCX, FakeBelemV2, FakePrague
 from qiskit.providers.fake_provider.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
 from qiskit.circuit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.circuit.library import QuantumVolume
@@ -862,6 +862,28 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc.unitary(np.eye(2), [0])
         pass_ = UnitarySynthesis(["unknown", "gates"])
         self.assertEqual(qc, pass_(qc))
+
+    def test_xx_decomposer_works_with_cz_basis(self):
+        """Recreate from #9935"""
+        backend = FakePrague()
+        num_qubits = 10
+        qc = QuantumCircuit(num_qubits)
+        qc.h(0)
+        for i in range(num_qubits - 1):
+            if i % 2 == 0:
+                qc.cy(0, i + 1)
+            else:
+                qc.cx(0, i + 1)
+        qc.measure_all()
+        tqc = transpile(qc, backend, seed_transpiler=2023, optimization_level=3)
+        self.assertIsInstance(tqc, QuantumCircuit)
+        op_counts = tqc.count_ops()
+        self.assertNotIn("h", op_counts)
+        self.assertNotIn("cx", op_counts)
+        self.assertNotIn("cy", op_counts)
+        self.assertIn("rz", op_counts)
+        self.assertIn("sx", op_counts)
+        self.assertIn("cz", op_counts)
 
 
 if __name__ == "__main__":
