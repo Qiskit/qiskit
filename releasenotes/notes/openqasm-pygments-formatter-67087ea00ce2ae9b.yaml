@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    Rich output from the :meth:`.QuantumCircuit.qasm` method (i.e. by setting ``formatted=True``)
+    will now preferentially use the built-in IPython/Jupyter support for code blocks using a
+    Pygments lexer with alias ``qasm2`` if it is available.  A suitable lexer can be installed by
+    doing, for example:
+
+    .. code-block:: text
+
+      pip install openqasm-pygments
+
+    In the future, the built-in Qiskit lexer and styles for OpenQASM 2 will be removed. If you are
+    using them, you should plan to migrate to another package, such as the one mentioned above that
+    is maintained by the OpenQASM community.

@@ -22,8 +22,9 @@ import functools
 import multiprocessing as mp
 import string
 import re
-import warnings
+import sys
 import typing
+import warnings
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
@@ -1630,7 +1631,11 @@ class QuantumCircuit:
         """Return OpenQASM string.
 
         Args:
-            formatted (bool): Return formatted Qasm string.
+            formatted (bool): If ``True`` this function will not return anything, but instead will
+                display a code block using rich IPython/Jupyter objects.  To have complete
+                formatting, you should ensure that you have a Pygments lexer installed that can
+                handle the alias ``qasm2``, such as the ``openqasm-pygments`` `package provided by
+                the OpenQASM project <https://pypi.org/project/openqasm-pygments/>`__.
             filename (str): Save Qasm to file with name 'filename'.
             encoding (str): Optionally specify the encoding to use for the
                 output file if ``filename`` is specified. By default this is
@@ -1643,8 +1648,6 @@ class QuantumCircuit:
             str: If formatted=False.
 
         Raises:
-            MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
-                ``True``.
             QASM2ExportError: If circuit has free parameters.
         """
         from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
@@ -1770,22 +1773,47 @@ class QuantumCircuit:
             with open(filename, "w+", encoding=encoding) as file:
                 file.write(out)
 
-        if formatted:
-            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+        if not formatted:
+            return out
 
-            import pygments
+        # The `formatted` option likely should _not_ be carried over to `qiskit.qasm2.dumps` when
+        # this function moves there; Qiskit probably shouldn't be concerning itself with managing
+        # Pygments on the user's behalf.
+
+        if not _optionals.HAS_PYGMENTS:
+            warnings.warn(
+                "The formatted output of OpenQASM 2 strings is only interpreted by IPython or"
+                " Jupyter. To use this, you should be running in one of those environments, and"
+                " have a Pygments lexer for 'qasm2' installed, such as by doing"
+                " 'pip install openqasm-pygments'.",
+                stacklevel=2,
+            )
+            print(out)
+            return None
+
+        from pygments.lexers import find_lexer_class_by_name, ClassNotFound
+
+        try:
+            lexer = find_lexer_class_by_name("qasm2")
+        except ClassNotFound:
+            lexer = None
+
+        if lexer is None or not _optionals.HAS_IPYTHON or sys.stdout.isatty():
+            # Legacy handling.  The `isatty()` check is because terminal-based IPython doesn't have
+            # built-in support for rich display of the `Code` object with ANSI escape sequences.
+
+            from pygments import highlight
             from pygments.formatters import (  # pylint: disable=no-name-in-module
                 Terminal256Formatter,
             )
-            from qiskit.qasm.pygments import OpenQASMLexer
-            from qiskit.qasm.pygments import QasmTerminalStyle
+            from qiskit.qasm.pygments import QasmTerminalStyle, OpenQASMLexer
 
-            code = pygments.highlight(
-                out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
-            )
-            print(code)
-            return None
-        return out
+            print(highlight(out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)))
+        else:
+            import IPython.display
+
+            IPython.display.display(IPython.display.Code(out, language="qasm2"))
+        return None
 
     def draw(
         self,
