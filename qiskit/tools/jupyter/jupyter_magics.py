@@ -20,6 +20,7 @@ from IPython.core import magic_arguments
 from IPython.core.magic import cell_magic, line_magic, Magics, magics_class, register_line_magic
 
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 import qiskit
 from qiskit.tools.events.progressbar import TextProgressBar
 from .progressbar import HTMLProgressBar
