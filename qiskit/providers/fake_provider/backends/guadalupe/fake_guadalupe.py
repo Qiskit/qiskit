@@ -26,7 +26,7 @@ class FakeGuadalupeV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_guadalupe.json"
     props_filename = "props_guadalupe.json"
     defs_filename = "defs_guadalupe.json"
-    backend_name = "fake_guadalupe_v2"
+    backend_name = "fake_guadalupe"
 
 
 class FakeGuadalupe(fake_pulse_backend.FakePulseBackend):
