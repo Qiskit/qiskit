@@ -1315,8 +1315,9 @@ class Target(Mapping):
                     global_ideal_variable_width_gates.append(gate)
                 else:
                     raise TranspilerError(
-                        f"The specified basis gate: {gate} has an invalid number of qubits: "
-                        f"{gate_obj.num_qubits}"
+                        f"The specified basis gate: {gate} has {gate_obj.num_qubits} "
+                        "qubits. This constructor method only supports fixed width operations "
+                        "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
                     )
             for gate in one_qubit_gates:
                 gate_properties = {}
