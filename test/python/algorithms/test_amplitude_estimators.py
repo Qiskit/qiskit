@@ -558,6 +558,20 @@ class TestSineIntegral(QiskitAlgorithmsTestCase):
         self.assertTrue(confint[0] <= result.estimation <= confint[1])
 
 
+class TestAmplitudeEstimation(QiskitAlgorithmsTestCase):
+    """Specific tests for canonical AE."""
+
+    def test_warns_if_good_state_set(self):
+        """Check AE warns if is_good_state is set."""
+        circuit = QuantumCircuit(1)
+        problem = EstimationProblem(circuit, objective_qubits=[0], is_good_state=lambda x: True)
+
+        qae = AmplitudeEstimation(num_eval_qubits=1, sampler=Sampler())
+
+        with self.assertWarns(Warning):
+            _ = qae.estimate(problem)
+
+
 @ddt
 class TestFasterAmplitudeEstimation(QiskitAlgorithmsTestCase):
     """Specific tests for Faster AE."""

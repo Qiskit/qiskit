@@ -1,0 +1,75 @@
+---
+features:
+  - |
+    Added high-level-synthesis plugins for :class:`.LinearFunction` and for
+    :class:`qiskit.quantum_info.Clifford`, extending the set of synthesis
+    methods that can be called from :class:`~qiskit.transpiler.passes.HighLevelSynthesis`
+    transpiler pass.
+
+    For :class:`.LinearFunction` the available plugins are listed below:
+
+    .. list-table::
+      :header-rows: 1
+
+      * - Plugin name
+        - High-level synthesis plugin
+      * - ``default``
+        - :class:`.DefaultSynthesisLinearFunction`
+      * - ``kms``
+        - :class:`.KMSSynthesisLinearFunction`
+      * - ``pmh``
+        - :class:`.PMHSynthesisLinearFunction`
+
+    For :class:`qiskit.quantum_info.Clifford` the available plugins are listed below:
+
+    .. list-table::
+      :header-rows: 1
+
+      * - Plugin name
+        - High-level synthesis plugin
+      * - ``default``
+        - :class:`.DefaultSynthesisClifford`
+      * - ``ag``
+        - :class:`.AGSynthesisClifford`
+      * - ``bm``
+        - :class:`.BMSynthesisClifford`
+      * - ``greedy``
+        - :class:`.GreedySynthesisClifford`
+      * - ``layers``
+        - :class:`.LayerSynthesisClifford`
+      * - ``lnn``
+        - :class:`.LayerLnnSynthesisClifford`
+
+    Please refer to :mod:`qiskit.synthesis` documentation for more information
+    about each individual method.
+
+    The following example illustrates some of the new plugins::
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.circuit.library import LinearFunction
+        from qiskit.quantum_info import Clifford
+        from qiskit.transpiler.passes.synthesis.high_level_synthesis import HLSConfig, HighLevelSynthesis
+
+        # Create a quantum circuit with one linear function and one clifford
+        qc1 = QuantumCircuit(3)
+        qc1.cx(0, 1)
+        qc1.swap(0, 2)
+        lin_fun = LinearFunction(qc1)
+
+        qc2 = QuantumCircuit(3)
+        qc2.h(0)
+        qc2.cx(0, 2)
+        cliff = Clifford(qc2)
+
+        qc = QuantumCircuit(4)
+        qc.append(lin_fun, [0, 1, 2])
+        qc.append(cliff, [1, 2, 3])
+
+        # Choose synthesis methods that adhere to linear-nearest-neighbour connectivity
+        hls_config = HLSConfig(linear_function=["kms"], clifford=["lnn"])
+
+        # Synthesize
+        qct = HighLevelSynthesis(hls_config)(qc)
+        print(qct.decompose())
+
+
