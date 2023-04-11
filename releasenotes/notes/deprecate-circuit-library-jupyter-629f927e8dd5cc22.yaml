@@ -10,5 +10,5 @@ deprecations:
     - ``circuit_digram_widget``
     - ``circuit_library_widget``
 
-    are deprecated and will be removed in Terra 0.26.  These objects were only intended for use in
+    are deprecated and will be removed in Terra 0.27.  These objects were only intended for use in
     the documentation build. They are no longer used there, so are no longer supported or maintained.

@@ -175,7 +175,7 @@ if _optionals.HAS_MATPLOTLIB and get_ipython():
 
     @register_line_magic
     @deprecate_func(
-        since="0.24.0",
+        since="0.25.0",
         additional_msg="This was originally only for internal documentation and is no longer used.",
     )
     def circuit_library_info(circuit: qiskit.QuantumCircuit) -> None:

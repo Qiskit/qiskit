@@ -51,7 +51,7 @@ def _generate_circuit_library_visualization(circuit: QuantumCircuit):
 
 
 @deprecate_func(
-    since="0.24.0",
+    since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
 )
 def circuit_data_table(circuit: QuantumCircuit) -> wid.HTML:
@@ -120,7 +120,7 @@ property_label = wid.HTML(
 
 
 @deprecate_func(
-    since="0.24.0",
+    since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
 )
 def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
@@ -140,7 +140,7 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
 
 
 @deprecate_func(
-    since="0.24.0",
+    since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
 )
 def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
@@ -204,7 +204,7 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
 
 
 @deprecate_func(
-    since="0.24.0",
+    since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
 )
 def circuit_diagram_widget() -> wid.Box:
@@ -230,7 +230,7 @@ def circuit_diagram_widget() -> wid.Box:
 
 
 @deprecate_func(
-    since="0.24.0",
+    since="0.25.0",
     additional_msg="This is unused by Qiskit, and no replacement will be publicly provided.",
 )
 def circuit_library_widget(circuit: QuantumCircuit) -> None:
