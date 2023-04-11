@@ -113,6 +113,11 @@ External Python Libraries
       - For some graph visualisations, Qiskit uses `pydot <https://github.com/pydot/pydot>`__ as an
         interface to GraphViz (see :data:`HAS_GRAPHVIZ`).
 
+    * - .. py:data:: HAS_PYGMENTS
+      - Pygments is a code highlighter and formatter used by many environments that involve rich
+        display of code blocks, including Sphinx and Jupyter.  Qiskit uses this when producing rich
+        output for these environments.
+
     * - .. py:data:: HAS_PYLATEX
       - Various LaTeX-based visualizations, especially the circuit drawers, need access to the
         `pylatexenc <https://github.com/phfaist/pylatexenc>`__ project to work correctly.
@@ -261,6 +266,7 @@ HAS_NETWORKX = _LazyImportTester("networkx", install="pip install networkx")
 HAS_NLOPT = _LazyImportTester("nlopt", name="NLopt Optimizer", install="pip install nlopt")
 HAS_PIL = _LazyImportTester("PIL.Image", name="pillow", install="pip install pillow")
 HAS_PYDOT = _LazyImportTester("pydot", install="pip install pydot")
+HAS_PYGMENTS = _LazyImportTester("pygments", install="pip install pygments")
 HAS_PYLATEX = _LazyImportTester(
     {
         "pylatexenc.latex2text": ("LatexNodes2Text",),

@@ -24,15 +24,11 @@ Qasm Pygments tools (:mod:`qiskit.qasm.pygments`)
    QasmTerminalStyle
    QasmHTMLStyle
 """
-try:
-    import pygments
 
-    HAS_PYGMENTS = True
-except ImportError:
-    HAS_PYGMENTS = False
+# pylint: disable=wrong-import-position
 
-if HAS_PYGMENTS:
-    try:
-        from .lexer import OpenQASMLexer, QasmTerminalStyle, QasmHTMLStyle
-    except Exception:  # pylint: disable=broad-except
-        HAS_PYGMENTS = False
+from qiskit.utils.optionals import HAS_PYGMENTS
+
+HAS_PYGMENTS.require_now("built-in OpenQASM 2 syntax highlighting")
+
+from .lexer import OpenQASMLexer, QasmTerminalStyle, QasmHTMLStyle

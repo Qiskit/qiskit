@@ -17,17 +17,7 @@
 import ipywidgets as wid
 from IPython.display import display
 from qiskit import QuantumCircuit
-from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.utils import optionals as _optionals
-
-try:
-    import pygments
-    from pygments.formatters import HtmlFormatter
-    from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
-
-    HAS_PYGMENTS = True
-except Exception:  # pylint: disable=broad-except
-    HAS_PYGMENTS = False
 
 
 @_optionals.HAS_MATPLOTLIB.require_in_call
@@ -130,6 +120,7 @@ def properties_widget(circuit: QuantumCircuit) -> wid.VBox:
     return properties
 
 
+@_optionals.HAS_PYGMENTS.require_in_call
 def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
     """Generate a QASM widget with header for a quantum circuit.
 
@@ -138,16 +129,11 @@ def qasm_widget(circuit: QuantumCircuit) -> wid.VBox:
 
     Returns:
         Output widget.
-
-    Raises:
-        MissingOptionalLibraryError: If pygments is not installed
     """
-    if not HAS_PYGMENTS:
-        raise MissingOptionalLibraryError(
-            libname="pygments>2.4",
-            name="qasm_widget",
-            pip_install="pip install pygments",
-        )
+    import pygments
+    from pygments.formatters import HtmlFormatter
+    from qiskit.qasm.pygments import QasmHTMLStyle, OpenQASMLexer
+
     qasm_code = circuit.qasm()
     code = pygments.highlight(qasm_code, OpenQASMLexer(), HtmlFormatter())
 

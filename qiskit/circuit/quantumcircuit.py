@@ -38,7 +38,7 @@ from typing import (
     DefaultDict,
 )
 import numpy as np
-from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
+from qiskit.exceptions import QiskitError
 from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
@@ -46,6 +46,7 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import optionals as _optionals
 from .parameterexpression import ParameterExpression, ParameterValueType
 from .quantumregister import QuantumRegister, Qubit, AncillaRegister, AncillaQubit
 from .classicalregister import ClassicalRegister, Clbit
@@ -59,16 +60,6 @@ from .quantumcircuitdata import QuantumCircuitData, CircuitInstruction
 from .delay import Delay
 from .measure import Measure
 from .reset import Reset
-
-try:
-    import pygments
-    from pygments.formatters import Terminal256Formatter  # pylint: disable=no-name-in-module
-    from qiskit.qasm.pygments import OpenQASMLexer  # pylint: disable=ungrouped-imports
-    from qiskit.qasm.pygments import QasmTerminalStyle  # pylint: disable=ungrouped-imports
-
-    HAS_PYGMENTS = True
-except Exception:  # pylint: disable=broad-except
-    HAS_PYGMENTS = False
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -1759,12 +1750,15 @@ class QuantumCircuit:
             file.close()
 
         if formatted:
-            if not HAS_PYGMENTS:
-                raise MissingOptionalLibraryError(
-                    libname="pygments>2.4",
-                    name="formatted QASM output",
-                    pip_install="pip install pygments",
-                )
+            _optionals.HAS_PYGMENTS.require_now("formatted OpenQASM 2 output")
+
+            import pygments
+            from pygments.formatters import (  # pylint: disable=no-name-in-module
+                Terminal256Formatter,
+            )
+            from qiskit.qasm.pygments import OpenQASMLexer
+            from qiskit.qasm.pygments import QasmTerminalStyle
+
             code = pygments.highlight(
                 string_temp, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
