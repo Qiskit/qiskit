@@ -505,11 +505,6 @@ class TestPassesInspection(QiskitTestCase):
         _ = transpile(
             qc, target, optimization_level=1, layout_method="dense", callback=self.callback
         )
-        # Expected call path for layout and routing is:
-        # 1. TrivialLayout (no perfect match)
-        # 2. VF2Layout (no perfect match)
-        # 3. SabreLayout (heuristic layout and also runs routing)
-        # 4. VF2PostLayout (applies a better layout)
         self.assertNotIn("TrivialLayout", self.passes)
         self.assertNotIn("VF2Layout", self.passes)
         self.assertNotIn("SabreLayout", self.passes)
@@ -567,7 +562,8 @@ class TestPassesInspection(QiskitTestCase):
         # Expected call path for layout and routing is:
         # 1. TrivialLayout (no perfect match)
         # 2. VF2Layout (no perfect match)
-        # 3. SabreLayout (heuristic layout and also runs routing)
+        # 3. DenseLayout (heuristic layout)
+        # 4. StochasticSwap
         # 4. VF2PostLayout (applies a better layout)
         self.assertIn("TrivialLayout", self.passes)
         self.assertIn("VF2Layout", self.passes)
@@ -592,11 +588,6 @@ class TestPassesInspection(QiskitTestCase):
         _ = transpile(
             qc, target, optimization_level=1, layout_method="dense", callback=self.callback
         )
-        # Expected call path for layout and routing is:
-        # 1. TrivialLayout (no perfect match)
-        # 2. VF2Layout (no perfect match)
-        # 3. SabreLayout (heuristic layout and also runs routing)
-        # 4. VF2PostLayout (applies a better layout)
         self.assertNotIn("TrivialLayout", self.passes)
         self.assertNotIn("VF2Layout", self.passes)
         self.assertNotIn("SabreLayout", self.passes)
