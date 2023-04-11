@@ -18,7 +18,7 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
-from qiskit.opflow import I, Y, Z, PauliSumOp
+from qiskit.opflow import I, Y, Z
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
