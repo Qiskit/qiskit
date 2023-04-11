@@ -11,14 +11,14 @@
 # that they have been altered from the originals.
 
 """An implementation of the AdaptVQE algorithm."""
-
 from __future__ import annotations
 
+from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Sequence
 
 import re
 import logging
+from typing import Any
 
 import numpy as np
 
@@ -135,7 +135,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         theta: list[float],
         operator: OperatorBase,
-    ) -> list[tuple[complex, complex]]:
+    ) -> list[tuple[complex, dict[str, Any]]]:
         """
         Computes the gradients for all available excitation operators.
 
@@ -209,9 +209,9 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
 
         prev_op_indices: list[int] = []
         theta: list[float] = []
-        max_grad: tuple[float, Optional[PauliSumOp]] = (0.0, None)
+        max_grad: tuple[complex, dict[str, Any] | None] = (0.0, None)
         self._excitation_list = []
-        history: list[float] = []
+        history: list[complex] = []
         iteration = 0
         while self.max_iterations is None or iteration < self.max_iterations:
             iteration += 1
@@ -294,10 +294,10 @@ class AdaptVQEResult(VQEResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._num_iterations: int = None
-        self._final_max_gradient: float = None
+        self._num_iterations: int | None = None
+        self._final_max_gradient: float | None = None
         self._termination_criterion: str = ""
-        self._eigenvalue_history: list[float] = None
+        self._eigenvalue_history: list[float] | None = None
 
     @property
     def num_iterations(self) -> int:

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" DictStateFn Class """
+"""DictStateFn Class"""
 
 import itertools
 from typing import Dict, List, Optional, Set, Union, cast

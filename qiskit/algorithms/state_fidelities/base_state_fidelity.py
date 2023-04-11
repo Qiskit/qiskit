@@ -44,7 +44,7 @@ class BaseStateFidelity(ABC):
     def __init__(self) -> None:
 
         # use cache for preventing unnecessary circuit compositions
-        self._circuit_cache: Mapping[(int, int), QuantumCircuit] = {}
+        self._circuit_cache: Mapping[tuple[int, int], QuantumCircuit] = {}
 
     @staticmethod
     def _preprocess_values(

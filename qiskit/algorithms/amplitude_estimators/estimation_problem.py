@@ -14,7 +14,8 @@
 
 from __future__ import annotations
 import warnings
-from typing import Callable
+from collections.abc import Callable
+
 import numpy
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
@@ -121,6 +122,19 @@ class EstimationProblem:
         self._post_processing = post_processing
 
     @property
+    def has_good_state(self) -> bool:
+        """Check whether an :attr:`is_good_state` function is set.
+
+        Some amplitude estimators, such as :class:`.AmplitudeEstimation` do not support
+        a custom implementation of the :attr:`is_good_state` function, and can only handle
+        the default.
+
+        Returns:
+            ``True``, if a custom :attr:`is_good_state` is set, otherwise returns ``False``.
+        """
+        return self._is_good_state is not None
+
+    @property
     def is_good_state(self) -> Callable[[str], bool]:
         """Checks whether a bitstring represents a good state.
 
@@ -201,7 +215,6 @@ class EstimationProblem:
 
         # add the scaling qubit to the good state qualifier
         def is_good_state(bitstr):
-            # pylint: disable=not-callable
             return self.is_good_state(bitstr[1:]) and bitstr[0] == "1"
 
         # rescaled estimation problem

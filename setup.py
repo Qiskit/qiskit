@@ -14,8 +14,7 @@
 
 import os
 import re
-import sys
-from setuptools import setup, find_packages, Extension
+from setuptools import setup, find_packages
 from setuptools_rust import Binding, RustExtension
 
 
@@ -99,7 +98,16 @@ setup(
         "Documentation": "https://qiskit.org/documentation/",
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
-    rust_extensions=[RustExtension("qiskit._accelerate", "Cargo.toml", binding=Binding.PyO3)],
+    rust_extensions=[
+        RustExtension(
+            "qiskit._accelerate",
+            "crates/accelerate/Cargo.toml",
+            binding=Binding.PyO3,
+            # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior
+            # of whether it's an editable installation.
+            debug=True if os.getenv("RUST_DEBUG") == "1" else None,
+        )
+    ],
     zip_safe=False,
     entry_points={
         "qiskit.unitary_synthesis": [
@@ -109,7 +117,14 @@ setup(
         ],
         "qiskit.synthesis": [
             "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
+            "clifford.ag = qiskit.transpiler.passes.synthesis.high_level_synthesis:AGSynthesisClifford",
+            "clifford.bm = qiskit.transpiler.passes.synthesis.high_level_synthesis:BMSynthesisClifford",
+            "clifford.greedy = qiskit.transpiler.passes.synthesis.high_level_synthesis:GreedySynthesisClifford",
+            "clifford.layers = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerSynthesisClifford",
+            "clifford.lnn = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerLnnSynthesisClifford",
             "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
+            "linear_function.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisLinearFunction",
+            "linear_function.pmh = qiskit.transpiler.passes.synthesis.high_level_synthesis:PMHSynthesisLinearFunction",
             "permutation.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",

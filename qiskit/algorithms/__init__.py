@@ -179,19 +179,6 @@ algorithm - :class:`~.time_evolvers.TrotterQRTE`.
    time_evolvers.trotterization
 
 
-Factorizers
------------
-
-Algorithms to find factors of a number.
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   Shor
-   ShorResult
-
-
 Gradients
 ----------
 
@@ -201,18 +188,6 @@ Algorithms to calculate the gradient of a quantum circuit.
    :toctree: ../stubs/
 
    gradients
-
-
-Linear Solvers
---------------
-
-Algorithms to solve linear systems of equations.
-
-.. autosummary::
-   :toctree: ../stubs/
-   :nosignatures:
-
-   linear_solvers
 
 
 Minimum Eigensolvers
@@ -343,8 +318,6 @@ from .amplitude_estimators import (
     EstimationProblem,
 )
 from .eigen_solvers import NumPyEigensolver, Eigensolver, EigensolverResult, VQD, VQDResult
-from .factorizers import Shor, ShorResult
-from .linear_solvers import HHL, LinearSolver, NumPyLinearSolver, LinearSolverResult
 from .minimum_eigen_solvers import (
     VQE,
     VQEResult,
@@ -411,17 +384,11 @@ __all__ = [
     "EvolutionProblem",
     "TimeEvolutionResult",
     "TimeEvolutionProblem",
-    "LinearSolverResult",
     "Eigensolver",
     "EigensolverResult",
-    "Shor",
-    "ShorResult",
     "VQE",
     "VQEResult",
     "QAOA",
-    "LinearSolver",
-    "HHL",
-    "NumPyLinearSolver",
     "NumPyMinimumEigensolver",
     "MinimumEigensolver",
     "MinimumEigensolverResult",

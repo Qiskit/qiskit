@@ -23,11 +23,17 @@ from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
     CXGate,
     CZGate,
+    CYGate,
     HGate,
     IGate,
     SdgGate,
     SGate,
+    SXGate,
+    SXdgGate,
     SwapGate,
+    iSwapGate,
+    ECRGate,
+    DCXGate,
     XGate,
     YGate,
     ZGate,
@@ -82,11 +88,13 @@ class WGate(Gate):
 def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
     """Generate a pseudo random Clifford circuit."""
 
+    qubits_1_gates = ["i", "x", "y", "z", "h", "s", "sdg", "sx", "sxdg", "v", "w"]
+    qubits_2_gates = ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"]
     if gates == "all":
         if num_qubits == 1:
-            gates = ["i", "x", "y", "z", "h", "s", "sdg", "v", "w"]
+            gates = qubits_1_gates
         else:
-            gates = ["i", "x", "y", "z", "h", "s", "sdg", "v", "w", "cx", "cz", "swap"]
+            gates = qubits_1_gates + qubits_2_gates
 
     instructions = {
         "i": (IGate(), 1),
@@ -96,11 +104,17 @@ def random_clifford_circuit(num_qubits, num_gates, gates="all", seed=None):
         "h": (HGate(), 1),
         "s": (SGate(), 1),
         "sdg": (SdgGate(), 1),
+        "sx": (SXGate(), 1),
+        "sxdg": (SXdgGate(), 1),
         "v": (VGate(), 1),
         "w": (WGate(), 1),
         "cx": (CXGate(), 2),
+        "cy": (CYGate(), 2),
         "cz": (CZGate(), 2),
         "swap": (SwapGate(), 2),
+        "iswap": (iSwapGate(), 2),
+        "ecr": (ECRGate(), 2),
+        "dcx": (DCXGate(), 2),
     }
 
     if isinstance(seed, np.random.Generator):
@@ -140,6 +154,8 @@ class TestCliffordGates(QiskitTestCase):
             "sinv": np.array([[[True, True], [False, True]]], dtype=bool),
             "v": np.array([[[True, True], [True, False]]], dtype=bool),
             "w": np.array([[[False, True], [True, True]]], dtype=bool),
+            "sx": np.array([[[True, False], [True, True]]], dtype=bool),
+            "sxdg": np.array([[[True, False], [True, True]]], dtype=bool),
         }
 
         target_phase = {
@@ -155,6 +171,8 @@ class TestCliffordGates(QiskitTestCase):
             "sinv": np.array([[True, False]], dtype=bool),
             "v": np.array([[False, False]], dtype=bool),
             "w": np.array([[False, False]], dtype=bool),
+            "sx": np.array([[False, True]], dtype=bool),
+            "sxdg": np.array([[False, False]], dtype=bool),
         }
 
         target_stabilizer = {
@@ -170,6 +188,8 @@ class TestCliffordGates(QiskitTestCase):
             "sinv": "+Z",
             "v": "+X",
             "w": "+Y",
+            "sx": "-Y",
+            "sxdg": "+Y",
         }
 
         target_destabilizer = {
@@ -185,9 +205,25 @@ class TestCliffordGates(QiskitTestCase):
             "sinv": "-Y",
             "v": "+Y",
             "w": "+Z",
+            "sx": "+X",
+            "sxdg": "+X",
         }
 
-        for gate_name in ("i", "id", "iden", "x", "y", "z", "h", "s", "sdg", "v", "w"):
+        for gate_name in (
+            "i",
+            "id",
+            "iden",
+            "x",
+            "y",
+            "z",
+            "h",
+            "s",
+            "sdg",
+            "v",
+            "w",
+            "sx",
+            "sxdg",
+        ):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
@@ -273,6 +309,8 @@ class TestCliffordGates(QiskitTestCase):
             "w * x * v = y",
             "w * y * v = z",
             "w * z * v = x",
+            "sdg * h * sdg = sx",
+            "s * h * s = sxdg",
         ]
 
         for rel in rels:
@@ -408,6 +446,14 @@ class TestCliffordGates(QiskitTestCase):
             cliff = _append_operation(cliff, "cx", [0, 1])
             cliff = _append_operation(cliff, "cx", [1, 0])
             cliff = _append_operation(cliff, "sdg", [0])
+            self.assertEqual(cliff, cliff1)
+
+        with self.subTest(msg="relation between cx and dcx"):
+            cliff = Clifford(np.eye(4))
+            cliff1 = cliff.copy()
+            cliff = _append_operation(cliff, "cx", [0, 1])
+            cliff = _append_operation(cliff, "cx", [1, 0])
+            cliff1 = _append_operation(cliff1, "dcx", [0, 1])
             self.assertEqual(cliff, cliff1)
 
     def test_barrier_delay_sim(self):
@@ -591,7 +637,9 @@ class TestCliffordDecomposition(QiskitTestCase):
             ["h", "s", "sdg"],
             ["h", "s", "v"],
             ["h", "s", "w"],
-            ["h", "s", "sdg", "i", "x", "y", "z", "v", "w"],
+            ["h", "sx", "sxdg"],
+            ["s", "sx", "sxdg"],
+            ["h", "s", "sdg", "i", "x", "y", "z", "v", "w", "sx", "sxdg"],
         ]
     )
     def test_to_operator_1qubit_gates(self, gates):
@@ -609,11 +657,17 @@ class TestCliffordDecomposition(QiskitTestCase):
         gates=[
             ["cx"],
             ["cz"],
+            ["cy"],
             ["swap"],
+            ["iswap"],
+            ["ecr"],
+            ["dcx"],
             ["cx", "cz"],
+            ["cx", "cz", "cy"],
             ["cx", "swap"],
             ["cz", "swap"],
             ["cx", "cz", "swap"],
+            ["cx", "cz", "cy", "swap", "iswap", "ecr", "dcx"],
         ]
     )
     def test_to_operator_2qubit_gates(self, gates):
