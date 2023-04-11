@@ -53,7 +53,6 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.viewcode',
     'sphinx.ext.extlinks',
-    'sphinx_autodoc_typehints',
     'jupyter_sphinx',
     'nbsphinx',
     'sphinx_design',
@@ -160,6 +159,13 @@ html_context = {'analytics_enabled': os.getenv('QISKIT_ENABLE_ANALYTICS', False)
 autosummary_generate = True
 autosummary_generate_overwrite = False
 autoclass_content = 'both'
+
+# Move type hints from signatures to the parameter descriptions (except in overload cases, where
+# that's not possible).
+autodoc_typehints = "description"
+# Only add type hints from signature to description body if the parameter has documentation.  The
+# return type is always added to the description (if in the signature).
+autodoc_typehints_description_target = "documented_params"
 
 # Plot directive configuration
 # ----------------------------
