@@ -59,7 +59,7 @@ class TestCheckMapCX(QiskitTestCase):
         circuit.h(qr)
         target = Target()
         dag = circuit_to_dag(circuit)
-        pass_ = CheckMap(target=target)
+        pass_ = CheckMap(target)
         pass_.run(dag)
         self.assertTrue(pass_.property_set["is_swap_mapped"])
 
@@ -120,7 +120,7 @@ class TestCheckMapCX(QiskitTestCase):
         target.add_instruction(CXGate(), {(0, 2): None, (2, 1): None})
         dag = circuit_to_dag(circuit)
 
-        pass_ = CheckMap(target=target)
+        pass_ = CheckMap(target)
         pass_.run(dag)
 
         self.assertFalse(pass_.property_set["is_swap_mapped"])
