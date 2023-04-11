@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -74,20 +74,16 @@ class SPSASamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[Sequence[Parameter] | None],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         job_circuits, job_param_values, metadata, offsets = [], [], [], []
         all_n = []
-        for circuit, parameter_values_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
-        ):
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # Indices of parameters to be differentiated.
-            indices = [
-                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
-            ]
-            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+            indices = [circuit.parameters.data.index(p) for p in parameters_]
+            metadata.append({"parameters": parameters_})
             offset = np.array(
                 [
                     (-1) ** (self._seed.integers(0, 2, len(circuit.parameters)))
@@ -118,7 +114,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
             dist_diffs = {}
             result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
             for j, (dist_plus, dist_minus) in enumerate(zip(result[: n // 2], result[n // 2 :])):
-                dist_diff = defaultdict(float)
+                dist_diff: dict[int, float] = defaultdict(float)
                 for key, value in dist_plus.items():
                     dist_diff[key] += value / (2 * self._epsilon)
                 for key, value in dist_minus.items():
@@ -126,12 +122,8 @@ class SPSASamplerGradient(BaseSamplerGradient):
                 dist_diffs[j] = dist_diff
             gradient = []
             indices = [circuits[i].parameters.data.index(p) for p in metadata[i]["parameters"]]
-            for j in range(circuits[i].num_parameters):
-                if not j in indices:
-                    continue
-                # the gradient for jth parameter is the average of the gradients of the jth parameter
-                # for each batch.
-                gradient_j = defaultdict(float)
+            for j in indices:
+                gradient_j: dict[int, float] = defaultdict(float)
                 for k in range(self._batch_size):
                     for key, value in dist_diffs[k].items():
                         gradient_j[key] += value * offsets[i][k][j]

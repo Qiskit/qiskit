@@ -26,7 +26,7 @@ overridden to opt-out of this infrastructure but still meet the interface requir
     (``qiskit.utils.algorithm_globals.random_seed = seed``).
 """
 
-from typing import Optional, Dict
+from __future__ import annotations
 from abc import ABC, abstractmethod
 import numpy as np
 
@@ -41,13 +41,13 @@ class VariationalAlgorithm(ABC):
 
     @property
     @abstractmethod
-    def initial_point(self) -> Optional[np.ndarray]:
+    def initial_point(self) -> np.ndarray | None:
         """Returns initial point."""
         pass
 
     @initial_point.setter
     @abstractmethod
-    def initial_point(self, initial_point: Optional[np.ndarray]) -> None:
+    def initial_point(self, initial_point: np.ndarray | None) -> None:
         """Sets initial point."""
         pass
 
@@ -57,16 +57,16 @@ class VariationalResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._optimizer_evals = None
-        self._optimizer_time = None
-        self._optimal_value = None
-        self._optimal_point = None
-        self._optimal_parameters = None
-        self._optimizer_result = None
-        self._optimal_circuit = None
+        self._optimizer_evals: int | None = None
+        self._optimizer_time: float | None = None
+        self._optimal_value: float | None = None
+        self._optimal_point: np.ndarray | None = None
+        self._optimal_parameters: dict | None = None
+        self._optimizer_result: OptimizerResult | None = None
+        self._optimal_circuit: QuantumCircuit | None = None
 
     @property
-    def optimizer_evals(self) -> Optional[int]:
+    def optimizer_evals(self) -> int | None:
         """Returns number of optimizer evaluations"""
         return self._optimizer_evals
 
@@ -76,7 +76,7 @@ class VariationalResult(AlgorithmResult):
         self._optimizer_evals = value
 
     @property
-    def optimizer_time(self) -> Optional[float]:
+    def optimizer_time(self) -> float | None:
         """Returns time taken for optimization"""
         return self._optimizer_time
 
@@ -86,7 +86,7 @@ class VariationalResult(AlgorithmResult):
         self._optimizer_time = value
 
     @property
-    def optimal_value(self) -> Optional[float]:
+    def optimal_value(self) -> float | None:
         """Returns optimal value"""
         return self._optimal_value
 
@@ -96,7 +96,7 @@ class VariationalResult(AlgorithmResult):
         self._optimal_value = value
 
     @property
-    def optimal_point(self) -> Optional[np.ndarray]:
+    def optimal_point(self) -> np.ndarray | None:
         """Returns optimal point"""
         return self._optimal_point
 
@@ -106,17 +106,17 @@ class VariationalResult(AlgorithmResult):
         self._optimal_point = value
 
     @property
-    def optimal_parameters(self) -> Optional[Dict]:
+    def optimal_parameters(self) -> dict | None:
         """Returns the optimal parameters in a dictionary"""
         return self._optimal_parameters
 
     @optimal_parameters.setter
-    def optimal_parameters(self, value: Dict) -> None:
+    def optimal_parameters(self, value: dict) -> None:
         """Sets optimal parameters"""
         self._optimal_parameters = value
 
     @property
-    def optimizer_result(self) -> Optional[OptimizerResult]:
+    def optimizer_result(self) -> OptimizerResult | None:
         """Returns the optimizer result"""
         return self._optimizer_result
 
