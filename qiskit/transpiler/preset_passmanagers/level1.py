@@ -121,7 +121,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     _choose_layout_0 = (
         []
         if pass_manager_config.layout_method
-        else [TrivialLayout(coupling_map_layout), CheckMap(coupling_map, target=target)]
+        else [TrivialLayout(coupling_map_layout), CheckMap(coupling_map_layout)]
     )
 
     _choose_layout_1 = (
