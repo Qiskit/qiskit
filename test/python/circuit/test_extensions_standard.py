@@ -873,6 +873,7 @@ class TestStandard1Q(QiskitTestCase):
 
     def test_global_phase_consistency(self):
         from qiskit.quantum_info import Operator
+
         """Tests compatibility of GlobalPhaseGate with QuantumCircuit.global_phase"""
         theta = 0.1
         qc1 = QuantumCircuit(0, global_phase=theta)
@@ -881,6 +882,20 @@ class TestStandard1Q(QiskitTestCase):
         np.testing.assert_allclose(
             Operator(qc1),
             Operator(qc2),
+            atol=1e-7,
+        )
+
+    def test_transpile_global_phase_consistency(self):
+        from qiskit.quantum_info import Operator
+        from qiskit import transpile
+
+        """Tests compatibility of transpiled GlobalPhaseGate with QuantumCircuit.global_phase"""
+        qc1 = QuantumCircuit(0, global_phase=0.3)
+        qc2 = QuantumCircuit(0, global_phase=0.2)
+        qc2.append(GlobalPhaseGate(0.1), [])
+        np.testing.assert_allclose(
+            Operator(transpile(qc1, basis_gates=["u"])),
+            Operator(transpile(qc2, basis_gates=["u"])),
             atol=1e-7,
         )
 
