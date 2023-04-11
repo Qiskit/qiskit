@@ -1288,6 +1288,12 @@ class Target(Mapping):
         if custom_name_mapping is not None:
             name_mapping.update(custom_name_mapping)
 
+        # While BackendProperties can also contain coupling information we
+        # rely solely on CouplingMap to determin connectivity. This is because
+        # in legacy transpiler usage (and implicitly in the BackendV1 data model)
+        # the coupling map is used to define connecitivity constraints and
+        # the properties is only used for error rate and duration population.
+        # If coupling map is not specified we ignore the backend_properties
         if coupling_map is None:
             for gate in basis_gates:
                 if gate not in name_mapping:
