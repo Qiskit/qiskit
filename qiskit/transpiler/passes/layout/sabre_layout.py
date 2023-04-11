@@ -34,6 +34,7 @@ from qiskit._accelerate.sabre_swap import (
     NeighborTable,
 )
 from qiskit.transpiler.passes.routing.sabre_swap import process_swaps, apply_gate
+from qiskit.transpiler.target import Target
 from qiskit.tools.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
@@ -86,7 +87,7 @@ class SabreLayout(TransformationPass):
         """SabreLayout initializer.
 
         Args:
-            coupling_map (Coupling): directed graph representing a coupling map.
+            coupling_map (Union[CouplingMap, Target]): directed graph representing a coupling map.
             routing_pass (BasePass): the routing pass to use while iterating.
                 If specified this pass operates as an :class:`~.AnalysisPass` and
                 will only populate the ``layout`` field in the property set and
@@ -124,17 +125,13 @@ class SabreLayout(TransformationPass):
             both ``routing_pass`` and ``layout_trials`` are specified
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self._neighbor_table = None
-        if self.coupling_map is not None:
-            if not self.coupling_map.is_symmetric:
-                # deepcopy is needed here to avoid modifications updating
-                # shared references in passes which require directional
-                # constraints
-                self.coupling_map = copy.deepcopy(self.coupling_map)
-                self.coupling_map.make_symmetric()
-            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
-
         if routing_pass is not None and (swap_trials is not None or layout_trials is not None):
             raise TranspilerError("Both routing_pass and swap_trials can't be set at the same time")
         self.routing_pass = routing_pass
@@ -150,6 +147,14 @@ class SabreLayout(TransformationPass):
         else:
             self.layout_trials = layout_trials
         self.skip_routing = skip_routing
+        if self.coupling_map is not None:
+            if not self.coupling_map.is_symmetric:
+                # deepcopy is needed here to avoid modifications updating
+                # shared references in passes which require directional
+                # constraints
+                self.coupling_map = copy.deepcopy(self.coupling_map)
+                self.coupling_map.make_symmetric()
+            self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
 
     def run(self, dag):
         """Run the SabreLayout pass on `dag`.
