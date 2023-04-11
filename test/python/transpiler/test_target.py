@@ -1843,5 +1843,5 @@ class TestTargetFromConfiguration(QiskitTestCase):
     def test_over_two_qubits_with_coupling(self):
         basis_gates = ["ccx", "cx", "swap", "u"]
         cmap = CouplingMap.from_line(15)
-        with self.assertRaisesRegex(TranspilerError, "has an invalid number of qubits"):
+        with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
             Target.from_configuration(basis_gates, 15, cmap)
