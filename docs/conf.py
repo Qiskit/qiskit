@@ -177,7 +177,6 @@ def setup(app):
     custom_extensions.load_api_sources(app)
     custom_extensions.load_tutorials(app)
     app.setup_extension('versionutils')
-    app.add_css_file('css/theme-override.css')
     app.connect('build-finished', custom_extensions.clean_api_source)
     app.connect('build-finished', custom_extensions.clean_tutorials)
     app.connect('source-read', custom_extensions.deprecate_ibmq_provider)
