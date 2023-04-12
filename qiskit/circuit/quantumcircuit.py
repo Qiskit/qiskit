@@ -46,7 +46,6 @@ from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
 from .parameterexpression import ParameterExpression, ParameterValueType
@@ -1630,11 +1629,14 @@ class QuantumCircuit:
         Raises:
             MissingOptionalLibraryError: If pygments is not installed and ``formatted`` is
                 ``True``.
-            QasmError: If circuit has free parameters.
+            QASM2ExportError: If circuit has free parameters.
         """
+        from qiskit.qasm2 import QASM2ExportError  # pylint: disable=cyclic-import
 
         if self.num_parameters > 0:
-            raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
+            raise QASM2ExportError(
+                "Cannot represent circuits with unbound parameters in OpenQASM 2."
+            )
 
         existing_gate_names = {
             "barrier",
