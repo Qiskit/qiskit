@@ -172,6 +172,7 @@ Additional Passes
    RemoveFinalMeasurements
    DAGFixedPoint
    FixedPoint
+   MinimumPoint
    ContainsInstruction
    GatesInBasis
    ConvertConditionsToIfOps
@@ -284,6 +285,7 @@ from .utils import RemoveFinalMeasurements
 from .utils import MergeAdjacentBarriers
 from .utils import DAGFixedPoint
 from .utils import FixedPoint
+from .utils import MinimumPoint
 from .utils import Error
 from .utils import RemoveBarriers
 from .utils import ContainsInstruction

@@ -11,12 +11,14 @@
 # that they have been altered from the originals.
 
 """Parallelized Limited-memory BFGS optimizer"""
+from __future__ import annotations
 
 import logging
 import multiprocessing
 import platform
 import sys
-from typing import Optional, List, Tuple, Callable
+from collections.abc import Callable
+from typing import SupportsFloat
 
 import numpy as np
 
@@ -49,10 +51,10 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
     def __init__(
         self,
         maxfun: int = 1000,
-        ftol: float = 10 * np.finfo(float).eps,
+        ftol: SupportsFloat = 10 * np.finfo(float).eps,
         iprint: int = -1,
-        max_processes: Optional[int] = None,
-        options: Optional[dict] = None,
+        max_processes: int | None = None,
+        options: dict | None = None,
         max_evals_grouped: int = 1,
         **kwargs,
     ) -> None:
@@ -91,8 +93,8 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         x0 = np.asarray(x0)
 
@@ -119,7 +121,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
                 "For Windows, using only current process. Multiple core use not supported."
             )
 
-        queue = multiprocessing.Queue()
+        queue: multiprocessing.queues.Queue[tuple[POINT, float, int]] = multiprocessing.Queue()
 
         # TODO: are automatic bounds a good idea? What if the circuit parameters are not
         # just from plain Pauli rotations but have a coefficient?
@@ -170,7 +172,7 @@ class P_BFGS(SciPyOptimizer):  # pylint: disable=invalid-name
         initial_point,
         gradient_function=None,
         variable_bounds=None,
-    ):
+    ) -> tuple[POINT, float, int]:
         result = super().minimize(
             objective_function, initial_point, gradient_function, variable_bounds
         )

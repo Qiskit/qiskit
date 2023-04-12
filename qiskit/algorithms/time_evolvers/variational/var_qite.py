@@ -36,11 +36,13 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
 
     .. code-block::python
 
+        import numpy as np
+
         from qiskit.algorithms import TimeEvolutionProblem, VarQITE
         from qiskit.algorithms.time_evolvers.variational import ImaginaryMcLachlanPrinciple
         from qiskit.circuit.library import EfficientSU2
-        from qiskit.quantum_info import SparsePauliOp
-        import numpy as np
+        from qiskit.quantum_info import SparsePauliOp, Pauli
+        from qiskit.primitives import Estimator
 
         observable = SparsePauliOp.from_list(
             [
@@ -54,13 +56,19 @@ class VarQITE(VarQTE, ImaginaryTimeEvolver):
         )
 
         ansatz = EfficientSU2(observable.num_qubits, reps=1)
-        init_param_values = np.zeros(len(ansatz.parameters))
-        for i in range(len(ansatz.parameters)):
-            init_param_values[i] = np.pi / 2
+        init_param_values = np.ones(len(ansatz.parameters)) * np.pi/2
         var_principle = ImaginaryMcLachlanPrinciple()
         time = 1
+
+        # without evaluating auxiliary operators
         evolution_problem = TimeEvolutionProblem(observable, time)
-        var_qite = VarQITE(ansatz, var_principle, init_param_values)
+        var_qite = VarQITE(ansatz, init_param_values, var_principle)
+        evolution_result = var_qite.evolve(evolution_problem)
+
+        # evaluating auxiliary operators
+        aux_ops = [Pauli("XX"), Pauli("YZ")]
+        evolution_problem = TimeEvolutionProblem(observable, time, aux_operators=aux_ops)
+        var_qite = VarQITE(ansatz, init_param_values, var_principle, Estimator())
         evolution_result = var_qite.evolve(evolution_problem)
     """
 

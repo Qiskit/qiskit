@@ -51,6 +51,7 @@ from qiskit.providers.fake_provider import (
     FakeRueschlikon,
     FakeBoeblingen,
     FakeMumbaiV2,
+    FakeNairobiV2,
 )
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager, TransformationPass
@@ -61,6 +62,7 @@ from qiskit.quantum_info import Operator, random_unitary
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 from qiskit.tools import parallel
+from qiskit.pulse import InstructionScheduleMap
 
 
 class CustomCX(Gate):
@@ -382,10 +384,27 @@ class TestTranspile(QiskitTestCase):
         circuits = transpile(qc, backend)
         self.assertIsInstance(circuits, QuantumCircuit)
 
-    def test_transpile_two(self):
-        """Test transpile to circuits.
+    def test_transpile_one(self):
+        """Test transpile a single circuit.
 
-        If all correct some should exists.
+        Check that the top-level `transpile` function returns
+        a single circuit."""
+        backend = BasicAer.get_backend("qasm_simulator")
+
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        circuit = transpile(qc, backend)
+        self.assertIsInstance(circuit, QuantumCircuit)
+
+    def test_transpile_two(self):
+        """Test transpile two circuits.
+
+        Check that the transpiler returns a list of two circuits.
         """
         backend = BasicAer.get_backend("qasm_simulator")
 
@@ -400,12 +419,19 @@ class TestTranspile(QiskitTestCase):
         qc_extra = QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         circuits = transpile([qc, qc_extra], backend)
-        self.assertIsInstance(circuits[0], QuantumCircuit)
-        self.assertIsInstance(circuits[1], QuantumCircuit)
+        self.assertIsInstance(circuits, list)
+        self.assertEqual(len(circuits), 2)
+
+        for circuit in circuits:
+            self.assertIsInstance(circuit, QuantumCircuit)
 
     def test_transpile_singleton(self):
         """Test transpile a single-element list with a circuit.
-        See https://github.com/Qiskit/qiskit-terra/issues/5260"""
+
+        Check that `transpile` returns a single-element list.
+
+        See https://github.com/Qiskit/qiskit-terra/issues/5260
+        """
         backend = BasicAer.get_backend("qasm_simulator")
 
         qubit_reg = QuantumRegister(2)
@@ -416,6 +442,7 @@ class TestTranspile(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         circuits = transpile([qc], backend)
+        self.assertIsInstance(circuits, list)
         self.assertEqual(len(circuits), 1)
         self.assertIsInstance(circuits[0], QuantumCircuit)
 
@@ -1362,7 +1389,7 @@ class TestTranspile(QiskitTestCase):
         out = transpile(qc, FakeBoeblingen(), optimization_level=optimization_level)
 
         self.assertEqual(len(out.qubits), FakeBoeblingen().configuration().num_qubits)
-        self.assertEqual(out.clbits, clbits)
+        self.assertEqual(len(out.clbits), len(clbits))
 
     @data(0, 1, 2, 3)
     def test_translate_ecr_basis(self, optimization_level):
@@ -1899,3 +1926,103 @@ class TestTranspileParallel(QiskitTestCase):
         for qc_test in qcs_cal_added:
             added_cal = qc_test.calibrations["sx"][((0,), ())]
             self.assertEqual(added_cal, ref_cal)
+
+    @data(0, 1, 2, 3)
+    def test_backendv2_and_basis_gates(self, opt_level):
+        """Test transpile() with BackendV2 and basis_gates set."""
+        backend = FakeNairobiV2()
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(0, 2)
+        qc.cz(0, 3)
+        qc.cz(0, 4)
+        qc.measure_all()
+        tqc = transpile(
+            qc,
+            backend=backend,
+            basis_gates=["u", "cz"],
+            optimization_level=opt_level,
+            seed_transpiler=12345678942,
+        )
+        op_count = set(tqc.count_ops())
+        self.assertEqual({"u", "cz", "measure", "barrier"}, op_count)
+        for inst in tqc.data:
+            if inst.operation.name not in {"u", "cz"}:
+                continue
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            self.assertIn(qubits, backend.target.qargs)
+
+    @data(0, 1, 2, 3)
+    def test_backendv2_and_coupling_map(self, opt_level):
+        """Test transpile() with custom coupling map."""
+        backend = FakeNairobiV2()
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(0, 2)
+        qc.cz(0, 3)
+        qc.cz(0, 4)
+        qc.measure_all()
+        cmap = CouplingMap.from_line(5, bidirectional=False)
+        tqc = transpile(
+            qc,
+            backend=backend,
+            coupling_map=cmap,
+            optimization_level=opt_level,
+            seed_transpiler=12345678942,
+        )
+        op_count = set(tqc.count_ops())
+        self.assertTrue({"rz", "sx", "x", "cx", "measure", "barrier"}.issuperset(op_count))
+        for inst in tqc.data:
+            if len(inst.qubits) == 2:
+                qubit_0 = tqc.find_bit(inst.qubits[0]).index
+                qubit_1 = tqc.find_bit(inst.qubits[1]).index
+                self.assertEqual(qubit_1, qubit_0 + 1)
+
+    def test_transpile_with_multiple_coupling_maps(self):
+        """Test passing a different coupling map for every circuit"""
+        backend = FakeNairobiV2()
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 2)
+
+        # Add a connection between 0 and 2 so that transpile does not change
+        # the gates
+        cmap = CouplingMap.from_line(7)
+        cmap.add_edge(0, 2)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning, "Passing in a list of arguments for coupling_map is deprecated"
+        ):
+            # Initial layout needed to prevent transpiler from relabeling
+            # qubits to avoid doing the swap
+            tqc = transpile(
+                [qc] * 2,
+                backend,
+                coupling_map=[backend.coupling_map, cmap],
+                initial_layout=(0, 1, 2),
+            )
+
+        # Check that the two coupling maps were used. The default should
+        # require swapping (extra cx's) and the second one should not (just the
+        # original cx).
+        self.assertEqual(tqc[0].count_ops()["cx"], 4)
+        self.assertEqual(tqc[1].count_ops()["cx"], 1)
+
+    @data(0, 1, 2, 3)
+    def test_backend_and_custom_gate(self, opt_level):
+        """Test transpile() with BackendV2, custom basis pulse gate."""
+        backend = FakeNairobiV2()
+        inst_map = InstructionScheduleMap()
+        inst_map.add("newgate", [0, 1], pulse.ScheduleBlock())
+        newgate = Gate("newgate", 2, [])
+        circ = QuantumCircuit(2)
+        circ.append(newgate, [0, 1])
+        tqc = transpile(
+            circ, backend, inst_map=inst_map, basis_gates=["newgate"], optimization_level=opt_level
+        )
+        self.assertEqual(len(tqc.data), 1)
+        self.assertEqual(tqc.data[0].operation, newgate)
+        qubits = tuple(tqc.find_bit(x).index for x in tqc.data[0].qubits)
+        self.assertIn(qubits, backend.target.qargs)

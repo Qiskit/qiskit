@@ -16,6 +16,7 @@
 
 # -- General configuration ---------------------------------------------------
 import datetime
+import doctest
 
 project = "Qiskit"
 copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
@@ -34,11 +35,13 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
-    "sphinx_autodoc_typehints",
+    "sphinx.ext.doctest",
     "reno.sphinxext",
     "sphinx_design",
     "matplotlib.sphinxext.plot_directive",
+    "sphinx.ext.doctest"
 ]
+
 templates_path = ["_templates"]
 
 # Number figures, tables and code-blocks if they have a caption.
@@ -63,6 +66,9 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
+    "qiskit-ibm-runtime": ("https://qiskit.org/documentation/partners/qiskit_ibm_runtime/", None),
+    "qiskit-aer": ("https://qiskit.org/documentation/aer/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None)
 }
 
 # -- Options for HTML output -------------------------------------------------
@@ -83,6 +89,13 @@ html_theme_options = {
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
 # which likely overrides the autodoc defaults.
 
+# Move type hints from signatures to the parameter descriptions (except in overload cases, where
+# that's not possible).
+autodoc_typehints = "description"
+# Only add type hints from signature to description body if the parameter has documentation.  The
+# return type is always added to the description (if in the signature).
+autodoc_typehints_description_target = "documented_params"
+
 autosummary_generate = True
 autosummary_generate_overwrite = False
 
@@ -102,3 +115,18 @@ autosummary_filename_map = {
 }
 
 autoclass_content = "both"
+
+# -- Options for Doctest --------------------------------------------------------
+
+import sphinx.ext.doctest
+
+# This option will make doctest ignore whitespace when testing code.
+# It's specially important for circuit representation as it gives an
+# error otherwise
+doctest_default_flags = sphinx.ext.doctest.doctest.NORMALIZE_WHITESPACE
+
+# Leaving this string empty disables testing of doctest blocks from docstrings.
+# Doctest blocks are structures like this one:
+# >> code
+# output
+doctest_test_doctest_blocks = ""
