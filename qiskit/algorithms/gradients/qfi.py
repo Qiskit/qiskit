@@ -120,7 +120,6 @@ class QFI(ABC):
             DerivativeType.REAL,
         )
         job = self._qgt.run(circuits, parameter_values, parameters, **options)
-        self._qgt.derivative_type = temp_derivative_type
 
         try:
             result = job.result()
