@@ -15,7 +15,3 @@ deprecations:
     single observable is desired from a ``PauliList`` with multiple
     elements, convert it to a ``SparsePauliOp`` before calling the
     ``Estimator``.
-other:
-  - |
-    ``PauliList`` is now registered with ``collections.abc`` as a
-    ``Sequence``.

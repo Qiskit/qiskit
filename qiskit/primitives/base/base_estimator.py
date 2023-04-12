@@ -270,7 +270,7 @@ class BaseEstimator(BasePrimitive):
     def _validate_observables(
         observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
     ) -> tuple[SparsePauliOp, ...]:
-        if isinstance(observables, str) or not isinstance(observables, Sequence):
+        if isinstance(observables, str) or not isinstance(observables, (Sequence, PauliList)):
             observables = (observables,)
         if len(observables) == 0:
             raise ValueError("No observables were provided.")
