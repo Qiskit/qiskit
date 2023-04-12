@@ -102,9 +102,6 @@ class BaseSampler(BasePrimitive):
         """
         Args:
             options: Default options.
-
-        Raises:
-            ValueError: For mismatch of circuits and parameters list.
         """
         self._circuits = []
         self._parameters = []
@@ -157,9 +154,7 @@ class BaseSampler(BasePrimitive):
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
     ) -> Job:
-        raise NotImplementedError(
-            "_run method is not implemented. This method will be @abstractmethod after 0.22."
-        )
+        raise NotImplementedError("The subclass of BaseSampler must implment `_run` method.")
 
     # TODO: validate measurement gates are present
     @classmethod

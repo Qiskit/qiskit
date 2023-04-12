@@ -240,6 +240,34 @@ class TestSampler(QiskitTestCase):
                     self._compare_probs(result.quasi_dists, target)
                     self.assertEqual(len(result.metadata), 1)
 
+    def test_run_reverse_meas_order(self):
+        """test for sampler with reverse measurement order"""
+        x = Parameter("x")
+        y = Parameter("y")
+
+        qc = QuantumCircuit(3, 3)
+        qc.rx(x, 0)
+        qc.rx(y, 1)
+        qc.x(2)
+        qc.measure(0, 2)
+        qc.measure(1, 1)
+        qc.measure(2, 0)
+
+        sampler = Sampler()
+        result = sampler.run([qc] * 2, [[0, 0], [np.pi / 2, 0]]).result()
+        self.assertIsInstance(result, SamplerResult)
+        self.assertEqual(len(result.quasi_dists), 2)
+
+        # qc({x: 0, y: 0})
+        keys, values = zip(*sorted(result.quasi_dists[0].items()))
+        self.assertTupleEqual(keys, (1,))
+        np.testing.assert_allclose(values, [1])
+
+        # qc({x: pi/2, y: 0})
+        keys, values = zip(*sorted(result.quasi_dists[1].items()))
+        self.assertTupleEqual(keys, (1, 5))
+        np.testing.assert_allclose(values, [0.5, 0.5])
+
     def test_run_errors(self):
         """Test for errors with run method"""
         qc1 = QuantumCircuit(1)

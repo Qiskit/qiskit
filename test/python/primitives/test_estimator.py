@@ -24,7 +24,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator, Estimator, EstimatorResult
 from qiskit.primitives.utils import _observable_key
 from qiskit.providers import JobV1
-from qiskit.quantum_info import Pauli, PauliList, SparsePauliOp
+from qiskit.quantum_info import Operator, Pauli, PauliList, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 
@@ -257,6 +257,22 @@ class TestEstimator(QiskitTestCase):
             self.assertEqual(len(result.metadata), k)
             np.testing.assert_allclose(result.values, target.values)
 
+    def test_run_with_operator(self):
+        """test for run with Operator as an observable"""
+        circuit = self.ansatz.bind_parameters([0, 1, 1, 2, 3, 5])
+        matrix = Operator(
+            [
+                [-1.06365335, 0.0, 0.0, 0.1809312],
+                [0.0, -1.83696799, 0.1809312, 0.0],
+                [0.0, 0.1809312, -0.24521829, 0.0],
+                [0.1809312, 0.0, 0.0, -1.06365335],
+            ]
+        )
+        est = Estimator()
+        result = est.run([circuit], [matrix]).result()
+        self.assertIsInstance(result, EstimatorResult)
+        np.testing.assert_allclose(result.values, [-1.284366511861733])
+
     def test_run_with_shots_option(self):
         """test with shots option."""
         est = Estimator()
@@ -269,6 +285,25 @@ class TestEstimator(QiskitTestCase):
         ).result()
         self.assertIsInstance(result, EstimatorResult)
         np.testing.assert_allclose(result.values, [-1.307397243478641])
+
+    def test_run_with_shots_option_none(self):
+        """test with shots=None option. Seed is ignored then."""
+        est = Estimator()
+        result_42 = est.run(
+            [self.ansatz],
+            [self.observable],
+            parameter_values=[[0, 1, 1, 2, 3, 5]],
+            shots=None,
+            seed=42,
+        ).result()
+        result_15 = est.run(
+            [self.ansatz],
+            [self.observable],
+            parameter_values=[[0, 1, 1, 2, 3, 5]],
+            shots=None,
+            seed=15,
+        ).result()
+        np.testing.assert_allclose(result_42.values, result_15.values)
 
     def test_options(self):
         """Test for options"""
