@@ -293,38 +293,26 @@ class TestParametricPulses(QiskitTestCase):
         amp = 0.5
         width = 100
         duration = width + 2 * risefall
+        active_amp = 0.1
+        width_echo =  (duration - 2 * (duration - width)) / 2
 
-        gse = GaussianSquareEcho(duration=duration, sigma=sigma, amp=amp, width=width)
+        gse = GaussianSquareEcho(duration=duration, sigma=sigma, amp=amp, width=width, active_amp=active_amp)
         gse_samples = gse.get_waveform().samples
 
 
-        ### CONSTRUCT GAUSSIAN SQUARE ECHO PULSE FROM EXISTING PULSES AND COMPARE
-        # gs_pulse = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=width)
-        # np.testing.assert_almost_equal(
-        #     np.real(gse_samples),
-        #     np.real(gs_pulse.get_waveform().samples),
-        # )
-        # gsd2 = GaussianSquareEcho(
-        #     duration=duration,
-        #     sigma=sigma,
-        #     amp=amp,
-        #     beta=beta,
-        #     risefall_sigma_ratio=risefall / sigma,
-        # )
-        # np.testing.assert_almost_equal(
-        #     gsd_samples,
-        #     gsd2.get_waveform().samples,
-        # )
+        gs_echo_pulse_pos = GaussianSquare(duration=duration/2, sigma=sigma, amp=amp, width=width_echo)
+        gs_echo_pulse_neg = GaussianSquare(duration=duration/2, sigma=sigma, amp=amp, width=width_echo)
+        gs_active_pulse = GaussianSquare(duration=duration, sigma=sigma, amp=active_amp, width=width)
+        gs_echo_pulse_pos_samples = np.array(gs_echo_pulse_pos.get_waveform().samples.tolist() + [0] * int(duration/2))
+        gs_echo_pulse_neg_samples = np.array([0] * int(duration/2) + gs_echo_pulse_neg.get_waveform().samples.tolist())
+        gs_active_pulse_samples = gs_active_pulse.get_waveform().samples
+        
 
-        # drag_pulse = Drag(duration=2 * risefall, amp=amp, sigma=sigma, beta=beta)
-        # np.testing.assert_almost_equal(
-        #     gsd_samples[:risefall],
-        #     drag_pulse.get_waveform().samples[:risefall],
-        # )
-        # np.testing.assert_almost_equal(
-        #     gsd_samples[-risefall:],
-        #     drag_pulse.get_waveform().samples[-risefall:],
-        # )
+
+        np.testing.assert_almost_equal(
+            gse_samples,
+            gs_echo_pulse_pos_samples+gs_echo_pulse_neg_samples+gs_active_pulse_samples,
+        )
 
 
     def test_gaussian_square_echo_active_amp_validation(self):
