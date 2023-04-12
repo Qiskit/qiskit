@@ -282,8 +282,11 @@ class TestParametricPulses(QiskitTestCase):
     def test_gaussian_square_echo_pulse(self):
         """Test that GaussianSquareEcho sample pulse matches expectations.
 
-        Test that the real part of the envelop matches GaussianSquare and that
-        the rise and fall match Drag.
+        Test that the real part of the envelop matches GaussianSquare with
+        given amplitude and phase active for half duration with another 
+        GaussianSquare active for the other half duration with opposite 
+        amplitude and a GaussianSquare active on the entire duration with
+        its own amplitude and phase 
         """
         risefall = 32
         sigma = 4
