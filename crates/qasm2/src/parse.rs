@@ -56,18 +56,7 @@ const QELIB1: [(&str, usize, usize); 23] = [
     ("cu3", 3, 2),
 ];
 
-lazy_static! {
-    static ref BUILTIN_CLASSICAL: HashSet<&'static str> = {
-        let mut out = HashSet::with_capacity(6);
-        out.insert("cos");
-        out.insert("exp");
-        out.insert("ln");
-        out.insert("sin");
-        out.insert("sqrt");
-        out.insert("tan");
-        out
-    };
-}
+const BUILTIN_CLASSICAL: [&str; 6] = ["cos", "exp", "ln", "sin", "sqrt", "tan"];
 
 /// Define a simple newtype that just has a single non-public `usize` field, has a `new`
 /// constructor, and implements `Copy` and `IntoPy`.  The first argument is the name of the type,
@@ -316,7 +305,7 @@ impl State {
         state.define_gate(None, "U".to_owned(), 3, 1)?;
         state.define_gate(None, "CX".to_owned(), 0, 2)?;
         for classical in custom_classical {
-            if BUILTIN_CLASSICAL.contains(&*classical.name) {
+            if BUILTIN_CLASSICAL.contains(&&*classical.name) {
                 return Err(QASM2ParseError::new_err(message_generic(
                     None,
                     &format!(

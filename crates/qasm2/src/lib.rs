@@ -10,9 +10,6 @@
 // copyright notice, and modified files need to carry a notice indicating
 // that they have been altered from the originals.
 
-#[macro_use]
-extern crate lazy_static;
-
 use pyo3::prelude::*;
 use pyo3::Python;
 
