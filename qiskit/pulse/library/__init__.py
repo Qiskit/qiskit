@@ -122,6 +122,7 @@ from .symbolic_pulses import (
     Gaussian,
     GaussianSquare,
     GaussianSquareDrag,
+    GaussianSquareEcho,
     Drag,
     Constant,
     Sin,
