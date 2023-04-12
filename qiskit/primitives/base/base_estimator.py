@@ -83,7 +83,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
-from typing import cast
+from typing import Generic, TypeVar
 from warnings import warn
 
 import numpy as np
@@ -100,8 +100,10 @@ from ..utils import _circuit_key, _observable_key, init_observable
 from .base_primitive import BasePrimitive
 from .estimator_result import EstimatorResult
 
+T = TypeVar("T", bound=Job)
 
-class BaseEstimator(BasePrimitive):
+
+class BaseEstimator(BasePrimitive, Generic[T]):
     """Estimator base class.
 
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
@@ -179,7 +181,7 @@ class BaseEstimator(BasePrimitive):
         observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
-    ) -> Job:
+    ) -> T:
         """Run the job of the estimation of expectation value(s).
 
         ``circuits``, ``observables``, and ``parameter_values`` should have the same
@@ -247,7 +249,7 @@ class BaseEstimator(BasePrimitive):
         observables: tuple[SparsePauliOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> Job:
+    ) -> T:
         raise NotImplementedError(
             "_run method is not implemented. This method will be @abstractmethod after 0.22."
         )
@@ -440,9 +442,6 @@ class BaseEstimator(BasePrimitive):
                 "The observables passed when calling estimator is not one of the observables used to "
                 "initialize the session."
             )
-
-        circuits = cast("list[int]", circuits)
-        observables = cast("list[int]", observables)
 
         # Allow optional
         if parameter_values is None:

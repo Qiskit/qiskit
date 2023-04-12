@@ -37,7 +37,7 @@ from .utils import (
 )
 
 
-class Estimator(BaseEstimator):
+class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """
     Reference implementation of :class:`BaseEstimator`.
 
@@ -151,15 +151,6 @@ class Estimator(BaseEstimator):
 
     def close(self):
         self._is_closed = True
-
-    def run(
-        self,
-        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
-        **run_options,
-    ) -> PrimitiveJob[EstimatorResult]:
-        return super().run(circuits, observables, parameter_values, **run_options)
 
     def _run(
         self,

@@ -78,7 +78,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Iterable, Sequence
 from copy import copy
-from typing import cast
+from typing import Generic, TypeVar
 from warnings import warn
 
 import numpy as np
@@ -92,8 +92,10 @@ from ..utils import _circuit_key
 from .base_primitive import BasePrimitive
 from .sampler_result import SamplerResult
 
+T = TypeVar("T", bound=Job)
 
-class BaseSampler(BasePrimitive):
+
+class BaseSampler(BasePrimitive, Generic[T]):
     """Sampler base class
 
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
@@ -152,7 +154,7 @@ class BaseSampler(BasePrimitive):
         circuits: QuantumCircuit | Sequence[QuantumCircuit],
         parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> Job:
+    ) -> T:
         """Run the job of the sampling of bitstrings.
 
         Args:
@@ -194,7 +196,7 @@ class BaseSampler(BasePrimitive):
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> Job:
+    ) -> T:
         raise NotImplementedError(
             "_run method is not implemented. This method will be @abstractmethod after 0.22."
         )
@@ -326,8 +328,6 @@ class BaseSampler(BasePrimitive):
                 "The circuits passed when calling sampler is not one of the circuits used to "
                 "initialize the session."
             )
-
-        circuits = cast("list[int]", circuits)
 
         # Allow optional
         if parameter_values is None:

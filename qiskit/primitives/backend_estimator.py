@@ -80,7 +80,7 @@ def _prepare_counts(results: list[Result]):
     return counts
 
 
-class BackendEstimator(BaseEstimator):
+class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
@@ -193,15 +193,6 @@ class BackendEstimator(BaseEstimator):
             The backend which this estimator object based on
         """
         return self._backend
-
-    def run(
-        self,
-        circuits: Sequence[QuantumCircuit] | QuantumCircuit,
-        observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
-        parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
-        **run_options,
-    ) -> PrimitiveJob[EstimatorResult]:
-        return super().run(circuits, observables, parameter_values, **run_options)
 
     def _transpile(self):
         """Split Transpile"""

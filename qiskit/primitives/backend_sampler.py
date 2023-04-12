@@ -30,7 +30,7 @@ from .primitive_job import PrimitiveJob
 from .utils import _circuit_key
 
 
-class BackendSampler(BaseSampler):
+class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """A :class:`~.BaseSampler` implementation that provides an interface for
     leveraging the sampler interface from any backend.
 
@@ -137,14 +137,6 @@ class BackendSampler(BaseSampler):
             QiskitError: if the instance has been closed.
         """
         self._transpile_options.update_options(**fields)
-
-    def run(
-        self,
-        circuits: QuantumCircuit | Sequence[QuantumCircuit],
-        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ) -> PrimitiveJob[SamplerResult]:
-        return super().run(circuits, parameter_values, **run_options)
 
     def _call(
         self,

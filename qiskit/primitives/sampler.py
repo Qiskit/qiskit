@@ -35,7 +35,7 @@ from .utils import (
 )
 
 
-class Sampler(BaseSampler):
+class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """
     Sampler class.
 
@@ -137,14 +137,6 @@ class Sampler(BaseSampler):
 
     def close(self):
         self._is_closed = True
-
-    def run(
-        self,
-        circuits: QuantumCircuit | Sequence[QuantumCircuit],
-        parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
-        **run_options,
-    ) -> PrimitiveJob[SamplerResult]:
-        return super().run(circuits, parameter_values, **run_options)
 
     def _run(
         self,
