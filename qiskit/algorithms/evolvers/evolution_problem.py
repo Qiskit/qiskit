@@ -12,12 +12,12 @@
 
 """Evolution problem class."""
 
-from typing import Union, Optional, Dict
+from __future__ import annotations
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.opflow import OperatorBase, StateFn
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from ..list_or_dict import ListOrDict
 
 
@@ -33,23 +33,22 @@ class EvolutionProblem:
     evolution time, a quantum state to be evolved and under which Hamiltonian the state is evolved.
     """
 
-    @deprecate_function(
-        "The EvolutionProblem class has been superseded by the "
-        "qiskit.algorithms.time_evolvers.TimeEvolutionProblem class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.TimeEvolutionProblem``."
+        ),
         since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,
         hamiltonian: OperatorBase,
         time: float,
-        initial_state: Optional[Union[StateFn, QuantumCircuit]] = None,
-        aux_operators: Optional[ListOrDict[OperatorBase]] = None,
+        initial_state: StateFn | QuantumCircuit | None = None,
+        aux_operators: ListOrDict[OperatorBase] | None = None,
         truncation_threshold: float = 1e-12,
-        t_param: Optional[Parameter] = None,
-        param_value_dict: Optional[Dict[Parameter, complex]] = None,
+        t_param: Parameter | None = None,
+        param_value_dict: dict[Parameter, complex] | None = None,
     ):
         """
         Args:
@@ -108,7 +107,7 @@ class EvolutionProblem:
             t_param_set = set()
             if self.t_param is not None:
                 t_param_set.add(self.t_param)
-            hamiltonian_dict_param_set = set()
+            hamiltonian_dict_param_set: set[Parameter] = set()
             if self.param_value_dict is not None:
                 hamiltonian_dict_param_set = hamiltonian_dict_param_set.union(
                     set(self.param_value_dict.keys())

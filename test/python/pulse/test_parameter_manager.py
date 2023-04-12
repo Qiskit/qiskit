@@ -201,7 +201,7 @@ class TestParameterSetter(ParameterTestBase):
     """Test setting parameters."""
 
     def test_set_parameter_to_channel(self):
-        """Test get parameters from channel."""
+        """Test set parameters from channel."""
         test_obj = pulse.DriveChannel(self.ch1 + self.ch2)
 
         value_dict = {self.ch1: 1, self.ch2: 2}
@@ -214,7 +214,7 @@ class TestParameterSetter(ParameterTestBase):
         self.assertEqual(assigned, ref_obj)
 
     def test_set_parameter_to_pulse(self):
-        """Test get parameters from pulse instruction."""
+        """Test set parameters from pulse instruction."""
         test_obj = self.parametric_waveform1
 
         value_dict = {self.amp1_1: 0.1, self.amp1_2: 0.2, self.dur1: 160}
@@ -336,42 +336,47 @@ class TestParameterSetter(ParameterTestBase):
         self.assertEqual(assigned, ref_obj)
 
     def test_complex_valued_parameter(self):
-        """Test complex valued parameter can be casted to a complex value."""
+        """Test complex valued parameter can be casted to a complex value,
+        but raises PendingDeprecationWarning.."""
         amp = Parameter("amp")
         test_obj = pulse.Constant(duration=160, amp=1j * amp)
 
         value_dict = {amp: 0.1}
 
         visitor = ParameterSetter(param_map=value_dict)
-        assigned = visitor.visit(test_obj)
+        with self.assertWarns(PendingDeprecationWarning):
+            assigned = visitor.visit(test_obj)
 
         ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
 
         self.assertEqual(assigned, ref_obj)
 
     def test_complex_value_to_parameter(self):
-        """Test complex value can be assigned to parameter object."""
+        """Test complex value can be assigned to parameter object,
+        but raises PendingDeprecationWarning."""
         amp = Parameter("amp")
         test_obj = pulse.Constant(duration=160, amp=amp)
 
         value_dict = {amp: 0.1j}
 
         visitor = ParameterSetter(param_map=value_dict)
-        assigned = visitor.visit(test_obj)
+        with self.assertWarns(PendingDeprecationWarning):
+            assigned = visitor.visit(test_obj)
 
         ref_obj = pulse.Constant(duration=160, amp=1j * 0.1)
 
         self.assertEqual(assigned, ref_obj)
 
     def test_complex_parameter_expression(self):
-        """Test assignment of complex-valued parameter expression to parameter."""
+        """Test assignment of complex-valued parameter expression to parameter,
+        but raises PendingDeprecationWarning."""
         amp = Parameter("amp")
 
         mag = Parameter("A")
         phi = Parameter("phi")
 
         test_obj = pulse.Constant(duration=160, amp=amp)
-
+        test_obj_copy = deepcopy(test_obj)
         # generate parameter expression
         value_dict = {amp: mag * np.exp(1j * phi)}
         visitor = ParameterSetter(param_map=value_dict)
@@ -380,13 +385,15 @@ class TestParameterSetter(ParameterTestBase):
         # generate complex value
         value_dict = {mag: 0.1, phi: 0.5}
         visitor = ParameterSetter(param_map=value_dict)
-        assigned = visitor.visit(assigned)
+        with self.assertWarns(PendingDeprecationWarning):
+            assigned = visitor.visit(assigned)
 
         # evaluated parameter expression: 0.0877582561890373 + 0.0479425538604203*I
         value_dict = {amp: 0.1 * np.exp(0.5j)}
-        visitor = ParameterSetter(param_map=value_dict)
-        ref_obj = visitor.visit(test_obj)
 
+        visitor = ParameterSetter(param_map=value_dict)
+        with self.assertWarns(PendingDeprecationWarning):
+            ref_obj = visitor.visit(test_obj_copy)
         self.assertEqual(assigned, ref_obj)
 
     def test_invalid_pulse_amplitude(self):

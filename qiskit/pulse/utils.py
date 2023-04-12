@@ -11,14 +11,14 @@
 # that they have been altered from the originals.
 
 """Module for common pulse programming utilities."""
-import functools
 from typing import List, Dict, Union
+import warnings
 
 import numpy as np
 
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import UnassignedDurationError, QiskitError
-from qiskit.utils import deprecate_function  # pylint: disable=cyclic-import
+from qiskit.utils.deprecation import deprecate_func, deprecate_function
 
 
 def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
@@ -40,7 +40,6 @@ def format_meas_map(meas_map: List[List[int]]) -> Dict[int, List[int]]:
     return qubit_mapping
 
 
-@functools.lru_cache(maxsize=None)
 def format_parameter_value(
     operand: ParameterExpression,
     decimal: int = 10,
@@ -65,6 +64,19 @@ def format_parameter_value(
             evaluated = float(evaluated.real)
             if evaluated.is_integer():
                 evaluated = int(evaluated)
+        else:
+            warnings.warn(
+                "Assignment of complex values to ParameterExpression in Qiskit Pulse objects is "
+                "now pending deprecation. This will align the Pulse module with other modules "
+                "where such assignment wasn't possible to begin with. The typical use case for complex "
+                "parameters in the module was the SymbolicPulse library. As of Qiskit-Terra "
+                "0.23.0 all library pulses were converted from complex amplitude representation"
+                " to real representation using two floats (amp,angle), as used in the "
+                "ScalableSymbolicPulse class. This eliminated the need for complex parameters. "
+                "Any use of complex parameters (and particularly custom-built pulses) should be "
+                "converted in a similar fashion to avoid the use of complex parameters.",
+                PendingDeprecationWarning,
+            )
 
         return evaluated
     except TypeError:
@@ -98,8 +110,8 @@ def instruction_duration_validation(duration: int):
         )
 
 
-@deprecate_function(
-    "Deprecated since Terra 0.22.0. Use 'qiskit.utils.deprecate_function' instead.",
+@deprecate_func(
+    additional_msg="Instead, use 'qiskit.utils.deprecate_func'.",
     since="0.22.0",
 )
 def deprecated_functionality(func):

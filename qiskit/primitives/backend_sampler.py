@@ -158,14 +158,16 @@ class BackendSampler(BaseSampler):
         result, _metadata = _run_circuits(bound_circuits, self._backend, **run_options)
         return self._postprocessing(result, bound_circuits)
 
-    def _postprocessing(self, result: Result, circuits: list[QuantumCircuit]) -> SamplerResult:
+    def _postprocessing(
+        self, result: list[Result], circuits: list[QuantumCircuit]
+    ) -> SamplerResult:
         counts = _prepare_counts(result)
         shots = sum(counts[0].values())
 
         probabilities = []
         metadata: list[dict[str, Any]] = [{} for _ in range(len(circuits))]
         for count in counts:
-            prob_dist = {k: v / shots for k, v in count.int_outcomes().items()}
+            prob_dist = {k: v / shots for k, v in count.items()}
             probabilities.append(
                 QuasiDistribution(prob_dist, shots=shots, stddev_upper_bound=math.sqrt(1 / shots))
             )

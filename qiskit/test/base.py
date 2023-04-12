@@ -30,6 +30,7 @@ from unittest.util import safe_repr
 
 from qiskit.tools.parallel import get_platform_parallel_default
 from qiskit.utils import optionals as _optionals
+from qiskit.circuit import QuantumCircuit
 from .decorators import enforce_subclasses_call
 from .utils import Path, setup_test_logging
 
@@ -77,6 +78,7 @@ class BaseQiskitTestCase(BaseTestCase):
 
     def setUp(self):
         super().setUp()
+        self.addTypeEqualityFunc(QuantumCircuit, self.assertQuantumCircuitEqual)
         if self.__setup_called:
             raise ValueError(
                 "In File: %s\n"
@@ -109,6 +111,20 @@ class BaseQiskitTestCase(BaseTestCase):
             str: the absolute path to the resource.
         """
         return os.path.normpath(os.path.join(path.value, filename))
+
+    def assertQuantumCircuitEqual(self, qc1, qc2, msg=None):
+        """Extra assertion method to give a better error message when two circuits are unequal."""
+        if qc1 == qc2:
+            return
+        if msg is None:
+            msg = "The two circuits are not equal."
+        msg += f"""
+Left circuit:
+{qc1}
+
+Right circuit:
+{qc2}"""
+        raise self.failureException(msg)
 
     def assertDictAlmostEqual(
         self, dict1, dict2, delta=None, msg=None, places=None, default_value=0
@@ -211,7 +227,7 @@ class QiskitTestCase(BaseQiskitTestCase):
             r"elementwise comparison failed.*",
             r"The jsonschema validation included in qiskit-terra.*",
             r"The DerivativeBase.parameter_expression_grad method.*",
-            r"Back-references to from Bit instances.*",
+            r"'Bit\.(register|index)' is deprecated.*",
             r"The CXDirection pass has been deprecated",
             r"The pauli_basis function with PauliTable.*",
             # Caused by internal scikit-learn scipy usage
