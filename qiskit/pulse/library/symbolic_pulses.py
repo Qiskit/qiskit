@@ -1240,8 +1240,7 @@ def GaussianSquareEcho(
     )
 
     # Check validity of amplitudes
-    valid_amp_conditions_expr = sym.And(sym.Abs(_amp) <= 1.0)
-    valid_amp_conditions_expr = sym.And(sym.Abs(_active_amp) <= 1.0)
+    valid_amp_conditions_expr = sym.And(sym.Abs(_amp) + sym.Abs(_active_amp) <= 1.0)
 
     instance = SymbolicPulse(
         pulse_type="GaussianSquareEcho",
