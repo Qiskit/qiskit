@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017--2022
+# (C) Copyright IBM 2017--2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,6 +27,7 @@ from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
+from qiskit.utils.deprecation import deprecate_func
 
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit, _append_operation
@@ -145,7 +146,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
             num_qubits = data.num_qubits
             self.tableau = Clifford.from_circuit(data).tableau
 
-        # DEPRECATE in the future: data is StabilizerTable
+        # DEPRECATED: data is StabilizerTable
         elif isinstance(data, StabilizerTable):
             self.tableau = self._stack_table_phase(data.array, data.phase)
             num_qubits = data.num_qubits
@@ -212,20 +213,37 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
     # Attributes
     # ---------------------------------------------------------------------
 
+    # pylint: disable=bad-docstring-quotes
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Instead, index or iterate through the Clifford.tableau attribute.",
+    )
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
         return self.table.__getitem__(key)
 
+    @deprecate_func(since="0.24.0", additional_msg="Use Clifford.tableau property instead.")
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
         self.tableau.__setitem__(key, self._stack_table_phase(value.array, value.phase))
 
     @property
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.stab and Clifford.destab properties instead.",
+        is_property=True,
+    )
     def table(self):
         """Return StabilizerTable"""
         return StabilizerTable(self.symplectic_matrix, phase=self.phase)
 
     @table.setter
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.stab and Clifford.destab properties instead.",
+        is_property=True,
+    )
     def table(self, value):
         """Set the stabilizer table"""
         # Note this setter cannot change the size of the Clifford
@@ -237,6 +255,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         self.phase = value._table._phase
 
     @property
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.stab properties instead.",
+        is_property=True,
+    )
     def stabilizer(self):
         """Return the stabilizer block of the StabilizerTable."""
         array = self.tableau[self.num_qubits : 2 * self.num_qubits, :-1]
@@ -244,6 +267,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return StabilizerTable(array, phase)
 
     @stabilizer.setter
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.stab properties instead.",
+        is_property=True,
+    )
     def stabilizer(self, value):
         """Set the value of stabilizer block of the StabilizerTable"""
         if not isinstance(value, StabilizerTable):
@@ -251,6 +279,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         self.tableau[self.num_qubits : 2 * self.num_qubits, :-1] = value.array
 
     @property
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.destab properties instead.",
+        is_property=True,
+    )
     def destabilizer(self):
         """Return the destabilizer block of the StabilizerTable."""
         array = self.tableau[0 : self.num_qubits, :-1]
@@ -258,6 +291,11 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return StabilizerTable(array, phase)
 
     @destabilizer.setter
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.destab properties instead.",
+        is_property=True,
+    )
     def destabilizer(self, value):
         """Set the value of destabilizer block of the StabilizerTable"""
         if not isinstance(value, StabilizerTable):
