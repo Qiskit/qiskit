@@ -823,20 +823,13 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         Returns:
             DensityMatrix: The partially transposed density matrix.
-
-        Raises:
-            QiskitError: if input state is invalid.
-
         """
-        from qiskit.quantum_info.states import utils
-
-        state = utils._format_state(self, validate=False)
-        arr = state._data.reshape(state._op_shape.tensor_shape)
-        qargs = len(state._op_shape.dims_l()) - 1 - np.array(qargs)
-        n = len(state.dims())
+        arr = self._data.reshape(self._op_shape.tensor_shape)
+        qargs = len(self._op_shape.dims_l()) - 1 - np.array(qargs)
+        n = len(self.dims())
         lst = list(range(2 * n))
         for i in qargs:
             lst[i], lst[i + n] = lst[i + n], lst[i]
         rho = np.transpose(arr, lst)
-        rho = np.reshape(rho, state._op_shape.shape)
+        rho = np.reshape(rho, self._op_shape.shape)
         return DensityMatrix(rho)
