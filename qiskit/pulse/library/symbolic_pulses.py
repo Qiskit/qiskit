@@ -1081,6 +1081,7 @@ def GaussianSquareEcho(
     limit_amplitude: Optional[bool] = None,
 ) -> SymbolicPulse:
     """An echoed Gaussian square pulse with an active tone overlaid on it.
+    
     Exactly one of the ``risefall_sigma_ratio`` and ``width`` parameters has to be specified.
     If ``risefall_sigma_ratio`` is not ``None`` and ``width`` is ``None``:
     .. math::
