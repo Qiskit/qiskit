@@ -12,6 +12,7 @@
 """
 Clifford operator class.
 """
+import functools
 import itertools
 import re
 
@@ -552,9 +553,49 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         """Convert operator to Numpy matrix."""
         return self.to_operator().data
 
+    @classmethod
+    def from_matrix(cls, matrix):
+        """Create a Clifford from a unitary matrix.
+
+        Note that this function takes exponentially long time w.r.t. the number of qubits.
+
+        Args:
+            matrix (np.array): A unitary matrix representing a Clifford to be converted.
+
+        Returns:
+            Clifford: the Clifford object for the unitary matrix.
+
+        Raises:
+            QiskitError: if the input is not a Clifford matrix.
+        """
+        tableau = cls._unitary_matrix_to_tableau(matrix)
+        if tableau is None:
+            raise QiskitError("Non-Clifford matrix is not convertible")
+        return cls(tableau)
+
     def to_operator(self):
         """Convert to an Operator object."""
         return Operator(self.to_instruction())
+
+    @classmethod
+    def from_operator(cls, operator):
+        """Create a Clifford from a operator.
+
+        Note that this function takes exponentially long time w.r.t. the number of qubits.
+
+        Args:
+            operator (Operator): An operator representing a Clifford to be converted.
+
+        Returns:
+            Clifford: the Clifford object for the operator.
+
+        Raises:
+            QiskitError: if the input is not a Clifford operator.
+        """
+        tableau = cls._unitary_matrix_to_tableau(operator.to_matrix())
+        if tableau is None:
+            raise QiskitError("Non-Clifford operator is not convertible")
+        return cls(tableau)
 
     def to_circuit(self):
         """Return a QuantumCircuit implementing the Clifford.
@@ -604,9 +645,9 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         # Initialize an identity Clifford
         clifford = Clifford(np.eye(2 * circuit.num_qubits), validate=False)
         if isinstance(circuit, QuantumCircuit):
-            _append_circuit(clifford, circuit)
+            clifford = _append_circuit(clifford, circuit)
         else:
-            _append_operation(clifford, circuit)
+            clifford = _append_operation(clifford, circuit)
         return clifford
 
     @staticmethod
@@ -662,7 +703,7 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         num_qubits = len(label)
         op = Clifford(np.eye(2 * num_qubits, dtype=bool))
         for qubit, char in enumerate(reversed(label)):
-            _append_operation(op, label_gates[char], qargs=[qubit])
+            op = _append_operation(op, label_gates[char], qargs=[qubit])
         return op
 
     def to_labels(self, array=False, mode="B"):
@@ -848,6 +889,95 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
                 zs[num_qubits - 1 - i] = True
         symp[-1] = phase
         return symp
+
+    @staticmethod
+    def _pauli_matrix_to_row(mat, num_qubits):
+        """Generate a binary vector (a row of tableau representation) from a Pauli matrix.
+        Return None if the non-Pauli matrix is supplied."""
+        # pylint: disable=too-many-return-statements
+
+        def find_one_index(x, decimals=6):
+            indices = np.where(np.round(np.abs(x), decimals) == 1)
+            return indices[0][0] if len(indices[0]) == 1 else None
+
+        def bitvector(n, num_bits):
+            return np.array([int(digit) for digit in format(n, f"0{num_bits}b")], dtype=bool)[::-1]
+
+        # compute x-bits
+        xint = find_one_index(mat[0, :])
+        if xint is None:
+            return None
+        xbits = bitvector(xint, num_qubits)
+
+        # extract non-zero elements from matrix (rounded to 1, -1, 1j or -1j)
+        entries = np.empty(len(mat), dtype=complex)
+        for i, row in enumerate(mat):
+            index = find_one_index(row)
+            if index is None:
+                return None
+            expected = xint ^ i
+            if index != expected:
+                return None
+            entries[i] = np.round(mat[i, index])
+
+        # compute z-bits
+        zbits = np.empty(num_qubits, dtype=bool)
+        for k in range(num_qubits):
+            sign = np.round(entries[2**k] / entries[0])
+            if sign == 1:
+                zbits[k] = False
+            elif sign == -1:
+                zbits[k] = True
+            else:
+                return None
+
+        # compute phase
+        phase = None
+        num_y = sum(xbits & zbits)
+        positive_phase = (-1j) ** num_y
+        if entries[0] == positive_phase:
+            phase = False
+        elif entries[0] == -1 * positive_phase:
+            phase = True
+        if phase is None:
+            return None
+
+        # validate all non-zero elements
+        coef = ((-1) ** phase) * positive_phase
+        ivec, zvec = np.ones(2), np.array([1, -1])
+        expected = coef * functools.reduce(np.kron, [zvec if z else ivec for z in zbits[::-1]])
+        if not np.allclose(entries, expected):
+            return None
+
+        return np.hstack([xbits, zbits, phase])
+
+    @staticmethod
+    def _unitary_matrix_to_tableau(matrix):
+        # pylint: disable=invalid-name
+        num_qubits = int(np.log2(len(matrix)))
+
+        stab = np.empty((num_qubits, 2 * num_qubits + 1), dtype=bool)
+        for i in range(num_qubits):
+            label = "I" * (num_qubits - i - 1) + "X" + "I" * i
+            Xi = Operator.from_label(label).to_matrix()
+            target = matrix @ Xi @ np.conj(matrix).T
+            row = Clifford._pauli_matrix_to_row(target, num_qubits)
+            if row is None:
+                return None
+            stab[i] = row
+
+        destab = np.empty((num_qubits, 2 * num_qubits + 1), dtype=bool)
+        for i in range(num_qubits):
+            label = "I" * (num_qubits - i - 1) + "Z" + "I" * i
+            Zi = Operator.from_label(label).to_matrix()
+            target = matrix @ Zi @ np.conj(matrix).T
+            row = Clifford._pauli_matrix_to_row(target, num_qubits)
+            if row is None:
+                return None
+            destab[i] = row
+
+        tableau = np.vstack([stab, destab])
+        return tableau
 
 
 # Update docstrings for API docs
