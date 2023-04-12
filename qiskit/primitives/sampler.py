@@ -143,7 +143,7 @@ class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob[SamplerResult]:
+    ):
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)

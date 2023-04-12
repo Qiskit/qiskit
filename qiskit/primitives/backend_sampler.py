@@ -202,7 +202,7 @@ class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob[SamplerResult]:
+    ):
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))
