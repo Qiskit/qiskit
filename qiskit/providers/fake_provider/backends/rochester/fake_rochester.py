@@ -24,7 +24,7 @@ class FakeRochesterV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_rochester.json"
     props_filename = "props_rochester.json"
-    backend_name = "fake_rochester_v2"
+    backend_name = "fake_rochester"
 
 
 class FakeRochester(fake_qasm_backend.FakeQasmBackend):

@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cyclic-import, missing-return-doc
+# pylint: disable=cyclic-import
 
 """
 =========
@@ -1802,7 +1802,7 @@ def draw(
         The returned data type depends on the ``plotter``.
         If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
     """
-    # pylint: disable=cyclic-import, missing-return-type-doc
+    # pylint: disable=cyclic-import
     from qiskit.visualization import pulse_drawer
 
     return pulse_drawer(
