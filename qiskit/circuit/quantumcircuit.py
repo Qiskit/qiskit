@@ -43,7 +43,6 @@ from qiskit.utils.multiprocessing import is_main_process
 from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.parameter import Parameter
-from qiskit.qasm.qasm import Qasm
 from qiskit.qasm.exceptions import QasmError
 from qiskit.circuit.exceptions import CircuitError
 from .parameterexpression import ParameterExpression, ParameterValueType
@@ -2504,11 +2503,23 @@ class QuantumCircuit:
 
         Args:
           path (str): Path to the file for a QASM program
+
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
+
+        See also:
+            :func:`.qasm2.load`: the complete interface to the OpenQASM 2 importer.
         """
-        qasm = Qasm(filename=path)
-        return _circuit_from_qasm(qasm)
+        # pylint: disable=cyclic-import
+        from qiskit import qasm2
+
+        return qasm2.load(
+            path,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     @staticmethod
     def from_qasm_str(qasm_str: str) -> "QuantumCircuit":
@@ -2518,9 +2529,20 @@ class QuantumCircuit:
           qasm_str (str): A QASM program string
         Return:
           QuantumCircuit: The QuantumCircuit object for the input QASM
+
+        See also:
+            :func:`.qasm2.loads`: the complete interface to the OpenQASM 2 importer.
         """
-        qasm = Qasm(data=qasm_str)
-        return _circuit_from_qasm(qasm)
+        # pylint: disable=cyclic-import
+        from qiskit import qasm2
+
+        return qasm2.loads(
+            qasm_str,
+            include_path=qasm2.LEGACY_INCLUDE_PATH,
+            custom_instructions=qasm2.LEGACY_CUSTOM_INSTRUCTIONS,
+            custom_classical=qasm2.LEGACY_CUSTOM_CLASSICAL,
+            strict=False,
+        )
 
     @property
     def global_phase(self) -> ParameterValueType:
@@ -4856,16 +4878,6 @@ class QuantumCircuit:
                 return max(stop for stop in stops.values())
 
         return 0  # If there are no instructions over bits
-
-
-def _circuit_from_qasm(qasm: Qasm) -> "QuantumCircuit":
-    # pylint: disable=cyclic-import
-    from qiskit.converters import ast_to_dag
-    from qiskit.converters import dag_to_circuit
-
-    ast = qasm.parse()
-    dag = ast_to_dag(ast)
-    return dag_to_circuit(dag, copy_operations=False)
 
 
 def _standard_compare(value1, value2):
