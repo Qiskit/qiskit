@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -241,10 +241,11 @@ class TestCliffordGates(QiskitTestCase):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
-                value_table = cliff.table._array
-                value_phase = cliff.table._phase
-                value_stabilizer = cliff.stabilizer.to_labels()
-                value_destabilizer = cliff.destabilizer.to_labels()
+                with self.assertWarns(DeprecationWarning):
+                    value_table = cliff.table._array
+                    value_phase = cliff.table._phase
+                    value_stabilizer = cliff.stabilizer.to_labels()
+                    value_destabilizer = cliff.destabilizer.to_labels()
                 self.assertTrue(np.all(np.array(value_table == target_table[gate_name])))
                 self.assertTrue(np.all(np.array(value_phase == target_phase[gate_name])))
                 self.assertTrue(
