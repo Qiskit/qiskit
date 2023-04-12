@@ -1074,7 +1074,7 @@ def GaussianSquareEcho(
     sigma: Union[float, ParameterExpression],
     width: Optional[Union[float, ParameterExpression]] = None,
     angle: Optional[Union[float, ParameterExpression]] = 0.0,
-    active_amp: Optional[Union[float, ParameterExpression]] = 0,
+    active_amp: Optional[Union[float, ParameterExpression]] = 0.0,
     active_angle: Optional[Union[float, ParameterExpression]] = 0,
     risefall_sigma_ratio: Optional[Union[float, ParameterExpression]] = None,
     name: Optional[str] = None,
