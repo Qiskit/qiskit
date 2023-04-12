@@ -5,7 +5,9 @@ on:
     branches: ['main']
 concurrency:
   group: ${{ github.repository }}-${{ github.ref }}-${{ github.head_ref }}-${{ github.workflow }}
-  cancel-in-progress: true
+  # Only cancel in PR mode.  In push mode, don't cancel so we don't see spurious test "failures",
+  # and we get coverage reports on Coveralls for every push.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   coverage:
     name: Coverage
@@ -30,6 +32,13 @@ jobs:
             cargo install grcov
             sudo apt-get install lcov
 
+      # This is needed to support any requirements, particularly in the `optionals` set,
+      # that might not have 'pyproject.toml' files specifying their build requirements.
+      # Modern pip (23.1+) can error out if it doesn't have `wheel` and we ask for one
+      # of these legacy packages.
+      - name: Ensure basic build requirements
+        run: pip install --upgrade pip setuptools wheel
+
       - name: Build and install qiskit-terra
         run: pip install -e .
         env:
@@ -45,8 +54,8 @@ jobs:
           stestr run
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`
-          # keeping the `src/*` files; we don't care about coverage in dependencies.
-          grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'src/*'
+          # keeping the `crates/*` files; we don't care about coverage in dependencies.
+          grcov . --binary-path target/debug/ --source-dir . --output-type lcov --output-path rust.info --llvm --branch --parallel --keep-only 'crates/*'
         env:
           QISKIT_TEST_CAPTURE_STREAMS: 1
           QISKIT_PARALLEL: FALSE

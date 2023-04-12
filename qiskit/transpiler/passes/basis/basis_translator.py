@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-function-docstring
 
 """Translates gates to a target basis using a given equivalence library."""
 
@@ -31,7 +30,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod  # pylint: disable=no-name-in-module
+    from functools import singledispatchmethod
 else:
     from singledispatchmethod import singledispatchmethod
 
@@ -99,7 +98,7 @@ class BasisTranslator(TransformationPass):
         self._target_basis = target_basis
         self._target = target
         self._non_global_operations = None
-        self._qargs_with_non_global_operation = {}  # pylint: disable=invalid-name
+        self._qargs_with_non_global_operation = {}
         if target is not None:
             self._non_global_operations = self._target.get_non_global_operation_names()
             self._qargs_with_non_global_operation = defaultdict(set)
@@ -367,14 +366,14 @@ class StopIfBasisRewritable(Exception):
     """Custom exception that signals `rustworkx.dijkstra_search` to stop."""
 
 
-class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no-member
+class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):
     """Handles events emitted during `rustworkx.dijkstra_search`."""
 
     def __init__(self, graph, source_basis, target_basis):
         self.graph = graph
         self.target_basis = set(target_basis)
         self._source_gates_remain = set(source_basis)
-        self._num_gates_remain_for_rule = dict()
+        self._num_gates_remain_for_rule = {}
         save_index = -1
         for edata in self.graph.edges():
             if save_index == edata.index:
@@ -383,8 +382,8 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no
             save_index = edata.index
 
         self._basis_transforms = []
-        self._predecessors = dict()
-        self._opt_cost_map = dict()
+        self._predecessors = {}
+        self._opt_cost_map = {}
 
     def discover_vertex(self, v, score):
         gate = self.graph[v].key
@@ -419,7 +418,7 @@ class BasisSearchVisitor(rustworkx.visit.DijkstraVisitor):  # pylint: disable=no
         # if there are gates in this `rule` that we have not yet generated, we can't apply
         # this `rule`. if `target` is already in basis, it's not beneficial to use this rule.
         if self._num_gates_remain_for_rule[edata.index] > 0 or target in self.target_basis:
-            raise rustworkx.visit.PruneSearch  # pylint: disable=no-member
+            raise rustworkx.visit.PruneSearch
 
     def edge_relaxed(self, edge):
         _, target, edata = edge
@@ -570,7 +569,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                     "Updating transform for mapped instr %s %s from \n%s",
                     mapped_instr_name,
                     dag_params,
-                    dag_to_circuit(dag),
+                    dag_to_circuit(dag, copy_operations=False),
                 )
 
             for node in doomed_nodes:
@@ -589,7 +588,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                     "Updated transform for mapped instr %s %s to\n%s",
                     mapped_instr_name,
                     dag_params,
-                    dag_to_circuit(dag),
+                    dag_to_circuit(dag, copy_operations=False),
                 )
 
     return mapped_instrs

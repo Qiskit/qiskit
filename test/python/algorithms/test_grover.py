@@ -80,7 +80,6 @@ class TestAmplificationProblem(QiskitAlgorithmsTestCase):
         problem = AmplificationProblem(oracle, is_good_state=is_good_state)
 
         expected = [state in ["01", "11"] for state in possible_states]
-        # pylint: disable=not-callable
         actual = [problem.is_good_state(state) for state in possible_states]
 
         self.assertListEqual(expected, actual)
@@ -117,6 +116,15 @@ class TestGrover(QiskitAlgorithmsTestCase):
     def test_iterations_with_good_state(self, use_sampler, iterations):
         """Test the algorithm with different iteration types and with good state"""
         grover = self._prepare_grover(use_sampler, iterations)
+        problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
+        result = grover.amplify(problem)
+        self.assertEqual(result.top_measurement, "111")
+
+    @idata(itertools.product(["shots", False], [[1, 2, 3], None, 2]))
+    @unpack
+    def test_iterations_with_good_state_sample_from_iterations(self, use_sampler, iterations):
+        """Test the algorithm with different iteration types and with good state"""
+        grover = self._prepare_grover(use_sampler, iterations, sample_from_iterations=True)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
         result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
@@ -299,18 +307,31 @@ class TestGrover(QiskitAlgorithmsTestCase):
         grover.sampler = self._sampler
         self.assertEqual(grover.sampler, self._sampler)
 
-    def _prepare_grover(self, use_sampler, iterations=None, growth_rate=None):
+    def _prepare_grover(
+        self, use_sampler, iterations=None, growth_rate=None, sample_from_iterations=False
+    ):
         """Prepare Grover instance for test"""
         if use_sampler == "ideal":
-            grover = Grover(sampler=self._sampler, iterations=iterations, growth_rate=growth_rate)
+            grover = Grover(
+                sampler=self._sampler,
+                iterations=iterations,
+                growth_rate=growth_rate,
+                sample_from_iterations=sample_from_iterations,
+            )
         elif use_sampler == "shots":
             grover = Grover(
-                sampler=self._sampler_with_shots, iterations=iterations, growth_rate=growth_rate
+                sampler=self._sampler_with_shots,
+                iterations=iterations,
+                growth_rate=growth_rate,
+                sample_from_iterations=sample_from_iterations,
             )
         else:
             with self.assertWarns(PendingDeprecationWarning):
                 grover = Grover(
-                    quantum_instance=self.qasm, iterations=iterations, growth_rate=growth_rate
+                    quantum_instance=self.qasm,
+                    iterations=iterations,
+                    growth_rate=growth_rate,
+                    sample_from_iterations=sample_from_iterations,
                 )
         return grover
 

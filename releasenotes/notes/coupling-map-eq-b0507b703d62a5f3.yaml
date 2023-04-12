@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The :meth:`.CouplingMap.__eq__`` method has been updated to check that the edge lists of the
+    underlying graphs contain the same elements. Under the assumption that the underlying graphs are
+    connected, this check additionally ensures that the graphs have the same number of nodes with
+    the same labels. Any code using ``CouplingMap() == CouplingMap()`` to check object equality
+    should be updated to ``CouplingMap() is CouplingMap()``.

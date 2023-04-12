@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test Qiskit's QuantumCircuit class."""
+"""Test Qiskit's gates in QASM2."""
 
 import unittest
 from math import pi
@@ -19,7 +19,7 @@ import re
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate
-from qiskit.circuit.library import C3SXGate
+from qiskit.circuit.library import C3SXGate, CCZGate, CSGate, CSdgGate, RZXGate
 from qiskit.qasm.exceptions import QasmError
 
 # Regex pattern to match valid OpenQASM identifiers
@@ -27,7 +27,7 @@ VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
 class TestCircuitQasm(QiskitTestCase):
-    """QuantumCircuit Qasm tests."""
+    """QuantumCircuit QASM2 tests."""
 
     def test_circuit_qasm(self):
         """Test circuit qasm() method."""
@@ -249,7 +249,9 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         self.assertEqual(original_str, qc.qasm())
 
     def test_c3sxgate_roundtrips(self):
-        """Test that C3SXGate correctly round trips.  Qiskit gives this gate a different name
+        """Test that C3SXGate correctly round trips.
+
+        Qiskit gives this gate a different name
         ('c3sx') to the name in Qiskit's version of qelib1.inc ('c3sqrtx') gate, which can lead to
         resolution issues."""
         qc = QuantumCircuit(4)
@@ -263,6 +265,58 @@ c3sqrtx q[0],q[1],q[2],q[3];
         self.assertEqual(qasm, expected)
         parsed = QuantumCircuit.from_qasm_str(qasm)
         self.assertIsInstance(parsed.data[0].operation, C3SXGate)
+
+    def test_cczgate_qasm(self):
+        """Test that CCZ dumps definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(3)
+        qc.append(CCZGate(), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate ccz q0,q1,q2 { h q2; ccx q0,q1,q2; h q2; }
+qreg q[3];
+ccz q[0],q[1],q[2];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_csgate_qasm(self):
+        """Test that CS dumps definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(2)
+        qc.append(CSGate(), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate cs q0,q1 { p(pi/4) q0; cx q0,q1; p(-pi/4) q1; cx q0,q1; p(pi/4) q1; }
+qreg q[2];
+cs q[0],q[1];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_csdggate_qasm(self):
+        """Test that CSdg dumps definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(2)
+        qc.append(CSdgGate(), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate csdg q0,q1 { p(-pi/4) q0; cx q0,q1; p(pi/4) q1; cx q0,q1; p(-pi/4) q1; }
+qreg q[2];
+csdg q[0],q[1];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_rzxgate_qasm(self):
+        """Test that RZX dumps definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(2)
+        qc.append(RZXGate(0), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate rzx(param0) q0,q1 { h q1; cx q0,q1; rz(0) q1; cx q0,q1; h q1; }
+qreg q[2];
+rzx(0) q[0],q[1];
+"""
+        self.assertEqual(qasm, expected)
 
     def test_unbound_circuit_raises(self):
         """Test circuits with unbound parameters raises."""
@@ -560,6 +614,18 @@ include "qelib1.inc";
 gate permutation__2_1_0_ q0,q1,q2 { swap q0,q2; }
 qreg q[4];
 permutation__2_1_0_ q[0],q[1],q[2];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_circuit_qasm_with_reset(self):
+        """Test circuit qasm() method with Reset."""
+        qc = QuantumCircuit(2)
+        qc.reset([0, 1])
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+reset q[0];
+reset q[1];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
 
 

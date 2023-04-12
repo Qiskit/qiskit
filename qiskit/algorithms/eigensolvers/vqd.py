@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -103,7 +103,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             initial point (list[float]): An optional initial point (i.e. initial parameter values)
                 for the optimizer. If ``None`` then VQD will look to the ansatz for a preferred
                 point and if not will simply compute a random one.
-            callback (Callable[[int, np.ndarray, float, dict[str, Any]], None] | None):
+            callback (Callable[[int, np.ndarray, float, dict[str, Any], int], None] | None):
                 A callback that can access the intermediate data
                 during the optimization. Four parameter values are passed to the callback as
                 follows during each evaluation by the optimizer: the evaluation count,
@@ -121,7 +121,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         k: int = 2,
         betas: Sequence[float] | None = None,
         initial_point: Sequence[float] | None = None,
-        callback: Callable[[int, np.ndarray, float, dict[str, Any]], None] | None = None,
+        callback: Callable[[int, np.ndarray, float, dict[str, Any], int], None] | None = None,
     ) -> None:
         """
 
@@ -193,7 +193,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         aux_operators: ListOrDict[BaseOperator | PauliSumOp] | None = None,
     ) -> VQDResult:
-
         super().compute_eigenvalues(operator, aux_operators)
 
         # this sets the size of the ansatz, so it must be called before the initial point
@@ -212,7 +211,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
             # Drop None and convert zero values when aux_operators is a dict.
             if isinstance(aux_operators, list):
                 key_op_iterator = enumerate(aux_operators)
-                converted = [zero_op] * len(aux_operators)
+                converted: ListOrDict[BaseOperator | PauliSumOp] = [zero_op] * len(aux_operators)
             else:
                 key_op_iterator = aux_operators.items()
                 converted = {}
@@ -226,7 +225,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
             aux_operators = None
 
         if self.betas is None:
-
             if isinstance(operator, PauliSumOp):
                 operator = operator.coeff * operator.primitive
 
@@ -254,7 +252,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
         prev_states = []
 
         for step in range(1, self.k + 1):
-
             # update list of optimal circuits
             if step > 1:
                 prev_states.append(self.ansatz.bind_parameters(result.optimal_points[-1]))
@@ -268,9 +265,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             # TODO: add gradient support after FidelityGradients are implemented
             if callable(self.optimizer):
-                opt_result = self.optimizer(  # pylint: disable=not-callable
-                    fun=energy_evaluation, x0=initial_point, bounds=bounds
-                )
+                opt_result = self.optimizer(fun=energy_evaluation, x0=initial_point, bounds=bounds)
             else:
                 # we always want to submit as many estimations per job as possible for minimal
                 # overhead on the hardware
@@ -316,10 +311,6 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         # To match the signature of EigensolverResult
         result.eigenvalues = np.array(result.eigenvalues)
-        result.optimal_points = np.array(result.optimal_points)
-        result.optimal_values = np.array(result.optimal_values)
-        result.cost_function_evals = np.array(result.cost_function_evals)
-        result.optimizer_times = np.array(result.optimizer_times)
 
         if aux_operators is not None:
             result.aux_operators_evaluated = aux_values
@@ -332,7 +323,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
         operator: BaseOperator | PauliSumOp,
         betas: Sequence[float],
         prev_states: list[QuantumCircuit] | None = None,
-    ) -> Callable[[np.ndarray], float | list[float]]:
+    ) -> Callable[[np.ndarray], float | np.ndarray]:
         """Returns a function handle to evaluate the ansatz's energy for any given parameters.
             This is the objective function to be passed to the optimizer that is used for evaluation.
 
@@ -364,23 +355,29 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
         self._check_operator_ansatz(operator)
 
-        def evaluate_energy(parameters: np.ndarray) -> np.ndarray | float:
+        def evaluate_energy(parameters: np.ndarray) -> float | np.ndarray:
+            # handle broadcasting: ensure parameters is of shape [array, array, ...]
+            if len(parameters.shape) == 1:
+                parameters = np.reshape(parameters, (-1, num_parameters))
+            batch_size = len(parameters)
 
             estimator_job = self.estimator.run(
-                circuits=[self.ansatz], observables=[operator], parameter_values=[parameters]
+                batch_size * [self.ansatz], batch_size * [operator], parameters
             )
 
-            total_cost = 0
+            total_cost = np.zeros(batch_size)
+
             if step > 1:
                 # compute overlap cost
+                batched_prev_states = [state for state in prev_states for _ in range(batch_size)]
                 fidelity_job = self.fidelity.run(
-                    [self.ansatz] * (step - 1),
-                    prev_states,
-                    [parameters] * (step - 1),
+                    batch_size * [self.ansatz] * (step - 1),
+                    batched_prev_states,
+                    np.tile(parameters, (step - 1, 1)),
                 )
-
                 costs = fidelity_job.result().fidelities
 
+                costs = np.reshape(costs, (step - 1, -1))
                 for state, cost in enumerate(costs):
                     total_cost += np.real(betas[state] * cost)
 
@@ -394,7 +391,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
             if self.callback is not None:
                 metadata = estimator_result.metadata
-                for params, value, meta in zip([parameters], values, metadata):
+                for params, value, meta in zip(parameters, values, metadata):
                     self._eval_count += 1
                     self.callback(self._eval_count, params, value, meta, step)
             else:
@@ -406,26 +403,30 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
     @staticmethod
     def _build_vqd_result() -> VQDResult:
-
         result = VQDResult()
-        result.optimal_points = []
+        result.optimal_points = np.array([])
         result.optimal_parameters = []
-        result.optimal_values = []
-        result.cost_function_evals = []
-        result.optimizer_times = []
+        result.optimal_values = np.array([])
+        result.cost_function_evals = np.array([], dtype=int)
+        result.optimizer_times = np.array([])
         result.eigenvalues = []
         result.optimizer_results = []
         result.optimal_circuits = []
         return result
 
     @staticmethod
-    def _update_vqd_result(result, opt_result, eval_time, ansatz) -> VQDResult:
-
-        result.optimal_points.append(opt_result.x)
+    def _update_vqd_result(
+        result: VQDResult, opt_result: OptimizerResult, eval_time, ansatz
+    ) -> VQDResult:
+        result.optimal_points = (
+            np.concatenate([result.optimal_points, [opt_result.x]])
+            if len(result.optimal_points) > 0
+            else np.array([opt_result.x])
+        )
         result.optimal_parameters.append(dict(zip(ansatz.parameters, opt_result.x)))
-        result.optimal_values.append(opt_result.fun)
-        result.cost_function_evals.append(opt_result.nfev)
-        result.optimizer_times.append(eval_time)
+        result.optimal_values = np.concatenate([result.optimal_points, [opt_result.x]])
+        result.cost_function_evals = np.concatenate([result.cost_function_evals, [opt_result.nfev]])
+        result.optimizer_times = np.concatenate([result.optimizer_times, [eval_time]])
         result.eigenvalues.append(opt_result.fun + 0j)
         result.optimizer_results.append(opt_result)
         result.optimal_circuits.append(ansatz)
@@ -437,76 +438,77 @@ class VQDResult(EigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._cost_function_evals = None
-        self._optimizer_times = None
-        self._optimal_values = None
-        self._optimal_points = None
-        self._optimal_parameters = None
-        self._optimizer_results = None
-        self._optimal_circuits = None
+
+        self._cost_function_evals: np.ndarray | None = None
+        self._optimizer_times: np.ndarray | None = None
+        self._optimal_values: np.ndarray | None = None
+        self._optimal_points: np.ndarray | None = None
+        self._optimal_parameters: list[dict] | None = None
+        self._optimizer_results: list[OptimizerResult] | None = None
+        self._optimal_circuits: list[QuantumCircuit] | None = None
 
     @property
-    def cost_function_evals(self) -> Sequence[int] | None:
+    def cost_function_evals(self) -> np.ndarray | None:
         """Returns number of cost optimizer evaluations"""
         return self._cost_function_evals
 
     @cost_function_evals.setter
-    def cost_function_evals(self, value: Sequence[int]) -> None:
+    def cost_function_evals(self, value: np.ndarray) -> None:
         """Sets number of cost function evaluations"""
         self._cost_function_evals = value
 
     @property
-    def optimizer_times(self) -> Sequence[float] | None:
+    def optimizer_times(self) -> np.ndarray | None:
         """Returns time taken for optimization for each step"""
         return self._optimizer_times
 
     @optimizer_times.setter
-    def optimizer_times(self, value: Sequence[float]) -> None:
+    def optimizer_times(self, value: np.ndarray) -> None:
         """Sets time taken for optimization for each step"""
         self._optimizer_times = value
 
     @property
-    def optimal_values(self) -> Sequence[float] | None:
+    def optimal_values(self) -> np.ndarray | None:
         """Returns optimal value for each step"""
         return self._optimal_values
 
     @optimal_values.setter
-    def optimal_values(self, value: Sequence[float]) -> None:
+    def optimal_values(self, value: np.ndarray) -> None:
         """Sets optimal values"""
         self._optimal_values = value
 
     @property
-    def optimal_points(self) -> Sequence[np.ndarray] | None:
+    def optimal_points(self) -> np.ndarray | None:
         """Returns optimal point for each step"""
         return self._optimal_points
 
     @optimal_points.setter
-    def optimal_points(self, value: Sequence[np.ndarray]) -> None:
+    def optimal_points(self, value: np.ndarray) -> None:
         """Sets optimal points"""
         self._optimal_points = value
 
     @property
-    def optimal_parameters(self) -> Sequence[dict] | None:
+    def optimal_parameters(self) -> list[dict] | None:
         """Returns the optimal parameters for each step"""
         return self._optimal_parameters
 
     @optimal_parameters.setter
-    def optimal_parameters(self, value: Sequence[dict]) -> None:
+    def optimal_parameters(self, value: list[dict]) -> None:
         """Sets optimal parameters"""
         self._optimal_parameters = value
 
     @property
-    def optimizer_results(self) -> Sequence[OptimizerResult] | None:
+    def optimizer_results(self) -> list[OptimizerResult] | None:
         """Returns the optimizer results for each step"""
         return self._optimizer_results
 
     @optimizer_results.setter
-    def optimizer_results(self, value: Sequence[OptimizerResult]) -> None:
+    def optimizer_results(self, value: list[OptimizerResult]) -> None:
         """Sets optimizer results"""
         self._optimizer_results = value
 
     @property
-    def optimal_circuits(self) -> list[QuantumCircuit]:
+    def optimal_circuits(self) -> list[QuantumCircuit] | None:
         """The optimal circuits. Along with the optimal parameters,
         these can be used to retrieve the different eigenstates."""
         return self._optimal_circuits

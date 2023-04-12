@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Qiskit now supports the representation of ``switch`` statements, using the new :class:`.SwitchCaseOp`
+    instruction and the :meth:`.QuantumCircuit.switch` method.  This allows switching on a numeric
+    input (such as a classical register or bit) and executing the circuit that corresponds to the
+    matching value.  Multiple values can point to the same circuit, and :data:`.CASE_DEFAULT` can be
+    used as an always-matching label.

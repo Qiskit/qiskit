@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Sequential Least SQuares Programming optimizer"""
+from __future__ import annotations
 
-from typing import Optional
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -42,9 +42,9 @@ class SLSQP(SciPyOptimizer):
         maxiter: int = 100,
         disp: bool = False,
         ftol: float = 1e-06,
-        tol: Optional[float] = None,
+        tol: float | None = None,
         eps: float = 1.4901161193847656e-08,
-        options: Optional[dict] = None,
+        options: dict | None = None,
         max_evals_grouped: int = 1,
         **kwargs,
     ) -> None:

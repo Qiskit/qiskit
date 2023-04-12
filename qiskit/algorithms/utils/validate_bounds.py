@@ -17,7 +17,7 @@ from __future__ import annotations
 from qiskit.circuit import QuantumCircuit
 
 
-def validate_bounds(circuit: QuantumCircuit) -> list[tuple(float | None, float | None)]:
+def validate_bounds(circuit: QuantumCircuit) -> list[tuple[float | None, float | None]]:
     """
     Validate the bounds provided by a quantum circuit against its number of parameters.
     If no bounds are obtained, return ``None`` for all lower and upper bounds.

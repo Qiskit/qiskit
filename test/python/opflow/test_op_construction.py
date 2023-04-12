@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test Operator construction, including OpPrimitives and singletons. """
+"""Test Operator construction, including OpPrimitives and singletons."""
 
 
 import itertools
@@ -63,7 +63,6 @@ from qiskit.opflow import (
     Zero,
 )
 from qiskit.quantum_info import Operator, Pauli, Statevector
-from qiskit.quantum_info.operators.symplectic.pauli import _phase_from_label, _split_pauli_label
 
 # pylint: disable=invalid-name
 
@@ -1242,9 +1241,7 @@ def pauli_group_labels(nq, full_group=True):
 
 def operator_from_label(label):
     """Construct operator from full Pauli group label"""
-    pauli, coeff = _split_pauli_label(label)
-    coeff = (-1j) ** _phase_from_label(coeff)
-    return coeff * Operator.from_label(pauli)
+    return Operator(Pauli(label))
 
 
 @ddt

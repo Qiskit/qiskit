@@ -10,10 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" The Quantum Approximate Optimization Algorithm. """
+"""The Quantum Approximate Optimization Algorithm."""
+from __future__ import annotations
 
-from typing import List, Callable, Optional, Union
 import warnings
+from collections.abc import Callable
+
 import numpy as np
 
 from qiskit.algorithms.optimizers import Minimizer, Optimizer
@@ -23,7 +25,7 @@ from qiskit.opflow.gradients import GradientBase
 from qiskit.providers import Backend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.validation import validate_min
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
 from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
@@ -59,26 +61,24 @@ class QAOA(VQE):
     the evolution to a feasible subspace of the full Hilbert space.
     """
 
-    @deprecate_function(
-        "The QAOA class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.QAOA class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg="Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.QAOA``.",
+        since="0.23.0",
+        pending=True,
     )
     def __init__(
         self,
-        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
+        optimizer: Optimizer | Minimizer | None = None,
         reps: int = 1,
-        initial_state: Optional[QuantumCircuit] = None,
-        mixer: Union[QuantumCircuit, OperatorBase] = None,
-        initial_point: Optional[np.ndarray] = None,
-        gradient: Optional[Union[GradientBase, Callable[[Union[np.ndarray, List]], List]]] = None,
-        expectation: Optional[ExpectationBase] = None,
+        initial_state: QuantumCircuit | None = None,
+        mixer: QuantumCircuit | OperatorBase = None,
+        initial_point: np.ndarray | None = None,
+        gradient: GradientBase | Callable[[np.ndarray | list], list] | None = None,
+        expectation: ExpectationBase | None = None,
         include_custom: bool = False,
         max_evals_grouped: int = 1,
-        callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        callback: Callable[[int, np.ndarray, float, float], None] | None = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
     ) -> None:
         """
         Args:
@@ -126,7 +126,7 @@ class QAOA(VQE):
         self._reps = reps
         self._mixer = mixer
         self._initial_state = initial_state
-        self._cost_operator = None
+        self._cost_operator: OperatorBase | None = None
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -142,7 +142,7 @@ class QAOA(VQE):
                 quantum_instance=quantum_instance,
             )
 
-    def _check_operator_ansatz(self, operator: OperatorBase) -> OperatorBase:
+    def _check_operator_ansatz(self, operator: OperatorBase) -> None:
         # Recreates a circuit based on operator parameter.
         if operator != self._cost_operator:
             self._cost_operator = operator
@@ -151,7 +151,7 @@ class QAOA(VQE):
             ).decompose()  # TODO remove decompose once #6674 is fixed
 
     @property
-    def initial_state(self) -> Optional[QuantumCircuit]:
+    def initial_state(self) -> QuantumCircuit | None:
         """
         Returns:
             Returns the initial state.
@@ -159,7 +159,7 @@ class QAOA(VQE):
         return self._initial_state
 
     @initial_state.setter
-    def initial_state(self, initial_state: Optional[QuantumCircuit]) -> None:
+    def initial_state(self, initial_state: QuantumCircuit | None) -> None:
         """
         Args:
             initial_state: Initial state to set.
@@ -167,7 +167,7 @@ class QAOA(VQE):
         self._initial_state = initial_state
 
     @property
-    def mixer(self) -> Union[QuantumCircuit, OperatorBase]:
+    def mixer(self) -> QuantumCircuit | OperatorBase:
         """
         Returns:
             Returns the mixer.
@@ -175,7 +175,7 @@ class QAOA(VQE):
         return self._mixer
 
     @mixer.setter
-    def mixer(self, mixer: Union[QuantumCircuit, OperatorBase]) -> None:
+    def mixer(self, mixer: QuantumCircuit | OperatorBase) -> None:
         """
         Args:
             mixer: Mixer to set.

@@ -1213,6 +1213,27 @@ class TestDensityMatrix(QiskitTestCase):
         self.assertEqual(DensityMatrix.partial_transpose(rho, [0, 1]), DensityMatrix(rho1))
         self.assertEqual(DensityMatrix.partial_transpose(rho, [0, 2]), DensityMatrix(rho1))
 
+    def test_clip_probabilities(self):
+        """Test probabilities are clipped to [0, 1]."""
+        dm = DensityMatrix([[1.1, 0], [0, 0]])
+
+        self.assertEqual(list(dm.probabilities()), [1.0, 0.0])
+        # The "1" key should be exactly zero and therefore omitted.
+        self.assertEqual(dm.probabilities_dict(), {"0": 1.0})
+
+    def test_round_probabilities(self):
+        """Test probabilities are correctly rounded.
+
+        This is good to test to ensure clipping, renormalizing and rounding work together.
+        """
+        p = np.sqrt(1 / 3)
+        amplitudes = [p, p, p, 0]
+        dm = DensityMatrix(np.outer(amplitudes, amplitudes))
+        expected = [0.33, 0.33, 0.33, 0]
+
+        # Exact floating-point check because fixing the rounding should ensure this is exact.
+        self.assertEqual(list(dm.probabilities(decimals=2)), expected)
+
 
 if __name__ == "__main__":
     unittest.main()

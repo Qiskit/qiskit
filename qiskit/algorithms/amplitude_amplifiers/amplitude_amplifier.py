@@ -11,9 +11,10 @@
 # that they have been altered from the originals.
 
 """The interface for amplification algorithms and results."""
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, Any, Union, Dict, List
+from typing import Any
 
 import numpy as np
 
@@ -43,14 +44,14 @@ class AmplitudeAmplifierResult(AlgorithmResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._top_measurement = None
+        self._top_measurement: str | None = None
         self._assignment = None
-        self._oracle_evaluation = None
-        self._circuit_results = None
-        self._max_probability = None
+        self._oracle_evaluation: bool | None = None
+        self._circuit_results: list[np.ndarray] | list[dict[str, int]] | None = None
+        self._max_probability: float | None = None
 
     @property
-    def top_measurement(self) -> Optional[str]:
+    def top_measurement(self) -> str | None:
         """The most frequently measured output as bitstring.
 
         Returns:
@@ -106,12 +107,12 @@ class AmplitudeAmplifierResult(AlgorithmResult):
         self._oracle_evaluation = value
 
     @property
-    def circuit_results(self) -> Optional[Union[List[np.ndarray], List[Dict[str, int]]]]:
+    def circuit_results(self) -> list[np.ndarray] | list[dict[str, int]] | None:
         """Return the circuit results. Can be a statevector or counts dictionary."""
         return self._circuit_results
 
     @circuit_results.setter
-    def circuit_results(self, value: Union[List[np.ndarray], List[Dict[str, int]]]) -> None:
+    def circuit_results(self, value: list[np.ndarray] | list[dict[str, int]]) -> None:
         """Set the circuit results."""
         self._circuit_results = value
 
