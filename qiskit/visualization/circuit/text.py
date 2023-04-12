@@ -19,7 +19,7 @@ from shutil import get_terminal_size
 import itertools
 import sys
 
-from qiskit.circuit import Qubit, Clbit, ClassicalRegister, QuantumRegister, QuantumCircuit
+from qiskit.circuit import Qubit, Clbit, ClassicalRegister
 from qiskit.circuit import ControlledGate
 from qiskit.circuit import Reset
 from qiskit.circuit import Measure
@@ -595,74 +595,20 @@ class TextDrawing:
         qubits,
         clbits,
         nodes,
+        circuit,
         reverse_bits=False,
         plotbarriers=True,
         line_length=None,
         vertical_compression="high",
-        layout=None,
         initial_state=True,
         cregbundle=None,
-        global_phase=None,
         encoding=None,
-        qregs=None,
-        cregs=None,
         with_layout=False,
-        circuit=None,
     ):
-        if qregs is not None:
-            warn(
-                "The 'qregs' kwarg to the TextDrawing class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if cregs is not None:
-            warn(
-                "The 'cregs' kwarg to the TextDrawing class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if layout is not None:
-            warn(
-                "The 'layout' kwarg to the TextDrawing class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if global_phase is not None:
-            warn(
-                "The 'global_phase' kwarg to the TextDrawing class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        # This check should be removed when the 4 deprecations above are removed
-        if circuit is None:
-            warn(
-                "The 'circuit' kwarg to the TextDrawing class must be a valid "
-                "QuantumCircuit and not None. A new circuit is being created using "
-                "the qubits and clbits for rendering the drawing.",
-                DeprecationWarning,
-                2,
-            )
-            circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs:
-                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
-                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs:
-                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
-                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
-            self._circuit = circ
-        else:
-            self._circuit = circuit
         self.qubits = qubits
         self.clbits = clbits
         self.nodes = nodes
+        self._circuit = circuit
         if with_layout:
             if self._circuit._layout:
                 self.layout = self._circuit._layout.initial_layout
@@ -961,7 +907,7 @@ class TextDrawing:
                 ret += "│"
             elif topc == "└" and botc == "┌" and icod == "top":
                 ret += "├"
-            elif topc == "┘" and botc == "┐":
+            elif topc == "┘" and botc == "┐" and icod == "top":
                 ret += "┤"
             elif botc in "┐┌" and icod == "top":
                 ret += "┬"

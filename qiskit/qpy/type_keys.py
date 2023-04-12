@@ -45,6 +45,7 @@ from qiskit.pulse.instructions import (
     ShiftPhase,
     RelativeBarrier,
     TimeBlockade,
+    Reference,
 )
 from qiskit.pulse.library import Waveform, SymbolicPulse
 from qiskit.pulse.schedule import ScheduleBlock
@@ -233,6 +234,7 @@ class ScheduleInstruction(TypeKeyBase):
     SHIFT_PHASE = b"r"
     BARRIER = b"b"
     TIME_BLOCKADE = b"t"
+    REFERENCE = b"y"
 
     # 's' is reserved by ScheduleBlock, i.e. block can be nested as an element.
     # Call instructon is not supported by QPY.
@@ -261,6 +263,8 @@ class ScheduleInstruction(TypeKeyBase):
             return cls.BARRIER
         if isinstance(obj, TimeBlockade):
             return cls.TIME_BLOCKADE
+        if isinstance(obj, Reference):
+            return cls.REFERENCE
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
@@ -286,6 +290,8 @@ class ScheduleInstruction(TypeKeyBase):
             return RelativeBarrier
         if type_key == cls.TIME_BLOCKADE:
             return TimeBlockade
+        if type_key == cls.REFERENCE:
+            return Reference
 
         raise exceptions.QpyError(
             f"A class corresponding to type key '{type_key}' is not found in {cls.__name__} namespace."
@@ -303,6 +309,12 @@ class ScheduleOperand(TypeKeyBase):
     # Data format of these object is somewhat opaque and not defiend well.
     # It's rarely used in the Qiskit experiements. Of course these can be added later.
 
+    # We need to have own string type definition for operands of schedule instruction.
+    # Note that string type is already defined in the Value namespace,
+    # but its key "s" conflicts with the SYMBOLIC_PULSE in the ScheduleOperand namespace.
+    # New in QPY version 7.
+    OPERAND_STR = b"o"
+
     @classmethod
     def assign(cls, obj):
         if isinstance(obj, Waveform):
@@ -311,6 +323,8 @@ class ScheduleOperand(TypeKeyBase):
             return cls.SYMBOLIC_PULSE
         if isinstance(obj, Channel):
             return cls.CHANNEL
+        if isinstance(obj, str):
+            return cls.OPERAND_STR
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."

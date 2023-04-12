@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import sys
 from collections import defaultdict
-from typing import Sequence
 
 import numpy as np
 
@@ -30,8 +29,8 @@ from .sampler_gradient_result import SamplerGradientResult
 from ..exceptions import AlgorithmError
 
 if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
-    from typing import Literal
+    # pylint: disable=ungrouped-imports
+    from typing import Literal, Sequence
 else:
     from typing_extensions import Literal
 
@@ -86,20 +85,16 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> SamplerGradientResult:
         """Compute the sampler gradients on the given circuits."""
         job_circuits, job_param_values, metadata = [], [], []
         all_n = []
-        for circuit, parameter_values_, parameter_set in zip(
-            circuits, parameter_values, parameter_sets
-        ):
+        for circuit, parameter_values_, parameters_ in zip(circuits, parameter_values, parameters):
             # Indices of parameters to be differentiated
-            indices = [
-                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
-            ]
-            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+            indices = [circuit.parameters.data.index(p) for p in parameters_]
+            metadata.append({"parameters": parameters_})
             # Combine inputs into a single job to reduce overhead.
             offset = np.identity(circuit.num_parameters)[indices, :]
             if self._method == "central":
@@ -137,7 +132,7 @@ class FiniteDiffSamplerGradient(BaseSamplerGradient):
             if self._method == "central":
                 result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
                 for dist_plus, dist_minus in zip(result[: n // 2], result[n // 2 :]):
-                    grad_dist = defaultdict(float)
+                    grad_dist: dict[int, float] = defaultdict(float)
                     for key, value in dist_plus.items():
                         grad_dist[key] += value / (2 * self._epsilon)
                     for key, value in dist_minus.items():
