@@ -1228,7 +1228,8 @@ class Target(Mapping):
                ``coupling_map`` is used as the source of truth for connectivity
                and if ``inst_map`` is used the schedule is looked up based
                on the instuctions from the pair of ``basis_gates`` and
-               ``coupling_map``
+               ``coupling_map``. If you want to define a custom gate for
+               a particular qubit or qubit pair, you can manually build :class:`.Target`.
             backend_properties: The :class:`~.BackendProperties` object which is
                 used for instruction properties and qubit properties.
                 If specified and instruction properties are intended to be used
