@@ -32,6 +32,11 @@ with open(README_PATH) as readme_file:
     )
 
 
+# If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
+# it's an editable installation.
+rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
+
+
 qasm3_import_extras = [
     "qiskit-qasm3-import>=0.1.0",
 ]
@@ -103,10 +108,11 @@ setup(
             "qiskit._accelerate",
             "crates/accelerate/Cargo.toml",
             binding=Binding.PyO3,
-            # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior
-            # of whether it's an editable installation.
-            debug=True if os.getenv("RUST_DEBUG") == "1" else None,
-        )
+            debug=rust_debug,
+        ),
+        RustExtension(
+            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug
+        ),
     ],
     zip_safe=False,
     entry_points={

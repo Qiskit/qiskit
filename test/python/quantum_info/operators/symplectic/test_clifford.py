@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,28 +21,42 @@ from ddt import ddt
 
 from qiskit.circuit import Gate, QuantumCircuit, QuantumRegister
 from qiskit.circuit.library import (
+    CPhaseGate,
+    CRXGate,
+    CRYGate,
+    CRZGate,
     CXGate,
-    CZGate,
     CYGate,
+    CZGate,
+    DCXGate,
+    ECRGate,
     HGate,
     IGate,
+    RXGate,
+    RYGate,
+    RZGate,
+    RXXGate,
+    RYYGate,
+    RZZGate,
+    RZXGate,
     SdgGate,
     SGate,
     SXGate,
     SXdgGate,
     SwapGate,
-    iSwapGate,
-    ECRGate,
-    DCXGate,
     XGate,
+    XXMinusYYGate,
+    XXPlusYYGate,
     YGate,
     ZGate,
+    iSwapGate,
     LinearFunction,
     PauliGate,
 )
 from qiskit.exceptions import QiskitError
 from qiskit.quantum_info import random_clifford
 from qiskit.quantum_info.operators import Clifford, Operator
+from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.quantum_info.operators.symplectic.clifford_circuits import _append_operation
 from qiskit.synthesis.clifford import (
     synth_clifford_full,
@@ -227,10 +241,11 @@ class TestCliffordGates(QiskitTestCase):
             with self.subTest(msg="append gate %s" % gate_name):
                 cliff = Clifford([[1, 0], [0, 1]])
                 cliff = _append_operation(cliff, gate_name, [0])
-                value_table = cliff.table._array
-                value_phase = cliff.table._phase
-                value_stabilizer = cliff.stabilizer.to_labels()
-                value_destabilizer = cliff.destabilizer.to_labels()
+                with self.assertWarns(DeprecationWarning):
+                    value_table = cliff.table._array
+                    value_phase = cliff.table._phase
+                    value_stabilizer = cliff.stabilizer.to_labels()
+                    value_destabilizer = cliff.destabilizer.to_labels()
                 self.assertTrue(np.all(np.array(value_table == target_table[gate_name])))
                 self.assertTrue(np.all(np.array(value_phase == target_phase[gate_name])))
                 self.assertTrue(
@@ -540,12 +555,46 @@ class TestCliffordGates(QiskitTestCase):
         expected_clifford = Clifford.from_dict(expected_clifford_dict)
         self.assertEqual(combined_clifford, expected_clifford)
 
+    def test_from_gate_with_cyclic_definition(self):
+        """Test if a Clifford can be created from gate with cyclic definition"""
+
+        class MyHGate(HGate):
+            """Custom HGate class for test"""
+
+            def __init__(self):
+                super().__init__()
+                self.name = "my_h"
+
+            def _define(self):
+                qc = QuantumCircuit(1, name=self.name)
+                qc.s(0)
+                qc.append(MySXGate(), [0])
+                qc.s(0)
+                self.definition = qc
+
+        class MySXGate(SXGate):
+            """Custom SXGate class for test"""
+
+            def __init__(self):
+                super().__init__()
+                self.name = "my_sx"
+
+            def _define(self):
+                qc = QuantumCircuit(1, name=self.name)
+                qc.sdg(0)
+                qc.append(MyHGate(), [0])
+                qc.sdg(0)
+                self.definition = qc
+
+        Clifford(MyHGate())
+
 
 @ddt
 class TestCliffordSynthesis(QiskitTestCase):
     """Test Clifford synthesis methods."""
 
-    def _cliffords_1q(self):
+    @staticmethod
+    def _cliffords_1q():
         clifford_dicts = [
             {"stabilizer": ["+Z"], "destabilizer": ["-X"]},
             {"stabilizer": ["-Z"], "destabilizer": ["+X"]},
@@ -989,12 +1038,57 @@ class TestCliffordOperators(QiskitTestCase):
         clifford = random_clifford(num_qubits, seed=777)
         self.assertEqual(clifford.to_instruction().name, str(clifford))
 
-    def visualize_does_not_throw_error(self):
+    def test_visualize_does_not_throw_error(self):
         """Test to verify that drawing Clifford does not throw an error"""
         # An error may be thrown if visualization code calls op.condition instead
         # of getattr(op, "condition", None)
         clifford = random_clifford(3, seed=0)
         print(clifford)
+
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_from_matrix_round_trip(self, num_qubits):
+        """Test round trip conversion to and from matrix"""
+        for i in range(10):
+            expected = random_clifford(num_qubits, seed=42 + i)
+            actual = Clifford.from_matrix(expected.to_matrix())
+            self.assertEqual(expected, actual)
+
+    @combine(num_qubits=[1, 2, 3, 4])
+    def test_from_operator_round_trip(self, num_qubits):
+        """Test round trip conversion to and from operator"""
+        for i in range(10):
+            expected = random_clifford(num_qubits, seed=777 + i)
+            actual = Clifford.from_operator(expected.to_operator())
+            self.assertEqual(expected, actual)
+
+    @combine(
+        gate=[
+            RXGate(theta=np.pi / 2),
+            RYGate(theta=np.pi / 2),
+            RZGate(phi=np.pi / 2),
+            CPhaseGate(theta=np.pi),
+            CRXGate(theta=np.pi),
+            CRYGate(theta=np.pi),
+            CRZGate(theta=np.pi),
+            CXGate(),
+            CYGate(),
+            CZGate(),
+            ECRGate(),
+            RXXGate(theta=np.pi / 2),
+            RYYGate(theta=np.pi / 2),
+            RZZGate(theta=np.pi / 2),
+            RZXGate(theta=np.pi / 2),
+            SwapGate(),
+            iSwapGate(),
+            XXMinusYYGate(theta=np.pi),
+            XXPlusYYGate(theta=-np.pi),
+        ]
+    )
+    def test_create_from_gates(self, gate):
+        """Test if matrix of Clifford created from gate equals the gate matrix up to global phase"""
+        self.assertTrue(
+            matrix_equal(Clifford(gate).to_matrix(), gate.to_matrix(), ignore_phase=True)
+        )
 
 
 if __name__ == "__main__":

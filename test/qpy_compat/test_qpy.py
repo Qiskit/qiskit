@@ -443,6 +443,31 @@ def generate_schedule_blocks():
     return schedule_blocks
 
 
+def generate_referenced_schedule():
+    """Test for QPY serialization of unassigned reference schedules."""
+    from qiskit.pulse import builder, channels, library
+
+    schedule_blocks = []
+
+    # Completely unassigned schedule
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.reference("x", "q0")
+        builder.reference("cr45m", "q0", "q1")
+    schedule_blocks.append(block)
+
+    # Partly assigned schedule
+    with builder.build() as x_q0:
+        builder.play(library.Constant(100, 0.1), channels.DriveChannel(0))
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.call(x_q0)
+        builder.reference("cr45m", "q0", "q1")
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
 def generate_calibrated_circuits():
     """Test for QPY serialization with calibrations."""
     from qiskit.pulse import builder, Constant, DriveChannel
@@ -551,6 +576,8 @@ def generate_circuits(version_parts):
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
     if version_parts >= (0, 21, 2):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
+    if version_parts >= (0, 24, 0):
+        output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
 
     return output_circuits
 

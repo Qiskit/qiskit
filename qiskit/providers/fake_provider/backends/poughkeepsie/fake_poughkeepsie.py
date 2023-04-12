@@ -29,7 +29,7 @@ class FakePoughkeepsieV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_poughkeepsie.json"
     props_filename = "props_poughkeepsie.json"
     defs_filename = "defs_poughkeepsie.json"
-    backend_name = "fake_poughkeepsie_v2"
+    backend_name = "fake_poughkeepsie"
 
 
 class FakePoughkeepsie(FakeBackend):
