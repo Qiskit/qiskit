@@ -25,7 +25,7 @@ class FakeTorontoV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_toronto.json"
     props_filename = "props_toronto.json"
     defs_filename = "defs_toronto.json"
-    backend_name = "fake_toronto_v2"
+    backend_name = "fake_toronto"
 
 
 class FakeToronto(fake_pulse_backend.FakePulseBackend):

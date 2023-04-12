@@ -17,6 +17,8 @@ Circuit Synthesis (:mod:`qiskit.synthesis`)
 
 .. currentmodule:: qiskit.synthesis
 
+.. _evolution_synthesis:
+
 Evolution Synthesis
 ===================
 
