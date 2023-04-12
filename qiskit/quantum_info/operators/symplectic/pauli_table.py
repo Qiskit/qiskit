@@ -127,7 +127,7 @@ class PauliTable(BaseOperator, AdjointMixin):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    @deprecate_func(additional_msg="Instead, use the class PauliList", since="0.23.0", pending=True)
+    @deprecate_func(additional_msg="Instead, use the class PauliList", since="0.24.0")
     def __init__(self, data):
         """Initialize the PauliTable.
 

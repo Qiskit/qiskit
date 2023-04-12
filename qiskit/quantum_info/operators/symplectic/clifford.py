@@ -26,7 +26,7 @@ from qiskit.quantum_info.operators.mixins import AdjointMixin, generate_apidocs
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.scalar_op import ScalarOp
 from qiskit.quantum_info.operators.symplectic.base_pauli import _count_y
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 from .base_pauli import BasePauli
 from .clifford_circuits import _append_circuit, _append_operation
@@ -214,39 +214,34 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
 
     # pylint: disable=bad-docstring-quotes
 
-    @deprecate_function(
-        "Indexing or iterating through a Clifford object directly is deprecated as of "
-        "Qiskit Terra 0.24.0 and will be removed no sooner than 3 months after the release date. "
-        "Instead, index or iterate through the Clifford.tableau attribute."
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Instead, index or iterate through the Clifford.tableau attribute.",
     )
     def __getitem__(self, key):
         """Return a stabilizer Pauli row"""
         return self.table.__getitem__(key)
 
-    @deprecate_function(
-        "The Clifford.__setitem__ method is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.tableau property instead.",
-    )
+    @deprecate_func(since="0.24.0", additional_msg="Use Clifford.tableau property instead.")
     def __setitem__(self, key, value):
         """Set a stabilizer Pauli row"""
         self.tableau.__setitem__(key, self._stack_table_phase(value.array, value.phase))
 
     @property
-    @deprecate_function(
-        "The Clifford.table attribute is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.stab and Clifford.destab properties instead."
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.stab and Clifford.destab properties instead.",
+        is_property=True,
     )
     def table(self):
         """Return StabilizerTable"""
         return StabilizerTable(self.symplectic_matrix, phase=self.phase)
 
     @table.setter
-    @deprecate_function(
-        "The Clifford.table attribute is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.stab and Clifford.destab properties instead."
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.stab and Clifford.destab properties instead.",
+        is_property=True,
     )
     def table(self, value):
         """Set the stabilizer table"""
@@ -259,10 +254,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         self.phase = value._table._phase
 
     @property
-    @deprecate_function(
-        "The Clifford.stabilizer attribute is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.stab properties instead."
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.stab properties instead.",
+        is_property=True,
     )
     def stabilizer(self):
         """Return the stabilizer block of the StabilizerTable."""
@@ -271,10 +266,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return StabilizerTable(array, phase)
 
     @stabilizer.setter
-    @deprecate_function(
-        "The Clifford.stabilizer is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.stab properties instead."
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.stab properties instead.",
+        is_property=True,
     )
     def stabilizer(self, value):
         """Set the value of stabilizer block of the StabilizerTable"""
@@ -283,10 +278,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         self.tableau[self.num_qubits : 2 * self.num_qubits, :-1] = value.array
 
     @property
-    @deprecate_function(
-        "The Clifford.destabilzer attribute is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.destab properties instead."
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.destab properties instead.",
+        is_property=True,
     )
     def destabilizer(self):
         """Return the destabilizer block of the StabilizerTable."""
@@ -295,10 +290,10 @@ class Clifford(BaseOperator, AdjointMixin, Operation):
         return StabilizerTable(array, phase)
 
     @destabilizer.setter
-    @deprecate_function(
-        "The Clifford.destabilizer attribute is deprecated as of Qiskit Terra 0.24.0 "
-        "and will be removed no sooner than 3 months after the release date. "
-        "Use Clifford.destab properties instead."
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="Use Clifford.destab properties instead.",
+        is_property=True,
     )
     def destabilizer(self, value):
         """Set the value of destabilizer block of the StabilizerTable"""
