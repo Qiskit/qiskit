@@ -96,6 +96,21 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
         np.testing.assert_allclose(res.eigenvalue_history, [expected_eigenvalue], rtol=1e-6)
 
+    def test_with_quantum_info(self):
+        """Test behavior with quantum_info-based operators."""
+        ansatz = EvolvedOperatorAnsatz(
+            [op.primitive for op in self.excitation_pool],
+            initial_state=self.initial_state,
+        )
+
+        calc = AdaptVQE(VQE(Estimator(), ansatz, self.optimizer))
+        res = calc.compute_minimum_eigenvalue(operator=self.h2_op.primitive)
+
+        expected_eigenvalue = -1.85727503
+
+        self.assertAlmostEqual(res.eigenvalue, expected_eigenvalue, places=6)
+        np.testing.assert_allclose(res.eigenvalue_history, [expected_eigenvalue], rtol=1e-6)
+
     def test_converged(self):
         """Test to check termination criteria"""
         calc = AdaptVQE(

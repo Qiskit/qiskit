@@ -182,7 +182,7 @@ class AdaptVQE(VariationalAlgorithm, MinimumEigensolver):
     def _compute_gradients(
         self,
         theta: list[float],
-        operator: OperatorBase,
+        operator: BaseOperator | OperatorBase,
     ) -> list[tuple[complex, dict[str, Any]]]:
         """
         Computes the gradients for all available excitation operators.
