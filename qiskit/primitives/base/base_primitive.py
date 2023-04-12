@@ -31,9 +31,6 @@ class BasePrimitive(ABC):
         if options is not None:
             self._run_options.update_options(**options)
 
-    ################################################################################
-    ## PROPERTIES
-    ################################################################################
     @property
     def options(self) -> Options:
         """Return options values for the estimator.
@@ -51,9 +48,6 @@ class BasePrimitive(ABC):
         """
         self._run_options.update_options(**fields)
 
-    ################################################################################
-    ## VALIDATION
-    ################################################################################
     @staticmethod
     def _validate_circuits(
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
