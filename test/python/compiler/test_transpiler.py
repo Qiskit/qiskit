@@ -31,7 +31,7 @@ from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse, qpy, qasm3
 from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
-from qiskit.dagcircuit import DAGOutNode
+from qiskit.dagcircuit import DAGOutNode, DAGOpNode
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import (
     CXGate,
@@ -2257,3 +2257,212 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             tqc,
             qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
         )
+
+    @data(2, 3)
+    def test_shared_classical_between_components_condition_large_to_small(self, opt_level):
+        """Test a condition sharing classical bits between components."""
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(25)
+        qc.add_register(creg)
+        qc.h(24)
+        qc.cx(24, 23)
+        qc.measure(24, creg[0])
+        qc.measure(23, creg[1])
+        qc.h(0).c_if(creg, 0)
+        for i in range(18):
+            qc.ecr(0, i + 1).c_if(creg, 0)
+        tqc = transpile(qc, self.backend, optimization_level=opt_level)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(
+                    self.backend.target.instruction_supported(instruction.operation.name, qargs)
+                )
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
+        # Check clbits are in order
+        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # go in order between the components. This is a sanity check to ensure that routing
+        # doesn't reorder a classical data dependency between components. Inside a component
+        # we have the dag ordering so nothing should be out of order within a component.
+        initial_layout = tqc.layout.initial_layout
+        first_component = {qc.qubits[23], qc.qubits[24]}
+        second_component = {qc.qubits[i] for i in range(19)}
+        tqc_dag = circuit_to_dag(tqc)
+        qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
+        input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
+        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+            input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        # The first node should be a measurement
+        self.assertIsInstance(first_meas_node.op, Measure)
+        # This shoulde be in the first ocmponent
+        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        while isinstance(op_node, DAGOpNode):
+            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+                op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )[0]
+
+    @data(2, 3)
+    def test_shared_classical_between_components_condition_large_to_small_reverse_index(
+        self, opt_level
+    ):
+        """Test a condition sharing classical bits between components."""
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(25)
+        qc.add_register(creg)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(0, creg[0])
+        qc.measure(1, creg[1])
+        qc.h(24).c_if(creg, 0)
+        for i in range(23, 5, -1):
+            qc.ecr(24, i).c_if(creg, 0)
+        tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(
+                    self.backend.target.instruction_supported(instruction.operation.name, qargs)
+                )
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
+        # Check clbits are in order
+        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # go in order between the components. This is a sanity check to ensure that routing
+        # doesn't reorder a classical data dependency between components. Inside a component
+        # we have the dag ordering so nothing should be out of order within a component.
+        initial_layout = tqc.layout.initial_layout
+        first_component = {qc.qubits[i] for i in range(2)}
+        second_component = {qc.qubits[i] for i in range(6, 25)}
+        tqc_dag = circuit_to_dag(tqc)
+        qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
+        input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
+        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+            input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        # The first node should be a measurement
+        self.assertIsInstance(first_meas_node.op, Measure)
+        # This shoulde be in the first ocmponent
+        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        while isinstance(op_node, DAGOpNode):
+            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+                op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )[0]
+
+    @data(2, 3)
+    def test_chained_data_dependency(self, opt_level):
+        """Test 3 component circuit with shared clbits between each component."""
+        creg = ClassicalRegister(1)
+        qc = QuantumCircuit(30)
+        qc.add_register(creg)
+        # Component 1
+        qc.h(0)
+        for i in range(9):
+            qc.cx(0, i + 1)
+        measure_op = Measure()
+        qc.append(measure_op, [9], [creg[0]])
+        # Component 2
+        qc.h(10).c_if(creg, 0)
+        for i in range(11, 20):
+            qc.ecr(10, i).c_if(creg, 0)
+        measure_op = Measure()
+        qc.append(measure_op, [19], [creg[0]])
+        # Component 3
+        qc.h(20).c_if(creg, 0)
+        for i in range(21, 30):
+            qc.cz(20, i).c_if(creg, 0)
+        measure_op = Measure()
+        qc.append(measure_op, [29], [creg[0]])
+        tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(
+                    self.backend.target.instruction_supported(instruction.operation.name, qargs)
+                )
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
+        # Check clbits are in order
+        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # go in order between the components. This is a sanity check to ensure that routing
+        # doesn't reorder a classical data dependency between components. Inside a component
+        # we have the dag ordering so nothing should be incompatible there.
+
+        initial_layout = tqc.layout.initial_layout
+        first_component = {qc.qubits[i] for i in range(10)}
+        second_component = {qc.qubits[i] for i in range(10, 20)}
+        third_component = {qc.qubits[i] for i in range(20, 30)}
+        tqc_dag = circuit_to_dag(tqc)
+        qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
+        input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
+        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+            input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        self.assertIsInstance(first_meas_node.op, Measure)
+        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        while not isinstance(op_node.op, Measure):
+            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+                op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )[0]
+        self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        while not isinstance(op_node.op, Measure):
+            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], third_component)
+            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+                op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )[0]
+        self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], third_component)
