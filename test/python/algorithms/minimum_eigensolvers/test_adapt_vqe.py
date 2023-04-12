@@ -150,7 +150,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
         calc = AdaptVQE(
             VQE(Estimator(), ansatz, self.optimizer),
-            eigenvalue_threshold=1e-3,
+            eigenvalue_threshold=1,
         )
         res = calc.compute_minimum_eigenvalue(operator)
 
