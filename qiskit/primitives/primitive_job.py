@@ -15,11 +15,16 @@ Job implementation for the reference implementations of Primitives.
 
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from typing import Generic, TypeVar
 
 from qiskit.providers import JobError, JobStatus, JobV1
 
+from .base.base_result import BasePrimitiveResult
 
-class PrimitiveJob(JobV1):
+T = TypeVar("T", bound=BasePrimitiveResult)
+
+
+class PrimitiveJob(JobV1, Generic[T]):
     """
     PrimitiveJob class for the reference implemetations of Primitives.
     """
@@ -44,7 +49,7 @@ class PrimitiveJob(JobV1):
             future = executor.submit(self._function, *self._args, **self._kwargs)
         self._future = future
 
-    def result(self):
+    def result(self) -> T:
         """Return the results of the job."""
         self._check_submitted()
         return self._future.result()
