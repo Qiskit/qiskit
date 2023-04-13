@@ -38,7 +38,7 @@ class FakeParisV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_paris.json"
     props_filename = "props_paris.json"
     defs_filename = "defs_paris.json"
-    backend_name = "fake_paris_v2"
+    backend_name = "fake_paris"
 
 
 class FakeParis(fake_pulse_backend.FakePulseBackend):

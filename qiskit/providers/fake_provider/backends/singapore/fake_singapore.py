@@ -35,7 +35,7 @@ class FakeSingaporeV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_singapore.json"
     props_filename = "props_singapore.json"
-    backend_name = "fake_singapore_v2"
+    backend_name = "fake_singapore"
 
 
 class FakeSingapore(fake_qasm_backend.FakeQasmBackend):

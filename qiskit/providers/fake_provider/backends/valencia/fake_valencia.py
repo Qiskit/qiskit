@@ -25,7 +25,7 @@ class FakeValenciaV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_valencia.json"
     props_filename = "props_valencia.json"
     defs_filename = "defs_valencia.json"
-    backend_name = "fake_valencia_v2"
+    backend_name = "fake_valencia"
 
 
 class FakeValencia(fake_pulse_backend.FakePulseBackend):

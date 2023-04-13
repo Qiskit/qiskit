@@ -12,19 +12,22 @@
 """
 Circuit simulation for the Clifford class.
 """
+import copy
+import numpy as np
 
-from qiskit.circuit.barrier import Barrier
-from qiskit.circuit.delay import Delay
+from qiskit.circuit import Barrier, Delay, Gate
+from qiskit.circuit.exceptions import CircuitError
 from qiskit.exceptions import QiskitError
 
 
-def _append_circuit(clifford, circuit, qargs=None):
+def _append_circuit(clifford, circuit, qargs=None, recursion_depth=0):
     """Update Clifford inplace by applying a Clifford circuit.
 
     Args:
-        clifford (Clifford): the Clifford to update.
-        circuit (QuantumCircuit): the circuit to apply.
+        clifford (Clifford): The Clifford to update.
+        circuit (QuantumCircuit): The circuit to apply.
         qargs (list or None): The qubits to apply circuit to.
+        recursion_depth (int): The depth of mutual recursion with _append_operation
 
     Returns:
         Clifford: the updated Clifford.
@@ -42,24 +45,26 @@ def _append_circuit(clifford, circuit, qargs=None):
             )
         # Get the integer position of the flat register
         new_qubits = [qargs[circuit.find_bit(bit).index] for bit in instruction.qubits]
-        _append_operation(clifford, instruction.operation, new_qubits)
+        clifford = _append_operation(clifford, instruction.operation, new_qubits, recursion_depth)
     return clifford
 
 
-def _append_operation(clifford, operation, qargs=None):
+def _append_operation(clifford, operation, qargs=None, recursion_depth=0):
     """Update Clifford inplace by applying a Clifford operation.
 
     Args:
-        clifford (Clifford): the Clifford to update.
-        operation (Instruction or str): the operation or composite operation to apply.
+        clifford (Clifford): The Clifford to update.
+        operation (Instruction or Clifford or str): The operation or composite operation to apply.
         qargs (list or None): The qubits to apply operation to.
+        recursion_depth (int): The depth of mutual recursion with _append_circuit
 
     Returns:
         Clifford: the updated Clifford.
 
     Raises:
-        QiskitError: if input operation cannot be decomposed into Clifford operations.
+        QiskitError: if input operation cannot be converted into Clifford operations.
     """
+    # pylint: disable=too-many-return-statements
     if isinstance(operation, (Barrier, Delay)):
         return clifford
 
@@ -91,6 +96,28 @@ def _append_operation(clifford, operation, qargs=None):
             raise QiskitError("Invalid qubits for 2-qubit gate.")
         return _BASIS_2Q[name](clifford, qargs[0], qargs[1])
 
+    # If u gate, check if it is a Clifford, and if so, apply it
+    if isinstance(gate, Gate) and name == "u" and len(qargs) == 1:
+        try:
+            theta, phi, lambd = tuple(_n_half_pis(par) for par in gate.params)
+        except ValueError as err:
+            raise QiskitError("U gate angles must be multiples of pi/2 to be a Clifford") from err
+        if theta == 0:
+            clifford = _append_rz(clifford, qargs[0], lambd + phi)
+        elif theta == 1:
+            clifford = _append_rz(clifford, qargs[0], lambd - 2)
+            clifford = _append_h(clifford, qargs[0])
+            clifford = _append_rz(clifford, qargs[0], phi)
+        elif theta == 2:
+            clifford = _append_rz(clifford, qargs[0], lambd - 1)
+            clifford = _append_x(clifford, qargs[0])
+            clifford = _append_rz(clifford, qargs[0], phi + 1)
+        elif theta == 3:
+            clifford = _append_rz(clifford, qargs[0], lambd)
+            clifford = _append_h(clifford, qargs[0])
+            clifford = _append_rz(clifford, qargs[0], phi + 2)
+        return clifford
+
     # If gate is a Clifford, we can either unroll the gate using the "to_circuit"
     # method, or we can compose the Cliffords directly. Experimentally, for large
     # cliffords the second method is considerably faster.
@@ -103,19 +130,72 @@ def _append_operation(clifford, operation, qargs=None):
         clifford.tableau = composed_clifford.tableau
         return clifford
 
-    # If not a Clifford basis gate we try to unroll the gate and
-    # raise an exception if unrolling reaches a non-Clifford gate.
-    # TODO: We could also check u3 params to see if they
-    # are a single qubit Clifford gate rather than raise an exception.
-    if gate.definition is None:
-        raise QiskitError(f"Cannot apply Instruction: {gate.name}")
+    # If the gate is not directly appendable, we try to unroll the gate with its definition.
+    # This succeeds only if the gate has all-Clifford definition (decomposition).
+    # If fails, we need to restore the clifford that was before attempting to unroll and append.
+    if gate.definition is not None:
+        if recursion_depth > 0:
+            return _append_circuit(clifford, gate.definition, qargs, recursion_depth + 1)
+        else:  # recursion_depth == 0
+            # clifford may be updated in _append_circuit
+            org_clifford = copy.deepcopy(clifford)
+            try:
+                return _append_circuit(clifford, gate.definition, qargs, 1)
+            except (QiskitError, RecursionError):
+                # discard incompletely updated clifford and continue
+                clifford = org_clifford
 
-    return _append_circuit(clifford, gate.definition, qargs)
+    # As a final attempt, if the gate is up to 3 qubits,
+    # we try to construct a Clifford to be appended from its matrix representation.
+    if isinstance(gate, Gate) and len(qargs) <= 3:
+        try:
+            matrix = gate.to_matrix()
+            gate_cliff = Clifford.from_matrix(matrix)
+            return _append_operation(clifford, gate_cliff, qargs=qargs)
+        except TypeError as err:
+            raise QiskitError(f"Cannot apply {gate.name} gate with unbounded parameters") from err
+        except CircuitError as err:
+            raise QiskitError(f"Cannot apply {gate.name} gate without to_matrix defined") from err
+        except QiskitError as err:
+            raise QiskitError(f"Cannot apply non-Clifford gate: {gate.name}") from err
+
+    raise QiskitError(f"Cannot apply {gate}")
+
+
+def _n_half_pis(param) -> int:
+    try:
+        param = float(param)
+        epsilon = (abs(param) + 0.5 * 1e-10) % (np.pi / 2)
+        if epsilon > 1e-10:
+            raise ValueError(f"{param} is not to a multiple of pi/2")
+        multiple = int(np.round(param / (np.pi / 2)))
+        return multiple % 4
+    except TypeError as err:
+        raise ValueError(f"{param} is not bounded") from err
 
 
 # ---------------------------------------------------------------------
 # Helper functions for applying basis gates
 # ---------------------------------------------------------------------
+def _append_rz(clifford, qubit, multiple):
+    """Apply an Rz gate to a Clifford.
+
+    Args:
+        clifford (Clifford): a Clifford.
+        qubit (int): gate qubit index.
+        multiple (int): z-rotation angle in a multiple of pi/2
+
+    Returns:
+        Clifford: the updated Clifford.
+    """
+    if multiple % 4 == 1:
+        return _append_s(clifford, qubit)
+    if multiple % 4 == 2:
+        return _append_z(clifford, qubit)
+    if multiple % 4 == 3:
+        return _append_sdg(clifford, qubit)
+
+    return clifford
 
 
 def _append_i(clifford, qubit):
