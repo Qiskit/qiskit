@@ -264,7 +264,7 @@ class TestVF2PostLayout(QiskitTestCase):
         ) as cm:
             pass_.run(dag)
         self.assertIn(
-            f"DEBUG:qiskit.transpiler.passes.layout.vf2_post_layout:Trial {max_trials}"
+            f"DEBUG:qiskit.transpiler.passes.layout.vf2_post_layout:Trial {max_trials} "
             f"is >= configured max trials {max_trials}",
             cm.output,
         )
