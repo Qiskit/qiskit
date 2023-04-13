@@ -93,6 +93,7 @@ Parametric Pulse Representation
    Gaussian
    GaussianSquare
    GaussianSquareDrag
+   GaussianSquareEcho
    Sin
    Cos
    Sawtooth
