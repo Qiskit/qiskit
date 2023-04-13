@@ -488,6 +488,7 @@ class QuantumCircuit:
                 "Setting metadata to None was deprecated in Terra 0.24.0 and this ability will be "
                 "removed in a future release. Instead, set metadata to an empty dictionary.",
                 DeprecationWarning,
+                stacklevel=2,
             )
         elif not isinstance(metadata, dict):
             raise TypeError("Only a dictionary is accepted for circuit metadata")
