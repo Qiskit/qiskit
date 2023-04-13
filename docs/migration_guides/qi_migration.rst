@@ -9,10 +9,6 @@ These include measurement error mitigation, splitting/combining execution to
 conform to job limits,
 and ensuring reliable execution of circuits with additional job management tools.
 
-..
-    tools for algorithm development,
-    such as basic error mitigation strategies.
-
 The :class:`~qiskit.utils.QuantumInstance` is being deprecated for several reasons:
 On one hand, the functionality of :meth:`~qiskit.utils.QuantumInstance.execute` has
 now been delegated to the different implementations of the :mod:`~qiskit.primitives` base classes.
@@ -489,7 +485,7 @@ Code examples
 .. dropdown:: Example 4: Circuit Sampling with Custom Bound and Unbound Pass Managers
     :animate: fade-in-slide-down
 
-    The management of transpilation is quite different between the ``QuantumInstance`` and the Primitives.
+    The management of transpilation is different between the ``QuantumInstance`` and the Primitives.
 
     The Quantum Instance allowed you to:
 
@@ -524,110 +520,79 @@ Code examples
     Note that the primitives **do** handle parameter bindings, meaning that even if a ``bound_pass_manager`` is defined in a
     Backend Primitive, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
 
-    Let's see an example with a parametrized quantum circuit and different custom transpiler passes run on an ``AerSimulator``.
+    The use-case that motivated the addition of the two-stage transpilation to the ``QuantumInstance`` was to allow
+    running pulse-efficient transpilation passes with the :class:`qiskit.opflow.CircuitSampler` class. The following
+    example shows to migrate this particular use-case, where the ``QuantumInstance.execute()`` method is called
+    under the hood by the :class:`~qiskit.opflow.CircuitSampler`.
 
     **Using Quantum Instance**
 
     .. code-block:: python
 
-        from qiskit.circuit import QuantumRegister, Parameter, QuantumCircuit
-        from qiskit.transpiler import PassManager, CouplingMap
-        from qiskit.transpiler.passes import BasicSwap, Unroller
-        from qiskit_ibm_provider import IBMProvider
-
-        from qiskit.utils import QuantumInstance
-        from qiskit_aer.noise import NoiseModel
-        from qiskit_aer import AerSimulator
-
-        q = QuantumRegister(7, 'q')
-        p = Parameter('p')
-        circuit = QuantumCircuit(q)
-        circuit.h(q[0])
-        circuit.cx(q[0], q[4])
-        circuit.cx(q[2], q[3])
-        circuit.cx(q[6], q[1])
-        circuit.cx(q[5], q[0])
-        circuit.rz(p, q[2])
-        circuit.cx(q[5], q[0])
-        circuit.measure_all()
-
-        # Set up simulation based on real device
-        provider = IBMProvider()
-        backend = AerSimulator()
-        device = provider.get_backend("ibm_oslo")
-        noise_model = NoiseModel.from_backend(device)
-        coupling_map = device.configuration().coupling_map
-
-        # Define unbound pass manager
-        unbound_pm = PassManager(BasicSwap(CouplingMap(couplinglist=coupling_map)))
-
-        # Define bound pass manager
-        bound_pm = PassManager(Unroller(['u1', 'u2', 'u3', 'cx']))
-
-        # Define quantum instance
-        qi = QuantumInstance(
-           backend=backend,
-           shots=1024,
-           seed_simulator=42,
-           noise_model=noise_model,
-           coupling_map=coupling_map,
-           pass_manager=unbound_pm,
-           bound_pass_manager=bound_pm
+        from qiskit.circuit.library.standard_gates.equivalence_library import StandardEquivalenceLibrary as std_eqlib
+        from qiskit.circuit.library import RealAmplitudes
+        from qiskit.opflow import CircuitSampler, StateFn
+        from qiskit.providers.fake_provider import FakeBelem
+        from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
+        from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
+        from qiskit.transpiler.passes import (
+            Collect2qBlocks, ConsolidateBlocks, Optimize1qGatesDecomposition,
+            RZXCalibrationBuilderNoEcho, UnrollCustomDefinitions, BasisTranslator
         )
+        from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import EchoRZXWeylDecomposition
+        from qiskit.utils import QuantumInstance
 
-        # You can transpile the unbound circuit
-        transpiled_circuit = qi.transpile(circuit, pass_manager=unbound_pm)
-        print(transpiled_circuit)
+        # Define backend
+        backend = FakeBelem()
 
-        # You can bind the parameter and transpile
-        bound_circuit = circuit.bind_parameters({p: 0.1})
-        transpiled_bound_circuit = qi.transpile(bound_circuit, pass_manager=bound_pm)
-        print(transpiled_bound_circuit)
+        # Build the pass manager for the parameterized circuit
+        rzx_basis = ['rzx', 'rz', 'x', 'sx']
+        coupling_map = CouplingMap(backend.configuration().coupling_map)
+        config = PassManagerConfig(basis_gates=rzx_basis, coupling_map=coupling_map)
+        pre = level_1_pass_manager(config)
+        inst_map = backend.defaults().instruction_schedule_map
 
-        # Or you can execute bound circuit with passes defined during init.
-        result = qi.execute(bound_circuit).results[0]
-        print("Result: ", result)
-        print("Counts: ", result.data.counts)
+        # Build a pass manager for the CX decomposition (works only on bound circuits)
+        post = PassManager([
+            # Consolidate consecutive two-qubit operations.
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=['rz', 'sx', 'x', 'rxx']),
+
+            # Rewrite circuit in terms of Weyl-decomposed echoed RZX gates.
+            EchoRZXWeylDecomposition(inst_map),
+
+            # Attach scaled CR pulse schedules to the RZX gates.
+            RZXCalibrationBuilderNoEcho(inst_map),
+
+            # Simplify single-qubit gates.
+            UnrollCustomDefinitions(std_eqlib, rzx_basis),
+            BasisTranslator(std_eqlib, rzx_basis),
+            Optimize1qGatesDecomposition(rzx_basis),
+        ])
+
+        # Instantiate qi
+        quantum_instance = QuantumInstance(backend, pass_manager=pre, bound_pass_manager=post)
+
+        # Define parametrized circuit and parameter values
+        qc = RealAmplitudes(2)
+        print(qc.decompose())
+        param_dict = {p: 0.5 for p in qc.parameters}
+
+        # Instantiate CircuitSampler
+        sampler = CircuitSampler(quantum_instance)
+
+        # Run
+        quasi_dists = sampler.convert(StateFn(qc), params=param_dict).sample()
+        print("Quasi-dists: ", quasi_dists)
 
     .. code-block:: text
 
-                ┌───┐                                                     ░       ┌─┐
-           q_0: ┤ H ├───────────────X─────────────────────────────────────░───────┤M├────────────
-                └───┘     ┌───────┐ │                                     ░       └╥┘         ┌─┐
-           q_1: ──X────■──┤ Rz(p) ├─X──X──────────────────────────X───■───░────────╫──────────┤M├
-                  │    │  └───────┘    │                          │ ┌─┴─┐ ░    ┌─┐ ║          └╥┘
-           q_2: ──X────┼───────────────┼──────────────────────────┼─┤ X ├─░────┤M├─╫───────────╫─
-                     ┌─┴─┐             │                          │ └───┘ ░    └╥┘ ║ ┌─┐       ║
-           q_3: ─────┤ X ├─────────────X──X────────■────■──────X──X───────░─────╫──╫─┤M├───────╫─
-                     └───┘                │ ┌───┐  │    │      │          ░     ║  ║ └╥┘┌─┐    ║
-           q_4: ──────────────────────────┼─┤ X ├──┼────┼──────┼──────────░─────╫──╫──╫─┤M├────╫─
-                                          │ └─┬─┘┌─┴─┐┌─┴─┐    │          ░     ║  ║  ║ └╥┘┌─┐ ║
-           q_5: ──────────────────────────X───■──┤ X ├┤ X ├─X──X──────────░─────╫──╫──╫──╫─┤M├─╫─
-                                                 └───┘└───┘ │             ░ ┌─┐ ║  ║  ║  ║ └╥┘ ║
-           q_6: ────────────────────────────────────────────X─────────────░─┤M├─╫──╫──╫──╫──╫──╫─
-                                                                          ░ └╥┘ ║  ║  ║  ║  ║  ║
-        meas: 7/═════════════════════════════════════════════════════════════╩══╩══╩══╩══╩══╩══╩═
-                                                                             0  1  2  3  4  5  6
-        global phase: 6.2332
-                ┌─────────┐                     ┌───┐┌───┐ ░ ┌─┐
-           q_0: ┤ U2(0,π) ├──────────────────■──┤ X ├┤ X ├─░─┤M├──────────────────
-                └─────────┘┌───┐             │  └─┬─┘└─┬─┘ ░ └╥┘┌─┐
-           q_1: ───────────┤ X ├─────────────┼────┼────┼───░──╫─┤M├───────────────
-                           └─┬─┘┌─────────┐  │    │    │   ░  ║ └╥┘┌─┐
-           q_2: ─────■───────┼──┤ U1(0.1) ├──┼────┼────┼───░──╫──╫─┤M├────────────
-                   ┌─┴─┐     │  └─────────┘  │    │    │   ░  ║  ║ └╥┘┌─┐
-           q_3: ───┤ X ├─────┼───────────────┼────┼────┼───░──╫──╫──╫─┤M├─────────
-                   └───┘     │             ┌─┴─┐  │    │   ░  ║  ║  ║ └╥┘┌─┐
-           q_4: ─────────────┼─────────────┤ X ├──┼────┼───░──╫──╫──╫──╫─┤M├──────
-                             │             └───┘  │    │   ░  ║  ║  ║  ║ └╥┘┌─┐
-           q_5: ─────────────┼────────────────────■────■───░──╫──╫──╫──╫──╫─┤M├───
-                             │                             ░  ║  ║  ║  ║  ║ └╥┘┌─┐
-           q_6: ─────────────■─────────────────────────────░──╫──╫──╫──╫──╫──╫─┤M├
-                                                           ░  ║  ║  ║  ║  ║  ║ └╥┘
-        meas: 7/══════════════════════════════════════════════╩══╩══╩══╩══╩══╩══╩═
-                                                              0  1  2  3  4  5  6
-        Result:  ExperimentResult(shots=1024, success=True, meas_level=2, data=ExperimentResultData(counts={'0xf': 1, '0x1c': 1, '0x72': 1, '0x50': 3, '0x62': 1, '0xc': 3, '0x1f': 3, '0x5b': 5, '0x18': 7, '0x4b': 1, '0xe': 2, '0x53': 7, '0x13': 6, '0x40': 5, '0x51': 4, '0x63': 1, '0x31': 6, '0x10': 97, '0x19': 16, '0x21': 3, '0x2': 9, '0x52': 9, '0x35': 1, '0x49': 2, '0x4a': 1, '0x4': 4, '0x42': 12, '0x1a': 1, '0x1': 96, '0x3': 4, '0x30': 7, '0x9': 7, '0x48': 1, '0x46': 1, '0x1d': 2, '0x0': 345, '0x14': 4, '0xb': 1, '0x43': 7, '0x5': 3, '0x15': 3, '0x41': 2, '0x8': 20, '0x11': 299, '0x59': 2, '0x20': 8}), header=QobjExperimentHeader(clbit_labels=[['meas', 0], ['meas', 1], ['meas', 2], ['meas', 3], ['meas', 4], ['meas', 5], ['meas', 6]], creg_sizes=[['meas', 7]], global_phase=6.233185307179586, memory_slots=7, metadata={}, n_qubits=7, name='circuit-2663', qreg_sizes=[['q', 7]], qubit_labels=[['q', 0], ['q', 1], ['q', 2], ['q', 3], ['q', 4], ['q', 5], ['q', 6]]), status=DONE, seed_simulator=42, metadata={'parallel_state_update': 16, 'parallel_shots': 1, 'sample_measure_time': 0.000634379, 'noise': 'superop', 'batched_shots_optimization': False, 'remapped_qubits': False, 'device': 'CPU', 'active_input_qubits': [0, 1, 2, 3, 4, 5, 6], 'measure_sampling': True, 'num_clbits': 7, 'input_qubit_map': [[6, 6], [5, 5], [4, 4], [3, 3], [2, 2], [1, 1], [0, 0]], 'num_qubits': 7, 'method': 'density_matrix', 'fusion': {'applied': False, 'max_fused_qubits': 2, 'threshold': 7, 'enabled': True}}, time_taken=0.044914751)
-        Counts:  {'0xf': 1, '0x1c': 1, '0x72': 1, '0x50': 3, '0x62': 1, '0xc': 3, '0x1f': 3, '0x5b': 5, '0x18': 7, '0x4b': 1, '0xe': 2, '0x53': 7, '0x13': 6, '0x40': 5, '0x51': 4, '0x63': 1, '0x31': 6, '0x10': 97, '0x19': 16, '0x21': 3, '0x2': 9, '0x52': 9, '0x35': 1, '0x49': 2, '0x4a': 1, '0x4': 4, '0x42': 12, '0x1a': 1, '0x1': 96, '0x3': 4, '0x30': 7, '0x9': 7, '0x48': 1, '0x46': 1, '0x1d': 2, '0x0': 345, '0x14': 4, '0xb': 1, '0x43': 7, '0x5': 3, '0x15': 3, '0x41': 2, '0x8': 20, '0x11': 299, '0x59': 2, '0x20': 8}
+             ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+        q_0: ┤ Ry(θ[0]) ├──■──┤ Ry(θ[2]) ├──■──┤ Ry(θ[4]) ├──■──┤ Ry(θ[6]) ├
+             ├──────────┤┌─┴─┐├──────────┤┌─┴─┐├──────────┤┌─┴─┐├──────────┤
+        q_1: ┤ Ry(θ[1]) ├┤ X ├┤ Ry(θ[3]) ├┤ X ├┤ Ry(θ[5]) ├┤ X ├┤ Ry(θ[7]) ├
+             └──────────┘└───┘└──────────┘└───┘└──────────┘└───┘└──────────┘
+        Quasi-dists: {'11': 0.443359375, '10': 0.21875, '01': 0.189453125, '00': 0.1484375}
 
     **Using Primitives**
 
@@ -635,104 +600,69 @@ Code examples
 
     .. code-block:: python
 
-        from qiskit.circuit import QuantumRegister, Parameter
-        from qiskit.transpiler import PassManager, CouplingMap
-        from qiskit.transpiler.passes import BasicSwap, Unroller
-        from qiskit_ibm_provider import IBMProvider
-        from qiskit import QuantumCircuit
+        from qiskit.circuit.library.standard_gates.equivalence_library import StandardEquivalenceLibrary as std_eqlib
+        from qiskit.circuit.library import RealAmplitudes
         from qiskit.primitives import BackendSampler
-        from qiskit_aer.noise import NoiseModel
-        from qiskit_aer import AerSimulator
+        from qiskit.providers.fake_provider import FakeBelem
+        from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
+        from qiskit.transpiler.preset_passmanagers import level_1_pass_manager
+        from qiskit.transpiler.passes import (
+            Collect2qBlocks, ConsolidateBlocks, Optimize1qGatesDecomposition,
+            RZXCalibrationBuilderNoEcho, UnrollCustomDefinitions, BasisTranslator
+        )
+        from qiskit.transpiler.passes.optimization.echo_rzx_weyl_decomposition import EchoRZXWeylDecomposition
 
-        q = QuantumRegister(7, 'q')
-        p = Parameter('p')
-        circuit = QuantumCircuit(q)
-        circuit.h(q[0])
-        circuit.cx(q[0], q[4])
-        circuit.cx(q[2], q[3])
-        circuit.cx(q[6], q[1])
-        circuit.cx(q[5], q[0])
-        circuit.rz(p, q[2])
-        circuit.cx(q[5], q[0])
-        circuit.measure_all()
+        # Define backend
+        backend = FakeBelem()
 
-        # Set up simulation based on real device
-        provider = IBMProvider()
-        backend = AerSimulator()
-        device = provider.get_backend("ibm_oslo")
-        noise_model = NoiseModel.from_backend(device)
-        coupling_map = device.configuration().coupling_map
-        backend.set_options(seed_simulator=42, noise_model=noise_model, coupling_map=coupling_map)
+        # Build the pass manager for the parameterized circuit
+        rzx_basis = ['rzx', 'rz', 'x', 'sx']
+        coupling_map = CouplingMap(backend.configuration().coupling_map)
+        config = PassManagerConfig(basis_gates=rzx_basis, coupling_map=coupling_map)
+        pre = level_1_pass_manager(config)
 
-        # Pre-run transpilation using pass manager
-        unbound_pm = PassManager(BasicSwap(CouplingMap(couplinglist=coupling_map)))
-        transpiled_circuit = unbound_pm.run(circuit)
-        print(transpiled_circuit)
+        # Build a pass manager for the CX decomposition (works only on bound circuits)
+        inst_map = backend.defaults().instruction_schedule_map
+        post = PassManager([
+            # Consolidate consecutive two-qubit operations.
+            Collect2qBlocks(),
+            ConsolidateBlocks(basis_gates=['rz', 'sx', 'x', 'rxx']),
 
-        # Define bound pass manager
-        bound_pm = PassManager(Unroller(['u1', 'u2', 'u3', 'cx']))
+            # Rewrite circuit in terms of Weyl-decomposed echoed RZX gates.
+            EchoRZXWeylDecomposition(inst_map),
 
-        # Set up sampler with skip_transpilation and bound_pass_manager
-        sampler = BackendSampler(backend=backend, skip_transpilation=True, bound_pass_manager=bound_pm)
+            # Attach scaled CR pulse schedules to the RZX gates.
+            RZXCalibrationBuilderNoEcho(inst_map),
 
-        # Run
-        quasi_dists = sampler.run(transpiled_circuit, [[0.1]], shots=1024).result().quasi_dists
+            # Simplify single-qubit gates.
+            UnrollCustomDefinitions(std_eqlib, rzx_basis),
+            BasisTranslator(std_eqlib, rzx_basis),
+            Optimize1qGatesDecomposition(rzx_basis),
+        ])
+
+        # Define parametrized circuit and parameter values
+        qc = RealAmplitudes(2)
+        qc.measure_all() # add measurements!
+        param_dict = {p: 0.5 for p in qc.parameters}
+        print(qc.decompose())
+
+        # Instantiate backend sampler with skip_transpilation
+        sampler = BackendSampler(backend=backend, skip_transpilation=True, bound_pass_manager=post)
+
+        # Run unbound transpiler pass
+        transpiled_circuit = pre.run(qc)
+
+        # Run sampler
+        quasi_dists = sampler.run(transpiled_circuit, [[0.5] * len(qc.parameters)]).result().quasi_dists
         print("Quasi-dists: ", quasi_dists)
 
     .. code-block:: text
 
-                ┌───┐                                                     ░       ┌─┐
-           q_0: ┤ H ├───────────────X─────────────────────────────────────░───────┤M├────────────
-                └───┘     ┌───────┐ │                                     ░       └╥┘         ┌─┐
-           q_1: ──X────■──┤ Rz(p) ├─X──X──────────────────────────X───■───░────────╫──────────┤M├
-                  │    │  └───────┘    │                          │ ┌─┴─┐ ░    ┌─┐ ║          └╥┘
-           q_2: ──X────┼───────────────┼──────────────────────────┼─┤ X ├─░────┤M├─╫───────────╫─
-                     ┌─┴─┐             │                          │ └───┘ ░    └╥┘ ║ ┌─┐       ║
-           q_3: ─────┤ X ├─────────────X──X────────■────■──────X──X───────░─────╫──╫─┤M├───────╫─
-                     └───┘                │ ┌───┐  │    │      │          ░     ║  ║ └╥┘┌─┐    ║
-           q_4: ──────────────────────────┼─┤ X ├──┼────┼──────┼──────────░─────╫──╫──╫─┤M├────╫─
-                                          │ └─┬─┘┌─┴─┐┌─┴─┐    │          ░     ║  ║  ║ └╥┘┌─┐ ║
-           q_5: ──────────────────────────X───■──┤ X ├┤ X ├─X──X──────────░─────╫──╫──╫──╫─┤M├─╫─
-                                                 └───┘└───┘ │             ░ ┌─┐ ║  ║  ║  ║ └╥┘ ║
-           q_6: ────────────────────────────────────────────X─────────────░─┤M├─╫──╫──╫──╫──╫──╫─
-                                                                          ░ └╥┘ ║  ║  ║  ║  ║  ║
-        meas: 7/═════════════════════════════════════════════════════════════╩══╩══╩══╩══╩══╩══╩═
-                                                                             0  1  2  3  4  5  6
-        Quasi-dists: [{20: 0.0009765625,
-          18: 0.001953125,
-          80: 0.00390625,
-          6: 0.001953125,
-          29: 0.0048828125,
-          66: 0.0048828125,
-          24: 0.00390625,
-          8: 0.0166015625,
-          65: 0.0009765625,
-          14: 0.0029296875,
-          19: 0.01171875,
-          83: 0.001953125,
-          64: 0.0068359375,
-          81: 0.0029296875,
-          49: 0.005859375,
-          25: 0.0087890625,
-          16: 0.072265625,
-          33: 0.001953125,
-          53: 0.0009765625,
-          82: 0.001953125,
-          2: 0.0107421875,
-          31: 0.0048828125,
-          5: 0.0009765625,
-          21: 0.005859375,
-          48: 0.0048828125,
-          9: 0.00390625,
-          44: 0.0009765625,
-          3: 0.0068359375,
-          1: 0.0693359375,
-          12: 0.0048828125,
-          4: 0.005859375,
-          89: 0.001953125,
-          32: 0.0068359375,
-          67: 0.0048828125,
-          73: 0.0009765625,
-          38: 0.0009765625,
-          0: 0.376953125,
-          17: 0.330078125}]
+                ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐ ░ ┌─┐
+           q_0: ┤ Ry(θ[0]) ├──■──┤ Ry(θ[2]) ├──■──┤ Ry(θ[4]) ├──■──┤ Ry(θ[6]) ├─░─┤M├───
+                ├──────────┤┌─┴─┐├──────────┤┌─┴─┐├──────────┤┌─┴─┐├──────────┤ ░ └╥┘┌─┐
+           q_1: ┤ Ry(θ[1]) ├┤ X ├┤ Ry(θ[3]) ├┤ X ├┤ Ry(θ[5]) ├┤ X ├┤ Ry(θ[7]) ├─░──╫─┤M├
+                └──────────┘└───┘└──────────┘└───┘└──────────┘└───┘└──────────┘ ░  ║ └╥┘
+        meas: 2/═══════════════════════════════════════════════════════════════════╩══╩═
+                                                                                   0  1
+        Quasi-dists:  [{1: 0.18359375, 2: 0.2333984375, 0: 0.1748046875, 3: 0.408203125}]
