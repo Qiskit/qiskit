@@ -261,7 +261,6 @@ class SabreLayout(TransformationPass):
         canonical_register = dag.qregs["q"]
         qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
         original_layout = NLayout.generate_trivial_layout(self.coupling_map.size())
-        canonical_register = dag.qregs["q"]
         for (
             _layout_dict,
             _final_layout_dict,
@@ -270,7 +269,6 @@ class SabreLayout(TransformationPass):
             swap_map,
             local_dag,
         ) in layout_components:
-            qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
             for node_id in gate_order:
                 node = local_dag._multi_graph[node_id]
                 process_swaps(
