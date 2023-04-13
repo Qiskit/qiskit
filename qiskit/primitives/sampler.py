@@ -35,7 +35,7 @@ from .utils import (
 )
 
 
-class Sampler(BaseSampler):
+class Sampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """
     Sampler class.
 
@@ -119,7 +119,7 @@ class Sampler(BaseSampler):
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)
