@@ -233,7 +233,7 @@ class Target(Mapping):
         "_non_global_strict_basis",
         "qubit_properties",
         "_global_operations",
-        "meas_map",
+        "_meas_group",
     )
 
     @deprecate_arguments({"aquire_alignment": "acquire_alignment"}, since="0.23.0")
@@ -247,6 +247,7 @@ class Target(Mapping):
         pulse_alignment=1,
         acquire_alignment=1,
         qubit_properties=None,
+        meas_map=None,
     ):
         """
         Create a new Target object
@@ -282,6 +283,7 @@ class Target(Mapping):
                 matches the qubit number the properties are defined for. If some
                 qubits don't have properties available you can set that entry to
                 ``None``
+            meas_map (list): List of sets of qubits that must be measured together.
         Raises:
             ValueError: If both ``num_qubits`` and ``qubit_properties`` are both
             defined and the value of ``num_qubits`` differs from the length of
@@ -317,7 +319,7 @@ class Target(Mapping):
                         "length of the input qubit_properties list"
                     )
         self.qubit_properties = qubit_properties
-        self.meas_map = None
+        self._meas_group = MeasureGrouping(meas_map)
 
     def add_instruction(self, instruction, properties=None, name=None):
         """Add a new instruction to the :class:`~qiskit.transpiler.Target`
@@ -1048,9 +1050,9 @@ class Target(Mapping):
         else:
             return None
 
-    def add_measuregrouping(self, meas_map=None):
-        """Add a MeasureGrouping class to meas_map"""
-        self.meas_map = MeasureGrouping(meas_map)
+    @property
+    def meas_group(self):
+        return self._meas_group
 
     @property
     def physical_qubits(self):

@@ -11,16 +11,35 @@
 # that they have been altered from the originals.
 
 """Module for common pulse programming macros."""
+from __future__ import annotations
 
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, TYPE_CHECKING
 
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
-from qiskit.providers.models.backendproperties import BackendProperties
-from qiskit.transpiler.target import Target
+from qiskit.utils.deprecation import deprecate_arg
+
+# from qiskit.transpiler.target import MeasureGrouping
+
+if TYPE_CHECKING:
+    from qiskit.transpiler.target import Target
 
 
+@deprecate_arg(
+    "backend",
+    deprecation_description=(
+        "Depricating ``backendV1`` as the type of measure's `backend` argument."
+    ),
+    additional_msg=("Instead use ``backendV2``as the type of measure's `backend` argument."),
+    since="0.25.0",
+)
+@deprecate_arg(
+    "inst_map",
+    deprecation_description=("Setting measure's `inst_map` argument to None."),
+    additional_msg=("Instead use the argument `target`."),
+    since="0.25.0",
+)
 def measure(
     qubits: List[int],
     backend=None,
@@ -52,33 +71,64 @@ def measure(
 
     Returns:
         A measurement schedule corresponding to the inputs provided.
+    """
 
+    # backend is V2.
+    if target or hasattr(backend, "target"):
+        return _measure_v2(
+            qubits=qubits,
+            target=target or backend.target,
+            # meas_group=MeasureGrouping(meas_map=meas_map),
+            meas_group=meas_map,
+            qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
+            measure_name=measure_name,
+        )
+    # backend is V1 or backend is None.
+    else:
+        try:
+            return _measure_v1(
+                qubits=qubits,
+                inst_map=inst_map or backend.defaults().instruction_schedule_map,
+                meas_map=meas_map or backend.configuration().meas_map,
+                qubit_mem_slots=qubit_mem_slots,
+                measure_name=measure_name,
+            )
+        except AttributeError as ex:
+            raise exceptions.PulseError(
+                "inst_map or meas_map, and backend cannot be None simultaneously"
+            ) from ex
+
+
+def _measure_v1(
+    qubits: List[int],
+    inst_map: InstructionScheduleMap,
+    meas_map: Union[List[List[int]], Dict[int, List[int]]],
+    qubit_mem_slots: Optional[Dict[int, int]] = None,
+    measure_name: str = "measure",
+) -> Schedule:
+    """Return a schedule which measures the requested qubits according to the given
+    instruction mapping and measure map, or by using the defaults provided by the backend.
+    By default, the measurement results for each qubit are trivially mapped to the qubit
+    index. This behavior is overridden by qubit_mem_slots. For instance, to measure
+    qubit 0 into MemorySlot(1), qubit_mem_slots can be provided as {0: 1}.
+    Args:
+        qubits: List of qubits to be measured.
+        backend (Union[Backend, BaseBackend]): A backend instance, which contains
+            hardware-specific data required for scheduling.
+        inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
+                  ``instruction_schedule_map`` of ``backend``.
+        meas_map: List of sets of qubits that must be measured together. If None, defaults to
+                  the ``meas_map`` of ``backend``.
+        qubit_mem_slots: Mapping of measured qubit index to classical bit index.
+        measure_name: Name of the measurement schedule.
+    Returns:
+        A measurement schedule corresponding to the inputs provided.
     Raises:
         PulseError: If both ``inst_map`` or ``meas_map``, and ``backend`` is None.
     """
+
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
 
-    try:
-        # backend is V2.
-        if backend is None or hasattr(backend, "target"):
-            if target is None:
-                target = backend.target
-            if meas_map is not None:
-                target.meas_map = meas_map
-            inst_map = generate_schedule_in_measure(
-                backend.properties(), target.meas_map.get_qubit_groups(qubits)
-            )
-            meas_map = meas_map or target.meas_map
-        else:
-            inst_map = inst_map or backend.defaults().instruction_schedule_map
-            meas_map = meas_map or backend.configuration().meas_map
-    except AttributeError as ex:
-        # Need to correct the below message when using backendV2.
-        # Both inst_map and backend can be allowed to be None because
-        # inst_map is generated from target.
-        raise exceptions.PulseError(
-            "inst_map or meas_map, and backend cannot be None simultaneously"
-        ) from ex
     if isinstance(meas_map, list):
         meas_map = utils.format_meas_map(meas_map)
 
@@ -112,6 +162,56 @@ def measure(
     return schedule
 
 
+def _measure_v2(
+    qubits: List[int],
+    target: Target,
+    meas_group: MeasureGrouping,
+    qubit_mem_slots: Optional[Dict[int, int]] = None,
+    measure_name: str = "measure",
+) -> Schedule:
+    """Return a schedule which measures the requested qubits according to the given
+    instruction mapping and measure map, or by using the defaults provided by the backend.
+
+    By default, the measurement results for each qubit are trivially mapped to the qubit
+    index. This behavior is overridden by qubit_mem_slots. For instance, to measure
+    qubit 0 into MemorySlot(1), qubit_mem_slots can be provided as {0: 1}.
+
+    Args:
+        qubits: List of qubits to be measured.
+        backend (Union[Backend, BaseBackend]): A backend instance, which contains
+            hardware-specific data required for scheduling.
+        target: The :class:`~.Target` representing the target backend.
+        meas_group: The :class:`~.MeasureGrouping` representing grouping multiple qubits which need to be measured together.
+        qubit_mem_slots: Mapping of measured qubit index to classical bit index.
+        measure_name: Name of the measurement schedule.
+
+    Returns:
+        A measurement schedule corresponding to the inputs provided.
+    """
+    schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
+
+    # meas_map = meas_group.get_qubit_groups(qubits=qubits)
+    meas_map = target.meas_group.get_qubit_groups(qubits=qubits)
+
+    for measure_qubit in meas_map:
+        try:
+            default_sched = target.get_calibration(measure_name, (measure_qubit,)).filter(
+                channels=[
+                    channels.MeasureChannel(measure_qubit),
+                    channels.AcquireChannel(measure_qubit),
+                ]
+            )
+        except exceptions.PulseError as ex:
+            raise exceptions.PulseError(
+                "We could not find a default measurement schedule called '{}'. "
+                "Please provide another name using the 'measure_name' keyword "
+                "argument. For assistance, the instructions which are defined are: "
+                "{}".format(measure_name, target.instructions)
+            ) from ex
+        schedule += schedule_remapping_memory_slot(default_sched, qubit_mem_slots)
+    return schedule
+
+
 def measure_all(backend) -> Schedule:
     """
     Return a Schedule which measures all qubits of the given backend.
@@ -126,20 +226,31 @@ def measure_all(backend) -> Schedule:
     return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)
 
 
-def generate_schedule_in_measure(
-    properties: BackendProperties, qubits: List
-) -> InstructionScheduleMap:
+def schedule_remapping_memory_slot(schedule: Schedule, qubit_mem_slots) -> Schedule:
     """
-    Returns a InstructionScheduleMap with InstructionProperties of specified qubits.
+    Return a Schedule which is remapped by given qubit_mem_slots.
 
     Args:
-        properties (BackendProperties): The backend properties for the backend, including
-            information on readout lengths and readout errors.
-        qubits (List): the list of integers representing qubits.
+        schedule: A measurement schedule.
+        qubit_mem_slots: Mapping of measured qubit index to classical bit index.
 
     Returns:
-        A InstructionScheduleMap corresponding to the inputs provided.
+        A schedule remapped by qubit_mem_slots as the input provided.
     """
-    inst_schedule_map = InstructionScheduleMap()
-
-    return inst_schedule_map
+    new_schedule = Schedule()
+    for t0, inst in schedule.instructions:
+        if isinstance(inst, instructions.Acquire):
+            qubit_index = inst.channel.index
+            reg_index = qubit_mem_slots.get(qubit_index, 0)
+            new_schedule.insert(
+                t0,
+                instructions.Acquire(
+                    inst.duration,
+                    channels.AcquireChannel(qubit_index),
+                    mem_slot=channels.MemorySlot(reg_index),
+                ),
+                inplace=True,
+            )
+        else:
+            new_schedule.insert(t0, inst, inplace=True)
+    return new_schedule

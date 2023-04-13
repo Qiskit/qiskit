@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2019.
+# (C) Copyright IBM 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,35 +13,57 @@
 """
 MeasureGrouping
 """
-from typing import List
+from typing import Dict, List, Optional, Union
+from qiskit.pulse import utils
 
 
 class MeasureGrouping:
     """
     MeasureGrouping
-
     """
 
     __slots__ = (
         "description",
-        "meas_map",
+        "_meas_map",
     )
 
-    def __init__(self, meas_map=None, description=None):
+    def __init__(
+        self,
+        meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
+        description=None,
+    ):
         """
         Create a new "MeasureGrouping" object.
+
+        Args:
+            meas_map (list): List of sets of qubits that must be measured together.
+            description (str): An optional string to describe the MeasureGrouping.
         """
         self.description = description
+        if isinstance(meas_map, list):
+            meas_map = utils.format_meas_map(meas_map)
+        self._meas_map = meas_map
 
-        self.meas_map = meas_map
+    @property
+    def meas_map(self):
+        return self._meas_map
 
     def get_qubit_groups(self, qubits: List) -> List:
         """
-        Gets qubit groups including at least one qubit of `qubits` from meas_map.
+        Gets qubits list including at least one qubit of `qubits` from meas_map.
+
+        Args:
+            qubits (list): List of qubits to be measured.
+        Returns:
+            list: Sorted list with qubits measured simultaneously.
         """
-        return [
-            meas_map_data for meas_map_data in self.meas_map if set(qubits) & set(meas_map_data)
-        ]
+        if self.meas_map is None:
+            return sorted(qubits)
+
+        qubits_group = set()
+        for qubit in qubits:
+            qubits_group |= set(self.meas_map[qubit])
+        return sorted(list(qubits_group))
 
     def constraints(self):
         """

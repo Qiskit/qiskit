@@ -56,7 +56,11 @@ def convert_to_target(
     # Parse from properties if it exsits
     if properties is not None:
         qubit_properties = qubit_props_list_from_props(properties=properties)
-        target = Target(num_qubits=configuration.n_qubits, qubit_properties=qubit_properties)
+        target = Target(
+            num_qubits=configuration.n_qubits,
+            qubit_properties=qubit_properties,
+            meas_map=configuration.meas_map,
+        )
         # Parse instructions
         gates: Dict[str, Any] = {}
         for gate in properties.gates:
@@ -100,7 +104,7 @@ def convert_to_target(
         target.add_instruction(Measure(), measure_props)
     # Parse from configuration because properties doesn't exist
     else:
-        target = Target(num_qubits=configuration.n_qubits)
+        target = Target(num_qubits=configuration.n_qubits, meas_map=configuration.meas_map)
         for gate in configuration.gates:
             name = gate.name
             gate_props = (
@@ -116,8 +120,6 @@ def convert_to_target(
                     "Use custom_name_mapping to map this name to an Operation object"
                 )
         target.add_instruction(Measure())
-    # add MeasuringGroup
-    target.add_measuregrouping(configuration.meas_map)
     # parse global configuration properties
     if hasattr(configuration, "dt"):
         target.dt = configuration.dt
