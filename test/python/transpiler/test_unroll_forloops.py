@@ -85,9 +85,6 @@ class TestUnrollForLoops(QiskitTestCase):
         passmanager.append(UnrollForLoops())
         result = passmanager.run(circuit)
 
-        # from qiskit.qasm3 import dumps
-        # print(dumps(result))
-        #
         self.assertEqual(result, expected)
 
     def test_skip_continue_loop(self):
