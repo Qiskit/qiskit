@@ -2465,7 +2465,11 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
             )[0]
 
-    @data(1, 2, 3)
+    # Level 1 skipped in this test for now because routing inserts more swaps
+    # and tricking the intermediate layout permutation to validate ordering
+    # will be different compared to higher optimization levels. We have similar
+    # coverage provided by above tests for level 1.
+    @data(2, 3)
     def test_chained_data_dependency(self, opt_level):
         """Test 3 component circuit with shared clbits between each component."""
         creg = ClassicalRegister(1)
