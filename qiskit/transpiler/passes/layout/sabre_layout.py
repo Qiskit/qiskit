@@ -217,7 +217,7 @@ class SabreLayout(TransformationPass):
             self.property_set["layout"] = initial_layout
             self.routing_pass.fake_run = False
             return dag
-        # Combnined
+        # Combined
         layout_components = disjoint_utils.run_pass_over_connected_components(
             dag, self.coupling_map, self._inner_run
         )

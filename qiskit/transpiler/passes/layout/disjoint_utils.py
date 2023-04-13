@@ -123,7 +123,7 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
 
 def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
     """Separate a dag circuit into it's connected components."""
-    # Split barriers into single qubit barrieries before connected components
+    # Split barriers into single qubit barriers before splitting connected components
     split_barriers(dag)
     im_graph, _, qubit_map, __ = vf2_utils.build_interaction_graph(dag)
     connected_components = rx.weakly_connected_components(im_graph)

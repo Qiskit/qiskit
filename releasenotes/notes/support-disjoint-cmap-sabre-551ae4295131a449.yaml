@@ -2,10 +2,10 @@
 features:
   - |
     The :class:`~.SabreLayout` pass now supports running against a target
-    with a disjoint :class:`~.CouplimgMap`. When targeting a disjoint coupling
-    the input :class:`.DAGCircuit` is split into it's connected components of
-    virtual qubits and then each component is mapped to the connected components
-    of the :class:`~.CouplingMap` and then the layout is run on each connected
-    component in isolation and then the returned layout is the combination of
-    each layout. Note when the ``routing_pass`` argument is set the pass doesn't
-    support running with s disjoint connectivity.
+    with a disjoint :class:`~.CouplingMap`. When targeting a disjoint coupling
+    the input :class:`.DAGCircuit` is split into its connected components of
+    virtual qubits, each component is mapped to the connected components
+    of the :class:`~.CouplingMap`, layout is run on each connected
+    component in isolation, and then all layouts are combined and returned.
+    Note when the ``routing_pass`` argument is set the pass doesn't
+    support running with disjoint connectivity.
