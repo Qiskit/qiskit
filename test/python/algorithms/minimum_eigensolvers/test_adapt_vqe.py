@@ -142,8 +142,8 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         )
         ansatz = EvolvedOperatorAnsatz(
             [
-                PauliSumOp.from_list([("XY", 0.5)]),
-                PauliSumOp.from_list([("YX", 0.5)]),
+                PauliSumOp.from_list([("YZ", 0.4)]),
+                PauliSumOp.from_list([("ZY", 0.5)]),
             ],
             initial_state=QuantumCircuit(2),
         )
