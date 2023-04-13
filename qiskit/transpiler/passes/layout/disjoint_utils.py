@@ -59,7 +59,7 @@ def run_pass_over_connected_components(
 
 def map_components(
     dag_components: List[DAGCircuit], cmap_components: List[CouplingMap]
-) -> Dict[int, int]:
+) -> Dict[int, List[int]]:
     """Map a list of circuit components to coupling map components."""
     free_qubits = {index: len(cmap.graph) for index, cmap in enumerate(cmap_components)}
     out_mapping = defaultdict(list)
