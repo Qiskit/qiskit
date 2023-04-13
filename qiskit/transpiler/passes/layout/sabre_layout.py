@@ -177,8 +177,7 @@ class SabreLayout(TransformationPass):
         if self.routing_pass is not None:
             if not self.coupling_map.is_connected():
                 raise TranspilerError(
-                    "Coupling Map is disjoint, this pass can't be used with a disconnected coupling "
-                    "map and the routing_pass argument."
+                    "The routing_pass argument cannot be used with disjoint coupling maps."
                 )
             if self.seed is None:
                 seed = np.random.randint(0, np.iinfo(np.int32).max)
