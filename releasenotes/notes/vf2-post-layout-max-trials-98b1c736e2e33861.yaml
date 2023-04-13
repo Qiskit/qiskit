@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Added a new parameter ``max_trials`` to pass :class:`~.VF2PostLayout`
+    which, when specified,limits the number of trials performed when
+    searching for the best layout. Previously, all possible layouts were
+    always considered, which is not suitable when performing layout of
+    multiple connected components on large devices.
