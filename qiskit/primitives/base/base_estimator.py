@@ -83,6 +83,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
+from typing import Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -94,8 +95,10 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from ..utils import init_observable
 from .base_primitive import BasePrimitive
 
+T = TypeVar("T", bound=Job)
 
-class BaseEstimator(BasePrimitive):
+
+class BaseEstimator(BasePrimitive, Generic[T]):
     """Estimator base class.
 
     Base class for Estimator that estimates expectation values of quantum circuits and observables.
@@ -126,7 +129,7 @@ class BaseEstimator(BasePrimitive):
         observables: Sequence[BaseOperator | PauliSumOp | str] | BaseOperator | PauliSumOp | str,
         parameter_values: Sequence[Sequence[float]] | Sequence[float] | float | None = None,
         **run_options,
-    ) -> Job:
+    ) -> T:
         """Run the job of the estimation of expectation value(s).
 
         ``circuits``, ``observables``, and ``parameter_values`` should have the same
@@ -193,7 +196,7 @@ class BaseEstimator(BasePrimitive):
         observables: tuple[SparsePauliOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> Job:
+    ) -> T:
         raise NotImplementedError("The subclass of BaseEstimator must implment `_run` method.")
 
     @staticmethod

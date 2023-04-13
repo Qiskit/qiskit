@@ -78,6 +78,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from collections.abc import Sequence
 from copy import copy
+from typing import Generic, TypeVar
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
@@ -85,8 +86,10 @@ from qiskit.providers import JobV1 as Job
 
 from .base_primitive import BasePrimitive
 
+T = TypeVar("T", bound=Job)
 
-class BaseSampler(BasePrimitive):
+
+class BaseSampler(BasePrimitive, Generic[T]):
     """Sampler base class
 
     Base class of Sampler that calculates quasi-probabilities of bitstrings from quantum circuits.
@@ -112,7 +115,7 @@ class BaseSampler(BasePrimitive):
         circuits: QuantumCircuit | Sequence[QuantumCircuit],
         parameter_values: Sequence[float] | Sequence[Sequence[float]] | None = None,
         **run_options,
-    ) -> Job:
+    ) -> T:
         """Run the job of the sampling of bitstrings.
 
         Args:
@@ -153,7 +156,7 @@ class BaseSampler(BasePrimitive):
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> Job:
+    ) -> T:
         raise NotImplementedError("The subclass of BaseSampler must implment `_run` method.")
 
     # TODO: validate measurement gates are present
