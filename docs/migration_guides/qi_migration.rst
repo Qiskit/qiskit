@@ -521,7 +521,7 @@ Code examples
     Backend Primitive, you do not have to manually assign parameters as expected in the Quantum Instance workflow.
 
     The use-case that motivated the addition of the two-stage transpilation to the ``QuantumInstance`` was to allow
-    running pulse-efficient transpilation passes with the :class:`qiskit.opflow.CircuitSampler` class. The following
+    running pulse-efficient transpilation passes with the :class:`~qiskit.opflow.CircuitSampler` class. The following
     example shows to migrate this particular use-case, where the ``QuantumInstance.execute()`` method is called
     under the hood by the :class:`~qiskit.opflow.CircuitSampler`.
 
@@ -643,7 +643,6 @@ Code examples
         # Define parametrized circuit and parameter values
         qc = RealAmplitudes(2)
         qc.measure_all() # add measurements!
-        param_dict = {p: 0.5 for p in qc.parameters}
         print(qc.decompose())
 
         # Instantiate backend sampler with skip_transpilation
