@@ -18,7 +18,7 @@ See https://arxiv.org/abs/1805.08138.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import Optional, Union, List, Any
+from typing import Any
 import logging
 from time import time
 
@@ -61,7 +61,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     An instance of VQD requires defining three algorithmic sub-components:
     an integer k denoting the number of eigenstates to calculate, a trial
     state (a.k.a. ansatz) which is a :class:`QuantumCircuit`,
-    and one or a list of the classical :mod:`~qiskit.algorithms.optimizers`.
+    and one instance (or list of) classical :mod:`~qiskit.algorithms.optimizers`.
     The optimizer varies the circuit parameters
     The trial state :math:`|\psi(\vec\theta)\rangle` is varied by the optimizer,
     which modifies the set of ansatz parameters :math:`\vec\theta`
