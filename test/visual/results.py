@@ -146,14 +146,14 @@ class Results:
         """Creates the html for the header"""
         ret = ""
 
-        if len(self.mismatch) >= 2:
+        if len(self.mismatch) >= 1:
             Results._zipfiles(self.mismatch, f"{self.directory}/mismatch.zip")
             ret += (
                 f'<div><a href="{self.directory}/mismatch.zip">'
                 "Download %s mismatch results as a zip</a></div>" % len(self.mismatch)
             )
 
-        if len(self.missing) >= 2:
+        if len(self.missing) >= 1:
             Results._zipfiles(self.missing, f"{self.directory}/missing.zip")
             ret += (
                 f'<div><a href="{self.directory}/missing.zip">'
