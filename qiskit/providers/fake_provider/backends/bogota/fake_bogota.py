@@ -25,7 +25,7 @@ class FakeBogotaV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_bogota.json"
     props_filename = "props_bogota.json"
     defs_filename = "defs_bogota.json"
-    backend_name = "fake_bogota_v2"
+    backend_name = "fake_bogota"
 
 
 class FakeBogota(fake_pulse_backend.FakePulseBackend):

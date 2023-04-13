@@ -41,16 +41,16 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
     ):
         r"""
         Args:
-            cost_operator (OperatorBase, optional): The operator representing the cost of
-                the optimization problem, denoted as :math:`U(C, \gamma)` in the original paper.
-                Must be set either in the constructor or via property setter.
+            cost_operator (BaseOperator or OperatorBase, optional): The operator
+                representing the cost of the optimization problem, denoted as :math:`U(C, \gamma)`
+                in the original paper. Must be set either in the constructor or via property setter.
             reps (int): The integer parameter p, which determines the depth of the circuit,
                 as specified in the original paper, default is 1.
             initial_state (QuantumCircuit, optional): An optional initial state to use.
                 If `None` is passed then a set of Hadamard gates is applied as an initial state
                 to all qubits.
-            mixer_operator (OperatorBase or QuantumCircuit, optional): An optional custom mixer
-                to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
+            mixer_operator (BaseOperator or OperatorBase or QuantumCircuit, optional): An optional
+                custom mixer to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
                 in the original paper. Can be an operator or an optionally parameterized quantum
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
@@ -147,8 +147,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """The operators that are evolved in this circuit.
 
         Returns:
-             List[Union[OperatorBase, QuantumCircuit]]: The operators to be evolved (and circuits)
-                in this ansatz.
+             List[Union[BaseOperator, OperatorBase, QuantumCircuit]]: The operators to be evolved
+                (and circuits) in this ansatz.
         """
         return [self.cost_operator, self.mixer_operator]
 
@@ -157,7 +157,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Returns an operator representing the cost of the optimization problem.
 
         Returns:
-            OperatorBase: cost operator.
+            BaseOperator or OperatorBase: cost operator.
         """
         return self._cost_operator
 
@@ -166,7 +166,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Sets cost operator.
 
         Args:
-            cost_operator (OperatorBase, optional): cost operator to set.
+            cost_operator (BaseOperator or OperatorBase, optional): cost operator to set.
         """
         self._cost_operator = cost_operator
         self.qregs = [QuantumRegister(self.num_qubits, name="q")]
@@ -211,7 +211,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Returns an optional mixer operator expressed as an operator or a quantum circuit.
 
         Returns:
-            OperatorBase or QuantumCircuit, optional: mixer operator or circuit.
+            BaseOperator or OperatorBase or QuantumCircuit, optional: mixer operator or circuit.
         """
         if self._mixer is not None:
             return self._mixer
@@ -239,8 +239,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Sets mixer operator.
 
         Args:
-            mixer_operator (OperatorBase or QuantumCircuit, optional): mixer operator or circuit
-                to set.
+            mixer_operator (BaseOperator or OperatorBase or QuantumCircuit, optional): mixer
+                operator or circuit to set.
         """
         self._mixer = mixer_operator
         self._invalidate()
