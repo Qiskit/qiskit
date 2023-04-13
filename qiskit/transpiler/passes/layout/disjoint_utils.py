@@ -134,12 +134,12 @@ def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
     qubits = set(dag.qubits)
 
     decomposed_dags = []
-    for component_qubits in component_qubits:
+    for dag_qubits in component_qubits:
         new_dag = dag.copy_empty_like()
-        new_dag.remove_qubits(*qubits - component_qubits)
+        new_dag.remove_qubits(*qubits - dag_qubits)
         new_dag.global_phase = 0
         for node in dag.topological_op_nodes():
-            if node.qargs[0] in component_qubits:
+            if dag_qubits.issuperset(node.qargs):
                 new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
         idle_clbits = []
         for bit, node in new_dag.input_map.items():
