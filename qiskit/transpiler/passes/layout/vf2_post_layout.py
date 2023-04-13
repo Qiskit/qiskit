@@ -134,6 +134,7 @@ class VF2PostLayout(AnalysisPass):
                 the target set of instructions.
             max_trials (int): The maximum number of trials to run VF2 to find
                 a layout. A value of ``0`` (the default) means 'unlimited'.
+
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
         """

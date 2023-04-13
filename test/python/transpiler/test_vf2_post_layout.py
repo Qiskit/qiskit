@@ -255,12 +255,17 @@ class TestVF2PostLayout(QiskitTestCase):
         dag = circuit_to_dag(tqc)
         cmap = CouplingMap(backend.configuration().coupling_map)
         props = backend.properties()
-        pass_ = VF2PostLayout(coupling_map=cmap, properties=props, seed=self.seed, max_trials=max_trials)
+        pass_ = VF2PostLayout(
+            coupling_map=cmap, properties=props, seed=self.seed, max_trials=max_trials
+        )
 
-        with self.assertLogs("qiskit.transpiler.passes.layout.vf2_post_layout", level="DEBUG") as cm:
+        with self.assertLogs(
+            "qiskit.transpiler.passes.layout.vf2_post_layout", level="DEBUG"
+        ) as cm:
             pass_.run(dag)
         self.assertIn(
-            f"DEBUG:qiskit.transpiler.passes.layout.vf2_post_layout:Trial {max_trials} is >= configured max trials {max_trials}",
+            f"DEBUG:qiskit.transpiler.passes.layout.vf2_post_layout:Trial {max_trials}"
+            f"is >= configured max trials {max_trials}",
             cm.output,
         )
 
