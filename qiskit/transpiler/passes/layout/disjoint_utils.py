@@ -42,6 +42,11 @@ def run_pass_over_connected_components(
     mapped_components = map_components(dag_components, cmap_components)
     out_component_pairs = []
     for cmap_index, dags in mapped_components.items():
+        # Take the first dag from the mapped dag components and then
+        # compose it with any other dag components that are operating on the
+        # same coupling map connected component. This results in a subcircuit
+        # of possibly disjoint circuit components which we will run the layout
+        # pass on.
         out_dag = dag_components[dags.pop()]
         for dag_index in dags:
             dag = dag_components[dag_index]
