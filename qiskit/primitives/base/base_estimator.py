@@ -85,8 +85,6 @@ from collections.abc import Mapping, Sequence
 from copy import copy
 from typing import Generic, TypeVar
 
-import numpy as np
-
 from qiskit.circuit import ParameterExpression, QuantumCircuit
 from qiskit.circuit.parametertable import ParameterView
 from qiskit.opflow import PauliSumOp
