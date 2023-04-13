@@ -33,7 +33,7 @@ The following table summarizes the migration alternatives for the :class:`~qiski
    * - :meth:`.QuantumInstance.execute`
      - :meth:`qiskit.primitives.Sampler.run` or :meth:`qiskit.primitives.Estimator.run`
    * - :meth:`.QuantumInstance.transpile`
-     - :meth:`qiskit.transpiler.transpile`
+     - :meth:`qiskit.compiler.transpile`
    * - :meth:`.QuantumInstance.assemble`
      - :meth:`qiskit.compiler.assemble`
 
@@ -51,7 +51,7 @@ Contents
 
     **Background on the Qiskit Primitives**
 
-    The qiskit primitives are algorithmic abstractions that encapsulate the access to backends or simulators
+    The Qiskit Primitives are algorithmic abstractions that encapsulate the access to backends or simulators
     for an easy integration into algorithm workflows.
 
     The current pool of primitives includes **two** different **classes** (:class:`~qiskit.primitives.Sampler` and
@@ -69,13 +69,13 @@ Contents
     - *Runtime Primitives* - The Sampler and Estimator in :mod:`qiskit_ibm_runtime` --> ``from qiskit_ibm_runtime import Sampler/Estimator``
     - *Backend Primitives* - The BackendSampler and BackendEstimator in :mod:`qiskit.primitives` --> ``from qiskit import BackendSampler/BackendEstimator``
 
-    For guidelines on which primitives to choose for your task. Please continue reading.
+    For guidelines on which primitives to choose for your task, please continue reading.
 
 Choosing the right primitive for your task
 ===========================================
 
-The :class:`~qiskit.utils.QuantumInstance` was designed to be an abstraction over transpile/ run.
-It took inspiration from :func:`qiskit.execute_function.execute`, but retained config information that could be set
+The :class:`~qiskit.utils.QuantumInstance` was designed to be an abstraction over transpile/run.
+It took inspiration from :func:`~qiskit.execute_function.execute`, but retained config information that could be set
 at the algorithm level, to save the user from defining the same parameters for every transpile/execute call.
 
 The :mod:`qiskit.primitives` share some of these features, but unlike the :class:`~qiskit.utils.QuantumInstance`,
@@ -117,7 +117,7 @@ statevector simulations, etc), while the ``Sampler`` normalizes its ``SamplerRes
 return a :class:`~qiskit.result.QuasiDistribution` object with the resulting quasi-probability distribution.
 
 The ``Estimator`` provides a specific abstraction for the expectation value calculation that can replace
-the use of ``QuantumInstance`` as well as the associated pre- and post-processing steps, usually performed
+the use of :class:`.QuantumInstance` as well as the associated pre- and post-processing steps, usually performed
 with an additional library such as :mod:`qiskit.opflow`.
 
 Choosing the right primitive for your settings
@@ -156,7 +156,7 @@ primitives **expose a similar setting through their interface**:
      - No
      - Yes
      - Yes
-     - No
+     - No (inferred from internal ``backend``)
    * - Transpiler settings: ``seed_transpiler``, ``optimization_level``
      - No
      - No
@@ -184,8 +184,8 @@ primitives **expose a similar setting through their interface**:
      - Sampler default -> M3 (*)
      - No
    * - Job management: ``job_callback``, ``max_job_retries``, ``timeout``, ``wait``
-     - No
-     - No
+     - Does not apply
+     - Does not apply
      - Sessions, callback (**)
      - No
 
@@ -451,7 +451,7 @@ Code examples
 
     **Using Primitives**
 
-    The Runtime Primitives offer a suite of error mitigation methods that can be easily "turned on" with the
+    The Runtime Primitives offer a suite of error mitigation methods that can be easily turned on with the
     ``resilience_level`` option. These are, however, not configurable. The sampler's ``resilience_level=1``
     is the closest alternative to the Quantum Instance's measurement error mitigation implementation, but this
     is not a 1-1 replacement.
