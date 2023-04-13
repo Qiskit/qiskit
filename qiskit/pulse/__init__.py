@@ -143,6 +143,7 @@ from qiskit.pulse.library import (
     GaussianSquare,
     GaussianSquareDrag,
     GaussianSquareEcho,
+    Cos,
     Sawtooth,
     Triangle,
     ParametricPulse,
