@@ -134,8 +134,8 @@ def check_layout_isolated_to_component(dag: DAGCircuit, coupling_map: CouplingMa
     component_sets = [set(x.graph.nodes()) for x in coupling_map.connected_components()]
     for inst in dag.two_qubit_ops():
         component_index = None
-        for i in range(len(component_sets)):
-            if qubit_indices[inst.qargs[0]] in component_sets[i]:
+        for i, component_set in enumerate(component_sets):
+            if qubit_indices[inst.qargs[0]] in component_set:
                 component_index = i
                 break
         if qubit_indices[inst.qargs[1]] not in component_sets[component_index]:
