@@ -194,7 +194,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         # These are protected names because we're not trying to clash with parent attributes.
         self.__true_block = true_block
         self.__false_block: Optional[ControlFlowBuilderBlock] = false_block
-        self.__resources = self._placeholder_resources()
+        self.__resources = self._calculate_placeholder_resources()
         super().__init__(
             "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
         )
@@ -232,7 +232,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
             return self.__true_block.registers.copy()
         return self.__true_block.registers | self.__false_block.registers
 
-    def _placeholder_resources(self) -> InstructionResources:
+    def _calculate_placeholder_resources(self) -> InstructionResources:
         """Get the placeholder resources (see :meth:`.placeholder_resources`).
 
         This is a separate function because we use the resources during the initialisation to

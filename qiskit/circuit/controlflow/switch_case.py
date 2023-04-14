@@ -204,7 +204,7 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
     ):
         self.__target = target
         self.__cases = cases
-        self.__resources = self._placeholder_resources()
+        self.__resources = self._calculate_placeholder_resources()
         super().__init__(
             "switch_case",
             len(self.__resources.qubits),
@@ -213,7 +213,7 @@ class SwitchCasePlaceholder(InstructionPlaceholder):
             label=label,
         )
 
-    def _placeholder_resources(self):
+    def _calculate_placeholder_resources(self):
         qubits = set()
         clbits = set()
         qregs = set()
