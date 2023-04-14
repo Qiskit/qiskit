@@ -31,7 +31,8 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         time = 2.5
         initial_state = One
 
-        evo_problem = EvolutionProblem(hamiltonian, time, initial_state)
+        with self.assertWarns(DeprecationWarning):
+            evo_problem = EvolutionProblem(hamiltonian, time, initial_state)
 
         expected_hamiltonian = Y
         expected_time = 2.5
@@ -56,14 +57,15 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         aux_operators = [X, Y]
         param_value_dict = {t_parameter: 3.2}
 
-        evo_problem = EvolutionProblem(
-            hamiltonian,
-            time,
-            initial_state,
-            aux_operators,
-            t_param=t_parameter,
-            param_value_dict=param_value_dict,
-        )
+        with self.assertWarns(DeprecationWarning):
+            evo_problem = EvolutionProblem(
+                hamiltonian,
+                time,
+                initial_state,
+                aux_operators,
+                t_param=t_parameter,
+                param_value_dict=param_value_dict,
+            )
 
         expected_hamiltonian = Y + t_parameter * Z
         expected_time = 2
@@ -83,7 +85,7 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     @unpack
     def test_init_errors(self, hamiltonian, time, initial_state):
         """Tests expected errors are thrown on invalid time argument."""
-        with assert_raises(ValueError):
+        with self.assertWarns(DeprecationWarning), assert_raises(ValueError):
             _ = EvolutionProblem(hamiltonian, time, initial_state)
 
     def test_validate_params(self):
@@ -93,21 +95,30 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         with self.subTest(msg="Parameter missing in dict."):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {param_y: 2}
-            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
+            with self.assertWarns(DeprecationWarning):
+                evolution_problem = EvolutionProblem(
+                    hamiltonian, 2, Zero, param_value_dict=param_dict
+                )
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 
         with self.subTest(msg="Empty dict."):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {}
-            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
+            with self.assertWarns(DeprecationWarning):
+                evolution_problem = EvolutionProblem(
+                    hamiltonian, 2, Zero, param_value_dict=param_dict
+                )
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 
         with self.subTest(msg="Extra parameter in dict."):
             hamiltonian = param_x * X + param_y * Y
             param_dict = {param_y: 2, param_x: 1, Parameter("z"): 1}
-            evolution_problem = EvolutionProblem(hamiltonian, 2, Zero, param_value_dict=param_dict)
+            with self.assertWarns(DeprecationWarning):
+                evolution_problem = EvolutionProblem(
+                    hamiltonian, 2, Zero, param_value_dict=param_dict
+                )
             with assert_raises(ValueError):
                 evolution_problem.validate_params()
 
