@@ -20,6 +20,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.opflow import PauliSumOp
+from qiskit.quantum_info import SparsePauliOp
 from .exceptions import AlgorithmError
 from .list_or_dict import ListOrDict
 from ..primitives import BaseEstimator
@@ -88,7 +89,7 @@ def _handle_zero_ops(
     """Replaces all occurrence of operators equal to 0 in the list with an equivalent ``PauliSumOp``
     operator."""
     if observables_list:
-        zero_op = PauliSumOp.from_list([("I" * observables_list[0].num_qubits, 0)])
+        zero_op = SparsePauliOp.from_list([("I" * observables_list[0].num_qubits, 0)])
         for ind, observable in enumerate(observables_list):
             if observable == 0:
                 observables_list[ind] = zero_op

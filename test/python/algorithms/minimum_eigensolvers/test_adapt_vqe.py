@@ -38,54 +38,62 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         algorithm_globals.random_seed = 42
-        self.h2_op = PauliSumOp.from_list(
-            [
-                ("IIII", -0.8105479805373266),
-                ("ZZII", -0.2257534922240251),
-                ("IIZI", +0.12091263261776641),
-                ("ZIZI", +0.12091263261776641),
-                ("IZZI", +0.17218393261915543),
-                ("IIIZ", +0.17218393261915546),
-                ("IZIZ", +0.1661454325638243),
-                ("ZZIZ", +0.1661454325638243),
-                ("IIZZ", -0.2257534922240251),
-                ("IZZZ", +0.16892753870087926),
-                ("ZZZZ", +0.17464343068300464),
-                ("IXIX", +0.04523279994605788),
-                ("ZXIX", +0.04523279994605788),
-                ("IXZX", -0.04523279994605788),
-                ("ZXZX", -0.04523279994605788),
-            ]
-        )
-        self.excitation_pool = [
-            PauliSumOp(
-                SparsePauliOp(["IIIY", "IIZY"], coeffs=[0.5 + 0.0j, -0.5 + 0.0j]), coeff=1.0
-            ),
-            PauliSumOp(
-                SparsePauliOp(["ZYII", "IYZI"], coeffs=[-0.5 + 0.0j, 0.5 + 0.0j]), coeff=1.0
-            ),
-            PauliSumOp(
-                SparsePauliOp(
-                    ["ZXZY", "IXIY", "IYIX", "ZYZX", "IYZX", "ZYIX", "ZXIY", "IXZY"],
-                    coeffs=[
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                        0.125 + 0.0j,
-                        -0.125 + 0.0j,
-                    ],
+
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            self.h2_op = PauliSumOp.from_list(
+                [
+                    ("IIII", -0.8105479805373266),
+                    ("ZZII", -0.2257534922240251),
+                    ("IIZI", +0.12091263261776641),
+                    ("ZIZI", +0.12091263261776641),
+                    ("IZZI", +0.17218393261915543),
+                    ("IIIZ", +0.17218393261915546),
+                    ("IZIZ", +0.1661454325638243),
+                    ("ZZIZ", +0.1661454325638243),
+                    ("IIZZ", -0.2257534922240251),
+                    ("IZZZ", +0.16892753870087926),
+                    ("ZZZZ", +0.17464343068300464),
+                    ("IXIX", +0.04523279994605788),
+                    ("ZXIX", +0.04523279994605788),
+                    ("IXZX", -0.04523279994605788),
+                    ("ZXZX", -0.04523279994605788),
+                ]
+            )
+            self.excitation_pool = [
+                PauliSumOp(
+                    SparsePauliOp(["IIIY", "IIZY"], coeffs=[0.5 + 0.0j, -0.5 + 0.0j]), coeff=1.0
                 ),
-                coeff=1.0,
-            ),
-        ]
-        self.initial_state = QuantumCircuit(QuantumRegister(4))
-        self.initial_state.x(0)
-        self.initial_state.x(1)
-        self.ansatz = EvolvedOperatorAnsatz(self.excitation_pool, initial_state=self.initial_state)
-        self.optimizer = SLSQP()
+                PauliSumOp(
+                    SparsePauliOp(["ZYII", "IYZI"], coeffs=[-0.5 + 0.0j, 0.5 + 0.0j]), coeff=1.0
+                ),
+                PauliSumOp(
+                    SparsePauliOp(
+                        ["ZXZY", "IXIY", "IYIX", "ZYZX", "IYZX", "ZYIX", "ZXIY", "IXZY"],
+                        coeffs=[
+                            -0.125 + 0.0j,
+                            0.125 + 0.0j,
+                            -0.125 + 0.0j,
+                            0.125 + 0.0j,
+                            0.125 + 0.0j,
+                            -0.125 + 0.0j,
+                            0.125 + 0.0j,
+                            -0.125 + 0.0j,
+                        ],
+                    ),
+                    coeff=1.0,
+                ),
+            ]
+            self.initial_state = QuantumCircuit(QuantumRegister(4))
+            self.initial_state.x(0)
+            self.initial_state.x(1)
+            self.ansatz = EvolvedOperatorAnsatz(self.excitation_pool, initial_state=self.initial_state)
+            self.optimizer = SLSQP()
+
+        self.assertTrue(len(caught_warnings) > 0)
 
     def test_default(self):
         """Default execution"""
@@ -152,7 +160,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
 
     def test_eigenvalue_threshold(self):
         """Test for the eigenvalue_threshold attribute."""
-        operator = PauliSumOp.from_list(
+        operator = SparsePauliOp.from_list(
             [
                 ("XX", 1.0),
                 ("ZX", -0.5),
@@ -161,8 +169,8 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         )
         ansatz = EvolvedOperatorAnsatz(
             [
-                PauliSumOp.from_list([("YZ", 0.4)]),
-                PauliSumOp.from_list([("ZY", 0.5)]),
+                SparsePauliOp.from_list([("YZ", 0.4)]),
+                SparsePauliOp.from_list([("ZY", 0.5)]),
             ],
             initial_state=QuantumCircuit(2),
         )
@@ -182,8 +190,14 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
                 VQE(Estimator(), self.ansatz, self.optimizer),
                 threshold=1e-3,
             )
-            res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
+            self.assertTrue(len(caught_warnings) > 0)
             self.assertEqual(res.termination_criterion, TerminationCriterion.CONVERGED)
 
     @data(
@@ -236,13 +250,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         solver = VQE(Estimator(), QuantumCircuit(1), self.optimizer)
         calc = AdaptVQE(solver)
         calc._excitation_pool = [SparsePauliOp("X")]
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            res = calc._compute_gradients(operator=SparsePauliOp("Y"), theta=[])
-        self.assertTrue(len(caught_warnings) > 0)
+        res = calc._compute_gradients(operator=SparsePauliOp("Y"), theta=[])
         # compare with manually computed reference value
         self.assertAlmostEqual(res[0][0], 2.0)
 
