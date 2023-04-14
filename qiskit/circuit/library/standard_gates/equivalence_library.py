@@ -13,7 +13,9 @@
 """Standard gates."""
 
 from __future__ import annotations
-from qiskit.qasm import pi
+
+from math import pi
+
 from qiskit.circuit import (
     EquivalenceLibrary,
     Parameter,
