@@ -2210,7 +2210,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         )
 
     def test_disjoint_control_flow_shared_classical(self):
-        """Test circuit with classical data dependency between conencted components."""
+        """Test circuit with classical data dependency between connected components."""
         creg = ClassicalRegister(19)
         qc = QuantumCircuit(25)
         qc.add_register(creg)
