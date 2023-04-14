@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
-    Pending deprecation: Numpy Minimum Eigensolver algorithm.
+    Deprecated: Numpy Minimum Eigensolver algorithm.
 
     The NumPyMinimumEigensolver class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver` class.
@@ -42,10 +42,10 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class "
-            "``qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver``."
+            "``qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver``. "
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.24.0",
     )
     def __init__(
         self,

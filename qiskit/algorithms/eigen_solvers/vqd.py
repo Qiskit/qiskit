@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 class VQD(VariationalAlgorithm, Eigensolver):
-    r"""Pending deprecation: Variational Quantum Deflation algorithm.
+    r"""Deprecated: Variational Quantum Deflation algorithm.
 
     The VQD class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.VQD` class.
@@ -98,9 +98,11 @@ class VQD(VariationalAlgorithm, Eigensolver):
     """
 
     @deprecate_func(
-        additional_msg="Instead, use the class ``qiskit.algorithms.eigensolvers.VQD``",
-        since="0.23.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.VQD``."
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -760,7 +762,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
 
 
 class VQDResult(VariationalResult, EigensolverResult):
-    """Pending deprecation: VQD Result.
+    """Deprecated: VQD Result.
 
     The VQDResult class has been superseded by the
     :class:`qiskit.algorithms.eigensolvers.VQDResult` class.
@@ -770,9 +772,11 @@ class VQDResult(VariationalResult, EigensolverResult):
     """
 
     @deprecate_func(
-        additional_msg="Instead, use the class ``qiskit.algorithms.eigensolvers.VQDResult``.",
-        since="0.23.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.eigensolvers.VQDResult``."
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(self) -> None:
         super().__init__()

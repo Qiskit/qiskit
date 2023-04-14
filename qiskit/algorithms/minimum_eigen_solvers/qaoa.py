@@ -32,7 +32,7 @@ from qiskit.algorithms.minimum_eigen_solvers.vqe import VQE
 
 class QAOA(VQE):
     """
-    Pending deprecation: Quantum Approximate Optimization Algorithm.
+    Deprecated: Quantum Approximate Optimization Algorithm.
 
     The QAOA class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.QAOA` class.
@@ -62,9 +62,11 @@ class QAOA(VQE):
     """
 
     @deprecate_func(
-        additional_msg="Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.QAOA``.",
-        since="0.23.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.QAOA``. "
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,

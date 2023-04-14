@@ -18,7 +18,7 @@ import numpy as np
 from ddt import data, ddt, unpack
 
 from qiskit import QiskitError
-from qiskit.algorithms.evolvers import EvolutionProblem
+from qiskit.algorithms.time_evolvers import TimeEvolutionProblem
 from qiskit.algorithms.optimizers import L_BFGS_B, SPSA, GradientDescent, OptimizerResult
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.algorithms.time_evolvers.pvqd import PVQD
@@ -96,7 +96,9 @@ class TestPVQD(QiskitTestCase):
             optimizer=optimizer,
             num_timesteps=num_timesteps,
         )
-        problem = EvolutionProblem(hamiltonian, time, aux_operators=[hamiltonian, self.observable])
+        problem = TimeEvolutionProblem(
+            hamiltonian, time, aux_operators=[hamiltonian, self.observable]
+        )
         result = pvqd.evolve(problem)
 
         self.assertTrue(len(result.fidelities) == 3)
@@ -176,7 +178,7 @@ class TestPVQD(QiskitTestCase):
             optimizer=L_BFGS_B(),
             num_timesteps=0,
         )
-        problem = EvolutionProblem(
+        problem = TimeEvolutionProblem(
             self.hamiltonian, time=0.01, aux_operators=[self.hamiltonian, self.observable]
         )
 
@@ -199,7 +201,7 @@ class TestPVQD(QiskitTestCase):
             num_timesteps=10,
             initial_guess=initial_guess,
         )
-        problem = EvolutionProblem(
+        problem = TimeEvolutionProblem(
             self.hamiltonian, time=0.1, aux_operators=[self.hamiltonian, self.observable]
         )
 
@@ -211,7 +213,7 @@ class TestPVQD(QiskitTestCase):
 
     def test_zero_parameters(self):
         """Test passing an ansatz with zero parameters raises an error."""
-        problem = EvolutionProblem(self.hamiltonian, time=0.02)
+        problem = TimeEvolutionProblem(self.hamiltonian, time=0.02)
         sampler = Sampler()
         fidelity_primitive = ComputeUncompute(sampler)
 
@@ -230,7 +232,7 @@ class TestPVQD(QiskitTestCase):
         initial_state = QuantumCircuit(2)
         initial_state.x(0)
 
-        problem = EvolutionProblem(
+        problem = TimeEvolutionProblem(
             self.hamiltonian,
             time=0.02,
             initial_state=initial_state,
@@ -252,7 +254,7 @@ class TestPVQD(QiskitTestCase):
     def test_aux_ops_raises(self):
         """Test passing auxiliary operators with no estimator raises an error."""
 
-        problem = EvolutionProblem(
+        problem = TimeEvolutionProblem(
             self.hamiltonian, time=0.02, aux_operators=[self.hamiltonian, self.observable]
         )
 
@@ -321,7 +323,7 @@ class TestPVQDUtils(QiskitTestCase):
             estimator=estimator,
             optimizer=optimizer,
         )
-        problem = EvolutionProblem(self.hamiltonian, time=0.01)
+        problem = TimeEvolutionProblem(self.hamiltonian, time=0.01)
         for circuit, expected_support in tests:
             with self.subTest(circuit=circuit, expected_support=expected_support):
                 pvqd.ansatz = circuit
