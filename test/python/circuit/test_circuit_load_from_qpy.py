@@ -13,10 +13,10 @@
 
 """Test cases for the circuit qasm_file and qasm_string method."""
 
-import warnings
 import io
 import json
 import random
+import warnings
 
 import numpy as np
 
@@ -42,9 +42,9 @@ from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parametervector import ParameterVector
 from qiskit.synthesis import LieTrotter, SuzukiTrotter
 from qiskit.extensions import UnitaryGate
-from qiskit.opflow import I, X, Y, Z
 from qiskit.test import QiskitTestCase
 from qiskit.qpy import dump, load
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.circuit.controlledgate import ControlledGate
 
@@ -303,13 +303,12 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_string_parameter(self):
         """Test a PauliGate instruction that has string parameters."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            circ = (X ^ Y ^ Z).to_circuit_op().to_circuit()
-        self.assertTrue(len(caught_warnings) > 0)
+
+        circ = QuantumCircuit(3)
+        circ.z(0)
+        circ.y(1)
+        circ.x(2)
+
         qpy_file = io.BytesIO()
         dump(circ, qpy_file)
         qpy_file.seek(0)
@@ -683,22 +682,11 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_qaoa(self):
         """Test loading a QAOA circuit works."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            cost_operator = Z ^ I ^ I ^ Z
-        self.assertTrue(len(caught_warnings) > 0)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            qaoa = QAOAAnsatz(cost_operator, reps=2)
-            qpy_file = io.BytesIO()
-            dump(qaoa, qpy_file)
-        self.assertTrue(len(caught_warnings) > 0)
+        cost_operator = Pauli("ZIIZ")
+        qaoa = QAOAAnsatz(cost_operator, reps=2)
+
+        qpy_file = io.BytesIO()
+        dump(qaoa, qpy_file)
         qpy_file.seek(0)
         new_circ = load(qpy_file)[0]
         self.assertEqual(qaoa, new_circ)
@@ -710,13 +698,15 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
         synthesis = LieTrotter(reps=2)
+        # To be removed once PauliEvolutionGate drops support for opflow
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.filterwarnings(
                 "always",
                 category=DeprecationWarning,
             )
-            evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=2, synthesis=synthesis)
+            evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=2, synthesis=synthesis)
         self.assertTrue(len(caught_warnings) > 0)
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -737,13 +727,8 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a circuit with an evolution gate that has a parameter for time."""
         synthesis = LieTrotter(reps=2)
         time = Parameter("t")
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time, synthesis=synthesis)
-        self.assertTrue(len(caught_warnings) > 0)
+        evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=time, synthesis=synthesis)
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -764,13 +749,8 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a circuit with an evolution gate that has a parameter for time."""
         synthesis = LieTrotter(reps=2)
         time = Parameter("t")
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time * time, synthesis=synthesis)
-        self.assertTrue(len(caught_warnings) > 0)
+        evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=time * time, synthesis=synthesis)
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -791,13 +771,8 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a an evolution gate that has a param vector element for time."""
         synthesis = LieTrotter(reps=2)
         time = ParameterVector("TimeVec", 1)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=time[0], synthesis=synthesis)
-        self.assertTrue(len(caught_warnings) > 0)
+        evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=time[0], synthesis=synthesis)
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -816,13 +791,8 @@ class TestLoadFromQPY(QiskitTestCase):
 
     def test_op_list_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo = PauliEvolutionGate([(Z ^ I) + (I ^ Z)] * 5, time=0.2, synthesis=None)
-        self.assertTrue(len(caught_warnings) > 0)
+
+        evo = PauliEvolutionGate([SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)])] * 5, time=0.2, synthesis=None)
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -842,13 +812,8 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_op_evolution_gate_suzuki_trotter(self):
         """Test qpy path with a suzuki trotter synthesis method on an evolution gate."""
         synthesis = SuzukiTrotter()
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo = PauliEvolutionGate((Z ^ I) + (I ^ Z), time=0.2, synthesis=synthesis)
-        self.assertTrue(len(caught_warnings) > 0)
+        evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=0.2, synthesis=synthesis)
+
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -1371,3 +1336,4 @@ class TestLoadFromQPY(QiskitTestCase):
         with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
             # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
             from qiskit.circuit.qpy_serialization import dump, load
+

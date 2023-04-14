@@ -22,8 +22,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.opflow import PauliSumOp
-from qiskit.quantum_info import Pauli
+from qiskit.quantum_info import Pauli,SparsePauliOp
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
@@ -83,7 +82,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+            op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         self.assertTrue(len(caught_warnings) > 0)
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(4))
@@ -125,7 +124,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
+            op = SparsePauliOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
         self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(4)
@@ -168,7 +167,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("IIXX", 1), ("IXIX", 2)])
+            op = SparsePauliOp.from_list([("IIXX", 1), ("IXIX", 2)])
         self.assertTrue(len(caught_warnings) > 0)
 
         cmap = CouplingMap(couplinglist=[(0, 1), (1, 2), (2, 3)])
@@ -215,7 +214,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
+            op = SparsePauliOp.from_list([("XXII", -1), ("IIXX", 1), ("XIIX", -2), ("IXIX", 2)])
         self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(4, 4)
@@ -288,7 +287,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+            op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
             circ = QAOAAnsatz(op, reps=2, mixer_operator=mixer)
             swapped = self.pm_.run(circ.decompose())
         self.assertTrue(len(caught_warnings) > 0)
@@ -339,7 +338,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
+            op = SparsePauliOp.from_list([("IZZI", 1), ("ZIIZ", 2), ("ZIZI", 3)])
         self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(4)
@@ -422,7 +421,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("IZZ", 1), ("ZIZ", 2)])
+            op = SparsePauliOp.from_list([("IZZ", 1), ("ZIZ", 2)])
         self.assertTrue(len(caught_warnings) > 0)
         circ = QuantumCircuit(4)
         circ.append(PauliEvolutionGate(op, 1), range(3))
@@ -473,7 +472,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 category=DeprecationWarning,
             )
             # A dense Pauli op.
-            op = PauliSumOp.from_list(
+            op = SparsePauliOp.from_list(
                 [
                     ("IIIZZ", 1),
                     ("IIZIZ", 2),
@@ -549,7 +548,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("IIIX", 1), ("IIXI", 2), ("IZII", 3), ("XIII", 4)])
+            op = SparsePauliOp.from_list([("IIIX", 1), ("IIXI", 2), ("IZII", 3), ("XIII", 4)])
         self.assertTrue(len(caught_warnings) > 0)
 
         circ = QuantumCircuit(4)
@@ -568,7 +567,7 @@ class TestPauliEvolutionSwapStrategies(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
+            op = SparsePauliOp.from_list([("IIZZ", 1), ("IZZI", 2), ("ZZII", 3), ("ZIZI", 4)])
         self.assertTrue(len(caught_warnings) > 0)
         swaps = (((1, 2),),)
 
@@ -638,7 +637,7 @@ class TestSwapRouterExceptions(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            op = PauliSumOp.from_list(
+            op = SparsePauliOp.from_list(
                 [("IIZZ", 1), ("IZIZ", 1), ("ZIIZ", 1), ("IZZI", 1), ("ZIZI", 1), ("ZZII", 1)]
             )
         self.assertTrue(len(caught_warnings) > 0)
