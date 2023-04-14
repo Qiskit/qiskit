@@ -48,6 +48,13 @@ class AmplitudeEstimation(AmplitudeEstimator):
     Using a maximum likelihood post processing, this grid constraint can be circumvented.
     This improved estimator is implemented as well, see [2] Appendix A for more detail.
 
+    .. note::
+
+        This class does not support the :attr:`.EstimationProblem.is_good_state` property,
+        as for phase estimation-based QAE, the oracle that identifes the good states
+        must be encoded in the Grover operator. To set custom oracles, the
+        :attr:`.EstimationProblem.grover_operator` attribute can be set directly.
+
     References:
         [1]: Brassard, G., Hoyer, P., Mosca, M., & Tapp, A. (2000).
              Quantum Amplitude Amplification and Estimation.
@@ -59,9 +66,11 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
     @deprecate_arg(
         "quantum_instance",
-        additional_msg="Instead, use the ``sampler`` argument.",
-        since="0.22.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -79,7 +88,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
                 `qiskit.circuit.library.PhaseEstimation` when None.
             iqft: The inverse quantum Fourier transform component, defaults to using a standard
                 implementation from `qiskit.circuit.library.QFT` when None.
-            quantum_instance: Pending deprecation\: The backend (or `QuantumInstance`) to execute
+            quantum_instance: Deprecated: The backend (or `QuantumInstance`) to execute
                 the circuits on.
             sampler: A sampler primitive to evaluate the circuits.
 
@@ -123,9 +132,13 @@ class AmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+        since="0.24.0",
+        is_property=True,
+    )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation; Get the quantum instance.
+        """Deprecated: Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -133,9 +146,13 @@ class AmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+        since="0.24.0",
+        is_property=True,
+    )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Pending deprecation; Set quantum instance.
+        """Deprecated: Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -347,6 +364,14 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
         if estimation_problem.objective_qubits is None:
             raise ValueError("The objective_qubits property of the estimation problem must be set.")
+
+        if estimation_problem.has_good_state:
+            warnings.warn(
+                "The AmplitudeEstimation class does not support an is_good_state function to "
+                "identify good states. For this algorithm, a custom oracle has to be encoded directly "
+                "in the grover_operator. If no custom oracle is set, this algorithm identifies good "
+                "states as those, where all objective qubits are in state 1."
+            )
 
         result = AmplitudeEstimationResult()
         result.num_evaluation_qubits = self._m

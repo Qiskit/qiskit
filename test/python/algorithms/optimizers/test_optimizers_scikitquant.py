@@ -52,8 +52,9 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
             seed_simulator=algorithm_globals.random_seed,
             seed_transpiler=algorithm_globals.random_seed,
         )
-        vqe = VQE(ansatz=RealAmplitudes(), optimizer=optimizer, quantum_instance=qe)
-        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(ansatz=RealAmplitudes(), optimizer=optimizer, quantum_instance=qe)
+            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=1)
 
     def test_bobyqa(self):

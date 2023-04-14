@@ -202,7 +202,7 @@ def generate_embed_passmanager(coupling_map):
     that can be used to expand and apply an initial layout to a circuit
 
     Args:
-        coupling_map (CouplingMap): The coupling map for the backend to embed
+        coupling_map (Union[CouplingMap, Target): The coupling map for the backend to embed
             the circuit to.
     Returns:
         PassManager: The embedding passmanager that assumes the layout property
@@ -273,10 +273,13 @@ def generate_routing_passmanager(
         return False
 
     routing = PassManager()
-    routing.append(CheckMap(coupling_map))
+    if target is not None:
+        routing.append(CheckMap(target, property_set_field="routing_not_needed"))
+    else:
+        routing.append(CheckMap(coupling_map, property_set_field="routing_not_needed"))
 
     def _swap_condition(property_set):
-        return not property_set["is_swap_mapped"]
+        return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
         routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)

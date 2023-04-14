@@ -91,7 +91,7 @@ class TestControlFlowBuilders(QiskitTestCase):
 
         expected = QuantumCircuit(qr, cr)
         expected.measure(qr, cr)
-        expected.if_test((cr, 0), if_true0, [qr[0]], [cr[:]])
+        expected.if_test((cr, 0), if_true0, [qr[0]], cr)
 
         self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
