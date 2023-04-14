@@ -19,6 +19,7 @@ from ddt import ddt, data
 from qiskit.circuit import QuantumCircuit, Parameter
 from qiskit.circuit.library import HGate, RXGate, YGate, RYGate, RZGate
 from qiskit.circuit.library.n_local.qaoa_ansatz import QAOAAnsatz
+from qiskit.opflow import I
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.test import QiskitTestCase
 
@@ -29,7 +30,8 @@ class TestQAOAAnsatz(QiskitTestCase):
 
     def test_default_qaoa(self):
         """Test construction of the default circuit."""
-        circuit = QAOAAnsatz(Pauli("I"), 1)
+        # To be changed once QAOAAnsatz drops support for opflow
+        circuit = QAOAAnsatz(I, 1)
         parameters = circuit.parameters
 
         circuit = circuit.decompose()
@@ -107,16 +109,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(
             cost_operator=Pauli("I"), reps=2, initial_state=initial_state, mixer_operator=mixer
         )
-
-        # To be removed once QAOAAnsatz drops support for opflow
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            parameters = circuit.parameters
-        self.assertTrue(len(caught_warnings) > 0)
-
+        parameters = circuit.parameters
         circuit = circuit.decompose()
 
         self.assertEqual(2, len(parameters))
