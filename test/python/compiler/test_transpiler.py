@@ -2101,8 +2101,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
 
         self.backend = FakeMultiChip()
 
-    # Add level 0 and 1 when TrivialLayout supports disjoint coupling maps
-    @data(1, 2, 3)
+    @data(0, 1, 2, 3)
     def test_basic_connected_circuit(self, opt_level):
         """Test basic connected circuit on disjoint backend"""
         qc = QuantumCircuit(5)
@@ -2120,8 +2119,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
-    # Add level 0 and 1 when TrivialLayout supports disjoint coupling maps
-    @data(1, 2, 3)
+    @data(0, 1, 2, 3)
     def test_triple_circuit(self, opt_level):
         """Test a split circuit with one circuit component per chip."""
         qc = QuantumCircuit(30)
@@ -2156,6 +2154,12 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.cy(20, 28)
         qc.cy(20, 29)
         qc.measure_all()
+
+        if opt_level == 0:
+            with self.assertRaises(TranspilerError):
+                tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=42)
+            return
+
         tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=42)
         for inst in tqc.data:
             qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
@@ -2245,8 +2249,6 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
         )
 
-    # Add level 0 and 1 when TrivialLayout supports disjoint coupling maps
-    # Tagged as slow until #9834 is fixed
     @slow_test
     @data(1, 2, 3)
     def test_six_component_circuit(self, opt_level):
@@ -2303,7 +2305,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
 
-    @data(1, 2, 3)
+    @data(0, 1, 2, 3)
     def test_shared_classical_between_components_condition(self, opt_level):
         """Test a condition sharing classical bits between components."""
         creg = ClassicalRegister(19)
@@ -2339,7 +2341,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
         )
 
-    @data(1, 2, 3)
+    @data(0, 1, 2, 3)
     def test_shared_classical_between_components_condition_large_to_small(self, opt_level):
         """Test a condition sharing classical bits between components."""
         creg = ClassicalRegister(2)
@@ -2352,7 +2354,7 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.h(0).c_if(creg, 0)
         for i in range(18):
             qc.ecr(0, i + 1).c_if(creg, 0)
-        tqc = transpile(qc, self.backend, optimization_level=opt_level)
+        tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=123456789)
 
         def _visit_block(circuit, qubit_mapping=None):
             for instruction in circuit:
