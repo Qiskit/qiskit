@@ -1,11 +1,10 @@
 ---
 features:
   - |
-    Introduced extensions to VQD algorithm in qiskit.algorithms.eigensolvers.
-    It is now possible to have as input arguments in addition to a single
-    initial point, a list of initial points for the optimization.
-    Each k-th initial point is related to the k-th eigenstate.
-    A similar modification is for the optimizers, i.e. give as input a single
-    optimizer or a list of optimizers.
+    Added extensions to the :class:`~.eigensolvers.VQD` algorithm, which allow
+    to pass a list of optimizers and initial points for the different
+    minimization runs. For example, the ``k``-th initial point and 
+    ``k``-th optimizer will be used for the optimization of the
+    ``k-1``-th exicted state.
 
 
