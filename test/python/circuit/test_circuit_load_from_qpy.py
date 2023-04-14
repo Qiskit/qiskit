@@ -704,7 +704,9 @@ class TestLoadFromQPY(QiskitTestCase):
                 "always",
                 category=DeprecationWarning,
             )
-            evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=2, synthesis=synthesis)
+            evo = PauliEvolutionGate(
+                SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=2, synthesis=synthesis
+            )
         self.assertTrue(len(caught_warnings) > 0)
 
         qc = QuantumCircuit(2)
@@ -727,7 +729,9 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a circuit with an evolution gate that has a parameter for time."""
         synthesis = LieTrotter(reps=2)
         time = Parameter("t")
-        evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=time, synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=time, synthesis=synthesis
+        )
 
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
@@ -749,7 +753,9 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a circuit with an evolution gate that has a parameter for time."""
         synthesis = LieTrotter(reps=2)
         time = Parameter("t")
-        evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=time * time, synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=time * time, synthesis=synthesis
+        )
 
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
@@ -771,7 +777,9 @@ class TestLoadFromQPY(QiskitTestCase):
         """Test loading a an evolution gate that has a param vector element for time."""
         synthesis = LieTrotter(reps=2)
         time = ParameterVector("TimeVec", 1)
-        evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=time[0], synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=time[0], synthesis=synthesis
+        )
 
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
@@ -792,7 +800,9 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_op_list_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
 
-        evo = PauliEvolutionGate([SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)])] * 5, time=0.2, synthesis=None)
+        evo = PauliEvolutionGate(
+            [SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)])] * 5, time=0.2, synthesis=None
+        )
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
         qpy_file = io.BytesIO()
@@ -812,7 +822,9 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_op_evolution_gate_suzuki_trotter(self):
         """Test qpy path with a suzuki trotter synthesis method on an evolution gate."""
         synthesis = SuzukiTrotter()
-        evo = PauliEvolutionGate(SparsePauliOp.from_list([('ZI', 1), ('IZ', 1)]), time=0.2, synthesis=synthesis)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=0.2, synthesis=synthesis
+        )
 
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))
@@ -1336,4 +1348,3 @@ class TestLoadFromQPY(QiskitTestCase):
         with self.assertWarnsRegex(DeprecationWarning, "is deprecated"):
             # pylint: disable=no-name-in-module, unused-import, redefined-outer-name, reimported
             from qiskit.circuit.qpy_serialization import dump, load
-

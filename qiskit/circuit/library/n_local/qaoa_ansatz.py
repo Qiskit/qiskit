@@ -22,6 +22,7 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.quantum_info import SparsePauliOp
 
+
 class QAOAAnsatz(EvolvedOperatorAnsatz):
     """A generalized QAOA quantum circuit with a support of custom initial states and mixers.
 

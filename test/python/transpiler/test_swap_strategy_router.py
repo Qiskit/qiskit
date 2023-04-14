@@ -22,7 +22,7 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.library.n_local import QAOAAnsatz
 from qiskit.converters import circuit_to_dag
 from qiskit.exceptions import QiskitError
-from qiskit.quantum_info import Pauli,SparsePauliOp
+from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import ApplyLayout
