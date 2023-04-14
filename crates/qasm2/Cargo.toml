@@ -13,4 +13,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 hashbrown = "0.13.2"
-pyo3 = { version = "0.18.2", features = ["extension-module"] }
+pyo3 = { version = "0.18.3", features = ["extension-module"] }
