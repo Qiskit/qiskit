@@ -2,8 +2,7 @@
 deprecations:
   - |
     All of the following features are now deprecated, after having been made pending deprecation
-    since 0.22.0. More information is available in the release notes of that version for the
-    replacements:
+    since 0.22.0. More information is available at https://qisk.it/algo_migration.
 
     Module :mod:`qiskit.algorithms.minimum_eigen_solvers` is deprecated and
     superseded by :mod:`qiskit.algorithms.minimum_eigensolvers`.
