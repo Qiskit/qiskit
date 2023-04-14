@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Added a new transpiler pass, :class:`~.MinimumPoint` which is used primarily as
+    a pass to check a loop condition in a :class:`~.PassManager`. This pass will
+    track the state of fields in the property set over its past executions and set
+    a boolean field when either a fixed point is reached over the backtracking depth
+    or selecting the minimum value found if the backtracking depth is reached. This
+    is an alternative to the :class:`~.FixedPoint` which simply checks for a fixed
+    value in a property set field between subsequent executions.

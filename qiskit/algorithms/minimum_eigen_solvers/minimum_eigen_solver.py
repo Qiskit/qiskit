@@ -11,14 +11,14 @@
 # that they have been altered from the originals.
 
 """The Minimum Eigensolver interface"""
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, Tuple
 
 import numpy as np
 
 from qiskit.opflow import OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from ..algorithm_result import AlgorithmResult
 from ..list_or_dict import ListOrDict
 
@@ -36,20 +36,20 @@ class MinimumEigensolver(ABC):
     used interchangeably.
     """
 
-    @deprecate_function(
-        "The Minimum Eigensolver interface has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver interface. "
-        "This interface will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the interface "
+            "``qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver``."
+        ),
         since="0.23.0",
+        pending=True,
     )
     def __init__(self) -> None:
         pass
 
     @abstractmethod
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
     ) -> "MinimumEigensolverResult":
         """
         Computes minimum eigenvalue. Operator and aux_operators can be supplied here and
@@ -93,22 +93,22 @@ class MinimumEigensolverResult(AlgorithmResult):
 
     """
 
-    @deprecate_function(
-        "The MinimumEigensolverResult class has been superseded by the "
-        "qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class "
+            "``qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult``."
+        ),
         since="0.23.0",
+        pending=True,
     )
     def __init__(self) -> None:
         super().__init__()
-        self._eigenvalue = None
-        self._eigenstate = None
-        self._aux_operator_eigenvalues = None
+        self._eigenvalue: complex | None = None
+        self._eigenstate: np.ndarray | None = None
+        self._aux_operator_eigenvalues: ListOrDict[tuple[complex, complex]] | None = None
 
     @property
-    def eigenvalue(self) -> Optional[complex]:
+    def eigenvalue(self) -> complex | None:
         """returns eigen value"""
         return self._eigenvalue
 
@@ -118,7 +118,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         self._eigenvalue = value
 
     @property
-    def eigenstate(self) -> Optional[np.ndarray]:
+    def eigenstate(self) -> np.ndarray | None:
         """return eigen state"""
         return self._eigenstate
 
@@ -128,7 +128,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         self._eigenstate = value
 
     @property
-    def aux_operator_eigenvalues(self) -> Optional[ListOrDict[Tuple[complex, complex]]]:
+    def aux_operator_eigenvalues(self) -> ListOrDict[tuple[complex, complex]] | None:
         """Return aux operator expectation values.
 
         These values are in fact tuples formatted as (mean, standard deviation).
@@ -136,6 +136,6 @@ class MinimumEigensolverResult(AlgorithmResult):
         return self._aux_operator_eigenvalues
 
     @aux_operator_eigenvalues.setter
-    def aux_operator_eigenvalues(self, value: ListOrDict[Tuple[complex, complex]]) -> None:
+    def aux_operator_eigenvalues(self, value: ListOrDict[tuple[complex, complex]]) -> None:
         """set aux operator eigen values"""
         self._aux_operator_eigenvalues = value

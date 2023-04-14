@@ -20,7 +20,6 @@ from scipy.linalg import expm
 from numpy.testing import assert_raises
 
 from qiskit.algorithms.time_evolvers import TimeEvolutionProblem, TrotterQRTE
-from qiskit.algorithms.utils.assign_params import _assign_parameters
 from qiskit.primitives import Estimator
 from qiskit import QuantumCircuit
 from qiskit.circuit.library import ZGate
@@ -245,11 +244,8 @@ class TestTrotterQRTE(QiskitAlgorithmsTestCase):
         for n in range(num_timesteps):
             if t_param is not None:
                 time_value = (n + 1) * dt
-                bound_coeffs = _assign_parameters(operator.coeffs, [time_value])
-                ops = [
-                    Pauli(op).to_matrix() * np.real(coeff)
-                    for op, coeff in SparsePauliOp(operator.paulis, bound_coeffs).to_list()
-                ]
+                bound = operator.assign_parameters([time_value])
+                ops = [Pauli(op).to_matrix() * np.real(coeff) for op, coeff in bound.to_list()]
             for op in ops:
                 psi = expm(-1j * op * dt).dot(psi)
             observable_results.append(

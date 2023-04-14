@@ -13,7 +13,7 @@
 """A generalized QAOA quantum circuit with a support of custom initial states and mixers."""
 
 # pylint: disable=cyclic-import
-from typing import Optional, List, Tuple
+from __future__ import annotations
 import numpy as np
 
 from qiskit.circuit.library.evolved_operator_ansatz import EvolvedOperatorAnsatz, _is_pauli_identity
@@ -35,22 +35,22 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self,
         cost_operator=None,
         reps: int = 1,
-        initial_state: Optional[QuantumCircuit] = None,
+        initial_state: QuantumCircuit | None = None,
         mixer_operator=None,
         name: str = "QAOA",
     ):
         r"""
         Args:
-            cost_operator (OperatorBase, optional): The operator representing the cost of
-                the optimization problem, denoted as :math:`U(C, \gamma)` in the original paper.
-                Must be set either in the constructor or via property setter.
+            cost_operator (BaseOperator or OperatorBase, optional): The operator
+                representing the cost of the optimization problem, denoted as :math:`U(C, \gamma)`
+                in the original paper. Must be set either in the constructor or via property setter.
             reps (int): The integer parameter p, which determines the depth of the circuit,
                 as specified in the original paper, default is 1.
             initial_state (QuantumCircuit, optional): An optional initial state to use.
                 If `None` is passed then a set of Hadamard gates is applied as an initial state
                 to all qubits.
-            mixer_operator (OperatorBase or QuantumCircuit, optional): An optional custom mixer
-                to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
+            mixer_operator (BaseOperator or OperatorBase or QuantumCircuit, optional): An optional
+                custom mixer to use instead of the global X-rotations, denoted as :math:`U(B, \beta)`
                 in the original paper. Can be an operator or an optionally parameterized quantum
                 circuit.
             name (str): A name of the circuit, default 'qaoa'
@@ -59,11 +59,11 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
 
         self._cost_operator = None
         self._reps = reps
-        self._initial_state = initial_state
+        self._initial_state: QuantumCircuit | None = initial_state
         self._mixer = mixer_operator
 
         # set this circuit as a not-built circuit
-        self._bounds = None
+        self._bounds: list[tuple[float | None, float | None]] | None = None
 
         # store cost operator and set the registers if the operator is not None
         self.cost_operator = cost_operator
@@ -105,7 +105,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return valid
 
     @property
-    def parameter_bounds(self) -> Optional[List[Tuple[Optional[float], Optional[float]]]]:
+    def parameter_bounds(self) -> list[tuple[float | None, float | None]] | None:
         """The parameter bounds for the unbound parameters in the circuit.
 
         Returns:
@@ -123,7 +123,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         # default bounds: None for gamma (cost operator), [0, 2pi] for gamma (mixer operator)
         beta_bounds = (0, 2 * np.pi)
         gamma_bounds = (None, None)
-        bounds = []
+        bounds: list[tuple[float | None, float | None]] = []
 
         if not _is_pauli_identity(self.mixer_operator):
             bounds += self.reps * [beta_bounds]
@@ -134,9 +134,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return bounds
 
     @parameter_bounds.setter
-    def parameter_bounds(
-        self, bounds: Optional[List[Tuple[Optional[float], Optional[float]]]]
-    ) -> None:
+    def parameter_bounds(self, bounds: list[tuple[float | None, float | None]] | None) -> None:
         """Set the parameter bounds.
 
         Args:
@@ -145,12 +143,12 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._bounds = bounds
 
     @property
-    def operators(self):
+    def operators(self) -> list:
         """The operators that are evolved in this circuit.
 
         Returns:
-             List[Union[OperatorBase, QuantumCircuit]]: The operators to be evolved (and circuits)
-                in this ansatz.
+             List[Union[BaseOperator, OperatorBase, QuantumCircuit]]: The operators to be evolved
+                (and circuits) in this ansatz.
         """
         return [self.cost_operator, self.mixer_operator]
 
@@ -159,7 +157,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Returns an operator representing the cost of the optimization problem.
 
         Returns:
-            OperatorBase: cost operator.
+            BaseOperator or OperatorBase: cost operator.
         """
         return self._cost_operator
 
@@ -168,7 +166,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Sets cost operator.
 
         Args:
-            cost_operator (OperatorBase, optional): cost operator to set.
+            cost_operator (BaseOperator or OperatorBase, optional): cost operator to set.
         """
         self._cost_operator = cost_operator
         self.qregs = [QuantumRegister(self.num_qubits, name="q")]
@@ -186,7 +184,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         self._invalidate()
 
     @property
-    def initial_state(self) -> Optional[QuantumCircuit]:
+    def initial_state(self) -> QuantumCircuit | None:
         """Returns an optional initial state as a circuit"""
         if self._initial_state is not None:
             return self._initial_state
@@ -201,7 +199,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         return None
 
     @initial_state.setter
-    def initial_state(self, initial_state: Optional[QuantumCircuit]) -> None:
+    def initial_state(self, initial_state: QuantumCircuit | None) -> None:
         """Sets initial state."""
         self._initial_state = initial_state
         self._invalidate()
@@ -213,7 +211,7 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Returns an optional mixer operator expressed as an operator or a quantum circuit.
 
         Returns:
-            OperatorBase or QuantumCircuit, optional: mixer operator or circuit.
+            BaseOperator or OperatorBase or QuantumCircuit, optional: mixer operator or circuit.
         """
         if self._mixer is not None:
             return self._mixer
@@ -241,8 +239,8 @@ class QAOAAnsatz(EvolvedOperatorAnsatz):
         """Sets mixer operator.
 
         Args:
-            mixer_operator (OperatorBase or QuantumCircuit, optional): mixer operator or circuit
-                to set.
+            mixer_operator (BaseOperator or OperatorBase or QuantumCircuit, optional): mixer
+                operator or circuit to set.
         """
         self._mixer = mixer_operator
         self._invalidate()

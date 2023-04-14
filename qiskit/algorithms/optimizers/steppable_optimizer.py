@@ -11,10 +11,11 @@
 # that they have been altered from the originals.
 
 """SteppableOptimizer interface"""
+from __future__ import annotations
 
 from abc import abstractmethod, ABC
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Union, Callable, Optional, Tuple, List
 from .optimizer import Optimizer, POINT, OptimizerResult
 
 
@@ -30,8 +31,8 @@ class AskData(ABC):
 
     """
 
-    x_fun: Optional[Union[POINT, List[POINT]]] = None
-    x_jac: Optional[Union[POINT, List[POINT]]] = None
+    x_fun: POINT | list[POINT] | None = None
+    x_jac: POINT | list[POINT] | None = None
 
 
 @dataclass
@@ -44,8 +45,8 @@ class TellData(ABC):
 
     """
 
-    eval_fun: Union[float, List[float], None] = None
-    eval_jac: Union[POINT, List[POINT], None] = None
+    eval_fun: float | list[float] | None = None
+    eval_jac: POINT | list[POINT] | None = None
 
 
 @dataclass
@@ -61,15 +62,15 @@ class OptimizerState:
 
     x: POINT
     """Current optimization parameters."""
-    fun: Optional[Callable[[POINT], float]]
+    fun: Callable[[POINT], float] | None
     """Function being  optimized."""
-    jac: Optional[Callable[[POINT], POINT]]
+    jac: Callable[[POINT], POINT] | None
     """Jacobian of the function being optimized."""
-    nfev: Optional[int]
+    nfev: int | None
     """Number of function evaluations so far in the optimization."""
-    njev: Optional[int]
+    njev: int | None
     """Number of jacobian evaluations so far in the opimization."""
-    nit: Optional[int]
+    nit: int | None
     """Number of optmization steps performed so far in the optimization."""
 
 
@@ -157,7 +158,7 @@ class SteppableOptimizer(Optimizer):
             maxiter: Number of steps in the optimization process before ending the loop.
         """
         super().__init__()
-        self._state: Optional[OptimizerState] = None
+        self._state: OptimizerState | None = None
         self.maxiter = maxiter
 
     @property
@@ -236,8 +237,8 @@ class SteppableOptimizer(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> None:
         """Populates the state of the optimizer with the data provided and sets all the counters to 0.
 
@@ -254,8 +255,8 @@ class SteppableOptimizer(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         """Minimizes the function.
 
