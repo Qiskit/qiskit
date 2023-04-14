@@ -82,7 +82,7 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = circuit.decompose()
         self.assertEqual(1, len(parameters))
         self.assertIsInstance(circuit.data[0].operation, HGate)
-        self.assertIsInstance(circuit.data[1].operation, RYGate)
+        self.assertIsInstance(circuit.decompose().data[1].operation, RYGate)
 
     def test_parameter_bounds(self):
         """Test the parameter bounds."""
@@ -107,13 +107,22 @@ class TestQAOAAnsatz(QiskitTestCase):
         circuit = QAOAAnsatz(
             cost_operator=Pauli("I"), reps=2, initial_state=initial_state, mixer_operator=mixer
         )
-        parameters = circuit.parameters
+
+        # To be removed once QAOAAnsatz drops support for opflow
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            parameters = circuit.parameters
+        self.assertTrue(len(caught_warnings) > 0)
 
         circuit = circuit.decompose()
+
         self.assertEqual(2, len(parameters))
         self.assertIsInstance(circuit.data[0].operation, YGate)
-        self.assertIsInstance(circuit.data[1].operation, RZGate)
-        self.assertIsInstance(circuit.data[2].operation, RZGate)
+        self.assertIsInstance(circuit.decompose().data[1].operation, RZGate)
+        self.assertIsInstance(circuit.decompose().data[2].operation, RZGate)
 
     def test_configuration(self):
         """Test configuration checks."""
