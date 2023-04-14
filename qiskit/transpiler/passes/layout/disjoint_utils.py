@@ -127,7 +127,7 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
                 node.op.label = None
 
 
-def check_layout_isolated_to_component(dag: DAGCircuit, coupling_map: CouplingMap) -> bool:
+def require_layout_isolated_to_component(dag: DAGCircuit, coupling_map: CouplingMap) -> bool:
     """Check that the layout of the dag does not require connectivity across connected components
     in the CouplingMap"""
     qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}

@@ -213,7 +213,7 @@ class SabreSwap(TransformationPass):
             heuristic = Heuristic.Decay
         else:
             raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
-        disjoint_utils.check_layout_isolated_to_component(dag, self.coupling_map)
+        disjoint_utils.require_layout_isolated_to_component(dag, self.coupling_map)
 
         self.dist_matrix = self.coupling_map.distance_matrix
 
