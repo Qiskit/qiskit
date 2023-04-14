@@ -86,6 +86,7 @@ enforces the presence and consistency of methods to manipulate these objects con
 
    OperatorBase
 
+.. _operator_globals:
 
 Operator Globals
 ================

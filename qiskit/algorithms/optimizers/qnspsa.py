@@ -13,7 +13,9 @@
 """The QN-SPSA optimizer."""
 
 from __future__ import annotations
-from typing import Any, Iterator, Callable
+
+from collections.abc import Iterator
+from typing import Any, Callable
 
 import numpy as np
 from qiskit.providers import Backend

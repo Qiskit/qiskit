@@ -120,7 +120,7 @@ class IterativePhaseEstimation(PhaseEstimator):
         # For example, it may be desirable to compute the power via Trotterization, if
         # we are doing Trotterization anyway.
         unitary_power = unitary.power(2 ** (k - 1)).control()
-        qc = qc.compose(unitary_power, list(range(1, unitary.num_qubits + 1)) + [0])
+        qc = qc.compose(unitary_power, [unitary.num_qubits] + list(range(0, unitary.num_qubits)))
         qc.p(omega, phase_register[0])
         # hadamard on phase_register[0]
         qc.h(phase_register[0])

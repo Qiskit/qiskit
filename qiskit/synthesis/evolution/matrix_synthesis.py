@@ -27,22 +27,20 @@ class MatrixExponential(EvolutionSynthesis):
     """
 
     def synthesize(self, evolution):
-        from scipy.linalg import expm
+        from qiskit.extensions import HamiltonianGate
 
         # get operators and time to evolve
         operators = evolution.operator
         time = evolution.time
-
-        # construct the evolution circuit
-        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
 
         if not isinstance(operators, list):
             matrix = operators.to_matrix()
         else:
             matrix = sum(op.to_matrix() for op in operators)
 
-        exp = expm(-1j * time * matrix)
-
-        evolution_circuit.unitary(exp, evolution_circuit.qubits)
+        # construct the evolution circuit
+        evolution_circuit = QuantumCircuit(operators[0].num_qubits)
+        gate = HamiltonianGate(matrix, time)
+        evolution_circuit.append(gate, evolution_circuit.qubits)
 
         return evolution_circuit

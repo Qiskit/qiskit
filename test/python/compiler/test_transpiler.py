@@ -24,13 +24,14 @@ from ddt import ddt, data, unpack
 from test import combine  # pylint: disable=wrong-import-order
 
 import numpy as np
+import rustworkx as rx
 
 from qiskit.exceptions import QiskitError
 from qiskit import BasicAer
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, pulse, qpy, qasm3
 from qiskit.circuit import Parameter, Gate, Qubit, Clbit
 from qiskit.compiler import transpile
-from qiskit.dagcircuit import DAGOutNode
+from qiskit.dagcircuit import DAGOutNode, DAGOpNode
 from qiskit.converters import circuit_to_dag
 from qiskit.circuit.library import (
     CXGate,
@@ -42,9 +43,12 @@ from qiskit.circuit.library import (
     RZGate,
     UGate,
     CZGate,
+    XGate,
+    SXGate,
 )
 from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp
 from qiskit.circuit.measure import Measure
+from qiskit.circuit.delay import Delay
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import (
     FakeMelbourne,
@@ -55,7 +59,7 @@ from qiskit.providers.fake_provider import (
 )
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager, TransformationPass
-from qiskit.transpiler.target import Target
+from qiskit.transpiler.target import Target, InstructionProperties
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements, GateDirection
 from qiskit.quantum_info import Operator, random_unitary
@@ -63,6 +67,9 @@ from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.preset_passmanagers import level_0_pass_manager
 from qiskit.tools import parallel
 from qiskit.pulse import InstructionScheduleMap
+from qiskit.providers.backend import BackendV2
+from qiskit.providers.options import Options
+from qiskit.test import slow_test
 
 
 class CustomCX(Gate):
@@ -384,10 +391,27 @@ class TestTranspile(QiskitTestCase):
         circuits = transpile(qc, backend)
         self.assertIsInstance(circuits, QuantumCircuit)
 
-    def test_transpile_two(self):
-        """Test transpile to circuits.
+    def test_transpile_one(self):
+        """Test transpile a single circuit.
 
-        If all correct some should exists.
+        Check that the top-level `transpile` function returns
+        a single circuit."""
+        backend = BasicAer.get_backend("qasm_simulator")
+
+        qubit_reg = QuantumRegister(2)
+        clbit_reg = ClassicalRegister(2)
+        qc = QuantumCircuit(qubit_reg, clbit_reg, name="bell")
+        qc.h(qubit_reg[0])
+        qc.cx(qubit_reg[0], qubit_reg[1])
+        qc.measure(qubit_reg, clbit_reg)
+
+        circuit = transpile(qc, backend)
+        self.assertIsInstance(circuit, QuantumCircuit)
+
+    def test_transpile_two(self):
+        """Test transpile two circuits.
+
+        Check that the transpiler returns a list of two circuits.
         """
         backend = BasicAer.get_backend("qasm_simulator")
 
@@ -402,12 +426,19 @@ class TestTranspile(QiskitTestCase):
         qc_extra = QuantumCircuit(qubit_reg, qubit_reg2, clbit_reg, clbit_reg2, name="extra")
         qc_extra.measure(qubit_reg, clbit_reg)
         circuits = transpile([qc, qc_extra], backend)
-        self.assertIsInstance(circuits[0], QuantumCircuit)
-        self.assertIsInstance(circuits[1], QuantumCircuit)
+        self.assertIsInstance(circuits, list)
+        self.assertEqual(len(circuits), 2)
+
+        for circuit in circuits:
+            self.assertIsInstance(circuit, QuantumCircuit)
 
     def test_transpile_singleton(self):
         """Test transpile a single-element list with a circuit.
-        See https://github.com/Qiskit/qiskit-terra/issues/5260"""
+
+        Check that `transpile` returns a single-element list.
+
+        See https://github.com/Qiskit/qiskit-terra/issues/5260
+        """
         backend = BasicAer.get_backend("qasm_simulator")
 
         qubit_reg = QuantumRegister(2)
@@ -418,6 +449,7 @@ class TestTranspile(QiskitTestCase):
         qc.measure(qubit_reg, clbit_reg)
 
         circuits = transpile([qc], backend)
+        self.assertIsInstance(circuits, list)
         self.assertEqual(len(circuits), 1)
         self.assertIsInstance(circuits[0], QuantumCircuit)
 
@@ -1955,6 +1987,36 @@ class TestTranspileParallel(QiskitTestCase):
                 qubit_1 = tqc.find_bit(inst.qubits[1]).index
                 self.assertEqual(qubit_1, qubit_0 + 1)
 
+    def test_transpile_with_multiple_coupling_maps(self):
+        """Test passing a different coupling map for every circuit"""
+        backend = FakeNairobiV2()
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 2)
+
+        # Add a connection between 0 and 2 so that transpile does not change
+        # the gates
+        cmap = CouplingMap.from_line(7)
+        cmap.add_edge(0, 2)
+
+        with self.assertWarnsRegex(
+            DeprecationWarning, "Passing in a list of arguments for coupling_map is deprecated"
+        ):
+            # Initial layout needed to prevent transpiler from relabeling
+            # qubits to avoid doing the swap
+            tqc = transpile(
+                [qc] * 2,
+                backend,
+                coupling_map=[backend.coupling_map, cmap],
+                initial_layout=(0, 1, 2),
+            )
+
+        # Check that the two coupling maps were used. The default should
+        # require swapping (extra cx's) and the second one should not (just the
+        # original cx).
+        self.assertEqual(tqc[0].count_ops()["cx"], 4)
+        self.assertEqual(tqc[1].count_ops()["cx"], 1)
+
     @data(0, 1, 2, 3)
     def test_backend_and_custom_gate(self, opt_level):
         """Test transpile() with BackendV2, custom basis pulse gate."""
@@ -1971,3 +2033,436 @@ class TestTranspileParallel(QiskitTestCase):
         self.assertEqual(tqc.data[0].operation, newgate)
         qubits = tuple(tqc.find_bit(x).index for x in tqc.data[0].qubits)
         self.assertIn(qubits, backend.target.qargs)
+
+
+@ddt
+class TestTranspileMultiChipTarget(QiskitTestCase):
+    """Test transpile() with a disjoint coupling map."""
+
+    def setUp(self):
+        super().setUp()
+
+        class FakeMultiChip(BackendV2):
+            """Fake multi chip backend."""
+
+            def __init__(self):
+                super().__init__()
+                graph = rx.generators.directed_heavy_hex_graph(3)
+                num_qubits = len(graph) * 3
+                rng = np.random.default_rng(seed=12345678942)
+                rz_props = {}
+                x_props = {}
+                sx_props = {}
+                measure_props = {}
+                delay_props = {}
+                self._target = Target("Fake multi-chip backend", num_qubits=num_qubits)
+                for i in range(num_qubits):
+                    qarg = (i,)
+                    rz_props[qarg] = InstructionProperties(error=0.0, duration=0.0)
+                    x_props[qarg] = InstructionProperties(
+                        error=rng.uniform(1e-6, 1e-4), duration=rng.uniform(1e-8, 9e-7)
+                    )
+                    sx_props[qarg] = InstructionProperties(
+                        error=rng.uniform(1e-6, 1e-4), duration=rng.uniform(1e-8, 9e-7)
+                    )
+                    measure_props[qarg] = InstructionProperties(
+                        error=rng.uniform(1e-3, 1e-1), duration=rng.uniform(1e-8, 9e-7)
+                    )
+                    delay_props[qarg] = None
+                self._target.add_instruction(XGate(), x_props)
+                self._target.add_instruction(SXGate(), sx_props)
+                self._target.add_instruction(RZGate(Parameter("theta")), rz_props)
+                self._target.add_instruction(Measure(), measure_props)
+                self._target.add_instruction(Delay(Parameter("t")), delay_props)
+                cz_props = {}
+                for i in range(3):
+                    for root_edge in graph.edge_list():
+                        offset = i * len(graph)
+                        edge = (root_edge[0] + offset, root_edge[1] + offset)
+                        cz_props[edge] = InstructionProperties(
+                            error=rng.uniform(1e-5, 5e-3), duration=rng.uniform(1e-8, 9e-7)
+                        )
+                self._target.add_instruction(CZGate(), cz_props)
+
+            @property
+            def target(self):
+                return self._target
+
+            @property
+            def max_circuits(self):
+                return None
+
+            @classmethod
+            def _default_options(cls):
+                return Options(shots=1024)
+
+            def run(self, circuit, **kwargs):
+                raise NotImplementedError
+
+        self.backend = FakeMultiChip()
+
+    # Add level 0 and 1 when TrivialLayout supports disjoint coupling maps
+    @data(2, 3)
+    def test_basic_connected_circuit(self, opt_level):
+        """Test basic connected circuit on disjoint backend"""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.measure_all()
+        tqc = transpile(qc, self.backend, optimization_level=opt_level)
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
+    # Add level 0 and 1 when TrivialLayout supports disjoint coupling maps
+    @data(2, 3)
+    def test_triple_circuit(self, opt_level):
+        """Test a split circuit with one circuit component per chip."""
+        qc = QuantumCircuit(30)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.measure_all()
+        tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=42)
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
+    # Add level 0 and 1 when TrivialLayout supports disjoint coupling maps
+    # Tagged as slow until #9834 is fixed
+    @slow_test
+    @data(2, 3)
+    def test_six_component_circuit(self, opt_level):
+        """Test input circuit with more than 1 component per backend component."""
+        qc = QuantumCircuit(42)
+        qc.h(0)
+        qc.h(10)
+        qc.h(20)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.cx(0, 4)
+        qc.cx(0, 5)
+        qc.cx(0, 6)
+        qc.cx(0, 7)
+        qc.cx(0, 8)
+        qc.cx(0, 9)
+        qc.ecr(10, 11)
+        qc.ecr(10, 12)
+        qc.ecr(10, 13)
+        qc.ecr(10, 14)
+        qc.ecr(10, 15)
+        qc.ecr(10, 16)
+        qc.ecr(10, 17)
+        qc.ecr(10, 18)
+        qc.ecr(10, 19)
+        qc.cy(20, 21)
+        qc.cy(20, 22)
+        qc.cy(20, 23)
+        qc.cy(20, 24)
+        qc.cy(20, 25)
+        qc.cy(20, 26)
+        qc.cy(20, 27)
+        qc.cy(20, 28)
+        qc.cy(20, 29)
+        qc.h(30)
+        qc.cx(30, 31)
+        qc.cx(30, 32)
+        qc.cx(30, 33)
+        qc.h(34)
+        qc.cx(34, 35)
+        qc.cx(34, 36)
+        qc.cx(34, 37)
+        qc.h(38)
+        qc.cx(38, 39)
+        qc.cx(39, 40)
+        qc.cx(39, 41)
+        qc.measure_all()
+        tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=42)
+        for inst in tqc.data:
+            qubits = tuple(tqc.find_bit(x).index for x in inst.qubits)
+            op_name = inst.operation.name
+            if op_name == "barrier":
+                continue
+            self.assertIn(qubits, self.backend.target[op_name])
+
+    @data(2, 3)
+    def test_shared_classical_between_components_condition(self, opt_level):
+        """Test a condition sharing classical bits between components."""
+        creg = ClassicalRegister(19)
+        qc = QuantumCircuit(25)
+        qc.add_register(creg)
+        qc.h(0)
+        for i in range(18):
+            qc.cx(0, i + 1)
+        for i in range(18):
+            qc.measure(i, creg[i])
+
+        qc.ecr(20, 21).c_if(creg, 0)
+        tqc = transpile(qc, self.backend, optimization_level=opt_level)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(
+                    self.backend.target.instruction_supported(instruction.operation.name, qargs)
+                )
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
+
+    @data(2, 3)
+    def test_shared_classical_between_components_condition_large_to_small(self, opt_level):
+        """Test a condition sharing classical bits between components."""
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(25)
+        qc.add_register(creg)
+        qc.h(24)
+        qc.cx(24, 23)
+        qc.measure(24, creg[0])
+        qc.measure(23, creg[1])
+        qc.h(0).c_if(creg, 0)
+        for i in range(18):
+            qc.ecr(0, i + 1).c_if(creg, 0)
+        tqc = transpile(qc, self.backend, optimization_level=opt_level)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(
+                    self.backend.target.instruction_supported(instruction.operation.name, qargs)
+                )
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
+        # Check clbits are in order
+        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # go in order between the components. This is a sanity check to ensure that routing
+        # doesn't reorder a classical data dependency between components. Inside a component
+        # we have the dag ordering so nothing should be out of order within a component.
+        initial_layout = tqc.layout.initial_layout
+        first_component = {qc.qubits[23], qc.qubits[24]}
+        second_component = {qc.qubits[i] for i in range(19)}
+        tqc_dag = circuit_to_dag(tqc)
+        qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
+        input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
+        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+            input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        # The first node should be a measurement
+        self.assertIsInstance(first_meas_node.op, Measure)
+        # This shoulde be in the first ocmponent
+        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        while isinstance(op_node, DAGOpNode):
+            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+                op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )[0]
+
+    @data(2, 3)
+    def test_shared_classical_between_components_condition_large_to_small_reverse_index(
+        self, opt_level
+    ):
+        """Test a condition sharing classical bits between components."""
+        creg = ClassicalRegister(2)
+        qc = QuantumCircuit(25)
+        qc.add_register(creg)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure(0, creg[0])
+        qc.measure(1, creg[1])
+        qc.h(24).c_if(creg, 0)
+        for i in range(23, 5, -1):
+            qc.ecr(24, i).c_if(creg, 0)
+        tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(
+                    self.backend.target.instruction_supported(instruction.operation.name, qargs)
+                )
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
+        # Check clbits are in order
+        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # go in order between the components. This is a sanity check to ensure that routing
+        # doesn't reorder a classical data dependency between components. Inside a component
+        # we have the dag ordering so nothing should be out of order within a component.
+        initial_layout = tqc.layout.initial_layout
+        first_component = {qc.qubits[i] for i in range(2)}
+        second_component = {qc.qubits[i] for i in range(6, 25)}
+        tqc_dag = circuit_to_dag(tqc)
+        qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
+        input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
+        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+            input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        # The first node should be a measurement
+        self.assertIsInstance(first_meas_node.op, Measure)
+        # This shoulde be in the first ocmponent
+        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        while isinstance(op_node, DAGOpNode):
+            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+                op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )[0]
+
+    @data(2, 3)
+    def test_chained_data_dependency(self, opt_level):
+        """Test 3 component circuit with shared clbits between each component."""
+        creg = ClassicalRegister(1)
+        qc = QuantumCircuit(30)
+        qc.add_register(creg)
+        # Component 1
+        qc.h(0)
+        for i in range(9):
+            qc.cx(0, i + 1)
+        measure_op = Measure()
+        qc.append(measure_op, [9], [creg[0]])
+        # Component 2
+        qc.h(10).c_if(creg, 0)
+        for i in range(11, 20):
+            qc.ecr(10, i).c_if(creg, 0)
+        measure_op = Measure()
+        qc.append(measure_op, [19], [creg[0]])
+        # Component 3
+        qc.h(20).c_if(creg, 0)
+        for i in range(21, 30):
+            qc.cz(20, i).c_if(creg, 0)
+        measure_op = Measure()
+        qc.append(measure_op, [29], [creg[0]])
+        tqc = transpile(qc, self.backend, optimization_level=opt_level, seed_transpiler=2023)
+
+        def _visit_block(circuit, qubit_mapping=None):
+            for instruction in circuit:
+                if instruction.operation.name == "barrier":
+                    continue
+                qargs = tuple(qubit_mapping[x] for x in instruction.qubits)
+                self.assertTrue(
+                    self.backend.target.instruction_supported(instruction.operation.name, qargs)
+                )
+                if isinstance(instruction.operation, ControlFlowOp):
+                    for block in instruction.operation.blocks:
+                        new_mapping = {
+                            inner: qubit_mapping[outer]
+                            for outer, inner in zip(instruction.qubits, block.qubits)
+                        }
+                        _visit_block(block, new_mapping)
+
+        _visit_block(
+            tqc,
+            qubit_mapping={qubit: index for index, qubit in enumerate(tqc.qubits)},
+        )
+        # Check clbits are in order
+        # Traverse the output dag over the sole clbit. Checking that the qubits of the ops
+        # go in order between the components. This is a sanity check to ensure that routing
+        # doesn't reorder a classical data dependency between components. Inside a component
+        # we have the dag ordering so nothing should be incompatible there.
+
+        initial_layout = tqc.layout.initial_layout
+        first_component = {qc.qubits[i] for i in range(10)}
+        second_component = {qc.qubits[i] for i in range(10, 20)}
+        third_component = {qc.qubits[i] for i in range(20, 30)}
+        tqc_dag = circuit_to_dag(tqc)
+        qubit_map = {qubit: index for index, qubit in enumerate(tqc_dag.qubits)}
+        input_node = tqc_dag.input_map[tqc_dag.clbits[0]]
+        first_meas_node = tqc_dag._multi_graph.find_successors_by_edge(
+            input_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        self.assertIsInstance(first_meas_node.op, Measure)
+        self.assertIn(initial_layout._p2v[qubit_map[first_meas_node.qargs[0]]], first_component)
+        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            first_meas_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        while not isinstance(op_node.op, Measure):
+            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+                op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )[0]
+        self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], second_component)
+        op_node = tqc_dag._multi_graph.find_successors_by_edge(
+            op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+        )[0]
+        while not isinstance(op_node.op, Measure):
+            self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], third_component)
+            op_node = tqc_dag._multi_graph.find_successors_by_edge(
+                op_node._node_id, lambda edge_data: isinstance(edge_data, Clbit)
+            )[0]
+        self.assertIn(initial_layout._p2v[qubit_map[op_node.qargs[0]]], third_component)

@@ -84,7 +84,7 @@ class TimeEvolutionProblem:
             circuit = QuantumCircuit(initial_state.num_qubits)
             circuit.prepare_state(initial_state.data)
             initial_state = circuit
-        self.initial_state = initial_state
+        self.initial_state: QuantumCircuit | None = initial_state
         self.aux_operators = aux_operators
         self.truncation_threshold = truncation_threshold
 
