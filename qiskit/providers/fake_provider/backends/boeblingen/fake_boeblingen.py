@@ -36,7 +36,7 @@ class FakeBoeblingenV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_boeblingen.json"
     props_filename = "props_boeblingen.json"
     defs_filename = "defs_boeblingen.json"
-    backend_name = "fake_boeblingen_v2"
+    backend_name = "fake_boeblingen"
 
 
 class FakeBoeblingen(fake_pulse_backend.FakePulseBackend):

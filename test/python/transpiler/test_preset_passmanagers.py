@@ -20,7 +20,7 @@ from ddt import ddt, data
 import numpy as np
 
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
-from qiskit.circuit import Qubit, Gate, ControlFlowOp
+from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
 from qiskit.compiler import transpile, assemble
 from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
 from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
@@ -445,6 +445,194 @@ class TestPassesInspection(QiskitTestCase):
         self.assertIn("PadDynamicalDecoupling", self.passes)
         self.assertIn("RemoveResetInZeroState", self.passes)
 
+    def test_level1_runs_vf2post_layout_when_routing_required(self):
+        """Test that if we run routing as part of sabre layout VF2PostLayout runs."""
+        target = FakeLagosV2()
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cy(0, 1)
+        qc.cy(0, 2)
+        qc.cy(0, 3)
+        qc.cy(0, 4)
+        qc.measure_all()
+        _ = transpile(qc, target, optimization_level=1, callback=self.callback)
+        # Expected call path for layout and routing is:
+        # 1. TrivialLayout (no perfect match)
+        # 2. VF2Layout (no perfect match)
+        # 3. SabreLayout (heuristic layout and also runs routing)
+        # 4. VF2PostLayout (applies a better layout)
+        self.assertIn("TrivialLayout", self.passes)
+        self.assertIn("VF2Layout", self.passes)
+        self.assertIn("SabreLayout", self.passes)
+        self.assertIn("VF2PostLayout", self.passes)
+        #  Assert we don't run standalone sabre swap
+        self.assertNotIn("SabreSwap", self.passes)
+
+    def test_level1_runs_vf2post_layout_when_routing_method_set_and_required(self):
+        """Test that if we run routing as part of sabre layout VF2PostLayout runs."""
+        target = FakeLagosV2()
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cy(0, 1)
+        qc.cy(0, 2)
+        qc.cy(0, 3)
+        qc.cy(0, 4)
+        qc.measure_all()
+        _ = transpile(
+            qc, target, optimization_level=1, routing_method="stochastic", callback=self.callback
+        )
+        # Expected call path for layout and routing is:
+        # 1. TrivialLayout (no perfect match)
+        # 2. VF2Layout (no perfect match)
+        # 3. SabreLayout (heuristic layout and also runs routing)
+        # 4. VF2PostLayout (applies a better layout)
+        self.assertIn("TrivialLayout", self.passes)
+        self.assertIn("VF2Layout", self.passes)
+        self.assertIn("SabreLayout", self.passes)
+        self.assertIn("VF2PostLayout", self.passes)
+        self.assertIn("StochasticSwap", self.passes)
+
+    def test_level1_not_runs_vf2post_layout_when_layout_method_set(self):
+        """Test that if we don't run VF2PostLayout with custom layout_method."""
+        target = FakeLagosV2()
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cy(0, 1)
+        qc.cy(0, 2)
+        qc.cy(0, 3)
+        qc.cy(0, 4)
+        qc.measure_all()
+        _ = transpile(
+            qc, target, optimization_level=1, layout_method="dense", callback=self.callback
+        )
+        self.assertNotIn("TrivialLayout", self.passes)
+        self.assertNotIn("VF2Layout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+        self.assertIn("DenseLayout", self.passes)
+        self.assertIn("SabreSwap", self.passes)
+
+    def test_level1_not_run_vf2post_layout_when_trivial_is_perfect(self):
+        """Test that if we find a trivial perfect layout we don't run vf2post."""
+        target = FakeLagosV2()
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(qc, target, optimization_level=1, callback=self.callback)
+        self.assertIn("TrivialLayout", self.passes)
+        self.assertNotIn("VF2Layout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+        #  Assert we don't run standalone sabre swap
+        self.assertNotIn("SabreSwap", self.passes)
+
+    def test_level1_not_run_vf2post_layout_when_vf2layout_is_perfect(self):
+        """Test that if we find a vf2 perfect layout we don't run vf2post."""
+        target = FakeLagosV2()
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        qc.measure_all()
+        _ = transpile(qc, target, optimization_level=1, callback=self.callback)
+        self.assertIn("TrivialLayout", self.passes)
+        self.assertIn("VF2Layout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+        #  Assert we don't run standalone sabre swap
+        self.assertNotIn("SabreSwap", self.passes)
+
+    def test_level1_runs_vf2post_layout_when_routing_required_control_flow(self):
+        """Test that if we run routing as part of sabre layout VF2PostLayout runs."""
+        target = FakeLagosV2()
+        _target = target.target
+        target._target.add_instruction(ForLoopOp, name="for_loop")
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cy(0, 1)
+        qc.cy(0, 2)
+        qc.cy(0, 3)
+        qc.cy(0, 4)
+        with qc.for_loop((1,)):
+            qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(qc, target, optimization_level=1, callback=self.callback)
+        # Expected call path for layout and routing is:
+        # 1. TrivialLayout (no perfect match)
+        # 2. VF2Layout (no perfect match)
+        # 3. DenseLayout (heuristic layout)
+        # 4. StochasticSwap
+        # 4. VF2PostLayout (applies a better layout)
+        self.assertIn("TrivialLayout", self.passes)
+        self.assertIn("VF2Layout", self.passes)
+        self.assertIn("DenseLayout", self.passes)
+        self.assertIn("StochasticSwap", self.passes)
+        self.assertIn("VF2PostLayout", self.passes)
+
+    def test_level1_not_runs_vf2post_layout_when_layout_method_set_control_flow(self):
+        """Test that if we don't run VF2PostLayout with custom layout_method."""
+        target = FakeLagosV2()
+        _target = target.target
+        target._target.add_instruction(ForLoopOp, name="for_loop")
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cy(0, 1)
+        qc.cy(0, 2)
+        qc.cy(0, 3)
+        qc.cy(0, 4)
+        with qc.for_loop((1,)):
+            qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(
+            qc, target, optimization_level=1, layout_method="dense", callback=self.callback
+        )
+        self.assertNotIn("TrivialLayout", self.passes)
+        self.assertNotIn("VF2Layout", self.passes)
+        self.assertNotIn("SabreLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+        self.assertIn("DenseLayout", self.passes)
+        self.assertIn("StochasticSwap", self.passes)
+
+    def test_level1_not_run_vf2post_layout_when_trivial_is_perfect_control_flow(self):
+        """Test that if we find a trivial perfect layout we don't run vf2post."""
+        target = FakeLagosV2()
+        _target = target.target
+        target._target.add_instruction(ForLoopOp, name="for_loop")
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+        with qc.for_loop((1,)):
+            qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(qc, target, optimization_level=1, callback=self.callback)
+        self.assertIn("TrivialLayout", self.passes)
+        self.assertNotIn("VF2Layout", self.passes)
+        self.assertNotIn("DenseLayout", self.passes)
+        self.assertNotIn("StochasticSwap", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+
+    def test_level1_not_run_vf2post_layout_when_vf2layout_is_perfect_control_flow(self):
+        """Test that if we find a vf2 perfect layout we don't run vf2post."""
+        target = FakeLagosV2()
+        _target = target.target
+        target._target.add_instruction(ForLoopOp, name="for_loop")
+        qc = QuantumCircuit(4)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        with qc.for_loop((1,)):
+            qc.cx(0, 1)
+        qc.measure_all()
+        _ = transpile(qc, target, optimization_level=1, callback=self.callback)
+        self.assertIn("TrivialLayout", self.passes)
+        self.assertIn("VF2Layout", self.passes)
+        self.assertNotIn("DenseLayout", self.passes)
+        self.assertNotIn("VF2PostLayout", self.passes)
+        self.assertNotIn("StochasticSwap", self.passes)
+
 
 @ddt
 class TestInitialLayouts(QiskitTestCase):
@@ -717,18 +905,18 @@ class TestFinalLayouts(QiskitTestCase):
 
         sabre_layout = {
             0: ancilla[0],
-            1: ancilla[1],
-            2: ancilla[2],
-            3: ancilla[3],
-            4: ancilla[4],
+            1: qr[4],
+            2: ancilla[1],
+            3: ancilla[2],
+            4: ancilla[3],
             5: qr[1],
-            6: qr[2],
-            7: ancilla[5],
-            8: ancilla[6],
-            9: ancilla[7],
-            10: qr[3],
-            11: qr[0],
-            12: qr[4],
+            6: qr[0],
+            7: ancilla[4],
+            8: ancilla[5],
+            9: ancilla[6],
+            10: qr[2],
+            11: qr[3],
+            12: ancilla[7],
             13: ancilla[8],
             14: ancilla[9],
             15: ancilla[10],
