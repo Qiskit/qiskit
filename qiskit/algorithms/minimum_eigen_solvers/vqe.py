@@ -130,7 +130,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.VQE``. "
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )
@@ -671,7 +671,7 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.VQEResult``. "
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )

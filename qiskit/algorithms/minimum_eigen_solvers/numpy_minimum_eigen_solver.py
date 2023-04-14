@@ -43,7 +43,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         additional_msg=(
             "Instead, use the class "
             "``qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver``. "
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )

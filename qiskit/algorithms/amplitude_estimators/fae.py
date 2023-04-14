@@ -51,7 +51,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
     @deprecate_arg(
         "quantum_instance",
         additional_msg=(
-            "Instead, use the ``sampler`` argument. See http://qisk.it/algo_migration for a "
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
             "migration guide."
         ),
         since="0.24.0",
@@ -113,7 +113,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
     @deprecate_func(
         since="0.24.0",
         is_property=True,
-        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
     )
     def quantum_instance(self) -> QuantumInstance | None:
         """Deprecated. Get the quantum instance.
@@ -127,7 +127,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
     @deprecate_func(
         since="0.24.0",
         is_property=True,
-        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Deprecated. Set quantum instance.

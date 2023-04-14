@@ -100,7 +100,7 @@ class VQD(VariationalAlgorithm, Eigensolver):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class ``qiskit.algorithms.eigensolvers.VQD``."
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )
@@ -774,7 +774,7 @@ class VQDResult(VariationalResult, EigensolverResult):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class ``qiskit.algorithms.eigensolvers.VQDResult``."
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )

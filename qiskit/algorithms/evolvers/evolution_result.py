@@ -34,7 +34,7 @@ class EvolutionResult(AlgorithmResult):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class ``qiskit.algorithms.time_evolvers.TimeEvolutionResult``. "
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )

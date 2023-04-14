@@ -32,7 +32,7 @@ class ImaginaryEvolver(ABC):
     @deprecate_func(
         additional_msg=(
             "Instead, use the interface ``qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver``. "
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )

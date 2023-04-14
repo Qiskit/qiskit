@@ -68,7 +68,7 @@ class TrotterQRTE(RealEvolver):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class ``qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE``."
-            " See http://qisk.it/algo_migration for a migration guide."
+            " See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )

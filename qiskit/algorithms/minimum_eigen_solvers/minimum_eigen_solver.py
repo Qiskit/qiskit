@@ -40,7 +40,7 @@ class MinimumEigensolver(ABC):
         additional_msg=(
             "Instead, use the interface "
             "``qiskit.algorithms.minimum_eigensolvers.MinimumEigensolver``. "
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )
@@ -97,7 +97,7 @@ class MinimumEigensolverResult(AlgorithmResult):
         additional_msg=(
             "Instead, use the class "
             "``qiskit.algorithms.minimum_eigensolvers.MinimumEigensolverResult``. "
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )

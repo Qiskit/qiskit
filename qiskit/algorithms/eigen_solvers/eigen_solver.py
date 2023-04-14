@@ -38,7 +38,7 @@ class Eigensolver(ABC):
     @deprecate_func(
         additional_msg=(
             "Instead, use the interface ``qiskit.algorithms.eigensolvers.Eigensolver``. See "
-            "http://qisk.it/algo_migration for a migration guide."
+            "https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )
@@ -90,7 +90,7 @@ class EigensolverResult(AlgorithmResult):
     @deprecate_func(
         additional_msg=(
             "Instead, use the class ``qiskit.algorithms.eigensolvers.EigensolverResult``. "
-            "See http://qisk.it/algo_migration for a migration guide."
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
         since="0.24.0",
     )

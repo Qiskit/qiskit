@@ -67,7 +67,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
     @deprecate_arg(
         "quantum_instance",
         additional_msg=(
-            "Instead, use the ``sampler`` argument. See http://qisk.it/algo_migration for a "
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
             "migration guide."
         ),
         since="0.24.0",
@@ -133,7 +133,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
     @property
     @deprecate_func(
-        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
         since="0.24.0",
         is_property=True,
     )
@@ -147,7 +147,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
 
     @quantum_instance.setter
     @deprecate_func(
-        additional_msg="See http://qisk.it/algo_migration for a migration guide.",
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
         since="0.24.0",
         is_property=True,
     )

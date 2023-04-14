@@ -96,7 +96,7 @@ class HamiltonianPhaseEstimation:
     @deprecate_arg(
         "quantum_instance",
         additional_msg=(
-            "Instead, use the ``sampler`` argument. See http://qisk.it/algo_migration for a "
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
             "migration guide."
         ),
         since="0.24.0",

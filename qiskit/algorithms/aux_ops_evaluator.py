@@ -35,7 +35,7 @@ from .list_or_dict import ListOrDict
     additional_msg=(
         "Instead, use the function "
         "``qiskit.algorithms.observables_evaluator.estimate_observables``. See "
-        "http://qisk.it/algo_migration for a migration guide."
+        "https://qisk.it/algo_migration for a migration guide."
     ),
     since="0.24.0",
 )
