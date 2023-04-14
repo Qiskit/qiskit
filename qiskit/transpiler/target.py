@@ -16,8 +16,13 @@
 A target object represents the minimum set of information the transpiler needs
 from a backend
 """
+
+from __future__ import annotations
+
+
 import warnings
-from typing import Union
+
+from typing import Tuple, Union, Optional, Dict, List, Any
 from collections.abc import Mapping
 from collections import defaultdict
 import datetime
@@ -28,6 +33,9 @@ import inspect
 import rustworkx as rx
 
 from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.parameterexpression import ParameterValueType
+from qiskit.circuit.gate import Gate
+from qiskit.circuit.library.standard_gates import get_standard_gate_name_mapping
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.calibration_entries import CalibrationEntry, ScheduleDef
 from qiskit.pulse.schedule import Schedule, ScheduleBlock
@@ -35,12 +43,16 @@ from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.timing_constraints import TimingConstraints
+from qiskit.providers.exceptions import BackendPropertyError
+from qiskit.pulse.exceptions import PulseError
 from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.exceptions import QiskitError
 
 # import QubitProperties here to provide convenience alias for building a
 # full target
 from qiskit.providers.backend import QubitProperties  # pylint: disable=unused-import
 from qiskit.providers.models.backendproperties import BackendProperties
+
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +92,32 @@ class InstructionProperties:
 
     @property
     def calibration(self):
-        """The pulse representation of the instruction."""
+        """The pulse representation of the instruction.
+
+        .. note::
+
+            This attribute always returns a Qiskit pulse program, but it is internally
+            wrapped by the :class:`.CalibrationEntry` to manage unbound parameters
+            and to uniformly handle different data representation,
+            for example, un-parsed Pulse Qobj JSON that a backend provider may provide.
+
+            This value can be overridden through the property setter in following manner.
+            When you set either :class:`.Schedule` or :class:`.ScheduleBlock` this is
+            always treated as a user-defined (custom) calibration and
+            the transpiler may automatically attach the calibration data to the output circuit.
+            This calibration data may appear in the wire format as an inline calibration,
+            which may further update the backend standard instruction set architecture.
+
+            If you are a backend provider who provides a default calibration data
+            that is not needed to be attached to the transpiled quantum circuit,
+            you can directly set :class:`.CalibrationEntry` instance to this attribute,
+            in which you should set :code:`user_provided=False` when you define
+            calibration data for the entry. End users can still intentionally utilize
+            the calibration data, for example, to run pulse-level simulation of the circuit.
+            However, such entry doesn't appear in the wire format, and backend must
+            use own definition to compile the circuit down to the execution format.
+
+        """
         if self._calibration is None:
             return None
         return self._calibration.get_schedule()
@@ -89,7 +126,7 @@ class InstructionProperties:
     def calibration(self, calibration: Union[Schedule, ScheduleBlock, CalibrationEntry]):
         if isinstance(calibration, (Schedule, ScheduleBlock)):
             new_entry = ScheduleDef()
-            new_entry.define(calibration)
+            new_entry.define(calibration, user_provided=True)
         else:
             new_entry = calibration
         self._calibration = new_entry
@@ -417,13 +454,15 @@ class Target(Mapping):
         """Update the target from an instruction schedule map.
 
         If the input instruction schedule map contains new instructions not in
-        the target they will be added. However if it contains additional qargs
+        the target they will be added. However, if it contains additional qargs
         for an existing instruction in the target it will error.
 
         Args:
             inst_map (InstructionScheduleMap): The instruction
             inst_name_map (dict): An optional dictionary that maps any
-                instruction name in ``inst_map`` to an instruction object
+                instruction name in ``inst_map`` to an instruction object.
+                If not provided, instruction is pulled from the standard Qiskit gates,
+                and finally custom gate instnace is created with schedule name.
             error_dict (dict): A dictionary of errors of the form::
 
                 {gate_name: {qarg: error}}
@@ -436,48 +475,94 @@ class Target(Mapping):
             a when updating the ``Target`` the error value will be pulled from
             this dictionary. If one is not found in ``error_dict`` then
             ``None`` will be used.
-
-        Raises:
-            ValueError: If ``inst_map`` contains new instructions and
-                ``inst_name_map`` isn't specified
-            KeyError: If a ``inst_map`` contains a qarg for an instruction
-                that's not in the target
         """
-        for inst in inst_map.instructions:
+        get_calibration = getattr(inst_map, "_get_calibration_entry")
+
+        # Expand name mapping with custom gate name provided by user.
+        qiskit_inst_name_map = get_standard_gate_name_mapping()
+        if inst_name_map is not None:
+            qiskit_inst_name_map.update(inst_name_map)
+
+        for inst_name in inst_map.instructions:
+            # Prepare dictionary of instruction properties
             out_props = {}
-            for qarg in inst_map.qubits_with_instruction(inst):
-                sched = inst_map.get(inst, qarg)
-                val = InstructionProperties(calibration=sched)
+            for qargs in inst_map.qubits_with_instruction(inst_name):
                 try:
-                    qarg = tuple(qarg)
+                    qargs = tuple(qargs)
                 except TypeError:
-                    qarg = (qarg,)
-                if inst in self._gate_map:
+                    qargs = (qargs,)
+                try:
+                    props = self._gate_map[inst_name][qargs]
+                except (KeyError, TypeError):
+                    props = None
+
+                entry = get_calibration(inst_name, qargs)
+                if entry.user_provided and getattr(props, "_calibration", None) != entry:
+                    # It only copies user-provided calibration from the inst map.
+                    # Backend defined entry must already exist in Target.
                     if self.dt is not None:
-                        val.duration = sched.duration * self.dt
+                        duration = entry.get_schedule().duration * self.dt
                     else:
-                        val.duration = None
-                    if error_dict is not None:
-                        error_inst = error_dict.get(inst)
-                        if error_inst:
-                            error = error_inst.get(qarg)
-                            val.error = error
-                        else:
-                            val.error = None
-                    else:
-                        val.error = None
-                out_props[qarg] = val
-            if inst not in self._gate_map:
-                if inst_name_map is not None:
-                    self.add_instruction(inst_name_map[inst], out_props, name=inst)
-                else:
-                    raise ValueError(
-                        "An inst_name_map kwarg must be specified to add new "
-                        "instructions from an InstructionScheduleMap"
+                        duration = None
+                    props = InstructionProperties(
+                        duration=duration,
+                        calibration=entry,
                     )
+                else:
+                    if props is None:
+                        # Edge case. Calibration is backend defined, but this is not
+                        # registered in the backend target. Ignore this entry.
+                        continue
+                try:
+                    # Update gate error if provided.
+                    props.error = error_dict[inst_name][qargs]
+                except (KeyError, TypeError):
+                    pass
+                out_props[qargs] = props
+            if not out_props:
+                continue
+            # Prepare Qiskit Gate object assigned to the entries
+            if inst_name not in self._gate_map:
+                # Entry not found: Add new instruction
+                if inst_name in qiskit_inst_name_map:
+                    # Remove qargs with length that doesn't match with instruction qubit number
+                    inst_obj = qiskit_inst_name_map[inst_name]
+                    normalized_props = {}
+                    for qargs, prop in out_props.items():
+                        if len(qargs) != inst_obj.num_qubits:
+                            continue
+                        normalized_props[qargs] = prop
+                    self.add_instruction(inst_obj, normalized_props, name=inst_name)
+                else:
+                    # Check qubit length parameter name uniformity.
+                    qlen = set()
+                    param_names = set()
+                    for qargs in inst_map.qubits_with_instruction(inst_name):
+                        if isinstance(qargs, int):
+                            qargs = (qargs,)
+                        qlen.add(len(qargs))
+                        cal = getattr(out_props[tuple(qargs)], "_calibration")
+                        param_names.add(tuple(cal.get_signature().parameters.keys()))
+                    if len(qlen) > 1 or len(param_names) > 1:
+                        raise QiskitError(
+                            f"Schedules for {inst_name} are defined non-uniformly for "
+                            f"multiple qubit lengths {qlen}, "
+                            f"or different parameter names {param_names}. "
+                            "Provide these schedules with inst_name_map or define them with "
+                            "different names for different gate parameters."
+                        )
+                    inst_obj = Gate(
+                        name=inst_name,
+                        num_qubits=next(iter(qlen)),
+                        params=list(map(Parameter, next(iter(param_names)))),
+                    )
+                    self.add_instruction(inst_obj, out_props, name=inst_name)
             else:
-                for qarg, prop in out_props.items():
-                    self.update_instruction_properties(inst, qarg, prop)
+                # Entry found: Update "existing" instructions.
+                for qargs, prop in out_props.items():
+                    if qargs not in self._gate_map[inst_name]:
+                        continue
+                    self.update_instruction_properties(inst_name, qargs, prop)
 
     @property
     def qargs(self):
@@ -773,6 +858,55 @@ class Target(Mapping):
                     )
         return False
 
+    def has_calibration(
+        self,
+        operation_name: str,
+        qargs: Tuple[int, ...],
+    ) -> bool:
+        """Return whether the instruction (operation + qubits) defines a calibration.
+
+        Args:
+            operation_name: The name of the operation for the instruction.
+            qargs: The tuple of qubit indices for the instruction.
+
+        Returns:
+            Returns ``True`` if the calibration is supported and ``False`` if it isn't.
+        """
+        qargs = tuple(qargs)
+        if operation_name not in self._gate_map:
+            return False
+        if qargs not in self._gate_map[operation_name]:
+            return False
+        return getattr(self._gate_map[operation_name][qargs], "_calibration") is not None
+
+    def get_calibration(
+        self,
+        operation_name: str,
+        qargs: Tuple[int, ...],
+        *args: ParameterValueType,
+        **kwargs: ParameterValueType,
+    ) -> Union[Schedule, ScheduleBlock]:
+        """Get calibrated pulse schedule for the instruction.
+
+        If calibration is templated with parameters, one can also provide those values
+        to build a schedule with assigned parameters.
+
+        Args:
+            operation_name: The name of the operation for the instruction.
+            qargs: The tuple of qubit indices for the instruction.
+            args: Parameter values to build schedule if any.
+            kwargs: Parameter values with name to build schedule if any.
+
+        Returns:
+            Calibrated pulse schedule of corresponding instruction.
+        """
+        if not self.has_calibration(operation_name, qargs):
+            raise KeyError(
+                f"Calibration of instruction {operation_name} for qubit {qargs} is not defined."
+            )
+        cal_entry = getattr(self._gate_map[operation_name][qargs], "_calibration")
+        return cal_entry.get_schedule(*args, **kwargs)
+
     @property
     def operation_names(self):
         """Get the operation names in the target."""
@@ -1049,6 +1183,237 @@ class Target(Mapping):
                     prop_str_pieces.append(f"\t\t\tExtra properties:\n{extra_props_str}\n")
                 output.write("".join(prop_str_pieces))
         return output.getvalue()
+
+    @classmethod
+    def from_configuration(
+        cls,
+        basis_gates: List[str],
+        num_qubits: Optional[int] = None,
+        coupling_map: Optional[CouplingMap] = None,
+        inst_map: Optional[InstructionScheduleMap] = None,
+        backend_properties: Optional[BackendProperties] = None,
+        instruction_durations: Optional[InstructionDurations] = None,
+        dt: Optional[float] = None,
+        timing_constraints: Optional[TimingConstraints] = None,
+        custom_name_mapping: Optional[Dict[str, Any]] = None,
+    ) -> Target:
+        """Create a target object from the individual global configuration
+
+        Prior to the creation of the :class:`~.Target` class, the constraints
+        of a backend were represented by a collection of different objects
+        which combined represent a subset of the information contained in
+        the :class:`~.Target`. This function provides a simple interface
+        to convert those separate objects to a :class:`~.Target`.
+
+        This constructor will use the input from ``basis_gates``, ``num_qubits``,
+        and ``coupling_map`` to build a base model of the backend and the
+        ``instruction_durations``, ``backend_properties``, and ``inst_map`` inputs
+        are then queried (in that order) based on that model to look up the properties
+        of each instruction and qubit. If there is an inconsistency between the inputs
+        any extra or conflicting information present in ``instruction_durations``,
+        ``backend_properties``, or ``inst_map`` will be ignored.
+
+        Args:
+            basis_gates: The list of basis gate names for the backend. For the
+                target to be created these names must either be in the output
+                from :func:~.get_standard_gate_name_mapping` or present in the
+                specified ``custom_name_mapping`` argument.
+            num_qubits: The number of qubits supported on the backend.
+            coupling_map: The coupling map representing connectivity constraints
+                on the backend. If specified all gates from ``basis_gates`` will
+                be supported on all qubits (or pairs of qubits).
+            inst_map: The instruction schedule map representing the pulse
+               :class:`~.Schedule` definitions for each instruction. If this
+               is specified ``coupling_map`` must be specified. The
+               ``coupling_map`` is used as the source of truth for connectivity
+               and if ``inst_map`` is used the schedule is looked up based
+               on the instuctions from the pair of ``basis_gates`` and
+               ``coupling_map``. If you want to define a custom gate for
+               a particular qubit or qubit pair, you can manually build :class:`.Target`.
+            backend_properties: The :class:`~.BackendProperties` object which is
+                used for instruction properties and qubit properties.
+                If specified and instruction properties are intended to be used
+                then the ``coupling_map`` argument must be specified. This is
+                only used to lookup error rates and durations (unless
+                ``instruction_durations`` is specified which would take
+                precedence) for instructions specified via ``coupling_map`` and
+                ``basis_gates``.
+            instruction_durations: Optional instruction durations for instructions. If specified
+                it will take priority for setting the ``duration`` field in the
+                :class:`~InstructionProperties` objects for the instructions in the target.
+            dt: The system time resolution of input signals in seconds
+            timing_constraints: Optional timing constraints to include in the
+                :class:`~.Target`
+            custom_name_mapping: An optional dictionary that maps custom gate/operation names in
+                ``basis_gates`` to an :class:`~.Operation` object representing that
+                gate/operation. By default most standard gates names are mapped to the
+                standard gate object from :mod:`qiskit.circuit.library` this only needs
+                to be specified if the input ``basis_gates`` defines gates in names outside
+                that set.
+
+        Returns:
+            Target: the target built from the input configuration
+
+        Raises:
+            TranspilerError: If the input basis gates contain > 2 qubits and ``coupling_map`` is
+            specified.
+            KeyError: If no mappign is available for a specified ``basis_gate``.
+        """
+        granularity = 1
+        min_length = 1
+        pulse_alignment = 1
+        acquire_alignment = 1
+        if timing_constraints is not None:
+            granularity = timing_constraints.granularity
+            min_length = timing_constraints.min_length
+            pulse_alignment = timing_constraints.pulse_alignment
+            acquire_alignment = timing_constraints.acquire_alignment
+
+        qubit_properties = None
+        if backend_properties is not None:
+            # pylint: disable=cyclic-import
+            from qiskit.providers.backend_compat import qubit_props_list_from_props
+
+            qubit_properties = qubit_props_list_from_props(properties=backend_properties)
+
+        target = cls(
+            num_qubits=num_qubits,
+            dt=dt,
+            granularity=granularity,
+            min_length=min_length,
+            pulse_alignment=pulse_alignment,
+            acquire_alignment=acquire_alignment,
+            qubit_properties=qubit_properties,
+        )
+        name_mapping = get_standard_gate_name_mapping()
+        if custom_name_mapping is not None:
+            name_mapping.update(custom_name_mapping)
+
+        # While BackendProperties can also contain coupling information we
+        # rely solely on CouplingMap to determin connectivity. This is because
+        # in legacy transpiler usage (and implicitly in the BackendV1 data model)
+        # the coupling map is used to define connecitivity constraints and
+        # the properties is only used for error rate and duration population.
+        # If coupling map is not specified we ignore the backend_properties
+        if coupling_map is None:
+            for gate in basis_gates:
+                if gate not in name_mapping:
+                    raise KeyError(
+                        f"The specified basis gate: {gate} is not present in the standard gate "
+                        "names or a provided custom_name_mapping"
+                    )
+                target.add_instruction(name_mapping[gate], name=gate)
+        else:
+            one_qubit_gates = []
+            two_qubit_gates = []
+            global_ideal_variable_width_gates = []  # pylint: disable=invalid-name
+            if num_qubits is None:
+                num_qubits = len(coupling_map.graph)
+            for gate in basis_gates:
+                if gate not in name_mapping:
+                    raise KeyError(
+                        f"The specified basis gate: {gate} is not present in the standard gate "
+                        "names or a provided custom_name_mapping"
+                    )
+                gate_obj = name_mapping[gate]
+                if gate_obj.num_qubits == 1:
+                    one_qubit_gates.append(gate)
+                elif gate_obj.num_qubits == 2:
+                    two_qubit_gates.append(gate)
+                elif inspect.isclass(gate_obj):
+                    global_ideal_variable_width_gates.append(gate)
+                else:
+                    raise TranspilerError(
+                        f"The specified basis gate: {gate} has {gate_obj.num_qubits} "
+                        "qubits. This constructor method only supports fixed width operations "
+                        "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
+                    )
+            for gate in one_qubit_gates:
+                gate_properties = {}
+                for qubit in range(num_qubits):
+                    error = None
+                    duration = None
+                    calibration = None
+                    if backend_properties is not None:
+                        if duration is None:
+                            try:
+                                duration = backend_properties.gate_length(gate, qubit)
+                            except BackendPropertyError:
+                                duration = None
+                        try:
+                            error = backend_properties.gate_error(gate, qubit)
+                        except BackendPropertyError:
+                            error = None
+                    if inst_map is not None:
+                        try:
+                            calibration = inst_map._get_calibration_entry(gate, qubit)
+                            # If we have dt defined and there is a custom calibration which is user
+                            # generate use that custom pulse schedule for the duration. If it is
+                            # not user generated than we assume it's the same duration as what is
+                            # defined in the backend properties
+                            if dt and calibration.user_provided:
+                                duration = calibration.get_schedule().duration * dt
+                        except PulseError:
+                            calibration = None
+                    # Durations if specified manually should override model objects
+                    if instruction_durations is not None:
+                        try:
+                            duration = instruction_durations.get(gate, qubit, unit="s")
+                        except TranspilerError:
+                            duration = None
+
+                    if error is None and duration is None and calibration is None:
+                        gate_properties[(qubit,)] = None
+                    else:
+                        gate_properties[(qubit,)] = InstructionProperties(
+                            duration=duration, error=error, calibration=calibration
+                        )
+                target.add_instruction(name_mapping[gate], properties=gate_properties, name=gate)
+            edges = list(coupling_map.get_edges())
+            for gate in two_qubit_gates:
+                gate_properties = {}
+                for edge in edges:
+                    error = None
+                    duration = None
+                    calibration = None
+                    if backend_properties is not None:
+                        if duration is None:
+                            try:
+                                duration = backend_properties.gate_length(gate, edge)
+                            except BackendPropertyError:
+                                duration = None
+                        try:
+                            error = backend_properties.gate_error(gate, edge)
+                        except BackendPropertyError:
+                            error = None
+                    if inst_map is not None:
+                        try:
+                            calibration = inst_map._get_calibration_entry(gate, edge)
+                            # If we have dt defined and there is a custom calibration which is user
+                            # generate use that custom pulse schedule for the duration. If it is
+                            # not user generated than we assume it's the same duration as what is
+                            # defined in the backend properties
+                            if dt and calibration.user_provided:
+                                duration = calibration.get_schedule().duration * dt
+                        except PulseError:
+                            calibration = None
+                    # Durations if specified manually should override model objects
+                    if instruction_durations is not None:
+                        try:
+                            duration = instruction_durations.get(gate, edge, unit="s")
+                        except TranspilerError:
+                            duration = None
+
+                    if error is None and duration is None and calibration is None:
+                        gate_properties[edge] = None
+                    else:
+                        gate_properties[edge] = InstructionProperties(
+                            duration=duration, error=error, calibration=calibration
+                        )
+                target.add_instruction(name_mapping[gate], properties=gate_properties, name=gate)
+            for gate in global_ideal_variable_width_gates:
+                target.add_instruction(name_mapping[gate], name=gate)
+        return target
 
 
 def target_to_backend_properties(target: Target):

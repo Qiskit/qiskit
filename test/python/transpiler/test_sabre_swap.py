@@ -19,7 +19,7 @@ import ddt
 from qiskit.circuit.library import CCXGate, HGate, Measure, SwapGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import SabreSwap, TrivialLayout
-from qiskit.transpiler import CouplingMap, PassManager
+from qiskit.transpiler import CouplingMap, PassManager, Target, TranspilerError
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.utils import optionals
@@ -121,6 +121,27 @@ class TestSabreSwap(QiskitTestCase):
 
         self.assertEqual(new_qc, qc)
 
+    def test_trivial_with_target(self):
+        """Test that an already mapped circuit is unchanged with target."""
+        coupling = CouplingMap.from_ring(5)
+        target = Target(num_qubits=5)
+        target.add_instruction(SwapGate(), {edge: None for edge in coupling.get_edges()})
+
+        qr = QuantumRegister(5, "q")
+        qc = QuantumCircuit(qr)
+        qc.cx(0, 1)  # free
+        qc.cx(2, 3)  # free
+        qc.h(0)  # free
+        qc.cx(1, 2)  # F
+        qc.cx(1, 0)
+        qc.cx(4, 3)  # F
+        qc.cx(0, 4)
+
+        passmanager = PassManager(SabreSwap(target, "basic"))
+        new_qc = passmanager.run(qc)
+
+        self.assertEqual(new_qc, qc)
+
     def test_lookahead_mode(self):
         """Test lookahead mode's lookahead finds single SWAP gate.
                   ┌───┐
@@ -159,7 +180,7 @@ class TestSabreSwap(QiskitTestCase):
         coupling = CouplingMap(cm_edges)
 
         passmanager = PassManager(SabreSwap(coupling))
-        _ = passmanager.run(QuantumCircuit(1))
+        _ = passmanager.run(QuantumCircuit(coupling.size()))
 
         self.assertEqual(set(cm_edges), set(coupling.get_edges()))
 
@@ -338,6 +359,22 @@ class TestSabreSwap(QiskitTestCase):
 
         # Check that a re-run with the same seed produces the same circuit in the exact same order.
         self.assertEqual(normalize_nodes(dag_0), normalize_nodes(pass_0.run(dag)))
+
+    def test_rejects_too_many_qubits(self):
+        """Test that a sensible Python-space error message is emitted if the DAG has an incorrect
+        number of qubits."""
+        pass_ = SabreSwap(CouplingMap.from_line(4))
+        qc = QuantumCircuit(QuantumRegister(5, "q"))
+        with self.assertRaisesRegex(TranspilerError, "More qubits in the circuit"):
+            pass_(qc)
+
+    def test_rejects_too_few_qubits(self):
+        """Test that a sensible Python-space error message is emitted if the DAG has an incorrect
+        number of qubits."""
+        pass_ = SabreSwap(CouplingMap.from_line(4))
+        qc = QuantumCircuit(QuantumRegister(3, "q"))
+        with self.assertRaisesRegex(TranspilerError, "Fewer qubits in the circuit"):
+            pass_(qc)
 
 
 if __name__ == "__main__":

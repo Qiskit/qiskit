@@ -1,0 +1,6 @@
+---
+ upgrade:
+   - |
+     Removed the usage of primitives with the context manager and the initialization with circuits,
+     (observables only for Estimator), and parameters
+     which was deprecated in the Qiskit Terra 0.22.0 release in October 2022.

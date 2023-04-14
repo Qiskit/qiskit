@@ -11,10 +11,12 @@
 # that they have been altered from the originals.
 
 """The Numpy Minimum Eigensolver algorithm."""
+from __future__ import annotations
 
-from typing import List, Optional, Union, Callable
 import logging
 import warnings
+from collections.abc import Callable
+
 import numpy as np
 
 from qiskit.opflow import OperatorBase
@@ -48,7 +50,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     def __init__(
         self,
         filter_criterion: Callable[
-            [Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool
+            [list | np.ndarray, float, ListOrDict[float] | None], bool
         ] = None,
     ) -> None:
         """
@@ -69,16 +71,15 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
     @property
     def filter_criterion(
         self,
-    ) -> Optional[Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]]:
+    ) -> Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool] | None:
         """returns the filter criterion if set"""
         return self._ces.filter_criterion
 
     @filter_criterion.setter
     def filter_criterion(
         self,
-        filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
-        ],
+        filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool]
+        | None,
     ) -> None:
         """set the filter criterion"""
         self._ces.filter_criterion = filter_criterion
@@ -88,7 +89,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         return NumPyEigensolver.supports_aux_operators()
 
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)

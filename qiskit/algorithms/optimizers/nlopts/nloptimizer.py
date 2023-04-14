@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Minimize using objective function"""
+from __future__ import annotations
 
-from typing import List, Optional, Tuple, Callable
+from collections.abc import Callable
 from enum import Enum
 from abc import abstractmethod
 import logging
@@ -86,8 +87,8 @@ class NLoptOptimizer(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         import nlopt
 

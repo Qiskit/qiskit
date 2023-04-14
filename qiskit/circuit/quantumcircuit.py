@@ -27,6 +27,7 @@ from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
     Union,
     Optional,
+    Tuple,
     Type,
     TypeVar,
     Sequence,
@@ -71,6 +72,7 @@ except Exception:  # pylint: disable=broad-except
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
+    from qiskit.transpiler.layout import TranspileLayout  # pylint: disable=cyclic-import
 
 BitLocations = namedtuple("BitLocations", ("index", "registers"))
 
@@ -356,6 +358,23 @@ class QuantumCircuit:
         return circuit
 
     @property
+    def layout(self) -> Optional[TranspileLayout]:
+        r"""Return any associated layout information anout the circuit
+
+        This attribute contains an optional :class:`~.TranspileLayout`
+        object. This is typically set on the output from :func:`~.transpile`
+        or :meth:`.PassManager.run` to retain information about the
+        permutations caused on the input circuit by transpilation.
+
+        There are two types of permutations caused by the :func:`~.transpile`
+        function, an initial layout which permutes the qubits based on the
+        selected physical qubits on the :class:`~.Target`, and a final layout
+        which is an output permutation caused by :class:`~.SwapGate`\s
+        inserted during routing.
+        """
+        return self._layout
+
+    @property
     def data(self) -> QuantumCircuitData:
         """Return the circuit data (instructions and context).
 
@@ -478,7 +497,9 @@ class QuantumCircuit:
         # TODO: remove the DAG from this function
         from qiskit.converters import circuit_to_dag
 
-        return circuit_to_dag(self) == circuit_to_dag(other)
+        return circuit_to_dag(self, copy_operations=False) == circuit_to_dag(
+            other, copy_operations=False
+        )
 
     @classmethod
     def _increment_instances(cls):
@@ -4593,6 +4614,39 @@ class QuantumCircuit:
 
         condition = (self._resolve_classical_resource(condition[0]), condition[1])
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
+
+    def switch(
+        self,
+        target: Union[ClbitSpecifier, ClassicalRegister],
+        cases: Iterable[Tuple[typing.Any, QuantumCircuit]],
+        qubits: Sequence[QubitSpecifier],
+        clbits: Sequence[ClbitSpecifier],
+        *,
+        label: Optional[str] = None,
+    ) -> InstructionSet:
+        """Create a ``switch``/``case`` structure on this circuit.
+
+        Args:
+            target (Union[ClassicalRegister, Clbit]): The classical value to switch one.  This must
+                be integer valued.
+            cases (Iterable[Tuple[typing.Any, QuantumCircuit]]): A sequence of case specifiers.  Each
+                tuple defines one case body (the second item).  The first item of the tuple can be
+                either a single integer value, the special value :data:`.CASE_DEFAULT`, or a tuple
+                of several integer values.  Each of the integer values will be tried in turn; control
+                will then pass to the body corresponding to the first match.  :data:`.CASE_DEFAULT`
+                matches all possible values.
+            qubits (Sequence[Qubit]): The circuit qubits over which all case bodies execute.
+            clbits (Sequence[Clbit]): The circuit clbits over which all case bodies execute.
+            label (Optional[str]): The string label of the instruction in the circuit.
+
+        Returns:
+            InstructionSet: A handle to the instruction created.
+        """
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+
+        target = self._resolve_classical_resource(target)
+        return self.append(SwitchCaseOp(target, cases, label=label), qubits, clbits)
 
     def break_loop(self) -> InstructionSet:
         """Apply :class:`~qiskit.circuit.BreakLoopOp`.

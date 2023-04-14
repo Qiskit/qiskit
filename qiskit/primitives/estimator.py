@@ -15,18 +15,16 @@ Estimator class
 
 from __future__ import annotations
 
-import warnings
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.utils.deprecation import deprecate_arg
 
 from .base import BaseEstimator, EstimatorResult
 from .primitive_job import PrimitiveJob
@@ -34,12 +32,11 @@ from .utils import (
     _circuit_key,
     _observable_key,
     bound_circuit_to_instruction,
-    init_circuit,
     init_observable,
 )
 
 
-class Estimator(BaseEstimator):
+class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """
     Reference implementation of :class:`BaseEstimator`.
 
@@ -55,58 +52,17 @@ class Estimator(BaseEstimator):
           this option is ignored.
     """
 
-    @deprecate_arg(
-        "circuits", since="0.22", additional_msg="Instead, use the run() method to append objects."
-    )
-    @deprecate_arg(
-        "observables",
-        since="0.22",
-        additional_msg="Instead, use the run() method to append objects.",
-    )
-    @deprecate_arg(
-        "parameters",
-        since="0.22",
-        additional_msg="Instead, use the run() method to append objects.",
-    )
-    def __init__(
-        self,
-        circuits: QuantumCircuit | Iterable[QuantumCircuit] | None = None,
-        observables: BaseOperator | PauliSumOp | Iterable[BaseOperator | PauliSumOp] | None = None,
-        parameters: Iterable[Iterable[Parameter]] | None = None,
-        options: dict | None = None,
-    ):
+    def __init__(self, *, options: dict | None = None):
         """
         Args:
-            circuits: Deprecated. Circuits that represent quantum states.
-            observables: Deprecated. Observables to be estimated.
-            parameters: Deprecated. Parameters of each of the quantum circuits.
-                Defaults to ``[circ.parameters for circ in circuits]``.
             options: Default options.
 
         Raises:
             QiskitError: if some classical bits are not used for measurements.
         """
-        if isinstance(circuits, QuantumCircuit):
-            circuits = (circuits,)
-        if circuits is not None:
-            circuits = tuple(init_circuit(circuit) for circuit in circuits)
-
-        if isinstance(observables, (PauliSumOp, BaseOperator)):
-            observables = (observables,)
-        if observables is not None:
-            observables = tuple(init_observable(observable) for observable in observables)
-
-        # Avoid double warnings from the BaseEstimator.__init__ and from ours. Remove once the
-        # deprecation of the kwargs is complete.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            super().__init__(
-                circuits=circuits,
-                observables=observables,  # type: ignore
-                parameters=parameters,
-                options=options,
-            )
-        self._is_closed = False
+        super().__init__(options=options)
+        self._circuit_ids = {}
+        self._observable_ids = {}
 
     def _call(
         self,
@@ -115,9 +71,6 @@ class Estimator(BaseEstimator):
         parameter_values: Sequence[Sequence[float]],
         **run_options,
     ) -> EstimatorResult:
-        if self._is_closed:
-            raise QiskitError("The primitive has been closed.")
-
         shots = run_options.pop("shots", None)
         seed = run_options.pop("seed", None)
         if seed is None:
@@ -168,16 +121,13 @@ class Estimator(BaseEstimator):
 
         return EstimatorResult(np.real_if_close(expectation_values), metadata)
 
-    def close(self):
-        self._is_closed = True
-
     def _run(
         self,
         circuits: tuple[QuantumCircuit, ...],
         observables: tuple[BaseOperator | PauliSumOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)

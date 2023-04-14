@@ -907,7 +907,7 @@ class TextDrawing:
                 ret += "│"
             elif topc == "└" and botc == "┌" and icod == "top":
                 ret += "├"
-            elif topc == "┘" and botc == "┐":
+            elif topc == "┘" and botc == "┐" and icod == "top":
                 ret += "┤"
             elif botc in "┐┌" and icod == "top":
                 ret += "┬"
