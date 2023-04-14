@@ -1106,32 +1106,35 @@ class MCXRecursive(MCXGate):
             qc._append(C4XGate(), q[:], [])
             self.definition = qc
         else:
-            for instr, qargs, cargs in self._recurse(q[:-1], q_ancilla=q[-1]):
-                qc._append(instr, qargs, cargs)
+            num_ctrl_qubits = len(q) - 1
+            q_ancilla = q[-1]
+            q_target = q[-2]
+            middle = ceil(num_ctrl_qubits / 2)
+            first_half = [*q[:middle]]
+            second_half = [*q[middle : num_ctrl_qubits - 1], q_ancilla]
+
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
+                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
+                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(first_half), dirty_ancillas=True),
+                qargs=[*first_half, q_ancilla, *q[middle : middle + len(first_half) - 2]],
+                cargs=[],
+            )
+            qc._append(
+                MCXVChain(num_ctrl_qubits=len(second_half), dirty_ancillas=True),
+                qargs=[*second_half, q_target, *q[: len(second_half) - 2]],
+                cargs=[],
+            )
+
             self.definition = qc
-
-    def _recurse(self, q, q_ancilla=None):
-        # recursion stop
-        if len(q) == 4:
-            return [(C3XGate(), q[:], [])]
-        if len(q) == 5:
-            return [(C4XGate(), q[:], [])]
-        if len(q) < 4:
-            raise AttributeError("Something went wrong in the recursion, have less than 4 qubits.")
-
-        # recurse
-        num_ctrl_qubits = len(q) - 1
-        middle = ceil(num_ctrl_qubits / 2)
-        first_half = [*q[:middle], q_ancilla]
-        second_half = [*q[middle:num_ctrl_qubits], q_ancilla, q[num_ctrl_qubits]]
-
-        rule = []
-        rule += self._recurse(first_half, q_ancilla=q[middle])
-        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
-        rule += self._recurse(first_half, q_ancilla=q[middle])
-        rule += self._recurse(second_half, q_ancilla=q[middle - 1])
-
-        return rule
 
 
 class MCXVChain(MCXGate):
