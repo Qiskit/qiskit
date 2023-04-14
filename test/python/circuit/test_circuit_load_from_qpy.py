@@ -16,7 +16,6 @@
 import io
 import json
 import random
-import warnings
 
 import numpy as np
 
@@ -698,16 +697,9 @@ class TestLoadFromQPY(QiskitTestCase):
     def test_evolutiongate(self):
         """Test loading a circuit with evolution gate works."""
         synthesis = LieTrotter(reps=2)
-        # To be removed once PauliEvolutionGate drops support for opflow
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo = PauliEvolutionGate(
-                SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=2, synthesis=synthesis
-            )
-        self.assertTrue(len(caught_warnings) > 0)
+        evo = PauliEvolutionGate(
+            SparsePauliOp.from_list([("ZI", 1), ("IZ", 1)]), time=2, synthesis=synthesis
+        )
 
         qc = QuantumCircuit(2)
         qc.append(evo, range(2))

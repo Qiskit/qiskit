@@ -35,7 +35,6 @@ from qiskit.opflow import (
     Y,
     Z,
     I,
-    T,
     StateFn,
     PauliTrotterEvolution,
     MatrixEvolution,
@@ -644,7 +643,9 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
     @unpack
     def test_qpe_two_qubit_unitary(self, state_preparation, expected_phase, phase_estimator):
         """two qubit unitary T ^ T"""
-        unitary_circuit = (T ^ T).to_circuit()
+        unitary_circuit = QuantumCircuit(2)
+        unitary_circuit.t(0)
+        unitary_circuit.t(1)
         phase = self.one_phase_sampler(
             unitary_circuit,
             state_preparation,

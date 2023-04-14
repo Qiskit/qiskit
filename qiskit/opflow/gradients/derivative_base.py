@@ -20,7 +20,6 @@ from qiskit.utils.deprecation import deprecate_func
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.providers import Backend
-from qiskit.utils.deprecation import deprecate_func
 from ..converters.converter_base import ConverterBase
 from ..expectations import ExpectationBase, PauliExpectation
 from ..list_ops.composed_op import ComposedOp

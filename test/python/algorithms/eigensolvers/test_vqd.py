@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022, 2023.
+# (C) Copyright IBM 2022
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,19 +10,22 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test VQD"""
+""" Test VQD """
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
 from ddt import data, ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.eigensolvers import VQD, VQDResult
+from qiskit.algorithms.eigensolvers import VQD
 from qiskit.algorithms import AlgorithmError
-from qiskit.algorithms.optimizers import COBYLA, L_BFGS_B, SLSQP, SPSA
+from qiskit.algorithms.optimizers import (
+    COBYLA,
+    L_BFGS_B,
+    SLSQP,
+)
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit.library import TwoLocal, RealAmplitudes
 from qiskit.opflow import PauliSumOp
@@ -204,7 +207,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_vqd_optimizer(self, op):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
-
         vqd = VQD(
             estimator=self.estimator,
             fidelity=self.fidelity,
@@ -228,17 +230,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest("Optimizer replace"):
             vqd.optimizer = L_BFGS_B()
             run_check()
-
-        with self.subTest("Batched optimizer replace"):
-            vqd.optimizer = SLSQP(maxiter=60, max_evals_grouped=10)
-            run_check()
-
-        with self.subTest("SPSA replace"):
-            # SPSA takes too long to converge, so we will
-            # only check that it runs with no errors.
-            vqd.optimizer = SPSA(maxiter=5, learning_rate=0.01, perturbation=0.01)
-            result = vqd.compute_eigenvalues(operator=op)
-            self.assertIsInstance(result, VQDResult)
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_aux_operators_list(self, op):
@@ -264,12 +255,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = SparsePauliOp.from_list([("II", 2.0)])
         aux_op2 = SparsePauliOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited[:2], decimal=2
         )
@@ -283,12 +269,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = vqd.compute_eigenvalues(op, aux_operators=extra_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=extra_ops)
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited[:2], decimal=2
         )
@@ -326,12 +307,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = SparsePauliOp.from_list([("II", 2.0)])
         aux_op2 = SparsePauliOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503, 2)
@@ -346,12 +322,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = vqd.compute_eigenvalues(op, aux_operators=extra_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=extra_ops)
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
         self.assertAlmostEqual(result.eigenvalues[0], -1.85727503, places=5)
@@ -393,12 +364,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         aux_op1 = SparsePauliOp.from_list([("II", 2.0)])
         aux_op2 = SparsePauliOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operators_evaluated), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operators_evaluated[0][0][0], 2.0, places=1)
@@ -411,12 +377,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
+        result = vqd.compute_eigenvalues(op, aux_operators=aux_ops)
         self.assertEqual(len(result.aux_operators_evaluated[0]), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operators_evaluated[0][0][0], 2.0, places=1)

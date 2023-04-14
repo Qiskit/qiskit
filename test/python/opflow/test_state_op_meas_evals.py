@@ -148,16 +148,16 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         circuit3 = QuantumCircuit(1)
         circuit3.p(y, 0)
 
-        bindings = {x: -0.4, y: 0.4}
-        listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
-
-        sampler = CircuitSampler(Aer.get_backend("aer_simulator"))
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.filterwarnings(
                 "always",
                 category=DeprecationWarning,
             )
+            bindings = {x: -0.4, y: 0.4}
+            listop = ListOp([StateFn(circuit) for circuit in [circuit1, circuit2, circuit3]])
+            sampler = CircuitSampler(Aer.get_backend("aer_simulator"))
             sampled = sampler.convert(listop, params=bindings)
+
         self.assertTrue(len(caught_warnings) > 0)
 
         self.assertTrue(all(len(op.parameters) == 0 for op in sampled.oplist))
@@ -186,12 +186,12 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
         circuit.ry(x, 0)
         expr = ~StateFn(H) @ StateFn(circuit)
 
-        sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"))
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.filterwarnings(
                 "always",
                 category=DeprecationWarning,
             )
+            sampler = CircuitSampler(Aer.get_backend("aer_simulator_statevector"))
             res = sampler.convert(expr, params={x: 0}).eval()
         self.assertTrue(len(caught_warnings) > 0)
 
@@ -267,12 +267,12 @@ class TestStateOpMeasEvals(QiskitOpflowTestCase):
             self.skipTest(f"Aer doesn't appear to be installed. Error: '{str(ex)}'")
 
         backend = AerSimulator(shots=10)
-        sampler = CircuitSampler(backend)
         with warnings.catch_warnings(record=True) as caught_warnings:
             warnings.filterwarnings(
                 "always",
                 category=DeprecationWarning,
             )
+            sampler = CircuitSampler(backend)
             res = sampler.convert(~Plus @ Plus).eval()
         self.assertTrue(len(caught_warnings) > 0)
         self.assertAlmostEqual(res, 1 + 0j, places=2)

@@ -13,7 +13,6 @@
 """Tests for Estimator."""
 
 import unittest
-import warnings
 import numpy as np
 from ddt import data, ddt, unpack
 

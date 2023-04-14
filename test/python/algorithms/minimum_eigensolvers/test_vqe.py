@@ -436,13 +436,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         with self.subTest("Test with additional zero operator."):
             extra_ops = [*aux_ops, 0]
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
-                result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
-            self.assertTrue(len(caught_warnings) > 0)
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
             self.assertEqual(len(result.aux_operators_evaluated), 3)
             # expectation values
@@ -489,13 +483,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
         with self.subTest("Test with additional zero operator."):
             extra_ops = {**aux_ops, "zero_operator": 0}
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
-                result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
-            self.assertTrue(len(caught_warnings) > 0)
+            result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=extra_ops)
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
             self.assertEqual(len(result.aux_operators_evaluated), 3)
             # expectation values

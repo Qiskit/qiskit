@@ -12,7 +12,6 @@
 
 """Tests for swap strategy routers."""
 
-import warnings
 from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, Qubit, QuantumRegister

@@ -12,7 +12,6 @@
 
 """Test QAOA ansatz from the library."""
 
-import warnings
 import numpy as np
 from ddt import ddt, data
 

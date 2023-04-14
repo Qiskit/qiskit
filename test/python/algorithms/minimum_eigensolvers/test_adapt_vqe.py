@@ -90,7 +90,9 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             self.initial_state = QuantumCircuit(QuantumRegister(4))
             self.initial_state.x(0)
             self.initial_state.x(1)
-            self.ansatz = EvolvedOperatorAnsatz(self.excitation_pool, initial_state=self.initial_state)
+            self.ansatz = EvolvedOperatorAnsatz(
+                self.excitation_pool, initial_state=self.initial_state
+            )
             self.optimizer = SLSQP()
 
         self.assertTrue(len(caught_warnings) > 0)

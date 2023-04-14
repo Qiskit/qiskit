@@ -152,13 +152,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         state = bound_ansatz
         estimator = Estimator()
         observables = [SparsePauliOp(["XX", "YY"]), 0]
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = estimate_observables(estimator, state, observables, None, self.threshold)
-        self.assertTrue(len(caught_warnings) > 0)
+        result = estimate_observables(estimator, state, observables, None, self.threshold)
         expected_result = [(0.015607318055509564, {}), (0.0, {})]
         means = [element[0] for element in result]
         expected_means = [element[0] for element in expected_result]

@@ -143,7 +143,12 @@ class TestGrover(QiskitAlgorithmsTestCase):
         """Test the algorithm with different iteration types and with good state"""
         grover = self._prepare_grover(use_sampler, iterations, sample_from_iterations=True)
         problem = AmplificationProblem(Statevector.from_label("111"), is_good_state=["111"])
-        result = grover.amplify(problem)
+        with warnings.catch_warnings(record=True):
+            warnings.filterwarnings(
+                "always",
+                category=DeprecationWarning,
+            )
+            result = grover.amplify(problem)
         self.assertEqual(result.top_measurement, "111")
 
     @data("ideal", "shots", False)

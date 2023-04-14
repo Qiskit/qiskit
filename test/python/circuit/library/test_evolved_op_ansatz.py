@@ -33,29 +33,25 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
     def test_evolved_op_ansatz(self, use_opflow):
         """Test the default evolution."""
         num_qubits = 3
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            ops = [Z ^ num_qubits, Y ^ num_qubits, X ^ num_qubits]
-            strings = ["z" * num_qubits, "y" * num_qubits, "x" * num_qubits] * 2
-            evo = EvolvedOperatorAnsatz(ops, 2)
-            reference = QuantumCircuit(num_qubits)
-            parameters = evo.parameters
-        self.assertTrue(len(caught_warnings) > 0)
-
         if use_opflow:
-            ops = [Z ^ num_qubits, Y ^ num_qubits, X ^ num_qubits]
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                ops = [Z ^ num_qubits, Y ^ num_qubits, X ^ num_qubits]
+                evo = EvolvedOperatorAnsatz(ops, 2)
+                parameters = evo.parameters
+
+            self.assertTrue(len(caught_warnings) > 0)
+
         else:
             ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
-
-        strings = ["z" * num_qubits, "y" * num_qubits, "x" * num_qubits] * 2
-
-        evo = EvolvedOperatorAnsatz(ops, 2)
+            evo = EvolvedOperatorAnsatz(ops, 2)
+            parameters = evo.parameters
 
         reference = QuantumCircuit(num_qubits)
-        parameters = evo.parameters
+        strings = ["z" * num_qubits, "y" * num_qubits, "x" * num_qubits] * 2
         for string, time in zip(strings, parameters):
             reference.compose(evolve(string, time), inplace=True)
 
@@ -65,16 +61,25 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
     def test_custom_evolution(self, use_opflow):
         """Test using another evolution than the default (e.g. matrix evolution)."""
         if use_opflow:
-            op = X ^ I ^ Z
-            matrix = op.to_matrix()
-            evolution = MatrixEvolution()
+            with warnings.catch_warnings(record=True) as caught_warnings:
+                warnings.filterwarnings(
+                    "always",
+                    category=DeprecationWarning,
+                )
+                op = X ^ I ^ Z
+                matrix = op.to_matrix()
+                evolution = MatrixEvolution()
+                evo = EvolvedOperatorAnsatz(op, evolution=evolution)
+                parameters = evo.parameters
+
+            self.assertTrue(len(caught_warnings) > 0)
+
         else:
             op = SparsePauliOp(["ZIX"])
             matrix = np.array(op)
             evolution = MatrixExponential()
-
-        evo = EvolvedOperatorAnsatz(op, evolution=evolution)
-        parameters = evo.parameters
+            evo = EvolvedOperatorAnsatz(op, evolution=evolution)
+            parameters = evo.parameters
 
         reference = QuantumCircuit(3)
         reference.hamiltonian(matrix, parameters[0], [0, 1, 2])
@@ -107,14 +112,8 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
     def test_invalid_reps(self):
         """Test setting an invalid number of reps."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            with self.assertRaises(ValueError):
-                _ = EvolvedOperatorAnsatz(X, reps=-1)
-        self.assertTrue(len(caught_warnings) > 0)
+        with self.assertRaises(ValueError):
+            _ = EvolvedOperatorAnsatz(X, reps=-1)
 
     def test_insert_barriers(self):
         """Test using insert_barriers."""
@@ -125,28 +124,15 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
             )
             evo = EvolvedOperatorAnsatz(Z, reps=4, insert_barriers=True)
             ref = QuantumCircuit(1)
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
-                for parameter in evo.parameters:
-                    ref.rz(2.0 * parameter, 0)
-                    ref.barrier()
-            self.assertTrue(len(caught_warnings) > 0)
-
+            for parameter in evo.parameters:
+                ref.rz(2.0 * parameter, 0)
+                ref.barrier()
             self.assertEqual(evo.decompose(), ref)
         self.assertTrue(len(caught_warnings) > 0)
 
     def test_empty_build_fails(self):
         """Test setting no operators to evolve raises the appropriate error."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            evo = EvolvedOperatorAnsatz()
-        self.assertTrue(len(caught_warnings) > 0)
+        evo = EvolvedOperatorAnsatz()
         with self.assertRaises(ValueError):
             _ = evo.draw()
 
