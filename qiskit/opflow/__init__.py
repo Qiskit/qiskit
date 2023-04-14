@@ -93,6 +93,7 @@ objects conveniently.
 
    OperatorBase
 
+.. _operator_globals:
 
 Operator Globals
 ================

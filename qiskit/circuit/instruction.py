@@ -481,6 +481,11 @@ class Instruction(Operation):
                 f"The amount of qubit arguments {len(qargs)} does not match"
                 f" the instruction expectation ({self.num_qubits})."
             )
+        if len(cargs) != self.num_clbits:
+            raise CircuitError(
+                f"The amount of clbit arguments {len(cargs)} does not match"
+                f" the instruction expectation ({self.num_clbits})."
+            )
 
         #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]

@@ -35,7 +35,7 @@ from qiskit.circuit.commutation_checker import CommutationChecker
 #    should investigate the possibility of using rx.descendants() instead of caching).
 #  - We should rethink the API of DAGDependency:
 #    Currently, most of the functions (such as "add_op_node", "_update_edges", etc.)
-#    are only used when creating a new DAGDependency from another representation of a circuit.
+#    are only used when creating a new DAGDependency.
 #    On the other hand, replace_block_with_op is only used at the very end,
 #    just before DAGDependency is converted into QuantumCircuit or DAGCircuit.
 #    A part of the reason is that doing local changes to DAGDependency is tricky:
@@ -430,61 +430,6 @@ class DAGDependency:
         self._add_multi_graph_node(new_node)
         self._update_edges()
 
-    def _gather_pred(self, node_id, direct_pred):
-        """Function set an attribute predecessors and gather multiple lists
-        of direct predecessors into a single one.
-
-        Args:
-            node_id (int): label of the considered node in the DAG
-            direct_pred (list): list of direct successors for the given node
-
-        Returns:
-            DAGDependency: A multigraph with update of the attribute ['predecessors']
-            the lists of direct successors are put into a single one
-        """
-        gather = self._multi_graph
-        gather.get_node_data(node_id).predecessors = []
-        for d_pred in direct_pred:
-            gather.get_node_data(node_id).predecessors.append([d_pred])
-            pred = self._multi_graph.get_node_data(d_pred).predecessors
-            gather.get_node_data(node_id).predecessors.append(pred)
-        return gather
-
-    def _gather_succ(self, node_id, direct_succ):
-        """
-        Function set an attribute successors and gather multiple lists
-        of direct successors into a single one.
-
-        Args:
-            node_id (int): label of the considered node in the DAG
-            direct_succ (list): list of direct successors for the given node
-
-        Returns:
-            MultiDiGraph: with update of the attribute ['predecessors']
-            the lists of direct successors are put into a single one
-        """
-        gather = self._multi_graph
-        gather.get_node_data(node_id).successors = []
-        for d_succ in direct_succ:
-            gather.get_node_data(node_id).successors.append([d_succ])
-            succ = gather.get_node_data(d_succ).successors
-            gather.get_node_data(node_id).successors.append(succ)
-        return gather
-
-    def _list_pred(self, node_id):
-        """
-        Use _gather_pred function and merge_no_duplicates to construct
-        the list of predecessors for a given node.
-
-        Args:
-            node_id (int): label of the considered node
-        """
-        direct_pred = self.direct_predecessors(node_id)
-        self._multi_graph = self._gather_pred(node_id, direct_pred)
-        self._multi_graph.get_node_data(node_id).predecessors = list(
-            merge_no_duplicates(*(self._multi_graph.get_node_data(node_id).predecessors))
-        )
-
     def _update_edges(self):
         """
         Updates DagDependency by adding edges to the newly added node (max_node)
@@ -536,32 +481,23 @@ class DAGDependency:
 
     def _add_successors(self):
         """
-        Use _gather_succ and merge_no_duplicates to create the list of successors
-        for each node. Update DAGDependency 'successors' attribute. It has to
+        Create the list of successors. Update DAGDependency 'successors' attribute. It has to
         be used when the DAGDependency() object is complete (i.e. converters).
         """
         for node_id in range(len(self._multi_graph) - 1, -1, -1):
-            direct_successors = self.direct_successors(node_id)
-
-            self._multi_graph = self._gather_succ(node_id, direct_successors)
-
             self._multi_graph.get_node_data(node_id).successors = list(
-                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).successors)
+                rx.descendants(self._multi_graph, node_id)
             )
 
     def _add_predecessors(self):
         """
-        Use _gather_pred and merge_no_duplicates to create the list of predecessors
-        for each node. Update DAGDependency 'predecessors' attribute. It has to
-        be used when the DAGDependency() object is complete (i.e. converters).
+        Create the list of predecessors for each node. Update DAGDependency
+        'predecessors' attribute. It has to be used when the DAGDependency() object
+        is complete (i.e. converters).
         """
         for node_id in range(0, len(self._multi_graph)):
-            direct_predecessors = self.direct_predecessors(node_id)
-
-            self._multi_graph = self._gather_pred(node_id, direct_predecessors)
-
             self._multi_graph.get_node_data(node_id).predecessors = list(
-                merge_no_duplicates(*self._multi_graph.get_node_data(node_id).predecessors)
+                rx.ancestors(self._multi_graph, node_id)
             )
 
     def copy(self):

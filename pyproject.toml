@@ -24,7 +24,15 @@ before-all = "yum install -y wget && {package}/tools/install_rust.sh"
 environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable"'
 
 [tool.pylint.main]
-extension-pkg-allow-list = ["retworkx", "numpy", "tweedledum", "qiskit._accelerate", "rustworkx"]
+extension-pkg-allow-list = [
+    "numpy",
+    "qiskit._accelerate",
+    # We can't allow pylint to load qiskit._qasm2 because it's not able to
+    # statically resolve the cyclical load of the exception and it bugs out.
+    "retworkx",
+    "rustworkx",
+    "tweedledum",
+]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
 py-version = "3.7"  # update it when bumping minimum supported python version
 
