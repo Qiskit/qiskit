@@ -936,6 +936,50 @@ class TestStabilizerStateExpectationValue(QiskitTestCase):
             target = Statevector(qc).expectation_value(op, qargs)
             self.assertAlmostEqual(exp_val, target)
 
+    def test_stabilizer_bell_equiv(self):
+        """Test that two circuits produce the same stabilizer group."""
+
+        qc1 = QuantumCircuit(2)
+        qc1.h(0)
+        qc1.x(1)
+        qc1.cx(0, 1)
+
+        qc2 = QuantumCircuit(2)
+        qc2.h(0)
+        qc2.cx(0, 1)
+        qc2.sdg(0)
+        qc2.sdg(1)
+        qc2.h(0)
+        qc2.h(1)
+
+        qc3 = QuantumCircuit(2)
+        qc3.h(0)
+        qc3.cx(0, 1)
+
+        qc4 = QuantumCircuit(2)
+        qc4.h(0)
+        qc4.cx(0, 1)
+        qc4.s(0)
+        qc4.sdg(1)
+        qc4.h(0)
+        qc4.h(1)
+
+        cliff1 = StabilizerState(qc1)  # ['+XX', '-ZZ']
+        cliff2 = StabilizerState(qc2)  # ['+YY', '+XX']
+        cliff3 = StabilizerState(qc3)  # ['+XX', '+ZZ']
+        cliff4 = StabilizerState(qc4)  # ['-YY', '+XX']
+
+        # [XX, -ZZ] and [XX, YY] both generate the stabilizer group {II, XX, YY, -ZZ}
+        self.assertTrue(cliff1.equiv(cliff2))
+        self.assertEqual(cliff1.probabilities_dict(), cliff2.probabilities_dict())
+
+        # [XX, ZZ] and [XX, -YY] both generate the stabilizer group {II, XX, -YY, ZZ}
+        self.assertTrue(cliff3.equiv(cliff4))
+        self.assertEqual(cliff3.probabilities_dict(), cliff4.probabilities_dict())
+
+        self.assertFalse(cliff1.equiv(cliff3))
+        self.assertFalse(cliff2.equiv(cliff4))
+
 
 if __name__ == "__main__":
     unittest.main()

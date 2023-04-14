@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" run circuits functions """
+"""run circuits functions"""
 
 from typing import Optional, Dict, Callable, List, Union, Tuple
 import sys
@@ -65,8 +65,7 @@ def find_regs_by_name(
 def _combine_result_objects(results: List[Result]) -> Result:
     """Temporary helper function.
 
-    TODO:
-        This function would be removed after Terra supports job with infinite circuits.
+    TODO: This function would be removed after Terra supports job with infinite circuits.
     """
     if len(results) == 1:
         return results[0]
@@ -379,7 +378,7 @@ def _run_circuits_on_backend(
     noise_config: Dict,
     run_config: Dict,
 ) -> Job:
-    """run on backend"""
+    """Run on backend."""
     run_kwargs = {}
     if is_aer_provider(backend) or is_basicaer_provider(backend):
         for key, value in backend_options.items():

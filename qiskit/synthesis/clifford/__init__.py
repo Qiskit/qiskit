@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,3 +16,4 @@ from .clifford_decompose_full import synth_clifford_full
 from .clifford_decompose_ag import synth_clifford_ag
 from .clifford_decompose_bm import synth_clifford_bm, _decompose_clifford_1q
 from .clifford_decompose_greedy import synth_clifford_greedy
+from .clifford_decompose_layers import synth_clifford_layers, synth_clifford_depth_lnn

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,6 +12,7 @@
 
 """Test the evolution gate."""
 
+import unittest
 import numpy as np
 import scipy
 from ddt import ddt, data, unpack
@@ -286,6 +287,11 @@ class TestEvolutionGate(QiskitTestCase):
         with self.assertRaises(ValueError):
             _ = PauliEvolutionGate(Pauli("iZ"))
 
+    def test_paramtrized_op_raises(self):
+        """Test an operator with parametrized coefficient raises an error."""
+        with self.assertRaises(ValueError):
+            _ = PauliEvolutionGate(SparsePauliOp("Z", np.array(Parameter("t"))))
+
     @data(LieTrotter, MatrixExponential)
     def test_inverse(self, synth_cls):
         """Test calculating the inverse is correct."""
@@ -308,3 +314,7 @@ class TestEvolutionGate(QiskitTestCase):
                 evo = PauliEvolutionGate(op)
                 self.assertEqual(evo.name, "PauliEvolution")
                 self.assertEqual(evo.label, f"exp(-it {label})")
+
+
+if __name__ == "__main__":
+    unittest.main()

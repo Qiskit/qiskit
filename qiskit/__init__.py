@@ -30,10 +30,10 @@ if sys.version_info < (3, 8):
     )
 
 
-# Globally define compiled modules. The normal import mechanism will not
-# find compiled submodules in _accelerate because it relies on file paths
-# manually define them on import so people can directly import
-# qiskit._accelerate.* submodules and not have to rely on attribute access
+# Globally define compiled submodules. The normal import mechanism will not find compiled submodules
+# in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
+# We manually define them on import so people can directly import qiskit._accelerate.* submodules
+# and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap
@@ -158,6 +158,16 @@ class IBMQWrapper:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
+                warnings.warn(
+                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                    "in a future release. Instead you should use the qiskit-ibm-provider package "
+                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                    "'pip install qiskit_ibm_provider'",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+
             except ImportError:
                 return False
         return True
@@ -168,6 +178,16 @@ class IBMQWrapper:
                 from qiskit.providers import ibmq
 
                 self.ibmq = ibmq.IBMQ
+                warnings.warn(
+                    "The qiskit.IBMQ entrypoint and the qiskit-ibmq-provider package ("
+                    "accessible from 'qiskit.providers.ibmq`) are deprecated and will be removed "
+                    "in a future release. Instead you should use the qiskit-ibm-provider package "
+                    "which is accessible from 'qiskit_ibm_provider'. You can install it with "
+                    "'pip install qiskit_ibm_provider'. Just replace 'qiskit.IBMQ' with "
+                    "'qiskit_ibm_provider.IBMProvider'",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     "qiskit-ibmq-provider", "IBMQ provider", "pip install qiskit-ibmq-provider"

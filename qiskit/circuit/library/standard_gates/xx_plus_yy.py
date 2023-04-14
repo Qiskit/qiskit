@@ -13,8 +13,8 @@
 """Two-qubit XX+YY gate."""
 import math
 from cmath import exp
+from math import pi
 from typing import Optional
-from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -170,3 +170,8 @@ class XXPlusYYGate(Gate):
             ],
             dtype=dtype,
         )
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        theta, beta = self.params
+        return XXPlusYYGate(exponent * theta, beta)

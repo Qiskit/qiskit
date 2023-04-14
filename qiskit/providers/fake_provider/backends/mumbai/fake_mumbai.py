@@ -25,7 +25,7 @@ class FakeMumbaiV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_mumbai.json"
     props_filename = "props_mumbai.json"
     defs_filename = "defs_mumbai.json"
-    backend_name = "fake_mumbai_v2"
+    backend_name = "fake_mumbai"
 
 
 class FakeMumbai(fake_pulse_backend.FakePulseBackend):
