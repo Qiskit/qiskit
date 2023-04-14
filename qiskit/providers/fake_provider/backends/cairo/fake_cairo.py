@@ -25,7 +25,7 @@ class FakeCairoV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_cairo.json"
     props_filename = "props_cairo.json"
     defs_filename = "defs_cairo.json"
-    backend_name = "fake_cairo_v2"
+    backend_name = "fake_cairo"
 
 
 class FakeCairo(fake_pulse_backend.FakePulseBackend):

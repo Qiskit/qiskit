@@ -25,7 +25,7 @@ class FakeBrooklynV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_brooklyn.json"
     props_filename = "props_brooklyn.json"
     defs_filename = "defs_brooklyn.json"
-    backend_name = "fake_brooklyn_v2"
+    backend_name = "fake_brooklyn"
 
 
 class FakeBrooklyn(fake_pulse_backend.FakePulseBackend):

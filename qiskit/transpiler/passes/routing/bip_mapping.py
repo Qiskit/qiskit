@@ -22,6 +22,8 @@ from qiskit.utils import optionals as _optionals
 from qiskit.transpiler import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms.bip_model import BIPMappingModel
+from qiskit.transpiler.target import target_to_backend_properties, Target
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +64,12 @@ class BIPMapping(TransformationPass):
     `arXiv:2106.06446 <https://arxiv.org/abs/2106.06446>`_
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This has been replaced by a new transpiler plugin package: "
+        "qiskit-bip-mapper. More details can be found here: "
+        "https://github.com/qiskit-community/qiskit-bip-mapper",
+    )  # pylint: disable=bad-docstring-quotes
     def __init__(
         self,
         coupling_map,
@@ -77,7 +85,7 @@ class BIPMapping(TransformationPass):
         """BIPMapping initializer.
 
         Args:
-            coupling_map (CouplingMap): Directed graph represented a coupling map.
+            coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
             qubit_subset (list[int]): Sublist of physical qubits to be used in the mapping.
                 If None, all qubits in the coupling_map will be considered.
             objective (str): Type of objective function to be minimized:
@@ -112,17 +120,25 @@ class BIPMapping(TransformationPass):
             TranspilerError: if invalid options are specified.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+            self.backend_prop = target_to_backend_properties(self.target)
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
+            self.backend_prop = None
         self.qubit_subset = qubit_subset
-        if self.coupling_map is not None and self.qubit_subset is None:
-            self.qubit_subset = list(range(self.coupling_map.size()))
         self.objective = objective
-        self.backend_prop = backend_prop
+        if backend_prop is not None:
+            self.backend_prop = backend_prop
         self.time_limit = time_limit
         self.threads = threads
         self.max_swaps_inbetween_layers = max_swaps_inbetween_layers
         self.depth_obj_weight = depth_obj_weight
         self.default_cx_error_rate = default_cx_error_rate
+        if self.coupling_map is not None and self.qubit_subset is None:
+            self.qubit_subset = list(range(self.coupling_map.size()))
 
     def run(self, dag):
         """Run the BIPMapping pass on `dag`, assuming the number of virtual qubits (defined in
