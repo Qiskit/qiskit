@@ -106,6 +106,7 @@ class VF2PostLayout(AnalysisPass):
         call_limit=None,
         time_limit=None,
         strict_direction=True,
+        max_trials=0,
     ):
         """Initialize a ``VF2PostLayout`` pass instance
 
@@ -131,6 +132,8 @@ class VF2PostLayout(AnalysisPass):
                 However, if ``strict_direction=True`` the pass expects the input
                 :class:`~.DAGCircuit` object to :meth:`~.VF2PostLayout.run` to be in
                 the target set of instructions.
+            max_trials (int): The maximum number of trials to run VF2 to find
+                a layout. A value of ``0`` (the default) means 'unlimited'.
 
         Raises:
             TypeError: At runtime, if neither ``coupling_map`` or ``target`` are provided.
@@ -141,6 +144,7 @@ class VF2PostLayout(AnalysisPass):
         self.properties = properties
         self.call_limit = call_limit
         self.time_limit = time_limit
+        self.max_trials = max_trials
         self.seed = seed
         self.strict_direction = strict_direction
         self.avg_error_map = None
@@ -310,6 +314,11 @@ class VF2PostLayout(AnalysisPass):
                 )
                 chosen_layout = layout
                 chosen_layout_score = layout_score
+
+            if self.max_trials and trials >= self.max_trials:
+                logger.debug("Trial %s is >= configured max trials %s", trials, self.max_trials)
+                break
+
             elapsed_time = time.time() - start_time
             if self.time_limit is not None and elapsed_time >= self.time_limit:
                 logger.debug(

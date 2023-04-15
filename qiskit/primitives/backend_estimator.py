@@ -80,7 +80,7 @@ def _prepare_counts(results: list[Result]):
     return counts
 
 
-class BackendEstimator(BaseEstimator):
+class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
@@ -250,7 +250,7 @@ class BackendEstimator(BaseEstimator):
         observables: tuple[BaseOperator | PauliSumOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))

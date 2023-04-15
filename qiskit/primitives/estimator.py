@@ -36,7 +36,7 @@ from .utils import (
 )
 
 
-class Estimator(BaseEstimator):
+class Estimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """
     Reference implementation of :class:`BaseEstimator`.
 
@@ -127,7 +127,7 @@ class Estimator(BaseEstimator):
         observables: tuple[BaseOperator | PauliSumOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             key = _circuit_key(circuit)
