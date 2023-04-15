@@ -21,7 +21,7 @@ import enum
 class ExperimentalFeatures(enum.Flag):
     """Flags for experimental features that the OpenQASM 3 exporter supports.
 
-    These are experimental and are more liable to change, such as because the OpenQASM 3
+    These are experimental and are more liable to change, because the OpenQASM 3
     specification has not formally accepted them yet, so the syntax may not be finalized."""
 
     SWITCH_CASE_V1 = enum.auto()

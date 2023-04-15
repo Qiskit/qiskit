@@ -47,7 +47,7 @@ Experimental features
 
 The OpenQASM 3 language is still evolving as hardware capabilities improve, so there is no final
 syntax that Qiskit can reliably target.  In order to represent the evolving language, we will
-sometimes release features before formal standardisation, which may need to change as the review
+sometimes release features before formal standardization, which may need to change as the review
 process in the OpenQASM 3 design committees progresses.  By default, the exporters will only support
 standardised features of the language.  To enable these early-release features, use the
 ``experimental`` keyword argument of :func:`dump` and :func:`dumps`.  The available feature flags

@@ -905,7 +905,7 @@ class QASM3Builder:
         """Build a :obj:`.SwitchCaseOp` into a :class:`.ast.SwitchStatement`."""
         if ExperimentalFeatures.SWITCH_CASE_V1 not in self.experimental:
             raise QASM3ExporterError(
-                "'switch' statements are not stabilised in OpenQASM 3 yet."
+                "'switch' statements are not stabilized in OpenQASM 3 yet."
                 " To enable experimental support, set the flag"
                 " 'ExperimentalFeatures.SWITCH_CASE_V1' in the 'experimental' keyword"
                 " argument of the exporter."
