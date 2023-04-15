@@ -654,7 +654,7 @@ class DefaultCase(Expression):
 
 
 class SwitchStatement(Statement):
-    """AST node for the IBM-internal 'switch-case' extension to OpenQASM 3."""
+    """AST node for the proposed 'switch-case' extension to OpenQASM 3."""
 
     def __init__(
         self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]

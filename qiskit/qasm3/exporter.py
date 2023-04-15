@@ -338,7 +338,7 @@ class QASM3Builder:
         self.includeslist = includeslist
         # `_global_io_declarations` and `_global_classical_declarations` are stateful, and any
         # operation that needs a parameter can append to them during the build.  We make all
-        # classical declarations global because the IBM QSS stack (our primary consumer of OQ3
+        # classical declarations global because the IBM QSS stack (our initial consumer of OQ3
         # strings) prefers declarations to all be global, and it's valid OQ3, so it's not vendor
         # lock-in.  It's possibly slightly memory inefficient, but that's not likely to be a problem
         # in the near term.

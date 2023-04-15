@@ -59,6 +59,25 @@ are:
 If you want to enable multiple experimental features, you should combine the flags using the ``|``
 operator, such as ``flag1 | flag2``.
 
+For example, to perform an export using the early semantics of ``switch`` support::
+
+    from qiskit import qasm3, QuantumCircuit, QuantumRegister, ClassicalRegister
+
+    # Build the circuit
+    qreg = QuantumRegister(3)
+    creg = ClassicalRegister(3)
+    qc = QuantumCircuit(qreg, creg)
+    with qc.switch(creg) as case:
+        with case(0):
+            qc.x(0)
+        with case(1, 2):
+            qc.x(1)
+        with case(case.DEFAULT):
+            qc.x(2)
+
+    # Export to an OpenQASM 3 string.
+    qasm_string = qasm3.dumps(qc, experimental=qasm3.ExperimentalFeatures.SWITCH_CASE_V1)
+
 
 Importing from OpenQASM 3
 =========================
