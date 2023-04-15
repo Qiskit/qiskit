@@ -1787,7 +1787,7 @@ class TestExperimentalFeatures(QiskitTestCase):
         case = QuantumCircuit(1)
         circuit = QuantumCircuit(1, 1)
         circuit.switch(circuit.clbits[0], [((True, False), case)], [0], [])
-        with self.assertRaisesRegex(QASM3ExporterError, "'switch' statements are not stabilised"):
+        with self.assertRaisesRegex(QASM3ExporterError, "'switch' statements are not stabilized"):
             dumps(circuit)
 
     def test_switch_clbit(self):
