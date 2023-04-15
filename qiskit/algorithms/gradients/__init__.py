@@ -66,25 +66,25 @@ Results
    SamplerGradientResult
 """
 
-from .base_estimator_gradient import BaseEstimatorGradient
-from .base_qgt import BaseQGT
-from .base_sampler_gradient import BaseSamplerGradient
-from .estimator_gradient_result import EstimatorGradientResult
-from .finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
-from .finite_diff_sampler_gradient import FiniteDiffSamplerGradient
-from .lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
-from .lin_comb_qgt import LinCombQGT
-from .lin_comb_sampler_gradient import LinCombSamplerGradient
-from .param_shift_estimator_gradient import ParamShiftEstimatorGradient
-from .param_shift_sampler_gradient import ParamShiftSamplerGradient
-from .qfi import QFI
-from .qfi_result import QFIResult
-from .qgt_result import QGTResult
-from .sampler_gradient_result import SamplerGradientResult
-from .spsa_estimator_gradient import SPSAEstimatorGradient
-from .spsa_sampler_gradient import SPSASamplerGradient
-from .reverse_gradient.reverse_gradient import ReverseEstimatorGradient
-from .reverse_gradient.reverse_qgt import ReverseQGT
+from .base.base_estimator_gradient import BaseEstimatorGradient
+from .base.base_qgt import BaseQGT
+from .base.base_sampler_gradient import BaseSamplerGradient
+from .base.estimator_gradient_result import EstimatorGradientResult
+from .finite_diff.finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
+from .finite_diff.finite_diff_sampler_gradient import FiniteDiffSamplerGradient
+from .lin_comb.lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
+from .lin_comb.lin_comb_qgt import LinCombQGT
+from .lin_comb.lin_comb_sampler_gradient import LinCombSamplerGradient
+from .param_shift.param_shift_estimator_gradient import ParamShiftEstimatorGradient
+from .param_shift.param_shift_sampler_gradient import ParamShiftSamplerGradient
+from .qfi.qfi import QFI
+from .qfi.qfi_result import QFIResult
+from .qgt.qgt_result import QGTResult
+from .base.sampler_gradient_result import SamplerGradientResult
+from .spsa.spsa_estimator_gradient import SPSAEstimatorGradient
+from .spsa.spsa_sampler_gradient import SPSASamplerGradient
+from .reverse.reverse_gradient import ReverseEstimatorGradient
+from .qgt.reverse_qgt import ReverseQGT
 
 __all__ = [
     "BaseEstimatorGradient",

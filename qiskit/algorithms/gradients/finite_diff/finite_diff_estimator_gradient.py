@@ -25,10 +25,10 @@ from qiskit.primitives import BaseEstimator
 from qiskit.providers import Options
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
-from .base_estimator_gradient import BaseEstimatorGradient
-from .estimator_gradient_result import EstimatorGradientResult
+from ..base.base_estimator_gradient import BaseEstimatorGradient
+from ..base.estimator_gradient_result import EstimatorGradientResult
 
-from ..exceptions import AlgorithmError
+from ...exceptions import AlgorithmError
 
 if sys.version_info >= (3, 8):
     from typing import Literal

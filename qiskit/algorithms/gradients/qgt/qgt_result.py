@@ -22,7 +22,7 @@ import numpy as np
 
 from qiskit.providers import Options
 
-from .utils import DerivativeType
+from ..utils import DerivativeType
 
 
 @dataclass(frozen=True)
