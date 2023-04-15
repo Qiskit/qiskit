@@ -239,6 +239,46 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
+        with self.subTest("switch/while"):
+            test = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            with test.switch(cr1) as case_:
+                with case_(0):
+                    with test.while_loop((cr2, 0)):
+                        test.x(0)
+                with case_(1, 2):
+                    with test.while_loop((cr3, 0)):
+                        test.y(0)
+                with case_(case_.DEFAULT):
+                    with test.while_loop((cr4, 0)):
+                        test.z(0)
+
+            loop_body1 = QuantumCircuit([qr[0]], cr2)
+            loop_body1.x(0)
+            case_body1 = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
+            case_body1.while_loop((cr2, 0), loop_body1, [qr[0]], cr2)
+
+            loop_body2 = QuantumCircuit([qr[0]], cr3)
+            loop_body2.y(0)
+            case_body2 = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
+            case_body2.while_loop((cr3, 0), loop_body2, [qr[0]], cr3)
+
+            loop_body3 = QuantumCircuit([qr[0]], cr4)
+            loop_body3.z(0)
+            case_body3 = QuantumCircuit([qr[0]], clbits, cr1, cr2, cr3, cr4)
+            case_body3.while_loop((cr4, 0), loop_body3, [qr[0]], cr4)
+
+            expected = QuantumCircuit(qr, clbits, cr1, cr2, cr3, cr4)
+            expected.switch(
+                cr1,
+                [
+                    (0, case_body1),
+                    ((1, 2), case_body2),
+                    (CASE_DEFAULT, case_body3),
+                ],
+                [qr[0]],
+                clbits + list(cr1),
+            )
+
     def test_if_else_simple(self):
         """Test a simple if/else statement builds correctly, in the midst of other instructions.
         This test has paired if and else blocks the same natural width."""
@@ -1591,6 +1631,123 @@ class TestControlFlowBuilders(QiskitTestCase):
 
             expected = QuantumCircuit(qubits, clbits)
             expected.while_loop(cond_loop, loop_body, loop_qubits, loop_clbits)
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+        with self.subTest("if/while/if/switch"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.if_test(cond_outer):  # outer_t
+                test.h(0).c_if(3, 0)
+                with test.while_loop(cond_loop):  # loop
+                    test.h(1).c_if(4, 0)
+                    with test.if_test(cond_inner):  # inner_t
+                        test.h(2).c_if(5, 0)
+                        with test.switch(5) as case_:
+                            with case_(False):  # case_f
+                                test.h(3).c_if(6, 0)
+                            with case_(True):  # case_t
+                                loop_operation(test)
+                        test.h(4).c_if(7, 0)
+                    # exit inner_t
+                    test.h(5).c_if(8, 0)
+                # exit loop
+                test.h(6).c_if(9, 0)
+            # exit outer_t
+            test.h(7).c_if(10, 0)
+
+            case_f = QuantumCircuit(qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
+            case_f.h(qubits[3]).c_if(clbits[6], 0)
+            case_t = QuantumCircuit(qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
+            loop_operation(case_t)
+
+            inner_t = QuantumCircuit(qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
+            inner_t.h(qubits[2]).c_if(clbits[5], 0)
+            inner_t.switch(
+                clbits[5],
+                [(False, case_f), (True, case_t)],
+                qubits[1:6],
+                [clbits[0], clbits[2]] + clbits[4:9],
+            )
+            inner_t.h(qubits[4]).c_if(clbits[7], 0)
+
+            loop = QuantumCircuit(qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
+            loop.h(qubits[1]).c_if(clbits[4], 0)
+            loop.if_test(cond_inner, inner_t, qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
+            loop.h(qubits[5]).c_if(clbits[8], 0)
+
+            outer_t = QuantumCircuit(qubits[:7], clbits[:10])
+            outer_t.h(qubits[0]).c_if(clbits[3], 0)
+            outer_t.while_loop(cond_loop, loop, qubits[1:6], [clbits[0], clbits[2]] + clbits[4:9])
+            outer_t.h(qubits[6]).c_if(clbits[9], 0)
+
+            expected = QuantumCircuit(qubits, clbits)
+            expected.if_test(cond_outer, outer_t, qubits[:7], clbits[:10])
+            expected.h(qubits[7]).c_if(clbits[10], 0)
+
+            self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
+
+        with self.subTest("switch/for/switch/else"):
+            test = QuantumCircuit(qubits, clbits)
+            with test.switch(0) as case_outer:
+                with case_outer(False):  # outer_case_f
+                    test.h(0).c_if(3, 0)
+                    with test.for_loop(range(2)):  # loop
+                        test.h(1).c_if(4, 0)
+                        with test.switch(1) as case_inner:
+                            with case_inner(False):  # inner_case_f
+                                test.h(2).c_if(5, 0)
+                                with test.if_test((2, True)) as else_:  # if_t
+                                    test.h(3).c_if(6, 0)
+                                with else_:  # if_f
+                                    loop_operation(test)
+                                test.h(4).c_if(7, 0)
+                            with case_inner(True):  # inner_case_t
+                                loop_operation(test)
+                        test.h(5).c_if(8, 0)
+                    # exit loop1
+                    test.h(6).c_if(9, 0)
+                with case_outer(True):  # outer_case_t
+                    test.h(7).c_if(10, 0)
+            test.h(8).c_if(11, 0)
+
+            if_t = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
+            if_t.h(qubits[3]).c_if(clbits[6], 0)
+            if_f = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
+            loop_operation(if_f)
+
+            inner_case_f = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
+            inner_case_f.h(qubits[2]).c_if(clbits[5], 0)
+            inner_case_f.if_else(
+                (clbits[2], True), if_t, if_f, qubits[1:6], clbits[1:3] + clbits[4:9]
+            )
+            inner_case_f.h(qubits[4]).c_if(clbits[7], 0)
+
+            inner_case_t = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
+            loop_operation(inner_case_t)
+
+            loop = QuantumCircuit(qubits[1:6], clbits[1:3] + clbits[4:9])
+            loop.h(qubits[1]).c_if(clbits[4], 0)
+            loop.switch(
+                clbits[1],
+                [(False, inner_case_f), (True, inner_case_t)],
+                qubits[1:6],
+                clbits[1:3] + clbits[4:9],
+            )
+            loop.h(qubits[5]).c_if(clbits[8], 0)
+
+            outer_case_f = QuantumCircuit(qubits[:8], clbits[:11])
+            outer_case_f.h(qubits[0]).c_if(clbits[3], 0)
+            outer_case_f.for_loop(range(2), None, loop, qubits[1:6], clbits[1:3] + clbits[4:9])
+            outer_case_f.h(qubits[6]).c_if(clbits[9], 0)
+
+            outer_case_t = QuantumCircuit(qubits[:8], clbits[:11])
+            outer_case_t.h(qubits[7]).c_if(clbits[10], 0)
+
+            expected = QuantumCircuit(qubits, clbits)
+            expected.switch(
+                clbits[0], [(False, outer_case_f), (True, outer_case_t)], qubits[:8], clbits[:11]
+            )
+            expected.h(qubits[8]).c_if(clbits[11], 0)
 
             self.assertEqual(canonicalize_control_flow(test), canonicalize_control_flow(expected))
 
