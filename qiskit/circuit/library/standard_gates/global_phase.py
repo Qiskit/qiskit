@@ -12,20 +12,12 @@
 
 """Global Phase Gate"""
 
-from typing import Optional  # , Union
+from typing import Optional 
 import numpy
-
-# from qiskit.qasm import pi
-
-# from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-
-# from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.parameterexpression import ParameterValueType
-
-# from qiskit.circuit.exceptions import CircuitError
 
 
 class GlobalPhaseGate(Gate):
@@ -35,16 +27,11 @@ class GlobalPhaseGate(Gate):
 
     **Mathamatical Representation:**
 
-
     .. math::
         \text{GlobalPhaseGate}\ =
             \begin{pmatrix}
                 e^{i\theta}
             \end{pmatrix}
-
-    **Circuit symbol:**
-
-    .. parsed-literal::
     """
 
     def __init__(self, phase: ParameterValueType, label: Optional[str] = None):

@@ -40,7 +40,8 @@ from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
-
+from qiskit.quantum_info import Operator
+from qiskit import transpile
 
 class TestStandard1Q(QiskitTestCase):
     """Standard Extension Test. Gates with a single Qubit"""
@@ -872,8 +873,6 @@ class TestStandard1Q(QiskitTestCase):
         )
 
     def test_global_phase_consistency(self):
-        from qiskit.quantum_info import Operator
-
         """Tests compatibility of GlobalPhaseGate with QuantumCircuit.global_phase"""
         theta = 0.1
         qc1 = QuantumCircuit(0, global_phase=theta)
@@ -886,9 +885,6 @@ class TestStandard1Q(QiskitTestCase):
         )
 
     def test_transpile_global_phase_consistency(self):
-        from qiskit.quantum_info import Operator
-        from qiskit import transpile
-
         """Tests compatibility of transpiled GlobalPhaseGate with QuantumCircuit.global_phase"""
         qc1 = QuantumCircuit(0, global_phase=0.3)
         qc2 = QuantumCircuit(0, global_phase=0.2)
