@@ -249,7 +249,7 @@ def transpile(
             the list should be exactly the length of the ``circuits`` parameter.
         unitary_synthesis_method (str): The name of the unitary synthesis
             method to use. By default ``'default'`` is used. You can see a list of installed
-            plugins with :func:`~unitary_synthesis_plugin_names`.
+            plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config: An optional configuration dictionary
             that will be passed directly to the unitary synthesis plugin. By
             default this setting will have no effect as the default unitary
