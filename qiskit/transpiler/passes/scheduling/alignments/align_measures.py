@@ -16,6 +16,7 @@ import itertools
 import warnings
 from collections import defaultdict
 from collections.abc import Iterable
+from typing import Type
 
 from qiskit.circuit.quantumcircuit import ClbitSpecifier, QubitSpecifier
 
@@ -121,9 +122,7 @@ class AlignMeasures(TransformationPass):
         """
         time_unit = self.property_set["time_unit"]
 
-        if not _check_alignment_required(
-            dag, self.alignment, Measure
-        ):  # TODO: should be Measure()?
+        if not _check_alignment_required(dag, self.alignment, Measure):
             # return input as-is to avoid unnecessary scheduling.
             # because following procedure regenerate new DAGCircuit,
             # we should avoid continuing if not necessary from performance viewpoint.
@@ -211,7 +210,7 @@ class AlignMeasures(TransformationPass):
 def _check_alignment_required(
     dag: DAGCircuit,
     alignment: int,
-    instructions: Instruction | list[Instruction],
+    instructions: Type | list[Type],
 ) -> bool:
     """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
 
