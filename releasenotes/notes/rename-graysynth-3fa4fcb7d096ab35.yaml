@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Added a new function :func:`qiskit.synthesis.qiskit.synthesis.synth_cnot_phase_aam`
+    Added a new function :func:`qiskit.synthesis.synth_cnot_phase_aam`
     which is used to synthesize cnot phase circuits for all-to-all architectures
     using the  Amy, Azimzadeh, and Mosca method. This function is identical to
     the available ``qiskit.transpiler.synthesis.graysynth()``
