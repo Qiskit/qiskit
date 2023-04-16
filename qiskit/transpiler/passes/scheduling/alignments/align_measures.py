@@ -21,7 +21,6 @@ from typing import Type
 from qiskit.circuit.quantumcircuit import ClbitSpecifier, QubitSpecifier
 
 from qiskit.circuit.delay import Delay
-from qiskit.circuit.instruction import Instruction
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit import DAGCircuit
