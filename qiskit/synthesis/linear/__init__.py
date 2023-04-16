@@ -19,3 +19,7 @@ from .linear_matrix_utils import (
     calc_inverse_matrix,
     check_invertible_binary_matrix,
 )
+
+# pylint: disable=cyclic-import
+# pylint: disable=wrong-import-order
+from qiskit.synthesis.linear_phase import synth_cnot_phase_aam as graysynth
