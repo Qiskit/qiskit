@@ -14,12 +14,13 @@
 
 Level 1 pass manager: light optimization by simple adjacent gate collapsing.
 """
-
+from __future__ import annotations
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
-from qiskit.transpiler import ConditionalController
+from qiskit.transpiler import ConditionalController, FlowController
 
 from qiskit.transpiler.passes import CXCancellation
 from qiskit.transpiler.passes import SetLayout
@@ -118,13 +119,13 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     else:
         coupling_map_layout = target
 
-    _choose_layout_0 = (
+    _choose_layout_0: list[BasePass] = (
         []
         if pass_manager_config.layout_method
         else [TrivialLayout(coupling_map_layout), CheckMap(coupling_map_layout)]
     )
 
-    _choose_layout_1 = (
+    _choose_layout_1: list[BasePass] | BasePass = (
         []
         if pass_manager_config.layout_method
         else VF2Layout(
@@ -137,7 +138,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     )
 
     if layout_method == "trivial":
-        _improve_layout = TrivialLayout(coupling_map_layout)
+        _improve_layout: BasePass = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _improve_layout = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
@@ -274,7 +275,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             return not property_set["all_gates_in_basis"]
 
         # Check if any gate is not in the basis, and if so, run unroll passes
-        _unroll_if_out_of_basis = [
+        _unroll_if_out_of_basis: list[BasePass | FlowController] = [
             GatesInBasis(basis_gates, target=target),
             ConditionalController(unroll, condition=_unroll_condition),
         ]

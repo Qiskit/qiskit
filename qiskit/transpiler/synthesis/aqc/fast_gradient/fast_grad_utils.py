@@ -13,7 +13,7 @@
 """
 Utility functions in the fast gradient implementation.
 """
-
+from __future__ import annotations
 from typing import Union
 import numpy as np
 
@@ -58,7 +58,7 @@ def reverse_bits(x: Union[int, np.ndarray], nbits: int, enable: bool) -> Union[i
         return x
 
     if isinstance(x, int):
-        res = int(0)
+        res: int | np.ndarray = int(0)
     else:
         x = x.copy()
         res = np.full_like(x, fill_value=0)

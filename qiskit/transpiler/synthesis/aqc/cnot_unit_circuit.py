@@ -13,7 +13,7 @@
 This is the Parametric Circuit class: anything that you need for a circuit
 to be parametrized and used for approximate compiling optimization.
 """
-
+from __future__ import annotations
 from typing import Optional
 
 import numpy as np
@@ -53,7 +53,7 @@ class CNOTUnitCircuit(ApproximateCircuit):
         self._tol = tol
 
         # Thetas to be optimized by the AQC algorithm
-        self._thetas = None
+        self._thetas: np.ndarray | None = None
 
     @property
     def thetas(self) -> np.ndarray:

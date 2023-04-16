@@ -11,10 +11,12 @@
 # that they have been altered from the originals.
 
 """Align measurement instructions."""
+from __future__ import annotations
 import itertools
 import warnings
 from collections import defaultdict
-from typing import List, Union
+
+from qiskit.circuit.quantumcircuit import ClbitSpecifier, QubitSpecifier
 
 from qiskit.circuit.delay import Delay
 from qiskit.circuit.instruction import Instruction
@@ -118,7 +120,9 @@ class AlignMeasures(TransformationPass):
         """
         time_unit = self.property_set["time_unit"]
 
-        if not _check_alignment_required(dag, self.alignment, Measure):
+        if not _check_alignment_required(
+            dag, self.alignment, Measure
+        ):  # TODO: should be Measure()?
             # return input as-is to avoid unnecessary scheduling.
             # because following procedure regenerate new DAGCircuit,
             # we should avoid continuing if not necessary from performance viewpoint.
@@ -139,12 +143,14 @@ class AlignMeasures(TransformationPass):
         # * pad_with_delay is called only with non-delay node to avoid consecutive delay
         new_dag = dag.copy_empty_like()
 
-        qubit_time_available = defaultdict(int)  # to track op start time
-        qubit_stop_times = defaultdict(int)  # to track delay start time for padding
-        clbit_readable = defaultdict(int)
-        clbit_writeable = defaultdict(int)
+        qubit_time_available: dict[QubitSpecifier, int] = defaultdict(int)  # to track op start time
+        qubit_stop_times: dict[QubitSpecifier, int] = defaultdict(
+            int
+        )  # to track delay start time for padding
+        clbit_readable: dict[ClbitSpecifier, int] = defaultdict(int)
+        clbit_writeable: dict[ClbitSpecifier, int] = defaultdict(int)
 
-        def pad_with_delays(qubits: List[int], until, unit) -> None:
+        def pad_with_delays(qubits: list[int], until, unit) -> None:
             """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
             for q in qubits:
                 if qubit_stop_times[q] < until:
@@ -204,7 +210,7 @@ class AlignMeasures(TransformationPass):
 def _check_alignment_required(
     dag: DAGCircuit,
     alignment: int,
-    instructions: Union[Instruction, List[Instruction]],
+    instructions: Instruction | list[Instruction],
 ) -> bool:
     """Check DAG nodes and return a boolean representing if instruction scheduling is necessary.
 

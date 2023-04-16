@@ -15,8 +15,8 @@
 Level 3 pass manager: heavy optimization by noise adaptive qubit mapping and
 gate cancellation using commutativity rules and unitary synthesis.
 """
-
-
+from __future__ import annotations
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
@@ -41,7 +41,7 @@ from qiskit.transpiler.passes import ConsolidateBlocks
 from qiskit.transpiler.passes import UnitarySynthesis
 from qiskit.transpiler.passes import GatesInBasis
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
-from qiskit.transpiler.runningpassmanager import ConditionalController
+from qiskit.transpiler.runningpassmanager import ConditionalController, FlowController
 from qiskit.transpiler.preset_passmanagers import common
 from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.preset_passmanagers.plugin import (
@@ -115,7 +115,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         return False
 
     # 2a. If layout method is not set, first try VF2Layout
-    _choose_layout_0 = (
+    _choose_layout_0: list[BasePass] | BasePass = (
         []
         if pass_manager_config.layout_method
         else VF2Layout(
@@ -134,7 +134,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     # 2b. if VF2 didn't converge on a solution use layout_method (dense).
     if layout_method == "trivial":
-        _choose_layout_1 = TrivialLayout(coupling_map_layout)
+        _choose_layout_1: BasePass = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
@@ -160,7 +160,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
 
     # 8. Optimize iteratively until no more change in depth. Removes useless gates
     # after reset and before measure, commutes gates and optimizes contiguous blocks.
-    _minimum_point_check = [
+    _minimum_point_check: list[BasePass | FlowController] = [
         Depth(recurse=True),
         Size(recurse=True),
         MinimumPoint(["depth", "size"], "optimization_loop"),
@@ -169,7 +169,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _opt_control(property_set):
         return not property_set["optimization_loop_minimum_point"]
 
-    _opt = [
+    _opt: list[BasePass | FlowController] = [
         Collect2qBlocks(),
         ConsolidateBlocks(
             basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
@@ -256,7 +256,7 @@ def level_3_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             return not property_set["all_gates_in_basis"]
 
         # Check if any gate is not in the basis, and if so, run unroll passes
-        _unroll_if_out_of_basis = [
+        _unroll_if_out_of_basis: list[BasePass | FlowController] = [
             GatesInBasis(basis_gates, target=target),
             ConditionalController(unroll, condition=_unroll_condition),
         ]

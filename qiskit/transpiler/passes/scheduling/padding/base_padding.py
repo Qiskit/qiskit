@@ -11,8 +11,9 @@
 # that they have been altered from the originals.
 
 """Padding pass to fill empty timeslot."""
+from __future__ import annotations
 
-from typing import List, Optional, Union
+from collections.abc import Iterable
 
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit.delay import Delay
@@ -165,8 +166,8 @@ class BasePadding(TransformationPass):
         dag: DAGCircuit,
         t_start: int,
         oper: Instruction,
-        qubits: Union[Qubit, List[Qubit]],
-        clbits: Optional[Union[Clbit, List[Clbit]]] = None,
+        qubits: Qubit | Iterable[Qubit],
+        clbits: Clbit | Iterable[Clbit] | None = None,
     ):
         """Add new operation to DAG with scheduled information.
 

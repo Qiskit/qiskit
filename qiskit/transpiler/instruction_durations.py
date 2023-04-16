@@ -11,9 +11,11 @@
 # that they have been altered from the originals.
 
 """Durations of instructions, one of transpiler configurations."""
+from __future__ import annotations
 import warnings
-from typing import Optional, List, Tuple, Union, Iterable, Set
+from typing import Optional, List, Tuple, Union, Iterable
 
+import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
@@ -37,9 +39,11 @@ class InstructionDurations:
     def __init__(
         self, instruction_durations: Optional["InstructionDurationsType"] = None, dt: float = None
     ):
-        self.duration_by_name = {}
-        self.duration_by_name_qubits = {}
-        self.duration_by_name_qubits_params = {}
+        self.duration_by_name: dict[str, tuple[float, str]] = {}
+        self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]]] = {}
+        self.duration_by_name_qubits_params: dict[
+            tuple[str, tuple[int, ...], tuple[float, ...]]
+        ] = {}
         self.dt = dt
         if instruction_durations:
             self.update(instruction_durations)
@@ -162,10 +166,11 @@ class InstructionDurations:
 
     def get(
         self,
-        inst: Union[str, Instruction],
-        qubits: Union[int, List[int], Qubit, List[Qubit]],
+        inst: str
+        | qiskit.circuit.Instruction,  # FIXME: https://github.com/sphinx-doc/sphinx/issues/4961
+        qubits: int | list[int] | Qubit | list[Qubit] | list[int | Qubit],
         unit: str = "dt",
-        parameters: Optional[List[float]] = None,
+        parameters: list[float] | None = None,
     ) -> float:
         """Get the duration of the instruction with the name, qubits, and parameters.
 
@@ -263,7 +268,7 @@ class InstructionDurations:
         else:
             raise TranspilerError(f"Conversion from '{from_unit}' to '{to_unit}' is not supported")
 
-    def units_used(self) -> Set[str]:
+    def units_used(self) -> set[str]:
         """Get the set of all units used in this instruction durations.
 
         Returns:

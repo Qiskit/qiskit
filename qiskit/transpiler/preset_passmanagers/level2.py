@@ -15,12 +15,13 @@
 Level 2 pass manager: medium optimization by noise adaptive qubit mapping and
 gate cancellation using commutativity rules.
 """
-
+from __future__ import annotations
+from qiskit.transpiler.basepasses import BasePass
 from qiskit.transpiler.passmanager_config import PassManagerConfig
 from qiskit.transpiler.timing_constraints import TimingConstraints
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.passmanager import StagedPassManager
-from qiskit.transpiler import ConditionalController
+from qiskit.transpiler import ConditionalController, FlowController
 
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import VF2Layout
@@ -109,7 +110,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         return False
 
     # Try using VF2 layout to find a perfect layout
-    _choose_layout_0 = (
+    _choose_layout_0: list[BasePass] | BasePass = (
         []
         if pass_manager_config.layout_method
         else VF2Layout(
@@ -127,7 +128,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         coupling_map_layout = target
 
     if layout_method == "trivial":
-        _choose_layout_1 = TrivialLayout(coupling_map_layout)
+        _choose_layout_1: BasePass = TrivialLayout(coupling_map_layout)
     elif layout_method == "dense":
         _choose_layout_1 = DenseLayout(coupling_map, backend_properties, target=target)
     elif layout_method == "noise_adaptive":
@@ -159,7 +160,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     def _opt_control(property_set):
         return (not property_set["depth_fixed_point"]) or (not property_set["size_fixed_point"])
 
-    _opt = [
+    _opt: list[BasePass] = [
         Optimize1qGatesDecomposition(basis=basis_gates, target=target),
         CommutativeCancellation(basis_gates=basis_gates, target=target),
     ]
@@ -229,7 +230,7 @@ def level_2_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             return not property_set["all_gates_in_basis"]
 
         # Check if any gate is not in the basis, and if so, run unroll passes
-        _unroll_if_out_of_basis = [
+        _unroll_if_out_of_basis: list[BasePass | FlowController] = [
             GatesInBasis(basis_gates, target=target),
             ConditionalController(unroll, condition=_unroll_condition),
         ]

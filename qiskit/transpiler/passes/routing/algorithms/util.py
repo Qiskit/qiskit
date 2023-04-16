@@ -26,7 +26,10 @@
 
 """Utility functions shared between permutation functionality."""
 
-from typing import List, TypeVar, Iterable, MutableMapping
+from __future__ import annotations
+
+from collections.abc import Iterable
+from typing import TypeVar, MutableMapping
 
 from qiskit.circuit import QuantumRegister
 from qiskit.dagcircuit import DAGCircuit
@@ -53,8 +56,8 @@ def swap_permutation(
     for swap_step in swaps:
         for sw1, sw2 in swap_step:
             # Take into account non-existent keys.
-            val1 = None  # type: Optional[_V]
-            val2 = None  # type: Optional[_V]
+            val1: _V | None = None
+            val2: _V | None = None
             if allow_missing_keys:
                 val1 = mapping.pop(sw1, None)
                 val2 = mapping.pop(sw2, None)
@@ -68,7 +71,7 @@ def swap_permutation(
                 mapping[sw1] = val2
 
 
-def permutation_circuit(swaps: Iterable[List[Swap[_V]]]) -> PermutationCircuit:
+def permutation_circuit(swaps: Iterable[list[Swap[_V]]]) -> PermutationCircuit:
     """Produce a circuit description of a list of swaps.
         With a given permutation and permuter you can compute the swaps using the permuter function
         then feed it into this circuit function to obtain a circuit description.

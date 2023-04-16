@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Dynamical Decoupling insertion pass."""
-
-from typing import List, Optional
+from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import Qubit, Gate
@@ -103,9 +102,9 @@ class PadDynamicalDecoupling(BasePadding):
     def __init__(
         self,
         durations: InstructionDurations = None,
-        dd_sequence: List[Gate] = None,
-        qubits: Optional[List[int]] = None,
-        spacing: Optional[List[float]] = None,
+        dd_sequence: list[Gate] = None,
+        qubits: list[int] | None = None,
+        spacing: list[float] | None = None,
         skip_reset_qubits: bool = True,
         pulse_alignment: int = 1,
         extra_slack_distribution: str = "middle",
@@ -163,7 +162,7 @@ class PadDynamicalDecoupling(BasePadding):
         self._spacing = spacing
         self._extra_slack_distribution = extra_slack_distribution
 
-        self._dd_sequence_lengths = {}
+        self._dd_sequence_lengths: dict[Qubit, list[int]] = {}
         self._sequence_phase = 0
         if target is not None:
             self._durations = target.durations()

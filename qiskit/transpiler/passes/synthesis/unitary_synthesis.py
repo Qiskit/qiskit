@@ -11,9 +11,9 @@
 # that they have been altered from the originals.
 
 """Synthesize UnitaryGates."""
-
+from __future__ import annotations
 from math import pi, inf, isclose
-from typing import List, Union, Optional
+from typing import Any
 from copy import deepcopy
 from itertools import product
 from functools import partial
@@ -265,13 +265,13 @@ class UnitarySynthesis(TransformationPass):
 
     def __init__(
         self,
-        basis_gates: List[str] = None,
-        approximation_degree: Optional[float] = 1.0,
+        basis_gates: list[str] = None,
+        approximation_degree: float | None = 1.0,
         coupling_map: CouplingMap = None,
         backend_props: BackendProperties = None,
-        pulse_optimize: Union[bool, None] = None,
-        natural_direction: Union[bool, None] = None,
-        synth_gates: Union[List[str], None] = None,
+        pulse_optimize: bool | None = None,
+        natural_direction: bool | None = None,
+        synth_gates: list[str] | None = None,
         method: str = "default",
         min_qubits: int = None,
         plugin_config: dict = None,
@@ -384,7 +384,7 @@ class UnitarySynthesis(TransformationPass):
             plugin_method = self.plugins.ext_plugins[self.method].obj
         else:
             plugin_method = DefaultUnitarySynthesis()
-        plugin_kwargs = {"config": self._plugin_config}
+        plugin_kwargs: dict[str, Any] = {"config": self._plugin_config}
         _gate_lengths = _gate_errors = None
 
         if self.method == "default":
