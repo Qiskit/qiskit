@@ -17,19 +17,23 @@ from typing import Callable, List, Union, Iterable, Optional, Tuple, Any
 
 import numpy as np
 
-from qiskit.pulse import Schedule
+from qiskit.pulse import Schedule, ScheduleBlock, Instruction
 from qiskit.pulse.channels import Channel
 from qiskit.pulse.schedule import Interval
+from qiskit.pulse.exceptions import PulseError
 
 
 def filter_instructions(
-    sched: Schedule, filters: List[Callable], negate: bool = False, recurse_subroutines: bool = True
-) -> Schedule:
+    sched: Union[Schedule, ScheduleBlock],
+    filters: List[Callable],
+    negate: bool = False,
+    recurse_subroutines: bool = True,
+) -> Union[Schedule, ScheduleBlock]:
     """A filtering function that takes a schedule and returns a schedule consisting of
     filtered instructions.
 
     Args:
-        sched: A pulse schedule to be filtered.
+        sched: A pulse schedule or schedule_block to be filtered.
         filters: List of callback functions that take an instruction and return boolean.
         negate: Set `True` to accept an instruction if a filter function returns `False`.
             Otherwise the instruction is accepted when the filter function returns `False`.
@@ -37,28 +41,62 @@ def filter_instructions(
             defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
 
     Returns:
-        Filtered pulse schedule.
+        Filtered pulse schedule or schedule_block.
     """
     from qiskit.pulse.transforms import flatten, inline_subroutines
 
-    target_sched = flatten(sched)
-    if recurse_subroutines:
-        target_sched = inline_subroutines(target_sched)
+    if isinstance(sched, Schedule):
+        target_sched = flatten(sched)
+        if recurse_subroutines:
+            target_sched = inline_subroutines(target_sched)
 
-    time_inst_tuples = np.array(target_sched.instructions)
+        time_inst_tuples = np.array(target_sched.instructions)
 
-    valid_insts = np.ones(len(time_inst_tuples), dtype=bool)
-    for filt in filters:
-        valid_insts = np.logical_and(valid_insts, np.array(list(map(filt, time_inst_tuples))))
+        valid_insts = np.ones(len(time_inst_tuples), dtype=bool)
+        for filt in filters:
+            valid_insts = np.logical_and(valid_insts, np.array(list(map(filt, time_inst_tuples))))
 
-    if negate and len(filters) > 0:
-        valid_insts = ~valid_insts
+        if negate and len(filters) > 0:
+            valid_insts = ~valid_insts
 
-    filter_schedule = Schedule.initialize_from(sched)
-    for time, inst in time_inst_tuples[valid_insts]:
-        filter_schedule.insert(time, inst, inplace=True)
+        filter_schedule = Schedule.initialize_from(sched)
+        for time, inst in time_inst_tuples[valid_insts]:
+            filter_schedule.insert(time, inst, inplace=True)
 
-    return filter_schedule
+        return filter_schedule
+
+    elif isinstance(sched, ScheduleBlock):
+        target_sched_blk = sched
+        if recurse_subroutines:
+            target_sched_blk = inline_subroutines(target_sched_blk)
+
+        def apply_filters_to_insts_in_scheblk(blk: ScheduleBlock) -> ScheduleBlock:
+            blk_new = ScheduleBlock.initialize_from(blk)
+            for element in blk.blocks:
+                if isinstance(element, ScheduleBlock):
+                    inner_blk = apply_filters_to_insts_in_scheblk(element)
+                    blk_new.append(inner_blk)
+
+                elif isinstance(element, Instruction):
+                    valid_inst = True
+                    for filt in filters:
+                        valid_inst = np.logical_and(valid_inst, filt(element))
+                    if negate:
+                        valid_inst ^= True
+                    if valid_inst:
+                        blk_new.append(element)
+
+                else:
+                    raise PulseError(
+                        f"An unexpected element '{element}' is included in ScheduleBlock.blocks."
+                    )
+            return blk_new
+
+        filter_sched_blk = apply_filters_to_insts_in_scheblk(target_sched_blk)
+        return filter_sched_blk
+
+    else:
+        raise PulseError(f"Invalid input type '{type(sched)}' for sched.")
 
 
 def composite_filter(
@@ -111,12 +149,15 @@ def with_channels(channels: Union[Iterable[Channel], Channel]) -> Callable:
         """Filter channel.
 
         Args:
-            time_inst (Tuple[int, Instruction]): Time
+            time_inst (Tuple[int, Instruction]): Time or (Instruction)
 
         Returns:
             If instruction matches with condition.
         """
-        return any(chan in channels for chan in time_inst[1].channels)
+        if isinstance(time_inst, Instruction):
+            return any(chan in channels for chan in time_inst.channels)
+        else:
+            return any(chan in channels for chan in time_inst[1].channels)
 
     return channel_filter
 
@@ -136,12 +177,15 @@ def with_instruction_types(types: Union[Iterable[abc.ABCMeta], abc.ABCMeta]) -> 
         """Filter instruction.
 
         Args:
-            time_inst (Tuple[int, Instruction]): Time
+            time_inst (Tuple[int, Instruction]): Time or (Instruction)
 
         Returns:
             If instruction matches with condition.
         """
-        return isinstance(time_inst[1], tuple(types))
+        if isinstance(time_inst, Instruction):
+            return isinstance(time_inst, tuple(types))
+        else:
+            return isinstance(time_inst[1], tuple(types))
 
     return instruction_filter
 
