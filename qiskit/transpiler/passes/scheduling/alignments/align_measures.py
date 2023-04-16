@@ -15,6 +15,7 @@ from __future__ import annotations
 import itertools
 import warnings
 from collections import defaultdict
+from collections.abc import Iterable
 
 from qiskit.circuit.quantumcircuit import ClbitSpecifier, QubitSpecifier
 
@@ -150,7 +151,7 @@ class AlignMeasures(TransformationPass):
         clbit_readable: dict[ClbitSpecifier, int] = defaultdict(int)
         clbit_writeable: dict[ClbitSpecifier, int] = defaultdict(int)
 
-        def pad_with_delays(qubits: list[int], until, unit) -> None:
+        def pad_with_delays(qubits: Iterable[QubitSpecifier], until, unit) -> None:
             """Pad idle time-slots in ``qubits`` with delays in ``unit`` until ``until``."""
             for q in qubits:
                 if qubit_stop_times[q] < until:

@@ -1329,7 +1329,7 @@ class Target(Mapping):
                         "with <= 2 qubits (because connectivity is defined on a CouplingMap)."
                     )
             for gate in one_qubit_gates:
-                gate_properties = {}
+                gate_properties: dict[tuple, InstructionProperties] = {}
                 for qubit in range(num_qubits):
                     error = None
                     duration = None

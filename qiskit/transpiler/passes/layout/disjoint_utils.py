@@ -11,12 +11,13 @@
 # that they have been altered from the originals.
 
 """This module contains common utils for disjoint coupling maps."""
-
+from __future__ import annotations
 from collections import defaultdict
 from typing import List, Callable, TypeVar, Dict
 import uuid
 
 import rustworkx as rx
+from qiskit.dagcircuit import DAGOpNode
 
 from qiskit.circuit import Qubit, Barrier, Clbit
 from qiskit.dagcircuit.dagcircuit import DAGCircuit
@@ -55,7 +56,7 @@ def run_pass_over_connected_components(
             for qreg in dag.qregs:
                 out_dag.add_qreg(qreg)
             for creg in dag.cregs:
-                out_dag.add_cregs(creg)
+                out_dag.add_creg(creg)
             out_dag.compose(dag, qubits=dag.qubits, clbits=dag.clbits)
         out_component_pairs.append((out_dag, cmap_components[cmap_index]))
     res = [run_func(out_dag, cmap) for out_dag, cmap in out_component_pairs]
@@ -109,7 +110,7 @@ def split_barriers(dag: DAGCircuit):
 def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
     """Mutate input dag to combine barriers with UUID labels into a single barrier."""
     qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
-    uuid_map = {}
+    uuid_map: dict[uuid.UUID, DAGOpNode] = {}
     for node in dag.op_nodes(Barrier):
         if isinstance(node.op.label, uuid.UUID):
             barrier_uuid = node.op.label

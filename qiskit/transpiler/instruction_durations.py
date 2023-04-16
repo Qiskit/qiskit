@@ -15,7 +15,6 @@ from __future__ import annotations
 import warnings
 from typing import Optional, List, Tuple, Union, Iterable
 
-import qiskit.circuit
 from qiskit.circuit import Barrier, Delay
 from qiskit.circuit import Instruction, Qubit, ParameterExpression
 from qiskit.circuit.duration import duration_in_dt
@@ -37,12 +36,12 @@ class InstructionDurations:
     """
 
     def __init__(
-        self, instruction_durations: Optional["InstructionDurationsType"] = None, dt: float = None
+        self, instruction_durations: "InstructionDurationsType" | None = None, dt: float = None
     ):
         self.duration_by_name: dict[str, tuple[float, str]] = {}
-        self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]]] = {}
+        self.duration_by_name_qubits: dict[tuple[str, tuple[int, ...]], tuple[float, str]] = {}
         self.duration_by_name_qubits_params: dict[
-            tuple[str, tuple[int, ...], tuple[float, ...]]
+            tuple[str, tuple[int, ...], tuple[float, ...]], tuple[float, str]
         ] = {}
         self.dt = dt
         if instruction_durations:
@@ -97,7 +96,7 @@ class InstructionDurations:
 
         return InstructionDurations(instruction_durations, dt=dt)
 
-    def update(self, inst_durations: Optional["InstructionDurationsType"], dt: float = None):
+    def update(self, inst_durations: "InstructionDurationsType" | None, dt: float = None):
         """Update self with inst_durations (inst_durations overwrite self).
 
         Args:
@@ -166,8 +165,7 @@ class InstructionDurations:
 
     def get(
         self,
-        inst: str
-        | qiskit.circuit.Instruction,  # FIXME: https://github.com/sphinx-doc/sphinx/issues/4961
+        inst: Union[str, Instruction],
         qubits: int | list[int] | Qubit | list[Qubit] | list[int | Qubit],
         unit: str = "dt",
         parameters: list[float] | None = None,
@@ -222,9 +220,9 @@ class InstructionDurations:
     def _get(
         self,
         name: str,
-        qubits: List[int],
+        qubits: list[int],
         to_unit: str,
-        parameters: Optional[Iterable[float]] = None,
+        parameters: Iterable[float] | None = None,
     ) -> float:
         """Get the duration of the instruction with the name, qubits, and parameters."""
         if name == "barrier":
