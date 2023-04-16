@@ -126,6 +126,46 @@ There is a circuit payload for each circuit (where the total number is dictated
 by ``num_circuits`` in the file header). There is no padding between the
 circuits in the data.
 
+.. _qpy_version_7:
+
+Version 7
+=========
+
+Version 7 adds support for :class:`.~Reference` instruction and serialization of
+a :class:`.~ScheduleBlock` program while keeping its reference to subroutines::
+
+    from qiskit import pulse
+    from qiskit import qpy
+
+    with pulse.build() as schedule:
+        pulse.reference("cr45p", "q0", "q1")
+        pulse.reference("x", "q0")
+        pulse.reference("cr45p", "q0", "q1")
+
+    with open('template_ecr.qpy', 'wb') as fd:
+        qpy.dump(schedule, fd)
+
+The conventional :ref:`qpy_schedule_block` data model is preserved, but in
+version 7 it is immediately followed by an extra :ref:`qpy_mapping` utf8 bytes block
+representing the data of the referenced subroutines.
+
+New type key character is added to the :ref:`qpy_schedule_instructions` group
+for the :class:`.~Reference` instruction.
+
+- ``y``: :class:`~qiskit.pulse.instructions.Reference` instruction
+
+New type key character is added to the :ref:`qpy_schedule_operands` group
+for the operands of :class:`.~Reference` instruction,
+which is a tuple of strings, e.g. ("cr45p", "q0", "q1").
+
+- ``o``: string (operand string)
+
+Note that this is the same encoding with the built-in Python string, however,
+the standard value encoding in QPY uses ``s`` type character for string data,
+which conflicts with the :class:`~qiskit.pulse.library.SymbolicPulse` in the scope of
+pulse instruction operands. A special type character ``o`` is reserved for
+the string data that appears in the pulse instruction operands.
+
 .. _qpy_version_6:
 
 Version 6
@@ -213,6 +253,8 @@ Note that circuit and schedule block are serialized and deserialized through
 the same QPY interface. Input data type is implicitly analyzed and
 no extra option is required to save the schedule block.
 
+.. _qpy_schedule_block_header:
+
 SCHEDULE_BLOCK_HEADER
 ---------------------
 
@@ -230,6 +272,11 @@ which is immediately followed by ``name_size`` utf8 bytes of schedule name and
 ``metadata_size`` utf8 bytes of the JSON serialized metadata dictionary
 attached to the schedule.
 
+.. _qpy_schedule_alignments:
+
+SCHEDULE_BLOCK_ALIGNMENTS
+-------------------------
+
 Then, alignment context of the schedule block starts with ``char``
 representing the supported context type followed by the :ref:`qpy_sequence` block representing
 the parameters associated with the alignment context :attr:`AlignmentKind._context_params`.
@@ -242,6 +289,11 @@ The context type char is mapped to each alignment subclass as follows:
 
 Note that :class:`~.AlignFunc` context is not supported becasue of the callback function
 stored in the context parameters.
+
+.. _qpy_schedule_instructions:
+
+SCHEDULE_BLOCK_INSTRUCTIONS
+---------------------------
 
 This alignment block is further followed by ``num_element`` length of block elements which may
 consist of nested schedule blocks and schedule instructions.
@@ -261,6 +313,12 @@ The mapping of type char to the instruction subclass is defined as follows:
 - ``r``: :class:`~qiskit.pulse.instructions.ShiftPhase` instruction
 - ``b``: :class:`~qiskit.pulse.instructions.RelativeBarrier` instruction
 - ``t``: :class:`~qiskit.pulse.instructions.TimeBlockade` instruction
+- ``y``: :class:`~qiskit.pulse.instructions.Reference` instruction (new in version 0.7)
+
+.. _qpy_schedule_operands:
+
+SCHEDULE_BLOCK_OPERANDS
+-----------------------
 
 The operands of these instances can be serialized through the standard QPY value serialization
 mechanism, however there are special object types that only appear in the schedule operands.
@@ -272,6 +330,7 @@ Special objects start with the following type key:
 - ``c``: :class:`~qiskit.pulse.channels.Channel`
 - ``w``: :class:`~qiskit.pulse.library.Waveform`
 - ``s``: :class:`~qiskit.pulse.library.SymbolicPulse`
+- ``o``: string (operand string, new in version 0.7)
 
 .. _qpy_schedule_channel:
 

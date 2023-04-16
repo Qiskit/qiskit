@@ -25,7 +25,7 @@ class FakeLagosV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_lagos.json"
     props_filename = "props_lagos.json"
     defs_filename = "defs_lagos.json"
-    backend_name = "fake_lagos_v2"
+    backend_name = "fake_lagos"
 
 
 class FakeLagos(fake_pulse_backend.FakePulseBackend):
