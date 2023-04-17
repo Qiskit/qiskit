@@ -144,7 +144,6 @@ class TestCounts(unittest.TestCase):
         result = utils.marginal_distribution(counts_obj, [0, 1])
         self.assertEqual(expected, result)
 
-
     def test_int_outcomes_with_int_counts(self):
         raw_counts = {0: 21, 2: 12, 3: 5, 46: 265}
         counts_obj = counts.Counts(raw_counts)
