@@ -4933,7 +4933,7 @@ def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_defi
 
     if parameterized_operation.params:
         parameters_qasm = (
-            "(" + ",".join(f"param{i}" for i, _ in enumerate(parameterized_operation.params)) + ")"
+            "(" + ",".join(f"param{i}" for i in range(len(parameterized_operation.params))) + ")"
         )
     else:
         parameters_qasm = ""
