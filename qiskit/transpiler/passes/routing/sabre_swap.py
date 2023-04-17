@@ -22,6 +22,7 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
+from qiskit.transpiler.passes.layout import disjoint_utils
 from qiskit.dagcircuit import DAGOpNode
 from qiskit.tools.parallel import CPU_COUNT
 
@@ -212,6 +213,7 @@ class SabreSwap(TransformationPass):
             heuristic = Heuristic.Decay
         else:
             raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
+        disjoint_utils.require_layout_isolated_to_component(dag, self.coupling_map)
 
         self.dist_matrix = self.coupling_map.distance_matrix
 
