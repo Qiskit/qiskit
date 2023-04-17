@@ -739,6 +739,18 @@ class TestDagNodeSelection(QiskitTestCase):
             or (isinstance(predecessor2, DAGInNode) and isinstance(predecessor1.op, Reset))
         )
 
+    def test_classical_predecessors(self):
+        """The method dag.classical_predecessors() returns predecessors connected by classical edges"""
+
+        self.dag.apply_operation_back(Measure(), [self.qubit1, self.clbit1], [])
+
+        predecessor_measure = self.dag.classical_predecessors(self.dag.named_nodes("measure").pop())
+
+        predecessor1 = next(predecessor_measure)
+
+        self.assertTrue(isinstance(predecessor1, DAGInNode))
+        self.assertTrue(isinstance(predecessor1.wire, Clbit))
+
     def test_is_predecessor(self):
         """The method dag.is_predecessor(A, B) checks if node B is a predecessor of A"""
 
