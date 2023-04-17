@@ -68,11 +68,14 @@ class DenseLayout(AnalysisPass):
             raise TranspilerError(
                 "A coupling_map or target with constrained qargs is necessary to run the pass."
             )
+        if self.target is not None:
+            target = self.target
+        else:
+            target = self.coupling_map
         layout_components = disjoint_utils.run_pass_over_connected_components(
             dag,
-            self.coupling_map,
+            target,
             self._inner_run,
-            self.target,
         )
         layout_mapping = {}
         for component in layout_components:

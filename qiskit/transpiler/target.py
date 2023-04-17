@@ -19,7 +19,7 @@ from a backend
 
 from __future__ import annotations
 
-
+import itertools
 import warnings
 
 from typing import Tuple, Union, Optional, Dict, List, Any
@@ -996,7 +996,7 @@ class Target(Mapping):
         if self._coupling_graph.num_edges() == 0 and any(x is None for x in self._qarg_gate_map):
             self._coupling_graph = None
 
-    def build_coupling_map(self, two_q_gate=None):
+    def build_coupling_map(self, two_q_gate=None, filter_idle_qubits=False):
         """Get a :class:`~qiskit.transpiler.CouplingMap` from this target.
 
         If there is a mix of two qubit operations that have a connectivity
@@ -1011,6 +1011,9 @@ class Target(Mapping):
                 the Target to generate the coupling map for. If specified the
                 output coupling map will only have edges between qubits where
                 this gate is present.
+            filter_idle_qubits (bool): If set to ``True`` the output :class:`~.CouplingMap`
+                will remove any qubits that don't have any operations defined in the
+                target.
         Returns:
             CouplingMap: The :class:`~qiskit.transpiler.CouplingMap` object
                 for this target. If there are no connectivity constraints in
@@ -1048,10 +1051,21 @@ class Target(Mapping):
         # existing and return
         if self._coupling_graph is not None:
             cmap = CouplingMap()
-            cmap.graph = self._coupling_graph
+            if filter_idle_qubits:
+                cmap.graph = self._filter_coupling_graph()
+            else:
+                cmap.graph = self._coupling_graph
             return cmap
         else:
             return None
+
+    def _filter_coupling_graph(self):
+        has_operations = set(itertools.chain.from_iterable(self.qargs))
+        graph = self._coupling_graph.copy()
+        for index in graph.node_indices():
+            if index not in has_operations:
+                graph.remove_node(index)
+        return graph
 
     @property
     def physical_qubits(self):

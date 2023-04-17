@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The :meth:`~.Target.build_coupling_map` method has a new keyword argument,
+    ``filter_idle_qubits`` which when set to ``True`` will remove any qubits
+    from the output :class:`~.CouplingMap` that don't support any operations.

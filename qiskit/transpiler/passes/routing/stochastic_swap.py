@@ -105,9 +105,11 @@ class StochasticSwap(TransformationPass):
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
-        disjoint_utils.require_layout_isolated_to_component(
-            dag, self.coupling_map, target=self.target
-        )
+        if self.target is not None:
+            target = self.target
+        else:
+            target = self.coupling_map
+        disjoint_utils.require_layout_isolated_to_component(dag, target)
 
         self.rng = np.random.default_rng(self.seed)
 

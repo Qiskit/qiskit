@@ -217,11 +217,18 @@ class SabreLayout(TransformationPass):
             self.routing_pass.fake_run = False
             return dag
         # Combined
+        if self.target is not None:
+            # This is a special case SABRE only works with a bidirectional coupling graph
+            # which we explicitly can't create from the target. So do this manually here
+            # to avoid altering the shared state with the unfiltered indices.
+            target = self.target.build_coupling_map(filter_idle_qubits=True)
+            target.make_symmetric()
+        else:
+            target = self.coupling_map
         layout_components = disjoint_utils.run_pass_over_connected_components(
             dag,
-            self.coupling_map,
+            target,
             self._inner_run,
-            target=self.target,
         )
         initial_layout_dict = {}
         final_layout_dict = {}
