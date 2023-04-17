@@ -30,8 +30,15 @@ jobs:
             cargo install grcov
             sudo apt-get install lcov
 
+      # This is needed to support any requirements, particularly in the `optionals` set,
+      # that might not have 'pyproject.toml' files specifying their build requirements.
+      # Modern pip (23.1+) can error out if it doesn't have `wheel` and we ask for one
+      # of these legacy packages.
+      - name: Ensure basic build requirements
+        run: python -m pip install --upgrade pip setuptools wheel
+
       - name: Build and install qiskit-terra
-        run: pip install -e .
+        run: python -m pip install -e .
         env:
           CARGO_INCREMENTAL: 0
           RUSTFLAGS: "-Cinstrument-coverage"
@@ -41,7 +48,7 @@ jobs:
       - name: Generate unittest coverage report
         run: |
           set -e
-          pip install -r requirements-dev.txt qiskit-aer
+          python -m pip install -r requirements-dev.txt qiskit-aer
           stestr run
           # We set the --source-dir to '.' because we want all paths to appear relative to the repo
           # root (we need to combine them with the Python ones), but we only care about `grcov`
