@@ -61,11 +61,6 @@ class TrivialLayout(AnalysisPass):
                 raise TranspilerError("Number of qubits greater than device.")
         elif dag.num_qubits() > self.coupling_map.size():
             raise TranspilerError("Number of qubits greater than device.")
-        if not self.coupling_map.is_connected():
-            raise TranspilerError(
-                "Coupling Map is disjoint, this pass can't be used with a disconnected coupling "
-                "map."
-            )
         self.property_set["layout"] = Layout.generate_trivial_layout(
             *(dag.qubits + list(dag.qregs.values()))
         )

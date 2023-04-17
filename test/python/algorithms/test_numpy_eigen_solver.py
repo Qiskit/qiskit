@@ -40,8 +40,9 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
     def test_ce(self):
         """Test basics"""
-        algo = NumPyEigensolver()
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
+        with self.assertWarns(DeprecationWarning):
+            algo = NumPyEigensolver()
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -49,8 +50,9 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
     def test_ce_k4(self):
         """Test for k=4 eigenvalues"""
-        algo = NumPyEigensolver(k=4)
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
+        with self.assertWarns(DeprecationWarning):
+            algo = NumPyEigensolver(k=4)
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 4)
         self.assertEqual(len(result.eigenstates), 4)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -66,8 +68,9 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         def criterion(x, v, a_v):
             return v >= -1
 
-        algo = NumPyEigensolver(k=4, filter_criterion=criterion)
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
+        with self.assertWarns(DeprecationWarning):
+            algo = NumPyEigensolver(k=4, filter_criterion=criterion)
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -81,23 +84,26 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         def criterion(x, v, a_v):
             return False
 
-        algo = NumPyEigensolver(k=4, filter_criterion=criterion)
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
+        with self.assertWarns(DeprecationWarning):
+            algo = NumPyEigensolver(k=4, filter_criterion=criterion)
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=[])
         self.assertEqual(len(result.eigenvalues), 0)
         self.assertEqual(len(result.eigenstates), 0)
 
     @data(X, Y, Z)
     def test_ce_k1_1q(self, op):
         """Test for 1 qubit operator"""
-        algo = NumPyEigensolver(k=1)
-        result = algo.compute_eigenvalues(operator=op)
+        with self.assertWarns(DeprecationWarning):
+            algo = NumPyEigensolver(k=1)
+            result = algo.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(result.eigenvalues, [-1])
 
     @data(X, Y, Z)
     def test_ce_k2_1q(self, op):
         """Test for 1 qubit operator"""
-        algo = NumPyEigensolver(k=2)
-        result = algo.compute_eigenvalues(operator=op)
+        with self.assertWarns(DeprecationWarning):
+            algo = NumPyEigensolver(k=2)
+            result = algo.compute_eigenvalues(operator=op)
         np.testing.assert_array_almost_equal(result.eigenvalues, [-1, 1])
 
     def test_aux_operators_list(self):
@@ -105,8 +111,9 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = [aux_op1, aux_op2]
-        algo = NumPyEigensolver()
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            algo = NumPyEigensolver()
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -122,7 +129,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -144,8 +152,9 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
         aux_op1 = PauliSumOp.from_list([("II", 2.0)])
         aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
         aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
-        algo = NumPyEigensolver()
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            algo = NumPyEigensolver()
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=aux_ops)
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)
@@ -161,7 +170,8 @@ class TestNumPyEigensolver(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
-        result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
+        with self.assertWarns(DeprecationWarning):
+            result = algo.compute_eigenvalues(operator=self.qubit_op, aux_operators=extra_ops)
         self.assertEqual(len(result.eigenvalues), 1)
         self.assertEqual(len(result.eigenstates), 1)
         self.assertEqual(result.eigenvalues.dtype, np.float64)

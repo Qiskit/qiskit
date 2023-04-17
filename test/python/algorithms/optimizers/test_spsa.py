@@ -201,9 +201,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
     def test_qnspsa_fidelity_deprecation(self):
         """Test using a backend and expectation converter in get_fidelity warns."""
         ansatz = PauliTwoDesign(2, reps=1, seed=2)
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             QNSPSA.get_fidelity(ansatz, backend=StatevectorSimulatorPy())
-        with self.assertWarns(PendingDeprecationWarning):
+        with self.assertWarns(DeprecationWarning):
             QNSPSA.get_fidelity(ansatz, expectation=MatrixExpectation())
         # No warning when used correctly.
         QNSPSA.get_fidelity(ansatz)
