@@ -22,7 +22,7 @@ from math import pi
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter, Qubit, Clbit
+from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
@@ -1902,6 +1902,22 @@ class TestTextDrawerParams(QiskitTestCase):
         phi, lam = Parameter("φ"), Parameter("λ")
         circuit = QuantumCircuit(1)
         circuit.u(0, phi, lam, 0)
+        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+
+    def test_text_qc_parameters(self):
+        """Test that if params are type QuantumCircuit, params are not displayed."""
+        expected = "\n".join(["     ┌───────┐",
+                              "q_0: ┤0      ├",
+                              "     │  name │",
+                              "q_1: ┤1      ├",
+                              "     └───────┘"])
+
+        my_qc_param = QuantumCircuit(2)
+        my_qc_param.h(0)
+        my_qc_param.cx(0,1)
+        inst = Instruction("name", 2, 0, [my_qc_param])
+        circuit = QuantumCircuit(2)
+        circuit.append(inst, [0,1])
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
