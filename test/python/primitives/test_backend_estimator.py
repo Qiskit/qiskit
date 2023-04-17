@@ -28,6 +28,7 @@ from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.utils import optionals
 
 BACKENDS = [FakeNairobi(), FakeNairobiV2()]
 
@@ -360,7 +361,10 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            self.assertEqual(value, -0.916)
+            if optionals.HAS_AER:
+                self.assertEqual(value, -0.916)
+            else:
+                self.assertEqual(value, -1)
 
         with self.subTest("final layout test"):
             qc = QuantumCircuit(3)
@@ -372,7 +376,10 @@ class TestBackendEstimator(QiskitTestCase):
             estimator = BackendEstimator(backend)
             estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
             value = estimator.run(qc, op, shots=10000).result().values[0]
-            self.assertEqual(value, -0.8902)
+            if optionals.HAS_AER:
+                self.assertEqual(value, -0.8902)
+            else:
+                self.assertEqual(value, -1)
 
 
 if __name__ == "__main__":
