@@ -326,10 +326,11 @@ class TestVQE(QiskitAlgorithmsTestCase):
     )
     def test_with_gradient(self, optimizer):
         """Test VQE using Gradient()."""
+        from qiskit_aer import AerSimulator
 
         with self.assertWarns(DeprecationWarning):
             quantum_instance = QuantumInstance(
-                backend=Aer.get_backend("qasm_simulator"),
+                backend=AerSimulator(),
                 shots=1,
                 seed_simulator=algorithm_globals.random_seed,
                 seed_transpiler=algorithm_globals.random_seed,
@@ -731,6 +732,8 @@ class TestVQE(QiskitAlgorithmsTestCase):
     @unittest.skipUnless(optionals.HAS_AER, "Qiskit aer is required to run these tests")
     def test_aux_operator_std_dev_aer_pauli(self):
         """Test non-zero standard deviations of aux operators with AerPauliExpectation."""
+        from qiskit_aer import AerSimulator
+
         wavefunction = self.ry_wavefunction
         with self.assertWarns(DeprecationWarning):
             vqe = VQE(
@@ -738,7 +741,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 expectation=AerPauliExpectation(),
                 optimizer=COBYLA(maxiter=0),
                 quantum_instance=QuantumInstance(
-                    backend=Aer.get_backend("qasm_simulator"),
+                    backend=AerSimulator(),
                     shots=1,
                     seed_simulator=algorithm_globals.random_seed,
                     seed_transpiler=algorithm_globals.random_seed,
