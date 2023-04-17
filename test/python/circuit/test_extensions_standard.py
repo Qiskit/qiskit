@@ -1421,7 +1421,6 @@ class TestStandardMethods(QiskitTestCase):
     def test_to_matrix_op(self):
         """test gates implementing to_matrix generate matrix which matches
         definition using Operator."""
-        from qiskit.quantum_info import Operator
         from qiskit.circuit.library.generalized_gates.gms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate

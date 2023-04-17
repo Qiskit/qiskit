@@ -12,7 +12,7 @@
 
 """Global Phase Gate"""
 
-from typing import Optional 
+from typing import Optional
 import numpy
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
