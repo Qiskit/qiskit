@@ -327,3 +327,9 @@ __all__ = [
     "anti_commutator",
     "double_commutator",
 ]
+
+import warnings
+
+message = "The ``qiskit.opflow`` module is deprecated as of qiskit-terra 0.24.0. It will be removed no earlier than 3 months after the release date. For code migration guidelines, visit https://qisk.it/opflow_migration."
+
+warnings.warn(message, category=DeprecationWarning, stacklevel=2)
