@@ -17,6 +17,7 @@ contributing to terra, these are documented below.
 * [Release Notes](#release-notes)
 * [Installing Qiskit Terra from source](#installing-qiskit-terra-from-source)
 * [Test](#test)
+  * [Optional dependencies for the circuit drawer](#optional-dependencies-for-testing-the-circuit-drawer).
   * [Snapshot testing for visualizations](#snapshot-testing-for-visualizations)
 * [Style and Lint](#style-and-lint)
 * [Development Cycle](#development-cycle)
@@ -41,9 +42,9 @@ Qiskit Terra uses the following labels to help non-maintainers find issues best 
 When submitting a pull request and you feel it is ready for review,
 please ensure that:
 
-1. The code follows the code style of the project and successfully
-   passes the tests. For convenience, you can execute `tox` locally,
-   which will run these checks and report any issues.
+1. The code follows the code style of the project and successfully passes the
+   tests. (See [Test](#test) below.) For convenience, you can execute `tox`
+   locally, which will run these checks and report any issues.
 
    If your code fails the local style checks (specifically the black
    code formatting check) you can use `tox -eblack` to automatically
@@ -268,20 +269,24 @@ also run successfully. Before you open a new pull request for your change,
 you'll want to run the test suite locally.
 
 The easiest way to run the test suite is to use
-[**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox
-with pip: `pip install -U tox`. Tox provides several advantages, but the
-biggest one is that it builds an isolated virtualenv for running tests. This
-means it does not pollute your system python when running. Additionally, the
-environment that tox sets up matches the CI environment more closely and it
-runs the tests in parallel (resulting in much faster execution). To run tests
-on all installed supported python versions and lint/style checks you can simply
-run `tox`. Or if you just want to run the tests once run for a specific python
-version: `tox -epy37` (or replace py37 with the python version you want to use,
-py35 or py36).
+[**tox**](https://tox.readthedocs.io/en/latest/#). You can install tox with pip:
+`pip install -U tox`. Tox provides several advantages, but the biggest one is
+that it builds an isolated virtualenv for running tests. This means it does not
+pollute your system Python when running. Additionally, the environment that tox
+sets up matches the CI environment more closely and it runs the tests in
+parallel (resulting in much faster execution).
+
+To run tests on all installed supported Python versions and lint/style checks you can simply run
+`tox`.  At a minimum, you should run the lint/style checks and the tests for one version of
+Python. For example `tox -e lint && tox -epy`. If you want to run the tests for a specific supported
+version of Python replace `-epy` with `-epy37`, `-epy38`, `-epy39`, `-epy310`, or `-epy311`.
+
+If you find that tests in [`./test/python/visualization/test_circuit_drawer.py`](./test/python/visualization/test_circuit_drawer.py)
+fail you may be missing some [optional dependencies for the circuit drawer](#optional-dependencies-for-testing-the-circuit-drawer).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy37 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -291,21 +296,21 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy37 -- -n test.python.test_examples
+tox -epy -- -n test.python.test_examples
 ```
 or to run the same module by path:
 
 ```
-tox -epy37 -- -n test/python/test_examples.py
+tox -epy -- -n test/python/test_examples.py
 ```
 to run a class:
 
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples
+tox -epy -- -n test.python.test_examples.TestPythonExamples
 ```
 to run a method:
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
+tox -epy -- -n test.python.test_examples.TestPythonExamples.test_all_examples
 ```
 
 Alternatively there is a makefile provided to run tests, however this
@@ -381,6 +386,24 @@ It is possible to provide more than one option separated with commas.
 Alternatively, the `make test_ci` target can be used instead of
 `make test` in order to run in a setup that replicates the configuration
 we used in our CI systems more closely.
+
+### Optional dependencies for testing the circuit drawer
+
+Several tests in [`./test/python/visualization/test_circuit_drawer.py`](./test/python/visualization/test_circuit_drawer.py)
+will be skipped unless the following optional dependendencies are installed on your system.
+* pdflatex, for compiling TeX source to pdf
+* [Pillow](https://pypi.org/project/Pillow/), a Python image-manipulation library
+* [pylatexenc](https://github.com/phfaist/pylatexenc), a LaTeX parser providing latex-to-unicode and unicode-to-latex conversion
+* pdftocairo, provided by the package [poppler-utils](https://pypi.org/project/poppler-utils/)
+
+Pillow and pylatexenc will be installed by `tox` in its virtual environments. You must install `pylatexenc` manually
+via `pip` and `poppler-utils` manually, for example via `pip` or your system package installer. If any of these are
+missing, then the tests of the circuit drawer will be skipped.
+
+The circuit drawer also requires the LaTeX packages `qcircuit`, `xypic`, and `standalone`. If any of
+these are missing, but all optional dependencies listed above are present, then the tests of the
+circuit drawer will run, but will fail. These LaTeX pacakges are typically provided in Linux distributions by
+packages of the same names prefixed by `texlive-`.
 
 ### Snapshot Testing for Visualizations
 
