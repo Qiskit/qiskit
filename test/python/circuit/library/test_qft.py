@@ -13,6 +13,7 @@
 """Test library of QFT circuits."""
 
 import unittest
+import warnings
 import numpy as np
 from ddt import ddt, data, unpack
 
@@ -184,11 +185,18 @@ class TestQFT(QiskitTestCase):
         # We don't want to issue a warning on mutation until we know that the values are
         # finalised; this is because a user might want to mutate the number of qubits and the
         # approximation degree.  In these cases, wait until we try to build the circuit.
-        with self.assertWarns(DeprecationWarning):
+        with warnings.catch_warnings(record=True) as caught_warnings:
+            warnings.filterwarnings(
+                "always",
+                category=RuntimeWarning,
+                module=r"qiskit\..*",
+                message=r".*precision loss in QFT.*",
+            )
             qft = QFT()
             # Even with the approximation this will trigger the warning.
             qft.num_qubits = 1080
             qft.approximation_degree = 20
+        self.assertFalse(caught_warnings)
 
         # Short-circuit the build method so it exits after input validation, but without actually
         # spinning the CPU to build a huge, useless object.

@@ -14,7 +14,6 @@
 """Test QGT."""
 
 import unittest
-from test.python.algorithms.gradients.logging_primitives import LoggingEstimator
 from ddt import ddt, data
 
 import numpy as np
@@ -25,6 +24,8 @@ from qiskit.circuit import Parameter
 from qiskit.circuit.library import RealAmplitudes
 from qiskit.primitives import Estimator
 from qiskit.test import QiskitTestCase
+
+from .logging_primitives import LoggingEstimator
 
 
 @ddt

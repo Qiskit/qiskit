@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Test VQD """
+"""Test VQD"""
 
 import unittest
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -19,13 +19,9 @@ import numpy as np
 from ddt import data, ddt
 
 from qiskit import QuantumCircuit
-from qiskit.algorithms.eigensolvers import VQD
+from qiskit.algorithms.eigensolvers import VQD, VQDResult
 from qiskit.algorithms import AlgorithmError
-from qiskit.algorithms.optimizers import (
-    COBYLA,
-    L_BFGS_B,
-    SLSQP,
-)
+from qiskit.algorithms.optimizers import COBYLA, L_BFGS_B, SLSQP, SPSA
 from qiskit.algorithms.state_fidelities import ComputeUncompute
 from qiskit.circuit.library import TwoLocal, RealAmplitudes
 from qiskit.opflow import PauliSumOp
@@ -207,6 +203,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_vqd_optimizer(self, op):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
+
         vqd = VQD(
             estimator=self.estimator,
             fidelity=self.fidelity,
@@ -230,6 +227,17 @@ class TestVQD(QiskitAlgorithmsTestCase):
         with self.subTest("Optimizer replace"):
             vqd.optimizer = L_BFGS_B()
             run_check()
+
+        with self.subTest("Batched optimizer replace"):
+            vqd.optimizer = SLSQP(maxiter=60, max_evals_grouped=10)
+            run_check()
+
+        with self.subTest("SPSA replace"):
+            # SPSA takes too long to converge, so we will
+            # only check that it runs with no errors.
+            vqd.optimizer = SPSA(maxiter=5, learning_rate=0.01, perturbation=0.01)
+            result = vqd.compute_eigenvalues(operator=op)
+            self.assertIsInstance(result, VQDResult)
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_optimizer_list(self, op):

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2023.
+# (C) Copyright IBM 2019, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -15,9 +15,10 @@
 
 import unittest
 from typing import List
-from test.python.algorithms.gradients.logging_primitives import LoggingSampler
+
 import numpy as np
 from ddt import ddt, data
+
 from qiskit import QuantumCircuit
 from qiskit.algorithms.gradients import (
     FiniteDiffSamplerGradient,
@@ -31,6 +32,8 @@ from qiskit.circuit.library.standard_gates import RXXGate
 from qiskit.primitives import Sampler
 from qiskit.result import QuasiDistribution
 from qiskit.test import QiskitTestCase
+
+from .logging_primitives import LoggingSampler
 
 gradient_factories = [
     lambda sampler: FiniteDiffSamplerGradient(sampler, epsilon=1e-6, method="central"),
