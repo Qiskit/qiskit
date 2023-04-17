@@ -127,6 +127,21 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
                 node.op.label = None
 
 
+def require_layout_isolated_to_component(dag: DAGCircuit, coupling_map: CouplingMap) -> bool:
+    """Check that the layout of the dag does not require connectivity across connected components
+    in the CouplingMap"""
+    qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+    component_sets = [set(x.graph.nodes()) for x in coupling_map.connected_components()]
+    for inst in dag.two_qubit_ops():
+        component_index = None
+        for i, component_set in enumerate(component_sets):
+            if qubit_indices[inst.qargs[0]] in component_set:
+                component_index = i
+                break
+        if qubit_indices[inst.qargs[1]] not in component_sets[component_index]:
+            raise TranspilerError("Chosen layout is not valid for the target disjoint connectivity")
+
+
 def separate_dag(dag: DAGCircuit) -> List[DAGCircuit]:
     """Separate a dag circuit into it's connected components."""
     # Split barriers into single qubit barriers before splitting connected components
