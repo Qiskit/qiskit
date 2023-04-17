@@ -24,9 +24,11 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
+from qiskit.transpiler.target import Target
 from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp, Instruction
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 from qiskit._accelerate import nlayout
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 from .utils import get_swap_map_dag
 
@@ -56,7 +58,7 @@ class StochasticSwap(TransformationPass):
         If these are not satisfied, the behavior is undefined.
 
         Args:
-            coupling_map (CouplingMap): Directed graph representing a coupling
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling
                 map.
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
@@ -65,7 +67,12 @@ class StochasticSwap(TransformationPass):
             initial_layout (Layout): starting layout at beginning of pass.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.trials = trials
         self.seed = seed
         self.rng = None
@@ -97,6 +104,8 @@ class StochasticSwap(TransformationPass):
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
+
+        disjoint_utils.require_layout_isolated_to_component(dag, self.coupling_map)
 
         self.rng = np.random.default_rng(self.seed)
 

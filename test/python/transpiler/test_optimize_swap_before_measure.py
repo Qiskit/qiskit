@@ -199,10 +199,12 @@ class TestOptimizeSwapBeforeMeasure(QiskitTestCase):
         base_expected.measure(1, 0)
 
         body_test = QuantumCircuit(2, 1)
-        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, [])
+        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, body_test.clbits)
 
         body_expected = QuantumCircuit(2, 1)
-        body_expected.for_loop((0,), None, base_expected.copy(), body_expected.qubits, [])
+        body_expected.for_loop(
+            (0,), None, base_expected.copy(), body_expected.qubits, body_expected.clbits
+        )
 
         test = QuantumCircuit(2, 1)
         test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)

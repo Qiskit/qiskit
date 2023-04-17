@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Nakanishi-Fujii-Todo algorithm."""
+from __future__ import annotations
 
-from typing import Optional
 
 import numpy as np
 from scipy.optimize import OptimizeResult
@@ -32,11 +32,11 @@ class NFT(SciPyOptimizer):
     # pylint: disable=unused-argument
     def __init__(
         self,
-        maxiter: Optional[int] = None,
+        maxiter: int | None = None,
         maxfev: int = 1024,
         disp: bool = False,
         reset_interval: int = 32,
-        options: Optional[dict] = None,
+        options: dict | None = None,
         **kwargs,
     ) -> None:
         """

@@ -12,22 +12,32 @@
 
 """Test the evolved operator ansatz."""
 
+from ddt import ddt, data
+import numpy as np
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.opflow import X, Y, Z, I, MatrixEvolution
+from qiskit.quantum_info import SparsePauliOp, Operator, Pauli
 
 from qiskit.circuit.library import EvolvedOperatorAnsatz
+from qiskit.synthesis.evolution import MatrixExponential
 from qiskit.test import QiskitTestCase
 
 
+@ddt
 class TestEvolvedOperatorAnsatz(QiskitTestCase):
     """Test the evolved operator ansatz."""
 
-    def test_evolved_op_ansatz(self):
+    @data(True, False)
+    def test_evolved_op_ansatz(self, use_opflow):
         """Test the default evolution."""
         num_qubits = 3
 
-        ops = [Z ^ num_qubits, Y ^ num_qubits, X ^ num_qubits]
+        if use_opflow:
+            ops = [Z ^ num_qubits, Y ^ num_qubits, X ^ num_qubits]
+        else:
+            ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
+
         strings = ["z" * num_qubits, "y" * num_qubits, "x" * num_qubits] * 2
 
         evo = EvolvedOperatorAnsatz(ops, 2)
@@ -39,18 +49,29 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
 
         self.assertEqual(evo.decompose().decompose(), reference)
 
-    def test_custom_evolution(self):
+    @data(True, False)
+    def test_custom_evolution(self, use_opflow):
         """Test using another evolution than the default (e.g. matrix evolution)."""
+        if use_opflow:
+            op = X ^ I ^ Z
+            matrix = op.to_matrix()
+            evolution = MatrixEvolution()
+        else:
+            op = SparsePauliOp(["ZIX"])
+            matrix = np.array(op)
+            evolution = MatrixExponential()
 
-        op = X ^ I ^ Z
-        matrix = op.to_matrix()
-        evo = EvolvedOperatorAnsatz(op, evolution=MatrixEvolution())
+        evo = EvolvedOperatorAnsatz(op, evolution=evolution)
 
         parameters = evo.parameters
         reference = QuantumCircuit(3)
         reference.hamiltonian(matrix, parameters[0], [0, 1, 2])
 
-        self.assertEqual(evo.decompose(), reference)
+        decomposed = evo.decompose()
+        if not use_opflow:
+            decomposed = decomposed.decompose()
+
+        self.assertEqual(decomposed, reference)
 
     def test_changing_operators(self):
         """Test rebuilding after the operators changed."""
@@ -86,6 +107,12 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
         evo = EvolvedOperatorAnsatz()
         with self.assertRaises(ValueError):
             _ = evo.draw()
+
+    def test_matrix_operator(self):
+        """Test passing a quantum_info.Operator uses the HamiltonianGate."""
+        unitary = Operator([[0, 1], [1, 0]])
+        evo = EvolvedOperatorAnsatz(unitary, reps=3).decompose()
+        self.assertEqual(evo.count_ops()["hamiltonian"], 3)
 
 
 def evolve(pauli_string, time):

@@ -53,13 +53,14 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         )
 
         aqgd = AQGD(momentum=0.0)
-        vqe = VQE(
-            ansatz=RealAmplitudes(),
-            optimizer=aqgd,
-            gradient=Gradient("lin_comb"),
-            quantum_instance=q_instance,
-        )
-        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(
+                ansatz=RealAmplitudes(),
+                optimizer=aqgd,
+                gradient=Gradient("lin_comb"),
+                quantum_instance=q_instance,
+            )
+            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required to run this test")
@@ -74,8 +75,9 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         )
 
         aqgd = AQGD(maxiter=[1000, 1000, 1000], eta=[1.0, 0.5, 0.3], momentum=[0.0, 0.5, 0.75])
-        vqe = VQE(ansatz=RealAmplitudes(), optimizer=aqgd, quantum_instance=q_instance)
-        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(ansatz=RealAmplitudes(), optimizer=aqgd, quantum_instance=q_instance)
+            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
     def test_raises_exception(self):
@@ -95,13 +97,14 @@ class TestOptimizerAQGD(QiskitAlgorithmsTestCase):
         )
 
         aqgd = AQGD(maxiter=1000, eta=1, momentum=0)
-        vqe = VQE(
-            ansatz=RealAmplitudes(),
-            optimizer=aqgd,
-            gradient=Gradient("lin_comb"),
-            quantum_instance=q_instance,
-        )
-        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(
+                ansatz=RealAmplitudes(),
+                optimizer=aqgd,
+                gradient=Gradient("lin_comb"),
+                quantum_instance=q_instance,
+            )
+            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=3)
 
 
