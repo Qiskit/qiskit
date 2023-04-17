@@ -165,6 +165,7 @@ Exceptions
 
    OpflowError
 """
+import warnings
 
 # New Operators
 from .operator_base import OperatorBase
@@ -327,9 +328,6 @@ __all__ = [
     "anti_commutator",
     "double_commutator",
 ]
-
-import warnings
-
 
 warnings.warn(
     "The ``qiskit.opflow`` module is deprecated as of qiskit-terra 0.24.0. "
