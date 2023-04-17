@@ -22,7 +22,7 @@ import numpy as np
 from qiskit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.circuit import Qubit, Gate, ControlFlowOp, ForLoopOp
 from qiskit.compiler import transpile, assemble
-from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError
+from qiskit.transpiler import CouplingMap, Layout, PassManager, TranspilerError, Target
 from qiskit.circuit.library import U2Gate, U3Gate, QuantumVolume, CXGate, CZGate, XGate
 from qiskit.transpiler.passes import (
     ALAPScheduleAnalysis,
@@ -1561,3 +1561,56 @@ class TestIntegrationControlFlow(QiskitTestCase):
 
         with self.assertRaisesRegex(TranspilerError, "The optimizations in optimization_level="):
             transpile(qc, optimization_level=optimization_level)
+
+    @data(0, 1)
+    def test_unsupported_basis_gates_raise(self, optimization_level):
+        """Test that trying to transpile a control-flow circuit for a backend that doesn't support
+        the necessary operations in its `basis_gates` will raise a sensible error."""
+        backend = FakeTokyo()
+
+        qc = QuantumCircuit(1, 1)
+        with qc.for_loop((0,)):
+            pass
+        with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
+            transpile(qc, backend, optimization_level=optimization_level)
+
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.clbits[0], False)):
+            pass
+        with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
+            transpile(qc, backend, optimization_level=optimization_level)
+
+        qc = QuantumCircuit(1, 1)
+        with qc.while_loop((qc.clbits[0], False)):
+            pass
+        with qc.for_loop((0, 1, 2)):
+            pass
+        with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
+            transpile(qc, backend, optimization_level=optimization_level)
+
+    @data(0, 1)
+    def test_unsupported_targets_raise(self, optimization_level):
+        """Test that trying to transpile a control-flow circuit for a backend that doesn't support
+        the necessary operations in its `Target` will raise a more sensible error."""
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate(), {(0, 1): None})
+
+        qc = QuantumCircuit(1, 1)
+        with qc.for_loop((0,)):
+            pass
+        with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
+            transpile(qc, target=target, optimization_level=optimization_level)
+
+        qc = QuantumCircuit(1, 1)
+        with qc.if_test((qc.clbits[0], False)):
+            pass
+        with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
+            transpile(qc, target=target, optimization_level=optimization_level)
+
+        qc = QuantumCircuit(1, 1)
+        with qc.while_loop((qc.clbits[0], False)):
+            pass
+        with qc.for_loop((0, 1, 2)):
+            pass
+        with self.assertRaisesRegex(TranspilerError, "The control-flow construct.*not supported"):
+            transpile(qc, target=target, optimization_level=optimization_level)
