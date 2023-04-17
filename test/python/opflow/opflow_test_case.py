@@ -12,8 +12,8 @@
 
 """Opflow Test Case"""
 
-from qiskit.test import QiskitTestCase
 import warnings
+from qiskit.test import QiskitTestCase
 
 
 class QiskitOpflowTestCase(QiskitTestCase):
