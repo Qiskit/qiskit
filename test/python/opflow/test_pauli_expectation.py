@@ -226,7 +226,9 @@ class TestPauliExpectation(QiskitOpflowTestCase):
             num_circuits_ungrouped = len(self.sampler._circuit_ops_cache)
             self.assertEqual(num_circuits_ungrouped, 5)
 
-            expect_op_grouped = PauliExpectation(group_paulis=True).convert(~StateFn(two_qubit_H2) @ wf)
+            expect_op_grouped = PauliExpectation(group_paulis=True).convert(
+                ~StateFn(two_qubit_H2) @ wf
+            )
 
             q_instance = QuantumInstance(
                 BasicAer.get_backend("statevector_simulator"),

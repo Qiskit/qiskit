@@ -154,10 +154,14 @@ class TestMatrixExpectation(QiskitOpflowTestCase):
 
             valids = [[+0, 0, 1, -1], [+0, 0, 0, 0], [-1, 1, 0, -0], [+1, 1, 1, 1]]
             converted_meas = self.expect.convert(~StateFn(paulis_op))
-            np.testing.assert_array_almost_equal((converted_meas @ states_op).eval(), valids, decimal=1)
+            np.testing.assert_array_almost_equal(
+                (converted_meas @ states_op).eval(), valids, decimal=1
+            )
 
             sampled = self.sampler.convert(states_op)
-            np.testing.assert_array_almost_equal((converted_meas @ sampled).eval(), valids, decimal=1)
+            np.testing.assert_array_almost_equal(
+                (converted_meas @ sampled).eval(), valids, decimal=1
+            )
 
     def test_multi_representation_ops(self):
         """Test observables with mixed representations"""

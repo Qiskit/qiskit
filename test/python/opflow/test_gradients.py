@@ -885,7 +885,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc = RealAmplitudes(2, reps=1)
 
         with self.assertWarns(DeprecationWarning):
-            grad_op = ListOp([StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+            grad_op = ListOp(
+                [StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn
+            )
             grad = Gradient(grad_method=method).convert(grad_op)
 
         value_dict = dict(zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
@@ -1152,13 +1154,13 @@ class TestGradients(QiskitOpflowTestCase):
         with self.assertWarns(DeprecationWarning):
             if method == "fin_diff":
                 np.random.seed(8)
-                prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).gradient_wrapper(
+                prob_grad = Gradient(
+                    grad_method=method, epsilon=shots ** (-1 / 6.0)
+                ).gradient_wrapper(operator=op, bind_params=params, backend=q_instance)
+            else:
+                prob_grad = Gradient(grad_method=method).gradient_wrapper(
                     operator=op, bind_params=params, backend=q_instance
                 )
-            else:
-                    prob_grad = Gradient(grad_method=method).gradient_wrapper(
-                        operator=op, bind_params=params, backend=q_instance
-                    )
 
         values = [[np.pi / 4, 0], [np.pi / 4, np.pi / 4], [np.pi / 2, np.pi]]
         correct_values = [
@@ -1535,7 +1537,7 @@ class TestQFI(QiskitOpflowTestCase):
 
         with self.assertRaises(NotImplementedError):
             with self.assertWarns(DeprecationWarning):
-             _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
+                _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
 
     def test_overlap_qfi_raises_on_unsupported_gate(self):
         """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""

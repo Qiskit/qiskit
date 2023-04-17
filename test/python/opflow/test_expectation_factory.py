@@ -37,4 +37,3 @@ class TestExpectationFactory(QiskitOpflowTestCase):
             with self.subTest("Include custom"):
                 expectation = ExpectationFactory.build(op, backend, include_custom=True)
                 self.assertIsInstance(expectation, AerPauliExpectation)
-∂

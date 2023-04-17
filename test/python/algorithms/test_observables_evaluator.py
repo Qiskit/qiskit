@@ -72,9 +72,7 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[BaseOperator | PauliSumOp],
         estimator: Estimator,
     ):
-        result = estimate_observables(
-            estimator, quantum_state, observables, None, self.threshold
-        )
+        result = estimate_observables(estimator, quantum_state, observables, None, self.threshold)
 
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))

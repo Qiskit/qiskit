@@ -38,7 +38,6 @@ class TestEvolvedOperatorAnsatz(QiskitTestCase):
                 evo = EvolvedOperatorAnsatz(ops, 2)
                 parameters = evo.parameters
 
-
         else:
             ops = [Pauli("Z" * num_qubits), Pauli("Y" * num_qubits), Pauli("X" * num_qubits)]
             evo = EvolvedOperatorAnsatz(ops, 2)
