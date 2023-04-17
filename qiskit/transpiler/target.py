@@ -1060,7 +1060,7 @@ class Target(Mapping):
             return None
 
     def _filter_coupling_graph(self):
-        has_operations = {itertools.chain.from_iterable(self.qargs)}
+        has_operations = set(itertools.chain.from_iterable(self.qargs))
         graph = self._coupling_graph
         to_remove = set(graph.node_indices()).difference(has_operations)
         if len(to_remove) > 0:
