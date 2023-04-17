@@ -1060,11 +1060,12 @@ class Target(Mapping):
             return None
 
     def _filter_coupling_graph(self):
-        has_operations = set(itertools.chain.from_iterable(self.qargs))
-        graph = self._coupling_graph.copy()
-        for index in graph.node_indices():
-            if index not in has_operations:
-                graph.remove_node(index)
+        has_operations = {itertools.chain.from_iterable(self.qargs)}
+        graph = self._coupling_graph
+        to_remove = set(graph.node_indices()).difference(has_operations)
+        if len(to_remove) > 0:
+            graph = graph.copy()
+            graph.remove_nodes_from(list(to_remove))
         return graph
 
     @property
