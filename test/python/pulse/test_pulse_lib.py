@@ -326,12 +326,12 @@ class TestParametricPulses(QiskitTestCase):
     def test_gaussian_square_echo_active_amp_validation(self):
         """Test gaussian square echo active amp parameter validation."""
 
-        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=1, active_amp=0.2)
-        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=1, active_amp=0.4)
+        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=.1, active_amp=0.2)
+        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=.1, active_amp=0.4)
         GaussianSquareEcho(duration=50, width=0, sigma=16, amp=0.5, active_amp=0.8)
-        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=-1, active_amp=0.2)
-        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=1, active_amp=-0.2)
-        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=1, active_amp=0.6)
+        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=-.1, active_amp=0.2)
+        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=.1, active_amp=-0.2)
+        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=.1, active_amp=0.6)
         GaussianSquareEcho(duration=50, width=0, sigma=16, amp=-0.5, angle=1.5, active_amp=0.25)
         with self.assertRaises(PulseError):
             GaussianSquareEcho(duration=50, width=0, sigma=16, amp=0.1, active_amp=1.1)
@@ -506,7 +506,7 @@ class TestParametricPulses(QiskitTestCase):
             repr(gse),
             (
                 "GaussianSquareEcho(duration=20, amp=1.0, angle=0.0, sigma=30, width=3, active_amp=0.0,"
-                "active_angle=0.0)"
+                " active_angle=0.0)"
             ),
         )
         gse = GaussianSquareEcho(duration=20, sigma=30, amp=1.0, risefall_sigma_ratio=0.1)
