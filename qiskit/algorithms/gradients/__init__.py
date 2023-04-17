@@ -73,7 +73,7 @@ from .base.estimator_gradient_result import EstimatorGradientResult
 from .finite_diff.finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
 from .finite_diff.finite_diff_sampler_gradient import FiniteDiffSamplerGradient
 from .lin_comb.lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
-from .lin_comb.lin_comb_qgt import LinCombQGT
+from .qgt.lin_comb_qgt import LinCombQGT
 from .lin_comb.lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift.param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift.param_shift_sampler_gradient import ParamShiftSamplerGradient
