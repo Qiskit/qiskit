@@ -3,7 +3,7 @@ name: Wheel Builds
 on:
   push:
     tags:
-      - '*'
+      - "*"
 jobs:
   build_wheels_s390x:
     name: Build wheels on s390x
@@ -17,7 +17,11 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.7'
+          python-version: "3.7"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -52,7 +56,11 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.7'
+          python-version: "3.7"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -87,7 +95,11 @@ jobs:
       - uses: actions/setup-python@v4
         name: Install Python
         with:
-          python-version: '3.7'
+          python-version: "3.7"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
