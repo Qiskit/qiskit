@@ -85,9 +85,10 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[OperatorBase],
         quantum_instance: Union[QuantumInstance, Backend],
     ):
-        result = eval_observables(
-            quantum_instance, quantum_state, observables, expectation, self.threshold
-        )
+        with self.assertWarns(DeprecationWarning):
+            result = eval_observables(
+                quantum_instance, quantum_state, observables, expectation, self.threshold
+            )
 
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
@@ -151,6 +152,16 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                         expectation,
                         observables,
                         quantum_instance,
+                    )
+
+                with self.subTest(msg="Test QuantumCircuit with Backend."):
+                    self._run_test(
+                        expected_result,
+                        bound_ansatz,
+                        decimal,
+                        expectation,
+                        observables,
+                        backend,
                     )
 
                 with self.subTest(msg="Test Statevector."):

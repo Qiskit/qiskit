@@ -15,11 +15,11 @@ jobs:
           python-version: '3.10'
       - name: Install dependencies
         run: |
-          pip install -U pip setuptools wheel
-          pip install -U -r requirements.txt -c constraints.txt
-          pip install -U -r requirements-dev.txt -c constraints.txt
-          pip install -c constraints.txt -e .
-          pip install "qiskit-aer" "z3-solver" "cplex" -c constraints.txt
+          python -m pip install -U pip setuptools wheel
+          python -m pip install -U -r requirements.txt -c constraints.txt
+          python -m pip install -U -r requirements-dev.txt -c constraints.txt
+          python -m pip install -c constraints.txt -e .
+          python -m pip install "qiskit-aer" "z3-solver" "cplex" -c constraints.txt
         env:
           SETUPTOOLS_ENABLE_FEATURES: "legacy-editable"
       - name: Run all tests including slow

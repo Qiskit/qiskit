@@ -14,8 +14,8 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Mapping, Sequence
-from typing import Type, Callable
+from collections.abc import Mapping, Callable, Sequence
+from typing import Type
 
 import numpy as np
 from scipy.integrate import OdeSolver
@@ -188,7 +188,7 @@ class VarQTE(ABC):
         hamiltonian: BaseOperator,
         time: float,
         t_param: Parameter | None = None,
-    ) -> QuantumCircuit:
+    ) -> tuple[QuantumCircuit | None, Sequence[Sequence[float]], Sequence[float]]:
         r"""
         Helper method for performing time evolution. Works both for imaginary and real case.
 
@@ -257,7 +257,7 @@ class VarQTE(ABC):
             TypeError: If an unsupported type of ``param_values`` provided.
         """
         if isinstance(param_values, Mapping):
-            init_state_parameter_values = []
+            init_state_parameter_values: Sequence[float] = []
             for param in init_state_parameters:
                 if param in param_values.keys():
                     init_state_parameter_values.append(param_values[param])

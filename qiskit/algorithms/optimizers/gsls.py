@@ -12,7 +12,10 @@
 
 """Line search with Gaussian-smoothed samples on a sphere."""
 
-from typing import Dict, Optional, Tuple, List, Callable, Any
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any, SupportsFloat
 import numpy as np
 
 from qiskit.utils import algorithm_globals
@@ -85,7 +88,7 @@ class GSLS(Optimizer):
             if k in self._OPTIONS:
                 self._options[k] = v
 
-    def get_support_level(self) -> Dict[str, int]:
+    def get_support_level(self) -> dict[str, int]:
         """Return support level dictionary.
 
         Returns:
@@ -98,15 +101,15 @@ class GSLS(Optimizer):
         }
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         return {key: self._options.get(key, None) for key in self._OPTIONS}
 
     def minimize(
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         if not isinstance(x0, np.ndarray):
             x0 = np.asarray(x0)
@@ -118,24 +121,23 @@ class GSLS(Optimizer):
             var_lb = np.array([l for (l, _) in bounds])
             var_ub = np.array([u for (_, u) in bounds])
 
-        x, fun, nfev, njev = self.ls_optimize(x0.size, fun, x0, var_lb, var_ub)
+        x, fun, nfev, _ = self.ls_optimize(x0.size, fun, x0, var_lb, var_ub)
 
         result = OptimizerResult()
         result.x = x
         result.fun = fun
         result.nfev = nfev
-        result.njev = njev
 
         return result
 
     def ls_optimize(
         self,
         n: int,
-        obj_fun: Callable,
+        obj_fun: Callable[[POINT], float],
         initial_point: np.ndarray,
         var_lb: np.ndarray,
         var_ub: np.ndarray,
-    ) -> Tuple[np.ndarray, float, int, float]:
+    ) -> tuple[np.ndarray, float, int, float]:
         """Run the line search optimization.
 
         Args:
@@ -169,7 +171,7 @@ class GSLS(Optimizer):
         prev_directions, prev_sample_set_x, prev_sample_set_y = None, None, None
         consecutive_fail_iter = 0
         alpha = self._options["initial_step_size"]
-        grad_norm = np.inf
+        grad_norm: SupportsFloat = np.inf
         sample_set_size = int(round(self._options["sample_size_factor"] * n))
 
         # Initial point
@@ -247,7 +249,7 @@ class GSLS(Optimizer):
 
     def sample_points(
         self, n: int, x: np.ndarray, num_points: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Sample ``num_points`` points around ``x`` on the ``n``-sphere of specified radius.
 
         The radius of the sphere is ``self._options['sampling_radius']``.
@@ -269,7 +271,7 @@ class GSLS(Optimizer):
 
     def sample_set(
         self, n: int, x: np.ndarray, var_lb: np.ndarray, var_ub: np.ndarray, num_points: int
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Construct sample set of given size.
 
         Args:

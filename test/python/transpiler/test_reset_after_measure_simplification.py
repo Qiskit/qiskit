@@ -180,10 +180,12 @@ class TestResetAfterMeasureSimplificationt(QiskitTestCase):
         base_expected.x(0).c_if(0, True)
 
         body_test = QuantumCircuit(1, 1)
-        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, [])
+        body_test.for_loop((0,), None, base_expected.copy(), body_test.qubits, body_test.clbits)
 
         body_expected = QuantumCircuit(1, 1)
-        body_expected.for_loop((0,), None, base_expected.copy(), body_expected.qubits, [])
+        body_expected.for_loop(
+            (0,), None, base_expected.copy(), body_expected.qubits, body_expected.clbits
+        )
 
         test = QuantumCircuit(1, 1)
         test.while_loop((test.clbits[0], True), body_test, test.qubits, test.clbits)

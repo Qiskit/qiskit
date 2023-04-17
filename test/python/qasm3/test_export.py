@@ -16,6 +16,7 @@
 # pylint: disable=line-too-long
 
 from io import StringIO
+from math import pi
 import re
 import unittest
 
@@ -27,7 +28,6 @@ from qiskit.test import QiskitTestCase
 from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
-from qiskit.qasm import pi
 
 
 # Tests marked with this decorator should be restored after gate definition with parameters is fixed

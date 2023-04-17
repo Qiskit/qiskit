@@ -30,7 +30,7 @@ from .primitive_job import PrimitiveJob
 from .utils import _circuit_key
 
 
-class BackendSampler(BaseSampler):
+class BackendSampler(BaseSampler[PrimitiveJob[SamplerResult]]):
     """A :class:`~.BaseSampler` implementation that provides an interface for
     leveraging the sampler interface from any backend.
 
@@ -68,24 +68,14 @@ class BackendSampler(BaseSampler):
             ValueError: If backend is not provided
         """
 
-        super().__init__(None, None, options)
+        super().__init__(options=options)
         self._backend = backend
         self._transpile_options = Options()
         self._bound_pass_manager = bound_pass_manager
         self._preprocessed_circuits: list[QuantumCircuit] | None = None
         self._transpiled_circuits: list[QuantumCircuit] = []
         self._skip_transpilation = skip_transpilation
-
-    def __new__(  # pylint: disable=signature-differs
-        cls,
-        backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,
-    ):
-        self = super().__new__(cls)
-        return self
-
-    def __getnewargs__(self):
-        return (self._backend,)
+        self._circuit_ids = {}
 
     @property
     def preprocessed_circuits(self) -> list[QuantumCircuit]:
@@ -202,7 +192,7 @@ class BackendSampler(BaseSampler):
         circuits: tuple[QuantumCircuit, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))

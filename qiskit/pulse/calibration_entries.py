@@ -31,14 +31,41 @@ class CalibrationPublisher(IntEnum):
 
 
 class CalibrationEntry(metaclass=ABCMeta):
-    """A metaclass of a calibration entry."""
+    """A metaclass of a calibration entry.
+
+    This class defines a standard model of Qiskit pulse program that is
+    agnostic to the underlying in-memory representation.
+
+    This entry distinguishes whether this is provided by end-users or a backend
+    by :attr:`.user_provided` attribute which may be provided when
+    the actual calibration data is provided to the entry with by :meth:`define`.
+
+    Note that a custom entry provided by an end-user may appear in the wire-format
+    as an inline calibration, e.g. :code:`defcal` of the QASM3,
+    that may update the backend instruction set architecture for execution.
+
+    .. note::
+
+        This and built-in subclasses are expected to be private without stable user-facing API.
+        The purpose of this class is to wrap different
+        in-memory pulse program representations in Qiskit, so that it can provide
+        the standard data model and API which are primarily used by the transpiler ecosystem.
+        It is assumed that end-users will never directly instantiate this class,
+        but :class:`.Target` or :class:`.InstructionScheduleMap` internally use this data model
+        to avoid implementing a complicated branching logic to
+        manage different calibration data formats.
+
+    """
 
     @abstractmethod
-    def define(self, definition: Any):
+    def define(self, definition: Any, user_provided: bool):
         """Attach definition to the calibration entry.
 
         Args:
             definition: Definition of this entry.
+            user_provided: If this entry is defined by user.
+                If the flag is set, this calibration may appear in the wire format
+                as an inline calibration, to override the backend instruction set architecture.
         """
         pass
 
@@ -55,6 +82,10 @@ class CalibrationEntry(metaclass=ABCMeta):
     def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
         """Generate schedule from entry definition.
 
+        If the pulse program is templated with :class:`.Parameter` objects,
+        you can provide corresponding parameter values for this method
+        to get a particular pulse program with assigned parameters.
+
         Args:
             args: Command parameters.
             kwargs: Command keyword parameters.
@@ -64,6 +95,12 @@ class CalibrationEntry(metaclass=ABCMeta):
         """
         pass
 
+    @property
+    @abstractmethod
+    def user_provided(self) -> bool:
+        """Return if this entry is user defined."""
+        pass
+
 
 class ScheduleDef(CalibrationEntry):
     """In-memory Qiskit Pulse representation.
@@ -71,6 +108,10 @@ class ScheduleDef(CalibrationEntry):
     A pulse schedule must provide signature with the .parameters attribute.
     This entry can be parameterized by a Qiskit Parameter object.
     The .get_schedule method returns a parameter-assigned pulse program.
+
+    .. see_also::
+        :class:`.CalibrationEntry` for the purpose of this class.
+
     """
 
     def __init__(self, arguments: Optional[Sequence[str]] = None):
@@ -90,6 +131,11 @@ class ScheduleDef(CalibrationEntry):
 
         self._definition = None
         self._signature = None
+        self._user_provided = None
+
+    @property
+    def user_provided(self) -> bool:
+        return self._user_provided
 
     def _parse_argument(self):
         """Generate signature from program and user provided argument names."""
@@ -120,35 +166,48 @@ class ScheduleDef(CalibrationEntry):
         )
         self._signature = signature
 
-    def define(self, definition: Union[Schedule, ScheduleBlock]):
+    def define(
+        self,
+        definition: Union[Schedule, ScheduleBlock],
+        user_provided: bool = True,
+    ):
         self._definition = definition
-        # add metadata
-        if "publisher" not in definition.metadata:
-            definition.metadata["publisher"] = CalibrationPublisher.QISKIT
         self._parse_argument()
+        self._user_provided = user_provided
 
     def get_signature(self) -> inspect.Signature:
         return self._signature
 
     def get_schedule(self, *args, **kwargs) -> Union[Schedule, ScheduleBlock]:
         if not args and not kwargs:
-            return self._definition
-        try:
-            to_bind = self.get_signature().bind_partial(*args, **kwargs)
-        except TypeError as ex:
-            raise PulseError("Assigned parameter doesn't match with schedule parameters.") from ex
-        value_dict = {}
-        for param in self._definition.parameters:
-            # Schedule allows partial bind. This results in parameterized Schedule.
+            out = self._definition
+        else:
             try:
-                value_dict[param] = to_bind.arguments[param.name]
-            except KeyError:
-                pass
-        return self._definition.assign_parameters(value_dict, inplace=False)
+                to_bind = self.get_signature().bind_partial(*args, **kwargs)
+            except TypeError as ex:
+                raise PulseError(
+                    "Assigned parameter doesn't match with schedule parameters."
+                ) from ex
+            value_dict = {}
+            for param in self._definition.parameters:
+                # Schedule allows partial bind. This results in parameterized Schedule.
+                try:
+                    value_dict[param] = to_bind.arguments[param.name]
+                except KeyError:
+                    pass
+            out = self._definition.assign_parameters(value_dict, inplace=False)
+        if "publisher" not in out.metadata:
+            if self.user_provided:
+                out.metadata["publisher"] = CalibrationPublisher.QISKIT
+            else:
+                out.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
+        return out
 
     def __eq__(self, other):
         # This delegates equality check to Schedule or ScheduleBlock.
-        return self._definition == other._definition
+        if hasattr(other, "_definition"):
+            return self._definition == other._definition
+        return False
 
     def __str__(self):
         out = f"Schedule {self._definition.name}"
@@ -165,16 +224,30 @@ class CallableDef(CalibrationEntry):
     provide the signature. This entry is parameterized by the function signature
     and .get_schedule method returns a non-parameterized pulse program
     by consuming the provided arguments and keyword arguments.
+
+    .. see_also::
+        :class:`.CalibrationEntry` for the purpose of this class.
+
     """
 
     def __init__(self):
         """Define an empty entry."""
         self._definition = None
         self._signature = None
+        self._user_provided = None
 
-    def define(self, definition: Callable):
+    @property
+    def user_provided(self) -> bool:
+        return self._user_provided
+
+    def define(
+        self,
+        definition: Callable,
+        user_provided: bool = True,
+    ):
         self._definition = definition
         self._signature = inspect.signature(definition)
+        self._user_provided = user_provided
 
     def get_signature(self) -> inspect.Signature:
         return self._signature
@@ -186,17 +259,20 @@ class CallableDef(CalibrationEntry):
             to_bind.apply_defaults()
         except TypeError as ex:
             raise PulseError("Assigned parameter doesn't match with function signature.") from ex
-
-        schedule = self._definition(**to_bind.arguments)
-        # add metadata
-        if "publisher" not in schedule.metadata:
-            schedule.metadata["publisher"] = CalibrationPublisher.QISKIT
-        return schedule
+        out = self._definition(**to_bind.arguments)
+        if "publisher" not in out.metadata:
+            if self.user_provided:
+                out.metadata["publisher"] = CalibrationPublisher.QISKIT
+            else:
+                out.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
+        return out
 
     def __eq__(self, other):
         # We cannot evaluate function equality without parsing python AST.
-        # This simply compares wether they are the same object.
-        return self._definition is other._definition
+        # This simply compares weather they are the same object.
+        if hasattr(other, "_definition"):
+            return self._definition == other._definition
+        return False
 
     def __str__(self):
         params_str = ", ".join(self.get_signature().parameters.keys())
@@ -210,6 +286,10 @@ class PulseQobjDef(ScheduleDef):
     the provided qobj converter. Because the Qobj JSON doesn't provide signature,
     conversion process occurs when the signature is requested for the first time
     and the generated pulse program is cached for performance.
+
+    .. see_also::
+        :class:`.CalibrationEntry` for the purpose of this class.
+
     """
 
     def __init__(
@@ -237,14 +317,17 @@ class PulseQobjDef(ScheduleDef):
         for qobj_inst in self._source:
             for qiskit_inst in self._converter._get_sequences(qobj_inst):
                 schedule.insert(qobj_inst.t0, qiskit_inst, inplace=True)
-        schedule.metadata["publisher"] = CalibrationPublisher.BACKEND_PROVIDER
-
         self._definition = schedule
         self._parse_argument()
 
-    def define(self, definition: List[PulseQobjInstruction]):
+    def define(
+        self,
+        definition: List[PulseQobjInstruction],
+        user_provided: bool = False,
+    ):
         # This doesn't generate signature immediately, because of lazy schedule build.
         self._source = definition
+        self._user_provided = user_provided
 
     def get_signature(self) -> inspect.Signature:
         if self._definition is None:
@@ -261,9 +344,11 @@ class PulseQobjDef(ScheduleDef):
             # If both objects are Qobj just check Qobj equality.
             return self._source == other._source
         if isinstance(other, ScheduleDef) and self._definition is None:
-            # To compare with other scheudle def, this also generates schedule object from qobj.
+            # To compare with other schedule def, this also generates schedule object from qobj.
             self._build_schedule()
-        return self._definition == other._definition
+        if hasattr(other, "_definition"):
+            return self._definition == other._definition
+        return False
 
     def __str__(self):
         if self._definition is None:

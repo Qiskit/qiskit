@@ -12,6 +12,7 @@
 
 """Test the evolution gate."""
 
+import unittest
 import numpy as np
 import scipy
 from ddt import ddt, data, unpack
@@ -313,3 +314,7 @@ class TestEvolutionGate(QiskitTestCase):
                 evo = PauliEvolutionGate(op)
                 self.assertEqual(evo.name, "PauliEvolution")
                 self.assertEqual(evo.label, f"exp(-it {label})")
+
+
+if __name__ == "__main__":
+    unittest.main()

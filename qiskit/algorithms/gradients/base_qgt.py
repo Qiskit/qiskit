@@ -98,8 +98,8 @@ class BaseQGT(ABC):
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
-        self._qgt_circuit_cache = {}
-        self._gradient_circuit_cache: dict[QuantumCircuit, GradientCircuit] = {}
+        self._qgt_circuit_cache: dict[tuple, GradientCircuit] = {}
+        self._gradient_circuit_cache: dict[tuple, GradientCircuit] = {}
 
     @property
     def derivative_type(self) -> DerivativeType:
@@ -242,7 +242,7 @@ class BaseQGT(ABC):
             zip(circuits, parameter_values, parameters)
         ):
             dtype = complex if self.derivative_type == DerivativeType.COMPLEX else float
-            qgt = np.zeros((len(parameters_), len(parameters_)), dtype=dtype)
+            qgt: np.ndarray = np.zeros((len(parameters_), len(parameters_)), dtype=dtype)
 
             gradient_circuit = self._gradient_circuit_cache[_circuit_key(circuit)]
             g_parameters = _make_gradient_parameters(gradient_circuit, parameters_)
