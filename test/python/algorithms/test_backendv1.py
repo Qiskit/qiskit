@@ -13,7 +13,6 @@
 """Test Providers that support BackendV1 interface"""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit
 from qiskit.providers.fake_provider import FakeProvider
@@ -38,11 +37,8 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         """Test the VQE on QASM simulator."""
         optimizer = SPSA(maxiter=300, last_avg=5)
         wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             h2_op = (
                 -1.052373245772859 * (I ^ I)
                 + 0.39793742484318045 * (I ^ Z)
@@ -53,6 +49,8 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
             qasm_simulator = QuantumInstance(
                 self._qasm, shots=1024, seed_simulator=self.seed, seed_transpiler=self.seed
             )
+
+        with self.assertWarns(DeprecationWarning):
             vqe = VQE(
                 ansatz=wavefunction,
                 optimizer=optimizer,
@@ -60,7 +58,7 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
                 quantum_instance=qasm_simulator,
             )
             result = vqe.compute_minimum_eigenvalue(operator=h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
 
     def test_run_circuit_oracle(self):
@@ -68,17 +66,16 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         oracle = QuantumCircuit(2)
         oracle.cz(0, 1)
         problem = AmplificationProblem(oracle, is_good_state=["11"])
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             qi = QuantumInstance(
                 self._provider.get_backend("fake_vigo"), seed_simulator=12, seed_transpiler=32
             )
+
+        with self.assertWarns(DeprecationWarning):
             grover = Grover(quantum_instance=qi)
             result = grover.amplify(problem)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertIn(result.top_measurement, ["11"])
 
     def test_run_circuit_oracle_single_experiment_backend(self):
@@ -88,15 +85,14 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         problem = AmplificationProblem(oracle, is_good_state=["11"])
         backend = self._provider.get_backend("fake_vigo")
         backend._configuration.max_experiments = 1
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             qi = QuantumInstance(backend, seed_simulator=12, seed_transpiler=32)
+
+        with self.assertWarns(DeprecationWarning):
             grover = Grover(quantum_instance=qi)
             result = grover.amplify(problem)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertIn(result.top_measurement, ["11"])
 
     def test_measurement_error_mitigation_with_vqe(self):
@@ -115,11 +111,8 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
         noise_model.add_all_qubit_readout_error(read_err)
 
         backend = self._qasm
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             quantum_instance = QuantumInstance(
                 backend=backend,
                 seed_simulator=167,
@@ -134,19 +127,14 @@ class TestBackendV1(QiskitAlgorithmsTestCase):
                 - 0.01128010425623538 * (Z ^ Z)
                 + 0.18093119978423156 * (X ^ X)
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
         optimizer = SPSA(maxiter=200)
         ansatz = EfficientSU2(2, reps=1)
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
             result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)

@@ -13,7 +13,6 @@
 """Test of scikit-quant optimizers."""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt, data, unpack
@@ -36,11 +35,7 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         """Set the problem."""
         super().setUp()
         algorithm_globals.random_seed = 50
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             self.qubit_op = PauliSumOp.from_list(
                 [
                     ("II", -1.052373245772859),
@@ -50,23 +45,19 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
                     ("XX", 0.18093119978423156),
                 ]
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
     def _optimize(self, optimizer):
         """launch vqe"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             qe = QuantumInstance(
                 BasicAer.get_backend("statevector_simulator"),
                 seed_simulator=algorithm_globals.random_seed,
                 seed_transpiler=algorithm_globals.random_seed,
             )
+        with self.assertWarns(DeprecationWarning):
             vqe = VQE(ansatz=RealAmplitudes(), optimizer=optimizer, quantum_instance=qe)
             result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=1)
 
     def test_bobyqa(self):

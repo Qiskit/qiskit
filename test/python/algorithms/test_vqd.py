@@ -13,7 +13,6 @@
 """Test VQD"""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 import numpy as np
@@ -66,11 +65,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         )
         self.ry_wavefunction = TwoLocal(rotation_blocks="ry", entanglement_blocks="cz")
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             self.h2_op = (
                 -1.052373245772859 * (I ^ I)
                 + 0.39793742484318045 * (I ^ Z)
@@ -91,31 +86,27 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 seed_simulator=self.seed,
                 seed_transpiler=self.seed,
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
     @slow_test
     def test_basic_aer_statevector(self):
         """Test the VQD on BasicAer's statevector simulator."""
         wavefunction = self.ryrz_wavefunction
-        vqd = VQD(
-            k=2,
-            ansatz=wavefunction,
-            optimizer=COBYLA(),
-            quantum_instance=QuantumInstance(
-                BasicAer.get_backend("statevector_simulator"),
-                basis_gates=["u1", "u2", "u3", "cx", "id"],
-                coupling_map=[[0, 1]],
-                seed_simulator=algorithm_globals.random_seed,
-                seed_transpiler=algorithm_globals.random_seed,
-            ),
-        )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
+
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(
+                k=2,
+                ansatz=wavefunction,
+                optimizer=COBYLA(),
+                quantum_instance=QuantumInstance(
+                    BasicAer.get_backend("statevector_simulator"),
+                    basis_gates=["u1", "u2", "u3", "cx", "id"],
+                    coupling_map=[[0, 1]],
+                    seed_simulator=algorithm_globals.random_seed,
+                    seed_transpiler=algorithm_globals.random_seed,
+                ),
             )
+
             result = vqd.compute_eigenvalues(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
 
         with self.subTest(msg="test eigenvalue"):
             np.testing.assert_array_almost_equal(
@@ -135,11 +126,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Ensuring circuit and operator mismatch is caught"""
         wavefunction = QuantumCircuit(1)
         optimizer = SLSQP(maxiter=50)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=1,
                 ansatz=wavefunction,
@@ -148,7 +136,6 @@ class TestVQD(QiskitAlgorithmsTestCase):
             )
             with self.assertRaises(AlgorithmError):
                 _ = vqd.compute_eigenvalues(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
 
     @data(
         (MatrixExpectation(), 1),
@@ -160,62 +147,46 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Test construct circuits returns QuantumCircuits and the right number of them."""
         try:
             wavefunction = EfficientSU2(2, reps=1)
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
+
+            with self.assertWarns(DeprecationWarning):
                 vqd = VQD(k=2, ansatz=wavefunction, expectation=expectation)
                 params = [0] * wavefunction.num_parameters
                 circuits = vqd.construct_circuit(parameter=params, operator=self.h2_op)
-            self.assertTrue(len(caught_warnings) > 0)
             self.assertEqual(len(circuits), num_circuits)
+
             for circuit in circuits:
                 self.assertIsInstance(circuit, QuantumCircuit)
+
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
             return
 
     def test_missing_varform_params(self):
         """Test specifying a variational form with no parameters raises an error."""
+
         circuit = QuantumCircuit(self.h2_op.num_qubits)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=1, ansatz=circuit, quantum_instance=BasicAer.get_backend("statevector_simulator")
             )
             with self.assertRaises(RuntimeError):
                 vqd.compute_eigenvalues(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
 
     def test_basic_aer_qasm(self):
         """Test the VQD on BasicAer's QASM simulator."""
         optimizer = COBYLA(maxiter=1000)
         wavefunction = self.ry_wavefunction
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 ansatz=wavefunction,
                 optimizer=optimizer,
                 max_evals_grouped=1,
                 quantum_instance=self.qasm_simulator,
             )
-        self.assertTrue(len(caught_warnings) > 0)
-        # TODO benchmark this later.
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+            # TODO benchmark this later.
             result = vqd.compute_eigenvalues(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
+
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=1
         )
@@ -227,16 +198,13 @@ class TestVQD(QiskitAlgorithmsTestCase):
         wavefunction = self.ry_wavefunction
         optimizer = L_BFGS_B()
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             quantum_instance = QuantumInstance(
                 backend,
                 seed_simulator=algorithm_globals.random_seed,
                 seed_transpiler=algorithm_globals.random_seed,
             )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=2,
                 ansatz=wavefunction,
@@ -245,7 +213,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 quantum_instance=quantum_instance,
             )
             result = vqd.compute_eigenvalues(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
+
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -257,16 +225,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
         optimizer = COBYLA(maxiter=1000)
         wavefunction = self.ry_wavefunction
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             quantum_instance = QuantumInstance(
                 backend,
                 seed_simulator=algorithm_globals.random_seed,
                 seed_transpiler=algorithm_globals.random_seed,
             )
+
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=2,
                 ansatz=wavefunction,
@@ -274,17 +240,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 expectation=PauliExpectation(),
                 quantum_instance=quantum_instance,
             )
-
-            vqd = VQD(
-                k=2,
-                ansatz=wavefunction,
-                optimizer=optimizer,
-                expectation=PauliExpectation(),
-                quantum_instance=quantum_instance,
-            )
-
             result = vqd.compute_eigenvalues(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
+
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=1
         )
@@ -297,17 +254,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
         optimizer = COBYLA(maxiter=400)
         wavefunction = self.ryrz_wavefunction
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             quantum_instance = QuantumInstance(
                 backend,
                 shots=100,
                 seed_simulator=algorithm_globals.random_seed,
                 seed_transpiler=algorithm_globals.random_seed,
             )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=2,
                 ansatz=wavefunction,
@@ -316,7 +270,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 quantum_instance=quantum_instance,
             )
             result = vqd.compute_eigenvalues(operator=self.test_op)
-        self.assertTrue(len(caught_warnings) > 0)
+
         np.testing.assert_array_almost_equal(result.eigenvalues.real, self.test_results, decimal=1)
 
     def test_callback(self):
@@ -333,11 +287,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
         optimizer = COBYLA(maxiter=3)
         wavefunction = self.ry_wavefunction
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 ansatz=wavefunction,
                 optimizer=optimizer,
@@ -345,7 +295,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 quantum_instance=self.qasm_simulator,
             )
             vqd.compute_eigenvalues(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertTrue(all(isinstance(count, int) for count in history["eval_count"]))
         self.assertTrue(all(isinstance(mean, float) for mean in history["mean"]))
         self.assertTrue(all(isinstance(std, float) for std in history["std"]))
@@ -365,74 +315,53 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
     def test_reuse(self):
         """Test re-using a VQD algorithm instance."""
-        vqd = VQD(k=1)
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            with self.subTest(msg="assert running empty raises AlgorithmError"):
-                with self.assertRaises(AlgorithmError):
-                    _ = vqd.compute_eigenvalues(operator=self.h2_op)
+
+        with self.assertWarns(DeprecationWarning):
+            vqd = VQD(k=1)
+
+        with self.subTest(msg="assert running empty raises AlgorithmError"):
+            with self.assertWarns(DeprecationWarning), self.assertRaises(AlgorithmError):
+                _ = vqd.compute_eigenvalues(operator=self.h2_op)
+
         ansatz = TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz")
         vqd.ansatz = ansatz
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            with self.subTest(msg="assert missing operator raises AlgorithmError"):
-                with self.assertRaises(AlgorithmError):
-                    _ = vqd.compute_eigenvalues(operator=self.h2_op)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.subTest(msg="assert missing operator raises AlgorithmError"):
+            with self.assertWarns(DeprecationWarning), self.assertRaises(AlgorithmError):
+                _ = vqd.compute_eigenvalues(operator=self.h2_op)
+
+        with self.assertWarns(DeprecationWarning):
             vqd.expectation = MatrixExpectation()
             vqd.quantum_instance = self.statevector_simulator
-            with self.subTest(msg="assert VQE works once all info is available"):
-                result = vqd.compute_eigenvalues(operator=self.h2_op)
-                np.testing.assert_array_almost_equal(
-                    result.eigenvalues.real, self.h2_energy, decimal=2
-                )
-        self.assertTrue(len(caught_warnings) > 0)
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.subTest(msg="assert VQE works once all info is available"):
+            with self.assertWarns(DeprecationWarning):
+                result = vqd.compute_eigenvalues(operator=self.h2_op)
+            np.testing.assert_array_almost_equal(result.eigenvalues.real, self.h2_energy, decimal=2)
+
+        with self.assertWarns(DeprecationWarning):
             operator = PrimitiveOp(
                 np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, 2, 0], [0, 0, 0, 3]])
             )
-            with self.subTest(msg="assert minimum eigensolver interface works"):
+
+        with self.subTest(msg="assert minimum eigensolver interface works"):
+            with self.assertWarns(DeprecationWarning):
                 result = vqd.compute_eigenvalues(operator=operator)
-                self.assertAlmostEqual(result.eigenvalues.real[0], -1.0, places=5)
-        self.assertTrue(len(caught_warnings) > 0)
+            self.assertAlmostEqual(result.eigenvalues.real[0], -1.0, places=5)
 
     def test_vqd_optimizer(self):
         """Test running same VQD twice to re-use optimizer, then switch optimizer"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=2,
                 optimizer=SLSQP(),
                 quantum_instance=QuantumInstance(BasicAer.get_backend("statevector_simulator")),
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
         def run_check():
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
+            with self.assertWarns(DeprecationWarning):
                 result = vqd.compute_eigenvalues(operator=self.h2_op)
-            self.assertTrue(len(caught_warnings) > 0)
+
             np.testing.assert_array_almost_equal(
                 result.eigenvalues.real, self.h2_energy_excited, decimal=3
             )
@@ -449,11 +378,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
     @data(MatrixExpectation(), None)
     def test_backend_change(self, user_expectation):
         """Test that VQE works when backend changes."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=1,
                 ansatz=TwoLocal(rotation_blocks=["ry", "rz"], entanglement_blocks="cz"),
@@ -466,55 +392,41 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 with self.subTest("User expectation kept."):
                     self.assertEqual(vqd.expectation, user_expectation)
 
+        with self.assertWarns(DeprecationWarning):
             vqd.quantum_instance = BasicAer.get_backend("qasm_simulator")
-        self.assertTrue(len(caught_warnings) > 0)
+            # works also if no expectation is set, since it will be determined automatically
 
-        # works also if no expectation is set, since it will be determined automatically
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
             result1 = vqd.compute_eigenvalues(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
-        if user_expectation is not None:
-            with self.subTest("Change backend with user expectation, it is kept."):
-                self.assertEqual(vqd.expectation, user_expectation)
 
-        with self.subTest("Check results."):
-            self.assertEqual(len(result0.optimal_point), len(result1.optimal_point))
+            if user_expectation is not None:
+                with self.subTest("Change backend with user expectation, it is kept."):
+                    self.assertEqual(vqd.expectation, user_expectation)
+
+            with self.subTest("Check results."):
+                self.assertEqual(len(result0.optimal_point), len(result1.optimal_point))
 
     def test_set_ansatz_to_none(self):
         """Tests that setting the ansatz to None results in the default behavior"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=1,
                 ansatz=self.ryrz_wavefunction,
                 optimizer=L_BFGS_B(),
                 quantum_instance=self.statevector_simulator,
             )
-        self.assertTrue(len(caught_warnings) > 0)
         vqd.ansatz = None
         self.assertIsInstance(vqd.ansatz, RealAmplitudes)
 
     def test_set_optimizer_to_none(self):
         """Tests that setting the optimizer to None results in the default behavior"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 k=1,
                 ansatz=self.ryrz_wavefunction,
                 optimizer=L_BFGS_B(),
                 quantum_instance=self.statevector_simulator,
             )
-        self.assertTrue(len(caught_warnings) > 0)
         vqd.optimizer = None
         self.assertIsInstance(vqd.optimizer, SLSQP)
 
@@ -522,31 +434,24 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction
 
-        # Start with an empty list
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(k=2, ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+
+            # Start with an empty list
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=[])
-        self.assertTrue(len(caught_warnings) > 0)
+
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
         self.assertIsNone(result.aux_operator_eigenvalues)
 
         # Go again with two auxiliary operators
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             aux_op1 = PauliSumOp.from_list([("II", 2.0)])
             aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
             aux_ops = [aux_op1, aux_op2]
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -560,13 +465,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = [*aux_ops, None, 0]
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
@@ -585,31 +486,26 @@ class TestVQD(QiskitAlgorithmsTestCase):
         """Test dictionary compatibility of aux_operators"""
         wavefunction = self.ry_wavefunction
 
-        # Start with an empty dictionary
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(ansatz=wavefunction, quantum_instance=self.statevector_simulator)
+
+        # Start with an empty dictionary
+        with self.assertWarns(DeprecationWarning):
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators={})
-        self.assertTrue(len(caught_warnings) > 0)
+
         np.testing.assert_array_almost_equal(
             result.eigenvalues.real, self.h2_energy_excited, decimal=2
         )
         self.assertIsNone(result.aux_operator_eigenvalues)
 
         # Go again with two auxiliary operators
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             aux_op1 = PauliSumOp.from_list([("II", 2.0)])
             aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
             aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
+        with self.assertWarns(DeprecationWarning):
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
@@ -625,13 +521,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         extra_ops = {**aux_ops, "None_operator": None, "zero_operator": 0}
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=extra_ops)
-        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(len(result.eigenvalues), 2)
         self.assertEqual(len(result.eigenstates), 2)
         self.assertEqual(result.eigenvalues.dtype, np.complex128)
@@ -651,11 +542,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_aux_operator_std_dev_pauli(self):
         """Test non-zero standard deviations of aux operators with PauliExpectation."""
         wavefunction = self.ry_wavefunction
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 ansatz=wavefunction,
                 expectation=PauliExpectation(),
@@ -673,12 +561,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
                 quantum_instance=self.qasm_simulator,
             )
 
+        with self.assertWarns(DeprecationWarning):
             # Go again with two auxiliary operators
             aux_op1 = PauliSumOp.from_list([("II", 2.0)])
             aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
             aux_ops = [aux_op1, aux_op2]
+        with self.assertWarns(DeprecationWarning):
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
@@ -693,13 +583,9 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertEqual(len(result.aux_operator_eigenvalues[0]), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
@@ -720,13 +606,7 @@ class TestVQD(QiskitAlgorithmsTestCase):
     def test_aux_operator_std_dev_aer_pauli(self):
         """Test non-zero standard deviations of aux operators with AerPauliExpectation."""
         wavefunction = self.ry_wavefunction
-
-        # Go again with two auxiliary operators
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqd = VQD(
                 ansatz=wavefunction,
                 expectation=AerPauliExpectation(),
@@ -738,11 +618,14 @@ class TestVQD(QiskitAlgorithmsTestCase):
                     seed_transpiler=algorithm_globals.random_seed,
                 ),
             )
+
+        with self.assertWarns(DeprecationWarning):
+            # Go again with two auxiliary operators
             aux_op1 = PauliSumOp.from_list([("II", 2.0)])
             aux_op2 = PauliSumOp.from_list([("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)])
             aux_ops = [aux_op1, aux_op2]
+        with self.assertWarns(DeprecationWarning):
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(len(result.aux_operator_eigenvalues), 2)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=1)
@@ -755,13 +638,8 @@ class TestVQD(QiskitAlgorithmsTestCase):
 
         # Go again with additional None and zero operators
         aux_ops = [*aux_ops, None, 0]
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = vqd.compute_eigenvalues(self.h2_op, aux_operators=aux_ops)
-        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(len(result.aux_operator_eigenvalues[-1]), 4)
         # expectation values
         self.assertAlmostEqual(result.aux_operator_eigenvalues[0][0][0], 2.0, places=6)

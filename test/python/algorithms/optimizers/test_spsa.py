@@ -12,7 +12,6 @@
 
 """Tests for the SPSA optimizer."""
 
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data
 
@@ -41,14 +40,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test SPSA on the Pauli two-design example."""
         circuit = PauliTwoDesign(3, reps=1, seed=1)
         parameters = list(circuit.parameters)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             obs = Z ^ Z ^ I
             expr = ~StateFn(obs) @ StateFn(circuit)
-        self.assertTrue(len(caught_warnings) > 0)
 
         initial_point = np.array(
             [0.82311034, 0.02611798, 0.21077064, 0.61842177, 0.09828447, 0.62013131]
@@ -213,6 +207,7 @@ class TestSPSA(QiskitAlgorithmsTestCase):
             QNSPSA.get_fidelity(ansatz, backend=StatevectorSimulatorPy())
         with self.assertWarns(DeprecationWarning):
             QNSPSA.get_fidelity(ansatz, expectation=MatrixExpectation())
+
         # No warning when used correctly.
         QNSPSA.get_fidelity(ansatz)
 
@@ -238,13 +233,9 @@ class TestSPSA(QiskitAlgorithmsTestCase):
         """Test using max_evals_grouped with QNSPSA."""
         circuit = PauliTwoDesign(3, reps=1, seed=1)
         num_parameters = circuit.num_parameters
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             obs = Z ^ Z ^ I
-        self.assertTrue(len(caught_warnings) > 0)
 
         estimator = Estimator(options={"seed": 12})
 

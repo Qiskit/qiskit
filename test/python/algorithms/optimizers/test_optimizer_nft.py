@@ -13,7 +13,6 @@
 """Test of NFT optimizer"""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import BasicAer
 from qiskit.circuit.library import RealAmplitudes
@@ -29,11 +28,7 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
     def setUp(self):
         super().setUp()
         algorithm_globals.random_seed = 50
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             self.qubit_op = PauliSumOp.from_list(
                 [
                     ("II", -1.052373245772859),
@@ -43,15 +38,10 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
                     ("XX", 0.18093119978423156),
                 ]
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
     def test_nft(self):
         """Test NFT optimizer by using it"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             vqe = VQE(
                 ansatz=RealAmplitudes(),
                 optimizer=NFT(),
@@ -62,7 +52,7 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
                 ),
             )
             result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
+
         self.assertAlmostEqual(result.eigenvalue.real, -1.857275, places=6)
 
 
