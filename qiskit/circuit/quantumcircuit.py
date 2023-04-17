@@ -4179,6 +4179,7 @@ class QuantumCircuit:
         clbits: Iterable[Clbit] = (),
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
+        forbidden_message: Optional[str] = None,
     ):
         """Add a scope for collecting instructions into this circuit.
 
@@ -4189,6 +4190,8 @@ class QuantumCircuit:
             qubits: Any qubits that this scope should automatically use.
             clbits: Any clbits that this scope should automatically use.
             allow_jumps: Whether this scope allows jumps to be used within it.
+            forbidden_message: If given, all attempts to add instructions to this scope will raise a
+                :exc:`.CircuitError` with this message.
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
@@ -4207,6 +4210,7 @@ class QuantumCircuit:
                 resource_requester=resource_requester,
                 registers=registers,
                 allow_jumps=allow_jumps,
+                forbidden_message=forbidden_message,
             )
         )
 
@@ -4615,6 +4619,19 @@ class QuantumCircuit:
         condition = (self._resolve_classical_resource(condition[0]), condition[1])
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
+    @typing.overload
+    def switch(
+        self,
+        target: Union[ClbitSpecifier, ClassicalRegister],
+        cases: None,
+        qubits: None,
+        clbits: None,
+        *,
+        label: Optional[str],
+    ) -> "qiskit.circuit.controlflow.switch_case.SwitchContext":
+        ...
+
+    @typing.overload
     def switch(
         self,
         target: Union[ClbitSpecifier, ClassicalRegister],
@@ -4622,30 +4639,75 @@ class QuantumCircuit:
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
-        label: Optional[str] = None,
+        label: Optional[str],
     ) -> InstructionSet:
+        ...
+
+    def switch(self, target, cases=None, qubits=None, clbits=None, *, label=None):
         """Create a ``switch``/``case`` structure on this circuit.
+
+        There are two forms for calling this function.  If called with all its arguments (with the
+        possible exception of ``label``), it will create a :class:`.SwitchCaseOp` with the given
+        case structure.  If ``cases`` (and ``qubits`` and ``clbits``) are *not* passed, then this
+        acts as a context manager, which will automatically build a :class:`.SwitchCaseOp` when the
+        scope finishes.  In this form, you do not need to keep track of the qubits or clbits you are
+        using, because the scope will handle it for you.
+
+        Example usage::
+
+            from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
+            qreg = QuantumRegister(3)
+            creg = ClassicalRegister(3)
+            qc = QuantumCircuit(qreg, creg)
+            qc.h([0, 1, 2])
+            qc.measure([0, 1, 2], [0, 1, 2])
+
+            with qc.switch(creg) as case:
+                with case(0):
+                    qc.x(0)
+                with case(1, 2):
+                    qc.z(1)
+                with case(case.DEFAULT):
+                    qc.cx(0, 1)
 
         Args:
             target (Union[ClassicalRegister, Clbit]): The classical value to switch one.  This must
-                be integer valued.
-            cases (Iterable[Tuple[typing.Any, QuantumCircuit]]): A sequence of case specifiers.  Each
-                tuple defines one case body (the second item).  The first item of the tuple can be
-                either a single integer value, the special value :data:`.CASE_DEFAULT`, or a tuple
-                of several integer values.  Each of the integer values will be tried in turn; control
-                will then pass to the body corresponding to the first match.  :data:`.CASE_DEFAULT`
-                matches all possible values.
-            qubits (Sequence[Qubit]): The circuit qubits over which all case bodies execute.
-            clbits (Sequence[Clbit]): The circuit clbits over which all case bodies execute.
+                be integer-like.
+            cases (Iterable[Tuple[typing.Any, QuantumCircuit]]): A sequence of case specifiers.
+                Each tuple defines one case body (the second item).  The first item of the tuple can
+                be either a single integer value, the special value :data:`.CASE_DEFAULT`, or a
+                tuple of several integer values.  Each of the integer values will be tried in turn;
+                control will then pass to the body corresponding to the first match.
+                :data:`.CASE_DEFAULT` matches all possible values.  Omit in context-manager form.
+            qubits (Sequence[Qubit]): The circuit qubits over which all case bodies execute. Omit in
+                context-manager form.
+            clbits (Sequence[Clbit]): The circuit clbits over which all case bodies execute. Omit in
+                context-manager form.
             label (Optional[str]): The string label of the instruction in the circuit.
 
         Returns:
-            InstructionSet: A handle to the instruction created.
+            InstructionSet or SwitchCaseContext: If used in context-manager mode, then this should
+            be used as a ``with`` resource, which will return an object that can be repeatedly
+            entered to produce cases for the switch statement.  If the full form is used, then this
+            returns a handle to the instructions created.
+
+        Raises:
+            CircuitError: if an incorrect calling convention is used.
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp, SwitchContext
 
         target = self._resolve_classical_resource(target)
+        if cases is None:
+            if qubits is not None or clbits is not None:
+                raise CircuitError(
+                    "When using 'switch' as a context manager, you cannot pass qubits or clbits."
+                )
+            in_loop = bool(self._control_flow_scopes and self._control_flow_scopes[-1].allow_jumps)
+            return SwitchContext(self, target, in_loop=in_loop, label=label)
+
+        if qubits is None or clbits is None:
+            raise CircuitError("When using 'switch' with cases, you must pass qubits and clbits.")
         return self.append(SwitchCaseOp(target, cases, label=label), qubits, clbits)
 
     def break_loop(self) -> InstructionSet:
