@@ -13,9 +13,9 @@
 """Tests for Estimator."""
 
 import unittest
-from unittest.mock import patch
 from test import combine
 from test.python.transpiler._dummy_passes import DummyTP
+from unittest.mock import patch
 
 import numpy as np
 from ddt import ddt
@@ -346,6 +346,33 @@ class TestBackendEstimator(QiskitTestCase):
                 estimator = BackendEstimator(backend=FakeNairobi(), bound_pass_manager=bound_pass)
                 _ = estimator.run([qc, qc], [op, op]).result()
                 self.assertTrue(mock_pass.call_count == 2)
+
+    @combine(backend=BACKENDS)
+    def test_layout(self, backend):
+        """Test layout for split transpilation."""
+        with self.subTest("initial layout test"):
+            qc = QuantumCircuit(3)
+            qc.x(0)
+            qc.cx(0, 1)
+            qc.cx(0, 2)
+            op = SparsePauliOp("IZI")
+            backend.set_options(seed_simulator=15)
+            estimator = BackendEstimator(backend)
+            estimator.set_transpile_options(seed_transpiler=15)
+            value = estimator.run(qc, op, shots=10000).result().values[0]
+            self.assertEqual(value, -0.916)
+
+        with self.subTest("final layout test"):
+            qc = QuantumCircuit(3)
+            qc.x(0)
+            qc.cx(0, 1)
+            qc.cx(0, 2)
+            op = SparsePauliOp("IZI")
+            backend.set_options(seed_simulator=15)
+            estimator = BackendEstimator(backend)
+            estimator.set_transpile_options(initial_layout=[0, 1, 2], seed_transpiler=15)
+            value = estimator.run(qc, op, shots=10000).result().values[0]
+            self.assertEqual(value, -0.8902)
 
 
 if __name__ == "__main__":
