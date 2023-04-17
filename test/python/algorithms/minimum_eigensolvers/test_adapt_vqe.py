@@ -13,7 +13,6 @@
 """Test of the AdaptVQE minimum eigensolver"""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from ddt import ddt, data, unpack
@@ -39,11 +38,7 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         super().setUp()
         algorithm_globals.random_seed = 42
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             self.h2_op = PauliSumOp.from_list(
                 [
                     ("IIII", -0.8105479805373266),
@@ -95,18 +90,12 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             )
             self.optimizer = SLSQP()
 
-        self.assertTrue(len(caught_warnings) > 0)
-
     def test_default(self):
         """Default execution"""
         calc = AdaptVQE(VQE(Estimator(), self.ansatz, self.optimizer))
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+
+        with self.assertWarns(DeprecationWarning):
             res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
 
         expected_eigenvalue = -1.85727503
 
@@ -134,13 +123,8 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             VQE(Estimator(), self.ansatz, self.optimizer),
             gradient_threshold=1e-3,
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertEqual(res.termination_criterion, TerminationCriterion.CONVERGED)
 
@@ -150,13 +134,8 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
             VQE(Estimator(), self.ansatz, self.optimizer),
             max_iterations=1,
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
-        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertEqual(res.termination_criterion, TerminationCriterion.MAXIMUM)
 
@@ -192,14 +171,9 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
                 VQE(Estimator(), self.ansatz, self.optimizer),
                 threshold=1e-3,
             )
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
+            with self.assertWarns(DeprecationWarning):
                 res = calc.compute_minimum_eigenvalue(operator=self.h2_op)
 
-            self.assertTrue(len(caught_warnings) > 0)
             self.assertEqual(res.termination_criterion, TerminationCriterion.CONVERGED)
 
     @data(
@@ -238,14 +212,9 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
         """Test to check if the VQE solver remains the same or not"""
         solver = VQE(Estimator(), self.ansatz, self.optimizer)
         calc = AdaptVQE(solver)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             _ = calc.compute_minimum_eigenvalue(operator=self.h2_op)
             self.assertEqual(solver.ansatz, calc.solver.ansatz)
-        self.assertTrue(len(caught_warnings) > 0)
 
     def test_gradient_calculation(self):
         """Test to check if the gradient calculation"""
@@ -259,13 +228,8 @@ class TestAdaptVQE(QiskitAlgorithmsTestCase):
     def test_supports_aux_operators(self):
         """Test that auxiliary operators are supported"""
         calc = AdaptVQE(VQE(Estimator(), self.ansatz, self.optimizer))
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             res = calc.compute_minimum_eigenvalue(operator=self.h2_op, aux_operators=[self.h2_op])
-        self.assertTrue(len(caught_warnings) > 0)
 
         expected_eigenvalue = -1.85727503
 

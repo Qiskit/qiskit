@@ -14,7 +14,6 @@
 
 from __future__ import annotations
 import unittest
-import warnings
 from typing import Tuple
 
 from test.python.algorithms import QiskitAlgorithmsTestCase
@@ -73,14 +72,9 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[BaseOperator | PauliSumOp],
         estimator: Estimator,
     ):
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
-            result = estimate_observables(
-                estimator, quantum_state, observables, None, self.threshold
-            )
+        result = estimate_observables(
+            estimator, quantum_state, observables, None, self.threshold
+        )
 
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
@@ -173,14 +167,9 @@ class TestObservablesEvaluator(QiskitAlgorithmsTestCase):
         bound_ansatz = ansatz.bind_parameters(parameters)
         state = bound_ansatz
         estimator = Estimator(options={"shots": 2048})
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             observables = [PauliSumOp.from_list([("ZZ", 2.0)])]
             result = estimate_observables(estimator, state, observables, None, self.threshold)
-        self.assertTrue(len(caught_warnings) > 0)
         exact_result = self.get_exact_expectation(bound_ansatz, observables)
         expected_result = [(exact_result[0][0], {"variance": 1.0898, "shots": 2048})]
 

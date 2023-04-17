@@ -13,7 +13,6 @@
 """Test the variational quantum eigensolver algorithm."""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from functools import partial
@@ -209,11 +208,7 @@ class TestVQE(QiskitAlgorithmsTestCase):
 
     def test_with_two_qubit_reduction(self):
         """Test the VQE using TwoQubitReduction."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             qubit_op = PauliSumOp.from_list(
                 [
                     ("IIII", -0.8105479805373266),
@@ -234,7 +229,6 @@ class TestVQE(QiskitAlgorithmsTestCase):
                 ]
             )
             tapered_qubit_op = TwoQubitReduction(num_particles=2).convert(qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         vqe = VQE(
             Estimator(),
             self.ry_wavefunction,
@@ -413,18 +407,14 @@ class TestVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(len(result.aux_operators_evaluated), 0)
 
         with self.subTest("Test with two auxiliary operators."):
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
+            with self.assertWarns(DeprecationWarning):
                 aux_op1 = PauliSumOp.from_list([("II", 2.0)])
                 aux_op2 = PauliSumOp.from_list(
                     [("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]
                 )
                 aux_ops = [aux_op1, aux_op2]
                 result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
-            self.assertTrue(len(caught_warnings) > 0)
+
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=5)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
             # expectation values
@@ -459,18 +449,13 @@ class TestVQE(QiskitAlgorithmsTestCase):
             self.assertEqual(len(result.aux_operators_evaluated), 0)
 
         with self.subTest("Test with two auxiliary operators."):
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
+            with self.assertWarns(DeprecationWarning):
                 aux_op1 = PauliSumOp.from_list([("II", 2.0)])
                 aux_op2 = PauliSumOp.from_list(
                     [("II", 0.5), ("ZZ", 0.5), ("YY", 0.5), ("XX", -0.5)]
                 )
                 aux_ops = {"aux_op1": aux_op1, "aux_op2": aux_op2}
                 result = vqe.compute_minimum_eigenvalue(self.h2_op, aux_operators=aux_ops)
-            self.assertTrue(len(caught_warnings) > 0)
             self.assertAlmostEqual(result.eigenvalue.real, self.h2_energy, places=6)
             self.assertEqual(len(result.aux_operators_evaluated), 2)
 

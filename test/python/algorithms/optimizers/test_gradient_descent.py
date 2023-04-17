@@ -12,7 +12,6 @@
 
 """Tests for the Gradient Descent optimizer."""
 
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 import numpy as np
 from qiskit.algorithms.optimizers import GradientDescent, GradientDescentState
@@ -41,14 +40,9 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
         """Test standard gradient descent on the Pauli two-design example."""
         circuit = PauliTwoDesign(3, reps=3, seed=2)
         parameters = list(circuit.parameters)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             obs = Z ^ Z ^ I
             expr = ~StateFn(obs) @ StateFn(circuit)
-        self.assertTrue(len(caught_warnings) > 0)
 
         initial_point = np.array(
             [
@@ -72,13 +66,8 @@ class TestGradientDescent(QiskitAlgorithmsTestCase):
 
         optimizer = GradientDescent(maxiter=100, learning_rate=0.1, perturbation=0.1)
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = optimizer.minimize(objective_pauli, x0=initial_point)
-        self.assertTrue(len(caught_warnings) > 0)
         self.assertLess(result.fun, -0.95)  # final loss
         self.assertEqual(result.nfev, 1300)  # function evaluations
 

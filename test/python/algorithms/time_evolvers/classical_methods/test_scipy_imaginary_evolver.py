@@ -12,7 +12,6 @@
 
 """Test Classical Imaginary Evolver."""
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import data, ddt, unpack
 import numpy as np
@@ -124,11 +123,7 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
 
     def test_paulisumop_hamiltonian(self):
         """Tests if the hamiltonian can be a PauliSumOp"""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             hamiltonian = PauliSumOp.from_list(
                 [
                     ("XI", 1),
@@ -136,7 +131,6 @@ class TestSciPyImaginaryEvolver(QiskitAlgorithmsTestCase):
                 ]
             )
             observable = PauliSumOp.from_list([("ZZ", 1)])
-        self.assertTrue(len(caught_warnings) > 0)
         evolution_problem = TimeEvolutionProblem(
             hamiltonian=hamiltonian,
             time=1.0,

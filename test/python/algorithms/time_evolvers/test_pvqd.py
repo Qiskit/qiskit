@@ -12,7 +12,6 @@
 
 """Tests for PVQD."""
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from functools import partial
 
@@ -75,13 +74,8 @@ class TestPVQD(QiskitAlgorithmsTestCase):
         if hamiltonian_type == "ising":
             hamiltonian = self.hamiltonian
         elif hamiltonian_type == "pauli_sum_op":
-            with warnings.catch_warnings(record=True) as caught_warnings:
-                warnings.filterwarnings(
-                    "always",
-                    category=DeprecationWarning,
-                )
+            with self.assertWarns(DeprecationWarning):
                 hamiltonian = PauliSumOp(self.hamiltonian)
-            self.assertTrue(len(caught_warnings) > 0)
         else:  # hamiltonian_type == "pauli":
             hamiltonian = Pauli("XX")
 

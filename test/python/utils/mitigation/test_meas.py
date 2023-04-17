@@ -28,7 +28,6 @@ expected (equally distributed) result
 """
 
 import unittest
-import warnings
 import numpy as np
 
 import qiskit
@@ -279,30 +278,20 @@ class TestMeasCal(QiskitTestCase):
                 # Generate the quantum register according to the pattern
                 qubits, weight = self.choose_calibration(nq, pattern_type)
 
-                with warnings.catch_warnings(record=True) as caught_warnings:
-                    warnings.filterwarnings(
-                        "always",
-                        category=DeprecationWarning,
-                    )
+                with self.assertWarns(DeprecationWarning):
                     # Generate the calibration circuits
                     meas_calibs, state_labels = complete_meas_cal(
                         qubit_list=qubits, circlabel="test"
                     )
-                self.assertTrue(len(caught_warnings) > 0)
 
                 # Perform an ideal execution on the generated circuits
                 backend = AerSimulator()
                 job = qiskit.execute(meas_calibs, backend=backend, shots=self.shots)
                 cal_results = job.result()
 
-                with warnings.catch_warnings(record=True) as caught_warnings:
-                    warnings.filterwarnings(
-                        "always",
-                        category=DeprecationWarning,
-                    )
+                with self.assertWarns(DeprecationWarning):
                     # Make a calibration matrix
                     meas_cal = CompleteMeasFitter(cal_results, state_labels, circlabel="test")
-                self.assertTrue(len(caught_warnings) > 0)
 
                 # Assert that the calibration matrix is equal to identity
                 IdentityMatrix = np.identity(2**weight)
@@ -322,14 +311,9 @@ class TestMeasCal(QiskitTestCase):
                 # Generate ideal (equally distributed) results
                 results_dict, results_list = self.generate_ideal_results(state_labels, weight)
 
-                with warnings.catch_warnings(record=True) as caught_warnings:
-                    warnings.filterwarnings(
-                        "always",
-                        category=DeprecationWarning,
-                    )
+                with self.assertWarns(DeprecationWarning):
                     # Output the filter
                     meas_filter = meas_cal.filter
-                self.assertTrue(len(caught_warnings) > 0)
 
                 # Apply the calibration matrix to results
                 # in list and dict forms using different methods
@@ -350,13 +334,8 @@ class TestMeasCal(QiskitTestCase):
     def test_meas_cal_on_circuit(self):
         """Test an execution on a circuit."""
         # Generate the calibration circuits
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             meas_calibs, state_labels, ghz = meas_calib_circ_creation()
-        self.assertTrue(len(caught_warnings) > 0)
 
         # Run the calibration circuits
         backend = AerSimulator()
@@ -369,14 +348,9 @@ class TestMeasCal(QiskitTestCase):
         )
         cal_results = job.result()
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             # Make a calibration matrix
             meas_cal = CompleteMeasFitter(cal_results, state_labels)
-        self.assertTrue(len(caught_warnings) > 0)
         # Calculate the fidelity
         fidelity = meas_cal.readout_fidelity()
 
@@ -388,13 +362,8 @@ class TestMeasCal(QiskitTestCase):
         # Predicted equally distributed results
         predicted_results = {"000": 0.5, "111": 0.5}
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             meas_filter = meas_cal.filter
-        self.assertTrue(len(caught_warnings) > 0)
 
         # Calculate the results after mitigation
         output_results_pseudo_inverse = meas_filter.apply(
@@ -429,26 +398,16 @@ class TestMeasCal(QiskitTestCase):
         meas_layout = [1, 2, 3, 4, 5, 6]
 
         # Generate the calibration circuits
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             meas_calibs, _ = tensored_meas_cal(mit_pattern=mit_pattern)
-        self.assertTrue(len(caught_warnings) > 0)
 
         # Perform an ideal execution on the generated circuits
         backend = AerSimulator()
         cal_results = qiskit.execute(meas_calibs, backend=backend, shots=self.shots).result()
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             # Make calibration matrices
             meas_cal = TensoredMeasFitter(cal_results, mit_pattern=mit_pattern)
-        self.assertTrue(len(caught_warnings) > 0)
 
         # Assert that the calibration matrices are equal to identity
         cal_matrices = meas_cal.cal_matrices
@@ -470,11 +429,7 @@ class TestMeasCal(QiskitTestCase):
             "Error: the average fidelity is not equal to 1",
         )
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             # Generate ideal (equally distributed) results
             results_dict, _ = self.generate_ideal_results(count_keys(6), 6)
             # Output the filter
@@ -487,7 +442,6 @@ class TestMeasCal(QiskitTestCase):
             results_dict_0 = meas_filter.apply(
                 results_dict, method="pseudo_inverse", meas_layout=meas_layout
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
         # Assert that the results are equally distributed
         self.assertDictEqual(results_dict, results_dict_0)
@@ -499,14 +453,9 @@ class TestMeasCal(QiskitTestCase):
     def test_tensored_meas_cal_on_circuit(self):
         """Test an execution on a circuit."""
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             # Generate the calibration circuits
             meas_calibs, mit_pattern, ghz, meas_layout = tensored_calib_circ_creation()
-        self.assertTrue(len(caught_warnings) > 0)
 
         # Run the calibration circuits
         backend = AerSimulator()
@@ -518,14 +467,9 @@ class TestMeasCal(QiskitTestCase):
             seed_transpiler=SEED,
         ).result()
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             # Make a calibration matrix
             meas_cal = TensoredMeasFitter(cal_results, mit_pattern=mit_pattern)
-        self.assertTrue(len(caught_warnings) > 0)
         # Calculate the fidelity
         fidelity = meas_cal.readout_fidelity(0) * meas_cal.readout_fidelity(1)
 
@@ -536,11 +480,7 @@ class TestMeasCal(QiskitTestCase):
         # Predicted equally distributed results
         predicted_results = {"000": 0.5, "111": 0.5}
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             meas_filter = meas_cal.filter
             # Calculate the results after mitigation
             output_results_pseudo_inverse = meas_filter.apply(
@@ -549,7 +489,6 @@ class TestMeasCal(QiskitTestCase):
             output_results_least_square = meas_filter.apply(
                 results, method="least_squares", meas_layout=meas_layout
             ).get_counts(0)
-        self.assertTrue(len(caught_warnings) > 0)
 
         # Compare with expected fidelity and expected results
         self.assertAlmostEqual(fidelity, 1.0)
@@ -573,11 +512,7 @@ class TestMeasCal(QiskitTestCase):
         """Test the MeasurementFitter with noise."""
         tests = []
         runs = 3
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             for run in range(runs):
                 cal_results, state_labels, circuit_results = meas_calibration_circ_execution(
                     1000, SEED + run
@@ -643,15 +578,10 @@ class TestMeasCal(QiskitTestCase):
                     tests[tst_index]["results_least_square"]["111"],
                     places=0,
                 )
-        self.assertTrue(len(caught_warnings) > 0)
 
     def test_tensored_meas_fitter_with_noise(self):
         """Test the TensoredFitter with noise."""
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             cal_results, mit_pattern, circuit_results, meas_layout = tensored_calib_circ_execution(
                 1000, SEED
             )
@@ -664,7 +594,6 @@ class TestMeasCal(QiskitTestCase):
             results_least_square = meas_filter.apply(
                 circuit_results.get_counts(), method="least_squares", meas_layout=meas_layout
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
         saved_info = {
             "cal_results": cal_results.to_dict(),
@@ -679,26 +608,17 @@ class TestMeasCal(QiskitTestCase):
         saved_info["cal_results"] = Result.from_dict(saved_info["cal_results"])
         saved_info["results"] = Result.from_dict(saved_info["results"])
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             meas_cal = TensoredMeasFitter(
                 saved_info["cal_results"], mit_pattern=saved_info["mit_pattern"]
             )
-        self.assertTrue(len(caught_warnings) > 0)
+            # Calculate the fidelity
+            fidelity = meas_cal.readout_fidelity(0) * meas_cal.readout_fidelity(1)
+            # Compare with expected fidelity and expected results
 
-        # Calculate the fidelity
-        fidelity = meas_cal.readout_fidelity(0) * meas_cal.readout_fidelity(1)
-        # Compare with expected fidelity and expected results
         self.assertAlmostEqual(fidelity, saved_info["fidelity"], places=0)
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             meas_filter = meas_cal.filter
             # Calculate the results after mitigation
             output_results_pseudo_inverse = meas_filter.apply(
@@ -709,7 +629,6 @@ class TestMeasCal(QiskitTestCase):
             output_results_least_square = meas_filter.apply(
                 saved_info["results"], method="least_squares", meas_layout=saved_info["meas_layout"]
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertAlmostEqual(
             output_results_pseudo_inverse["000"],
@@ -736,11 +655,7 @@ class TestMeasCal(QiskitTestCase):
         )
 
         substates_list = []
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             for qubit_list in saved_info["mit_pattern"]:
                 substates_list.append(count_keys(len(qubit_list))[::-1])
             fitter_other_order = TensoredMeasFitter(
@@ -748,17 +663,12 @@ class TestMeasCal(QiskitTestCase):
                 substate_labels_list=substates_list,
                 mit_pattern=saved_info["mit_pattern"],
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
         fidelity = fitter_other_order.readout_fidelity(0) * meas_cal.readout_fidelity(1)
 
         self.assertAlmostEqual(fidelity, saved_info["fidelity"], places=0)
 
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             meas_filter = fitter_other_order.filter
             # Calculate the results after mitigation
             output_results_pseudo_inverse = meas_filter.apply(
@@ -769,7 +679,6 @@ class TestMeasCal(QiskitTestCase):
             output_results_least_square = meas_filter.apply(
                 saved_info["results"], method="least_squares", meas_layout=saved_info["meas_layout"]
             )
-        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertAlmostEqual(
             output_results_pseudo_inverse["000"],

@@ -13,7 +13,6 @@
 """Test the QAOA algorithm."""
 
 import unittest
-import warnings
 from test.python.algorithms import QiskitAlgorithmsTestCase
 
 from functools import partial
@@ -82,13 +81,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(w)
 
         qaoa = QAOA(self.sampler, COBYLA(), reps=reps, mixer=mixer)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, solutions)
@@ -117,13 +111,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         mixer.rx(theta, range(num_qubits))
 
         qaoa = QAOA(self.sampler, optimizer, reps=prob, mixer=mixer)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, solutions)
@@ -140,13 +129,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             mixer.rx(theta, range(num_qubits))
 
         qaoa = QAOA(self.sampler, optimizer, reps=2, mixer=mixer)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         x = self._sample_most_likely(result.eigenstate)
         self.log.debug(x)
         graph_solution = self._get_graph_solution(x)
@@ -162,13 +146,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         mixer.rx(np.pi / 2, range(num_qubits))
 
         qaoa = QAOA(self.sampler, COBYLA(), reps=1, mixer=mixer)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         # we just assert that we get a result, it is not meaningful.
         self.assertIsNotNone(result.eigenstate)
 
@@ -178,13 +157,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
         )
         qaoa = QAOA(self.sampler, COBYLA(), reps=1)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="QAOA 4x4"):
@@ -202,13 +176,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                 ]
             )
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="QAOA 6x6"):
@@ -233,13 +202,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             initial_point=init_pt,
             callback=cb_callback,
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
 
@@ -260,13 +224,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         )
         qubit_op, _ = self._get_operator(w)
         qaoa = QAOA(self.sampler, NELDER_MEAD(disp=True), reps=2)
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
 
         self.assertLess(result.eigenvalue, -0.97)
 
@@ -280,13 +239,8 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             self.sampler,
             partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
         )
-        with warnings.catch_warnings(record=True) as caught_warnings:
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             result = qaoa.compute_minimum_eigenvalue(qubit_op)
-        self.assertTrue(len(caught_warnings) > 0)
         self.assertEqual(result.cost_function_evals, 5)
 
     def _get_operator(self, weight_matrix):
@@ -313,11 +267,7 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                     pauli_list.append([0.5 * weight_matrix[i, j], Pauli((z_p, x_p))])
                     shift -= 0.5 * weight_matrix[i, j]
         opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
-        with warnings.catch_warnings(record=True):
-            warnings.filterwarnings(
-                "always",
-                category=DeprecationWarning,
-            )
+        with self.assertWarns(DeprecationWarning):
             return PauliSumOp.from_list(opflow_list), shift
 
     def _get_graph_solution(self, x: np.ndarray) -> str:
