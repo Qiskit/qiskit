@@ -14,11 +14,12 @@
 
 import unittest
 from inspect import signature
+from math import pi
+
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
-from qiskit.qasm import pi
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.test import QiskitTestCase
@@ -42,6 +43,7 @@ from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_ma
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
 from qiskit.quantum_info import Operator
 from qiskit import transpile
+
 
 class TestStandard1Q(QiskitTestCase):
     """Standard Extension Test. Gates with a single Qubit"""
@@ -863,7 +865,7 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(len(instruction_set), 1)
         self.assertEqual(instruction_set[0].operation.params, [-0.1])
 
-    def test_global_phase_matrix(self):  # , theta: float, expected: np.ndarray
+    def test_global_phase_matrix(self):
         """Test global_phase matrix."""
         theta = 0.1
         np.testing.assert_allclose(

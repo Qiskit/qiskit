@@ -12,12 +12,19 @@
 
 """The evolved operator ansatz."""
 
-from typing import Optional, Union, List
+from __future__ import annotations
+from collections.abc import Sequence
 
 import numpy as np
 
-from qiskit.circuit import Parameter, QuantumRegister, QuantumCircuit
+from qiskit.circuit.parameter import Parameter
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.exceptions import QiskitError
+from qiskit.quantum_info import Operator, Pauli, SparsePauliOp
+from qiskit.synthesis.evolution import LieTrotter
 
+from .pauli_evolution import PauliEvolutionGate
 from .n_local.n_local import NLocal
 
 
@@ -31,31 +38,28 @@ class EvolvedOperatorAnsatz(NLocal):
         evolution=None,
         insert_barriers: bool = False,
         name: str = "EvolvedOps",
-        parameter_prefix: Union[str, List[str]] = "t",
-        initial_state: Optional[QuantumCircuit] = None,
+        parameter_prefix: str | Sequence[str] = "t",
+        initial_state: QuantumCircuit | None = None,
     ):
         """
         Args:
-            operators (Optional[Union[OperatorBase, QuantumCircuit, list]): The operators to evolve.
-                If a circuit is passed, we assume it implements an already evolved operator and thus
-                the circuit is not evolved again. Can be a single operator (circuit) or a list of
-                operators (and circuits).
+            operators (BaseOperator | OperatorBase | QuantumCircuit | list | None): The operators
+                to evolve. If a circuit is passed, we assume it implements an already evolved
+                operator and thus the circuit is not evolved again. Can be a single operator
+                (circuit) or a list of operators (and circuits).
             reps: The number of times to repeat the evolved operators.
-            evolution (Optional[EvolutionBase]): An opflow converter object to construct the evolution.
-                Defaults to Trotterization.
+            evolution (EvolutionBase | EvolutionSynthesis | None):
+                A specification of which evolution synthesis to use for the
+                :class:`.PauliEvolutionGate`, if the operator is from :mod:`qiskit.quantum_info`
+                or an opflow converter object if the operator is from :mod:`qiskit.opflow`.
+                Defaults to first order Trotterization.
             insert_barriers: Whether to insert barriers in between each evolution.
             name: The name of the circuit.
             parameter_prefix: Set the names of the circuit parameters. If a string, the same prefix
                 will be used for each parameters. Can also be a list to specify a prefix per
                 operator.
-            initial_state: A `QuantumCircuit` object to prepend to the circuit.
+            initial_state: A :class:`.QuantumCircuit` object to prepend to the circuit.
         """
-        if evolution is None:
-            # pylint: disable=cyclic-import
-            from qiskit.opflow import PauliTrotterEvolution
-
-            evolution = PauliTrotterEvolution()
-
         super().__init__(
             initial_state=initial_state,
             parameter_prefix=parameter_prefix,
@@ -64,6 +68,7 @@ class EvolvedOperatorAnsatz(NLocal):
             name=name,
         )
         self._operators = None
+
         if operators is not None:
             self.operators = operators
 
@@ -99,8 +104,14 @@ class EvolvedOperatorAnsatz(NLocal):
         """The evolution converter used to compute the evolution.
 
         Returns:
-            EvolutionBase: The evolution converter used to compute the evolution.
+            EvolutionBase or EvolutionSynthesis: The evolution converter used to compute the evolution.
         """
+        if self._evolution is None:
+            # pylint: disable=cyclic-import
+            from qiskit.opflow import PauliTrotterEvolution
+
+            return PauliTrotterEvolution()
+
         return self._evolution
 
     @evolution.setter
@@ -108,7 +119,8 @@ class EvolvedOperatorAnsatz(NLocal):
         """Sets the evolution converter used to compute the evolution.
 
         Args:
-            evol (EvolutionBase): An opflow converter object to construct the evolution.
+            evol (EvolutionBase | EvolutionSynthesis): An evolution synthesis object or
+                opflow converter object to construct the evolution.
         """
         self._invalidate()
         self._evolution = evol
@@ -152,6 +164,32 @@ class EvolvedOperatorAnsatz(NLocal):
             self._build()
             return np.zeros(self.reps * len(self.operators), dtype=float)
 
+    def _evolve_operator(self, operator, time):
+        from qiskit.opflow import OperatorBase, EvolutionBase
+        from qiskit.extensions import HamiltonianGate
+
+        if isinstance(operator, OperatorBase):
+            if not isinstance(self.evolution, EvolutionBase):
+                raise QiskitError(
+                    "If qiskit.opflow operators are evolved the evolution must be a "
+                    f"qiskit.opflow.EvolutionBase, not a {type(self.evolution)}."
+                )
+
+            evolved = self.evolution.convert((time * operator).exp_i())
+            return evolved.reduce().to_circuit()
+
+        # if the operator is specified as matrix use exact matrix exponentiation
+        if isinstance(operator, Operator):
+            gate = HamiltonianGate(operator, time)
+        # otherwise, use the PauliEvolutionGate
+        else:
+            evolution = LieTrotter() if self._evolution is None else self._evolution
+            gate = PauliEvolutionGate(operator, time, synthesis=evolution)
+
+        evolved = QuantumCircuit(operator.num_qubits)
+        evolved.append(gate, evolved.qubits)
+        return evolved
+
     def _build(self):
         if self._is_built:
             return
@@ -171,8 +209,8 @@ class EvolvedOperatorAnsatz(NLocal):
                 if _is_pauli_identity(op):
                     continue
 
-                evolved_op = self.evolution.convert((coeff * op).exp_i()).reduce()
-                circuits.append(evolved_op.to_circuit())
+                evolved = self._evolve_operator(op, coeff)
+                circuits.append(evolved)
 
         self.rotation_blocks = []
         self.entanglement_blocks = circuits
@@ -206,6 +244,13 @@ def _is_pauli_identity(operator):
 
     if isinstance(operator, PauliSumOp):
         operator = operator.to_pauli_op()
+    if isinstance(operator, SparsePauliOp):
+        if len(operator.paulis) == 1:
+            operator = operator.paulis[0]  # check if the single Pauli is identity below
+        else:
+            return False
     if isinstance(operator, PauliOp):
-        return not np.any(np.logical_or(operator.primitive.x, operator.primitive.z))
+        operator = operator.primitive
+    if isinstance(operator, Pauli):
+        return not np.any(np.logical_or(operator.x, operator.z))
     return False

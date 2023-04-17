@@ -42,16 +42,17 @@ class TestOptimizerNFT(QiskitAlgorithmsTestCase):
     def test_nft(self):
         """Test NFT optimizer by using it"""
 
-        vqe = VQE(
-            ansatz=RealAmplitudes(),
-            optimizer=NFT(),
-            quantum_instance=QuantumInstance(
-                BasicAer.get_backend("statevector_simulator"),
-                seed_simulator=algorithm_globals.random_seed,
-                seed_transpiler=algorithm_globals.random_seed,
-            ),
-        )
-        result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(
+                ansatz=RealAmplitudes(),
+                optimizer=NFT(),
+                quantum_instance=QuantumInstance(
+                    BasicAer.get_backend("statevector_simulator"),
+                    seed_simulator=algorithm_globals.random_seed,
+                    seed_transpiler=algorithm_globals.random_seed,
+                ),
+            )
+            result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
         self.assertAlmostEqual(result.eigenvalue.real, -1.857275, places=6)
 
 

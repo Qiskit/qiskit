@@ -43,7 +43,13 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler import Target
 from qiskit.transpiler import InstructionProperties
 from qiskit.test import QiskitTestCase
-from qiskit.providers.fake_provider import FakeBackendV2, FakeMumbaiFractionalCX, FakeGeneva
+from qiskit.providers.fake_provider import (
+    FakeBackendV2,
+    FakeMumbaiFractionalCX,
+    FakeVigo,
+    FakeNairobi,
+    FakeGeneva,
+)
 
 
 class TestTarget(QiskitTestCase):
@@ -1738,3 +1744,104 @@ class TestInstructionProperties(QiskitTestCase):
             repr(properties),
             "InstructionProperties(duration=None, error=None, calibration=None)",
         )
+
+
+class TestTargetFromConfiguration(QiskitTestCase):
+    """Test the from_configuration() constructor."""
+
+    def test_basis_gates_qubits_only(self):
+        """Test construction with only basis gates."""
+        target = Target.from_configuration(["u", "cx"], 3)
+        self.assertEqual(target.operation_names, {"u", "cx"})
+
+    def test_basis_gates_no_qubits(self):
+        target = Target.from_configuration(["u", "cx"])
+        self.assertEqual(target.operation_names, {"u", "cx"})
+
+    def test_basis_gates_coupling_map(self):
+        """Test construction with only basis gates."""
+        target = Target.from_configuration(
+            ["u", "cx"], 3, CouplingMap.from_ring(3, bidirectional=False)
+        )
+        self.assertEqual(target.operation_names, {"u", "cx"})
+        self.assertEqual({(0,), (1,), (2,)}, target["u"].keys())
+        self.assertEqual({(0, 1), (1, 2), (2, 0)}, target["cx"].keys())
+
+    def test_properties(self):
+        fake_backend = FakeVigo()
+        config = fake_backend.configuration()
+        properties = fake_backend.properties()
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            num_qubits=config.num_qubits,
+            coupling_map=CouplingMap(config.coupling_map),
+            backend_properties=properties,
+        )
+        self.assertEqual(0, target["rz"][(0,)].error)
+        self.assertEqual(0, target["rz"][(0,)].duration)
+
+    def test_properties_with_durations(self):
+        fake_backend = FakeVigo()
+        config = fake_backend.configuration()
+        properties = fake_backend.properties()
+        durations = InstructionDurations([("rz", 0, 0.5)], dt=1.0)
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            num_qubits=config.num_qubits,
+            coupling_map=CouplingMap(config.coupling_map),
+            backend_properties=properties,
+            instruction_durations=durations,
+            dt=config.dt,
+        )
+        self.assertEqual(0.5, target["rz"][(0,)].duration)
+
+    def test_inst_map(self):
+        fake_backend = FakeNairobi()
+        config = fake_backend.configuration()
+        properties = fake_backend.properties()
+        defaults = fake_backend.defaults()
+        constraints = TimingConstraints(**config.timing_constraints)
+        target = Target.from_configuration(
+            basis_gates=config.basis_gates,
+            num_qubits=config.num_qubits,
+            coupling_map=CouplingMap(config.coupling_map),
+            backend_properties=properties,
+            dt=config.dt,
+            inst_map=defaults.instruction_schedule_map,
+            timing_constraints=constraints,
+        )
+        self.assertIsNotNone(target["sx"][(0,)].calibration)
+        self.assertEqual(target.granularity, constraints.granularity)
+        self.assertEqual(target.min_length, constraints.min_length)
+        self.assertEqual(target.pulse_alignment, constraints.pulse_alignment)
+        self.assertEqual(target.acquire_alignment, constraints.acquire_alignment)
+
+    def test_custom_basis_gates(self):
+        basis_gates = ["my_x", "cx"]
+        custom_name_mapping = {"my_x": XGate()}
+        target = Target.from_configuration(
+            basis_gates=basis_gates, num_qubits=2, custom_name_mapping=custom_name_mapping
+        )
+        self.assertEqual(target.operation_names, {"my_x", "cx"})
+
+    def test_missing_custom_basis_no_coupling(self):
+        basis_gates = ["my_X", "cx"]
+        with self.assertRaisesRegex(KeyError, "is not present in the standard gate names"):
+            Target.from_configuration(basis_gates, num_qubits=4)
+
+    def test_missing_custom_basis_with_coupling(self):
+        basis_gates = ["my_X", "cx"]
+        cmap = CouplingMap.from_line(3)
+        with self.assertRaisesRegex(KeyError, "is not present in the standard gate names"):
+            Target.from_configuration(basis_gates, 3, cmap)
+
+    def test_over_two_qubit_gate_without_coupling(self):
+        basis_gates = ["ccx", "cx", "swap", "u"]
+        target = Target.from_configuration(basis_gates, 15)
+        self.assertEqual(target.operation_names, {"ccx", "cx", "swap", "u"})
+
+    def test_over_two_qubits_with_coupling(self):
+        basis_gates = ["ccx", "cx", "swap", "u"]
+        cmap = CouplingMap.from_line(15)
+        with self.assertRaisesRegex(TranspilerError, "This constructor method only supports"):
+            Target.from_configuration(basis_gates, 15, cmap)
