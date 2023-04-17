@@ -513,7 +513,7 @@ class TestParametricPulses(QiskitTestCase):
         self.assertEqual(
             repr(gse),
             (
-                "GaussianSquareEcho(duration=20, amp=1.0, angle=0.0, sigma=30, width=14.0," 
+                "GaussianSquareEcho(duration=20, amp=1.0, angle=0.0, sigma=30, width=14.0,"
                 "active_amp=0.0, active_angle=0.0)"
             ),
         )
