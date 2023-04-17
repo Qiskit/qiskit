@@ -67,18 +67,16 @@ class TestGradients(QiskitOpflowTestCase):
         Tr(|psi><psi|X) = cos(a)
         d<H>/da = - 0.5 sin(a)
         """
+        ham = 0.5 * X - 1 * Z
         a = Parameter("a")
         params = a
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
         qc.p(a, q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        with self.assertWarns(DeprecationWarning):
-            ham = 0.5 * X - 1 * Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [-0.5 / np.sqrt(2), 0, -0.5]
 
@@ -104,11 +102,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.u(a, b, c, q[0])
 
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a, b, c]
-        with self.assertWarns(DeprecationWarning):
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4, b: 0, c: 0}, {a: np.pi / 4, b: np.pi / 4, c: np.pi / 4}]
         correct_values = [[0.3536, 0, 0], [0.3232, -0.42678, -0.92678]]
         for i, value_dict in enumerate(values_dict):
@@ -125,11 +121,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.u(a, a, a, q[0])
 
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a]
-        with self.assertWarns(DeprecationWarning):
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: np.pi / 2}]
         correct_values = [[-1.03033], [-1]]
         for i, value_dict in enumerate(values_dict):
@@ -140,18 +134,16 @@ class TestGradients(QiskitOpflowTestCase):
     @data("lin_comb", "param_shift")
     def test_gradient_efficient_su2(self, method):
         """Test the state gradient for EfficientSU2"""
-
-        with self.assertWarns(DeprecationWarning):
-            observable = SummedOp(
-                [
-                    0.2252 * (I ^ I),
-                    0.5716 * (Z ^ Z),
-                    0.3435 * (I ^ Z),
-                    -0.4347 * (Z ^ I),
-                    0.091 * (Y ^ Y),
-                    0.091 * (X ^ X),
-                ]
-            ).reduce()
+        observable = SummedOp(
+            [
+                0.2252 * (I ^ I),
+                0.5716 * (Z ^ Z),
+                0.3435 * (I ^ Z),
+                -0.4347 * (Z ^ I),
+                0.091 * (Y ^ Y),
+                0.091 * (X ^ X),
+            ]
+        ).reduce()
 
         d = 2
         ansatz = EfficientSU2(observable.num_qubits, reps=d)
@@ -159,8 +151,7 @@ class TestGradients(QiskitOpflowTestCase):
         # Define a set of initial parameters
         parameters = ansatz.ordered_parameters
 
-        with self.assertWarns(DeprecationWarning):
-            operator = ~StateFn(observable) @ StateFn(ansatz)
+        operator = ~StateFn(observable) @ StateFn(ansatz)
 
         values_dict = [
             {param: np.pi / 4 for param in parameters},
@@ -197,9 +188,7 @@ class TestGradients(QiskitOpflowTestCase):
             ],
         ]
 
-        with self.assertWarns(DeprecationWarning):
-            state_grad = Gradient(method).convert(operator, parameters)
-
+        state_grad = Gradient(method).convert(operator, parameters)
         for i, value_dict in enumerate(values_dict):
             np.testing.assert_array_almost_equal(
                 state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
@@ -208,6 +197,7 @@ class TestGradients(QiskitOpflowTestCase):
     @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_rxx(self, method):
         """Test the state gradient for XX rotation"""
+        ham = TensoredOp([Z, X])
         a = Parameter("a")
 
         q = QuantumRegister(2)
@@ -215,12 +205,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q[0])
         qc.rxx(a, q[0], q[1])
 
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a]
-        with self.assertWarns(DeprecationWarning):
-            ham = TensoredOp([Z, X])
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: np.pi / 2}]
         correct_values = [[-0.707], [-1.0]]
         for i, value_dict in enumerate(values_dict):
@@ -232,17 +219,15 @@ class TestGradients(QiskitOpflowTestCase):
     def test_gradient_ryy(self, method):
         """Test the state gradient for YY rotation"""
         alpha = Parameter("alpha")
+        ham = TensoredOp([Y, alpha * Y])
         a = Parameter("a")
 
         q = QuantumRegister(2)
         qc = QuantumCircuit(q)
         qc.ryy(a, q[0], q[1])
 
-        with self.assertWarns(DeprecationWarning):
-            ham = TensoredOp([Y, alpha * Y])
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=a)
-
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=a)
         values_dict = [{a: np.pi / 8}, {a: np.pi}]
         correct_values = [[0], [0]]
         for i, value_dict in enumerate(values_dict):
@@ -254,6 +239,7 @@ class TestGradients(QiskitOpflowTestCase):
     @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_rzz(self, method):
         """Test the state gradient for ZZ rotation"""
+        ham = Z ^ X
         a = Parameter("a")
 
         q = QuantumRegister(2)
@@ -261,12 +247,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q[0])
         qc.rzz(a, q[0], q[1])
 
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a]
-        with self.assertWarns(DeprecationWarning):
-            ham = Z ^ X
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: np.pi / 2}]
         correct_values = [[-0.707], [-1.0]]
         for i, value_dict in enumerate(values_dict):
@@ -277,6 +260,7 @@ class TestGradients(QiskitOpflowTestCase):
     @data("lin_comb", "param_shift", "fin_diff")
     def test_gradient_rzx(self, method):
         """Test the state gradient for ZX rotation"""
+        ham = Z ^ Z
         a = Parameter("a")
 
         q = QuantumRegister(2)
@@ -284,12 +268,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rzx(a, q[0], q[1])
 
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
         params = [a]
-        with self.assertWarns(DeprecationWarning):
-            ham = Z ^ Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 8}, {a: np.pi / 2}]
         correct_values = [[0.0], [0.0]]
         for i, value_dict in enumerate(values_dict):
@@ -307,6 +288,7 @@ class TestGradients(QiskitOpflowTestCase):
         d<H>/db = - 1 sin(a)cos(b)
         """
 
+        ham = 0.5 * X - 1 * Z
         a = Parameter("a")
         b = Parameter("b")
         params = [a, b]
@@ -316,12 +298,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        with self.assertWarns(DeprecationWarning):
-            ham = 0.5 * X - 1 * Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [
             {a: np.pi / 4, b: np.pi},
             {params[0]: np.pi / 4, params[1]: np.pi / 4},
@@ -346,6 +325,7 @@ class TestGradients(QiskitOpflowTestCase):
         Tr(|psi><psi|X) = cos(a)
         d<H>/da = - 0.5 sin(a) - 2 cos(a)sin(a)
         """
+        ham = 0.5 * X - 1 * Z
         a = Parameter("a")
         # b = Parameter('b')
         params = [a]
@@ -355,12 +335,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(a, q[0])
         qc.rx(a, q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        with self.assertWarns(DeprecationWarning):
-            ham = 0.5 * X - 1 * Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [-1.353553, -0, -0.5]
 
@@ -377,6 +354,7 @@ class TestGradients(QiskitOpflowTestCase):
         Tr(|psi><psi|X) = cos(a)
         d<H>/da = - 0.5 sin(a) - 1 cos(a)sin(cos(a)+1) + 1 sin^2(a)cos(cos(a)+1)
         """
+        ham = 0.5 * X - 1 * Z
         a = Parameter("a")
         # b = Parameter('b')
         params = a
@@ -386,12 +364,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(a, q[0])
         qc.rx(c, q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        with self.assertWarns(DeprecationWarning):
-            ham = 0.5 * X - 1 * Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [-1.1220, -0.9093, 0.0403]
         for i, value_dict in enumerate(values_dict):
@@ -406,6 +381,7 @@ class TestGradients(QiskitOpflowTestCase):
         daTr(|psi><psi|ZX) = sin(a)
         """
 
+        ham = X ^ Z
         a = Parameter("a")
         params = a
 
@@ -414,12 +390,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.x(q[0])
         qc.h(q[1])
         qc.crz(a, q[0], q[1])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        with self.assertWarns(DeprecationWarning):
-            ham = X ^ Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [1 / np.sqrt(2), 0, 1]
 
@@ -438,6 +411,7 @@ class TestGradients(QiskitOpflowTestCase):
         d<H>/da1 = - 1 sin(a0)cos(a1)
         """
 
+        ham = 0.5 * X - 1 * Z
         a = ParameterVector("a", 2)
         params = a
 
@@ -446,12 +420,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        with self.assertWarns(DeprecationWarning):
-            ham = 0.5 * X - 1 * Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [
             {a: [np.pi / 4, np.pi]},
             {a: [np.pi / 4, np.pi / 4]},
@@ -480,6 +451,7 @@ class TestGradients(QiskitOpflowTestCase):
         d^2<H>/db^2 = + 1 sin(a)sin(b)
         """
 
+        ham = 0.5 * X - 1 * Z
         params = ParameterVector("a", 2)
 
         q = QuantumRegister(1)
@@ -488,10 +460,8 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        with self.assertWarns(DeprecationWarning):
-            ham = 0.5 * X - 1 * Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_hess = Hessian(hess_method=method).convert(operator=op)
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+        state_hess = Hessian(hess_method=method).convert(operator=op)
 
         values_dict = [
             {params[0]: np.pi / 4, params[1]: np.pi},
@@ -521,6 +491,7 @@ class TestGradients(QiskitOpflowTestCase):
         d^2<H>/db^2 = + 1 sin(a)sin(b)
         """
 
+        ham = 0.5 * X - 1 * Z
         a = Parameter("a")
         b = Parameter("b")
         params = [(a, a), (a, b), (b, b)]
@@ -531,13 +502,11 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(a, q[0])
         qc.rx(b, q[0])
 
-        with self.assertWarns(DeprecationWarning):
-            ham = 0.5 * X - 1 * Z
-            op = ListOp(
-                [~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)],
-                combo_fn=lambda x: x[0] ** 3 + 4 * x[0],
-            )
-            state_hess = Hessian(hess_method=method).convert(operator=op, params=params)
+        op = ListOp(
+            [~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)],
+            combo_fn=lambda x: x[0] ** 3 + 4 * x[0],
+        )
+        state_hess = Hessian(hess_method=method).convert(operator=op, params=params)
 
         values_dict = [
             {a: np.pi / 4, b: np.pi},
@@ -576,10 +545,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        with self.assertWarns(DeprecationWarning):
-            op = CircuitStateFn(primitive=qc, coeff=1.0)
-            prob_grad = Gradient(grad_method=method).convert(operator=op, params=params)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
+        prob_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [
             {a: np.pi / 4, b: 0},
             {params[0]: np.pi / 4, params[1]: np.pi / 4},
@@ -616,10 +584,9 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(a, q[0])
         qc.rx(b, q[0])
 
-        with self.assertWarns(DeprecationWarning):
-            op = CircuitStateFn(primitive=qc, coeff=1.0)
-            prob_hess = Hessian(hess_method=method).convert(operator=op, params=params)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
+        prob_hess = Hessian(hess_method=method).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4, b: 0}, {a: np.pi / 4, b: np.pi / 4}, {a: np.pi / 2, b: np.pi}]
         correct_values = [
             [[0, 0], [1 / (2 * np.sqrt(2)), -1 / (2 * np.sqrt(2))]],
@@ -643,6 +610,7 @@ class TestGradients(QiskitOpflowTestCase):
         """Test the natural gradient"""
         try:
             for params in (ParameterVector("a", 2), [Parameter("a"), Parameter("b")]):
+                ham = 0.5 * X - 1 * Z
 
                 q = QuantumRegister(1)
                 qc = QuantumCircuit(q)
@@ -650,13 +618,10 @@ class TestGradients(QiskitOpflowTestCase):
                 qc.rz(params[0], q[0])
                 qc.rx(params[1], q[0])
 
-                with self.assertWarns(DeprecationWarning):
-                    ham = 0.5 * X - 1 * Z
-                    op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-                    nat_grad = NaturalGradient(
-                        grad_method=method, regularization=regularization
-                    ).convert(operator=op)
-
+                op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+                nat_grad = NaturalGradient(
+                    grad_method=method, regularization=regularization
+                ).convert(operator=op)
                 values_dict = [{params[0]: np.pi / 4, params[1]: np.pi / 2}]
 
                 # reference values obtained by classically computing the natural gradients
@@ -683,9 +648,7 @@ class TestGradients(QiskitOpflowTestCase):
     @unpack
     def test_natural_gradient3(self, qfi_method, circuit_qfi):
         """Test the natural gradient 3"""
-        with self.assertWarns(DeprecationWarning):
-            nat_grad = NaturalGradient(qfi_method=qfi_method)
-
+        nat_grad = NaturalGradient(qfi_method=qfi_method)
         self.assertIsInstance(nat_grad.qfi_method, circuit_qfi)
 
     @idata(
@@ -701,6 +664,7 @@ class TestGradients(QiskitOpflowTestCase):
 
         # Avoid regularization = lasso intentionally because it does not converge
         try:
+            ham = 0.5 * X - 1 * Z
             a = Parameter("a")
             params = a
 
@@ -709,13 +673,10 @@ class TestGradients(QiskitOpflowTestCase):
             qc.h(q)
             qc.rz(a, q[0])
 
-            with self.assertWarns(DeprecationWarning):
-                ham = 0.5 * X - 1 * Z
-                op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-                nat_grad = NaturalGradient(
-                    grad_method=grad_method, qfi_method=qfi_method, regularization=regularization
-                ).convert(operator=op, params=params)
-
+            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+            nat_grad = NaturalGradient(
+                grad_method=grad_method, qfi_method=qfi_method, regularization=regularization
+            ).convert(operator=op, params=params)
             values_dict = [{a: np.pi / 4}]
             correct_values = [[0.0]] if regularization == "ridge" else [[-1.41421342]]
             for i, value_dict in enumerate(values_dict):
@@ -731,18 +692,16 @@ class TestGradients(QiskitOpflowTestCase):
         <psi(a)|X|da psi(a)> = iexp(-ia)/2 <1|H(|0>+exp(ia)|1>)
         Im(<psi(a)|X|da psi(a)>) = 0.5 cos(a).
         """
+        ham = X
         a = Parameter("a")
         params = a
         q = QuantumRegister(1)
         qc = QuantumCircuit(q)
         qc.h(q)
         qc.p(a, q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        with self.assertWarns(DeprecationWarning):
-            ham = X
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            state_grad = LinComb(aux_meas_op=(-1) * Y).convert(operator=op, params=params)
-
+        state_grad = LinComb(aux_meas_op=(-1) * Y).convert(operator=op, params=params)
         values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
         correct_values = [1 / np.sqrt(2), 1, 0]
 
@@ -758,6 +717,7 @@ class TestGradients(QiskitOpflowTestCase):
         circuit = QuantumCircuit(1)
         circuit.ry(y, 0)
         circuit.rx(x, 0)
+        state = StateFn(circuit)
 
         dx = (
             lambda x, y: (-1)
@@ -784,12 +744,9 @@ class TestGradients(QiskitOpflowTestCase):
             )
         )
 
-        with self.assertWarns(DeprecationWarning):
-            state = StateFn(circuit)
-            state_grad = LinCombFull(aux_meas_op=-1 * Y, phase_fix=False).convert(
-                operator=state, params=[x, y]
-            )
-
+        state_grad = LinCombFull(aux_meas_op=-1 * Y, phase_fix=False).convert(
+            operator=state, params=[x, y]
+        )
         values_dict = [{x: 0, y: np.pi / 4}, {x: 0, y: np.pi / 2}, {x: np.pi / 2, y: 0}]
 
         for value_dict in values_dict:
@@ -841,18 +798,16 @@ class TestGradients(QiskitOpflowTestCase):
         def grad_combo_fn(x):
             return np.array([2 * x[0], -np.sin(x[1])])
 
-        with self.assertWarns(DeprecationWarning):
+        op = ListOp(
+            [
+                ~StateFn(X) @ CircuitStateFn(primitive=qc, coeff=1.0),
+                ~StateFn(Z) @ CircuitStateFn(primitive=qc, coeff=1.0),
+            ],
+            combo_fn=combo_fn,
+            grad_combo_fn=None if autograd else grad_combo_fn,
+        )
 
-            op = ListOp(
-                [
-                    ~StateFn(X) @ CircuitStateFn(primitive=qc, coeff=1.0),
-                    ~StateFn(Z) @ CircuitStateFn(primitive=qc, coeff=1.0),
-                ],
-                combo_fn=combo_fn,
-                grad_combo_fn=None if autograd else grad_combo_fn,
-            )
-            state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
-
+        state_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [
             {a: np.pi / 4, b: np.pi},
             {params[0]: np.pi / 4, params[1]: np.pi / 4},
@@ -883,12 +838,8 @@ class TestGradients(QiskitOpflowTestCase):
             return grad
 
         qc = RealAmplitudes(2, reps=1)
-
-        with self.assertWarns(DeprecationWarning):
-            grad_op = ListOp(
-                [StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn
-            )
-            grad = Gradient(grad_method=method).convert(grad_op)
+        grad_op = ListOp([StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
+        grad = Gradient(grad_method=method).convert(grad_op)
 
         value_dict = dict(zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
         correct_values = [
@@ -920,14 +871,12 @@ class TestGradients(QiskitOpflowTestCase):
 
         try:
             qc = RealAmplitudes(2, reps=1)
-
-            with self.assertWarns(DeprecationWarning):
-                grad_op = ListOp(
-                    [StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn
-                )
-                grad = NaturalGradient(grad_method="lin_comb", regularization="ridge").convert(
-                    grad_op, qc.ordered_parameters
-                )
+            grad_op = ListOp(
+                [StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn
+            )
+            grad = NaturalGradient(grad_method="lin_comb", regularization="ridge").convert(
+                grad_op, qc.ordered_parameters
+            )
             value_dict = dict(
                 zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters)))
             )
@@ -955,13 +904,10 @@ class TestGradients(QiskitOpflowTestCase):
 
         coeff_0 = Parameter("c_0")
         coeff_1 = Parameter("c_1")
-
-        with self.assertWarns(DeprecationWarning):
-            ham = coeff_0 * X + coeff_1 * Z
-            op = StateFn(ham, is_measurement=True) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            gradient_coeffs = [coeff_0, coeff_1]
-            coeff_grad = Gradient(grad_method=method).convert(op, gradient_coeffs)
-
+        ham = coeff_0 * X + coeff_1 * Z
+        op = StateFn(ham, is_measurement=True) @ CircuitStateFn(primitive=qc, coeff=1.0)
+        gradient_coeffs = [coeff_0, coeff_1]
+        coeff_grad = Gradient(grad_method=method).convert(op, gradient_coeffs)
         values_dict = [
             {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi},
             {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi / 4},
@@ -995,13 +941,10 @@ class TestGradients(QiskitOpflowTestCase):
 
         coeff_0 = Parameter("c_0")
         coeff_1 = Parameter("c_1")
-
-        with self.assertWarns(DeprecationWarning):
-            ham = coeff_0 * coeff_0 * X + coeff_1 * coeff_0 * Z
-            op = StateFn(ham, is_measurement=True) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            gradient_coeffs = [(coeff_0, coeff_0), (coeff_0, coeff_1), (coeff_1, coeff_1)]
-            coeff_grad = Hessian(hess_method=method).convert(op, gradient_coeffs)
-
+        ham = coeff_0 * coeff_0 * X + coeff_1 * coeff_0 * Z
+        op = StateFn(ham, is_measurement=True) @ CircuitStateFn(primitive=qc, coeff=1.0)
+        gradient_coeffs = [(coeff_0, coeff_0), (coeff_0, coeff_1), (coeff_1, coeff_1)]
+        coeff_grad = Hessian(hess_method=method).convert(op, gradient_coeffs)
         values_dict = [
             {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi},
             {coeff_0: 0.5, coeff_1: -1, a: np.pi / 4, b: np.pi / 4},
@@ -1024,6 +967,7 @@ class TestGradients(QiskitOpflowTestCase):
         d<H>/db = - 1 sin(a)cos(b)
         """
 
+        ham = 0.5 * X - 1 * Z
         a = Parameter("a")
         b = Parameter("b")
         params = [a, b]
@@ -1033,19 +977,16 @@ class TestGradients(QiskitOpflowTestCase):
         qc.h(q)
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
 
-        with self.assertWarns(DeprecationWarning):
-            ham = 0.5 * X - 1 * Z
-            op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
-            shots = 8000
-            if method == "fin_diff":
-                np.random.seed(8)
-                state_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).convert(
-                    operator=op
-                )
-            else:
-                state_grad = Gradient(grad_method=method).convert(operator=op)
-
+        shots = 8000
+        if method == "fin_diff":
+            np.random.seed(8)
+            state_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).convert(
+                operator=op
+            )
+        else:
+            state_grad = Gradient(grad_method=method).convert(operator=op)
         values_dict = [
             {a: np.pi / 4, b: np.pi},
             {params[0]: np.pi / 4, params[1]: np.pi / 4},
@@ -1090,17 +1031,16 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        with self.assertWarns(DeprecationWarning):
-            op = CircuitStateFn(primitive=qc, coeff=1.0)
-            shots = 8000
-            if method == "fin_diff":
-                np.random.seed(8)
-                prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).convert(
-                    operator=op, params=params
-                )
-            else:
-                prob_grad = Gradient(grad_method=method).convert(operator=op, params=params)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
+        shots = 8000
+        if method == "fin_diff":
+            np.random.seed(8)
+            prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).convert(
+                operator=op, params=params
+            )
+        else:
+            prob_grad = Gradient(grad_method=method).convert(operator=op, params=params)
         values_dict = [
             {a: [np.pi / 4], b: [0]},
             {params[0]: [np.pi / 4], params[1]: [np.pi / 4]},
@@ -1142,22 +1082,24 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        with self.assertWarns(DeprecationWarning):
-            op = CircuitStateFn(primitive=qc, coeff=1.0)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
         shots = 8000
         backend = BasicAer.get_backend(backend_type)
+
         with self.assertWarns(DeprecationWarning):
             q_instance = QuantumInstance(
                 backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
             )
-        with self.assertWarns(DeprecationWarning):
-            if method == "fin_diff":
-                np.random.seed(8)
-                prob_grad = Gradient(
-                    grad_method=method, epsilon=shots ** (-1 / 6.0)
-                ).gradient_wrapper(operator=op, bind_params=params, backend=q_instance)
-            else:
+
+        if method == "fin_diff":
+            np.random.seed(8)
+            prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).gradient_wrapper(
+                operator=op, bind_params=params, backend=q_instance
+            )
+        else:
+
+            with self.assertWarns(DeprecationWarning):
                 prob_grad = Gradient(grad_method=method).gradient_wrapper(
                     operator=op, bind_params=params, backend=q_instance
                 )
@@ -1202,22 +1144,19 @@ class TestGradients(QiskitOpflowTestCase):
         qc.rz(params[1], 0)
         qc.h(1)
 
-        with self.assertWarns(DeprecationWarning):
-            obs = (Z ^ X) - (Y ^ Y)
-            op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
+        obs = (Z ^ X) - (Y ^ Y)
+        op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
 
         shots = 8192 if backend_type == "qasm_simulator" else 1
 
         values = [[0, np.pi / 2], [np.pi / 4, np.pi / 4], [np.pi / 3, np.pi / 9]]
         correct_values = [[-4.0, 0], [-2.0, -4.82842712], [-0.68404029, -7.01396121]]
-
         for i, value in enumerate(values):
             backend = BasicAer.get_backend(backend_type)
             with self.assertWarns(DeprecationWarning):
                 q_instance = QuantumInstance(
                     backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
                 )
-            with self.assertWarns(DeprecationWarning):
                 grad = NaturalGradient(grad_method=method).gradient_wrapper(
                     operator=op, bind_params=params, backend=q_instance
                 )
@@ -1230,14 +1169,16 @@ class TestGradients(QiskitOpflowTestCase):
 
         method = "lin_comb"
         backend = "qasm_simulator"
+
         with self.assertWarns(DeprecationWarning):
             q_instance = QuantumInstance(
                 BasicAer.get_backend(backend), seed_simulator=79, seed_transpiler=2
             )
-            # Define the Hamiltonian
-            h2_hamiltonian = (
-                -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
-            )
+
+        # Define the Hamiltonian
+        h2_hamiltonian = (
+            -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
+        )
         h2_energy = -1.85727503
 
         # Define the Ansatz
@@ -1254,10 +1195,10 @@ class TestGradients(QiskitOpflowTestCase):
         wavefunction.rz(next(itr), 0)
         wavefunction.rz(next(itr), 1)
 
-        with self.assertWarns(DeprecationWarning):
-            # Conjugate Gradient algorithm
-            optimizer = CG(maxiter=10)
-            grad = Gradient(grad_method=method)
+        # Conjugate Gradient algorithm
+        optimizer = CG(maxiter=10)
+
+        grad = Gradient(grad_method=method)
 
         # Gradient callable
         with self.assertWarns(DeprecationWarning):
@@ -1274,18 +1215,15 @@ class TestGradients(QiskitOpflowTestCase):
         circuit = QuantumCircuit(1)
         circuit.ry(np.pi / 4, 0)
         circuit.rx(x, 0)
-
-        with self.assertWarns(DeprecationWarning):
-            state = StateFn(circuit)
+        state = StateFn(circuit)
 
         methods = ["lin_comb_full", "overlap_diag", "overlap_block_diag"]
         reference = 0.5
 
         for method in methods:
             with self.subTest(method):
-                with self.assertWarns(DeprecationWarning):
-                    qfi = QFI(method)
-                    value = np.real(qfi.convert(state, [x]).bind_parameters({x: 0.12}).eval())
+                qfi = QFI(method)
+                value = np.real(qfi.convert(state, [x]).bind_parameters({x: 0.12}).eval())
                 self.assertAlmostEqual(value[0][0], reference)
 
 
@@ -1347,10 +1285,9 @@ class TestQFI(QiskitOpflowTestCase):
         qc.rz(a, 0)
         qc.rx(b, 0)
 
-        with self.assertWarns(DeprecationWarning):
-            # convert the circuit to a QFI object
-            op = CircuitStateFn(qc)
-            qfi = QFI(qfi_method=method).convert(operator=op)
+        # convert the circuit to a QFI object
+        op = CircuitStateFn(qc)
+        qfi = QFI(qfi_method=method).convert(operator=op)
 
         # test for different values
         values_dict = [{a: np.pi / 4, b: 0.1}, {a: np.pi, b: 0.1}, {a: np.pi / 2, b: 0.1}]
@@ -1372,17 +1309,15 @@ class TestQFI(QiskitOpflowTestCase):
         qc.rz(a, 0)
         qc.rx(b, 0)
 
-        with self.assertWarns(DeprecationWarning):
-            # convert the circuit to a QFI object
-            op = CircuitStateFn(qc)
-            qfi = LinCombFull(phase_fix=False).convert(operator=op, params=[a, b])
+        # convert the circuit to a QFI object
+        op = CircuitStateFn(qc)
+        qfi = LinCombFull(phase_fix=False).convert(operator=op, params=[a, b])
 
         # test for different values
         value_dict = {a: np.pi / 4, b: 0.1}
         correct_values = [[1, 0], [0, 1]]
 
-        with self.assertWarns(DeprecationWarning):
-            actual = qfi.assign_parameters(value_dict).eval()
+        actual = qfi.assign_parameters(value_dict).eval()
         np.testing.assert_array_almost_equal(actual, correct_values, decimal=2)
 
     def test_qfi_maxcut(self):
@@ -1419,10 +1354,9 @@ class TestQFI(QiskitOpflowTestCase):
         # reference computed via finite difference
         reference = np.array([[16.0, -5.551], [-5.551, 18.497]])
 
-        with self.assertWarns(DeprecationWarning):
-            # QFI from gradient framework
-            qfi = QFI().convert(CircuitStateFn(ansatz), params=x[:])
-            actual = np.array(qfi.bind_parameters(point).eval()).real
+        # QFI from gradient framework
+        qfi = QFI().convert(CircuitStateFn(ansatz), params=x[:])
+        actual = np.array(qfi.bind_parameters(point).eval()).real
         np.testing.assert_array_almost_equal(actual, reference, decimal=3)
 
     def test_qfi_circuit_shared_params(self):
@@ -1491,29 +1425,28 @@ class TestQFI(QiskitOpflowTestCase):
         circuit6.cx(1, 0)
         circuit6.h(1)
 
-        with self.assertWarns(DeprecationWarning):
-            # compare
-            qfi = QFI().convert(StateFn(circuit), params=[x])
+        # compare
+        qfi = QFI().convert(StateFn(circuit), params=[x])
 
-            circuit_sets = (
-                [circuit1, circuit2, circuit3, circuit4],
-                [circuit5, circuit6],
-                [circuit5, circuit6],
-            )
-            list_ops = (
-                qfi.oplist[0].oplist[0].oplist[:-1],
-                qfi.oplist[0].oplist[0].oplist[-1].oplist[0].oplist,
-                qfi.oplist[0].oplist[0].oplist[-1].oplist[1].oplist,
-            )
+        circuit_sets = (
+            [circuit1, circuit2, circuit3, circuit4],
+            [circuit5, circuit6],
+            [circuit5, circuit6],
+        )
+        list_ops = (
+            qfi.oplist[0].oplist[0].oplist[:-1],
+            qfi.oplist[0].oplist[0].oplist[-1].oplist[0].oplist,
+            qfi.oplist[0].oplist[0].oplist[-1].oplist[1].oplist,
+        )
 
-            # compose both on the same circuit such that the comparison works
-            base = QuantumCircuit(2)
+        # compose both on the same circuit such that the comparison works
+        base = QuantumCircuit(2)
 
-            for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
-                for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
-                    with self.subTest(f"set {i} circuit {j}"):
-                        primitive = composed_op[1].primitive
-                        self.assertEqual(base.compose(primitive), base.compose(reference))
+        for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
+            for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
+                with self.subTest(f"set {i} circuit {j}"):
+                    primitive = composed_op[1].primitive
+                    self.assertEqual(base.compose(primitive), base.compose(reference))
 
     def test_overlap_qfi_bound_parameters(self):
         """Test the overlap QFI works on a circuit with multi-parameter bound gates."""
@@ -1522,10 +1455,8 @@ class TestQFI(QiskitOpflowTestCase):
         circuit.u(1, 2, 3, 0)
         circuit.rx(x, 0)
 
-        with self.assertWarns(DeprecationWarning):
-            qfi = QFI("overlap_diag").convert(StateFn(circuit), [x])
-            value = qfi.bind_parameters({x: 1}).eval()[0][0]
-
+        qfi = QFI("overlap_diag").convert(StateFn(circuit), [x])
+        value = qfi.bind_parameters({x: 1}).eval()[0][0]
         ref = 0.87737713
         self.assertAlmostEqual(value, ref)
 
@@ -1536,8 +1467,8 @@ class TestQFI(QiskitOpflowTestCase):
         circuit.u(x[0], x[1], 2, 0)
 
         with self.assertRaises(NotImplementedError):
-            with self.assertWarns(DeprecationWarning):
-                _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
+            _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
+
 
     def test_overlap_qfi_raises_on_unsupported_gate(self):
         """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
@@ -1546,8 +1477,7 @@ class TestQFI(QiskitOpflowTestCase):
         circuit.p(x, 0)
 
         with self.assertRaises(NotImplementedError):
-            with self.assertWarns(DeprecationWarning):
-                _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
+            _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
 
     @data(-Y, Z - 1j * Y)
     def test_aux_meas_op(self, aux_meas_op):
@@ -1555,6 +1485,7 @@ class TestQFI(QiskitOpflowTestCase):
         Gradient.
 
         """
+
         a = Parameter("a")
         b = Parameter("b")
         params = [a, b]
@@ -1565,11 +1496,11 @@ class TestQFI(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        with self.assertWarns(DeprecationWarning):
-            op = CircuitStateFn(primitive=qc, coeff=1.0)
-            prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
         shots = 10000
+
+        prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
         value_dicts = [{a: [np.pi / 4], b: [0]}, {a: [np.pi / 2], b: [np.pi / 4]}]
         if aux_meas_op == -Y:
             correct_values = [
@@ -1586,12 +1517,12 @@ class TestQFI(QiskitOpflowTestCase):
             ]
 
         for backend_type in ["qasm_simulator", "statevector_simulator"]:
+
             for j, value_dict in enumerate(value_dicts):
                 with self.assertWarns(DeprecationWarning):
                     q_instance = QuantumInstance(
                         backend=BasicAer.get_backend(backend_type), shots=shots
                     )
-                with self.assertWarns(DeprecationWarning):
                     result = (
                         CircuitSampler(backend=q_instance)
                         .convert(prob_grad, params=value_dict)
@@ -1621,20 +1552,20 @@ class TestQFI(QiskitOpflowTestCase):
         qc.rz(params[0], q[0])
         qc.rx(params[1], q[0])
 
-        with self.assertWarns(DeprecationWarning):
-            op = CircuitStateFn(primitive=qc, coeff=1.0)
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
 
         shots = 8000
 
         aux_meas_op = X
-        with self.assertWarns(DeprecationWarning):
-            with self.assertRaises(ValueError):
-                prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
-                value_dict = {a: [np.pi / 4], b: [0]}
 
-                backend = BasicAer.get_backend("qasm_simulator")
+        with self.assertRaises(ValueError):
+            prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
+            value_dict = {a: [np.pi / 4], b: [0]}
+
+            backend = BasicAer.get_backend("qasm_simulator")
+            with self.assertWarns(DeprecationWarning):
                 q_instance = QuantumInstance(backend=backend, shots=shots)
-                CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict).eval()
+            CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict).eval()
 
     def test_nat_grad_error(self):
         """Test the NaturalGradient throws an Error.
@@ -1658,9 +1589,8 @@ class TestQFI(QiskitOpflowTestCase):
         qc.rz(params[1], 0)
         qc.h(1)
 
-        with self.assertWarns(DeprecationWarning):
-            obs = (Z ^ X) - (Y ^ Y)
-            op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
+        obs = (Z ^ X) - (Y ^ Y)
+        op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
 
         backend_type = "qasm_simulator"
         shots = 1
@@ -1671,10 +1601,13 @@ class TestQFI(QiskitOpflowTestCase):
             q_instance = QuantumInstance(
                 backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
             )
+
         with self.assertWarns(DeprecationWarning):
             grad = NaturalGradient(grad_method=method).gradient_wrapper(
                 operator=op, bind_params=params, backend=q_instance
             )
+
+        with self.assertWarns(DeprecationWarning):
             with self.assertRaises(ValueError):
                 grad(value)
 
