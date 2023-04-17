@@ -13,6 +13,8 @@
 use pyo3::prelude::*;
 use pyo3::Python;
 
+use crate::error::QASM2ParseError;
+
 mod bytecode;
 mod error;
 mod expr;
@@ -94,6 +96,7 @@ fn bytecode_from_string(
 /// without loading the entire token and parse tree into memory at once.
 #[pyfunction]
 fn bytecode_from_file(
+    py: Python<'_>,
     path: std::ffi::OsString,
     include_path: Vec<std::path::PathBuf>,
     custom_instructions: Vec<CustomInstruction>,
@@ -101,7 +104,14 @@ fn bytecode_from_file(
     strict: bool,
 ) -> PyResult<bytecode::BytecodeIterator> {
     bytecode::BytecodeIterator::new(
-        lex::TokenStream::from_path(path, strict)?,
+        lex::TokenStream::from_path(&path, strict).map_err(|err| {
+            let exc = QASM2ParseError::new_err(format!(
+                "failed to read a token stream from file '{}'",
+                path.to_string_lossy()
+            ));
+            exc.set_cause(py, Some(err.into()));
+            exc
+        })?,
         include_path,
         &custom_instructions,
         &custom_classical,

@@ -14,11 +14,21 @@
 """Test the TemplateOptimization pass."""
 
 import unittest
+from test.python.quantum_info.operators.symplectic.test_clifford import random_clifford_circuit
 import numpy as np
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.circuit import Parameter
 from qiskit.quantum_info import Operator
-from qiskit.circuit.library.templates import template_nct_2a_2, template_nct_5a_3
+from qiskit.circuit.library.templates.nct import template_nct_2a_2, template_nct_5a_3
+from qiskit.circuit.library.templates.clifford import (
+    clifford_2_1,
+    clifford_2_2,
+    clifford_2_3,
+    clifford_2_4,
+    clifford_3_1,
+    clifford_4_1,
+    clifford_4_2,
+)
 from qiskit.converters.circuit_to_dag import circuit_to_dag
 from qiskit.converters.circuit_to_dagdependency import circuit_to_dagdependency
 from qiskit.transpiler import PassManager
@@ -646,6 +656,98 @@ class TestTemplateMatching(QiskitTestCase):
         expected.rz(a_circuit + b_circuit, 0)
 
         self.assertEqual(circuit_out, expected)
+
+    def test_consecutive_templates_apply(self):
+        """Test the scenario where one template optimization creates an opportunity for
+        another template optimization.
+
+        This is the original circuit:
+
+             ┌───┐
+        q_0: ┤ X ├──■───X───────■─
+             └─┬─┘┌─┴─┐ │ ┌───┐ │
+        q_1: ──■──┤ X ├─X─┤ H ├─■─
+                  └───┘   └───┘
+
+        The clifford_4_1 template allows to replace the two CNOTs followed by the SWAP by a
+        single CNOT:
+
+        q_0: ──■────────■─
+             ┌─┴─┐┌───┐ │
+        q_1: ┤ X ├┤ H ├─■─
+             └───┘└───┘
+
+        At these point, the clifford_4_2 template allows to replace the circuit by a single
+        Hadamard gate:
+
+        q_0: ─────
+             ┌───┐
+        q_1: ┤ H ├
+             └───┘
+
+        The second optimization would not have been possible without the applying the first
+        optimization.
+        """
+        qc = QuantumCircuit(2)
+        qc.cx(1, 0)
+        qc.cx(0, 1)
+        qc.swap(0, 1)
+        qc.h(1)
+        qc.cz(0, 1)
+
+        qc_expected = QuantumCircuit(2)
+        qc_expected.h(1)
+
+        costs = {"h": 1, "cx": 2, "cz": 2, "swap": 3}
+
+        # Check that consecutively applying both templates leads to the expected circuit.
+        qc_opt = TemplateOptimization(
+            template_list=[clifford_4_1(), clifford_4_2()], user_cost_dict=costs
+        )(qc)
+        self.assertEqual(qc_opt, qc_expected)
+
+        # Also check that applying the second template by itself does not do anything.
+        qc_non_opt = TemplateOptimization(template_list=[clifford_4_2()], user_cost_dict=costs)(qc)
+        self.assertEqual(qc, qc_non_opt)
+
+    def test_consecutive_templates_do_not_apply(self):
+        """Test that applying one template optimization does not allow incorrectly
+        applying other templates (which could happen if the DagDependency graph is
+        not constructed correctly after the optimization).
+        """
+        template_list = [
+            clifford_2_2(),
+            clifford_2_3(),
+        ]
+        pm = PassManager(TemplateOptimization(template_list=template_list))
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.swap(0, 1)
+        qc.h(0)
+        qc_opt = pm.run(qc)
+        self.assertTrue(Operator(qc) == Operator(qc_opt))
+
+    def test_clifford_templates(self):
+        """Tests TemplateOptimization pass on several larger examples."""
+        template_list = [
+            clifford_2_1(),
+            clifford_2_2(),
+            clifford_2_3(),
+            clifford_2_4(),
+            clifford_3_1(),
+        ]
+        pm = PassManager(TemplateOptimization(template_list=template_list))
+        for seed in range(10):
+            qc = random_clifford_circuit(
+                num_qubits=5,
+                num_gates=100,
+                gates=["x", "y", "z", "h", "s", "sdg", "cx", "cz", "swap"],
+                seed=seed,
+            )
+            qc_opt = pm.run(qc)
+            self.assertTrue(Operator(qc) == Operator(qc_opt))
 
 
 if __name__ == "__main__":

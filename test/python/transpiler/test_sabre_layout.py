@@ -17,6 +17,7 @@ import unittest
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.passes import SabreLayout
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.compiler.transpiler import transpile
@@ -215,6 +216,144 @@ barrier q18585[5],q18585[2],q18585[8],q18585[3],q18585[6];
         self.assertEqual(
             [layout[q] for q in qc.qubits], [22, 21, 4, 12, 1, 23, 16, 18, 19, 25, 14, 13, 10, 7]
         )
+
+
+class TestDisjointDeviceSabreLayout(QiskitTestCase):
+    """Test SabreLayout with a disjoint coupling map."""
+
+    def setUp(self):
+        super().setUp()
+        self.dual_grid_cmap = CouplingMap(
+            [[0, 1], [0, 2], [1, 3], [2, 3], [4, 5], [4, 6], [5, 7], [5, 8]]
+        )
+
+    def test_dual_ghz(self):
+        """Test a basic example with 2 circuit components and 2 cmap components."""
+        qc = QuantumCircuit(8, name="double dhz")
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(0, 2)
+        qc.h(3)
+        qc.cx(3, 4)
+        qc.cx(3, 5)
+        qc.cx(3, 6)
+        qc.cx(3, 7)
+        layout_routing_pass = SabreLayout(
+            self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
+        )
+        out = layout_routing_pass(qc)
+        layout = layout_routing_pass.property_set["layout"]
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual(1, out.count_ops()["swap"])
+        edge_set = set(self.dual_grid_cmap.graph.edge_list())
+        for gate in out.data:
+            if len(gate.qubits) == 2:
+                qubits = tuple(out.find_bit(x).index for x in gate.qubits)
+                # Handle reverse edges which will be fixed by gate direction
+                # later
+                if qubits not in edge_set:
+                    self.assertIn((qubits[1], qubits[0]), edge_set)
+
+    def test_dual_ghz_with_wide_barrier(self):
+        """Test a basic example with 2 circuit components and 2 cmap components."""
+        qc = QuantumCircuit(8, name="double dhz")
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(0, 2)
+        qc.h(3)
+        qc.cx(3, 4)
+        qc.cx(3, 5)
+        qc.cx(3, 6)
+        qc.cx(3, 7)
+        qc.measure_all()
+        layout_routing_pass = SabreLayout(
+            self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
+        )
+        out = layout_routing_pass(qc)
+        layout = layout_routing_pass.property_set["layout"]
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual(1, out.count_ops()["swap"])
+        edge_set = set(self.dual_grid_cmap.graph.edge_list())
+        for gate in out.data:
+            if len(gate.qubits) == 2:
+                qubits = tuple(out.find_bit(x).index for x in gate.qubits)
+                # Handle reverse edges which will be fixed by gate direction
+                # later
+                if qubits not in edge_set:
+                    self.assertIn((qubits[1], qubits[0]), edge_set)
+
+    def test_dual_ghz_with_intermediate_barriers(self):
+        """Test dual ghz circuit with intermediate barriers local to each componennt."""
+        qc = QuantumCircuit(8, name="double dhz")
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(0, 2)
+        qc.barrier(0, 1, 2)
+        qc.h(3)
+        qc.cx(3, 4)
+        qc.cx(3, 5)
+        qc.barrier(4, 5, 6)
+        qc.cx(3, 6)
+        qc.cx(3, 7)
+        qc.measure_all()
+        layout_routing_pass = SabreLayout(
+            self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
+        )
+        out = layout_routing_pass(qc)
+        layout = layout_routing_pass.property_set["layout"]
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual(1, out.count_ops()["swap"])
+        edge_set = set(self.dual_grid_cmap.graph.edge_list())
+        for gate in out.data:
+            if len(gate.qubits) == 2:
+                qubits = tuple(out.find_bit(x).index for x in gate.qubits)
+                # Handle reverse edges which will be fixed by gate direction
+                # later
+                if qubits not in edge_set:
+                    self.assertIn((qubits[1], qubits[0]), edge_set)
+
+    def test_dual_ghz_with_intermediate_spanning_barriers(self):
+        """Test dual ghz circuit with barrier in the middle across components."""
+        qc = QuantumCircuit(8, name="double dhz")
+        qc.h(0)
+        qc.cz(0, 1)
+        qc.cz(0, 2)
+        qc.barrier(0, 1, 2, 4, 5)
+        qc.h(3)
+        qc.cx(3, 4)
+        qc.cx(3, 5)
+        qc.cx(3, 6)
+        qc.cx(3, 7)
+        qc.measure_all()
+        layout_routing_pass = SabreLayout(
+            self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
+        )
+        out = layout_routing_pass(qc)
+        layout = layout_routing_pass.property_set["layout"]
+        self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
+        self.assertEqual(1, out.count_ops()["swap"])
+        edge_set = set(self.dual_grid_cmap.graph.edge_list())
+        for gate in out.data:
+            if len(gate.qubits) == 2:
+                qubits = tuple(out.find_bit(x).index for x in gate.qubits)
+                # Handle reverse edges which will be fixed by gate direction
+                # later
+                if qubits not in edge_set:
+                    self.assertIn((qubits[1], qubits[0]), edge_set)
+
+    def test_too_large_components(self):
+        """Assert trying to run a circuit with too large a connected component raises."""
+        qc = QuantumCircuit(8)
+        qc.h(0)
+        for i in range(1, 6):
+            qc.cx(0, i)
+        qc.h(7)
+        qc.cx(7, 6)
+        layout_routing_pass = SabreLayout(
+            self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
+        )
+        with self.assertRaises(TranspilerError):
+            layout_routing_pass(qc)
 
 
 if __name__ == "__main__":

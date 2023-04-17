@@ -42,7 +42,7 @@ from .x import XGate, CXGate, CCXGate, C3XGate, C3SXGate, C4XGate, RCCXGate, RC3
 from .x import MCXGate, MCXGrayCode, MCXRecursive, MCXVChain
 from .y import YGate, CYGate
 from .z import ZGate, CZGate, CCZGate
-
+from .global_phase import GlobalPhaseGate
 from .multi_control_rotation_gates import mcrx, mcry, mcrz
 
 
@@ -80,6 +80,7 @@ def get_standard_gate_name_mapping():
         CYGate(),
         CZGate(),
         CCZGate(),
+        GlobalPhaseGate(Parameter("ϴ")),
         HGate(),
         PhaseGate(Parameter("ϴ")),
         RCCXGate(),
