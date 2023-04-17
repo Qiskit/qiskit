@@ -504,12 +504,14 @@ class TestParametricPulses(QiskitTestCase):
         gse = GaussianSquareEcho(duration=20, sigma=30, amp=1.0, width=3)
         self.assertEqual(
             repr(gse),
-            "GaussianSquareEcho(duration=20, amp=1.0, angle=0.0, sigma=30, width=3, active_amp=0.0, active_angle=0.0)",
+            """GaussianSquareEcho(duration=20, amp=1.0, angle=0.0, sigma=30, width=3, active_amp=0.0,
+             active_angle=0.0)""",
         )
         gse = GaussianSquareEcho(duration=20, sigma=30, amp=1.0, risefall_sigma_ratio=0.1)
         self.assertEqual(
             repr(gse),
-            "GaussianSquareEcho(duration=20, amp=1.0, angle=0.0, sigma=30, width=14.0, active_amp=0.0, active_angle=0.0)",
+            """GaussianSquareEcho(duration=20, amp=1.0, angle=0.0, sigma=30, width=14.0, active_amp=0.0,
+             active_angle=0.0)""",
         )
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
         self.assertEqual(repr(drag), "Drag(duration=5, sigma=7, beta=1, amp=0.5, angle=0)")
