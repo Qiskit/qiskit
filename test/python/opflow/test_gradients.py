@@ -1469,7 +1469,6 @@ class TestQFI(QiskitOpflowTestCase):
         with self.assertRaises(NotImplementedError):
             _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
 
-
     def test_overlap_qfi_raises_on_unsupported_gate(self):
         """Test the overlap QFI raises an appropriate error on multi-param unbound gates."""
         x = Parameter("x")

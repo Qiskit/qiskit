@@ -54,47 +54,47 @@ class TestPauliExpectation(QiskitOpflowTestCase):
             q_instance = QuantumInstance(
                 backend, seed_simulator=self.seed, seed_transpiler=self.seed
             )
-        with self.assertWarns(DeprecationWarning):
             self.sampler = CircuitSampler(q_instance, attach_results=True)
-            self.expect = PauliExpectation()
+        self.expect = PauliExpectation()
 
     def test_pauli_expect_pair(self):
         """pauli expect pair test"""
 
-        with self.assertWarns(DeprecationWarning):
-            op = Z ^ Z
-            # wf = (Pl^Pl) + (Ze^Ze)
-            wf = CX @ (H ^ I) @ Zero
+        op = Z ^ Z
+        # wf = (Pl^Pl) + (Ze^Ze)
+        wf = CX @ (H ^ I) @ Zero
 
-            converted_meas = self.expect.convert(~StateFn(op) @ wf)
-            self.assertAlmostEqual(converted_meas.eval(), 0, delta=0.1)
+        converted_meas = self.expect.convert(~StateFn(op) @ wf)
+        self.assertAlmostEqual(converted_meas.eval(), 0, delta=0.1)
+        with self.assertWarns(DeprecationWarning):
             sampled = self.sampler.convert(converted_meas)
-            self.assertAlmostEqual(sampled.eval(), 0, delta=0.1)
+        self.assertAlmostEqual(sampled.eval(), 0, delta=0.1)
 
     def test_pauli_expect_single(self):
         """pauli expect single test"""
 
-        with self.assertWarns(DeprecationWarning):
-            paulis = [Z, X, Y, I]
-            states = [Zero, One, Plus, Minus, S @ Plus, S @ Minus]
-            for pauli, state in itertools.product(paulis, states):
-                converted_meas = self.expect.convert(~StateFn(pauli) @ state)
-                matmulmean = state.adjoint().to_matrix() @ pauli.to_matrix() @ state.to_matrix()
-                self.assertAlmostEqual(converted_meas.eval(), matmulmean, delta=0.1)
+        paulis = [Z, X, Y, I]
+        states = [Zero, One, Plus, Minus, S @ Plus, S @ Minus]
+        for pauli, state in itertools.product(paulis, states):
+            converted_meas = self.expect.convert(~StateFn(pauli) @ state)
+            matmulmean = state.adjoint().to_matrix() @ pauli.to_matrix() @ state.to_matrix()
+            self.assertAlmostEqual(converted_meas.eval(), matmulmean, delta=0.1)
 
+            with self.assertWarns(DeprecationWarning):
                 sampled = self.sampler.convert(converted_meas)
-                self.assertAlmostEqual(sampled.eval(), matmulmean, delta=0.1)
+
+            self.assertAlmostEqual(sampled.eval(), matmulmean, delta=0.1)
 
     def test_pauli_expect_op_vector(self):
         """pauli expect op vector test"""
 
+        paulis_op = ListOp([X, Y, Z, I])
+        converted_meas = self.expect.convert(~StateFn(paulis_op))
+
+        plus_mean = converted_meas @ Plus
+        np.testing.assert_array_almost_equal(plus_mean.eval(), [1, 0, 0, 1], decimal=1)
+
         with self.assertWarns(DeprecationWarning):
-            paulis_op = ListOp([X, Y, Z, I])
-            converted_meas = self.expect.convert(~StateFn(paulis_op))
-
-            plus_mean = converted_meas @ Plus
-            np.testing.assert_array_almost_equal(plus_mean.eval(), [1, 0, 0, 1], decimal=1)
-
             sampled_plus = self.sampler.convert(plus_mean)
             np.testing.assert_array_almost_equal(sampled_plus.eval(), [1, 0, 0, 1], decimal=1)
 
@@ -116,120 +116,118 @@ class TestPauliExpectation(QiskitOpflowTestCase):
 
             sampled_zero_mean = self.sampler.convert(sum_zero_mean)
 
-            # !!NOTE!!: Depolarizing channel (Sampling) means interference
-            # does not happen between circuits in sum, so expectation does
-            # not equal expectation for Zero!!
-            np.testing.assert_array_almost_equal(sampled_zero_mean.eval(), [0, 0, 0, 1], decimal=1)
+        # !!NOTE!!: Depolarizing channel (Sampling) means interference
+        # does not happen between circuits in sum, so expectation does
+        # not equal expectation for Zero!!
+        np.testing.assert_array_almost_equal(sampled_zero_mean.eval(), [0, 0, 0, 1], decimal=1)
 
-            for i, op in enumerate(paulis_op.oplist):
-                mat_op = op.to_matrix()
-                np.testing.assert_array_almost_equal(
-                    zero_mean.eval()[i],
-                    Zero.adjoint().to_matrix() @ mat_op @ Zero.to_matrix(),
-                    decimal=1,
-                )
-                np.testing.assert_array_almost_equal(
-                    plus_mean.eval()[i],
-                    Plus.adjoint().to_matrix() @ mat_op @ Plus.to_matrix(),
-                    decimal=1,
-                )
-                np.testing.assert_array_almost_equal(
-                    minus_mean.eval()[i],
-                    Minus.adjoint().to_matrix() @ mat_op @ Minus.to_matrix(),
-                    decimal=1,
-                )
+        for i, op in enumerate(paulis_op.oplist):
+            mat_op = op.to_matrix()
+            np.testing.assert_array_almost_equal(
+                zero_mean.eval()[i],
+                Zero.adjoint().to_matrix() @ mat_op @ Zero.to_matrix(),
+                decimal=1,
+            )
+            np.testing.assert_array_almost_equal(
+                plus_mean.eval()[i],
+                Plus.adjoint().to_matrix() @ mat_op @ Plus.to_matrix(),
+                decimal=1,
+            )
+            np.testing.assert_array_almost_equal(
+                minus_mean.eval()[i],
+                Minus.adjoint().to_matrix() @ mat_op @ Minus.to_matrix(),
+                decimal=1,
+            )
 
     def test_pauli_expect_state_vector(self):
         """pauli expect state vector test"""
 
+        states_op = ListOp([One, Zero, Plus, Minus])
+
+        paulis_op = X
+        converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
+        np.testing.assert_array_almost_equal(converted_meas.eval(), [0, 0, 1, -1], decimal=1)
+
         with self.assertWarns(DeprecationWarning):
-            states_op = ListOp([One, Zero, Plus, Minus])
-
-            paulis_op = X
-            converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
-            np.testing.assert_array_almost_equal(converted_meas.eval(), [0, 0, 1, -1], decimal=1)
-
             sampled = self.sampler.convert(converted_meas)
-            np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1, -1], decimal=1)
 
-            # Small test to see if execution results are accessible
-            for composed_op in sampled:
-                self.assertIn("counts", composed_op[1].execution_results)
+        np.testing.assert_array_almost_equal(sampled.eval(), [0, 0, 1, -1], decimal=1)
+
+        # Small test to see if execution results are accessible
+        for composed_op in sampled:
+            self.assertIn("counts", composed_op[1].execution_results)
 
     def test_pauli_expect_op_vector_state_vector(self):
         """pauli expect op vector state vector test"""
 
+        paulis_op = ListOp([X, Y, Z, I])
+        states_op = ListOp([One, Zero, Plus, Minus])
+
+        valids = [[+0, 0, 1, -1], [+0, 0, 0, 0], [-1, 1, 0, -0], [+1, 1, 1, 1]]
+        converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
+        np.testing.assert_array_almost_equal(converted_meas.eval(), valids, decimal=1)
+
         with self.assertWarns(DeprecationWarning):
-            paulis_op = ListOp([X, Y, Z, I])
-            states_op = ListOp([One, Zero, Plus, Minus])
-
-            valids = [[+0, 0, 1, -1], [+0, 0, 0, 0], [-1, 1, 0, -0], [+1, 1, 1, 1]]
-            converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
-            np.testing.assert_array_almost_equal(converted_meas.eval(), valids, decimal=1)
-
             sampled = self.sampler.convert(converted_meas)
-            np.testing.assert_array_almost_equal(sampled.eval(), valids, decimal=1)
+
+        np.testing.assert_array_almost_equal(sampled.eval(), valids, decimal=1)
 
     def test_to_matrix_called(self):
         """test to matrix called in different situations"""
         qs = 45
 
-        with self.assertWarns(DeprecationWarning):
-            states_op = ListOp([Zero ^ qs, One ^ qs, (Zero ^ qs) + (One ^ qs)])
-            paulis_op = ListOp([Z ^ qs, (I ^ Z ^ I) ^ int(qs / 3)])
+        states_op = ListOp([Zero ^ qs, One ^ qs, (Zero ^ qs) + (One ^ qs)])
+        paulis_op = ListOp([Z ^ qs, (I ^ Z ^ I) ^ int(qs / 3)])
 
-            # 45 qubit calculation - throws exception if to_matrix is called
-            # massive is False
-            with self.assertRaises(ValueError):
+        # 45 qubit calculation - throws exception if to_matrix is called
+        # massive is False
+        with self.assertRaises(ValueError):
+            states_op.to_matrix()
+            paulis_op.to_matrix()
+
+        # now set global variable or argument
+        try:
+            algorithm_globals.massive = True
+            with self.assertRaises(MemoryError):
                 states_op.to_matrix()
                 paulis_op.to_matrix()
-
-            # now set global variable or argument
-            try:
-                algorithm_globals.massive = True
-                with self.assertRaises(MemoryError):
-                    states_op.to_matrix()
-                    paulis_op.to_matrix()
-                algorithm_globals.massive = False
-                with self.assertRaises(MemoryError):
-                    states_op.to_matrix(massive=True)
-                    paulis_op.to_matrix(massive=True)
-            finally:
-                algorithm_globals.massive = False
+            algorithm_globals.massive = False
+            with self.assertRaises(MemoryError):
+                states_op.to_matrix(massive=True)
+                paulis_op.to_matrix(massive=True)
+        finally:
+            algorithm_globals.massive = False
 
     def test_not_to_matrix_called(self):
         """45 qubit calculation - literally will not work if to_matrix is
         somehow called (in addition to massive=False throwing an error)"""
 
         qs = 45
-        with self.assertWarns(DeprecationWarning):
-            states_op = ListOp([Zero ^ qs, One ^ qs, (Zero ^ qs) + (One ^ qs)])
-            paulis_op = ListOp([Z ^ qs, (I ^ Z ^ I) ^ int(qs / 3)])
+        states_op = ListOp([Zero ^ qs, One ^ qs, (Zero ^ qs) + (One ^ qs)])
+        paulis_op = ListOp([Z ^ qs, (I ^ Z ^ I) ^ int(qs / 3)])
 
-            converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
-            np.testing.assert_array_almost_equal(converted_meas.eval(), [[1, -1, 0], [1, -1, 0]])
+        converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
+        np.testing.assert_array_almost_equal(converted_meas.eval(), [[1, -1, 0], [1, -1, 0]])
 
     def test_grouped_pauli_expectation(self):
         """grouped pauli expectation test"""
 
+        two_qubit_H2 = (
+            (-1.052373245772859 * I ^ I)
+            + (0.39793742484318045 * I ^ Z)
+            + (-0.39793742484318045 * Z ^ I)
+            + (-0.01128010425623538 * Z ^ Z)
+            + (0.18093119978423156 * X ^ X)
+        )
+        wf = CX @ (H ^ I) @ Zero
+        expect_op = PauliExpectation(group_paulis=False).convert(~StateFn(two_qubit_H2) @ wf)
+        self.sampler._extract_circuitstatefns(expect_op)
+        num_circuits_ungrouped = len(self.sampler._circuit_ops_cache)
+        self.assertEqual(num_circuits_ungrouped, 5)
+
+        expect_op_grouped = PauliExpectation(group_paulis=True).convert(~StateFn(two_qubit_H2) @ wf)
+
         with self.assertWarns(DeprecationWarning):
-            two_qubit_H2 = (
-                (-1.052373245772859 * I ^ I)
-                + (0.39793742484318045 * I ^ Z)
-                + (-0.39793742484318045 * Z ^ I)
-                + (-0.01128010425623538 * Z ^ Z)
-                + (0.18093119978423156 * X ^ X)
-            )
-            wf = CX @ (H ^ I) @ Zero
-            expect_op = PauliExpectation(group_paulis=False).convert(~StateFn(two_qubit_H2) @ wf)
-            self.sampler._extract_circuitstatefns(expect_op)
-            num_circuits_ungrouped = len(self.sampler._circuit_ops_cache)
-            self.assertEqual(num_circuits_ungrouped, 5)
-
-            expect_op_grouped = PauliExpectation(group_paulis=True).convert(
-                ~StateFn(two_qubit_H2) @ wf
-            )
-
             q_instance = QuantumInstance(
                 BasicAer.get_backend("statevector_simulator"),
                 seed_simulator=self.seed,
@@ -237,10 +235,10 @@ class TestPauliExpectation(QiskitOpflowTestCase):
             )
 
             sampler = CircuitSampler(q_instance)
-
             sampler._extract_circuitstatefns(expect_op_grouped)
             num_circuits_grouped = len(sampler._circuit_ops_cache)
-            self.assertEqual(num_circuits_grouped, 2)
+
+        self.assertEqual(num_circuits_grouped, 2)
 
     @unittest.skip(reason="IBMQ testing not available in general.")
     def test_ibmq_grouped_pauli_expectation(self):
@@ -254,57 +252,58 @@ class TestPauliExpectation(QiskitOpflowTestCase):
             q_instance = QuantumInstance(
                 backend, seed_simulator=self.seed, seed_transpiler=self.seed
             )
-            paulis_op = ListOp([X, Y, Z, I])
-            states_op = ListOp([One, Zero, Plus, Minus])
+        paulis_op = ListOp([X, Y, Z, I])
+        states_op = ListOp([One, Zero, Plus, Minus])
 
-            valids = [[+0, 0, 1, -1], [+0, 0, 0, 0], [-1, 1, 0, -0], [+1, 1, 1, 1]]
-            converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
+        valids = [[+0, 0, 1, -1], [+0, 0, 0, 0], [-1, 1, 0, -0], [+1, 1, 1, 1]]
+        converted_meas = self.expect.convert(~StateFn(paulis_op) @ states_op)
+
+        with self.assertWarns(DeprecationWarning):
             sampled = CircuitSampler(q_instance).convert(converted_meas)
             np.testing.assert_array_almost_equal(sampled.eval(), valids, decimal=1)
 
     def test_multi_representation_ops(self):
         """Test observables with mixed representations"""
 
-        with self.assertWarns(DeprecationWarning):
-            mixed_ops = ListOp([X.to_matrix_op(), H, H + I, X])
-            converted_meas = self.expect.convert(~StateFn(mixed_ops))
+        mixed_ops = ListOp([X.to_matrix_op(), H, H + I, X])
+        converted_meas = self.expect.convert(~StateFn(mixed_ops))
+        plus_mean = converted_meas @ Plus
 
-            plus_mean = converted_meas @ Plus
+        with self.assertWarns(DeprecationWarning):
             sampled_plus = self.sampler.convert(plus_mean)
-            np.testing.assert_array_almost_equal(
-                sampled_plus.eval(), [1, 0.5**0.5, (1 + 0.5**0.5), 1], decimal=1
-            )
+        np.testing.assert_array_almost_equal(
+            sampled_plus.eval(), [1, 0.5**0.5, (1 + 0.5**0.5), 1], decimal=1
+        )
 
     def test_pauli_expectation_non_hermite_op(self):
         """Test PauliExpectation for non hermitian operator"""
 
-        with self.assertWarns(DeprecationWarning):
-            exp = ~StateFn(1j * Z) @ One
-            self.assertEqual(self.expect.convert(exp).eval(), 1j)
+        exp = ~StateFn(1j * Z) @ One
+        self.assertEqual(self.expect.convert(exp).eval(), 1j)
 
     def test_list_pauli_sum_op(self):
         """Test PauliExpectation for List[PauliSumOp]"""
 
-        with self.assertWarns(DeprecationWarning):
-            test_op = ListOp([~StateFn(PauliSumOp.from_list([("XX", 1), ("ZI", 3), ("ZZ", 5)]))])
-            observable = self.expect.convert(test_op)
-            self.assertIsInstance(observable, ListOp)
-            self.assertIsInstance(observable[0][0][0].primitive, PauliSumOp)
-            self.assertIsInstance(observable[0][1][0].primitive, PauliSumOp)
+        test_op = ListOp([~StateFn(PauliSumOp.from_list([("XX", 1), ("ZI", 3), ("ZZ", 5)]))])
+        observable = self.expect.convert(test_op)
+        self.assertIsInstance(observable, ListOp)
+        self.assertIsInstance(observable[0][0][0].primitive, PauliSumOp)
+        self.assertIsInstance(observable[0][1][0].primitive, PauliSumOp)
 
     def test_expectation_with_coeff(self):
         """Test PauliExpectation with coefficients."""
-        with self.assertWarns(DeprecationWarning):
 
-            with self.subTest("integer coefficients"):
-                exp = 3 * ~StateFn(X) @ (2 * Minus)
+        with self.subTest("integer coefficients"):
+            exp = 3 * ~StateFn(X) @ (2 * Minus)
+            with self.assertWarns(DeprecationWarning):
                 target = self.sampler.convert(self.expect.convert(exp)).eval()
-                self.assertEqual(target, -12)
+            self.assertEqual(target, -12)
 
-            with self.subTest("complex coefficients"):
-                exp = 3j * ~StateFn(X) @ (2j * Minus)
+        with self.subTest("complex coefficients"):
+            exp = 3j * ~StateFn(X) @ (2j * Minus)
+            with self.assertWarns(DeprecationWarning):
                 target = self.sampler.convert(self.expect.convert(exp)).eval()
-                self.assertEqual(target, -12j)
+            self.assertEqual(target, -12j)
 
 
 if __name__ == "__main__":
