@@ -125,6 +125,7 @@ For example:
    YGate
    ZGate
    GlobalPhaseGate
+
 Standard Directives
 ===================
 
