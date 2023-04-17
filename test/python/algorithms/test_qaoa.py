@@ -337,18 +337,6 @@ class TestQAOA(QiskitAlgorithmsTestCase):
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
         with self.assertWarns(DeprecationWarning):
-            qaoa = QAOA()
-            ref = qaoa.construct_circuit([0, 0], I ^ Z)[0]
-            circ2 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
-            self.assertEqual(circ2, ref)
-            circ3 = qaoa.construct_circuit([0, 0], Z ^ I)[0]
-            self.assertNotEqual(circ3, ref)
-            circ4 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
-            self.assertEqual(circ4, ref)
-
-    def test_optimizer_scipy_callable(self):
-        """Test passing a SciPy optimizer directly as callable."""
-        with self.assertWarns(DeprecationWarning):
             qaoa = QAOA(
                 optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
                 quantum_instance=self.statevector_simulator,
