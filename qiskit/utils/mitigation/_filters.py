@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -31,17 +31,22 @@ import qiskit
 from qiskit import QiskitError
 from qiskit.tools import parallel_map
 from qiskit.utils.mitigation.circuits import count_keys
+from qiskit.utils.deprecation import deprecate_func
 
 
 class MeasurementFilter:
     """
-    Measurement error mitigation filter.
+    Deprecated: Measurement error mitigation filter.
 
     Produced from a measurement calibration fitter and can be applied
     to data.
 
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+    )
     def __init__(self, cal_matrix: np.matrix, state_labels: list):
         """
         Initialize a measurement error mitigation filter using the cal_matrix
@@ -214,12 +219,16 @@ class MeasurementFilter:
 
 class TensoredFilter:
     """
-    Tensored measurement error mitigation filter.
+    Deprecated: Tensored measurement error mitigation filter.
 
     Produced from a tensored measurement calibration fitter and can be applied
     to data.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+    )
     def __init__(self, cal_matrices: np.matrix, substate_labels_list: list, mit_pattern: list):
         """
         Initialize a tensored measurement error mitigation filter using

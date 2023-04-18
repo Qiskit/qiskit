@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,12 +23,13 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
 from qiskit.utils import arithmetic
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ListOp(OperatorBase):
     """
-    A Class for manipulating List Operators, and parent class to ``SummedOp``, ``ComposedOp``,
-    and ``TensoredOp``.
+    Deprecated: A Class for manipulating List Operators, and parent class to ``SummedOp``,
+    ``ComposedOp`` and ``TensoredOp``.
 
     List Operators are classes for storing and manipulating lists of Operators, State functions,
     or Measurements, and include some rule or ``combo_fn`` defining how the Operator functions
@@ -52,6 +53,10 @@ class ListOp(OperatorBase):
     multiple dimensional lists.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         oplist: Sequence[OperatorBase],

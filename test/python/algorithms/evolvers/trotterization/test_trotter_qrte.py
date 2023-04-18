@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021, 2022.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """Test TrotterQRTE."""
 
 import unittest
-
 from test.python.opflow import QiskitOpflowTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -52,18 +51,19 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         algorithm_globals.random_seed = self.seed
         backend_statevector = BasicAer.get_backend("statevector_simulator")
         backend_qasm = BasicAer.get_backend("qasm_simulator")
-        self.quantum_instance = QuantumInstance(
-            backend=backend_statevector,
-            shots=1,
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
-        self.quantum_instance_qasm = QuantumInstance(
-            backend=backend_qasm,
-            shots=8000,
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.quantum_instance = QuantumInstance(
+                backend=backend_statevector,
+                shots=1,
+                seed_simulator=self.seed,
+                seed_transpiler=self.seed,
+            )
+            self.quantum_instance_qasm = QuantumInstance(
+                backend=backend_qasm,
+                shots=8000,
+                seed_simulator=self.seed,
+                seed_transpiler=self.seed,
+            )
         self.backends_dict = {
             "qi_sv": self.quantum_instance,
             "qi_qasm": self.quantum_instance_qasm,
@@ -123,10 +123,11 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
             with self.subTest(msg=f"Test {backend_name} backend."):
                 algorithm_globals.random_seed = 0
                 backend = self.backends_dict[backend_name]
-                expectation = ExpectationFactory.build(
-                    operator=operator,
-                    backend=backend,
-                )
+                with self.assertWarns(DeprecationWarning):
+                    expectation = ExpectationFactory.build(
+                        operator=operator,
+                        backend=backend,
+                    )
                 with self.assertWarns(DeprecationWarning):
                     trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
                     evolution_result = trotter_qrte.evolve(evolution_problem)

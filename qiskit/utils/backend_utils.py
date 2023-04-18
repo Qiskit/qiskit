@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,6 +13,7 @@
 """backend utility functions"""
 
 import logging
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +50,10 @@ def _get_backend_provider(backend):
     return provider
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def has_ibmq():
     """Check if IBMQ is installed."""
     if not _PROVIDER_CHECK.checked_ibmq:
@@ -66,6 +71,10 @@ def has_ibmq():
     return _PROVIDER_CHECK.has_ibmq
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def has_aer():
     """Check if Aer is installed."""
     if not _PROVIDER_CHECK.checked_aer:
@@ -82,6 +91,10 @@ def has_aer():
     return _PROVIDER_CHECK.has_aer
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def is_aer_provider(backend):
     """Detect whether or not backend is from Aer provider.
 
@@ -102,6 +115,10 @@ def is_aer_provider(backend):
     return False
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def is_basicaer_provider(backend):
     """Detect whether or not backend is from BasicAer provider.
 
@@ -115,6 +132,10 @@ def is_basicaer_provider(backend):
     return isinstance(_get_backend_provider(backend), BasicAerProvider)
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def is_ibmq_provider(backend):
     """Detect whether or not backend is from IBMQ provider.
 
@@ -131,6 +152,10 @@ def is_ibmq_provider(backend):
     return False
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def is_aer_statevector_backend(backend):
     """
     Return True if backend object is statevector and from Aer provider.
@@ -143,6 +168,10 @@ def is_aer_statevector_backend(backend):
     return is_statevector_backend(backend) and is_aer_provider(backend)
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def is_statevector_backend(backend):
     """
     Return True if backend object is statevector.
@@ -168,6 +197,10 @@ def is_statevector_backend(backend):
         return backend.name.startswith("statevector")
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def is_simulator_backend(backend):
     """
     Return True if backend is a simulator.
@@ -183,6 +216,10 @@ def is_simulator_backend(backend):
     return False
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def is_local_backend(backend):
     """
     Return True if backend is a local backend.
@@ -198,6 +235,10 @@ def is_local_backend(backend):
     return False
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def is_aer_qasm(backend):
     """
     Return True if backend is Aer Qasm simulator
@@ -214,6 +255,10 @@ def is_aer_qasm(backend):
     return ret
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def support_backend_options(backend):
     """
     Return True if backend supports backend_options

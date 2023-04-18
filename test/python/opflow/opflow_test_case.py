@@ -12,10 +12,19 @@
 
 """Opflow Test Case"""
 
+import warnings
 from qiskit.test import QiskitTestCase
 
 
 class QiskitOpflowTestCase(QiskitTestCase):
     """Opflow test Case"""
 
-    pass
+    def setUp(self):
+        super().setUp()
+        # ignore opflow msgs
+        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*opflow.*")
+
+    def tearDown(self):
+        super().tearDown()
+        # restore opflow msgs
+        warnings.filterwarnings("error", category=DeprecationWarning, message=r".*opflow.*")

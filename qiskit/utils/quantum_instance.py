@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -38,6 +38,7 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,7 @@ class _MeasFitterType(Enum):
 
 
 class QuantumInstance:
-    """Quantum Backend including execution setting."""
+    """Deprecated: Quantum Backend including execution setting."""
 
     _BACKEND_CONFIG = ["basis_gates", "coupling_map"]
     _COMPILE_CONFIG = ["initial_layout", "seed_transpiler", "optimization_level"]
@@ -143,6 +144,10 @@ class QuantumInstance:
         "statevector_hpc_gate_opt",
     ] + _BACKEND_OPTIONS_QASM_ONLY
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+    )
     def __init__(
         self,
         backend,
