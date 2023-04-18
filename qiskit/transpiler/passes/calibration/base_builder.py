@@ -60,9 +60,9 @@ class CalibrationBuilder(TransformationPass):
         Returns:
             A DAG with calibrations added to it.
         """
-        qubit_map = {qubit: i for i, qubit in enumerate(dag.qubits)}
+        
         for node in dag.gate_nodes():
-            qubits = [qubit_map[q] for q in node.qargs]
+            qubits = [dag.locate_bit(q).index for q in node.qargs]
 
             if self.supported(node.op, qubits) and not dag.has_calibration_for(node):
                 # calibration can be provided and no user-defined calibration is already provided

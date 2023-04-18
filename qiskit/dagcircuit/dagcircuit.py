@@ -20,7 +20,7 @@ to the input of B. The object's methods allow circuits to be constructed,
 composed, and modified. Some natural properties like depth can be computed
 directly from the graph.
 """
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict, defaultdict, namedtuple
 import copy
 import itertools
 import math
@@ -39,7 +39,10 @@ from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.dagcircuit.exceptions import DAGCircuitError
 from qiskit.dagcircuit.dagnode import DAGNode, DAGOpNode, DAGInNode, DAGOutNode
 from qiskit.utils.deprecation import deprecate_function
+from qiskit.circuit.bit import Bit
 
+
+BitPosition = namedtuple("BitPosition", ("index", "registers"))
 
 class DAGCircuit:
     """
@@ -87,6 +90,13 @@ class DAGCircuit:
         # List of Qubit/Clbit wires that the DAG acts on.
         self.qubits: List[Qubit] = []
         self.clbits: List[Clbit] = []
+            
+        # Dict mapping Qubit and Clbit instances to tuple comprised of 0) the
+        # corresponding index in circuit.{qubits,clbits} and 1) a list of
+        # Register-int pairs for each Register containing the Bit and its index
+        # within that register.
+        self._qubit_indices: dict[Qubit, BitPositions] = {}
+        self._clbit_indices: dict[Clbit, BitPositions] = {}
 
         self._global_phase = 0
         self._calibrations = defaultdict(dict)
@@ -286,6 +296,39 @@ class DAGCircuit:
             self._multi_graph.add_edge(inp_node._node_id, outp_node._node_id, wire)
         else:
             raise DAGCircuitError(f"duplicate wire {wire}")
+            
+            
+    def locate_bit(self, bit: Bit) -> BitPosition:
+        """
+        Finds locations in the circuit, by mapping the Qubit and Clbit to positional index
+        
+        Args: 
+            bit (Bit): The bit to locate.
+            
+        Returns:
+            namedtuple(int, List[Tuple(Register, int)]): A 2-tuple. The first element (``index``)
+                contains the index at which the ``Bit`` can be found (in either
+                :obj:`~DAGCircuit.qubits`, :obj:`~DAGCircuit.clbits`, depending on its
+                type). The second element (``registers``) is a list of ``(register, index)``
+                pairs with an entry for each :obj:`~Register` in the circuit which contains the
+                :obj:`~Bit` (and the index in the :obj:`~Register` at which it can be found).
+        
+          Raises:
+            DAGCircuitError: If the supplied :obj:`~Bit` was of an unknown type.
+            DAGCircuitError: If the supplied :obj:`~Bit` could not be found on the circuit.
+        """
+        try:
+            if isinstance(bit, Qubit):
+                return self._qubit_indices[bit]
+            elif isinstance(bit, clbit):
+                return self._clbit_indices[bit]
+            else:
+                raise DAGCircuitError(f"Could not locate bit of unknown type: {type(bit)}")
+        except KeyError as err:
+            raise DAGCircuitError(
+                f"Could not locate provided bit: {bit}. Has it been added to the DAGCircuit?"
+            ) from err
+            
 
     def remove_clbits(self, *clbits):
         """
