@@ -1013,7 +1013,12 @@ class Target(Mapping):
                 this gate is present.
             filter_idle_qubits (bool): If set to ``True`` the output :class:`~.CouplingMap`
                 will remove any qubits that don't have any operations defined in the
-                target.
+                target. Note that using this argument will result in an output
+                :class:`~.CouplingMap` object which has holes in its indices
+                which might differ from the assumptions of the class. The typical use
+                case of this argument is to be paired with with
+                :meth:`.CouplingMap.connected_components` which will handle the holes
+                as expected.
         Returns:
             CouplingMap: The :class:`~qiskit.transpiler.CouplingMap` object
                 for this target. If there are no connectivity constraints in
