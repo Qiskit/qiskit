@@ -308,8 +308,9 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         self.assertNotIn("config", call_kwargs)
 
     def test_2q_decomposer_with_no_control_gates(self):
-        """Test that an empty list of decomposers is returned from DefaultUnitarySynthesis._decomposer_2q_from_target when
-        no controlled gates are in the target basis."""
+        """Test that an empty list of decomposers is returned from
+        DefaultUnitarySynthesis._decomposer_2q_from_target when no controlled gates are in the
+        target basis."""
         bad_target = Target()
         theta = 1.0
         rz_props = {
@@ -325,8 +326,8 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         cx_props = {
             (0, 1): InstructionProperties(duration=519.11e-9, error=0.01201),
         }
-        bogusCXGate = Gate("cx", num_qubits=2, params=[])
-        bad_target.add_instruction(bogusCXGate, cx_props)
+        bogus_cx_gate = Gate("cx", num_qubits=2, params=[])
+        bad_target.add_instruction(bogus_cx_gate, cx_props)
         measure_props = {
             (0,): InstructionProperties(duration=5.813e-6, error=0.0751),
             (1,): InstructionProperties(duration=5.813e-6, error=0.0225),
