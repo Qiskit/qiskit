@@ -45,6 +45,7 @@ from qiskit.circuit.library import (
     CZGate,
     XGate,
     SXGate,
+    HGate,
 )
 from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp
 from qiskit.circuit.measure import Measure
@@ -2733,3 +2734,84 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
             if op_name == "barrier":
                 continue
             self.assertIn(qubits, self.backend.target[op_name])
+
+    @data(0, 1, 2, 3)
+    def test_transpile_target_with_qubits_without_ops(self, opt_level):
+        """Test qubits without operations aren't ever used."""
+        target = Target(num_qubits=5)
+        target.add_instruction(XGate(), {(i,): InstructionProperties(error=0.5) for i in range(3)})
+        target.add_instruction(HGate(), {(i,): InstructionProperties(error=0.5) for i in range(3)})
+        target.add_instruction(
+            CXGate(), {edge: InstructionProperties(error=0.5) for edge in [(0, 1), (1, 2), (2, 0)]}
+        )
+        qc = QuantumCircuit(3)
+        qc.x(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        tqc = transpile(qc, target=target, optimization_level=opt_level)
+        invalid_qubits = {3, 4}
+        self.assertEqual(tqc.num_qubits, 5)
+        for inst in tqc.data:
+            for bit in inst.qubits:
+                self.assertNotIn(tqc.find_bit(bit).index, invalid_qubits)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_target_with_qubits_without_ops_with_routing(self, opt_level):
+        """Test qubits without operations aren't ever used."""
+        target = Target(num_qubits=5)
+        target.add_instruction(XGate(), {(i,): InstructionProperties(error=0.5) for i in range(4)})
+        target.add_instruction(HGate(), {(i,): InstructionProperties(error=0.5) for i in range(4)})
+        target.add_instruction(
+            CXGate(),
+            {edge: InstructionProperties(error=0.5) for edge in [(0, 1), (1, 2), (2, 0), (2, 3)]},
+        )
+        qc = QuantumCircuit(4)
+        qc.x(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 3)
+        qc.cx(0, 3)
+        tqc = transpile(qc, target=target, optimization_level=opt_level)
+        invalid_qubits = {
+            4,
+        }
+        self.assertEqual(tqc.num_qubits, 5)
+        for inst in tqc.data:
+            for bit in inst.qubits:
+                self.assertNotIn(tqc.find_bit(bit).index, invalid_qubits)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_target_with_qubits_without_ops_circuit_too_large(self, opt_level):
+        """Test qubits without operations aren't ever used and error if circuit needs them."""
+        target = Target(num_qubits=5)
+        target.add_instruction(XGate(), {(i,): InstructionProperties(error=0.5) for i in range(3)})
+        target.add_instruction(HGate(), {(i,): InstructionProperties(error=0.5) for i in range(3)})
+        target.add_instruction(
+            CXGate(), {edge: InstructionProperties(error=0.5) for edge in [(0, 1), (1, 2), (2, 0)]}
+        )
+        qc = QuantumCircuit(4)
+        qc.x(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(0, 3)
+        with self.assertRaises(TranspilerError):
+            transpile(qc, target=target, optimization_level=opt_level)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_target_with_qubits_without_ops_circuit_too_large_disconnected(
+        self, opt_level
+    ):
+        """Test qubits without operations aren't ever used if a disconnected circuit needs them."""
+        target = Target(num_qubits=5)
+        target.add_instruction(XGate(), {(i,): InstructionProperties(error=0.5) for i in range(3)})
+        target.add_instruction(HGate(), {(i,): InstructionProperties(error=0.5) for i in range(3)})
+        target.add_instruction(
+            CXGate(), {edge: InstructionProperties(error=0.5) for edge in [(0, 1), (1, 2), (2, 0)]}
+        )
+        qc = QuantumCircuit(5)
+        qc.x(0)
+        qc.x(1)
+        qc.x(3)
+        qc.x(4)
+        with self.assertRaises(TranspilerError):
+            transpile(qc, target=target, optimization_level=opt_level)
