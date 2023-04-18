@@ -65,7 +65,7 @@ add_module_names = False
 modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
-    "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
+    "rustworkx": ("https://qiskit.org/ecosystem/rustworkx/", None),
     "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
     "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None)
