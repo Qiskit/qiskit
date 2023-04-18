@@ -86,8 +86,12 @@ class TaperedPauliSumOp(PauliSumOp):
 
 
 class Z2Symmetries:
-    """Z2 Symmetries"""
+    """Deprecated: Z2 Symmetries"""
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         symmetries: List[Pauli],
