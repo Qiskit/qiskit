@@ -1,0 +1,5 @@
+
+features:
+  - |
+    The partial transpose operation has been integrated into the quantum_info module, allowing for partial transposition of matrices.
+    This operation is key in detecting entanglement between bipartite quantum system.

@@ -12,7 +12,7 @@
 
 """Conjugate Gradient optimizer."""
 
-from typing import Optional
+from __future__ import annotations
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -39,9 +39,9 @@ class CG(SciPyOptimizer):
         maxiter: int = 20,
         disp: bool = False,
         gtol: float = 1e-5,
-        tol: Optional[float] = None,
+        tol: float | None = None,
         eps: float = 1.4901161193847656e-08,
-        options: Optional[dict] = None,
+        options: dict | None = None,
         max_evals_grouped: int = 1,
         **kwargs,
     ) -> None:

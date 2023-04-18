@@ -22,6 +22,8 @@ from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.dagcircuit import DAGOpNode
+from qiskit.transpiler.target import Target
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +87,7 @@ class LookaheadSwap(TransformationPass):
         """LookaheadSwap initializer.
 
         Args:
-            coupling_map (CouplingMap): CouplingMap of the target backend.
+            coupling_map (Union[CouplingMap, Target]): CouplingMap of the target backend.
             search_depth (int): lookahead tree depth when ranking best SWAP options.
             search_width (int): lookahead tree width when ranking best SWAP options.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
@@ -93,7 +95,12 @@ class LookaheadSwap(TransformationPass):
         """
 
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.search_depth = search_depth
         self.search_width = search_width
         self.fake_run = fake_run
@@ -123,6 +130,7 @@ class LookaheadSwap(TransformationPass):
                 f"The number of DAG qubits ({len(dag.qubits)}) is greater than the number of "
                 f"available device qubits ({number_of_available_qubits})."
             )
+        disjoint_utils.require_layout_isolated_to_component(dag, self.coupling_map)
 
         register = dag.qregs["q"]
         current_state = _SystemState(

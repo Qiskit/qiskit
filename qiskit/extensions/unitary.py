@@ -21,7 +21,6 @@ from qiskit.circuit import QuantumCircuit
 from qiskit.circuit import QuantumRegister, Qubit
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit._utils import _compute_control_matrix
-from qiskit.circuit.quantumcircuit import _qasm_escape_name
 from qiskit.circuit.library.standard_gates import U3Gate
 from qiskit.extensions.quantum_initializer import isometry
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -87,8 +86,6 @@ class UnitaryGate(Gate):
         if input_dim != output_dim or 2**num_qubits != input_dim:
             raise ExtensionError("Input matrix is not an N-qubit operator.")
 
-        self._qasm_name = None
-        self._qasm_definition = None
         # Store instruction params
         super().__init__("unitary", num_qubits, [data], label=label)
 
@@ -170,41 +167,12 @@ class UnitaryGate(Gate):
             base_gate=self.copy(),
         )
 
-    def qasm(self):
-        """The qasm for a custom unitary gate
-        This is achieved by adding a custom gate that corresponds to the definition
-        of this gate. It gives the gate a random name if one hasn't been given to it.
-        """
-
-        # give this unitary a name
-        self._qasm_name = (
-            _qasm_escape_name(self.label, "gate_") if self.label else "unitary" + str(id(self))
-        )
-
-        qubit_to_qasm = {bit: f"p{i}" for i, bit in enumerate(self.definition.qubits)}
-        gates_def = ""
-        for instruction in self.definition.data:
-
-            curr_gate = "\t{} {};\n".format(
-                instruction.operation.qasm(),
-                ",".join(qubit_to_qasm[qubit] for qubit in instruction.qubits),
-            )
-            gates_def += curr_gate
-
-        # name of gate + params + {definition}
-        overall = (
-            "gate "
-            + self._qasm_name
-            + " "
-            + ",".join(qubit_to_qasm[qubit] for qubit in self.definition.qubits)
-            + " {\n"
-            + gates_def
-            + "}"
-        )
-
-        self._qasm_definition = overall
-
-        return self._qasmif(self._qasm_name)
+    def _qasm2_decomposition(self):
+        """Return an unparameterized version of ourselves, so the OQ2 exporter doesn't choke on the
+        non-standard things in our `params` field."""
+        out = self.definition.to_gate()
+        out.name = self.name
+        return out
 
     def validate_parameter(self, parameter):
         """Unitary gate parameter has to be an ndarray."""
