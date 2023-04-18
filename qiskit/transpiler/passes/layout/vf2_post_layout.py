@@ -217,7 +217,7 @@ class VF2PostLayout(AnalysisPass):
                     cm_graph.add_edge(qargs[0], qargs[1], ops)
             cm_nodes = list(cm_graph.node_indexes())
             # Filter qubits without any supported operations. If they
-            # don't support any operations They're not valid for layout selection.
+            # don't support any operations, they're not valid for layout selection.
             # This is only needed in the undirected case because in strict direction
             # mode the node matcher will not match since none of the circuit ops
             # will match the cmap ops.
