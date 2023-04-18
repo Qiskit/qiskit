@@ -18,7 +18,7 @@ Operator Evolutions (:mod:`qiskit.opflow.evolutions`)
 
 .. deprecated:: 0.24.0
 
-    The :mod::`qiskit.opflow` module is deprecated and will be removed no earlier
+    The :mod:`qiskit.opflow` module is deprecated and will be removed no earlier
     than 3 months after the release date. For code migration guidelines,
     visit https://qisk.it/opflow_migration.
 
