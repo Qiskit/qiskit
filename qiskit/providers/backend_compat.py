@@ -222,7 +222,7 @@ class BackendV2Converter(BackendV2):
     to mutate the ``BackendV1`` object before applying this converter. For example, in order to
     convert a ``BackendV1`` object with a customized ``defaults().instruction_schedule_map``,
     which has a custom calibration for an operation, the operation name must be in
-     ``configuration().basis_gates`` and  ``name_mapping`` must be supplied for the operation.
+    ``configuration().basis_gates`` and ``name_mapping`` must be supplied for the operation.
     Otherwise, the operation will be dropped in the resulting ``BackendV2`` object.
 
     Instead it is typically better to add custom calibrations **after** applying this converter
