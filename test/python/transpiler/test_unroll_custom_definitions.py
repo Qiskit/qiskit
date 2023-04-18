@@ -194,16 +194,16 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         while_body.append(TestCompositeGate(), [0], [])
 
         true_body = QuantumCircuit([qubit, clbit])
-        true_body.while_loop((clbit, True), while_body, [0], [0])
+        true_body.while_loop((clbit, True), while_body, [0], [])
 
         test = QuantumCircuit([qubit, clbit])
-        test.for_loop(range(2), None, for_body, [0], [0])
+        test.for_loop(range(2), None, for_body, [0], [])
         test.if_else((clbit, True), true_body, None, [0], [0])
 
         expected_if_body = QuantumCircuit([qubit, clbit])
-        expected_if_body.while_loop((clbit, True), pass_(while_body), [0], [0])
+        expected_if_body.while_loop((clbit, True), pass_(while_body), [0], [])
         expected = QuantumCircuit([qubit, clbit])
-        expected.for_loop(range(2), None, pass_(for_body), [0], [0])
+        expected.for_loop(range(2), None, pass_(for_body), [0], [])
         expected.if_else(range(2), pass_(expected_if_body), None, [0], [0])
 
         self.assertEqual(pass_(test), expected)

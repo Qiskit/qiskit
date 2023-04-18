@@ -45,9 +45,9 @@ class PrimitiveJob(JobV1, Generic[T]):
         if self._future is not None:
             raise JobError("Primitive job has already been submitted.")
 
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(self._function, *self._args, **self._kwargs)
-        self._future = future
+        executor = ThreadPoolExecutor(max_workers=1)  # pylint: disable=consider-using-with
+        self._future = executor.submit(self._function, *self._args, **self._kwargs)
+        executor.shutdown(wait=False)
 
     def result(self) -> T:
         """Return the results of the job."""

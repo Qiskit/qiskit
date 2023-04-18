@@ -61,9 +61,10 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         if backend is None:
             backend = qiskit.BasicAer.get_backend("statevector_simulator")
         quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = HamiltonianPhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
-        )
+        with self.assertWarns(DeprecationWarning):
+            phase_est = HamiltonianPhaseEstimation(
+                num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
+            )
         result = phase_est.estimate(
             hamiltonian=hamiltonian,
             state_preparation=state_preparation,
@@ -160,7 +161,8 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             hamiltonian = hamiltonian.to_matrix_op()
         backend = qiskit.BasicAer.get_backend("statevector_simulator")
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
+        with self.assertWarns(DeprecationWarning):
+            phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
         result = phase_est.estimate(
             hamiltonian=hamiltonian,
             bound=bound,
@@ -328,12 +330,14 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         if phase_estimator is None:
             phase_estimator = IterativePhaseEstimation
-        if phase_estimator == IterativePhaseEstimation:
-            p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
-        elif phase_estimator == PhaseEstimation:
-            p_est = PhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
-        else:
-            raise ValueError("Unrecognized phase_estimator")
+
+        with self.assertWarns(DeprecationWarning):
+            if phase_estimator == IterativePhaseEstimation:
+                p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
+            elif phase_estimator == PhaseEstimation:
+                p_est = PhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
+            else:
+                raise ValueError("Unrecognized phase_estimator")
         result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
         phase = result.phase
         return phase
@@ -407,9 +411,10 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         if backend is None:
             backend = qiskit.BasicAer.get_backend("statevector_simulator")
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = PhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=qi
-        )
+        with self.assertWarns(DeprecationWarning):
+            phase_est = PhaseEstimation(
+                num_evaluation_qubits=num_evaluation_qubits, quantum_instance=qi
+            )
         if construct_circuit:
             pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
             result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)

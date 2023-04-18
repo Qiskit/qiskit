@@ -24,6 +24,7 @@ from qiskit.transpiler.passes import DenseLayout
 from qiskit.converters import circuit_to_dag
 from qiskit.test import QiskitTestCase
 from qiskit.providers.fake_provider import FakeTokyo
+from qiskit.transpiler.passes.layout.dense_layout import _build_error_matrix
 
 
 class TestDenseLayout(QiskitTestCase):
@@ -150,12 +151,16 @@ class TestDenseLayout(QiskitTestCase):
 
     def test_19q_target_with_noise_error_matrix(self):
         """Test the error matrix construction works for a just cx target."""
-        pass_ = DenseLayout(target=self.target_19)
         expected_error_mat = np.zeros((19, 19))
         for qargs, props in self.target_19["cx"].items():
             error = props.error
             expected_error_mat[qargs[0]][qargs[1]] = error
-        np.testing.assert_array_equal(expected_error_mat, pass_.error_mat)
+        error_mat = _build_error_matrix(
+            self.target_19.num_qubits,
+            {i: i for i in range(self.target_19.num_qubits)},
+            target=self.target_19,
+        )[0]
+        np.testing.assert_array_equal(expected_error_mat, error_mat)
 
     def test_multiple_gate_error_matrix(self):
         """Test error matrix ona small target with multiple gets on each qubit generates"""
@@ -192,7 +197,10 @@ class TestDenseLayout(QiskitTestCase):
                 [2e-2, 1e-3, 1e-2],
             ]
         )
-        np.testing.assert_array_equal(expected_error_matrix, DenseLayout(target=target).error_mat)
+        error_mat = _build_error_matrix(
+            target.num_qubits, {i: i for i in range(target.num_qubits)}, target=target
+        )[0]
+        np.testing.assert_array_equal(expected_error_matrix, error_mat)
 
     def test_5q_circuit_20q_with_if_else(self):
         """Test layout works finds a dense 5q subgraph in a 19q heavy hex target."""
