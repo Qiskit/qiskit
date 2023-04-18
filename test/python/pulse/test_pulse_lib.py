@@ -328,7 +328,7 @@ class TestParametricPulses(QiskitTestCase):
 
         GaussianSquareEcho(duration=50, width=0, sigma=16, amp=0.1, active_amp=0.2)
         GaussianSquareEcho(duration=50, width=0, sigma=16, amp=0.1, active_amp=0.4)
-        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=0.5, active_amp=0.8)
+        GaussianSquareEcho(duration=50, width=0, sigma=16, amp=0.5, active_amp=0.3)
         GaussianSquareEcho(duration=50, width=0, sigma=16, amp=-0.1, active_amp=0.2)
         GaussianSquareEcho(duration=50, width=0, sigma=16, amp=0.1, active_amp=-0.2)
         GaussianSquareEcho(duration=50, width=0, sigma=16, amp=0.1, active_amp=0.6)
