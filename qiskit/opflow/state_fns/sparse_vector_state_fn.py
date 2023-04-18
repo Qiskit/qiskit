@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -26,10 +26,11 @@ from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
 from qiskit.utils import algorithm_globals
+from qiskit.utils.deprecation import deprecate_func
 
 
 class SparseVectorStateFn(StateFn):
-    """A class for sparse state functions and measurements in vector representation.
+    """Deprecated: A class for sparse state functions and measurements in vector representation.
 
     This class uses ``scipy.sparse.spmatrix`` for the internal representation.
     """
@@ -37,6 +38,10 @@ class SparseVectorStateFn(StateFn):
     primitive: scipy.sparse.spmatrix
 
     # TODO allow normalization somehow?
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: scipy.sparse.spmatrix,

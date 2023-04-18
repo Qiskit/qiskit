@@ -38,7 +38,8 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_matrix_decomposition(self):
         """Test the default decomposition."""
-        op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
+        with self.assertWarns(DeprecationWarning):
+            op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
         time = 0.123
 
         matrix = op.to_matrix()
@@ -50,7 +51,8 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_lie_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
-        op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
+        with self.assertWarns(DeprecationWarning):
+            op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
         time = 0.123
         reps = 4
         evo_gate = PauliEvolutionGate(op, time, synthesis=LieTrotter(reps=reps))
@@ -59,29 +61,32 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_rzx_order(self):
         """Test ZX and XZ is mapped onto the correct qubits."""
-        for op, indices in zip([X ^ Z, Z ^ X], [(0, 1), (1, 0)]):
-            with self.subTest(op=op, indices=indices):
-                evo_gate = PauliEvolutionGate(op)
-                decomposed = evo_gate.definition.decompose()
+        with self.assertWarns(DeprecationWarning):
+            op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
+            for op, indices in zip([X ^ Z, Z ^ X], [(0, 1), (1, 0)]):
+                with self.subTest(op=op, indices=indices):
+                    evo_gate = PauliEvolutionGate(op)
+                    decomposed = evo_gate.definition.decompose()
 
-                #           ┌───┐┌───────┐┌───┐
-                # q_0: ─────┤ X ├┤ Rz(2) ├┤ X ├─────
-                #      ┌───┐└─┬─┘└───────┘└─┬─┘┌───┐
-                # q_1: ┤ H ├──■─────────────■──┤ H ├
-                #      └───┘                   └───┘
-                ref = QuantumCircuit(2)
-                ref.h(indices[1])
-                ref.cx(indices[1], indices[0])
-                ref.rz(2.0, indices[0])
-                ref.cx(indices[1], indices[0])
-                ref.h(indices[1])
+                    #           ┌───┐┌───────┐┌───┐
+                    # q_0: ─────┤ X ├┤ Rz(2) ├┤ X ├─────
+                    #      ┌───┐└─┬─┘└───────┘└─┬─┘┌───┐
+                    # q_1: ┤ H ├──■─────────────■──┤ H ├
+                    #      └───┘                   └───┘
+                    ref = QuantumCircuit(2)
+                    ref.h(indices[1])
+                    ref.cx(indices[1], indices[0])
+                    ref.rz(2.0, indices[0])
+                    ref.cx(indices[1], indices[0])
+                    ref.h(indices[1])
 
-                # don't use circuit equality since RZX here decomposes with RZ on the bottom
-                self.assertTrue(Operator(decomposed).equiv(ref))
+                    # don't use circuit equality since RZX here decomposes with RZ on the bottom
+                    self.assertTrue(Operator(decomposed).equiv(ref))
 
     def test_suzuki_trotter(self):
         """Test constructing the circuit with Lie Trotter decomposition."""
-        op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
+        with self.assertWarns(DeprecationWarning):
+            op = (X ^ 3) + (Y ^ 3) + (Z ^ 3)
         time = 0.123
         reps = 4
         for order in [2, 4, 6]:
@@ -103,7 +108,8 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_suzuki_trotter_manual(self):
         """Test the evolution circuit of Suzuki Trotter against a manually constructed circuit."""
-        op = X + Y
+        with self.assertWarns(DeprecationWarning):
+            op = X + Y
         time = 0.1
         reps = 1
         evo_gate = PauliEvolutionGate(op, time, synthesis=SuzukiTrotter(order=4, reps=reps))
@@ -151,7 +157,8 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_qdrift_evolution(self):
         """Test QDrift on an example."""
-        op = 0.1 * (Z ^ Z) + (X ^ I) + (I ^ X) + 0.2 * (X ^ X)
+        with self.assertWarns(DeprecationWarning):
+            op = 0.1 * (Z ^ Z) + (X ^ I) + (I ^ X) + 0.2 * (X ^ X)
         reps = 20
         qdrift = PauliEvolutionGate(op, time=0.5 / reps, synthesis=QDrift(reps=reps)).definition
         exact = scipy.linalg.expm(-0.5j * op.to_matrix()).dot(np.eye(4)[0, :])
@@ -163,7 +170,8 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_passing_grouped_paulis(self):
         """Test passing a list of already grouped Paulis."""
-        grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
+        with self.assertWarns(DeprecationWarning):
+            grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
         evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
         decomposed = evo_gate.definition.decompose()
         self.assertEqual(decomposed.count_ops()["rz"], 4)
@@ -172,7 +180,8 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_list_from_grouped_paulis(self):
         """Test getting a string representation from grouped Paulis."""
-        grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
+        with self.assertWarns(DeprecationWarning):
+            grouped_ops = [(X ^ Y) + (Y ^ X), (Z ^ I) + (Z ^ Z) + (I ^ Z), (X ^ X)]
         evo_gate = PauliEvolutionGate(grouped_ops, time=0.12, synthesis=LieTrotter())
 
         pauli_strings = []
@@ -192,7 +201,8 @@ class TestEvolutionGate(QiskitTestCase):
     def test_dag_conversion(self):
         """Test constructing a circuit with evolutions yields a DAG with evolution blocks."""
         time = Parameter("t")
-        evo = PauliEvolutionGate((Z ^ 2) + (X ^ 2), time=time)
+        with self.assertWarns(DeprecationWarning):
+            evo = PauliEvolutionGate((Z ^ 2) + (X ^ 2), time=time)
 
         circuit = QuantumCircuit(2)
         circuit.h(circuit.qubits)
@@ -210,7 +220,8 @@ class TestEvolutionGate(QiskitTestCase):
     def test_cnot_chain_options(self, option):
         """Test selecting different kinds of CNOT chains."""
 
-        op = Z ^ Z ^ Z
+        with self.assertWarns(DeprecationWarning):
+            op = Z ^ Z ^ Z
         synthesis = LieTrotter(reps=1, cx_structure=option)
         evo = PauliEvolutionGate(op, synthesis=synthesis)
 
@@ -254,14 +265,16 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_pauliop_coefficients_respected(self):
         """Test that global ``PauliOp`` coefficients are being taken care of."""
-        evo = PauliEvolutionGate(5 * (Z ^ I), time=1, synthesis=LieTrotter())
+        with self.assertWarns(DeprecationWarning):
+            evo = PauliEvolutionGate(5 * (Z ^ I), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
         rz_angle = circuit.data[0].operation.params[0]
         self.assertEqual(rz_angle, 10)
 
     def test_paulisumop_coefficients_respected(self):
         """Test that global ``PauliSumOp`` coefficients are being taken care of."""
-        evo = PauliEvolutionGate(5 * (2 * X + 3 * Y - Z), time=1, synthesis=LieTrotter())
+        with self.assertWarns(DeprecationWarning):
+            evo = PauliEvolutionGate(5 * (2 * X + 3 * Y - Z), time=1, synthesis=LieTrotter())
         circuit = evo.definition.decompose()
         rz_angles = [
             circuit.data[0].operation.params[0],  # X
@@ -275,7 +288,8 @@ class TestEvolutionGate(QiskitTestCase):
 
         Regression test of Qiskit/qiskit-terra#7544.
         """
-        operator = I ^ Z ^ Z
+        with self.assertWarns(DeprecationWarning):
+            operator = I ^ Z ^ Z
         time = 0.5
         exact = scipy.linalg.expm(-1j * time * operator.to_matrix())
         lie_trotter = PauliEvolutionGate(operator, time, synthesis=LieTrotter())
@@ -295,7 +309,8 @@ class TestEvolutionGate(QiskitTestCase):
     @data(LieTrotter, MatrixExponential)
     def test_inverse(self, synth_cls):
         """Test calculating the inverse is correct."""
-        evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=synth_cls())
+        with self.assertWarns(DeprecationWarning):
+            evo = PauliEvolutionGate(X + Y, time=0.12, synthesis=synth_cls())
 
         circuit = QuantumCircuit(1)
         circuit.append(evo, circuit.qubits)
@@ -305,7 +320,8 @@ class TestEvolutionGate(QiskitTestCase):
 
     def test_labels_and_name(self):
         """Test the name and labels are correct."""
-        operators = [X, (X + Y), ((I ^ Z) + (Z ^ I) - 0.2 * (X ^ X))]
+        with self.assertWarns(DeprecationWarning):
+            operators = [X, (X + Y), ((I ^ Z) + (Z ^ I) - 0.2 * (X ^ X))]
 
         # note: the labels do not show coefficients!
         expected_labels = ["X", "(X + Y)", "(IZ + ZI + XX)"]

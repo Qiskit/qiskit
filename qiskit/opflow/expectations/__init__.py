@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,9 +16,15 @@ Expectations (:mod:`qiskit.opflow.expectations`)
 
 .. currentmodule:: qiskit.opflow.expectations
 
-Expectations are converters which enable the computation of the expectation value of an
-Observable with respect to some state function. They traverse an Operator tree, replacing
-:class:`~qiskit.opflow.state_fns.OperatorStateFn` measurements with equivalent
+.. deprecated:: 0.24.0
+
+    The :mod:`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
+
+Expectations are converters which enable the computation of the expectation
+value of an Observable with respect to some state function. They traverse an Operator tree,
+replacing :class:`~qiskit.opflow.state_fns.OperatorStateFn` measurements with equivalent
 measurements which are more amenable to computation on quantum or classical hardware.
 For example, if one would like to measure the
 expectation value of an Operator ``o`` expressed as a sum of Paulis with respect to some state
@@ -27,6 +33,7 @@ measurement ~StateFn(o), use a :class:`PauliExpectation` to convert it to a diag
 and circuit pre-rotations to append to the state, and sample this circuit on Quantum hardware with
 a :class:`~qiskit.opflow.converters.CircuitSampler`. All in all, this would be:
 ``my_sampler.convert(my_expect.convert(~StateFn(o)) @ my_state).eval()``.
+
 
 Expectation Base Class
 ----------------------
