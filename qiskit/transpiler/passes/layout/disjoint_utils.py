@@ -31,14 +31,14 @@ T = TypeVar("T")
 
 def run_pass_over_connected_components(
     dag: DAGCircuit,
-    target: Union[Target, CouplingMap],
+    components_source: Union[Target, CouplingMap],
     run_func: Callable[[DAGCircuit, CouplingMap], T],
 ) -> List[T]:
     """Run a transpiler pass inner function over mapped components."""
-    if isinstance(target, Target):
-        coupling_map = target.build_coupling_map(filter_idle_qubits=True)
+    if isinstance(components_source, Target):
+        coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
     else:
-        coupling_map = target
+        coupling_map = components_source
     cmap_components = coupling_map.connected_components()
     # If graph is connected we only need to run the pass once
     if len(cmap_components) == 1:
@@ -138,14 +138,14 @@ def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
 
 
 def require_layout_isolated_to_component(
-    dag: DAGCircuit, target: Union[Target, CouplingMap]
+    dag: DAGCircuit, components_source: Union[Target, CouplingMap]
 ) -> bool:
     """Check that the layout of the dag does not require connectivity across connected components
     in the CouplingMap"""
-    if isinstance(target, Target):
-        coupling_map = target.build_coupling_map(filter_idle_qubits=True)
+    if isinstance(components_source, Target):
+        coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
     else:
-        coupling_map = target
+        coupling_map = components_source
     qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
     component_sets = [set(x.graph.nodes()) for x in coupling_map.connected_components()]
     for inst in dag.two_qubit_ops():
