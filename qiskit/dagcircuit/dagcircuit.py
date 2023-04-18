@@ -60,7 +60,7 @@ class DAGCircuit:
         self.name = None
 
         # Circuit metadata
-        self.metadata = None
+        self.metadata = {}
 
         # Set of wires (Register,idx) in the dag
         self._wires = set()
