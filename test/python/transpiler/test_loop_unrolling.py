@@ -12,21 +12,22 @@
 
 """Tests for loop unrolling passes"""
 
+from math import pi
 from ddt import ddt, data
 
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit import Clbit, Qubit, Parameter
+from qiskit import QuantumCircuit
+from qiskit.circuit import Parameter
 from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.optimization import UnrollForLoops, ForLoopBodyOptimizer
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
-from math import pi
 
 
 @ddt
 class TestUnrollForLoop(QiskitTestCase):
+    """Tests for unrolling for loops"""
 
     @classmethod
     def setUpClass(cls):
@@ -35,6 +36,7 @@ class TestUnrollForLoop(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_only_for_loop(self, nloops):
+        """Test unrolling circuit with only a for-loop"""
         body = QuantumCircuit(1)
         body.rx(0.1, 0)
         circ = QuantumCircuit(1)
@@ -44,11 +46,12 @@ class TestUnrollForLoop(QiskitTestCase):
 
     @data(1, 2, 3)
     def test_parametrized_for_loop(self, nloops):
+        """Test unrolling parameterized circuits."""
         body = QuantumCircuit(1)
-        θ = Parameter("θ")
-        body.rx(θ + pi / 2, 0)
+        theta = Parameter("θ")
+        body.rx(theta + pi / 2, 0)
         circ = QuantumCircuit(1)
-        circ.for_loop(range(nloops), θ, body.copy(), [0], [])
+        circ.for_loop(range(nloops), theta, body.copy(), [0], [])
         ccirc = self._pass(circ)
 
         expected = QuantumCircuit(1)
@@ -57,6 +60,7 @@ class TestUnrollForLoop(QiskitTestCase):
         self.assertEqual(Operator(expected), Operator(ccirc))
 
     def test_for_loop_compound(self):
+        """Test unrolling for-loop amidst other operations"""
         body = QuantumCircuit(1)
         body.rx(pi, 0)
         circ = QuantumCircuit(1)
@@ -71,22 +75,10 @@ class TestUnrollForLoop(QiskitTestCase):
         expected.y(0)
         self.assertEqual(expected, self._pass(circ))
 
-    @data(1, 2, 3)
-    def test_multiple_loops(self, nloops):
-        body = QuantumCircuit(1)
-        θ = Parameter("θ")
-        body.rx(θ + pi / 2, 0)
-        circ = QuantumCircuit(1)
-        circ.for_loop(range(nloops), θ, body.copy(), [0], [])
-        ccirc = self._pass(circ)
 
-        expected = QuantumCircuit(1)
-        for i in range(nloops):
-            expected.rx(i, 0)
-        self.assertEqual(Operator(expected), Operator(ccirc))
-        
 @ddt
 class TestForLoopBodyOptimizer(QiskitTestCase):
+    """Test optimization of for loops."""
 
     @classmethod
     def setUpClass(cls):
@@ -94,14 +86,15 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         cls._pass = UnrollForLoops()
 
     def test_pre_opt_1(self):
+        """Test pre-optimization to pre_opt_cnt=1"""
         pre_opt_cnt = 1
         circ = QuantumCircuit(2)
         circ.rx(0.1, 0)
-        circ.rx(0.2, 0)        
+        circ.rx(0.2, 0)
         circ.x(0)
         # define for loop
         body = QuantumCircuit(1)
-        body.rx(pi/2, 0)
+        body.rx(pi / 2, 0)
         circ.for_loop(range(2), None, body, [0], [])
         basis_gates = ["x", "rx"]
         _opt = [
@@ -121,14 +114,15 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         self.assertEqual(ccirc, expected)
 
     def test_pre_opt_2(self):
-        pre_opt_cnt = 2        
+        """Test pre-optimization to pre_opt_cnt=2"""
+        pre_opt_cnt = 2
         circ = QuantumCircuit(2)
         circ.rx(0.1, 0)
-        circ.rx(0.2, 0)        
+        circ.rx(0.2, 0)
         circ.x(0)
         # define for loop
         body = QuantumCircuit(1)
-        body.rx(pi/2, 0)
+        body.rx(pi / 2, 0)
         circ.for_loop(range(2), None, body, [0], [])
         basis_gates = ["x", "rx"]
         _opt = [
@@ -155,7 +149,7 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
            q_1: ─────────────■───────┤1          ├
                                      └───────────┘
         where the body of the for-loop is
-                ┌─────────┐     
+                ┌─────────┐
            q_0: ┤ Rx(π/2) ├──■──
                 └─────────┘┌─┴─┐
            q_1: ───────────┤ X ├
@@ -167,14 +161,14 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
            q_1: ────────────────■──┤ X ├┤1          ├
                                    └───┘└───────────┘
         """
-        pre_opt_cnt = 3   
+        pre_opt_cnt = 3
         circ = QuantumCircuit(2)
         circ.rx(0.1, 0)
-        circ.cx(1, 0)        
+        circ.cx(1, 0)
         circ.x(0)
         # define for loop
         body = QuantumCircuit(2)
-        body.rx(pi/2, 0)
+        body.rx(pi / 2, 0)
         body.cx(0, 1)
         circ.for_loop(range(2), None, body, [0, 1], [])
         basis_gates = ["x", "rx"]
@@ -187,27 +181,45 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         ccirc = _pass(circ)
 
         expected = QuantumCircuit(2)
-        expected.rx(0.1, 0)
-        expected.rx(pi / 2 + pi + 0.2, 0)
+        expected.rx(0.1 + pi + pi / 2, 0)
+        expected.cx(1, 0)
+        expected.cx(0, 1)
         expected.for_loop(range(1), None, body, [0, 1], [])
-        breakpoint()
         self.assertEqual(ccirc, expected)
 
     def test_pre_opt_breadth(self):
         """
         Test that the circuit,
+             ┌─────────┐┌───┐┌───────────┐
+        q_0: ┤ Rx(0.1) ├┤ X ├┤0          ├
+             ├─────────┤├───┤│  For_loop │
+        q_1: ┤ Rx(0.2) ├┤ X ├┤1          ├
+             └──┬───┬──┘└─┬─┘└───┬───┬───┘
+        q_2: ───┤ Z ├─────■──────┤ Z ├────
+                └───┘            └───┘
+        with for loop body,
+             ┌─────────┐
+        q_0: ┤ Rx(π/2) ├──■─────────────
+             └─────────┘┌─┴─┐┌─────────┐
+        q_1: ───────────┤ X ├┤ Rx(0.3) ├
+                        └───┘└─────────┘
+
+        Where this circuit considers operations on qubits outside
         """
-        pre_opt_cnt = 40
+        pre_opt_cnt = 10
         circ = QuantumCircuit(3)
         circ.rx(0.1, 0)
         circ.x(0)
-        circ.cx(1, 2)
-        circ.y(2)
+        circ.z(2)
+        circ.rx(0.2, 1)
+        circ.cx(2, 1)
+        circ.z(2)
         # define for loop
         body = QuantumCircuit(2)
-        body.rx(pi/2, 0)
+        body.rx(pi / 2, 0)
         body.cx(0, 1)
-        circ.for_loop(range(2), None, body, [0, 1], [])
+        body.rx(0.3, 1)
+        circ.for_loop(range(3), None, body, [0, 1], [])
         basis_gates = ["x", "rx"]
         _opt = [
             Optimize1qGatesDecomposition(basis=basis_gates),
@@ -217,29 +229,31 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
         ccirc = _pass(circ)
 
-        expected = QuantumCircuit(2)
-        expected.rx(0.1, 0)
-        expected.rx(pi / 2 + pi + 0.2, 0)
-        expected.for_loop(range(1), None, body, [0, 1], [])
-        breakpoint()
+        expected = QuantumCircuit(3)
+        expected.rx(0.1 + pi + pi / 2, 0)
+        expected.rx(0.2 + 0.3, 1)
+        expected.z(2)
+        expected.cx(2, 1)
+        expected.cx(0, 1)
+        expected.z(2)
+        expected.for_loop(range(2), None, body, [0, 1], [])
         self.assertEqual(ccirc, expected)
-        
+
     def test_post_opt(self):
+        """Test optimization with operations after for-loop"""
         circ = QuantumCircuit(2)
         # define for loop
         body = QuantumCircuit(1)
-        body.rx(pi/2, 0)
+        body.rx(pi / 2, 0)
         circ.for_loop(range(2), None, body, [0], [])
         circ.rx(0.1, 0)
-        circ.rx(0.2, 0)        
+        circ.rx(0.2, 0)
         circ.x(0)
         basis_gates = ["x", "rx"]
         _opt = [
             Optimize1qGatesDecomposition(basis=basis_gates),
             CommutativeCancellation(basis_gates=basis_gates),
         ]
-        print('')
-
         pm_opt = PassManager(_opt)
         _pass = ForLoopBodyOptimizer(pm_opt, post_opt_cnt=3)
         ccirc = _pass(circ)
@@ -247,9 +261,4 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         expected = QuantumCircuit(2)
         expected.for_loop(range(1), None, body, [0], [])
         expected.rx(3 * pi / 2 + 0.1 + 0.2, 0)
-
-        print(circ)
-        print(ccirc)
-        print(expected)
-        breakpoint()
         self.assertEqual(ccirc, expected)

@@ -1536,23 +1536,20 @@ class DAGCircuit:
         and [DAGNode] is its predecessors in BFS order.
         """
         from collections import deque
+
         queue = deque([(node, None)])
         visited = set()
         children = dict()
         while queue:
-            node, pred = queue.popleft()
-            if node not in visited:
-                visited.add(node)
-                if pred is not None and isinstance(pred, DAGOpNode):
-                    if pred not in children:
-                        children[pred] = []
-                    children[pred].append(node)
-                for child_node in self.predecessors(node):
-                    if child_node not in visited and isinstance(child_node, DAGOpNode):
-                        queue.append((child_node, node))
-        for parent, child_list in children.items():
-            yield parent, child_list
-
+            parent, pred = queue.popleft()
+            if parent not in visited:
+                visited.add(parent)
+                children = [
+                    child for child in self.predecessors(parent) if isinstance(child, DAGOpNode)
+                ]
+                if pred is not None:
+                    yield parent, children
+                queue.extend((child, parent) for child in children if child not in visited)
 
     def bfs_successors(self, node):
         """
