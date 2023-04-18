@@ -21,7 +21,15 @@ from enum import Enum
 
 import numpy as np
 
-from qiskit.circuit import Gate, Instruction, QuantumCircuit, ControlledGate
+from qiskit.circuit import (
+    Gate,
+    Instruction,
+    QuantumCircuit,
+    ControlledGate,
+    CASE_DEFAULT,
+    Clbit,
+    ClassicalRegister,
+)
 from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
@@ -94,6 +102,8 @@ class Value(TypeKeyBase):
     INTEGER = b"i"
     FLOAT = b"f"
     COMPLEX = b"c"
+    CASE_DEFAULT = b"d"
+    REGISTER = b"R"
     NUMPY_OBJ = b"n"
     PARAMETER = b"p"
     PARAMETER_VECTOR = b"v"
@@ -119,8 +129,12 @@ class Value(TypeKeyBase):
             return cls.PARAMETER_EXPRESSION
         if isinstance(obj, str):
             return cls.STRING
+        if isinstance(obj, (Clbit, ClassicalRegister)):
+            return cls.REGISTER
         if obj is None:
             return cls.NULL
+        if obj is CASE_DEFAULT:
+            return cls.CASE_DEFAULT
 
         raise exceptions.QpyError(
             f"Object type '{type(obj)}' is not supported in {cls.__name__} namespace."
