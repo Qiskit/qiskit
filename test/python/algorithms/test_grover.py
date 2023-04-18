@@ -326,7 +326,7 @@ class TestGrover(QiskitAlgorithmsTestCase):
                 sample_from_iterations=sample_from_iterations,
             )
         else:
-            with self.assertWarns(PendingDeprecationWarning):
+            with self.assertWarns(DeprecationWarning):
                 grover = Grover(
                     quantum_instance=self.qasm,
                     iterations=iterations,

@@ -92,10 +92,10 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         operator = SummedOp([X, Z])
         initial_state = StateFn([1, 0])
         time = 1
-        evolution_problem = EvolutionProblem(operator, time, initial_state)
-
-        trotter_qrte = TrotterQRTE(product_formula=product_formula)
-        evolution_result_state_circuit = trotter_qrte.evolve(evolution_problem).evolved_state
+        with self.assertWarns(DeprecationWarning):
+            evolution_problem = EvolutionProblem(operator, time, initial_state)
+            trotter_qrte = TrotterQRTE(product_formula=product_formula)
+            evolution_result_state_circuit = trotter_qrte.evolve(evolution_problem).evolved_state
 
         np.testing.assert_equal(evolution_result_state_circuit.eval(), expected_state)
 
@@ -107,7 +107,8 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
 
         initial_state = Zero
         time = 3
-        evolution_problem = EvolutionProblem(operator, time, initial_state, aux_ops)
+        with self.assertWarns(DeprecationWarning):
+            evolution_problem = EvolutionProblem(operator, time, initial_state, aux_ops)
 
         expected_evolved_state = VectorStateFn(
             Statevector([0.98008514 + 0.13970775j, 0.01991486 + 0.13970775j], dims=(2,))
@@ -126,8 +127,9 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
                     operator=operator,
                     backend=backend,
                 )
-                trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
-                evolution_result = trotter_qrte.evolve(evolution_problem)
+                with self.assertWarns(DeprecationWarning):
+                    trotter_qrte = TrotterQRTE(quantum_instance=backend, expectation=expectation)
+                    evolution_result = trotter_qrte.evolve(evolution_problem)
 
                 np.testing.assert_equal(
                     evolution_result.evolved_state.eval(), expected_evolved_state
@@ -169,10 +171,10 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         """Test for TrotterQRTE on two qubits with various types of a Hamiltonian."""
         # LieTrotter with 1 rep
         initial_state = StateFn([1, 0, 0, 0])
-        evolution_problem = EvolutionProblem(operator, 1, initial_state)
-
-        trotter_qrte = TrotterQRTE()
-        evolution_result = trotter_qrte.evolve(evolution_problem)
+        with self.assertWarns(DeprecationWarning):
+            evolution_problem = EvolutionProblem(operator, 1, initial_state)
+            trotter_qrte = TrotterQRTE()
+            evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     def test_trotter_qrte_trotter_two_qubits_with_params(self):
@@ -184,14 +186,15 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         params_dict = {w_param: 2.0, u_param: 3.0}
         operator = w_param * (Z ^ Z) / 2.0 + (Z ^ I) + u_param * (I ^ Z) / 3.0
         time = 1
-        evolution_problem = EvolutionProblem(
-            operator, time, initial_state, param_value_dict=params_dict
-        )
         expected_state = VectorStateFn(
             Statevector([-0.9899925 - 0.14112001j, 0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j], dims=(2, 2))
         )
-        trotter_qrte = TrotterQRTE()
-        evolution_result = trotter_qrte.evolve(evolution_problem)
+        with self.assertWarns(DeprecationWarning):
+            evolution_problem = EvolutionProblem(
+                operator, time, initial_state, param_value_dict=params_dict
+            )
+            trotter_qrte = TrotterQRTE()
+            evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     @data(
@@ -213,11 +216,11 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         """Test for TrotterQRTE with QDrift."""
         operator = SummedOp([X, Z])
         time = 1
-        evolution_problem = EvolutionProblem(operator, time, initial_state)
-
         algorithm_globals.random_seed = 0
-        trotter_qrte = TrotterQRTE(product_formula=QDrift())
-        evolution_result = trotter_qrte.evolve(evolution_problem)
+        with self.assertWarns(DeprecationWarning):
+            evolution_problem = EvolutionProblem(operator, time, initial_state)
+            trotter_qrte = TrotterQRTE(product_formula=QDrift())
+            evolution_result = trotter_qrte.evolve(evolution_problem)
         np.testing.assert_equal(evolution_result.evolved_state.eval(), expected_state)
 
     @data((Parameter("t"), {}), (None, {Parameter("x"): 2}), (None, None))
@@ -228,8 +231,8 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
         initial_state = Zero
         time = 1
         algorithm_globals.random_seed = 0
-        trotter_qrte = TrotterQRTE()
-        with assert_raises(ValueError):
+        with self.assertWarns(DeprecationWarning):
+            trotter_qrte = TrotterQRTE()
             evolution_problem = EvolutionProblem(
                 operator,
                 time,
@@ -237,6 +240,7 @@ class TestTrotterQRTE(QiskitOpflowTestCase):
                 t_param=t_param,
                 param_value_dict=param_value_dict,
             )
+        with assert_raises(ValueError):
             _ = trotter_qrte.evolve(evolution_problem)
 
 

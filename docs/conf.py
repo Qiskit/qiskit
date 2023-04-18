@@ -126,4 +126,3 @@ doctest_default_flags = doctest.ELLIPSIS | doctest.NORMALIZE_WHITESPACE | doctes
 # >> code
 # output
 doctest_test_doctest_blocks = ""
-
