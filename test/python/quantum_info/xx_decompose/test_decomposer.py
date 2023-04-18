@@ -38,11 +38,11 @@ EPSILON = 1e-8
 class TestXXDecomposer(unittest.TestCase):
     """Tests for decomposition of two-qubit unitaries over discrete gates from XX family."""
 
-    def test_valid_basis_fidelity(self):
+    def test_valid_basis_fidelity1(self):
         """Test that error raised if basis_fidelity=={}"""
         self.assertRaises(QiskitError, XXDecomposer, basis_fidelity={})
 
-    def test_valid_basis_fidelity(self):
+    def test_valid_basis_fidelity2(self):
         """Test that error raised if basis_fidelity==None"""
         self.assertRaises(QiskitError, XXDecomposer, basis_fidelity=None)
 
