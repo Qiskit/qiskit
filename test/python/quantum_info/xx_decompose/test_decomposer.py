@@ -22,6 +22,7 @@ import numpy as np
 from scipy.stats import unitary_group
 
 import qiskit
+from qiskit import QiskitError
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.xx_decompose.decomposer import (
     XXDecomposer,
@@ -36,6 +37,14 @@ EPSILON = 1e-8
 @ddt.ddt
 class TestXXDecomposer(unittest.TestCase):
     """Tests for decomposition of two-qubit unitaries over discrete gates from XX family."""
+
+    def test_valid_basis_fidelity(self):
+        """Test that error raised if basis_fidelity=={}"""
+        self.assertRaises(QiskitError, XXDecomposer, basis_fidelity={})
+
+    def test_valid_basis_fidelity(self):
+        """Test that error raised if basis_fidelity==None"""
+        self.assertRaises(QiskitError, XXDecomposer, basis_fidelity=None)
 
     decomposer = XXDecomposer(euler_basis="PSX")
 

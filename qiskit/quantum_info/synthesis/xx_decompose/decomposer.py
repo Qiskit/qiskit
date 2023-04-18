@@ -70,6 +70,8 @@ class XXDecomposer:
             has no efficient decomposition of its own. Useful for special cases involving 2 or 3
             applications of XX(pi/2), in which case standard synthesis methods provide lower
             1Q gate count.
+    Raises:
+        QiskitError: If `basis_fidelity` is neither a non-empty `dict` nor a `float`.
 
     .. note::
         If ``embodiments`` is not passed, or if an entry is missing, it will be populated as needed
@@ -84,7 +86,9 @@ class XXDecomposer:
         backup_optimizer: Callable[..., QuantumCircuit] | None = None,
     ):
         if isinstance(basis_fidelity, dict) and len(basis_fidelity) == 0:
-            raise (QiskitError("`basis_fidelity` dictionary is empty."))
+            raise QiskitError("`basis_fidelity` dictionary is empty.")
+        if not isinstance(basis_fidelity, float):
+            raise QiskitError("`basis_fidelity` is neither a non-empty `dict` nor a `float`")
         self.basis_fidelity = basis_fidelity
 
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
