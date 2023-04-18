@@ -224,7 +224,7 @@ class VF2PostLayout(AnalysisPass):
             if not self.strict_direction:
                 has_operations = set(itertools.chain.from_iterable(self.target.qargs))
                 to_remove = set(cm_graph.node_indices()).difference(has_operations)
-                if len(to_remove) > 0:
+                if to_remove:
                     cm_graph.remove_nodes_from(list(to_remove))
         else:
             cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(

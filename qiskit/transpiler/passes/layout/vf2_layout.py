@@ -147,7 +147,7 @@ class VF2Layout(AnalysisPass):
         if self.target is not None:
             has_operations = set(itertools.chain.from_iterable(self.target.qargs))
             to_remove = set(range(len(cm_nodes))).difference(has_operations)
-            if len(to_remove) > 0:
+            if to_remove:
                 cm_graph.remove_nodes_from([cm_nodes[i] for i in to_remove])
 
         # To avoid trying to over optimize the result by default limit the number
