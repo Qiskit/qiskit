@@ -514,7 +514,7 @@ class TestParametricPulses(QiskitTestCase):
             repr(gse),
             (
                 "GaussianSquareEcho(duration=20, amp=1.0, angle=0.0, sigma=30, width=14.0,"
-                "active_amp=0.0, active_angle=0.0)"
+                " active_amp=0.0, active_angle=0.0)"
             ),
         )
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
