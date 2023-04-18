@@ -19,8 +19,7 @@ from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 from qiskit.utils.deprecation import deprecate_arg
-
-# from qiskit.transpiler.target import MeasureGrouping
+from qiskit.transpiler.target import MeasureGrouping
 
 if TYPE_CHECKING:
     from qiskit.transpiler.target import Target
@@ -78,8 +77,7 @@ def measure(
         return _measure_v2(
             qubits=qubits,
             target=target or backend.target,
-            # meas_group=MeasureGrouping(meas_map=meas_map),
-            meas_group=meas_map,
+            meas_group=MeasureGrouping(meas_map=meas_map),
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )
@@ -190,8 +188,7 @@ def _measure_v2(
     """
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
 
-    # meas_map = meas_group.get_qubit_groups(qubits=qubits)
-    meas_map = target.meas_group.get_qubit_groups(qubits=qubits)
+    meas_map = meas_group.get_qubit_groups(qubits=qubits)
 
     for measure_qubit in meas_map:
         try:
