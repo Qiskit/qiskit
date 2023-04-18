@@ -93,7 +93,7 @@ class DynamicalDecoupling(TransformationPass):
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the class ``DynamicalDecouplingPadding``, which performs the same "
+            "Instead, use :class:`~.DynamicalDecouplingPadding`, which performs the same "
             "function but requires scheduling and alignment analysis passes to run prior to it."
         ),
         since="0.21.0",

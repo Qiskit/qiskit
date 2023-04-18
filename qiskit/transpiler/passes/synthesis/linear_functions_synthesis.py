@@ -28,7 +28,7 @@ class LinearFunctionsSynthesis(HighLevelSynthesis):
     """
 
     @deprecate_func(
-        additional_msg="Instead, use the class ``HighLevelSynthesis``.",
+        additional_msg="Instead, use :class:`~.HighLevelSynthesis`.",
         since="0.23.0",
     )
     def __init__(self):

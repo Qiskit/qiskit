@@ -20,7 +20,7 @@ class CheckCXDirection(CheckGateDirection):
     """Deprecated: use :class:`qiskit.transpiler.passes.CheckGateDirection` pass instead."""
 
     @deprecate_func(
-        additional_msg="Instead, use the more generic ``CheckGateDirection`` pass.",
+        additional_msg="Instead, use the more generic :class:`~.CheckGateDirection` pass.",
         since="0.21.0",
     )
     def __init__(self, coupling_map=None, target=None):

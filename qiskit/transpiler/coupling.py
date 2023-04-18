@@ -127,8 +127,7 @@ class CouplingMap:
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the ``reduce()`` method. It does the same thing, but preserves "
-            "nodelist order."
+            "Instead, use :meth:`~reduce`. It does the same thing, but preserves nodelist order."
         ),
         since="0.20.0",
     )

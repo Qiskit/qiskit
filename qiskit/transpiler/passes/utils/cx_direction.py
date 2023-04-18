@@ -20,7 +20,7 @@ class CXDirection(GateDirection):
     """Deprecated: use :class:`qiskit.transpiler.passes.GateDirection` pass instead."""
 
     @deprecate_func(
-        additional_msg="Instead, use the more generic ``GateDirection`` pass.",
+        additional_msg="Instead, use the more generic :class:`~.GateDirection` pass.",
         since="0.21.0",
     )
     def __init__(self, coupling_map):

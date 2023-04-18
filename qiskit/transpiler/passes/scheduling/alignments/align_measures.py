@@ -88,9 +88,8 @@ class AlignMeasures(TransformationPass):
     """
 
     @deprecate_func(
-        # TODO: This grammar doesn't make sense
         additional_msg=(
-            "Instead, use the class ``ConstrainedReschedule``, which performs the same function "
+            "Instead, use :class:`~.ConstrainedReschedule`, which performs the same function "
             "but also supports aligning to additional timing constraints."
         ),
         since="0.21.0",

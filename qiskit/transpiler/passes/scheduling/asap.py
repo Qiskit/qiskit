@@ -34,9 +34,8 @@ class ASAPSchedule(BaseSchedulerTransform):
     """
 
     @deprecate_func(
-        # TODO: This grammar doesn't make sense
         additional_msg=(
-            "Instead, use the class ``ASAPScheduleAnalysis``, which performs the as "
+            "Instead, use :class:`~.ASAPScheduleAnalysis`, which is an "
             "analysis pass that requires a padding pass to later modify the circuit."
         ),
         since="0.21.0",
