@@ -389,6 +389,38 @@ def generate_control_flow_circuits():
     return circuits
 
 
+def generate_control_flow_switch_circuits():
+    """Generate circuits with switch-statement instructions."""
+    from qiskit.circuit.controlflow import CASE_DEFAULT
+
+    circuits = []
+
+    qc = QuantumCircuit(2, 1, name="switch_clbit")
+    case_t = qc.copy_empty_like()
+    case_t.x(0)
+    case_f = qc.copy_empty_like()
+    case_f.z(1)
+    qc.switch(qc.clbits[0], [(True, case_t), (False, case_f)], qc.qubits, qc.clbits)
+    circuits.append(qc)
+
+    qreg = QuantumRegister(2, "q")
+    creg = ClassicalRegister(3, "c")
+    qc = QuantumCircuit(qreg, creg, name="switch_creg")
+
+    case_0 = QuantumCircuit(qreg, creg)
+    case_0.x(0)
+    case_1 = QuantumCircuit(qreg, creg)
+    case_1.z(1)
+    case_2 = QuantumCircuit(qreg, creg)
+    case_2.x(1)
+    qc.switch(
+        creg, [(0, case_0), ((1, 2), case_1), ((3, 4, CASE_DEFAULT), case_2)], qc.qubits, qc.clbits
+    )
+    circuits.append(qc)
+
+    return circuits
+
+
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
@@ -438,6 +470,31 @@ def generate_schedule_blocks():
     my_waveform = 0.1 * np.sin(2 * np.pi * np.linspace(0, 1, 100))
     with builder.build() as block:
         builder.play(my_waveform, channels.DriveChannel(0))
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
+def generate_referenced_schedule():
+    """Test for QPY serialization of unassigned reference schedules."""
+    from qiskit.pulse import builder, channels, library
+
+    schedule_blocks = []
+
+    # Completely unassigned schedule
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.reference("x", "q0")
+        builder.reference("cr45m", "q0", "q1")
+    schedule_blocks.append(block)
+
+    # Partly assigned schedule
+    with builder.build() as x_q0:
+        builder.play(library.Constant(100, 0.1), channels.DriveChannel(0))
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.call(x_q0)
+        builder.reference("cr45m", "q0", "q1")
     schedule_blocks.append(block)
 
     return schedule_blocks
@@ -551,6 +608,9 @@ def generate_circuits(version_parts):
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
     if version_parts >= (0, 21, 2):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
+    if version_parts >= (0, 24, 0):
+        output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
+        output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
 
     return output_circuits
 

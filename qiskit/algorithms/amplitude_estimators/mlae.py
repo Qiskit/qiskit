@@ -13,8 +13,10 @@
 """The Maximum Likelihood Amplitude Estimation algorithm."""
 
 from __future__ import annotations
-import typing
 import warnings
+from collections.abc import Sequence
+from typing import Callable, List, Tuple
+
 import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
@@ -29,9 +31,7 @@ from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
 from ..exceptions import AlgorithmError
 
-MINIMIZER = typing.Callable[
-    [typing.Callable[[float], float], typing.List[typing.Tuple[float, float]]], float
-]
+MINIMIZER = Callable[[Callable[[float], float], List[Tuple[float, float]]], float]
 
 
 class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
@@ -55,9 +55,11 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
 
     @deprecate_arg(
         "quantum_instance",
-        additional_msg="Instead, use the ``sampler`` argument.",
-        since="0.22.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -77,7 +79,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
                 according to ``evaluation_schedule``. The minimizer takes a function as first
                 argument and a list of (float, float) tuples (as bounds) as second argument and
                 returns a single float which is the found minimum.
-            quantum_instance: Pending deprecation\: Quantum Instance or Backend
+            quantum_instance: Deprecated: Quantum Instance or Backend
             sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
@@ -135,9 +137,13 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+    )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation; Get the quantum instance.
+        """Deprecated. Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -145,9 +151,13 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+    )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Pending deprecation; Set quantum instance.
+        """Deprecated. Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -229,11 +239,11 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             AlgorithmError: If `run()` hasn't been called yet.
             NotImplementedError: If the method `kind` is not supported.
         """
-        interval = None
+        interval: tuple[float, float] | None = None
 
         # if statevector simulator the estimate is exact
         if all(isinstance(data, (list, np.ndarray)) for data in result.circuit_results):
-            interval = 2 * [result.estimation]
+            interval = (result.estimation, result.estimation)
 
         elif kind in ["likelihood_ratio", "lr"]:
             interval = _likelihood_ratio_confint(result, alpha)
@@ -248,13 +258,13 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
             raise NotImplementedError(f"CI `{kind}` is not implemented.")
 
         if apply_post_processing:
-            return tuple(result.post_processing(value) for value in interval)
+            return result.post_processing(interval[0]), result.post_processing(interval[1])
 
         return interval
 
     def compute_mle(
         self,
-        circuit_results: list[dict[str, int]] | list[np.ndarray],
+        circuit_results: list[dict[str, int] | np.ndarray],
         estimation_problem: EstimationProblem,
         num_state_qubits: int | None = None,
         return_counts: bool = False,
@@ -401,11 +411,11 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._theta = None
-        self._minimizer = None
-        self._good_counts = None
-        self._evaluation_schedule = None
-        self._fisher_information = None
+        self._theta: float | None = None
+        self._minimizer: Callable | None = None
+        self._good_counts: list[float] | None = None
+        self._evaluation_schedule: list[int] | None = None
+        self._fisher_information: float | None = None
 
     @property
     def theta(self) -> float:
@@ -418,12 +428,12 @@ class MaximumLikelihoodAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._theta = value
 
     @property
-    def minimizer(self) -> callable:
+    def minimizer(self) -> Callable:
         """Return the minimizer used for the search of the likelihood function."""
         return self._minimizer
 
     @minimizer.setter
-    def minimizer(self, value: callable) -> None:
+    def minimizer(self, value: Callable) -> None:
         """Set the number minimizer used for the search of the likelihood function."""
         self._minimizer = value
 
@@ -557,15 +567,14 @@ def _fisher_confint(
     confint = np.real(result.estimation) + normal_quantile / np.sqrt(fisher_information) * np.array(
         [-1, 1]
     )
-    mapped_confint = tuple(result.post_processing(bound) for bound in confint)
-    return mapped_confint
+    return result.post_processing(confint[0]), result.post_processing(confint[1])
 
 
 def _likelihood_ratio_confint(
     result: MaximumLikelihoodAmplitudeEstimationResult,
     alpha: float = 0.05,
     nevals: int | None = None,
-) -> list[float]:
+) -> tuple[float, float]:
     """Compute the likelihood-ratio confidence interval.
 
     Args:
@@ -613,7 +622,7 @@ def _likelihood_ratio_confint(
 
 
 def _get_counts(
-    circuit_results: list[np.ndarray | list[float], dict[str, int]],
+    circuit_results: Sequence[np.ndarray | list[float] | dict[str, int]],
     estimation_problem: EstimationProblem,
     num_state_qubits: int,
 ) -> tuple[list[float], list[int]]:
@@ -626,7 +635,8 @@ def _get_counts(
         AlgorithmError: If self.run() has not been called yet.
     """
     one_hits = []  # h_k: how often 1 has been measured, for a power Q^(m_k)
-    all_hits = []  # shots_k: how often has been measured at a power Q^(m_k)
+    # shots_k: how often has been measured at a power Q^(m_k)
+    all_hits: np.ndarray | list[float] = []
     if all(isinstance(data, (list, np.ndarray)) for data in circuit_results):
         probabilities = []
         num_qubits = int(np.log2(len(circuit_results[0])))  # the total number of qubits

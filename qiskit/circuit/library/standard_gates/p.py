@@ -118,7 +118,7 @@ class PhaseGate(Gate):
         return gate
 
     def inverse(self):
-        r"""Return inverted Phase gate (:math:`Phase(\lambda){\dagger} = Phase(-\lambda)`)"""
+        r"""Return inverted Phase gate (:math:`Phase(\lambda)^{\dagger} = Phase(-\lambda)`)"""
         return PhaseGate(-self.params[0])
 
     def __array__(self, dtype=None):

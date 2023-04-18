@@ -36,6 +36,7 @@ def convert_to_target(
     defaults: PulseDefaults = None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
     add_delay: bool = False,
+    filter_faulty: bool = False,
 ):
     """Uses configuration, properties and pulse defaults
     to construct and return Target class.
@@ -70,6 +71,12 @@ def convert_to_target(
                 )
 
             qubits = tuple(gate.qubits)
+            if filter_faulty:
+                if any(not properties.is_qubit_operational(qubit) for qubit in qubits):
+                    continue
+                if not properties.is_gate_operational(name, gate.qubits):
+                    continue
+
             gate_props = {}
             for param in gate.parameters:
                 if param.name == "gate_error":
@@ -83,6 +90,9 @@ def convert_to_target(
         # Create measurement instructions:
         measure_props = {}
         for qubit, _ in enumerate(properties.qubits):
+            if filter_faulty:
+                if not properties.is_qubit_operational(qubit):
+                    continue
             measure_props[(qubit,)] = InstructionProperties(
                 duration=properties.readout_length(qubit),
                 error=properties.readout_error(qubit),
@@ -116,6 +126,9 @@ def convert_to_target(
         target.acquire_alignment = configuration.timing_constraints.get("acquire_alignment")
     # If a pulse defaults exists use that as the source of truth
     if defaults is not None:
+        faulty_qubits = set()
+        if filter_faulty and properties is not None:
+            faulty_qubits = set(properties.faulty_qubits())
         inst_map = defaults.instruction_schedule_map
         for inst in inst_map.instructions:
             for qarg in inst_map.qubits_with_instruction(inst):
@@ -129,8 +142,12 @@ def convert_to_target(
                 if inst in target:
                     if inst == "measure":
                         for qubit in qargs:
+                            if filter_faulty and qubit in faulty_qubits:
+                                continue
                             target[inst][(qubit,)].calibration = calibration_entry
                     elif qargs in target[inst]:
+                        if filter_faulty and any(qubit in faulty_qubits for qubit in qargs):
+                            continue
                         target[inst][qargs].calibration = calibration_entry
     combined_global_ops = set()
     if configuration.basis_gates:
@@ -196,6 +213,7 @@ class BackendV2Converter(BackendV2):
         backend: BackendV1,
         name_mapping: Optional[Dict[str, Any]] = None,
         add_delay: bool = False,
+        filter_faulty: bool = False,
     ):
         """Initialize a BackendV2 converter instance based on a BackendV1 instance.
 
@@ -211,6 +229,9 @@ class BackendV2Converter(BackendV2):
             add_delay: If set to true a :class:`~qiskit.circuit.Delay` operation
                 will be added to the target as a supported operation for all
                 qubits
+            filter_faulty: If the :class:`~.BackendProperties` object (if present) for
+                ``backend`` has any qubits or gates flagged as non-operational filter
+                those from the output target.
         """
         self._backend = backend
         self._config = self._backend.configuration()
@@ -229,6 +250,7 @@ class BackendV2Converter(BackendV2):
         self._target = None
         self._name_mapping = name_mapping
         self._add_delay = add_delay
+        self._filter_faulty = filter_faulty
 
     @property
     def target(self):
@@ -247,6 +269,7 @@ class BackendV2Converter(BackendV2):
                 self._defaults,
                 custom_name_mapping=self._name_mapping,
                 add_delay=self._add_delay,
+                filter_faulty=self._filter_faulty,
             )
         return self._target
 

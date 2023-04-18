@@ -14,8 +14,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
-from typing import Iterable
+from collections.abc import Mapping, Iterable
 
 from qiskit.circuit import Parameter
 

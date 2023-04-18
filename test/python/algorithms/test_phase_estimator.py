@@ -18,9 +18,10 @@ from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
 from qiskit.circuit.library import ZGate, XGate, HGate, IGate
-from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector
+from qiskit.quantum_info import Pauli, SparsePauliOp, Statevector, Operator
 from qiskit.synthesis import MatrixExponential, SuzukiTrotter
 from qiskit.primitives import Sampler
+from qiskit.algorithms import PhaseEstimationScale
 from qiskit.algorithms.phase_estimators import (
     PhaseEstimation,
     HamiltonianPhaseEstimation,
@@ -28,7 +29,18 @@ from qiskit.algorithms.phase_estimators import (
 )
 import qiskit
 from qiskit import QuantumCircuit
-from qiskit.opflow import H, X, Y, Z, I, StateFn, PauliTrotterEvolution, MatrixEvolution, PauliSumOp
+from qiskit.opflow import (
+    H,
+    X,
+    Y,
+    Z,
+    I,
+    T,
+    StateFn,
+    PauliTrotterEvolution,
+    MatrixEvolution,
+    PauliSumOp,
+)
 from qiskit.test import slow_test
 
 
@@ -49,9 +61,10 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
         if backend is None:
             backend = qiskit.BasicAer.get_backend("statevector_simulator")
         quantum_instance = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = HamiltonianPhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
-        )
+        with self.assertWarns(DeprecationWarning):
+            phase_est = HamiltonianPhaseEstimation(
+                num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
+            )
         result = phase_est.estimate(
             hamiltonian=hamiltonian,
             state_preparation=state_preparation,
@@ -148,7 +161,8 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             hamiltonian = hamiltonian.to_matrix_op()
         backend = qiskit.BasicAer.get_backend("statevector_simulator")
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
+        with self.assertWarns(DeprecationWarning):
+            phase_est = HamiltonianPhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
         result = phase_est.estimate(
             hamiltonian=hamiltonian,
             bound=bound,
@@ -316,12 +330,14 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
         if phase_estimator is None:
             phase_estimator = IterativePhaseEstimation
-        if phase_estimator == IterativePhaseEstimation:
-            p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
-        elif phase_estimator == PhaseEstimation:
-            p_est = PhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
-        else:
-            raise ValueError("Unrecognized phase_estimator")
+
+        with self.assertWarns(DeprecationWarning):
+            if phase_estimator == IterativePhaseEstimation:
+                p_est = IterativePhaseEstimation(num_iterations=num_iterations, quantum_instance=qi)
+            elif phase_estimator == PhaseEstimation:
+                p_est = PhaseEstimation(num_evaluation_qubits=6, quantum_instance=qi)
+            else:
+                raise ValueError("Unrecognized phase_estimator")
         result = p_est.estimate(unitary=unitary_circuit, state_preparation=state_preparation)
         phase = result.phase
         return phase
@@ -395,9 +411,10 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         if backend is None:
             backend = qiskit.BasicAer.get_backend("statevector_simulator")
         qi = qiskit.utils.QuantumInstance(backend=backend, shots=10000)
-        phase_est = PhaseEstimation(
-            num_evaluation_qubits=num_evaluation_qubits, quantum_instance=qi
-        )
+        with self.assertWarns(DeprecationWarning):
+            phase_est = PhaseEstimation(
+                num_evaluation_qubits=num_evaluation_qubits, quantum_instance=qi
+            )
         if construct_circuit:
             pe_circuit = phase_est.construct_circuit(unitary_circuit, state_preparation)
             result = phase_est.estimate_from_pe_circuit(pe_circuit, unitary_circuit.num_qubits)
@@ -515,12 +532,36 @@ class TestPhaseEstimation(QiskitAlgorithmsTestCase):
         )
         self.assertEqual(phase, expected_phase)
 
+    @data(
+        ((X ^ X).to_circuit(), 0.25, IterativePhaseEstimation),
+        ((I ^ X).to_circuit(), 0.125, IterativePhaseEstimation),
+        ((X ^ X).to_circuit(), 0.25, PhaseEstimation),
+        ((I ^ X).to_circuit(), 0.125, PhaseEstimation),
+    )
+    @unpack
+    def test_qpe_two_qubit_unitary(self, state_preparation, expected_phase, phase_estimator):
+        """two qubit unitary T ^ T"""
+        unitary_circuit = (T ^ T).to_circuit()
+        phase = self.one_phase_sampler(
+            unitary_circuit,
+            state_preparation,
+            phase_estimator,
+        )
+        self.assertEqual(phase, expected_phase)
+
     def test_check_num_iterations_sampler(self):
         """test check for num_iterations greater than zero"""
         unitary_circuit = QuantumCircuit(1).compose(XGate())
         state_preparation = None
         with self.assertRaises(ValueError):
             self.one_phase_sampler(unitary_circuit, state_preparation, num_iterations=-1)
+
+    def test_phase_estimation_scale_from_operator(self):
+        """test that PhaseEstimationScale from_pauli_sum works with Operator"""
+        circ = QuantumCircuit(2)
+        op = Operator(circ)
+        scale = PhaseEstimationScale.from_pauli_sum(op)
+        self.assertEqual(scale._bound, 4.0)
 
     def phase_estimation_sampler(
         self,
