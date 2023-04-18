@@ -66,8 +66,8 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
-    "qiskit-ibm-runtime": ("https://qiskit.org/documentation/partners/qiskit_ibm_runtime/", None),
-    "qiskit-aer": ("https://qiskit.org/documentation/aer/", None),
+    "qiskit-ibm-runtime": ("https://qiskit.org/ecosystem/ibm-runtime/", None),
+    "qiskit-aer": ("https://qiskit.org/ecosystem/aer/", None),
     "numpy": ("https://numpy.org/doc/stable/", None)
 }
 
