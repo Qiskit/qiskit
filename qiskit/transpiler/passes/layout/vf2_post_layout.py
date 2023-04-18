@@ -16,6 +16,7 @@ import os
 from enum import Enum
 import logging
 import inspect
+import itertools
 import time
 
 from rustworkx import PyDiGraph, vf2_mapping, PyGraph
@@ -221,9 +222,10 @@ class VF2PostLayout(AnalysisPass):
             # mode the node matcher will not match since none of the circuit ops
             # will match the cmap ops.
             if not self.strict_direction:
-                for node_index in cm_graph.node_indices():
-                    if not cm_graph[node_index]:
-                        cm_graph.remove_node(node_index)
+                has_operations = set(itertools.chain.from_iterable(self.target.qargs))
+                to_remove = set(cm_graph.node_indices()).difference(has_operations)
+                if len(to_remove) > 0:
+                    cm_graph.remove_nodes_from(list(to_remove))
         else:
             cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
                 self.coupling_map, self.seed, self.strict_direction

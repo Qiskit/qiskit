@@ -14,6 +14,7 @@
 """VF2Layout pass to find a layout using subgraph isomorphism"""
 import os
 from enum import Enum
+import itertools
 import logging
 import time
 
@@ -144,12 +145,10 @@ class VF2Layout(AnalysisPass):
         # Filter qubits without any supported operations. If they don't support any operations
         # They're not valid for layout selection
         if self.target is not None:
-            for qubit, graph_index in enumerate(cm_nodes):
-                for qargs in self.target.qargs:
-                    if qubit in qargs:
-                        break
-                else:
-                    cm_graph.remove_node(graph_index)
+            has_operations = set(itertools.chain.from_iterable(self.target.qargs))
+            to_remove = set(range(len(cm_nodes))).difference(has_operations)
+            if len(to_remove) > 0:
+                cm_graph.remove_nodes_from([cm_nodes[i] for i in to_remove])
 
         # To avoid trying to over optimize the result by default limit the number
         # of trials based on the size of the graphs. For circuits with simple layouts
