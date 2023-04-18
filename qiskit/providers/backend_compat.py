@@ -218,14 +218,14 @@ class BackendV2Converter(BackendV2):
     class should only be used if you need a :class:`~.BackendV2` and still need
     compatibility with :class:`~.BackendV1`.
 
-    Note that updating a ``BackendV1`` object before applying this converter is **not** recommended.
-    For example, in order to convert a ``BackendV1`` object with a customized
-    ``defaults().instruction_schedule_map``, which has a custom calibration for an operation,
-    the operation name must be in ``configuration().basis_gates`` and
-    ``name_mapping`` must be supplied for the operation.
+    When using custom calibrations (or other custom workflows) it is **not** recommended
+    to mutate the ``BackendV1`` object before applying this converter. For example, in order to
+    convert a ``BackendV1`` object with a customized ``defaults().instruction_schedule_map``,
+    which has a custom calibration for an operation, the operation name must be in
+     ``configuration().basis_gates`` and  ``name_mapping`` must be supplied for the operation.
     Otherwise, the operation will be dropped in the resulting ``BackendV2`` object.
 
-    That suggests it is recommended to add custom calibrations **after** applying this converter
+    Instead it is typically better to add custom calibrations **after** applying this converter
     instead of updating ``BackendV1.defaults()`` in advance. For example::
 
         backend_v2 = BackendV2Converter(backend_v1)
