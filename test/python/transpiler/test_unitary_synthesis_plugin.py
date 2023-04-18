@@ -325,7 +325,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         cx_props = {
             (0, 1): InstructionProperties(duration=519.11e-9, error=0.01201),
         }
-        bogusCXGate = Gate('cx', num_qubits=2, params=[])
+        bogusCXGate = Gate("cx", num_qubits=2, params=[])
         bad_target.add_instruction(bogusCXGate, cx_props)
         measure_props = {
             (0,): InstructionProperties(duration=5.813e-6, error=0.0751),
@@ -337,6 +337,7 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         decomposers = plugin._decomposer_2q_from_target(bad_target, [0, 1], 1.0)
 
         self.assertEqual(decomposers, [])
+
 
 if __name__ == "__main__":
     unittest.main()
