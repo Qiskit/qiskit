@@ -32,6 +32,9 @@ from qiskit.transpiler.passes.synthesis.plugin import (
     unitary_synthesis_plugin_names,
 )
 from qiskit.transpiler.passes.synthesis.unitary_synthesis import DefaultUnitarySynthesis
+from qiskit.transpiler import Target, InstructionProperties
+from qiskit.circuit.library.standard_gates import RZGate, SXGate
+from qiskit.circuit import Measure, Gate
 
 
 class _MockExtensionManager:
@@ -304,6 +307,36 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
         self.MOCK_PLUGINS["_controllable"].run.assert_not_called()
         self.assertNotIn("config", call_kwargs)
 
+    def test_2q_decomposer_with_no_control_gates(self):
+        """Test that an empty list of decomposers is returned from DefaultUnitarySynthesis._decomposer_2q_from_target when
+        no controlled gates are in the target basis."""
+        bad_target = Target()
+        theta = 1.0
+        rz_props = {
+            (0,): InstructionProperties(duration=0, error=0),
+            (1,): InstructionProperties(duration=0, error=0),
+        }
+        bad_target.add_instruction(RZGate(theta), rz_props)
+        sx_props = {
+            (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
+            (1,): InstructionProperties(duration=35.5e-9, error=0.000502),
+        }
+        bad_target.add_instruction(SXGate(), sx_props)
+        cx_props = {
+            (0, 1): InstructionProperties(duration=519.11e-9, error=0.01201),
+        }
+        bogusCXGate = Gate('cx', num_qubits=2, params=[])
+        bad_target.add_instruction(bogusCXGate, cx_props)
+        measure_props = {
+            (0,): InstructionProperties(duration=5.813e-6, error=0.0751),
+            (1,): InstructionProperties(duration=5.813e-6, error=0.0225),
+        }
+        bad_target.add_instruction(Measure(), measure_props)
+
+        plugin = DefaultUnitarySynthesis()
+        decomposers = plugin._decomposer_2q_from_target(bad_target, [0, 1], 1.0)
+
+        self.assertEqual(decomposers, [])
 
 if __name__ == "__main__":
     unittest.main()

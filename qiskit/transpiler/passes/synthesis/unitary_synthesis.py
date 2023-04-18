@@ -675,6 +675,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         # possible controlled decomposers (i.e. XXDecomposer)
         controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
+        if len(controlled_basis) == 0:
+            self._decomposer_cache[qubits_tuple] = decomposers
+            return decomposers
         basis_2q_fidelity = {}
         embodiments = {}
         pi2_basis = None
