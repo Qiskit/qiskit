@@ -26,6 +26,7 @@ from qiskit.quantum_info.synthesis.two_qubit_decompose import (
     trace_to_fid,
 )
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,12 @@ class BIPMappingModel:
             the solution will be stored in :attr:`solution`). None if it's not yet set.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="This has been replaced by a new transpiler plugin package: "
+        "qiskit-bip-mapper. More details can be found here: "
+        "https://github.com/qiskit-community/qiskit-bip-mapper",
+    )  # pylint: disable=bad-docstring-quotes
     def __init__(self, dag, coupling_map, qubit_subset, dummy_timesteps=None):
         """
         Args:

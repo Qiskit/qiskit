@@ -16,6 +16,8 @@ import io
 from typing import Sequence
 
 from . import ast
+from .experimental import ExperimentalFeatures
+from .exceptions import QASM3ExporterError
 
 
 class BasicPrinter:
@@ -40,7 +42,14 @@ class BasicPrinter:
     # The visitor names include the class names, so they mix snake_case with PascalCase.
     # pylint: disable=invalid-name
 
-    def __init__(self, stream: io.TextIOBase, *, indent: str, chain_else_if: bool = False):
+    def __init__(
+        self,
+        stream: io.TextIOBase,
+        *,
+        indent: str,
+        chain_else_if: bool = False,
+        experimental: ExperimentalFeatures = ExperimentalFeatures(0),
+    ):
         """
         Args:
             stream (io.TextIOBase): the stream that the output will be written to.
@@ -76,6 +85,7 @@ class BasicPrinter:
         self.indent = indent
         self._current_indent = 0
         self._chain_else_if = chain_else_if
+        self._experimental = experimental
 
     def visit(self, node: ast.ASTNode) -> None:
         """Visit this node of the AST, printing it out to the stream in this class instance.
@@ -156,6 +166,11 @@ class BasicPrinter:
     def _visit_FloatType(self, node: ast.FloatType) -> None:
         self.stream.write(f"float[{self._FLOAT_WIDTH_LOOKUP[node]}]")
 
+    def _visit_IntType(self, node: ast.IntType) -> None:
+        self.stream.write("int")
+        if node.size is not None:
+            self.stream.write(f"[{node.size}]")
+
     def _visit_BitArrayType(self, node: ast.BitArrayType) -> None:
         self.stream.write(f"bit[{node.size}]")
 
@@ -235,6 +250,13 @@ class BasicPrinter:
         if node.initializer is not None:
             self.stream.write(" = ")
             self.visit(node.initializer)
+        self._end_statement()
+
+    def _visit_AssignmentStatement(self, node: ast.AssignmentStatement) -> None:
+        self._start_line()
+        self.visit(node.lvalue)
+        self.stream.write(" = ")
+        self.visit(node.rvalue)
         self._end_statement()
 
     def _visit_IODeclaration(self, node: ast.IODeclaration) -> None:
@@ -430,3 +452,44 @@ class BasicPrinter:
         self.stream.write(") ")
         self.visit(node.body)
         self._end_line()
+
+    def _visit_SwitchStatement(self, node: ast.SwitchStatement) -> None:
+        if ExperimentalFeatures.SWITCH_CASE_V1 not in self._experimental:
+            raise QASM3ExporterError(
+                "'switch' statements are not stabilised in OpenQASM 3 yet."
+                " To enable experimental support, set the flag"
+                " 'ExperimentalFeatures.SWITCH_CASE_V1' in the 'experimental' keyword"
+                " argument of the printer."
+            )
+        self._start_line()
+        self.stream.write("switch (")
+        self.visit(node.target)
+        self.stream.write(") {")
+        self._end_line()
+        self._current_indent += 1
+        for labels, case in node.cases:
+            if not labels:
+                continue
+            for label in labels[:-1]:
+                self._start_line()
+                self.stream.write("case ")
+                self.visit(label)
+                self.stream.write(":")
+                self._end_line()
+            self._start_line()
+            if isinstance(labels[-1], ast.DefaultCase):
+                self.visit(labels[-1])
+            else:
+                self.stream.write("case ")
+                self.visit(labels[-1])
+            self.stream.write(": ")
+            self.visit(case)
+            self._end_line()
+            self._write_statement("break")
+        self._current_indent -= 1
+        self._start_line()
+        self.stream.write("}")
+        self._end_line()
+
+    def _visit_DefaultCase(self, _node: ast.DefaultCase) -> None:
+        self.stream.write("default")

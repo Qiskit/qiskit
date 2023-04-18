@@ -22,9 +22,11 @@ from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.compiler.transpiler import transpile
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager, PassManagerConfig, CouplingMap
+from qiskit.transpiler.preset_passmanagers.builtin_plugins import BasicSwapPassManager
 from qiskit.transpiler.preset_passmanagers.plugin import (
     PassManagerStagePluginManager,
     list_stage_plugins,
+    passmanager_stage_plugins,
 )
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.providers.basicaer import QasmSimulatorPy
@@ -50,6 +52,16 @@ class TestStagePassManagerPlugin(QiskitTestCase):
         """Test list stage plugin function with invalid stage name."""
         with self.assertRaises(TranspilerError):
             list_stage_plugins("not_a_stage")
+
+    def test_passmanager_stage_plugins(self):
+        """Test entry_point_obj function."""
+        basic_obj = passmanager_stage_plugins("routing")
+        self.assertIsInstance(basic_obj["basic"], BasicSwapPassManager)
+
+    def test_passmanager_stage_plugins_not_found(self):
+        """Test entry_point_obj function with nonexistent stage"""
+        with self.assertRaises(TranspilerError):
+            passmanager_stage_plugins("foo_stage")
 
     def test_build_pm_invalid_plugin_name_valid_stage(self):
         """Test get pm from plugin with invalid plugin name and valid stage."""

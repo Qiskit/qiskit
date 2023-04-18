@@ -256,8 +256,8 @@ class ParameterSetter(NodeVisitor):
         updated = param_expr.parameters & self._param_map.keys()
         for param in updated:
             new_value = new_value.assign(param, self._param_map[param])
-
-        return format_parameter_value(new_value)
+        new_value = format_parameter_value(new_value)
+        return new_value
 
     def _update_parameter_manager(self, node: Union[Schedule, ScheduleBlock]):
         """A helper function to update parameter manager of pulse program."""
