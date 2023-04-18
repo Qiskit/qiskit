@@ -84,7 +84,7 @@ class XXDecomposer:
         backup_optimizer: Callable[..., QuantumCircuit] | None = None,
     ):
         if isinstance(basis_fidelity, dict) and len(basis_fidelity) == 0:
-            raise(QiskitError("Basis_fidelity dictionary is empty."))
+            raise(QiskitError("`basis_fidelity` dictionary is empty."))
         self.basis_fidelity = basis_fidelity
 
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
