@@ -198,14 +198,11 @@ class Operator(LinearOp):
                 op = op.compose(label_mats[char], qargs=[qubit])
         return op
 
-    def apply_permutation(self, pattern: list, front: bool = False):
+    def apply_permutation(self, perm: list, front: bool = False):
         """Modifies operator's data by composing it with a permutation.
 
-        This is achieved by directly swapping the rows or the columns of the
-        array, and is more efficient than the more general ``compose``.
-
         Args:
-            pattern (list): permutation pattern, describing which qubits
+            perm (list): permutation pattern, describing which qubits
                 occupy the positions 0, 1, 2, etc. after applying the permutation.
             front (bool): When set to ``True`` the permutation is applied before the
                 operator, when set to ``False`` the permutation is applied after the
@@ -218,46 +215,75 @@ class Operator(LinearOp):
                 dimensions of the operator.
         """
 
-        def _operator_permutation_pattern(qubit_pattern, invert):
-            """Given a permutation for the qubits, returns the induced permutation
-            for the operator's data."""
-            # A permutation over N qubits induces a permutation over the
-            # 2^N rows or columns of the operator.
-            nq = len(qubit_pattern)
-            op_pat = [0] * (2**nq)
-            for r in range(2**nq):
-                # convert row to bitstring, reverse, apply permutation pattern, reverse again,
-                # and convert to row
-                bit = bin(r)[2:].zfill(nq)[::-1]
-                permuted_bit = "".join([bit[j] for j in qubit_pattern])
-                pr = int(permuted_bit[::-1], 2)
-                if not invert:
-                    op_pat[pr] = r
-                else:
-                    op_pat[r] = pr
-            return op_pat
+        if front:
+            # The permutation is applied before the operator (i.e. we are computing PO)
 
-        if not front:
-            # Permutation is applied at the back, corresponds to permuting the rows.
-            expected_dim = 2 ** len(pattern)
-            if self._data.shape[0] != expected_dim:
-                raise QiskitError("Permutation size does not match dimensions of the operator.")
-            # Induced permutation over the rows.
-            op_pat = _operator_permutation_pattern(pattern, True)
-            # Python integer array indexing
-            self._data[op_pat] = self._data[range(len(op_pat))]
+            if len(perm) != len(self._op_shape.dims_l()):
+                raise QiskitError(
+                    "The size of the permutation pattern does not match dimensions of the operator."
+                )
 
+            inv_perm = np.argsort(perm)
+
+            # shape: permuted on left, original on right
+            shape_l = self._op_shape.dims_l()
+            shape_l = shape_l[::-1]
+            shape_l = tuple([shape_l[x] for x in perm])
+            shape_l = shape_l[::-1]
+            shape_r = self._op_shape.dims_r()
+            split_shape = shape_l + shape_r
+
+            # axes: inv-permuted on left, id on right
+            axes_l = tuple((np.argsort(perm[::-1]))[::-1])  # reverse, invert, reverse
+            axes_r = tuple(
+                self._op_shape._num_qargs_l + x for x in range(self._op_shape._num_qargs_r)
+            )
+            split_axes = axes_l + axes_r
+
+            new_mat = (
+                self._data.reshape(split_shape).transpose(split_axes).reshape(self._op_shape.shape)
+            )
+
+            # updating shape: inv-permuted on left, original on right
+            new_shape_l = self._op_shape.dims_l()
+            new_shape_l = new_shape_l[::-1]
+            new_shape_l = tuple([new_shape_l[x] for x in inv_perm])
+            new_shape_l = new_shape_l[::-1]
+            new_shape_r = self._op_shape.dims_r()
+
+            new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
         else:
-            # Permutation is applied at the front, corresponds to permuting the columns.
-            expected_dim = 2 ** len(pattern)
-            if self._data.shape[1] != expected_dim:
-                raise QiskitError("Permutation size does not match dimensions of the operator.")
-            # Induced permutation over the rows.
-            op_pat = _operator_permutation_pattern(pattern, False)
-            # Python integer array indexing
-            self._data[:, op_pat] = self._data[:, range(len(op_pat))]
+            # The permutation is applied after the operator (i.e. we are computing OP)
 
-        return self
+            if len(perm) != len(self._op_shape.dims_r()):
+                raise QiskitError(
+                    "The size of the permutation pattern does not match dimensions of the operator."
+                )
+
+            # shape: original on left, permuted on right
+            shape_l = self._op_shape.dims_l()
+            shape_r = self._op_shape.dims_r()
+            shape_r = shape_r[::-1]
+            shape_r = tuple([shape_r[x] for x in perm])
+            shape_r = shape_r[::-1]
+            split_shape = shape_l + shape_r
+
+            # axes: id on left, inv-permuted on right
+            axes_l = tuple(x for x in range(self._op_shape._num_qargs_l))
+            axes_r = tuple(self._op_shape._num_qargs_l + x for x in (np.argsort(perm[::-1]))[::-1])
+            split_axes = axes_l + axes_r
+
+            new_mat = (
+                self._data.reshape(split_shape).transpose(split_axes).reshape(self._op_shape.shape)
+            )
+
+            # updating shape: original on left, permuted on right
+            new_shape_l = self._op_shape.dims_l()
+            new_shape_r = shape_r
+
+            new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
+
+        return new_op
 
     @classmethod
     def from_circuit(cls, circuit, ignore_set_layout=False, layout=None, final_layout=None):
