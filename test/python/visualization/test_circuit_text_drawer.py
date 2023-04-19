@@ -1839,6 +1839,16 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 class TestTextDrawerParams(QiskitTestCase):
     """Test drawing parameters."""
 
+    def test_text_no_parameters(self):
+        """Test drawing with no parameters"""
+        expected = "\n".join(["   ┌───┐",
+                              "q: ┤ X ├",
+                              "   └───┘",])
+              
+        circuit = QuantumCircuit(1)
+        circuit.x(0)
+        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+
     def test_text_parameters_mix(self):
         """cu3 drawing with parameters"""
         expected = "\n".join(
@@ -1904,20 +1914,36 @@ class TestTextDrawerParams(QiskitTestCase):
         circuit.u(0, phi, lam, 0)
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
+    def test_text_ndarray_parameters(self):
+        """Test that if params are type ndarray, params are not displayed."""
+        expected = "\n".join(["   ┌─────────┐",
+                              "q: ┤ Unitary ├",
+                              "   └─────────┘"])
+        
+        X = numpy.array([[0,1],[1,0]])
+        circuit = QuantumCircuit(1)
+        circuit.unitary(X,0) 
+        self.assertEqual(circuit.draw(output="text").single_string(), expected)
+       
     def test_text_qc_parameters(self):
         """Test that if params are type QuantumCircuit, params are not displayed."""
-        expected = "\n".join(["     ┌───────┐",
-                              "q_0: ┤0      ├",
-                              "     │  name │",
-                              "q_1: ┤1      ├",
-                              "     └───────┘"])
+        expected = "\n".join(
+            [
+                "     ┌───────┐",
+                "q_0: ┤0      ├",
+                "     │  name │",
+                "q_1: ┤1      ├",
+                "     └───────┘",
+            ]
+        )
 
         my_qc_param = QuantumCircuit(2)
         my_qc_param.h(0)
-        my_qc_param.cx(0,1)
+        my_qc_param.cx(0, 1)
         inst = Instruction("name", 2, 0, [my_qc_param])
-        circuit = QuantumCircuit(2)
-        circuit.append(inst, [0,1])
+        qr = QuantumRegister(2, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.append(inst, [0, 1])
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
 
 
