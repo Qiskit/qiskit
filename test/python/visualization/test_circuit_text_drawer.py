@@ -1926,10 +1926,10 @@ class TestTextDrawerParams(QiskitTestCase):
                               "q: |0>┤ Unitary ├",
                               "      └─────────┘"])
         # fmt: on
-        X = numpy.array([[0, 1], [1, 0]])
+        x_matrix = numpy.array([[0, 1], [1, 0]])
         qr = QuantumRegister(1, "q")
         circuit = QuantumCircuit(qr)
-        circuit.unitary(X, 0)
+        circuit.unitary(x_matrix, 0)
         self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
     def test_text_qc_parameters(self):
