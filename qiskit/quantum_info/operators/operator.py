@@ -215,7 +215,39 @@ class Operator(LinearOp):
                 dimensions of the operator.
         """
 
-        if not front:
+        # See https://github.com/Qiskit/qiskit-terra/pull/9403 for the math
+        # behind the following code.
+
+        inv_perm = np.argsort(perm)
+
+        if front:
+            # The permutation is applied first, the operator is applied after;
+            # however, in terms of matrices, we compute [O][P].
+
+            if len(perm) != len(self._op_shape.dims_r()):
+                raise QiskitError(
+                    "The size of the permutation pattern does not match dimensions of the operator."
+                )
+
+            # shape: original on left, permuted on right
+            shape_l = self._op_shape.dims_l()
+            shape_r = self._op_shape.dims_r()
+            shape_r = shape_r[::-1]
+            shape_r = tuple(shape_r[x] for x in perm)
+            shape_r = shape_r[::-1]
+
+            # axes: id on left, inv-permuted on right
+            axes_l = tuple(x for x in range(self._op_shape._num_qargs_l))
+            axes_r = tuple(self._op_shape._num_qargs_l + x for x in (np.argsort(perm[::-1]))[::-1])
+
+            # updating shape: original on left, permuted on right
+            new_shape_l = self._op_shape.dims_l()
+            new_shape_r = self._op_shape.dims_r()
+            new_shape_r = new_shape_r[::-1]
+            new_shape_r = tuple(new_shape_r[x] for x in inv_perm)
+            new_shape_r = new_shape_r[::-1]
+
+        else:
             # The operator is applied first, the permutation is applied after;
             # however, in terms of matrices, we compute [P][O].
 
@@ -232,17 +264,11 @@ class Operator(LinearOp):
             shape_l = tuple(shape_l[x] for x in inv_perm)
             shape_l = shape_l[::-1]
             shape_r = self._op_shape.dims_r()
-            split_shape = shape_l + shape_r
 
             # axes: permuted on left, id on right
             axes_l = tuple((np.argsort(inv_perm[::-1]))[::-1])
             axes_r = tuple(
                 self._op_shape._num_qargs_l + x for x in range(self._op_shape._num_qargs_r)
-            )
-            split_axes = axes_l + axes_r
-
-            new_mat = (
-                self._data.reshape(split_shape).transpose(split_axes).reshape(self._op_shape.shape)
             )
 
             # updating shape: permuted on left, original on right
@@ -252,43 +278,13 @@ class Operator(LinearOp):
             new_shape_l = new_shape_l[::-1]
             new_shape_r = self._op_shape.dims_r()
 
-            new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
-        else:
-            # The permutation is applied first, the operator is applied after;
-            # however, in terms of matrices, we compute [O][P].
-
-            if len(perm) != len(self._op_shape.dims_r()):
-                raise QiskitError(
-                    "The size of the permutation pattern does not match dimensions of the operator."
-                )
-
-            inv_perm = np.argsort(perm)
-
-            # shape: original on left, permuted on right
-            shape_l = self._op_shape.dims_l()
-            shape_r = self._op_shape.dims_r()
-            shape_r = shape_r[::-1]
-            shape_r = tuple(shape_r[x] for x in perm)
-            shape_r = shape_r[::-1]
-            split_shape = shape_l + shape_r
-
-            # axes: id on left, inv-permuted on right
-            axes_l = tuple(x for x in range(self._op_shape._num_qargs_l))
-            axes_r = tuple(self._op_shape._num_qargs_l + x for x in (np.argsort(perm[::-1]))[::-1])
-            split_axes = axes_l + axes_r
-
-            new_mat = (
-                self._data.reshape(split_shape).transpose(split_axes).reshape(self._op_shape.shape)
-            )
-
-            # updating shape: original on left, permuted on right
-            new_shape_l = self._op_shape.dims_l()
-            new_shape_r = self._op_shape.dims_r()
-            new_shape_r = new_shape_r[::-1]
-            new_shape_r = tuple(new_shape_r[x] for x in inv_perm)
-            new_shape_r = new_shape_r[::-1]
-            new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
-
+        # Computing the new operator
+        split_shape = shape_l + shape_r
+        axes_order = axes_l + axes_r
+        new_mat = (
+            self._data.reshape(split_shape).transpose(axes_order).reshape(self._op_shape.shape)
+        )
+        new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
         return new_op
 
     @classmethod
