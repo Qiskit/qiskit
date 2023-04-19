@@ -17,7 +17,9 @@
 import unittest
 import logging
 import copy
+from test import combine
 import numpy as np
+from ddt import ddt
 from numpy.testing import assert_allclose
 import scipy.linalg as la
 
@@ -92,6 +94,7 @@ class OperatorTestCase(QiskitTestCase):
         return circ
 
 
+@ddt
 class TestOperator(OperatorTestCase):
     """Tests for Operator linear operator class."""
 
@@ -1143,26 +1146,20 @@ class TestOperator(OperatorTestCase):
         expected = Operator(permuted_mat, input_dims=(3, 2), output_dims=(2, 3))
         self.assertEqual(actual, expected)
 
-    def test_reverse_qargs_as_apply_permutation(self):
+    @combine(
+        dims=((2, 3, 4, 5), (5, 2, 4, 3), (3, 5, 2, 4), (5, 3, 4, 2), (4, 5, 2, 3), (4, 3, 2, 5))
+    )
+    def test_reverse_qargs_as_apply_permutation(self, dims):
         """Test reversing qargs by pre- and post-composing with reversal
         permutation.
         """
         perm = [3, 2, 1, 0]
-
-        for dims in [
-            (2, 3, 4, 5),
-            (5, 2, 4, 3),
-            (3, 5, 2, 4),
-            (5, 3, 4, 2),
-            (4, 5, 2, 3),
-            (4, 3, 2, 5),
-        ]:
-            op = Operator(
-                np.array(range(120 * 120)).reshape((120, 120)), input_dims=dims, output_dims=dims
-            )
-            op2 = op.reverse_qargs()
-            op3 = op.apply_permutation(perm, front=True).apply_permutation(perm, front=False)
-            self.assertEqual(op2, op3)
+        op = Operator(
+            np.array(range(120 * 120)).reshape((120, 120)), input_dims=dims, output_dims=dims
+        )
+        op2 = op.reverse_qargs()
+        op3 = op.apply_permutation(perm, front=True).apply_permutation(perm, front=False)
+        self.assertEqual(op2, op3)
 
     def test_apply_permutation_exceptions(self):
         """Checks that applying permutation raises an error when dimensions do not match."""
