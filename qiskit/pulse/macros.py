@@ -73,11 +73,16 @@ def measure(
 
     # backend is V2.
     if hasattr(backend, "target"):
-        target = backend.target
+        try:
+            meas_map = backend.configuration().meas_map
+        except AttributeError:
+            # TODO add meas_map to Target in 0.25
+            meas_map = [list(range(backend.num_qubits))]
+
         return _measure_v2(
             qubits=qubits,
-            target=target,
-            meas_map=meas_map or target.meas_map,
+            target=backend.target,
+            meas_map=meas_map,
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )

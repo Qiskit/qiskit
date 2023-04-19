@@ -43,7 +43,7 @@ def convert_to_target(conf_dict: dict, props_dict: dict = None, defs_dict: dict 
     qubit_props = None
     if props_dict:
         qubit_props = qubit_props_from_props(props_dict)
-    target = Target(qubit_properties=qubit_props, meas_map=conf_dict.get("meas_map"))
+    target = Target(qubit_properties=qubit_props)
     # Parse from properties if it exsits
     if props_dict is not None:
         # Parse instructions
