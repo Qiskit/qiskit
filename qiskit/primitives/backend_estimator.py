@@ -186,7 +186,10 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
         self._transpiled_circuits = []
         for common_circuit, diff_circuits in self.preprocessed_circuits:
             # 1. transpile a common circuit
-            if not self._skip_transpilation:
+            if self._skip_transpilation:
+                transpiled_circuit = common_circuit.copy()
+                perm_pattern = list(range(common_circuit.num_qubits))
+            else:
                 transpiled_circuit = transpile(
                     common_circuit, self.backend, **self.transpile_options.__dict__
                 )
@@ -201,9 +204,6 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                         perm_pattern = [final_mapping[i] for i in perm_pattern]
                 else:
                     perm_pattern = list(range(transpiled_circuit.num_qubits))
-            else:
-                transpiled_circuit = common_circuit.copy()
-                perm_pattern = list(range(common_circuit.num_qubits))
 
             # 2. transpile diff circuits
             transpile_opts = copy.copy(self.transpile_options)
