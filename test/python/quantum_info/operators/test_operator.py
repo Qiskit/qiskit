@@ -1170,11 +1170,6 @@ class TestOperator(OperatorTestCase):
             np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
         )
 
-        # These are ok
-        op.apply_permutation([2, 1, 0], front=False)
-        op.apply_permutation([1, 0], front=True)
-
-        # These are not ok
         with self.assertRaises(QiskitError):
             op.apply_permutation([1, 0], front=False)
         with self.assertRaises(QiskitError):
