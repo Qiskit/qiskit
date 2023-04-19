@@ -857,7 +857,6 @@ class TestUnitarySynthesis(QiskitTestCase):
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(result_qc, QuantumCircuit(2))
 
-
     def test_entangling_unitary_synthesis_custom_gate_target(self):
         qc = QuantumCircuit(2)
         cx_matrix = Operator(CXGate()).to_matrix()

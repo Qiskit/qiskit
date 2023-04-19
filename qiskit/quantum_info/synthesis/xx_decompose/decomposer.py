@@ -153,9 +153,13 @@ class XXDecomposer:
         while True:
             if len(priority_queue) == 0:
                 if len(available_strengths) == 0:
-                    raise QiskitError("Attempting to synthesize entangling gate with no controlled gates in basis set.")
+                    raise QiskitError(
+                        "Attempting to synthesize entangling gate with no controlled gates in basis set."
+                    )
                 else:
-                    raise QiskitError("Unable to synthesize a 2q unitary with the supplied basis set.")
+                    raise QiskitError(
+                        "Unable to synthesize a 2q unitary with the supplied basis set."
+                    )
 
             sequence_cost, sequence = heapq.heappop(priority_queue)
 
