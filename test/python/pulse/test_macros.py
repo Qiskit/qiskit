@@ -94,88 +94,71 @@ class TestMeasure(QiskitTestCase):
 
     def test_measure_v2(self):
         """Test macro - measure with backendV2."""
-        sched = macros.measure(qubits=[0], backend=self.backend_v2).filter(
-            channels=[MeasureChannel(0), AcquireChannel(0)]
+        sched = macros.measure(qubits=[0], backend=self.backend_v2)
+        expected = self.backend_v2.target.get_calibration("measure", (0,)).filter(
+            channels=[
+                MeasureChannel(0),
+            ]
         )
-        expected = Schedule(
-            (
-                0,
-                Play(
-                    GaussianSquare(
-                        duration=1792,
-                        sigma=64,
-                        width=1536,
-                        amp=0.3940453,
-                        angle=0.08222747293766576,
-                        name="M_m0",
-                    ),
-                    MeasureChannel(0),
-                    name="M_m0",
-                ),
-            ),
-            (1792, Delay(1616, MeasureChannel(0))),
-            name="Default measurement schedule for qubits [0]",
-        )
-        expected += Acquire(1792, AcquireChannel(0), MemorySlot(0))
+        measure_duration = expected.filter(instruction_types=[Play]).duration
+        for qubit in range(self.backend_v2.num_qubits):
+            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(0))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_v2_sched_with_qubit_mem_slots(self):
-        """Test measure with custom qubit_mem_slots."""
-        sched = macros.measure(qubits=[0], backend=self.backend_v2, qubit_mem_slots={0: 2}).filter(
-            channels=[MeasureChannel(0), AcquireChannel(0)]
+        """Test measure with backendV2 and custom qubit_mem_slots."""
+        sched = macros.measure(qubits=[0], backend=self.backend_v2, qubit_mem_slots={0: 2})
+        expected = self.backend_v2.target.get_calibration("measure", (0,)).filter(
+            channels=[
+                MeasureChannel(0),
+            ]
         )
-        expected = Schedule(
-            (
-                0,
-                Play(
-                    GaussianSquare(
-                        duration=1792,
-                        sigma=64,
-                        width=1536,
-                        amp=0.3940453,
-                        angle=0.08222747293766576,
-                        name="M_m0",
-                    ),
-                    MeasureChannel(0),
-                    name="M_m0",
-                ),
-            ),
-            (1792, Delay(1616, MeasureChannel(0))),
-            name="Default measurement schedule for qubits [0]",
-        )
-        expected += Acquire(1792, AcquireChannel(0), MemorySlot(2))
+        measure_duration = expected.filter(instruction_types=[Play]).duration
+        for qubit in range(self.backend_v2.num_qubits):
+            if qubit == 0:
+                expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(2))
+            else:
+                expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(0))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_v2_sched_with_meas_map(self):
-        """Test measure with custom meas_map as list and dict."""
+        """Test measure with backendV2 custom meas_map as list and dict."""
         sched_with_meas_map_list = macros.measure(
             qubits=[0], backend=self.backend_v2, meas_map=[[0, 1]]
-        ).filter(channels=[MeasureChannel(0), AcquireChannel(0)])
+        )
         sched_with_meas_map_dict = macros.measure(
             qubits=[0], backend=self.backend_v2, meas_map={0: [0, 1], 1: [0, 1]}
-        ).filter(channels=[MeasureChannel(0), AcquireChannel(0)])
-        expected = Schedule(
-            (
-                0,
-                Play(
-                    GaussianSquare(
-                        duration=1792,
-                        sigma=64,
-                        width=1536,
-                        amp=0.3940453,
-                        angle=0.08222747293766576,
-                        name="M_m0",
-                    ),
-                    MeasureChannel(0),
-                    name="M_m0",
-                ),
-            ),
-            (1792, Delay(1616, MeasureChannel(0))),
-            name="Default measurement schedule for qubits [0]",
         )
-        expected += Acquire(1792, AcquireChannel(0), MemorySlot(0))
+        expected = self.backend_v2.target.get_calibration("measure", (0,)).filter(
+            channels=[
+                MeasureChannel(0),
+            ]
+        )
+        measure_duration = expected.filter(instruction_types=[Play]).duration
+        for qubit in range(self.backend_v2.num_qubits):
+            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(0))
         self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
         self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
+
+    def test_multiple_measure_v2(self):
+        """Test macro - multiple qubit measure with backendV2."""
+        sched = macros.measure(qubits=[0, 1], backend=self.backend_v2)
+        expected = self.backend_v2.target.get_calibration("measure", (0,)).filter(
+            channels=[
+                MeasureChannel(0),
+            ]
+        )
+        expected += self.backend_v2.target.get_calibration("measure", (1,)).filter(
+            channels=[
+                MeasureChannel(1),
+            ]
+        )
+        measure_duration = expected.filter(instruction_types=[Play]).duration
+        expected += Acquire(measure_duration, AcquireChannel(0), MemorySlot(0))
+        expected += Acquire(measure_duration, AcquireChannel(1), MemorySlot(1))
+        for qubit in range(2, self.backend_v2.num_qubits):
+            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(0))
+        self.assertEqual(sched.instructions, expected.instructions)
 
 
 class TestMeasureAll(QiskitTestCase):
