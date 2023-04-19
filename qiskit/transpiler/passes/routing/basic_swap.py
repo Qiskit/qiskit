@@ -17,6 +17,8 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.layout import Layout
 from qiskit.circuit.library.standard_gates import SwapGate
+from qiskit.transpiler.target import Target
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 
 class BasicSwap(TransformationPass):
@@ -31,12 +33,17 @@ class BasicSwap(TransformationPass):
         """BasicSwap initializer.
 
         Args:
-            coupling_map (CouplingMap): Directed graph represented a coupling map.
+            coupling_map (Union[CouplingMap, Target]): Directed graph represented a coupling map.
             fake_run (bool): if true, it only pretend to do routing, i.e., no
                 swap is effectively added.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.fake_run = fake_run
 
     def run(self, dag):
@@ -65,7 +72,9 @@ class BasicSwap(TransformationPass):
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
-
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map if self.target is None else self.target
+        )
         canonical_register = dag.qregs["q"]
         trivial_layout = Layout.generate_trivial_layout(canonical_register)
         current_layout = trivial_layout.copy()

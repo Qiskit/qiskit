@@ -13,8 +13,9 @@
 """Result object for p-VQD."""
 from __future__ import annotations
 
-import numpy as np
+from collections.abc import Sequence
 
+import numpy as np
 from qiskit.circuit import QuantumCircuit
 from ..time_evolution_result import TimeEvolutionResult
 
@@ -28,7 +29,7 @@ class PVQDResult(TimeEvolutionResult):
         aux_ops_evaluated: list[tuple[complex, complex]] | None = None,
         times: list[float] | None = None,
         parameters: list[np.ndarray] | None = None,
-        fidelities: list[float] | None = None,
+        fidelities: Sequence[float] | None = None,
         estimated_error: float | None = None,
         observables: list[list[float]] | None = None,
     ):

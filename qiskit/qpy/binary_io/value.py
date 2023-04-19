@@ -17,6 +17,7 @@ import uuid
 
 import numpy as np
 
+from qiskit.circuit import CASE_DEFAULT
 from qiskit.circuit.parameter import Parameter
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.circuit.parametervector import ParameterVector, ParameterVectorElement
@@ -228,7 +229,7 @@ def dumps_value(obj):
         binary_data = common.data_to_binary(obj, np.save)
     elif type_key == type_keys.Value.STRING:
         binary_data = obj.encode(common.ENCODE)
-    elif type_key == type_keys.Value.NULL:
+    elif type_key in (type_keys.Value.NULL, type_keys.Value.CASE_DEFAULT):
         binary_data = b""
     elif type_key == type_keys.Value.PARAMETER_VECTOR:
         binary_data = common.data_to_binary(obj, _write_parameter_vec)
@@ -285,6 +286,8 @@ def loads_value(type_key, binary_data, version, vectors):
         return binary_data.decode(common.ENCODE)
     if type_key == type_keys.Value.NULL:
         return None
+    if type_key == type_keys.Value.CASE_DEFAULT:
+        return CASE_DEFAULT
     if type_key == type_keys.Value.PARAMETER_VECTOR:
         return common.data_from_binary(binary_data, _read_parameter_vec, vectors=vectors)
     if type_key == type_keys.Value.PARAMETER:
