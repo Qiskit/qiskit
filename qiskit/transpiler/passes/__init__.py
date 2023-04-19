@@ -109,6 +109,7 @@ Scheduling
    TimeUnitConversion
    ALAPScheduleAnalysis
    ASAPScheduleAnalysis
+   CompactScheduleAnalysis
    PadDynamicalDecoupling
    PadDelay
    ConstrainedReschedule
@@ -263,6 +264,7 @@ from .calibration import RZXCalibrationBuilderNoEcho
 from .scheduling import TimeUnitConversion
 from .scheduling import ALAPScheduleAnalysis
 from .scheduling import ASAPScheduleAnalysis
+from .scheduling import CompactScheduleAnalysis
 from .scheduling import ALAPSchedule
 from .scheduling import ASAPSchedule
 from .scheduling import PadDynamicalDecoupling

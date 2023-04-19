@@ -14,4 +14,5 @@
 
 from .asap import ASAPScheduleAnalysis
 from .alap import ALAPScheduleAnalysis
+from .compact import CompactScheduleAnalysis
 from .set_io_latency import SetIOLatency

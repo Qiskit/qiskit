@@ -24,6 +24,7 @@ from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import (
     ASAPScheduleAnalysis,
     ALAPScheduleAnalysis,
+    CompactScheduleAnalysis,
     PadDelay,
     SetIOLatency,
 )
@@ -87,7 +88,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(alap_qc, new_qc)
 
-    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis, CompactScheduleAnalysis)
     def test_classically_controlled_gate_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with c_if after measure with a common clbit.
         See: https://github.com/Qiskit/qiskit-terra/issues/7654
@@ -128,7 +129,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(expected, scheduled)
 
-    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis, CompactScheduleAnalysis)
     def test_measure_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with measure after measure with a common clbit.
         See: https://github.com/Qiskit/qiskit-terra/issues/7654
@@ -169,7 +170,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(expected, scheduled)
 
-    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis, CompactScheduleAnalysis)
     def test_c_if_on_different_qubits(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with `c_if`s on different qubits.
 
@@ -217,7 +218,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(expected, scheduled)
 
-    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis, CompactScheduleAnalysis)
     def test_shorter_measure_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with shorter measure after measure with a common clbit.
 
@@ -255,7 +256,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(expected, scheduled)
 
-    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis, CompactScheduleAnalysis)
     def test_measure_after_c_if(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with c_if after measure with a common clbit.
 
@@ -313,7 +314,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         c: 2/══════╩══╩═
                    0  1
 
-        (expected, ALAP)
+        (expected, ALAP, Compact)
              ┌────────────────┐┌───┐┌─┐
         q_0: ┤ Delay(200[dt]) ├┤ X ├┤M├
              └─────┬───┬──────┘└┬─┬┘└╥┘
@@ -353,6 +354,11 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(qc_alap, alap_expected)
 
+        pm = PassManager([CompactScheduleAnalysis(durations), PadDelay()])
+        qc_compact = pm.run(qc)
+
+        self.assertEqual(qc_compact, alap_expected)
+
         pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
         qc_asap = pm.run(qc)
 
@@ -377,7 +383,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         c: 2/══════╩══╩═
                    0  1
 
-        (expected, ALAP)
+        (expected, ALAP, Compact)
              ┌────────────────┐┌───┐ ░ ┌─┐
         q_0: ┤ Delay(200[dt]) ├┤ X ├─░─┤M├───
              └─────┬───┬──────┘└───┘ ░ └╥┘┌─┐
@@ -417,6 +423,11 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         alap_expected.measure(1, 1)
 
         self.assertEqual(qc_alap, alap_expected)
+
+        pm = PassManager([CompactScheduleAnalysis(durations), PadDelay()])
+        qc_compact = pm.run(qc)
+
+        self.assertEqual(qc_compact, alap_expected)
 
         pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
         qc_asap = pm.run(qc)
@@ -851,7 +862,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(scheduled, qc)
 
-    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis, CompactScheduleAnalysis)
     def test_respect_target_instruction_constraints(self, schedule_pass):
         """Test if DD pass does not pad delays for qubits that do not support delay instructions.
         See: https://github.com/Qiskit/qiskit-terra/issues/9993
@@ -867,6 +878,61 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         scheduled = pm.run(qc)
 
         self.assertEqual(qc, scheduled)
+
+    def test_compact(self):
+        """Test if Compact scheduling yields expected schedule.
+
+        (input)
+                ┌───┐               ┌───┐ ░ ┌─┐
+           q_0: ┤ H ├──■─────────■──┤ H ├─░─┤M├──────
+                └───┘┌─┴─┐     ┌─┴─┐└───┘ ░ └╥┘┌─┐
+           q_1: ─────┤ X ├──■──┤ X ├──────░──╫─┤M├───
+                ┌───┐└───┘┌─┴─┐├───┤      ░  ║ └╥┘┌─┐
+           q_2: ┤ H ├─────┤ X ├┤ H ├──────░──╫──╫─┤M├
+                └───┘     └───┘└───┘      ░  ║  ║ └╥┘
+        meas: 3/═════════════════════════════╩══╩══╩═
+                                             0  1  2
+
+        (Compact scheduled)
+                      ┌───┐            ┌────────────────┐           ┌───┐        ░ ┌─┐
+           q_0: ──────┤ H ├─────────■──┤ Delay(900[dt]) ├──■────────┤ H ├────────░─┤M├──────
+                ┌─────┴───┴──────┐┌─┴─┐└────────────────┘┌─┴─┐┌─────┴───┴──────┐ ░ └╥┘┌─┐
+           q_1: ┤ Delay(200[dt]) ├┤ X ├────────■─────────┤ X ├┤ Delay(200[dt]) ├─░──╫─┤M├───
+                ├────────────────┤├───┤      ┌─┴─┐       ├───┤├────────────────┤ ░  ║ └╥┘┌─┐
+           q_2: ┤ Delay(700[dt]) ├┤ H ├──────┤ X ├───────┤ H ├┤ Delay(700[dt]) ├─░──╫──╫─┤M├
+                └────────────────┘└───┘      └───┘       └───┘└────────────────┘ ░  ║  ║ └╥┘
+        meas: 3/════════════════════════════════════════════════════════════════════╩══╩══╩═
+                                                                                    0  1  2
+        """
+        qc = QuantumCircuit(3)
+        qc.h([0, 2])
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+        qc.cx(0, 1)
+        qc.h([0, 2])
+        qc.measure_all()
+
+        durations = InstructionDurations(
+            [("h", None, 200), ("cx", [0, 1], 700), ("cx", [1, 2], 900), ("measure", None, 1000)]
+        )
+
+        pm = PassManager([CompactScheduleAnalysis(durations), PadDelay()])
+        compact_qc = pm.run(qc)
+
+        expected = QuantumCircuit(3)
+        expected.delay(200, 1)
+        expected.delay(700, 2)
+        expected.h([0, 2])
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+        expected.delay(900, 0)
+        expected.cx(0, 1)
+        expected.h([0, 2])
+        expected.delay(200, 1)
+        expected.delay(700, 2)
+        expected.measure_all()
+
+        self.assertEqual(expected, compact_qc)
 
 
 if __name__ == "__main__":
