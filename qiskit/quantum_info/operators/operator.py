@@ -215,8 +215,9 @@ class Operator(LinearOp):
                 dimensions of the operator.
         """
 
-        if front:
-            # The permutation is applied before the operator (i.e. we are computing PO)
+        if not front:
+            # The operator is applied first, the permutation is applied after;
+            # however, in terms of matrices, we compute [P][O].
 
             if len(perm) != len(self._op_shape.dims_l()):
                 raise QiskitError(
@@ -253,7 +254,8 @@ class Operator(LinearOp):
 
             new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
         else:
-            # The permutation is applied after the operator (i.e. we are computing OP)
+            # The permutation is applied first, the operator is applied after;
+            # however, in terms of matrices, we compute [O][P].
 
             if len(perm) != len(self._op_shape.dims_r()):
                 raise QiskitError(
