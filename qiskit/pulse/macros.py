@@ -25,14 +25,6 @@ if TYPE_CHECKING:
     from qiskit.transpiler import Target
 
 
-@deprecate_arg(
-    "backend",
-    deprecation_description=(
-        "Depricating ``backendV1`` as the type of measure's `backend` argument."
-    ),
-    additional_msg=("Instead use ``backendV2``as the type of measure's `backend` argument."),
-    pending=True,
-)
 def measure(
     qubits: List[int],
     backend=None,
