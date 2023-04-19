@@ -262,6 +262,8 @@ class Operator(LinearOp):
                     "The size of the permutation pattern does not match dimensions of the operator."
                 )
 
+            inv_perm = np.argsort(perm)
+
             # shape: original on left, permuted on right
             shape_l = self._op_shape.dims_l()
             shape_r = self._op_shape.dims_r()
@@ -281,8 +283,10 @@ class Operator(LinearOp):
 
             # updating shape: original on left, permuted on right
             new_shape_l = self._op_shape.dims_l()
-            new_shape_r = shape_r
-
+            new_shape_r = self._op_shape.dims_r()
+            new_shape_r = new_shape_r[::-1]
+            new_shape_r = tuple([new_shape_r[x] for x in inv_perm])
+            new_shape_r = new_shape_r[::-1]
             new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
 
         return new_op
