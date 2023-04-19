@@ -31,9 +31,9 @@ features:
       construct), and it will serialize to QPY.
 
       The ``switch`` statement is not currently a feature of OpenQASM 3, but `it is under active
-      design and consideration <https://github.com/openqasm/openqasm/pull/463>`__, and we fully
-      expect it to be adopted in the near future.  Qiskit Terra has experimental support for
-      exporting this statement to the OpenQASM 3 syntax proposed in the linked request, using
+      design and consideration <https://github.com/openqasm/openqasm/pull/463>`__, which is
+      expected to be adopted in the near future.  Qiskit Terra has experimental support for
+      exporting this statement to the OpenQASM 3 syntax proposed in the linked pull request, using
       an experimental feature flag.  To export a ``switch`` statement circuit (such as the one
       created above) to OpenQASM 3 using this speculative support, do::
 
