@@ -19,10 +19,10 @@ from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
 from qiskit.utils.deprecation import deprecate_arg
-from qiskit.transpiler.target import MeasureGrouping
+
 
 if TYPE_CHECKING:
-    from qiskit.transpiler.target import Target
+    from qiskit.transpiler import Target
 
 
 @deprecate_arg(
@@ -32,17 +32,18 @@ if TYPE_CHECKING:
     ),
     additional_msg=("Instead use ``backendV2``as the type of measure's `backend` argument."),
     since="0.25.0",
+    pending=True,
 )
 @deprecate_arg(
     "inst_map",
     deprecation_description=("Setting measure's `inst_map` argument to None."),
     additional_msg=("Instead use the argument `target`."),
     since="0.25.0",
+    pending=True,
 )
 def measure(
     qubits: List[int],
     backend=None,
-    target: Optional[Target] = None,
     inst_map: Optional[InstructionScheduleMap] = None,
     meas_map: Optional[Union[List[List[int]], Dict[int, List[int]]]] = None,
     qubit_mem_slots: Optional[Dict[int, int]] = None,
@@ -50,6 +51,13 @@ def measure(
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
     instruction mapping and measure map, or by using the defaults provided by the backend.
+
+    If the backend has an attribute ``target``, the function uses the newer version
+    of the measurement logic, "_measure_v2" that takes ``target`` of the ``backend``,
+    ``meas_map`` and ``qubit_mem_slots`` assignment.
+    Otherwise, if the backend is None or an older version, the function uses the
+    measurement logic, "_measure_v1" including ``instruction_schedule_map`` and ``meas_map``
+    as inputs.
 
     By default, the measurement results for each qubit are trivially mapped to the qubit
     index. This behavior is overridden by qubit_mem_slots. For instance, to measure
@@ -59,8 +67,6 @@ def measure(
         qubits: List of qubits to be measured.
         backend (Union[Backend, BaseBackend]): A backend instance, which contains
             hardware-specific data required for scheduling.
-        target: The :class:`~.Target` representing the target backend, If None, defaults to the
-                  ``target`` of ``backend``.
         inst_map: Mapping of circuit operations to pulse schedules. If None, defaults to the
                   ``instruction_schedule_map`` of ``backend``.
         meas_map: List of sets of qubits that must be measured together. If None, defaults to
@@ -73,11 +79,12 @@ def measure(
     """
 
     # backend is V2.
-    if target or hasattr(backend, "target"):
+    if hasattr(backend, "target"):
+        target = backend.target
         return _measure_v2(
             qubits=qubits,
-            target=target or backend.target,
-            meas_group=MeasureGrouping(meas_map=meas_map),
+            target=target,
+            meas_map=meas_map or target.meas_map,
             qubit_mem_slots=qubit_mem_slots or dict(zip(qubits, range(len(qubits)))),
             measure_name=measure_name,
         )
@@ -105,10 +112,8 @@ def _measure_v1(
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
-    instruction mapping and measure map, or by using the defaults provided by the backend.
-    By default, the measurement results for each qubit are trivially mapped to the qubit
-    index. This behavior is overridden by qubit_mem_slots. For instance, to measure
-    qubit 0 into MemorySlot(1), qubit_mem_slots can be provided as {0: 1}.
+    instruction mapping and measure map, or by using the defaults provided by the backendV1.
+
     Args:
         qubits: List of qubits to be measured.
         backend (Union[Backend, BaseBackend]): A backend instance, which contains
@@ -163,23 +168,19 @@ def _measure_v1(
 def _measure_v2(
     qubits: List[int],
     target: Target,
-    meas_group: MeasureGrouping,
-    qubit_mem_slots: Optional[Dict[int, int]] = None,
+    meas_map: Union[List[List[int]], Dict[int, List[int]]],
+    qubit_mem_slots: Dict[int, int],
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
-    instruction mapping and measure map, or by using the defaults provided by the backend.
-
-    By default, the measurement results for each qubit are trivially mapped to the qubit
-    index. This behavior is overridden by qubit_mem_slots. For instance, to measure
-    qubit 0 into MemorySlot(1), qubit_mem_slots can be provided as {0: 1}.
+    instruction mapping and measure map, or by using the defaults provided by the backendV2.
 
     Args:
         qubits: List of qubits to be measured.
         backend (Union[Backend, BaseBackend]): A backend instance, which contains
             hardware-specific data required for scheduling.
         target: The :class:`~.Target` representing the target backend.
-        meas_group: The :class:`~.MeasureGrouping` representing grouping multiple qubits which need to be measured together.
+        meas_map: List of sets of qubits that must be measured together.
         qubit_mem_slots: Mapping of measured qubit index to classical bit index.
         measure_name: Name of the measurement schedule.
 
@@ -188,16 +189,28 @@ def _measure_v2(
     """
     schedule = Schedule(name=f"Default measurement schedule for qubits {qubits}")
 
-    meas_map = meas_group.get_qubit_groups(qubits=qubits)
+    if isinstance(meas_map, list):
+        meas_map = utils.format_meas_map(meas_map)
+    meas_group = set()
+    for qubit in qubits:
+        meas_group |= set(meas_map[qubit])
+    meas_group = sorted(list(meas_group))
 
-    for measure_qubit in meas_map:
+    for measure_qubit in meas_group:
         try:
-            default_sched = target.get_calibration(measure_name, (measure_qubit,)).filter(
-                channels=[
-                    channels.MeasureChannel(measure_qubit),
-                    channels.AcquireChannel(measure_qubit),
-                ]
-            )
+            if measure_qubit in qubits:
+                default_sched = target.get_calibration(measure_name, (measure_qubit,)).filter(
+                    channels=[
+                        channels.MeasureChannel(measure_qubit),
+                        channels.AcquireChannel(measure_qubit),
+                    ]
+                )
+            else:
+                default_sched = target.get_calibration(measure_name, (measure_qubit,)).filter(
+                    channels=[
+                        channels.AcquireChannel(measure_qubit),
+                    ]
+                )
         except exceptions.PulseError as ex:
             raise exceptions.PulseError(
                 "We could not find a default measurement schedule called '{}'. "
@@ -223,7 +236,7 @@ def measure_all(backend) -> Schedule:
     return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)
 
 
-def schedule_remapping_memory_slot(schedule: Schedule, qubit_mem_slots) -> Schedule:
+def schedule_remapping_memory_slot(schedule: Schedule, qubit_mem_slots: Dict[int, int]) -> Schedule:
     """
     Return a Schedule which is remapped by given qubit_mem_slots.
 

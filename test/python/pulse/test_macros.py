@@ -21,10 +21,11 @@ from qiskit.pulse import (
     MemorySlot,
     GaussianSquare,
     Play,
+    Delay,
 )
 from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
-from qiskit.providers.fake_provider import FakeOpenPulse2Q
+from qiskit.providers.fake_provider import FakeOpenPulse2Q, FakeHanoiV2
 from qiskit.test import QiskitTestCase
 
 
@@ -34,6 +35,7 @@ class TestMeasure(QiskitTestCase):
     def setUp(self):
         super().setUp()
         self.backend = FakeOpenPulse2Q()
+        self.backend_v2 = FakeHanoiV2()
         self.inst_map = self.backend.defaults().instruction_schedule_map
 
     def test_measure(self):
@@ -43,7 +45,6 @@ class TestMeasure(QiskitTestCase):
             self.inst_map.get("measure", [0, 1]).filter(channels=[MeasureChannel(0)]),
             Acquire(10, AcquireChannel(0), MemorySlot(0)),
         )
-
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_sched_with_qubit_mem_slots(self):
@@ -90,6 +91,91 @@ class TestMeasure(QiskitTestCase):
             macros.measure(qubits=[0], meas_map=self.backend.configuration().meas_map)
         with self.assertRaises(PulseError):
             macros.measure(qubits=[0], inst_map=self.inst_map)
+
+    def test_measure_v2(self):
+        """Test macro - measure with backendV2."""
+        sched = macros.measure(qubits=[0], backend=self.backend_v2).filter(
+            channels=[MeasureChannel(0), AcquireChannel(0)]
+        )
+        expected = Schedule(
+            (
+                0,
+                Play(
+                    GaussianSquare(
+                        duration=1792,
+                        sigma=64,
+                        width=1536,
+                        amp=0.3940453,
+                        angle=0.08222747293766576,
+                        name="M_m0",
+                    ),
+                    MeasureChannel(0),
+                    name="M_m0",
+                ),
+            ),
+            (1792, Delay(1616, MeasureChannel(0))),
+            name="Default measurement schedule for qubits [1, 2]",
+        )
+        expected += Acquire(1792, AcquireChannel(0), MemorySlot(0))
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_measure_v2_sched_with_qubit_mem_slots(self):
+        """Test measure with custom qubit_mem_slots."""
+        sched = macros.measure(qubits=[0], backend=self.backend_v2, qubit_mem_slots={0: 2}).filter(
+            channels=[MeasureChannel(0), AcquireChannel(0)]
+        )
+        expected = Schedule(
+            (
+                0,
+                Play(
+                    GaussianSquare(
+                        duration=1792,
+                        sigma=64,
+                        width=1536,
+                        amp=0.3940453,
+                        angle=0.08222747293766576,
+                        name="M_m0",
+                    ),
+                    MeasureChannel(0),
+                    name="M_m0",
+                ),
+            ),
+            (1792, Delay(1616, MeasureChannel(0))),
+            name="Default measurement schedule for qubits [1, 2]",
+        )
+        expected += Acquire(1792, AcquireChannel(0), MemorySlot(2))
+        self.assertEqual(sched.instructions, expected.instructions)
+
+    def test_measure_v2_sched_with_meas_map(self):
+        """Test measure with custom meas_map as list and dict."""
+        sched_with_meas_map_list = macros.measure(
+            qubits=[0], backend=self.backend_v2, meas_map=[[0, 1]]
+        ).filter(channels=[MeasureChannel(0), AcquireChannel(0)])
+        sched_with_meas_map_dict = macros.measure(
+            qubits=[0], backend=self.backend_v2, meas_map={0: [0, 1], 1: [0, 1]}
+        ).filter(channels=[MeasureChannel(0), AcquireChannel(0)])
+        expected = Schedule(
+            (
+                0,
+                Play(
+                    GaussianSquare(
+                        duration=1792,
+                        sigma=64,
+                        width=1536,
+                        amp=0.3940453,
+                        angle=0.08222747293766576,
+                        name="M_m0",
+                    ),
+                    MeasureChannel(0),
+                    name="M_m0",
+                ),
+            ),
+            (1792, Delay(1616, MeasureChannel(0))),
+            name="Default measurement schedule for qubits [1, 2]",
+        )
+        expected += Acquire(1792, AcquireChannel(0), MemorySlot(0))
+        self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
+        self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
 
 
 class TestMeasureAll(QiskitTestCase):
