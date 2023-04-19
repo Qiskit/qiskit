@@ -173,12 +173,7 @@ class CommutativeCancellation(TransformationPass):
                     new_dag = DAGCircuit()
                     new_dag.add_qreg(new_qarg)
                     new_dag.apply_operation_back(new_op, [new_qarg[0]])
-                    try:
-                        dag.substitute_node_with_dag(run[0], new_dag)
-                    except KeyError as err:
-                        print(repr(err))
-                        breakpoint()
-                        pass
+                    dag.substitute_node_with_dag(run[0], new_dag)
                     if new_op.definition:
                         new_op_phase = new_op.definition.global_phase
 
