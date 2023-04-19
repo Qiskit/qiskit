@@ -22,7 +22,7 @@ from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.providers import Backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
@@ -50,6 +50,14 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
              `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
+    )
     def __init__(
         self,
         epsilon_target: float,
@@ -71,7 +79,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 each iteration, can be 'chernoff' for the Chernoff intervals or 'beta' for the
                 Clopper-Pearson intervals (default)
             min_ratio: Minimal q-ratio (:math:`K_{i+1} / K_i`) for FindNextK
-            quantum_instance: Pending deprecation\: Quantum Instance or Backend
+            quantum_instance: Deprecated: Quantum Instance or Backend
             sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
@@ -95,13 +103,6 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         super().__init__()
 
         # set quantum instance
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
-            )
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             self.quantum_instance = quantum_instance
@@ -132,14 +133,13 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_function(
-        "The IterativeAmplitudeEstimation.quantum_instance getter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
     )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation; Get the quantum instance.
+        """Deprecated. Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -147,14 +147,13 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_function(
-        "The IterativeAmplitudeEstimation.quantum_instance setter is pending deprecation. "
-        "This property will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
     )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Pending deprecation; Set quantum instance.
+        """Deprecated. Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -431,7 +430,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                             if estimation_problem.is_good_state(bit):
                                 prob += probabilities
 
-                        a_confidence_interval = [prob, prob]  # type: list[float]
+                        a_confidence_interval = [prob, prob]
                         a_intervals.append(a_confidence_interval)
 
                         theta_i_interval = [
@@ -534,15 +533,15 @@ class IterativeAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._alpha = None
-        self._epsilon_target = None
-        self._epsilon_estimated = None
-        self._epsilon_estimated_processed = None
-        self._estimate_intervals = None
-        self._theta_intervals = None
-        self._powers = None
-        self._ratios = None
-        self._confidence_interval_processed = None
+        self._alpha: float | None = None
+        self._epsilon_target: float | None = None
+        self._epsilon_estimated: float | None = None
+        self._epsilon_estimated_processed: float | None = None
+        self._estimate_intervals: list[list[float]] | None = None
+        self._theta_intervals: list[list[float]] | None = None
+        self._powers: list[int] | None = None
+        self._ratios: list[float] | None = None
+        self._confidence_interval_processed: tuple[float, float] | None = None
 
     @property
     def alpha(self) -> float:

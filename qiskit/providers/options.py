@@ -13,17 +13,52 @@
 """Container class for backend options."""
 
 import io
+from collections.abc import Mapping
 
 
-class Options:
+class Options(Mapping):
     """Base options object
 
-    This class is the abstract class that all backend options are based
+    This class is what all backend options are based
     on. The properties of the class are intended to be all dynamically
     adjustable so that a user can reconfigure the backend on demand. If a
     property is immutable to the user (eg something like number of qubits)
     that should be a configuration of the backend class itself instead of the
     options.
+
+    Instances of this class behave like dictionaries. Accessing an
+    option with a default value can be done with the `get()` method:
+
+    >>> options = Options(opt1=1, opt2=2)
+    >>> options.get("opt1")
+    1
+    >>> options.get("opt3", default="hello")
+    'hello'
+
+    Key-value pairs for all options can be retrieved using the `items()` method:
+
+    >>> list(options.items())
+    [('opt1', 1), ('opt2', 2)]
+
+    Options can be updated by name:
+
+    >>> options["opt1"] = 3
+    >>> options.get("opt1")
+    3
+
+    Runtime validators can be registered. See `set_validator`.
+    Updates through `update_options` and indexing (`__setitem__`) validate
+    the new value before peforming the update and raise `ValueError` if
+    the new value is invalid.
+
+    >>> options.set_validator("opt1", (1, 5))
+    >>> options["opt1"] = 4
+    >>> options["opt1"]
+    4
+    >>> options["opt1"] = 10  # doctest: +ELLIPSIS
+    Traceback (most recent call last):
+    ...
+    ValueError: ...
     """
 
     # Here there are dragons.
@@ -65,12 +100,46 @@ class Options:
 
     __slots__ = ("_fields", "validator")
 
+    # implementation of the Mapping ABC:
+
+    def __getitem__(self, key):
+        return self._fields[key]
+
+    def __iter__(self):
+        return iter(self._fields)
+
+    def __len__(self):
+        return len(self._fields)
+
+    # Allow modifying the options (validated)
+
+    def __setitem__(self, key, value):
+        self.update_options(**{key: value})
+
+    # backwards-compatibilty with Qiskit Experiments:
+
     @property
     def __dict__(self):
         return self._fields
 
+    # SimpleNamespace-like access to options:
+
+    def __getattr__(self, name):
+        # This does not interrupt the normal lookup of things like methods or `_fields`, because
+        # those are successfully resolved by the normal Python lookup apparatus.  If we are here,
+        # then lookup has failed, so we must be looking for an option.  If the user has manually
+        # called `self.__getattr__("_fields")` then they'll get the option not the full dict, but
+        # that's not really our fault.  `getattr(self, "_fields")` will still find the dict.
+        try:
+            return self._fields[name]
+        except KeyError as ex:
+            raise AttributeError(f"Option {name} is not defined") from ex
+
+    # setting options with the namespace interface is not validated
     def __setattr__(self, key, value):
         self._fields[key] = value
+
+    # custom pickling:
 
     def __getstate__(self):
         return (self._fields, self.validator)
@@ -185,21 +254,6 @@ class Options:
                     )
 
         self._fields.update(fields)
-
-    def __getattr__(self, name):
-        # This does not interrupt the normal lookup of things like methods or `_fields`, because
-        # those are successfully resolved by the normal Python lookup apparatus.  If we are here,
-        # then lookup has failed, so we must be looking for an option.  If the user has manually
-        # called `self.__getattr__("_fields")` then they'll get the option not the full dict, but
-        # that's not really our fault.  `getattr(self, "_fields")` will still find the dict.
-        try:
-            return self._fields[name]
-        except KeyError as ex:
-            raise AttributeError(f"Option {name} is not defined") from ex
-
-    def get(self, field, default=None):
-        """Get an option value for a given key."""
-        return self._fields.get(field, default)
 
     def __str__(self):
         no_validator = super().__str__()

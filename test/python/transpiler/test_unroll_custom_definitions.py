@@ -194,16 +194,16 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         while_body.append(TestCompositeGate(), [0], [])
 
         true_body = QuantumCircuit([qubit, clbit])
-        true_body.while_loop((clbit, True), while_body, [0], [0])
+        true_body.while_loop((clbit, True), while_body, [0], [])
 
         test = QuantumCircuit([qubit, clbit])
-        test.for_loop(range(2), None, for_body, [0], [0])
+        test.for_loop(range(2), None, for_body, [0], [])
         test.if_else((clbit, True), true_body, None, [0], [0])
 
         expected_if_body = QuantumCircuit([qubit, clbit])
-        expected_if_body.while_loop((clbit, True), pass_(while_body), [0], [0])
+        expected_if_body.while_loop((clbit, True), pass_(while_body), [0], [])
         expected = QuantumCircuit([qubit, clbit])
-        expected.for_loop(range(2), None, pass_(for_body), [0], [0])
+        expected.for_loop(range(2), None, pass_(for_body), [0], [])
         expected.if_else(range(2), pass_(expected_if_body), None, [0], [0])
 
         self.assertEqual(pass_(test), expected)
@@ -301,3 +301,19 @@ class TestUnrollCustomDefinitions(QiskitTestCase):
         expected_dag = circuit_to_dag(expected)
 
         self.assertEqual(out, expected_dag)
+
+    def test_unroll_empty_definition(self):
+        """Test that a gate with no operations can be unrolled."""
+        qc = QuantumCircuit(2)
+        qc.append(QuantumCircuit(2).to_gate(), [0, 1], [])
+        pass_ = UnrollCustomDefinitions(EquivalenceLibrary(), ["u"])
+        expected = QuantumCircuit(2)
+        self.assertEqual(pass_(qc), expected)
+
+    def test_unroll_empty_definition_with_phase(self):
+        """Test that a gate with no operations but with a global phase can be unrolled."""
+        qc = QuantumCircuit(2)
+        qc.append(QuantumCircuit(2, global_phase=0.5).to_gate(), [0, 1], [])
+        pass_ = UnrollCustomDefinitions(EquivalenceLibrary(), ["u"])
+        expected = QuantumCircuit(2, global_phase=0.5)
+        self.assertEqual(pass_(qc), expected)

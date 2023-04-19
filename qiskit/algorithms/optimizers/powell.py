@@ -11,8 +11,7 @@
 # that they have been altered from the originals.
 
 """Powell optimizer."""
-
-from typing import Optional
+from __future__ import annotations
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -37,12 +36,12 @@ class POWELL(SciPyOptimizer):
     # pylint: disable=unused-argument
     def __init__(
         self,
-        maxiter: Optional[int] = None,
+        maxiter: int | None = None,
         maxfev: int = 1000,
         disp: bool = False,
         xtol: float = 0.0001,
-        tol: Optional[float] = None,
-        options: Optional[dict] = None,
+        tol: float | None = None,
+        options: dict | None = None,
         **kwargs,
     ) -> None:
         """

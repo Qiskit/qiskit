@@ -14,6 +14,7 @@
 """Test cases to verify qpy backwards compatibility."""
 
 import argparse
+import itertools
 import random
 import re
 import sys
@@ -388,6 +389,38 @@ def generate_control_flow_circuits():
     return circuits
 
 
+def generate_control_flow_switch_circuits():
+    """Generate circuits with switch-statement instructions."""
+    from qiskit.circuit.controlflow import CASE_DEFAULT
+
+    circuits = []
+
+    qc = QuantumCircuit(2, 1, name="switch_clbit")
+    case_t = qc.copy_empty_like()
+    case_t.x(0)
+    case_f = qc.copy_empty_like()
+    case_f.z(1)
+    qc.switch(qc.clbits[0], [(True, case_t), (False, case_f)], qc.qubits, qc.clbits)
+    circuits.append(qc)
+
+    qreg = QuantumRegister(2, "q")
+    creg = ClassicalRegister(3, "c")
+    qc = QuantumCircuit(qreg, creg, name="switch_creg")
+
+    case_0 = QuantumCircuit(qreg, creg)
+    case_0.x(0)
+    case_1 = QuantumCircuit(qreg, creg)
+    case_1.z(1)
+    case_2 = QuantumCircuit(qreg, creg)
+    case_2.x(1)
+    qc.switch(
+        creg, [(0, case_0), ((1, 2), case_1), ((3, 4, CASE_DEFAULT), case_2)], qc.qubits, qc.clbits
+    )
+    circuits.append(qc)
+
+    return circuits
+
+
 def generate_schedule_blocks():
     """Standard QPY testcase for schedule blocks."""
     from qiskit.pulse import builder, channels, library
@@ -437,6 +470,31 @@ def generate_schedule_blocks():
     my_waveform = 0.1 * np.sin(2 * np.pi * np.linspace(0, 1, 100))
     with builder.build() as block:
         builder.play(my_waveform, channels.DriveChannel(0))
+    schedule_blocks.append(block)
+
+    return schedule_blocks
+
+
+def generate_referenced_schedule():
+    """Test for QPY serialization of unassigned reference schedules."""
+    from qiskit.pulse import builder, channels, library
+
+    schedule_blocks = []
+
+    # Completely unassigned schedule
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.reference("x", "q0")
+        builder.reference("cr45m", "q0", "q1")
+    schedule_blocks.append(block)
+
+    # Partly assigned schedule
+    with builder.build() as x_q0:
+        builder.play(library.Constant(100, 0.1), channels.DriveChannel(0))
+    with builder.build() as block:
+        builder.reference("cr45p", "q0", "q1")
+        builder.call(x_q0)
+        builder.reference("cr45m", "q0", "q1")
     schedule_blocks.append(block)
 
     return schedule_blocks
@@ -516,13 +574,8 @@ def generate_open_controlled_gates():
     return circuits
 
 
-def generate_circuits(version_str=None):
+def generate_circuits(version_parts):
     """Generate reference circuits."""
-    version_parts = None
-    if version_str:
-        version_match = re.search(VERSION_PATTERN, version_str, re.VERBOSE | re.IGNORECASE)
-        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
-
     output_circuits = {
         "full.qpy": [generate_full_circuit()],
         "unitary.qpy": [generate_unitary_gate_circuit()],
@@ -555,11 +608,14 @@ def generate_circuits(version_str=None):
         output_circuits["pulse_gates.qpy"] = generate_calibrated_circuits()
     if version_parts >= (0, 21, 2):
         output_circuits["open_controlled_gates.qpy"] = generate_open_controlled_gates()
+    if version_parts >= (0, 24, 0):
+        output_circuits["referenced_schedule_blocks.qpy"] = generate_referenced_schedule()
+        output_circuits["control_flow_switch.qpy"] = generate_control_flow_switch_circuits()
 
     return output_circuits
 
 
-def assert_equal(reference, qpy, count, bind=None):
+def assert_equal(reference, qpy, count, version_parts, bind=None):
     """Compare two circuits."""
     if bind is not None:
         reference_parameter_names = [x.name for x in reference.parameters]
@@ -580,6 +636,22 @@ def assert_equal(reference, qpy, count, bind=None):
         )
         sys.stderr.write(msg)
         sys.exit(1)
+    # Check deprecated bit properties, if set.  The QPY dumping code before Terra 0.23.2 didn't
+    # include enough information for us to fully reconstruct this, so we only test if newer.
+    if version_parts >= (0, 23, 2) and isinstance(reference, QuantumCircuit):
+        for ref_bit, qpy_bit in itertools.chain(
+            zip(reference.qubits, qpy.qubits), zip(reference.clbits, qpy.clbits)
+        ):
+            if ref_bit._register is not None and ref_bit != qpy_bit:
+                msg = (
+                    f"Reference Circuit {count}:\n"
+                    "deprecated bit-level register information mismatch\n"
+                    f"reference bit: {ref_bit}\n"
+                    f"loaded bit: {qpy_bit}\n"
+                )
+                sys.stderr.write(msg)
+                sys.exit(1)
+
     # Don't compare name on bound circuits
     if bind is None and reference.name != qpy.name:
         msg = f"Circuit {count} name mismatch {reference.name} != {qpy.name}\n{reference}\n{qpy}"
@@ -598,7 +670,7 @@ def generate_qpy(qpy_files):
             dump(circuits, fd)
 
 
-def load_qpy(qpy_files):
+def load_qpy(qpy_files, version_parts):
     """Load qpy circuits from files and compare to reference circuits."""
     for path, circuits in qpy_files.items():
         print(f"Loading qpy file: {path}")
@@ -618,7 +690,7 @@ def load_qpy(qpy_files):
             elif path == "parameter_vector_expression.qpy":
                 bind = np.linspace(1.0, 2.0, 15)
 
-            assert_equal(circuit, qpy_circuits[i], i, bind=bind)
+            assert_equal(circuit, qpy_circuits[i], i, version_parts, bind=bind)
 
 
 def _main():
@@ -634,11 +706,18 @@ def _main():
         ),
     )
     args = parser.parse_args()
-    qpy_files = generate_circuits(args.version)
+
+    # Terra 0.18.0 was the first release with QPY, so that's the default.
+    version_parts = (0, 18, 0)
+    if args.version:
+        version_match = re.search(VERSION_PATTERN, args.version, re.VERBOSE | re.IGNORECASE)
+        version_parts = tuple(int(x) for x in version_match.group("release").split("."))
+
+    qpy_files = generate_circuits(version_parts)
     if args.command == "generate":
         generate_qpy(qpy_files)
     else:
-        load_qpy(qpy_files)
+        load_qpy(qpy_files, version_parts)
 
 
 if __name__ == "__main__":

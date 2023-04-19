@@ -25,7 +25,7 @@ class FakeJakartaV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_jakarta.json"
     props_filename = "props_jakarta.json"
     defs_filename = "defs_jakarta.json"
-    backend_name = "fake_jakarta_v2"
+    backend_name = "fake_jakarta"
 
 
 class FakeJakarta(fake_pulse_backend.FakePulseBackend):

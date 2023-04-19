@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2022.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Quantum Instance module """
+"""Quantum Instance module"""
 
 from typing import Optional, List, Union, Dict, Callable, Tuple
 from enum import Enum
@@ -38,6 +38,7 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
@@ -124,11 +125,11 @@ class _MeasFitterType(Enum):
 
 
 class QuantumInstance:
-    """Quantum Backend including execution setting."""
+    """Deprecated: Quantum Backend including execution setting."""
 
     _BACKEND_CONFIG = ["basis_gates", "coupling_map"]
     _COMPILE_CONFIG = ["initial_layout", "seed_transpiler", "optimization_level"]
-    _RUN_CONFIG = ["shots", "max_credits", "memory", "seed_simulator"]
+    _RUN_CONFIG = ["shots", "memory", "seed_simulator"]
     _QJOB_CONFIG = ["timeout", "wait"]
     _NOISE_CONFIG = ["noise_model"]
 
@@ -143,13 +144,16 @@ class QuantumInstance:
         "statevector_hpc_gate_opt",
     ] + _BACKEND_OPTIONS_QASM_ONLY
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+    )
     def __init__(
         self,
         backend,
         # run config
         shots: Optional[int] = None,
         seed_simulator: Optional[int] = None,
-        max_credits: int = None,
         # backend properties
         basis_gates: Optional[List[str]] = None,
         coupling_map=None,
@@ -184,9 +188,6 @@ class QuantumInstance:
             shots: Number of repetitions of each circuit, for sampling. If None, the shots are
                 extracted from the backend. If the backend has none set, the default is 1024.
             seed_simulator: Random seed for simulators
-            max_credits: DEPRECATED This parameter is deprecated as of
-                Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
-                no effect on modern IBM Quantum systems, and no alternative is necessary.
             basis_gates: List of basis gate names supported by the
                 target. Defaults to basis gates of the backend.
             coupling_map (Optional[Union['CouplingMap', List[List]]]):
@@ -265,16 +266,7 @@ class QuantumInstance:
         # pylint: disable=cyclic-import
         from qiskit.assembler.run_config import RunConfig
 
-        if max_credits is not None:
-            warnings.warn(
-                "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-                "and will be removed in a future release. This parameter has no effect on "
-                "modern IBM Quantum systems, and no alternative is necessary.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-
-        run_config = RunConfig(shots=shots, max_credits=max_credits)
+        run_config = RunConfig(shots=shots)
         if seed_simulator is not None:
             run_config.seed_simulator = seed_simulator
 
@@ -840,12 +832,12 @@ class QuantumInstance:
             self._max_job_retries = new_value
 
     @property
-    def measurement_error_mitigation_cls(self):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_cls(self):
         """returns measurement error mitigation cls"""
         return self._meas_error_mitigation_cls
 
     @measurement_error_mitigation_cls.setter
-    def measurement_error_mitigation_cls(self, new_value):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_cls(self, new_value):
         """sets measurement error mitigation cls"""
         self._meas_error_mitigation_cls = new_value
 
@@ -860,12 +852,12 @@ class QuantumInstance:
         self._cals_matrix_refresh_period = new_value
 
     @property
-    def measurement_error_mitigation_shots(self):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_shots(self):
         """returns measurement error mitigation shots"""
         return self._meas_error_mitigation_shots
 
     @measurement_error_mitigation_shots.setter
-    def measurement_error_mitigation_shots(self, new_value):  # pylint: disable=invalid-name
+    def measurement_error_mitigation_shots(self, new_value):
         """sets measurement error mitigation shots"""
         self._meas_error_mitigation_shots = new_value
 

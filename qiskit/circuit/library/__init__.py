@@ -81,6 +81,8 @@ For example:
    CRXGate
    CRYGate
    CRZGate
+   CSGate
+   CSdgGate
    CSwapGate
    CSXGate
    CUGate
@@ -89,6 +91,8 @@ For example:
    CXGate
    CYGate
    CZGate
+   CCZGate
+   ECRGate
    HGate
    IGate
    MSGate
@@ -103,9 +107,8 @@ For example:
    RZGate
    RZZGate
    RZXGate
-   XXPlusYYGate
    XXMinusYYGate
-   ECRGate
+   XXPlusYYGate
    SGate
    SdgGate
    SwapGate
@@ -121,6 +124,7 @@ For example:
    XGate
    YGate
    ZGate
+   GlobalPhaseGate
 
 Standard Directives
 ===================

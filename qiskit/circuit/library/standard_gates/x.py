@@ -11,15 +11,14 @@
 # that they have been altered from the originals.
 
 """X, CX, CCX and multi-controlled X gates."""
-
-from typing import Optional, Union
-from math import ceil
+from __future__ import annotations
+from typing import Optional, Union, Type
+from math import ceil, pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
-from qiskit.qasm import pi
 from .h import HGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate
@@ -930,7 +929,7 @@ class MCXGate(ControlledGate):
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
-        explicit = {1: CXGate, 2: CCXGate}
+        explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)

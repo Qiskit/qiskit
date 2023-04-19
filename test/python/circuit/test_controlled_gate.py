@@ -72,10 +72,12 @@ from qiskit.circuit.library import (
     C3SXGate,
     C4XGate,
     MCPhaseGate,
+    GlobalPhaseGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import mcsu2_real_diagonal
 
 from .gate_utils import _get_free_params
 
@@ -129,6 +131,20 @@ class TestControlledGate(QiskitTestCase):
         """Test the creation of a controlled RZ gate."""
         theta = 0.5
         self.assertEqual(RZGate(theta).control(), CRZGate(theta))
+
+    def test_control_parameters(self):
+        """Test different ctrl_state formats for control function."""
+        theta = 0.5
+
+        self.assertEqual(
+            CRYGate(theta).control(2, ctrl_state="01"), CRYGate(theta).control(2, ctrl_state=1)
+        )
+        self.assertEqual(
+            CRYGate(theta).control(2, ctrl_state=None), CRYGate(theta).control(2, ctrl_state=3)
+        )
+
+        self.assertEqual(CCXGate().control(2, ctrl_state="01"), CCXGate().control(2, ctrl_state=1))
+        self.assertEqual(CCXGate().control(2, ctrl_state=None), CCXGate().control(2, ctrl_state=3))
 
     def test_controlled_ry(self):
         """Test the creation of a controlled RY gate."""
@@ -207,6 +223,21 @@ class TestControlledGate(QiskitTestCase):
                 if not isinstance(special_case_gate, CXGate):
                     # CX is treated like a primitive within Terra, and doesn't have a definition.
                     self.assertTrue(Operator(special_case_gate.definition).equiv(naive_operator))
+
+    def test_global_phase_control(self):
+        """Test creation of a GlobalPhaseGate."""
+        base = GlobalPhaseGate(np.pi / 7)
+        expected_1q = PhaseGate(np.pi / 7)
+        self.assertEqual(Operator(base.control()), Operator(expected_1q))
+
+        expected_2q = PhaseGate(np.pi / 7).control()
+        self.assertEqual(Operator(base.control(2)), Operator(expected_2q))
+
+        expected_open = QuantumCircuit(1)
+        expected_open.x(0)
+        expected_open.p(np.pi / 7, 0)
+        expected_open.x(0)
+        self.assertEqual(Operator(base.control(ctrl_state=0)), Operator(expected_open))
 
     def test_circuit_append(self):
         """Test appending a controlled gate to a quantum circuit."""
@@ -576,6 +607,17 @@ class TestControlledGate(QiskitTestCase):
         base = XGate().to_matrix()
         expected = _compute_control_matrix(base, num_controls)
         self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
+
+    def test_mcsu2_real_diagonal(self):
+        """Test mcsu2_real_diagonal"""
+        num_ctrls = 6
+        theta = 0.3
+        qc = QuantumCircuit(num_ctrls + 1)
+        ry_matrix = RYGate(theta).to_matrix()
+        mcsu2_real_diagonal(qc, ry_matrix, list(range(num_ctrls)), num_ctrls)
+
+        mcry_matrix = _compute_control_matrix(ry_matrix, 6)
+        self.assertTrue(np.allclose(mcry_matrix, Operator(qc).to_matrix()))
 
     @combine(num_controls=[1, 2, 4], base_gate_name=["x", "y", "z"], use_basis_gates=[True, False])
     def test_multi_controlled_rotation_gate_matrices(
@@ -1002,10 +1044,12 @@ class TestControlledGate(QiskitTestCase):
                 numargs = len(_get_free_params(gate))
                 args = [2] * numargs
                 gate = gate(*args)
+
                 self.assertEqual(
                     gate.inverse().control(num_ctrl_qubits, ctrl_state=ctrl_state),
                     gate.control(num_ctrl_qubits, ctrl_state=ctrl_state).inverse(),
                 )
+
             except AttributeError:
                 # skip gates that do not have a control attribute (e.g. barrier)
                 pass
@@ -1104,6 +1148,7 @@ class TestControlledGate(QiskitTestCase):
                     free_params[1] = 3
                 elif gate_class in [MCXGate]:
                     free_params[0] = 3
+
                 base_gate = gate_class(*free_params)
                 if base_gate.params:
                     cgate = base_gate.control(num_ctrl_qubits)
