@@ -225,16 +225,16 @@ class Operator(LinearOp):
 
             inv_perm = np.argsort(perm)
 
-            # shape: permuted on left, original on right
+            # shape: inv-permuted on left, original on right
             shape_l = self._op_shape.dims_l()
             shape_l = shape_l[::-1]
-            shape_l = tuple([shape_l[x] for x in perm])
+            shape_l = tuple([shape_l[x] for x in inv_perm])
             shape_l = shape_l[::-1]
             shape_r = self._op_shape.dims_r()
             split_shape = shape_l + shape_r
 
-            # axes: inv-permuted on left, id on right
-            axes_l = tuple((np.argsort(perm[::-1]))[::-1])  # reverse, invert, reverse
+            # axes: permuted on left, id on right
+            axes_l = tuple((np.argsort(inv_perm[::-1]))[::-1])
             axes_r = tuple(
                 self._op_shape._num_qargs_l + x for x in range(self._op_shape._num_qargs_r)
             )
@@ -244,10 +244,10 @@ class Operator(LinearOp):
                 self._data.reshape(split_shape).transpose(split_axes).reshape(self._op_shape.shape)
             )
 
-            # updating shape: inv-permuted on left, original on right
+            # updating shape: permuted on left, original on right
             new_shape_l = self._op_shape.dims_l()
             new_shape_l = new_shape_l[::-1]
-            new_shape_l = tuple([new_shape_l[x] for x in inv_perm])
+            new_shape_l = tuple([new_shape_l[x] for x in perm])
             new_shape_l = new_shape_l[::-1]
             new_shape_r = self._op_shape.dims_r()
 
