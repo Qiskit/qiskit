@@ -214,7 +214,7 @@ def _measure_v2(
                 "argument. For assistance, the instructions which are defined are: "
                 "{}".format(measure_name, target.instructions)
             ) from ex
-        schedule += schedule_remapping_memory_slot(default_sched, qubit_mem_slots)
+        schedule += _schedule_remapping_memory_slot(default_sched, qubit_mem_slots)
     return schedule
 
 
@@ -232,7 +232,7 @@ def measure_all(backend) -> Schedule:
     return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)
 
 
-def schedule_remapping_memory_slot(schedule: Schedule, qubit_mem_slots: Dict[int, int]) -> Schedule:
+def _schedule_remapping_memory_slot(schedule: Schedule, qubit_mem_slots: Dict[int, int]) -> Schedule:
     """
     A helper function to overwrite MemorySlot index of :class:`.Acquire` instruction.
 
