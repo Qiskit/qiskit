@@ -219,63 +219,53 @@ class Operator(LinearOp):
         # behind the following code.
 
         inv_perm = np.argsort(perm)
+        raw_shape_l = self._op_shape.dims_l()
+        n_dims_l = len(raw_shape_l)
+        raw_shape_r = self._op_shape.dims_r()
+        n_dims_r = len(raw_shape_r)
 
         if front:
             # The permutation is applied first, the operator is applied after;
             # however, in terms of matrices, we compute [O][P].
 
-            if len(perm) != len(self._op_shape.dims_r()):
+            if len(perm) != n_dims_r:
                 raise QiskitError(
                     "The size of the permutation pattern does not match dimensions of the operator."
                 )
 
             # shape: original on left, permuted on right
             shape_l = self._op_shape.dims_l()
-            shape_r = self._op_shape.dims_r()
-            shape_r = shape_r[::-1]
-            shape_r = tuple(shape_r[x] for x in perm)
-            shape_r = shape_r[::-1]
+            shape_r = tuple(raw_shape_r[n_dims_r - n - 1] for n in reversed(perm))
 
-            # axes: id on left, inv-permuted on right
+            # axes order: id on left, inv-permuted on right
             axes_l = tuple(x for x in range(self._op_shape._num_qargs_l))
             axes_r = tuple(self._op_shape._num_qargs_l + x for x in (np.argsort(perm[::-1]))[::-1])
 
-            # updating shape: original on left, permuted on right
+            # updated shape: original on left, permuted on right
             new_shape_l = self._op_shape.dims_l()
-            new_shape_r = self._op_shape.dims_r()
-            new_shape_r = new_shape_r[::-1]
-            new_shape_r = tuple(new_shape_r[x] for x in inv_perm)
-            new_shape_r = new_shape_r[::-1]
+            new_shape_r = tuple(raw_shape_r[n_dims_r - n - 1] for n in reversed(inv_perm))
 
         else:
             # The operator is applied first, the permutation is applied after;
             # however, in terms of matrices, we compute [P][O].
 
-            if len(perm) != len(self._op_shape.dims_l()):
+            if len(perm) != n_dims_l:
                 raise QiskitError(
                     "The size of the permutation pattern does not match dimensions of the operator."
                 )
 
-            inv_perm = np.argsort(perm)
-
             # shape: inv-permuted on left, original on right
-            shape_l = self._op_shape.dims_l()
-            shape_l = shape_l[::-1]
-            shape_l = tuple(shape_l[x] for x in inv_perm)
-            shape_l = shape_l[::-1]
+            shape_l = tuple(raw_shape_l[n_dims_l - n - 1] for n in reversed(inv_perm))
             shape_r = self._op_shape.dims_r()
 
-            # axes: permuted on left, id on right
+            # axes order: permuted on left, id on right
             axes_l = tuple((np.argsort(inv_perm[::-1]))[::-1])
             axes_r = tuple(
                 self._op_shape._num_qargs_l + x for x in range(self._op_shape._num_qargs_r)
             )
 
-            # updating shape: permuted on left, original on right
-            new_shape_l = self._op_shape.dims_l()
-            new_shape_l = new_shape_l[::-1]
-            new_shape_l = tuple(new_shape_l[x] for x in perm)
-            new_shape_l = new_shape_l[::-1]
+            # updated shape: permuted on left, original on right
+            new_shape_l = tuple(raw_shape_l[n_dims_l - n - 1] for n in reversed(perm))
             new_shape_r = self._op_shape.dims_r()
 
         # Computing the new operator
