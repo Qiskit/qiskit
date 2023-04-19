@@ -229,7 +229,7 @@ class Operator(LinearOp):
             # shape: inv-permuted on left, original on right
             shape_l = self._op_shape.dims_l()
             shape_l = shape_l[::-1]
-            shape_l = tuple([shape_l[x] for x in inv_perm])
+            shape_l = tuple(shape_l[x] for x in inv_perm)
             shape_l = shape_l[::-1]
             shape_r = self._op_shape.dims_r()
             split_shape = shape_l + shape_r
@@ -248,7 +248,7 @@ class Operator(LinearOp):
             # updating shape: permuted on left, original on right
             new_shape_l = self._op_shape.dims_l()
             new_shape_l = new_shape_l[::-1]
-            new_shape_l = tuple([new_shape_l[x] for x in perm])
+            new_shape_l = tuple(new_shape_l[x] for x in perm)
             new_shape_l = new_shape_l[::-1]
             new_shape_r = self._op_shape.dims_r()
 
@@ -268,7 +268,7 @@ class Operator(LinearOp):
             shape_l = self._op_shape.dims_l()
             shape_r = self._op_shape.dims_r()
             shape_r = shape_r[::-1]
-            shape_r = tuple([shape_r[x] for x in perm])
+            shape_r = tuple(shape_r[x] for x in perm)
             shape_r = shape_r[::-1]
             split_shape = shape_l + shape_r
 
@@ -285,7 +285,7 @@ class Operator(LinearOp):
             new_shape_l = self._op_shape.dims_l()
             new_shape_r = self._op_shape.dims_r()
             new_shape_r = new_shape_r[::-1]
-            new_shape_r = tuple([new_shape_r[x] for x in inv_perm])
+            new_shape_r = tuple(new_shape_r[x] for x in inv_perm)
             new_shape_r = new_shape_r[::-1]
             new_op = Operator(new_mat, input_dims=new_shape_r, output_dims=new_shape_l)
 
