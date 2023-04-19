@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,6 +32,7 @@ from qiskit.opflow.primitive_ops.pauli_op import PauliOp
 from qiskit.opflow.primitive_ops.circuit_op import CircuitOp
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
+from qiskit.utils.deprecation import deprecate_func
 
 # TODO uncomment when we implement Abelian grouped evolution.
 # from qiskit.opflow.converters.abelian_grouper import AbelianGrouper
@@ -41,8 +42,8 @@ logger = logging.getLogger(__name__)
 
 class PauliTrotterEvolution(EvolutionBase):
     r"""
-    An Evolution algorithm replacing exponentiated sums of Paulis by changing them each to the
-    Z basis, rotating with an rZ, changing back, and Trotterizing.
+    Deprecated: An Evolution algorithm replacing exponentiated sums of Paulis by changing
+    them each to the Z basis, rotating with an rZ, changing back, and Trotterizing.
 
     More specifically, we compute basis change circuits for each Pauli into a single-qubit Z,
     evolve the Z by the desired evolution time with an rZ gate, and change the basis back using
@@ -50,6 +51,10 @@ class PauliTrotterEvolution(EvolutionBase):
     evolution circuits are composed together by Trotterization scheme.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         trotter_mode: Optional[Union[str, TrotterizationBase]] = "trotter",
@@ -69,7 +74,7 @@ class PauliTrotterEvolution(EvolutionBase):
             #     sub-groups, so a single diagonalization circuit can be used for each group
             #     rather than each Pauli.
         """
-
+        super().__init__()
         if isinstance(trotter_mode, TrotterizationBase):
             self._trotter = trotter_mode
         else:

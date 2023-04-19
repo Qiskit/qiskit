@@ -24,8 +24,9 @@ from ddt import ddt, data
 
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
 from qiskit.circuit import Parameter, Qubit, Clbit, Instruction, Gate, Delay, Barrier
+from qiskit.circuit.controlflow import CASE_DEFAULT
 from qiskit.test import QiskitTestCase
-from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError
+from qiskit.qasm3 import Exporter, dumps, dump, QASM3ExporterError, ExperimentalFeatures
 from qiskit.qasm3.exporter import QASM3Builder
 from qiskit.qasm3.printer import BasicPrinter
 
@@ -1774,6 +1775,268 @@ if (c[0] == 1) {
   barrier q[0], q[1];
 }"""
         self.assertEqual(dumps(qc).strip(), expected.strip())
+
+
+class TestExperimentalFeatures(QiskitTestCase):
+    """Tests of features that are hidden behind experimental flags."""
+
+    maxDiff = None
+
+    def test_switch_forbidden_without_flag(self):
+        """Omitting the feature flag should raise an error."""
+        case = QuantumCircuit(1)
+        circuit = QuantumCircuit(1, 1)
+        circuit.switch(circuit.clbits[0], [((True, False), case)], [0], [])
+        with self.assertRaisesRegex(QASM3ExporterError, "'switch' statements are not stabilized"):
+            dumps(circuit)
+
+    def test_switch_clbit(self):
+        """Test that a switch statement can be constructed with a bit as a condition."""
+        qubit = Qubit()
+        clbit = Clbit()
+        case1 = QuantumCircuit([qubit, clbit])
+        case1.x(0)
+        case2 = QuantumCircuit([qubit, clbit])
+        case2.z(0)
+        circuit = QuantumCircuit([qubit, clbit])
+        circuit.switch(clbit, [(True, case1), (False, case2)], [0], [0])
+
+        test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
+        expected = """\
+OPENQASM 3;
+include "stdgates.inc";
+bit[1] _loose_clbits;
+qubit[1] _all_qubits;
+switch (_loose_clbits[0]) {
+  case 1: {
+    x _all_qubits[0];
+  }
+  break;
+  case 0: {
+    z _all_qubits[0];
+  }
+  break;
+}
+"""
+        self.assertEqual(test, expected)
+
+    def test_switch_register(self):
+        """Test that a switch statement can be constructed with a register as a condition."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2, "c")
+        case1 = QuantumCircuit([qubit], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit], creg)
+        case2.y(0)
+        case3 = QuantumCircuit([qubit], creg)
+        case3.z(0)
+
+        circuit = QuantumCircuit([qubit], creg)
+        circuit.switch(creg, [(0, case1), (1, case2), (2, case3)], [0], circuit.clbits)
+
+        test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
+        expected = """\
+OPENQASM 3;
+include "stdgates.inc";
+bit[2] c;
+int switch_dummy;
+qubit[1] _all_qubits;
+switch_dummy = c;
+switch (switch_dummy) {
+  case 0: {
+    x _all_qubits[0];
+  }
+  break;
+  case 1: {
+    y _all_qubits[0];
+  }
+  break;
+  case 2: {
+    z _all_qubits[0];
+  }
+  break;
+}
+"""
+        self.assertEqual(test, expected)
+
+    def test_switch_with_default(self):
+        """Test that a switch statement can be constructed with a default case at the end."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2, "c")
+        case1 = QuantumCircuit([qubit], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit], creg)
+        case2.y(0)
+        case3 = QuantumCircuit([qubit], creg)
+        case3.z(0)
+
+        circuit = QuantumCircuit([qubit], creg)
+        circuit.switch(creg, [(0, case1), (1, case2), (CASE_DEFAULT, case3)], [0], circuit.clbits)
+
+        test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
+        expected = """\
+OPENQASM 3;
+include "stdgates.inc";
+bit[2] c;
+int switch_dummy;
+qubit[1] _all_qubits;
+switch_dummy = c;
+switch (switch_dummy) {
+  case 0: {
+    x _all_qubits[0];
+  }
+  break;
+  case 1: {
+    y _all_qubits[0];
+  }
+  break;
+  default: {
+    z _all_qubits[0];
+  }
+  break;
+}
+"""
+        self.assertEqual(test, expected)
+
+    def test_switch_multiple_cases_to_same_block(self):
+        """Test that it is possible to add multiple cases that apply to the same block, if they are
+        given as a compound value.  This is an allowed special case of block fall-through."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2, "c")
+        case1 = QuantumCircuit([qubit], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit], creg)
+        case2.y(0)
+
+        circuit = QuantumCircuit([qubit], creg)
+        circuit.switch(creg, [(0, case1), ((1, 2), case2)], [0], circuit.clbits)
+
+        test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
+        expected = """\
+OPENQASM 3;
+include "stdgates.inc";
+bit[2] c;
+int switch_dummy;
+qubit[1] _all_qubits;
+switch_dummy = c;
+switch (switch_dummy) {
+  case 0: {
+    x _all_qubits[0];
+  }
+  break;
+  case 1:
+  case 2: {
+    y _all_qubits[0];
+  }
+  break;
+}
+"""
+        self.assertEqual(test, expected)
+
+    def test_multiple_switches_dont_clash_on_dummy(self):
+        """Test that having more than one switch statement in the circuit doesn't cause naming
+        clashes in the dummy integer value used."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2, "switch_dummy")
+        case1 = QuantumCircuit([qubit], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit], creg)
+        case2.y(0)
+
+        circuit = QuantumCircuit([qubit], creg)
+        circuit.switch(creg, [(0, case1), ((1, 2), case2)], [0], circuit.clbits)
+        circuit.switch(creg, [(0, case1), ((1, 2), case2)], [0], circuit.clbits)
+
+        test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
+        expected = """\
+OPENQASM 3;
+include "stdgates.inc";
+bit[2] switch_dummy;
+int switch_dummy__generated0;
+int switch_dummy__generated1;
+qubit[1] _all_qubits;
+switch_dummy__generated0 = switch_dummy;
+switch (switch_dummy__generated0) {
+  case 0: {
+    x _all_qubits[0];
+  }
+  break;
+  case 1:
+  case 2: {
+    y _all_qubits[0];
+  }
+  break;
+}
+switch_dummy__generated1 = switch_dummy;
+switch (switch_dummy__generated1) {
+  case 0: {
+    x _all_qubits[0];
+  }
+  break;
+  case 1:
+  case 2: {
+    y _all_qubits[0];
+  }
+  break;
+}
+"""
+        self.assertEqual(test, expected)
+
+    def test_switch_nested_in_if(self):
+        """Test that the switch statement works when in a nested scope, including the dummy
+        classical variable being declared globally.  This isn't necessary in the OQ3 language, but
+        it is universally valid and the IBM QSS stack prefers that.  They're our primary consumers
+        of OQ3 strings, so it's best to play nicely with them."""
+        qubit = Qubit()
+        creg = ClassicalRegister(2, "c")
+        case1 = QuantumCircuit([qubit], creg)
+        case1.x(0)
+        case2 = QuantumCircuit([qubit], creg)
+        case2.y(0)
+
+        body = QuantumCircuit([qubit], creg)
+        body.switch(creg, [(0, case1), ((1, 2), case2)], [0], body.clbits)
+
+        circuit = QuantumCircuit([qubit], creg)
+        circuit.if_else((creg, 1), body.copy(), body, [0], body.clbits)
+
+        test = dumps(circuit, experimental=ExperimentalFeatures.SWITCH_CASE_V1)
+        expected = """\
+OPENQASM 3;
+include "stdgates.inc";
+bit[2] c;
+int switch_dummy;
+int switch_dummy__generated0;
+qubit[1] _all_qubits;
+if (c == 1) {
+  switch_dummy = c;
+  switch (switch_dummy) {
+    case 0: {
+      x _all_qubits[0];
+    }
+    break;
+    case 1:
+    case 2: {
+      y _all_qubits[0];
+    }
+    break;
+  }
+} else {
+  switch_dummy__generated0 = c;
+  switch (switch_dummy__generated0) {
+    case 0: {
+      x _all_qubits[0];
+    }
+    break;
+    case 1:
+    case 2: {
+      y _all_qubits[0];
+    }
+    break;
+  }
+}
+"""
+        self.assertEqual(test, expected)
 
 
 @ddt

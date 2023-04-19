@@ -166,6 +166,12 @@ which conflicts with the :class:`~qiskit.pulse.library.SymbolicPulse` in the sco
 pulse instruction operands. A special type character ``o`` is reserved for
 the string data that appears in the pulse instruction operands.
 
+In addition, version 7 adds two new type keys to the INSTRUCTION_PARM struct.  ``"d"`` is followed
+by no data and represents the literal value :data:`.CASE_DEFAULT` for switch-statement support.
+``"R"`` represents a :class:`.ClassicalRegister` or :class:`.Clbit`, and is followed by the same
+format as the description of register or classical bit as used in the first element of :ref:`the
+condition of an INSTRUCTION field <qpy_instructions>`.
+
 .. _qpy_version_6:
 
 Version 6

@@ -233,6 +233,8 @@ def map_free_qubits(
             set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys()
         )
     for im_index in sorted(free_nodes, key=lambda x: sum(free_nodes[x].values())):
+        if not free_qubits:
+            return None
         selected_qubit = free_qubits.pop(0)
         partial_layout.add(reverse_bit_map[im_index], selected_qubit)
     return partial_layout

@@ -14,6 +14,7 @@
 """VF2Layout pass to find a layout using subgraph isomorphism"""
 import os
 from enum import Enum
+import itertools
 import logging
 import time
 
@@ -141,6 +142,14 @@ class VF2Layout(AnalysisPass):
         cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
             self.coupling_map, self.seed, self.strict_direction
         )
+        # Filter qubits without any supported operations. If they don't support any operations
+        # They're not valid for layout selection
+        if self.target is not None:
+            has_operations = set(itertools.chain.from_iterable(self.target.qargs))
+            to_remove = set(range(len(cm_nodes))).difference(has_operations)
+            if to_remove:
+                cm_graph.remove_nodes_from([cm_nodes[i] for i in to_remove])
+
         # To avoid trying to over optimize the result by default limit the number
         # of trials based on the size of the graphs. For circuits with simple layouts
         # like an all 1q circuit we don't want to sit forever trying every possible
@@ -239,6 +248,10 @@ class VF2Layout(AnalysisPass):
                 reverse_im_graph_node_map,
                 self.avg_error_map,
             )
+            # No free qubits for free qubit mapping
+            if chosen_layout is None:
+                self.property_set["VF2Layout_stop_reason"] = VF2LayoutStopReason.NO_SOLUTION_FOUND
+                return
             self.property_set["layout"] = chosen_layout
             for reg in dag.qregs.values():
                 self.property_set["layout"].add_register(reg)

@@ -13,8 +13,10 @@
 """Test conversion to probability distribution"""
 from math import sqrt
 
+import numpy as np
+
 from qiskit.test import QiskitTestCase
-from qiskit.result import QuasiDistribution
+from qiskit.result import QuasiDistribution, marginal_distribution
 
 
 class TestQuasi(QiskitTestCase):
@@ -192,3 +194,38 @@ class TestQuasi(QiskitTestCase):
             assert abs(ans[key] - val) < 1e-14
         # Check if distance calculation is correct
         assert abs(dist - sqrt(0.38)) < 1e-14
+
+    def test_marginal_distribution(self):
+        """Test marginal_distribution with float value."""
+        qprobs = {0: 3 / 5, 1: 1 / 2, 2: 7 / 20, 3: 1 / 10, 4: -11 / 20}
+        dist = QuasiDistribution(qprobs)
+        res = marginal_distribution(dist.binary_probabilities(), [0])
+        expected = {"0": 0.4, "1": 0.6}
+        self.assertDictAlmostEqual(expected, res, delta=0.0001)
+
+    def test_marginal_distribution_np_double(self):
+        """Test marginal_distribution with np double float value."""
+        qprobs = {0: 3 / 5, 1: 1 / 2, 2: 7 / 20, 3: 1 / 10, 4: -11 / 20}
+        qprobs = {k: np.float64(v) for k, v in qprobs.items()}
+        dist = QuasiDistribution(qprobs)
+        res = marginal_distribution(dist.binary_probabilities(), [0])
+        expected = {"0": 0.4, "1": 0.6}
+        self.assertDictAlmostEqual(expected, res, delta=0.0001)
+
+    def test_marginal_distribution_np_single(self):
+        """test marginal_distribution with np single float value."""
+        qprobs = {0: 3 / 5, 1: 1 / 2, 2: 7 / 20, 3: 1 / 10, 4: -11 / 20}
+        qprobs = {k: np.float32(v) for k, v in qprobs.items()}
+        dist = QuasiDistribution(qprobs)
+        res = marginal_distribution(dist.binary_probabilities(), [0])
+        expected = {"0": 0.4, "1": 0.6}
+        self.assertDictAlmostEqual(expected, res, delta=0.0001)
+
+    def test_marginal_distribution_np_half(self):
+        """test marginal_distribution with np half float value."""
+        qprobs = {0: 3 / 5, 1: 1 / 2, 2: 7 / 20, 3: 1 / 10, 4: -11 / 20}
+        qprobs = {k: np.float16(v) for k, v in qprobs.items()}
+        dist = QuasiDistribution(qprobs)
+        res = marginal_distribution(dist.binary_probabilities(), [0])
+        expected = {"0": 0.4, "1": 0.6}
+        self.assertDictAlmostEqual(expected, res, delta=0.001)

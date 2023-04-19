@@ -118,7 +118,7 @@ from .linear import (
     synth_cnot_count_full_pmh,
     synth_cnot_depth_line_kms,
 )
-from .linear_phase import synth_cz_depth_line_mr
+from .linear_phase import synth_cz_depth_line_mr, synth_cnot_phase_aam
 from .clifford import (
     synth_clifford_full,
     synth_clifford_ag,
