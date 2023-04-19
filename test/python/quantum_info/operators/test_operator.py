@@ -1107,6 +1107,42 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op2, op3)
         self.assertEqual(op2, op4)
 
+    def test_apply_permutation_qudits_back(self):
+        """Test applying permutation to the operator with heterogeneous qudit spaces,
+        where the operator O is applied first and the permutation P second.
+        The matrix of the resulting operator is the product [P][O] and
+        corresponds to suitably permuting the rows of O's matrix.
+        """
+        mat = np.array(range(6 * 6)).reshape((6, 6))
+        op = Operator(mat, input_dims=(2, 3), output_dims=(2, 3))
+        perm = [1, 0]
+        actual = op.apply_permutation(perm, front=False)
+
+        # Rows of mat are ordered to 00, 01, 02, 10, 11, 12;
+        # perm maps these to 00, 10, 20, 01, 11, 21,
+        # while the default ordering is 00, 01, 10, 11, 20, 21.
+        permuted_mat = mat.copy()[[0, 2, 4, 1, 3, 5]]
+        expected = Operator(permuted_mat, input_dims=(2, 3), output_dims=(3, 2))
+        self.assertEqual(actual, expected)
+
+    def test_apply_permutation_qudits_front(self):
+        """Test applying permutation to the operator with heterogeneous qudit spaces,
+        where the permutation P is applied first and the operator O is applied second.
+        The matrix of the resulting operator is the product [O][P] and
+        corresponds to suitably permuting the columns of O's matrix.
+        """
+        mat = np.array(range(6 * 6)).reshape((6, 6))
+        op = Operator(mat, input_dims=(2, 3), output_dims=(2, 3))
+        perm = [1, 0]
+        actual = op.apply_permutation(perm, front=True)
+
+        # Columns of mat are ordered to 00, 01, 02, 10, 11, 12;
+        # perm maps these to 00, 10, 20, 01, 11, 21,
+        # while the default ordering is 00, 01, 10, 11, 20, 21.
+        permuted_mat = mat.copy()[:, [0, 2, 4, 1, 3, 5]]
+        expected = Operator(permuted_mat, input_dims=(3, 2), output_dims=(2, 3))
+        self.assertEqual(actual, expected)
+
     def test_reverse_qargs_as_apply_permutation(self):
         """Test reversing qargs by pre- and post-composing with reversal
         permutation.
