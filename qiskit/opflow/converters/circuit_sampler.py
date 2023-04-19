@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -32,13 +32,14 @@ from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.providers import Backend
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
 class CircuitSampler(ConverterBase):
     """
-    The CircuitSampler traverses an Operator and converts any CircuitStateFns into
+    Deprecated: The CircuitSampler traverses an Operator and converts any CircuitStateFns into
     approximations of the state function by a DictStateFn or VectorStateFn using a quantum
     backend. Note that in order to approximate the value of the CircuitStateFn, it must 1) send
     state function through a depolarizing channel, which will destroy all phase information and
@@ -51,6 +52,10 @@ class CircuitSampler(ConverterBase):
     you are better off using a different CircuitSampler for each Operator to avoid cache thrashing.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         backend: Union[Backend, QuantumInstance],
@@ -76,6 +81,8 @@ class CircuitSampler(ConverterBase):
         Raises:
             ValueError: Set statevector or param_qobj True when not supported by backend.
         """
+        super().__init__()
+
         self._quantum_instance = (
             backend if isinstance(backend, QuantumInstance) else QuantumInstance(backend=backend)
         )

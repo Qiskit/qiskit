@@ -24,9 +24,20 @@ from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.layout import Layout
-from qiskit.circuit import IfElseOp, WhileLoopOp, ForLoopOp, ControlFlowOp, Instruction
+from qiskit.transpiler.target import Target
+from qiskit.circuit import (
+    Clbit,
+    IfElseOp,
+    WhileLoopOp,
+    ForLoopOp,
+    SwitchCaseOp,
+    ControlFlowOp,
+    Instruction,
+    CASE_DEFAULT,
+)
 from qiskit._accelerate import stochastic_swap as stochastic_swap_rs
 from qiskit._accelerate import nlayout
+from qiskit.transpiler.passes.layout import disjoint_utils
 
 from .utils import get_swap_map_dag
 
@@ -56,7 +67,7 @@ class StochasticSwap(TransformationPass):
         If these are not satisfied, the behavior is undefined.
 
         Args:
-            coupling_map (CouplingMap): Directed graph representing a coupling
+            coupling_map (Union[CouplingMap, Target]): Directed graph representing a coupling
                 map.
             trials (int): maximum number of iterations to attempt
             seed (int): seed for random number generator
@@ -65,7 +76,12 @@ class StochasticSwap(TransformationPass):
             initial_layout (Layout): starting layout at beginning of pass.
         """
         super().__init__()
-        self.coupling_map = coupling_map
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
+        else:
+            self.target = None
+            self.coupling_map = coupling_map
         self.trials = trials
         self.seed = seed
         self.rng = None
@@ -97,6 +113,9 @@ class StochasticSwap(TransformationPass):
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map if self.target is None else self.target
+        )
 
         self.rng = np.random.default_rng(self.seed)
 
@@ -376,7 +395,7 @@ class StochasticSwap(TransformationPass):
 
         """
         node = layer_dag.op_nodes()[0]
-        if not isinstance(node.op, (IfElseOp, ForLoopOp, WhileLoopOp)):
+        if not isinstance(node.op, (IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp)):
             raise TranspilerError(f"unsupported control flow operation: {node}")
         # For each block, expand it up be the full width of the containing DAG so we can be certain
         # that it is routable, then route it within that.  When we recombine later, we'll reduce all
@@ -389,18 +408,15 @@ class StochasticSwap(TransformationPass):
             block_layouts.append(inner_pass.property_set["final_layout"].copy())
 
         # Determine what layout we need to go towards.  For some blocks (such as `for`), we must
-        # guarantee that the final layout is the same as the initial or the loop won't work.  For an
-        # `if` with an `else`, we don't need that as long as the two branches are the same.  We have
-        # to be careful with `if` _without_ an else, though - the `if` needs to restore the layout
-        # in case it isn't taken; we can't have two different virtual layouts.
-        if not (isinstance(node.op, IfElseOp) and len(node.op.blocks) == 2):
-            final_layout = current_layout
-        else:
+        # guarantee that the final layout is the same as the initial or the loop won't work.
+        if _controlflow_exhaustive_acyclic(node.op):
             # We heuristically just choose to use the layout of whatever the deepest block is, to
             # avoid extending the total depth by too much.
             final_layout = max(
                 zip(block_layouts, block_dags), key=lambda x: x[1].depth(recurse=True)
             )[0]
+        else:
+            final_layout = current_layout
         if self.fake_run:
             return final_layout
 
@@ -446,6 +462,18 @@ class StochasticSwap(TransformationPass):
             fake_run=self.fake_run,
             initial_layout=initial_layout,
         )
+
+
+def _controlflow_exhaustive_acyclic(operation: ControlFlowOp):
+    """Return True if the entire control-flow operation represents a block that is guaranteed to be
+    entered, and does not cycle back to the initial layout."""
+    if isinstance(operation, IfElseOp):
+        return len(operation.blocks) == 2
+    if isinstance(operation, SwitchCaseOp):
+        cases = operation.cases()
+        max_matches = 2 if isinstance(operation.target, Clbit) else 1 << len(operation.target)
+        return CASE_DEFAULT in cases or len(cases) == max_matches
+    return False
 
 
 def _dag_from_block(block, node, root_dag):

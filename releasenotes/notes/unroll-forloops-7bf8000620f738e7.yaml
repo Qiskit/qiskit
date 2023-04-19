@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The transpiler pass :class:`~.UnrollForLoops` was added. It unrolls for-loops when possible (if
+    no :class:`~.ContinueLoopOp` or a :class:`~.BreakLoopOp` is inside the body block).
+    For example ``for x in {0, 3, 4} {rx(x) qr[1];}`` gets converted into ``rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];``.

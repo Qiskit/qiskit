@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -45,13 +45,14 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         super().setUp()
         self.seed = 50
         algorithm_globals.random_seed = self.seed
-        self.h2_op = (
-            -1.052373245772859 * (I ^ I)
-            + 0.39793742484318045 * (I ^ Z)
-            - 0.39793742484318045 * (Z ^ I)
-            - 0.01128010425623538 * (Z ^ Z)
-            + 0.18093119978423156 * (X ^ X)
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.h2_op = (
+                -1.052373245772859 * (I ^ I)
+                + 0.39793742484318045 * (I ^ Z)
+                - 0.39793742484318045 * (Z ^ I)
+                - 0.01128010425623538 * (Z ^ Z)
+                + 0.18093119978423156 * (X ^ X)
+            )
 
         self.threshold = 1e-8
         self.backend_names = ["statevector_simulator", "qasm_simulator"]
@@ -85,9 +86,11 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
         observables: ListOrDict[OperatorBase],
         quantum_instance: Union[QuantumInstance, Backend],
     ):
-        result = eval_observables(
-            quantum_instance, quantum_state, observables, expectation, self.threshold
-        )
+
+        with self.assertWarns(DeprecationWarning):
+            result = eval_observables(
+                quantum_instance, quantum_state, observables, expectation, self.threshold
+            )
 
         if isinstance(observables, dict):
             np.testing.assert_equal(list(result.keys()), list(expected_result.keys()))
@@ -132,16 +135,17 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
             )  # to accommodate for qasm being imperfect
             with self.subTest(msg=f"Test {backend_name} backend."):
                 backend = BasicAer.get_backend(backend_name)
-                quantum_instance = QuantumInstance(
-                    backend=backend,
-                    shots=shots,
-                    seed_simulator=self.seed,
-                    seed_transpiler=self.seed,
-                )
-                expectation = ExpectationFactory.build(
-                    operator=self.h2_op,
-                    backend=quantum_instance,
-                )
+                with self.assertWarns(DeprecationWarning):
+                    quantum_instance = QuantumInstance(
+                        backend=backend,
+                        shots=shots,
+                        seed_simulator=self.seed,
+                        seed_transpiler=self.seed,
+                    )
+                    expectation = ExpectationFactory.build(
+                        operator=self.h2_op,
+                        backend=quantum_instance,
+                    )
 
                 with self.subTest(msg="Test QuantumCircuit."):
                     self._run_test(
@@ -151,6 +155,16 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                         expectation,
                         observables,
                         quantum_instance,
+                    )
+
+                with self.subTest(msg="Test QuantumCircuit with Backend."):
+                    self._run_test(
+                        expected_result,
+                        bound_ansatz,
+                        decimal,
+                        expectation,
+                        observables,
+                        backend,
                     )
 
                 with self.subTest(msg="Test Statevector."):
@@ -163,17 +177,17 @@ class TestAuxOpsEvaluator(QiskitAlgorithmsTestCase):
                         observables,
                         quantum_instance,
                     )
-
-                with self.subTest(msg="Test StateFn."):
-                    statefn = StateFn(bound_ansatz)
-                    self._run_test(
-                        expected_result,
-                        statefn,
-                        decimal,
-                        expectation,
-                        observables,
-                        quantum_instance,
-                    )
+                with self.assertWarns(DeprecationWarning):
+                    with self.subTest(msg="Test StateFn."):
+                        statefn = StateFn(bound_ansatz)
+                        self._run_test(
+                            expected_result,
+                            statefn,
+                            decimal,
+                            expectation,
+                            observables,
+                            quantum_instance,
+                        )
 
 
 if __name__ == "__main__":

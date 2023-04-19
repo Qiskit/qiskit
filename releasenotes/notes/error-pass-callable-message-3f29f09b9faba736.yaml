@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The transpiler pass :class:`~.transpiler.passes.Error` now accepts callables
+    in its ``msg`` parameter.  These should be a callable that takes in the
+    ``property_set`` and returns a string.

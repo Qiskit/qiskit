@@ -13,14 +13,16 @@
 """The QN-SPSA optimizer."""
 
 from __future__ import annotations
-from typing import Any, Iterator, Callable
-import warnings
+
+from collections.abc import Iterator
+from typing import Any, Callable
 
 import numpy as np
 from qiskit.providers import Backend
 from qiskit.circuit import ParameterVector, QuantumCircuit
 from qiskit.opflow import StateFn, CircuitSampler, ExpectationBase
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 
 from qiskit.primitives import BaseSampler, Sampler
 from qiskit.algorithms.state_fidelities import ComputeUncompute
@@ -89,7 +91,7 @@ class QNSPSA(SPSA):
             result = qnspsa.optimize(ansatz.num_parameters, loss, initial_point=initial_point)
 
         This is a legacy version solving the same problem but using Qiskit Opflow instead
-        of the Qiskit Primitives. Note however, that this usage is pending deprecation.
+        of the Qiskit Primitives. Note however, that this usage is deprecated.
 
         .. code-block:: python
 
@@ -253,6 +255,16 @@ class QNSPSA(SPSA):
         return settings
 
     @staticmethod
+    @deprecate_arg(
+        "backend",
+        since="0.24.0",
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+    )
+    @deprecate_arg(
+        "expectation",
+        since="0.24.0",
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+    )
     def get_fidelity(
         circuit: QuantumCircuit,
         backend: Backend | QuantumInstance | None = None,
@@ -281,9 +293,9 @@ class QNSPSA(SPSA):
 
         Args:
             circuit: The circuit preparing the parameterized ansatz.
-            backend: *Pending deprecation.* A backend of quantum instance to evaluate the circuits.
+            backend: Deprecated. A backend of quantum instance to evaluate the circuits.
                 If None, plain matrix multiplication will be used.
-            expectation: *Pending deprecation.* An expectation converter to specify how the expected
+            expectation: Deprecated. An expectation converter to specify how the expected
                 value is computed. If a shot-based readout is used this should be set to
                 ``PauliExpectation``.
             sampler: A sampler primitive to sample from a quantum state.
@@ -301,13 +313,6 @@ class QNSPSA(SPSA):
             sampler = Sampler()
 
         if expectation is not None or backend is not None:
-            warnings.warn(
-                "Passing a backend and expectation converter to QNSPSA.get_fidelity is pending "
-                "deprecation and will be deprecated in a future release. Instead, pass a "
-                "sampler primitive.",
-                stacklevel=2,
-                category=PendingDeprecationWarning,
-            )
             return QNSPSA._legacy_get_fidelity(circuit, backend, expectation)
 
         fid = ComputeUncompute(sampler)
@@ -334,11 +339,11 @@ class QNSPSA(SPSA):
         backend: Backend | QuantumInstance | None = None,
         expectation: ExpectationBase | None = None,
     ) -> Callable[[np.ndarray, np.ndarray], float]:
-        r"""PENDING DEPRECATION. Get a function to compute the fidelity of ``circuit`` with itself.
+        r"""Deprecated. Get a function to compute the fidelity of ``circuit`` with itself.
 
         .. note::
 
-            This method is pending deprecation. Instead use the :class:`~.ComputeUncompute`
+            This method is deprecated. Instead use the :class:`~.ComputeUncompute`
             class which implements the fidelity calculation in the same fashion as this method.
 
         Let ``circuit`` be a parameterized quantum circuit performing the operation
