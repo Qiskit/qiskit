@@ -31,7 +31,6 @@ if TYPE_CHECKING:
         "Depricating ``backendV1`` as the type of measure's `backend` argument."
     ),
     additional_msg=("Instead use ``backendV2``as the type of measure's `backend` argument."),
-    since="0.25.0",
     pending=True,
 )
 def measure(
