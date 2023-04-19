@@ -12,7 +12,8 @@
 
 """An algorithm to implement a Trotterization real time-evolution."""
 
-from typing import Union, Optional
+from __future__ import annotations
+
 import warnings
 
 from qiskit import QuantumCircuit
@@ -33,11 +34,11 @@ from qiskit.circuit.library import PauliEvolutionGate
 from qiskit.providers import Backend
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 
 class TrotterQRTE(RealEvolver):
-    """Pending deprecation: Quantum Real Time Evolution using Trotterization.
+    """Deprecated: Quantum Real Time Evolution using Trotterization.
 
     The TrotterQRTE class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class.
@@ -46,9 +47,7 @@ class TrotterQRTE(RealEvolver):
 
     Type of Trotterization is defined by a ProductFormula provided.
 
-    Examples:
-
-        .. jupyter-execute::
+    Examples::
 
             from qiskit.opflow import X, Z, Zero
             from qiskit.algorithms import EvolutionProblem, TrotterQRTE
@@ -66,18 +65,18 @@ class TrotterQRTE(RealEvolver):
             evolved_state = trotter_qrte.evolve(evolution_problem).evolved_state
     """
 
-    @deprecate_function(
-        "The TrotterQRTE class has been superseded by the "
-        "qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE``."
+            " See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
-        product_formula: Optional[ProductFormula] = None,
-        expectation: Optional[ExpectationBase] = None,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        product_formula: ProductFormula | None = None,
+        expectation: ExpectationBase | None = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
     ) -> None:
         """
         Args:
@@ -95,7 +94,7 @@ class TrotterQRTE(RealEvolver):
             product_formula = LieTrotter()
         self._product_formula = product_formula
         self._quantum_instance = None
-        self._circuit_sampler = None
+        self._circuit_sampler: CircuitSampler | None = None
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
         self._expectation = expectation
@@ -115,12 +114,12 @@ class TrotterQRTE(RealEvolver):
         self._product_formula = product_formula
 
     @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
+    def quantum_instance(self) -> QuantumInstance | None:
         """Returns a quantum instance used in the algorithm."""
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Optional[Union[QuantumInstance, Backend]]) -> None:
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend | None) -> None:
         """
         Sets a quantum instance and a circuit sampler.
         Args:
@@ -136,12 +135,12 @@ class TrotterQRTE(RealEvolver):
         self._quantum_instance = quantum_instance
 
     @property
-    def expectation(self) -> Optional[ExpectationBase]:
+    def expectation(self) -> ExpectationBase | None:
         """Returns an expectation used in the algorithm."""
         return self._expectation
 
     @expectation.setter
-    def expectation(self, expectation: Optional[ExpectationBase]) -> None:
+    def expectation(self, expectation: ExpectationBase | None) -> None:
         """
         Sets an expectation.
         Args:
@@ -237,7 +236,7 @@ class TrotterQRTE(RealEvolver):
     @staticmethod
     def _summed_op_to_pauli_sum_op(
         hamiltonian: SummedOp,
-    ) -> Union[PauliSumOp, PauliOp]:
+    ) -> PauliSumOp | PauliOp:
         """
         Tries binding parameters in a Hamiltonian.
 

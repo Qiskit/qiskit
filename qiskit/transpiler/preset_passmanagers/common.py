@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
 
 """Common preset passmanager generators."""
 
@@ -85,12 +84,39 @@ def _without_control_flow(property_set):
     return not any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
 
 
+class _InvalidControlFlowForBackend:
+    # Explicitly stateful closure to allow pickling.
+
+    def __init__(self, basis_gates=(), target=None):
+        if target is not None:
+            self.unsupported = [op for op in _CONTROL_FLOW_OP_NAMES if op not in target]
+        else:
+            basis_gates = set(basis_gates) if basis_gates is not None else set()
+            self.unsupported = [op for op in _CONTROL_FLOW_OP_NAMES if op not in basis_gates]
+
+    def message(self, property_set):
+        """Create an error message for the given property set."""
+        fails = [x for x in self.unsupported if property_set[f"contains_{x}"]]
+        if len(fails) == 1:
+            return f"The control-flow construct '{fails[0]}' is not supported by the backend."
+        return (
+            f"The control-flow constructs [{', '.join(repr(op) for op in fails)}]"
+            " are not supported by the backend."
+        )
+
+    def condition(self, property_set):
+        """Checkable condition for the given property set."""
+        return any(property_set[f"contains_{x}"] for x in self.unsupported)
+
+
 def generate_control_flow_options_check(
     layout_method=None,
     routing_method=None,
     translation_method=None,
     optimization_method=None,
     scheduling_method=None,
+    basis_gates=(),
+    target=None,
 ):
     """Generate a pass manager that, when run on a DAG that contains control flow, fails with an
     error message explaining the invalid options, and what could be used instead.
@@ -100,7 +126,6 @@ def generate_control_flow_options_check(
         control-flow operations, and raises an error if any of the given options do not support
         control flow, but a circuit with control flow is given.
     """
-
     bad_options = []
     message = "Some options cannot be used with control flow."
     for stage, given in [
@@ -124,9 +149,10 @@ def generate_control_flow_options_check(
             bad_options.append(option)
     out = PassManager()
     out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
-    if not bad_options:
-        return out
-    out.append(Error(message), condition=_has_control_flow)
+    if bad_options:
+        out.append(Error(message), condition=_has_control_flow)
+    backend_control = _InvalidControlFlowForBackend(basis_gates, target)
+    out.append(Error(backend_control.message), condition=backend_control.condition)
     return out
 
 
@@ -167,9 +193,10 @@ def generate_unroll_3q(
         target (Target): the :class:`~.Target` object representing the backend
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
-        approximation_degree (float): The heuristic approximation degree to
+        approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_method (str): The unitary synthesis method to use. You can see
+            a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
@@ -203,7 +230,7 @@ def generate_embed_passmanager(coupling_map):
     that can be used to expand and apply an initial layout to a circuit
 
     Args:
-        coupling_map (CouplingMap): The coupling map for the backend to embed
+        coupling_map (Union[CouplingMap, Target): The coupling map for the backend to embed
             the circuit to.
     Returns:
         PassManager: The embedding passmanager that assumes the layout property
@@ -274,10 +301,13 @@ def generate_routing_passmanager(
         return False
 
     routing = PassManager()
-    routing.append(CheckMap(coupling_map))
+    if target is not None:
+        routing.append(CheckMap(target, property_set_field="routing_not_needed"))
+    else:
+        routing.append(CheckMap(coupling_map, property_set_field="routing_not_needed"))
 
     def _swap_condition(property_set):
-        return not property_set["is_swap_mapped"]
+        return not property_set["routing_not_needed"]
 
     if use_barrier_before_measurement:
         routing.append([BarrierBeforeFinalMeasurements(), routing_pass], condition=_swap_condition)
@@ -347,7 +377,7 @@ def generate_translation_passmanager(
         basis_gates (list): A list of str gate names that represent the basis
             gates on the backend target
         method (str): The basis translation method to use
-        approximation_degree (float): The heuristic approximation degree to
+        approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
         coupling_map (CouplingMap): the coupling map of the backend
             in case synthesis is done on a physical circuit. The
@@ -359,7 +389,8 @@ def generate_translation_passmanager(
             documentation for how to use.
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_method (str): The unitary synthesis method to use. You can
+            see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
         hls_config (HLSConfig): An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
@@ -371,7 +402,7 @@ def generate_translation_passmanager(
         TranspilerError: If the ``method`` kwarg is not a valid value
     """
     if method == "unroller":
-        unroll = [Unroller(basis_gates)]
+        unroll = [Unroller(basis=basis_gates, target=target)]
     elif method == "translator":
         unroll = [
             # Use unitary synthesis for basis aware decomposition of
@@ -407,7 +438,9 @@ def generate_translation_passmanager(
             Unroll3qOrMore(target=target, basis_gates=basis_gates),
             Collect2qBlocks(),
             Collect1qRuns(),
-            ConsolidateBlocks(basis_gates=basis_gates, target=target),
+            ConsolidateBlocks(
+                basis_gates=basis_gates, target=target, approximation_degree=approximation_degree
+            ),
             UnitarySynthesis(
                 basis_gates=basis_gates,
                 approximation_degree=approximation_degree,
@@ -424,7 +457,9 @@ def generate_translation_passmanager(
     return PassManager(unroll)
 
 
-def generate_scheduling(instruction_durations, scheduling_method, timing_constraints, inst_map):
+def generate_scheduling(
+    instruction_durations, scheduling_method, timing_constraints, inst_map, target=None
+):
     """Generate a post optimization scheduling :class:`~qiskit.transpiler.PassManager`
 
     Args:
@@ -434,6 +469,7 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             ``'alap'``/``'as_late_as_possible'``
         timing_constraints (TimingConstraints): Hardware time alignment restrictions.
         inst_map (InstructionScheduleMap): Mapping object that maps gate to schedule.
+        target (Target): The :class:`~.Target` object representing the backend
 
     Returns:
         PassManager: The scheduling pass manager
@@ -443,7 +479,7 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
     """
     scheduling = PassManager()
     if inst_map and inst_map.has_custom_gate():
-        scheduling.append(PulseGates(inst_map=inst_map))
+        scheduling.append(PulseGates(inst_map=inst_map, target=target))
     if scheduling_method:
         # Do scheduling after unit conversion.
         scheduler = {
@@ -452,9 +488,9 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             "asap": ASAPScheduleAnalysis,
             "as_soon_as_possible": ASAPScheduleAnalysis,
         }
-        scheduling.append(TimeUnitConversion(instruction_durations))
+        scheduling.append(TimeUnitConversion(instruction_durations, target=target))
         try:
-            scheduling.append(scheduler[scheduling_method](instruction_durations))
+            scheduling.append(scheduler[scheduling_method](instruction_durations, target=target))
         except KeyError as ex:
             raise TranspilerError("Invalid scheduling method %s." % scheduling_method) from ex
     elif instruction_durations:
@@ -463,7 +499,9 @@ def generate_scheduling(instruction_durations, scheduling_method, timing_constra
             return property_set["contains_delay"]
 
         scheduling.append(ContainsInstruction("delay"))
-        scheduling.append(TimeUnitConversion(instruction_durations), condition=_contains_delay)
+        scheduling.append(
+            TimeUnitConversion(instruction_durations, target=target), condition=_contains_delay
+        )
     if (
         timing_constraints.granularity != 1
         or timing_constraints.min_length != 1

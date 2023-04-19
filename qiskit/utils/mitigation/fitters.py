@@ -27,13 +27,18 @@ import numpy as np
 from qiskit import QiskitError
 from qiskit.utils.mitigation.circuits import count_keys
 from qiskit.utils.mitigation._filters import MeasurementFilter, TensoredFilter
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CompleteMeasFitter:
     """
-    Measurement correction fitter for a full calibration
+    Deprecated: Measurement correction fitter for a full calibration
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+    )
     def __init__(
         self,
         results,
@@ -211,9 +216,13 @@ class CompleteMeasFitter:
 
 class TensoredMeasFitter:
     """
-    Measurement correction fitter for a tensored calibration.
+    Deprecated: Measurement correction fitter for a tensored calibration.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+    )
     def __init__(
         self,
         results,
@@ -465,7 +474,7 @@ class TensoredMeasFitter:
                 f"Each element in the mit pattern should have length 1. Found {self._mit_pattern}."
             )
 
-        supported_qubits = set(tensor[0] for tensor in self._mit_pattern)
+        supported_qubits = {tensor[0] for tensor in self._mit_pattern}
         for qubit in qubit_sublist:
             if qubit not in supported_qubits:
                 raise QiskitError(f"Qubit {qubit} is not in the mit pattern {self._mit_pattern}.")

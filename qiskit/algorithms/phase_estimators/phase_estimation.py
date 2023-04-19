@@ -14,7 +14,6 @@
 """The Quantum Phase Estimation Algorithm."""
 
 from __future__ import annotations
-import warnings
 
 import numpy
 
@@ -24,6 +23,7 @@ from qiskit import circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.providers import Backend
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import Result
 from qiskit.algorithms.exceptions import AlgorithmError
 from .phase_estimation_result import PhaseEstimationResult, _sort_phases
@@ -81,6 +81,14 @@ class PhaseEstimation(PhaseEstimator):
 
     """
 
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
+    )
     def __init__(
         self,
         num_evaluation_qubits: int,
@@ -91,7 +99,7 @@ class PhaseEstimation(PhaseEstimator):
         Args:
             num_evaluation_qubits: The number of qubits used in estimating the phase. The phase will
                 be estimated as a binary string with this many bits.
-            quantum_instance: Pending deprecation\: The quantum instance on which the
+            quantum_instance: Deprecated: The quantum instance on which the
                 circuit will be run.
             sampler: The sampler primitive on which the circuit will be sampled.
 
@@ -101,13 +109,6 @@ class PhaseEstimation(PhaseEstimator):
         if sampler is None and quantum_instance is None:
             raise AlgorithmError(
                 "Neither a sampler nor a quantum instance was provided. Please provide one of them."
-            )
-        if quantum_instance is not None:
-            warnings.warn(
-                "The quantum_instance argument has been superseded by the sampler argument. "
-                "This argument will be deprecated in a future release and subsequently "
-                "removed after that.",
-                category=PendingDeprecationWarning,
             )
         self._measurements_added = False
         if num_evaluation_qubits is not None:
@@ -243,7 +244,6 @@ class PhaseEstimation(PhaseEstimator):
             self._num_evaluation_qubits, circuit_result=circuit_result, phases=phases
         )
 
-    # pylint: disable=missing-param-doc
     def estimate(
         self,
         unitary: QuantumCircuit,

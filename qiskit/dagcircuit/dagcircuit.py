@@ -60,7 +60,7 @@ class DAGCircuit:
         self.name = None
 
         # Circuit metadata
-        self.metadata = None
+        self.metadata = {}
 
         # Set of wires (Register,idx) in the dag
         self._wires = set()
@@ -161,12 +161,33 @@ class DAGCircuit:
         Raises:
             Exception: if the gate is of type string and params is None.
         """
+
+        def _format(operand):
+            try:
+                # Using float/complex value as a dict key is not good idea.
+                # This makes the mapping quite sensitive to the rounding error.
+                # However, the mechanism is already tied to the execution model (i.e. pulse gate)
+                # and we cannot easily update this rule.
+                # The same logic exists in QuantumCircuit.add_calibration.
+                evaluated = complex(operand)
+                if np.isreal(evaluated):
+                    evaluated = float(evaluated.real)
+                    if evaluated.is_integer():
+                        evaluated = int(evaluated)
+                return evaluated
+            except TypeError:
+                # Unassigned parameter
+                return operand
+
         if isinstance(gate, Gate):
-            self._calibrations[gate.name][
-                (tuple(qubits), tuple(float(p) for p in gate.params))
-            ] = schedule
+            params = gate.params
+            gate = gate.name
+        if params is not None:
+            params = tuple(map(_format, params))
         else:
-            self._calibrations[gate][(tuple(qubits), tuple(params or []))] = schedule
+            params = ()
+
+        self._calibrations[gate][(tuple(qubits), params)] = schedule
 
     def has_calibration_for(self, node):
         """Return True if the dag has a calibration defined for the node operation. In this
@@ -506,10 +527,10 @@ class DAGCircuit:
         return node_index
 
     @deprecate_function(
-        """The DAGCircuit._copy_circuit_metadata method is deprecated as of 0.20.0. It will be removed
-        no earlier than 3 months after the release date. You should use the DAGCircuit.copy_empty_like
-        method instead, which acts identically.
-        """
+        "The DAGCircuit._copy_circuit_metadata method is deprecated as of 0.20.0. It will be "
+        "removed no earlier than 3 months after the release date. You should use the "
+        "DAGCircuit.copy_empty_like method instead, which acts identically.",
+        since="0.20.0",
     )
     def _copy_circuit_metadata(self):
         """DEPRECATED"""
@@ -810,8 +831,8 @@ class DAGCircuit:
                     edge_map, getattr(nd.op, "condition", None), dag.cregs.values()
                 )
                 dag._check_condition(nd.op.name, condition)
-                m_qargs = list(map(lambda x: edge_map.get(x, x), nd.qargs))
-                m_cargs = list(map(lambda x: edge_map.get(x, x), nd.cargs))
+                m_qargs = [edge_map.get(x, x) for x in nd.qargs]
+                m_cargs = [edge_map.get(x, x) for x in nd.cargs]
                 op = nd.op.copy()
                 if condition and not isinstance(op, Instruction):
                     raise DAGCircuitError("Cannot add a condition on a generic Operation.")
@@ -1371,6 +1392,35 @@ class DAGCircuit:
             self._increment_op(op)
             self._decrement_op(node.op)
         return new_node
+
+    def swap_nodes(self, node1, node2):
+        """Swap connected nodes e.g. due to commutation.
+
+        Args:
+            node1 (OpNode): predecessor node
+            node2 (OpNode): successor node
+
+        Raises:
+            DAGCircuitError: if either node is not an OpNode or nodes are not connected
+        """
+        if not (isinstance(node1, DAGOpNode) and isinstance(node2, DAGOpNode)):
+            raise DAGCircuitError("nodes to swap are not both DAGOpNodes")
+        try:
+            connected_edges = self._multi_graph.get_all_edge_data(node1._node_id, node2._node_id)
+        except rx.NoEdgeBetweenNodes as no_common_edge:
+            raise DAGCircuitError("attempt to swap unconnected nodes") from no_common_edge
+        node1_id = node1._node_id
+        node2_id = node2._node_id
+        for edge in connected_edges[::-1]:
+            edge_find = lambda x, y=edge: x == y
+            edge_parent = self._multi_graph.find_predecessors_by_edge(node1_id, edge_find)[0]
+            self._multi_graph.remove_edge(edge_parent._node_id, node1_id)
+            self._multi_graph.add_edge(edge_parent._node_id, node2_id, edge)
+            edge_child = self._multi_graph.find_successors_by_edge(node2_id, edge_find)[0]
+            self._multi_graph.remove_edge(node1_id, node2_id)
+            self._multi_graph.add_edge(node2_id, node1_id, edge)
+            self._multi_graph.remove_edge(node2_id, edge_child._node_id)
+            self._multi_graph.add_edge(node1_id, edge_child._node_id, edge)
 
     def node(self, node_id):
         """Get the node in the dag.

@@ -21,11 +21,12 @@ Executing Experiments (:mod:`qiskit.execute_function`)
 """
 import logging
 from time import time
-import warnings
+
 from qiskit.compiler import transpile, schedule
 from qiskit.providers.backend import Backend
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
+from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,8 @@ def _log_submission_time(start_time, end_time):
     logger.info(log_msg)
 
 
+@deprecate_arg("qobj_id", since="0.21.0", additional_msg="This argument has no effect anymore.")
+@deprecate_arg("qobj_header", since="0.21.0", additional_msg="This argument has no effect anymore.")
 def execute(
     experiments,
     backend,
@@ -49,7 +52,6 @@ def execute(
     qobj_header=None,
     shots=None,  # common run options
     memory=None,
-    max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
     default_meas_los=None,  # schedule run options
@@ -118,23 +120,26 @@ def execute(
 
             #. :class:`qiskit.transpiler.Layout` instance
             #. ``dict``:
-               virtual to physical::
+
+               * virtual to physical::
 
                     {qr[0]: 0,
                      qr[1]: 3,
                      qr[2]: 5}
 
-               physical to virtual::
+               * physical to virtual::
+
                     {0: qr[0],
                      3: qr[1],
                      5: qr[2]}
 
-            #. ``list``
-               virtual to physical::
+            #. ``list``:
+
+               * virtual to physical::
 
                     [0, 3, 5]  # virtual qubits are ordered (in addition to named)
 
-               physical to virtual::
+               * physical to virtual::
 
                     [qr[0], None, None, qr[1], None, qr[2]]
 
@@ -168,10 +173,6 @@ def execute(
         memory (bool): If True, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
-
-        max_credits (int): DEPRECATED This parameter is deprecated as of Qiskit Terra 0.20.0
-            and will be removed in a future release. This parameter has no effect on modern
-            IBM Quantum systems, no alternative is necessary.
 
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
@@ -264,7 +265,7 @@ def execute(
     Example:
         Construct a 5-qubit GHZ circuit and execute 4321 shots on a backend.
 
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumCircuit, execute, BasicAer
 
@@ -277,6 +278,8 @@ def execute(
 
             job = execute(qc, backend, shots=4321)
     """
+    del qobj_id
+    del qobj_header
     if isinstance(experiments, (Schedule, ScheduleBlock)) or (
         isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):
@@ -314,28 +317,6 @@ def execute(
             inst_map=inst_map,
             meas_map=meas_map,
             method=scheduling_method,
-        )
-    if max_credits is not None:
-        warnings.warn(
-            "The `max_credits` parameter is deprecated as of Qiskit Terra 0.20.0, "
-            "and will be removed in a future release. This parameter has no effect on "
-            "modern IBM Quantum systems, and no alternative is necessary.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-    if qobj_id is not None:
-        warnings.warn(
-            "The qobj_id argument is deprecated as of the Qiskit Terra 0.21.0, "
-            "and will be remvoed in a future release. This argument has no effect and "
-            "is not used by any backends."
-        )
-
-    if qobj_header is not None:
-        warnings.warn(
-            "The qobj_header argument is deprecated as of the Qiskit Terra 0.21.0, "
-            "and will be remvoed in a future release. This argument has no effect and "
-            "is not used by any backends."
         )
 
     if isinstance(backend, Backend):

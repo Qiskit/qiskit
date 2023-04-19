@@ -39,7 +39,7 @@ def _run_circuits(
     circuits: QuantumCircuit | list[QuantumCircuit],
     backend: BackendV1 | BackendV2,
     **run_options,
-) -> tuple[Result, list[dict]]:
+) -> tuple[list[Result], list[dict]]:
     """Remove metadata of circuits and run the circuits on a backend.
     Args:
         circuits: The circuits
@@ -70,7 +70,7 @@ def _run_circuits(
     return result, metadata
 
 
-def _prepare_counts(results):
+def _prepare_counts(results: list[Result]):
     counts = []
     for res in results:
         count = res.get_counts()
@@ -80,7 +80,7 @@ def _prepare_counts(results):
     return counts
 
 
-class BackendEstimator(BaseEstimator):
+class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
     """Evaluates expectation value using Pauli rotation gates.
 
     The :class:`~.BackendEstimator` class is a generic implementation of the
@@ -97,7 +97,6 @@ class BackendEstimator(BaseEstimator):
     precludes doing any provider- or backend-specific optimizations.
     """
 
-    # pylint: disable=missing-raises-doc
     def __init__(
         self,
         backend: BackendV1 | BackendV2,
@@ -119,12 +118,7 @@ class BackendEstimator(BaseEstimator):
                 of the input circuits is skipped and the circuit objects
                 will be directly executed when this object is called.
         """
-        super().__init__(
-            circuits=None,
-            observables=None,
-            parameters=None,
-            options=options,
-        )
+        super().__init__(options=options)
 
         self._abelian_grouping = abelian_grouping
 
@@ -139,16 +133,8 @@ class BackendEstimator(BaseEstimator):
         self._grouping = list(zip(range(len(self._circuits)), range(len(self._observables))))
         self._skip_transpilation = skip_transpilation
 
-    def __new__(  # pylint: disable=signature-differs
-        cls,
-        backend: BackendV1 | BackendV2,  # pylint: disable=unused-argument
-        **kwargs,  # pylint: disable=unused-argument
-    ):
-        self = super().__new__(cls)
-        return self
-
-    def __getnewargs__(self):
-        return (self._backend,)
+        self._circuit_ids = {}
+        self._observable_ids = {}
 
     @property
     def transpile_options(self) -> Options:
@@ -264,7 +250,7 @@ class BackendEstimator(BaseEstimator):
         observables: tuple[BaseOperator | PauliSumOp, ...],
         parameter_values: tuple[tuple[float, ...], ...],
         **run_options,
-    ) -> PrimitiveJob:
+    ):
         circuit_indices = []
         for circuit in circuits:
             index = self._circuit_ids.get(_circuit_key(circuit))
@@ -352,7 +338,7 @@ class BackendEstimator(BaseEstimator):
         return preprocessed_circuits
 
     def _postprocessing(
-        self, result: Result, accum: list[int], metadata: list[dict]
+        self, result: list[Result], accum: list[int], metadata: list[dict]
     ) -> EstimatorResult:
         """
         Postprocessing for evaluation of expectation value using pauli rotation gates.
@@ -392,7 +378,10 @@ class BackendEstimator(BaseEstimator):
         if self._bound_pass_manager is None:
             return circuits
         else:
-            return self._bound_pass_manager.run(circuits)
+            output = self._bound_pass_manager.run(circuits)
+            if not isinstance(output, list):
+                output = [output]
+            return output
 
 
 def _paulis2inds(paulis: PauliList) -> list[int]:

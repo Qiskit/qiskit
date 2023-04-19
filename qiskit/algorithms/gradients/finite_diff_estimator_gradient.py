@@ -15,11 +15,10 @@
 from __future__ import annotations
 
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.primitives import BaseEstimator
@@ -29,8 +28,9 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
 
+from ..exceptions import AlgorithmError
+
 if sys.version_info >= (3, 8):
-    # pylint: disable=no-name-in-module, ungrouped-imports
     from typing import Literal
 else:
     from typing_extensions import Literal
@@ -75,7 +75,6 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         if epsilon <= 0:
             raise ValueError(f"epsilon ({epsilon}) should be positive.")
         self._epsilon = epsilon
-        self._base_parameter_values_dict = {}
         if method not in ("central", "forward", "backward"):
             raise TypeError(
                 f"The argument method should be central, forward, or backward: {method} is given."
@@ -88,21 +87,19 @@ class FiniteDiffEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         job_circuits, job_observables, job_param_values, metadata = [], [], [], []
         all_n = []
 
-        for circuit, observable, parameter_values_, parameter_set in zip(
-            circuits, observables, parameter_values, parameter_sets
+        for circuit, observable, parameter_values_, parameters_ in zip(
+            circuits, observables, parameter_values, parameters
         ):
             # Indices of parameters to be differentiated
-            indices = [
-                circuit.parameters.data.index(p) for p in circuit.parameters if p in parameter_set
-            ]
-            metadata.append({"parameters": [circuit.parameters[idx] for idx in indices]})
+            indices = [circuit.parameters.data.index(p) for p in parameters_]
+            metadata.append({"parameters": parameters_})
 
             # Combine inputs into a single job to reduce overhead.
             offset = np.identity(circuit.num_parameters)[indices, :]

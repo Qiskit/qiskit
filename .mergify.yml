@@ -1,23 +1,9 @@
-queue_rules:
-  - name: automerge
-    conditions:
-      - check-success=Qiskit.qiskit-terra
-
+---
 pull_request_rules:
-  - name: automatic merge on CI success and review
-    conditions:
-      - check-success=Qiskit.qiskit-terra
-      - "#approved-reviews-by>=1"
-      - label=automerge
-      - label!=on hold
-    actions:
-      queue:
-        name: automerge
-        method: squash
   - name: backport
     conditions:
       - label=stable backport potential
     actions:
       backport:
         branches:
-          - stable/0.22
+          - stable/0.23

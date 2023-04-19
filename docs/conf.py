@@ -16,15 +16,16 @@
 
 # -- General configuration ---------------------------------------------------
 import datetime
+import doctest
 
 project = "Qiskit"
 copyright = f"2017-{datetime.date.today().year}, Qiskit Development Team"  # pylint: disable=redefined-builtin
 author = "Qiskit Development Team"
 
 # The short X.Y version
-version = "0.23"
+version = "0.24"
 # The full version, including alpha/beta/rc tags
-release = "0.23.0"
+release = "0.24.0"
 
 extensions = [
     "sphinx.ext.napoleon",
@@ -34,11 +35,13 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
-    "jupyter_sphinx",
-    "sphinx_autodoc_typehints",
+    "sphinx.ext.doctest",
     "reno.sphinxext",
     "sphinx_design",
+    "matplotlib.sphinxext.plot_directive",
+    "sphinx.ext.doctest"
 ]
+
 templates_path = ["_templates"]
 
 # Number figures, tables and code-blocks if they have a caption.
@@ -63,11 +66,14 @@ modindex_common_prefix = ["qiskit."]
 
 intersphinx_mapping = {
     "retworkx": ("https://qiskit.org/documentation/retworkx/", None),
+    "qiskit-ibm-runtime": ("https://qiskit.org/documentation/partners/qiskit_ibm_runtime/", None),
+    "qiskit-aer": ("https://qiskit.org/documentation/aer/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None)
 }
 
 # -- Options for HTML output -------------------------------------------------
 
-html_theme = "qiskit_sphinx_theme"  # use the theme in subdir 'theme'
+html_theme = "qiskit_sphinx_theme"
 html_last_updated_fmt = "%Y/%m/%d"
 html_theme_options = {
     "logo_only": True,
@@ -75,8 +81,6 @@ html_theme_options = {
     "prev_next_buttons_location": "bottom",
     "style_external_links": True,
 }
-html_static_path = ["_static"]
-html_css_files = []
 
 
 # -- Options for Autosummary and Autodoc -------------------------------------
@@ -85,6 +89,44 @@ html_css_files = []
 # documentation created by autosummary uses a template file (in autosummary in the templates path),
 # which likely overrides the autodoc defaults.
 
+# Move type hints from signatures to the parameter descriptions (except in overload cases, where
+# that's not possible).
+autodoc_typehints = "description"
+# Only add type hints from signature to description body if the parameter has documentation.  The
+# return type is always added to the description (if in the signature).
+autodoc_typehints_description_target = "documented_params"
+
 autosummary_generate = True
 autosummary_generate_overwrite = False
+
+# The pulse library contains some names that differ only in capitalisation, during the changeover
+# surrounding SymbolPulse.  Since these resolve to autosummary filenames that also differ only in
+# capitalisation, this causes problems when the documentation is built on an OS/filesystem that is
+# enforcing case-insensitive semantics.  This setting defines some custom names to prevent the clash
+# from happening.
+autosummary_filename_map = {
+    "qiskit.pulse.library.Constant": "qiskit.pulse.library.Constant_class.rst",
+    "qiskit.pulse.library.Sawtooth": "qiskit.pulse.library.Sawtooth_class.rst",
+    "qiskit.pulse.library.Triangle": "qiskit.pulse.library.Triangle_class.rst",
+    "qiskit.pulse.library.Cos": "qiskit.pulse.library.Cos_class.rst",
+    "qiskit.pulse.library.Sin": "qiskit.pulse.library.Sin_class.rst",
+    "qiskit.pulse.library.Gaussian": "qiskit.pulse.library.Gaussian_class.rst",
+    "qiskit.pulse.library.Drag": "qiskit.pulse.library.Drag_class.rst",
+}
+
 autoclass_content = "both"
+
+# -- Options for Doctest --------------------------------------------------------
+
+import sphinx.ext.doctest
+
+# This option will make doctest ignore whitespace when testing code.
+# It's specially important for circuit representation as it gives an
+# error otherwise
+doctest_default_flags = sphinx.ext.doctest.doctest.NORMALIZE_WHITESPACE
+
+# Leaving this string empty disables testing of doctest blocks from docstrings.
+# Doctest blocks are structures like this one:
+# >> code
+# output
+doctest_test_doctest_blocks = ""

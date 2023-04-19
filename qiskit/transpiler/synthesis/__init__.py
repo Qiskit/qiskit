@@ -10,4 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+
 """Module containing transpiler synthesize."""
+
+from .graysynth import graysynth, cnot_synth

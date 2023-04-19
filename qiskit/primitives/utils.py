@@ -14,6 +14,8 @@ Utility functions for primitives
 """
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import numpy as np
 
 from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
@@ -76,10 +78,6 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
     Dict keys label measured qubits, whereas the values indicate the
     classical bit onto which that qubits measurement result is stored.
 
-    Note: this function is a slightly simplified version of a utility function
-    ``_final_measurement_mapping`` of
-    `mthree <https://github.com/Qiskit-Partners/mthree>`_.
-
     Parameters:
         circuit: Input quantum circuit.
 
@@ -99,7 +97,7 @@ def final_measurement_mapping(circuit: QuantumCircuit) -> dict[int, int]:
                 mapping[qbit] = cbit
                 active_cbits.remove(cbit)
                 active_qubits.remove(qbit)
-        elif item.operation.name != "barrier":
+        elif item.operation.name not in ["barrier", "delay"]:
             for qq in item.qubits:
                 _temp_qubit = circuit.find_bit(qq).index
                 if _temp_qubit in active_qubits:
@@ -121,6 +119,16 @@ def _bits_key(bits: tuple[Bit, ...], circuit: QuantumCircuit) -> tuple:
         )
         for bit in bits
     )
+
+
+def _format_params(param):
+    if isinstance(param, np.ndarray):
+        return param.data.tobytes()
+    elif isinstance(param, QuantumCircuit):
+        return _circuit_key(param)
+    elif isinstance(param, Iterable):
+        return tuple(param)
+    return param
 
 
 def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
@@ -145,10 +153,7 @@ def _circuit_key(circuit: QuantumCircuit, functional: bool = True) -> tuple:
                 _bits_key(data.qubits, circuit),  # qubits
                 _bits_key(data.clbits, circuit),  # clbits
                 data.operation.name,  # operation.name
-                tuple(
-                    param.data.tobytes() if isinstance(param, np.ndarray) else param
-                    for param in data.operation.params
-                ),  # operation.params
+                tuple(_format_params(param) for param in data.operation.params),  # operation.params
             )
             for data in circuit.data
         ),

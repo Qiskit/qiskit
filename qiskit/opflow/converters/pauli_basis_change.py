@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" PauliBasisChange Class """
+"""PauliBasisChange Class"""
 
 from functools import partial, reduce
 from typing import Callable, List, Optional, Tuple, Union, cast
@@ -30,11 +30,12 @@ from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.quantum_info import Pauli
+from qiskit.utils.deprecation import deprecate_func
 
 
 class PauliBasisChange(ConverterBase):
     r"""
-    Converter for changing Paulis into other bases. By default, the diagonal basis
+    Deprecated: Converter for changing Paulis into other bases. By default, the diagonal basis
     composed only of Pauli {Z, I}^n is used as the destination basis to which to convert.
     Meaning, if a Pauli containing X or Y terms is passed in, which cannot be
     sampled or evolved natively on some Quantum hardware, the Pauli can be replaced by a
@@ -55,6 +56,10 @@ class PauliBasisChange(ConverterBase):
     this method, such as the placement of the CNOT chains.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         destination_basis: Optional[Union[Pauli, PauliOp]] = None,
@@ -83,6 +88,7 @@ class PauliBasisChange(ConverterBase):
                        beginning and ending operators are equivalent.
 
         """
+        super().__init__()
         if destination_basis is not None:
             self.destination = destination_basis  # type: ignore
         else:
@@ -346,7 +352,9 @@ class PauliBasisChange(ConverterBase):
         y_to_x_origin = tensorall(
             [S if has_y else I for has_y in reversed(np.logical_and(pauli.x, pauli.z))]
         ).adjoint()
-        x_to_z_origin = tensorall([H if has_x else I for has_x in reversed(pauli.x)])
+        x_to_z_origin = tensorall(  # pylint: disable=assignment-from-no-return
+            [H if has_x else I for has_x in reversed(pauli.x)]
+        )
         return x_to_z_origin.compose(y_to_x_origin)
 
     def pad_paulis_to_equal_length(

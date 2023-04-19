@@ -124,7 +124,7 @@ def qs_decomposition(
 
 
 def _demultiplex(um0, um1, opt_a1=False, opt_a2=False, *, _depth=0):
-    """decomposes a generic multiplexer.
+    """Decompose a generic multiplexer.
 
           ────□────
            ┌──┴──┐

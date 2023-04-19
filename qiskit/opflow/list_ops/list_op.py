@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,10 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ListOp Operator Class """
+"""ListOp Operator Class"""
 
 from functools import reduce
-from numbers import Number
 from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Sequence, Union, cast
 
 import numpy as np
@@ -24,12 +23,13 @@ from qiskit.opflow.exceptions import OpflowError
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
 from qiskit.utils import arithmetic
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ListOp(OperatorBase):
     """
-    A Class for manipulating List Operators, and parent class to ``SummedOp``, ``ComposedOp``,
-    and ``TensoredOp``.
+    Deprecated: A Class for manipulating List Operators, and parent class to ``SummedOp``,
+    ``ComposedOp`` and ``TensoredOp``.
 
     List Operators are classes for storing and manipulating lists of Operators, State functions,
     or Measurements, and include some rule or ``combo_fn`` defining how the Operator functions
@@ -53,6 +53,10 @@ class ListOp(OperatorBase):
     multiple dimensional lists.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         oplist: Sequence[OperatorBase],
@@ -360,15 +364,11 @@ class ListOp(OperatorBase):
         # Note: this can end up, when we have list operators containing other list operators, as a
         #       ragged array and numpy 1.19 raises a deprecation warning unless this is explicitly
         #       done as object type now - was implicit before.
-        mat = self.combo_fn(  # pylint: disable=not-callable
+        mat = self.combo_fn(
             np.asarray(
                 [op.to_matrix(massive=massive) * self.coeff for op in self.oplist], dtype=object
             )
         )
-        # Note: As ComposedOp has a combo function of inner product we can end up here not with
-        # a matrix (array) but a scalar. In which case we make a single element array of it.
-        if isinstance(mat, Number):
-            mat = [mat]
         return np.asarray(mat, dtype=complex)
 
     def to_spmatrix(self) -> Union[spmatrix, List[spmatrix]]:
@@ -379,7 +379,6 @@ class ListOp(OperatorBase):
         """
 
         # Combination function must be able to handle classical values
-        # pylint: disable=not-callable
         return self.combo_fn([op.to_spmatrix() for op in self.oplist]) * self.coeff
 
     def eval(
@@ -446,7 +445,7 @@ class ListOp(OperatorBase):
                         "Combo_fn not yet supported for mixed measurement "
                         "and non-measurement StateFns"
                     )
-                result = self.combo_fn(evals)  # pylint: disable=not-callable
+                result = self.combo_fn(evals)
                 if isinstance(result, list):
                     multiplied = self.coeff * np.array(result)
                     return multiplied.tolist()
@@ -457,7 +456,7 @@ class ListOp(OperatorBase):
         elif any(isinstance(op, OperatorBase) for op in evals):
             raise TypeError("Cannot handle mixed scalar and Operator eval results.")
         else:
-            result = self.combo_fn(evals)  # pylint: disable=not-callable
+            result = self.combo_fn(evals)
             if isinstance(result, list):
                 multiplied = self.coeff * np.array(result)
                 return multiplied.tolist()
