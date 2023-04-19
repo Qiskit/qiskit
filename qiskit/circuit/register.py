@@ -15,6 +15,8 @@
 """
 Base register reference object.
 """
+
+from __future__ import annotations
 import re
 import itertools
 import warnings
@@ -38,7 +40,13 @@ class _NameFormat:
 
 
 class Register:
-    """Implement a generic register."""
+    """Implement a generic register.
+
+    .. note::
+        This class should not be instantiated directly. This is just a superclass
+        for :class:`~.ClassicalRegister` and :class:`~.QuantumRegister`.
+
+    """
 
     __slots__ = ["_name", "_size", "_bits", "_bit_indices", "_hash", "_repr"]
 
@@ -53,7 +61,7 @@ class Register:
     prefix = "reg"
     bit_type = None
 
-    def __init__(self, size=None, name=None, bits=None):
+    def __init__(self, size: int | None = None, name: str | None = None, bits=None):
         """Create a new generic register.
 
         Either the ``size`` or the ``bits`` argument must be provided. If

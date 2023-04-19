@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """CircuitOp Class"""
 
 from typing import Dict, List, Optional, Set, Union, cast
-
 import numpy as np
 
 import qiskit
@@ -24,13 +23,18 @@ from qiskit.opflow.list_ops.tensored_op import TensoredOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CircuitOp(PrimitiveOp):
-    """Class for Operators backed by Terra's ``QuantumCircuit`` module."""
+    """Deprecated: Class for Operators backed by Terra's ``QuantumCircuit`` module."""
 
     primitive: QuantumCircuit
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: Union[Instruction, QuantumCircuit],

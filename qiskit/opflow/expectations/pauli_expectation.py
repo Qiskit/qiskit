@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,13 +27,14 @@ from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
 class PauliExpectation(ExpectationBase):
     r"""
-    An Expectation converter for Pauli-basis observables by changing Pauli measurements to a
+    Deprecated: An Expectation converter for Pauli-basis observables by changing Pauli measurements to a
     diagonal ({Z, I}^n) basis and appending circuit post-rotations to the measured state function.
     Optionally groups the Paulis with the same post-rotations (those that commute with one
     another, or form Abelian groups) into single measurements to reduce circuit execution
@@ -41,6 +42,10 @@ class PauliExpectation(ExpectationBase):
 
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, group_paulis: bool = True) -> None:
         """
         Args:
@@ -48,6 +53,7 @@ class PauliExpectation(ExpectationBase):
                 have the same diagonalizing circuit.
 
         """
+        super().__init__()
         self._grouper = AbelianGrouper() if group_paulis else None
 
     def convert(self, operator: OperatorBase) -> OperatorBase:

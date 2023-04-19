@@ -14,13 +14,13 @@
 
 from abc import ABC, abstractmethod
 
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from .evolution_problem import EvolutionProblem
 from .evolution_result import EvolutionResult
 
 
 class ImaginaryEvolver(ABC):
-    """Pending deprecation: Interface for Quantum Imaginary Time Evolution.
+    """Deprecated: Interface for Quantum Imaginary Time Evolution.
 
     The ImaginaryEvolver interface has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver` interface.
@@ -29,13 +29,12 @@ class ImaginaryEvolver(ABC):
 
     """
 
-    @deprecate_function(
-        "The ImaginaryEvolver interface has been superseded by the "
-        "qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver interface. "
-        "This interface will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
-        since="0.23.0",
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the interface ``qiskit.algorithms.time_evolvers.ImaginaryTimeEvolver``. "
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(self) -> None:
         pass

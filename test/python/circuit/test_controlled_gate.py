@@ -72,6 +72,7 @@ from qiskit.circuit.library import (
     C3SXGate,
     C4XGate,
     MCPhaseGate,
+    GlobalPhaseGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -130,6 +131,20 @@ class TestControlledGate(QiskitTestCase):
         """Test the creation of a controlled RZ gate."""
         theta = 0.5
         self.assertEqual(RZGate(theta).control(), CRZGate(theta))
+
+    def test_control_parameters(self):
+        """Test different ctrl_state formats for control function."""
+        theta = 0.5
+
+        self.assertEqual(
+            CRYGate(theta).control(2, ctrl_state="01"), CRYGate(theta).control(2, ctrl_state=1)
+        )
+        self.assertEqual(
+            CRYGate(theta).control(2, ctrl_state=None), CRYGate(theta).control(2, ctrl_state=3)
+        )
+
+        self.assertEqual(CCXGate().control(2, ctrl_state="01"), CCXGate().control(2, ctrl_state=1))
+        self.assertEqual(CCXGate().control(2, ctrl_state=None), CCXGate().control(2, ctrl_state=3))
 
     def test_controlled_ry(self):
         """Test the creation of a controlled RY gate."""
@@ -208,6 +223,21 @@ class TestControlledGate(QiskitTestCase):
                 if not isinstance(special_case_gate, CXGate):
                     # CX is treated like a primitive within Terra, and doesn't have a definition.
                     self.assertTrue(Operator(special_case_gate.definition).equiv(naive_operator))
+
+    def test_global_phase_control(self):
+        """Test creation of a GlobalPhaseGate."""
+        base = GlobalPhaseGate(np.pi / 7)
+        expected_1q = PhaseGate(np.pi / 7)
+        self.assertEqual(Operator(base.control()), Operator(expected_1q))
+
+        expected_2q = PhaseGate(np.pi / 7).control()
+        self.assertEqual(Operator(base.control(2)), Operator(expected_2q))
+
+        expected_open = QuantumCircuit(1)
+        expected_open.x(0)
+        expected_open.p(np.pi / 7, 0)
+        expected_open.x(0)
+        self.assertEqual(Operator(base.control(ctrl_state=0)), Operator(expected_open))
 
     def test_circuit_append(self):
         """Test appending a controlled gate to a quantum circuit."""
@@ -578,7 +608,7 @@ class TestControlledGate(QiskitTestCase):
         expected = _compute_control_matrix(base, num_controls)
         self.assertTrue(matrix_equal(simulated, expected, atol=1e-8))
 
-    def test_linear_depth_mcv(self):
+    def test_mcsu2_real_diagonal(self):
         """Test mcsu2_real_diagonal"""
         num_ctrls = 6
         theta = 0.3

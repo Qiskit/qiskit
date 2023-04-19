@@ -91,7 +91,7 @@ def mcsu2_real_diagonal(
     ctrl_state: str = None,
 ):
     """
-    Apply multi-controlled SU(2) gate with one real diagonal.
+    Apply multi-controlled SU(2) gate with a real main diagonal or secondary diagonal.
     https://arxiv.org/abs/2302.06377
 
     Args:
@@ -110,10 +110,10 @@ def mcsu2_real_diagonal(
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
     if not is_unitary_matrix(unitary):
-        raise QiskitError("parameter unitary in linear_depth_mcv must be an unitary matrix")
+        raise QiskitError("parameter unitary in mcsu2_real_diagonal must be an unitary matrix")
 
     if unitary.shape != (2, 2):
-        raise QiskitError("parameter unitary in linear_depth_mcv must be a 2x2 matrix")
+        raise QiskitError("parameter unitary in mcsu2_real_diagonal must be a 2x2 matrix")
 
     is_main_diag_real = np.isclose(unitary[0, 0].imag, 0.0) and np.isclose(unitary[1, 1].imag, 0.0)
     is_secondary_diag_real = np.isclose(unitary[0, 1].imag, 0.0) and np.isclose(
@@ -121,7 +121,7 @@ def mcsu2_real_diagonal(
     )
 
     if not is_main_diag_real and not is_secondary_diag_real:
-        raise QiskitError("parameter unitary in linear_depth_mcv must have one real diagonal")
+        raise QiskitError("parameter unitary in mcsu2_real_diagonal must have one real diagonal")
 
     if is_secondary_diag_real:
         x = unitary[0, 1]
