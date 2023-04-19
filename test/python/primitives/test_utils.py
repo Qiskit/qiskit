@@ -22,6 +22,7 @@ from qiskit.primitives.utils import final_measurement_mapping, transpile_operato
 from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
 from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
+from qiskit.utils import optionals
 
 
 class TestMapping(QiskitTestCase):
@@ -114,4 +115,7 @@ class TestTranspileOperator(QiskitTestCase):
         op = SparsePauliOp("Z" * n)
         trans_op = transpile_operator(op, trans_qc.layout, qc.qubits)
         result = BackendEstimator(backend=backend).run(trans_qc, trans_op).result()
-        self.assertAlmostEqual(result.values[0], -0.045, places=2)
+        if optionals.HAS_AER:
+            self.assertAlmostEqual(result.values[0], -0.045, places=2)
+        else:
+            self.assertAlmostEqual(result.values[0], 0, places=2)
