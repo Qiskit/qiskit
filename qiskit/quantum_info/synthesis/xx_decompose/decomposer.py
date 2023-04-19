@@ -83,10 +83,6 @@ class XXDecomposer:
         embodiments: dict[float, QuantumCircuit] | None = None,
         backup_optimizer: Callable[..., QuantumCircuit] | None = None,
     ):
-        if isinstance(basis_fidelity, dict) and len(basis_fidelity) == 0:
-            raise(QiskitError("`basis_fidelity` dictionary is empty."))
-        self.basis_fidelity = basis_fidelity
-
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
             Optimize1qGatesDecomposition,  # pylint: disable=cyclic-import
         )
@@ -94,6 +90,7 @@ class XXDecomposer:
         self._decomposer1q = Optimize1qGatesDecomposition(ONE_QUBIT_EULER_BASIS_GATES[euler_basis])
         self.embodiments = embodiments if embodiments is not None else {}
         self.backup_optimizer = backup_optimizer
+        self.basis_fidelity = basis_fidelity
 
         # expose one of the basis gates so others can know what this decomposer targets
         embodiment_circuit = next(iter(self.embodiments.values()), QuantumCircuit())
