@@ -12,8 +12,15 @@
 
 """Tests for utilities of Primitives."""
 
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.primitives.utils import final_measurement_mapping
+from test import combine
+
+from ddt import ddt
+
+from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, transpile
+from qiskit.primitives import BackendEstimator
+from qiskit.primitives.utils import final_measurement_mapping, transpile_operator
+from qiskit.providers.fake_provider import FakeNairobi, FakeNairobiV2
+from qiskit.quantum_info import SparsePauliOp
 from qiskit.test import QiskitTestCase
 
 
@@ -83,3 +90,28 @@ class TestMapping(QiskitTestCase):
 
         maps = final_measurement_mapping(qc)
         self.assertDictEqual(maps, {1: 0, 0: 1})
+
+
+BACKENDS = [FakeNairobi(), FakeNairobiV2()]
+
+
+@ddt
+class TestTranspileOperator(QiskitTestCase):
+    """Test transpile_operator utility function."""
+
+    @combine(backend=BACKENDS)
+    def test_tranpile_operator(self, backend):
+        """test for transpile_operator"""
+        backend.set_options(seed_simulator=15)
+        n = 6
+        qc = QuantumCircuit(n)
+        qc.x(n - 1)
+        qc.h(range(n))
+        qc.cx(range(n - 1), n - 1)
+        qc.h(range(n - 1))
+        trans_qc = transpile(qc, backend, seed_transpiler=15)
+
+        op = SparsePauliOp("Z" * n)
+        trans_op = transpile_operator(op, trans_qc.layout, qc.qubits)
+        result = BackendEstimator(backend=backend).run(trans_qc, trans_op).result()
+        self.assertAlmostEqual(result.values[0], -0.045, places=2)

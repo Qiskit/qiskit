@@ -15,16 +15,18 @@ Utility functions for primitives
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Sequence
 
 import numpy as np
 
-from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit
+from qiskit.circuit import Instruction, ParameterExpression, QuantumCircuit, Qubit
 from qiskit.circuit.bit import Bit
 from qiskit.extensions.quantum_initializer.initializer import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.quantum_info.operators.symplectic.base_pauli import BasePauli
+from qiskit.transpiler.layout import TranspileLayout
 
 
 def init_circuit(state: QuantumCircuit | Statevector) -> QuantumCircuit:
@@ -213,3 +215,31 @@ def bound_circuit_to_instruction(circuit: QuantumCircuit) -> Instruction:
     )
     inst.definition = circuit
     return inst
+
+
+def transpile_operator(
+    operator: BaseOperator | PauliSumOp | str,
+    layout: TranspileLayout,
+    original_qubits: Sequence[Qubit],
+) -> SparsePauliOp:
+    """Utility function for transpilation of operator.
+
+    If skip_transpilation is True, users need to transpile the operator corresponding to the layout
+    of the transpiled circuit. This function helps the transpilation of operator.
+
+    Args:
+       operator: Operator to be transpiled.
+       layout: The layout of the transpiled circuit.
+       original_qubits: Qubits that original circuit has.
+
+    Returns:
+        The operator for the given layout.
+    """
+    operator = init_observable(operator)
+    virtual_bit_map = layout.initial_layout.get_virtual_bits()
+    identity = SparsePauliOp("I" * len(virtual_bit_map))
+    perm_pattern = [virtual_bit_map[v] for v in original_qubits]
+    if layout.final_layout is not None:
+        final_mapping = dict(enumerate(layout.final_layout.get_virtual_bits().values()))
+        perm_pattern = [final_mapping[i] for i in perm_pattern]
+    return identity.compose(operator, qargs=perm_pattern)
