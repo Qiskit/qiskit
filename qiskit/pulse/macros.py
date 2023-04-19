@@ -45,12 +45,12 @@ def measure(
     """Return a schedule which measures the requested qubits according to the given
     instruction mapping and measure map, or by using the defaults provided by the backend.
 
-    If the backend has an attribute ``target``, the function uses the measurement logic,
-    "_measure_v2" that takes ``target`` of the ``backend``, ``meas_map`` and ``qubit_mem_slots``
-    assignment.
-    Otherwise, if the backend is None or ``backendV1``, the function uses the
-    measurement logic, "_measure_v1" including ``instruction_schedule_map`` and ``meas_map``
-    as inputs.
+    .. note::
+        This function internally dispatches schedule generation logic depending on input backend model.
+        For the :class:`.BackendV1`, it considers conventional :class:`.InstructionScheduleMap`
+        and utilizes the backend calibration defined for a group of qubits in the `meas_map`.
+        For the :class:`.BackendV2`, it assembles calibrations of single qubit measurement
+        defined in the backend target to build a composite measurement schedule for `qubits`.
 
     By default, the measurement results for each qubit are trivially mapped to the qubit
     index. This behavior is overridden by qubit_mem_slots. For instance, to measure
@@ -175,8 +175,6 @@ def _measure_v2(
 
     Args:
         qubits: List of qubits to be measured.
-        backend (Union[Backend, BaseBackend]): A backend instance, which contains
-            hardware-specific data required for scheduling.
         target: The :class:`~.Target` representing the target backend.
         meas_map: List of sets of qubits that must be measured together.
         qubit_mem_slots: Mapping of measured qubit index to classical bit index.
@@ -209,7 +207,7 @@ def _measure_v2(
                         channels.AcquireChannel(measure_qubit),
                     ]
                 )
-        except exceptions.PulseError as ex:
+        except KeyError as ex:
             raise exceptions.PulseError(
                 "We could not find a default measurement schedule called '{}'. "
                 "Please provide another name using the 'measure_name' keyword "
@@ -236,14 +234,14 @@ def measure_all(backend) -> Schedule:
 
 def schedule_remapping_memory_slot(schedule: Schedule, qubit_mem_slots: Dict[int, int]) -> Schedule:
     """
-    Return a Schedule which is remapped by given qubit_mem_slots.
+    A helper function to overwrite MemorySlot index of :class:`.Acquire` instruction.
 
     Args:
         schedule: A measurement schedule.
         qubit_mem_slots: Mapping of measured qubit index to classical bit index.
 
     Returns:
-        A schedule remapped by qubit_mem_slots as the input provided.
+        A measurement schedule with new memory slot index.
     """
     new_schedule = Schedule()
     for t0, inst in schedule.instructions:
