@@ -192,8 +192,9 @@ class BackendEstimator(BaseEstimator[PrimitiveJob[EstimatorResult]]):
                 )
                 if transpiled_circuit.layout is not None:
                     layout = transpiled_circuit.layout
+                    virtual_bit_map = layout.initial_layout.get_virtual_bits()
                     perm_pattern = [
-                        layout.initial_layout.get_virtual_bits()[v] for v in common_circuit.qubits
+                        virtual_bit_map[v] for v in common_circuit.qubits
                     ]
                     if layout.final_layout is not None:
                         final_mapping = dict(
