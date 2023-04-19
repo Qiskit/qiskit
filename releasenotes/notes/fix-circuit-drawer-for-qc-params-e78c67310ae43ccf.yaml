@@ -1,4 +1,5 @@
 fixes:
   - |
-    Fixes the circuit drawer from displaying parameters when they are of type `QuantumCircuit` 
+    Fixes the circuit drawer from displaying parameters when they are of type :class:`.QuantumCircuit`
     since this resulted in an illegible drawing.
+    
