@@ -13,13 +13,12 @@
 """X, CX, CCX and multi-controlled X gates."""
 from __future__ import annotations
 from typing import Optional, Union, Type
-from math import ceil
+from math import ceil, pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
-from qiskit.qasm import pi
 from .h import HGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate

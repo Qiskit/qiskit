@@ -684,7 +684,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         test = QuantumCircuit(qr, cr)
         test.h(0)
         test.measure(0, 0)
-        test_true = QuantumCircuit(qr)
+        test_true = QuantumCircuit(qr, cr)
         test_true.h(qr[0])
         test_true.h(qr[0])
         test_true.h(qr[0])
@@ -693,7 +693,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
         expected = QuantumCircuit(qr, cr)
         expected.u(np.pi / 2, 0, -np.pi, 0)
         expected.measure(0, 0)
-        expected_true = QuantumCircuit(qr)
+        expected_true = QuantumCircuit(qr, cr)
         expected_true.u(np.pi / 2, 0, -np.pi, qr[0])
         expected.if_else((0, True), expected_true, None, range(num_qubits), [0])
 

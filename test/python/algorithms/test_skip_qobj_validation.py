@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """Test Skip Qobj Validation"""
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit import BasicAer
@@ -63,18 +62,20 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
 
     def test_wo_backend_options(self):
         """without backend options test"""
-        quantum_instance = QuantumInstance(
-            self.backend,
-            seed_transpiler=self.random_seed,
-            seed_simulator=self.random_seed,
-            shots=1024,
-        )
-        # run without backend_options and without noise
-        res_wo_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
-        quantum_instance.reset_execution_results()
-        quantum_instance.skip_qobj_validation = True
-        res_wo_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                self.backend,
+                seed_transpiler=self.random_seed,
+                seed_simulator=self.random_seed,
+                shots=1024,
+            )
+            # run without backend_options and without noise
+            res_wo_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
+            self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
+            quantum_instance.reset_execution_results()
+            quantum_instance.skip_qobj_validation = True
+            res_wo_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
+
         self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertTrue(_compare_dict(res_wo_bo, res_wo_bo_skip_validation))
@@ -82,18 +83,20 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
     def test_w_backend_options(self):
         """with backend options test"""
         # run with backend_options
-        quantum_instance = QuantumInstance(
-            self.backend,
-            seed_transpiler=self.random_seed,
-            seed_simulator=self.random_seed,
-            shots=1024,
-            backend_options={"initial_statevector": [0.5, 0.5, 0.5, 0.5]},
-        )
-        res_w_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
-        self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
-        quantum_instance.reset_execution_results()
-        quantum_instance.skip_qobj_validation = True
-        res_w_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                self.backend,
+                seed_transpiler=self.random_seed,
+                seed_simulator=self.random_seed,
+                shots=1024,
+                backend_options={"initial_statevector": [0.5, 0.5, 0.5, 0.5]},
+            )
+            res_w_bo = quantum_instance.execute(self.qc).get_counts(self.qc)
+            self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
+            quantum_instance.reset_execution_results()
+            quantum_instance.skip_qobj_validation = True
+            res_w_bo_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
+
         self.assertGreaterEqual(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertTrue(_compare_dict(res_w_bo, res_w_bo_skip_validation))
@@ -116,26 +119,28 @@ class TestSkipQobjValidation(QiskitAlgorithmsTestCase):
         noise_model = NoiseModel()
         noise_model.add_readout_error([probs_given0, probs_given1], [0])
 
-        quantum_instance = QuantumInstance(
-            self.backend,
-            seed_transpiler=self.random_seed,
-            seed_simulator=self.random_seed,
-            shots=1024,
-            noise_model=noise_model,
-        )
-        res_w_noise = quantum_instance.execute(self.qc).get_counts(self.qc)
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                self.backend,
+                seed_transpiler=self.random_seed,
+                seed_simulator=self.random_seed,
+                shots=1024,
+                noise_model=noise_model,
+            )
+            res_w_noise = quantum_instance.execute(self.qc).get_counts(self.qc)
+            quantum_instance.skip_qobj_validation = True
+            res_w_noise_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
 
-        quantum_instance.skip_qobj_validation = True
-        res_w_noise_skip_validation = quantum_instance.execute(self.qc).get_counts(self.qc)
         self.assertTrue(_compare_dict(res_w_noise, res_w_noise_skip_validation))
 
-        # BasicAer should fail:
-        with self.assertRaises(QiskitError):
-            _ = QuantumInstance(BasicAer.get_backend("qasm_simulator"), noise_model=noise_model)
+        with self.assertWarns(DeprecationWarning):
+            # BasicAer should fail:
+            with self.assertRaises(QiskitError):
+                _ = QuantumInstance(BasicAer.get_backend("qasm_simulator"), noise_model=noise_model)
 
-        with self.assertRaises(QiskitError):
-            quantum_instance = QuantumInstance(BasicAer.get_backend("qasm_simulator"))
-            quantum_instance.set_config(noise_model=noise_model)
+            with self.assertRaises(QiskitError):
+                quantum_instance = QuantumInstance(BasicAer.get_backend("qasm_simulator"))
+                quantum_instance.set_config(noise_model=noise_model)
 
 
 if __name__ == "__main__":

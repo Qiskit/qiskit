@@ -319,6 +319,12 @@ class TestDagProperties(QiskitTestCase):
         dag = circuit_to_dagdependency(qc)
         self.assertEqual(dag.depth(), 0)
 
+    def test_default_metadata_value(self):
+        """Test that the default DAGDependency metadata is valid QuantumCircuit metadata."""
+        qc = QuantumCircuit(1)
+        qc.metadata = self.dag.metadata
+        self.assertEqual(qc.metadata, {})
+
 
 if __name__ == "__main__":
     unittest.main()

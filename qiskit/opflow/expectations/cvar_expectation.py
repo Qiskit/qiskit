@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,10 +20,11 @@ from qiskit.opflow.expectations.pauli_expectation import PauliExpectation
 from qiskit.opflow.list_ops import ComposedOp, ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns import CVaRMeasurement, OperatorStateFn
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CVaRExpectation(ExpectationBase):
-    r"""Compute the Conditional Value at Risk (CVaR) expectation value.
+    r"""Deprecated: Compute the Conditional Value at Risk (CVaR) expectation value.
 
     The standard approach to calculating the expectation value of a Hamiltonian w.r.t. a
     state is to take the sample mean of the measurement outcomes. This corresponds to an estimator
@@ -54,6 +55,10 @@ class CVaRExpectation(ExpectationBase):
 
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, alpha: float, expectation: Optional[ExpectationBase] = None) -> None:
         """
         Args:
@@ -64,6 +69,7 @@ class CVaRExpectation(ExpectationBase):
         Raises:
             NotImplementedError: If the ``expectation`` is an AerPauliExpecation.
         """
+        super().__init__()
         self.alpha = alpha
         if isinstance(expectation, AerPauliExpectation):
             raise NotImplementedError("AerPauliExpecation currently not supported.")
