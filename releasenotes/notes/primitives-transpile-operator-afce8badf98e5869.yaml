@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add :func:`~primitives.utils.transpile_operator` function.
+    If skip_transpilation is True, users need to transpile the operator corresponding to the layout
+    of the transpiled circuit. The function helps the transpilation of operator.
