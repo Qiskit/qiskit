@@ -30,6 +30,7 @@ from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
+from qiskit.circuit.library import Permutation, PermutationGate
 
 logger = logging.getLogger(__name__)
 
@@ -1051,14 +1052,13 @@ class TestOperator(OperatorTestCase):
         self.assertTrue(Operator(circuit).equiv(result))
 
     def test_apply_permutation_back(self):
-        """Test applying permutation to the operator."""
+        """Test applying permutation to the operator,
+        where the operator is applied first and the permutation second."""
         op = Operator(self.rand_matrix(64, 64))
         pattern = [1, 2, 0, 3, 5, 4]
 
         # Consider several methods of computing this operator and show
         # they all lead to the same result.
-
-        from qiskit.circuit.library import Permutation, PermutationGate
 
         # Compose the operator with the operator constructed from the
         # permutation circuit.
@@ -1080,14 +1080,13 @@ class TestOperator(OperatorTestCase):
         self.assertEqual(op2, op4)
 
     def test_apply_permutation_front(self):
-        """Test applying permutation to the operator."""
+        """Test applying permutation to the operator,
+        where the permutation is applied first and the operator second"""
         op = Operator(self.rand_matrix(64, 64))
         pattern = [1, 2, 0, 3, 5, 4]
 
         # Consider several methods of computing this operator and show
         # they all lead to the same result.
-
-        from qiskit.circuit.library import Permutation, PermutationGate
 
         # Compose the operator with the operator constructed from the
         # permutation circuit.
@@ -1099,7 +1098,7 @@ class TestOperator(OperatorTestCase):
         # permutation gate.
         op3 = op.copy()
         perm_op = Operator(PermutationGate(pattern))
-        op3 = perm_op & op
+        op3 = perm_op & op3
 
         # Modify the operator using apply_permutation method.
         op4 = op.copy()
@@ -1107,6 +1106,27 @@ class TestOperator(OperatorTestCase):
 
         self.assertEqual(op2, op3)
         self.assertEqual(op2, op4)
+
+    def test_reverse_qargs_as_apply_permutation(self):
+        """Test reversing qargs by pre- and post-composing with reversal
+        permutation.
+        """
+        perm = [3, 2, 1, 0]
+
+        for dims in [
+            (2, 3, 4, 5),
+            (5, 2, 4, 3),
+            (3, 5, 2, 4),
+            (5, 3, 4, 2),
+            (4, 5, 2, 3),
+            (4, 3, 2, 5),
+        ]:
+            op = Operator(
+                np.array(range(120 * 120)).reshape((120, 120)), input_dims=dims, output_dims=dims
+            )
+            op2 = op.reverse_qargs()
+            op3 = op.apply_permutation(perm, front=True).apply_permutation(perm, front=False)
+            self.assertEqual(op2, op3)
 
 
 if __name__ == "__main__":
