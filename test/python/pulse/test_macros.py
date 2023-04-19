@@ -114,7 +114,7 @@ class TestMeasure(QiskitTestCase):
                 ),
             ),
             (1792, Delay(1616, MeasureChannel(0))),
-            name="Default measurement schedule for qubits [1, 2]",
+            name="Default measurement schedule for qubits [0]",
         )
         expected += Acquire(1792, AcquireChannel(0), MemorySlot(0))
         self.assertEqual(sched.instructions, expected.instructions)
@@ -141,7 +141,7 @@ class TestMeasure(QiskitTestCase):
                 ),
             ),
             (1792, Delay(1616, MeasureChannel(0))),
-            name="Default measurement schedule for qubits [1, 2]",
+            name="Default measurement schedule for qubits [0]",
         )
         expected += Acquire(1792, AcquireChannel(0), MemorySlot(2))
         self.assertEqual(sched.instructions, expected.instructions)
@@ -171,7 +171,7 @@ class TestMeasure(QiskitTestCase):
                 ),
             ),
             (1792, Delay(1616, MeasureChannel(0))),
-            name="Default measurement schedule for qubits [1, 2]",
+            name="Default measurement schedule for qubits [0]",
         )
         expected += Acquire(1792, AcquireChannel(0), MemorySlot(0))
         self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
