@@ -1128,6 +1128,36 @@ class TestOperator(OperatorTestCase):
             op3 = op.apply_permutation(perm, front=True).apply_permutation(perm, front=False)
             self.assertEqual(op2, op3)
 
+    def test_apply_permutation_exceptions(self):
+        """Checks that applying permutation raises an error when dimensions do not match."""
+        op = Operator(
+            np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
+        )
+
+        # These are ok
+        op.apply_permutation([2, 1, 0], front=False)
+        op.apply_permutation([1, 0], front=True)
+
+        # These are not ok
+        with self.assertRaises(QiskitError):
+            op.apply_permutation([1, 0], front=False)
+        with self.assertRaises(QiskitError):
+            op.apply_permutation([2, 1, 0], front=True)
+
+    def test_apply_permutation_dimensions(self):
+        """Checks the dimensions of the operator after applying permutation."""
+        op = Operator(
+            np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
+        )
+        op2 = op.apply_permutation([1, 2, 0], front=False)
+        self.assertEqual(op2.output_dims(), (4, 2, 3))
+
+        op = Operator(
+            np.array(range(24 * 30)).reshape((30, 24)), input_dims=(2, 3, 4), output_dims=(6, 5)
+        )
+        op2 = op.apply_permutation([2, 0, 1], front=True)
+        self.assertEqual(op2.input_dims(), (4, 2, 3))
+
 
 if __name__ == "__main__":
     unittest.main()
