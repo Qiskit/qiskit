@@ -85,10 +85,11 @@ class XXDecomposer:
         embodiments: dict[float, QuantumCircuit] | None = None,
         backup_optimizer: Callable[..., QuantumCircuit] | None = None,
     ):
-        if isinstance(basis_fidelity, dict) and len(basis_fidelity) == 0:
-            raise QiskitError("`basis_fidelity` dictionary is empty.")
-        if not isinstance(basis_fidelity, float):
-            raise QiskitError("`basis_fidelity` is neither a non-empty `dict` nor a `float`")
+        if isinstance(basis_fidelity, dict):
+            if len(basis_fidelity) == 0:
+                raise QiskitError("`basis_fidelity` dictionary is empty.")
+        elif not isinstance(basis_fidelity, float):
+            raise QiskitError(f"`basis_fidelity` {basis_fidelity} is neither a non-empty `dict` nor a `float`")
         self.basis_fidelity = basis_fidelity
 
         from qiskit.transpiler.passes.optimization.optimize_1q_decomposition import (
