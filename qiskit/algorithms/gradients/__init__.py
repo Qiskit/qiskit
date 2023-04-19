@@ -17,53 +17,80 @@ Gradients (:mod:`qiskit.algorithms.gradients`)
 
 .. currentmodule:: qiskit.algorithms.gradients
 
-
-Estimator Gradients
-===================
+Base Classes
+============
 
 .. autosummary::
    :toctree: ../stubs/
 
    BaseEstimatorGradient
-   DerivativeType
-   FiniteDiffEstimatorGradient
-   LinCombEstimatorGradient
-   ParamShiftEstimatorGradient
-   SPSAEstimatorGradient
-   ReverseEstimatorGradient
+   BaseQGT
+   BaseSamplerGradient
+   EstimatorGradientResult
+   SamplerGradientResult
 
-Sampler Gradients
-=================
+Finite Differences
+==================
 
 .. autosummary::
    :toctree: ../stubs/
 
-   BaseSamplerGradient
+   FiniteDiffEstimatorGradient
    FiniteDiffSamplerGradient
+
+Linear Combinations
+===================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   LinCombEstimatorGradient
    LinCombSamplerGradient
+
+Parameter Shifting
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   ParamShiftEstimatorGradient
    ParamShiftSamplerGradient
-   SPSASamplerGradient
+
+Quantum Fisher Information
+==========================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   QFIResult
+   QFI
 
 Quantum Geometric Tensor
 ========================
+
 .. autosummary::
    :toctree: ../stubs/
 
-   BaseQGT
    LinCombQGT
-   QFI
+   QGTResult
    ReverseQGT
 
-Results
+Reverse
 =======
 
 .. autosummary::
    :toctree: ../stubs/
 
-   EstimatorGradientResult
-   QFIResult
-   QGTResult
-   SamplerGradientResult
+   ReverseEstimatorGradient
+
+Simultaneous Perturbation Stochastic Approximation
+==================================================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   SPSAEstimatorGradient
+   SPSASamplerGradient
 """
 
 from .base.base_estimator_gradient import BaseEstimatorGradient
