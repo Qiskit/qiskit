@@ -277,6 +277,33 @@ future be removed.
         with self.assertWarnsRegex(DeprecationWarning, "arg3"):
             my_func("z", "z", "deprecated value")
 
+    def test_deprecate_arg_runtime_warning_variadic_args(self) -> None:
+        """Test that `@deprecate_arg` handles `*args` and `**kwargs`.
+
+        Note that we don't attempt to support deprecating an arg name belong to `**kwargs`. That is,
+        the deprecated arg must be explicitly defined. We only want to ensure that we can handle
+        its presence.
+        """
+
+        @deprecate_arg("my_kwarg", since="9.99")
+        def my_func(*args: int, my_kwarg: int | None = None, **kwargs: int) -> None:
+            self.assertTrue(all(a == 0 for a in args))
+            self.assertTrue(all(a == 0 for a in kwargs.values()))
+            self.assertTrue(my_kwarg is None or my_kwarg == 5)
+
+        # No warnings if no deprecated args used.
+        my_func()
+        my_func(0, 0, 0)
+        my_func(another_arg=0, yet_another=0)
+
+        # Warn if argument is specified.
+        with self.assertWarnsRegex(DeprecationWarning, "my_kwarg"):
+            my_func(my_kwarg=5)
+        with self.assertWarnsRegex(DeprecationWarning, "my_kwarg"):
+            my_func(0, 0, my_kwarg=5)
+        with self.assertWarnsRegex(DeprecationWarning, "my_kwarg"):
+            my_func(my_kwarg=5, another_arg=0, yet_another=0)
+
     def test_deprecate_arguments_runtime_warning(self) -> None:
         """Test that `@deprecate_arguments` warns whenever the arguments are used.
 

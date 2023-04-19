@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import functools
+import inspect
 import warnings
 from typing import Any, Callable, Dict, Optional, Type, Tuple, Union
 
@@ -171,7 +172,7 @@ def deprecate_arg(
                 args,
                 kwargs,
                 func_name=func_name,
-                original_func_co_varnames=wrapper.__original_func_co_varnames,
+                original_func_signature=wrapper.__original_func_signature,
                 old_arg_name=name,
                 new_alias=new_alias,
                 warning_msg=msg,
@@ -183,8 +184,8 @@ def deprecate_arg(
         # When decorators get called repeatedly, `func` refers to the result of the prior
         # decorator, not the original underlying function. This trick allows us to record the
         # original function's variable names regardless of how many decorators are used.
-        wrapper.__original_func_co_varnames = getattr(
-            func, "__original_func_co_varnames", func.__code__.co_varnames
+        wrapper.__original_func_signature = getattr(
+            func, "__original_func_signature", inspect.signature(func)
         )
 
         add_deprecation_to_docstring(wrapper, msg, since=since, pending=pending)
@@ -231,7 +232,7 @@ def deprecate_arguments(
                     args,
                     kwargs,
                     func_name=func_name,
-                    original_func_co_varnames=wrapper.__original_func_co_varnames,
+                    original_func_signature=wrapper.__original_func_signature,
                     old_arg_name=old,
                     new_alias=new,
                     warning_msg=old_kwarg_to_msg[old],
@@ -243,8 +244,8 @@ def deprecate_arguments(
         # When decorators get called repeatedly, `func` refers to the result of the prior
         # decorator, not the original underlying function. This trick allows us to record the
         # original function's variable names regardless of how many decorators are used.
-        wrapper.__original_func_co_varnames = getattr(
-            func, "__original_func_co_varnames", func.__code__.co_varnames
+        wrapper.__original_func_signature = getattr(
+            func, "__original_func_signature", inspect.signature(func)
         )
 
         for msg in old_kwarg_to_msg.values():
@@ -297,18 +298,14 @@ def _maybe_warn_and_rename_kwarg(
     kwargs: Dict[str, Any],
     *,
     func_name: str,
-    original_func_co_varnames: tuple[str, ...],
+    original_func_signature: inspect.Signature,
     old_arg_name: str,
     new_alias: Optional[str],
     warning_msg: str,
     category: Type[Warning],
     predicate: Optional[Callable[[Any], bool]],
 ) -> None:
-    # In Python 3.10+, we should set `zip(strict=False)` (the default). That is, we want to
-    # stop iterating once `args` is done.
-    arg_names_to_values = {name: val for val, name in zip(args, original_func_co_varnames)}
-    arg_names_to_values.update(kwargs)
-
+    arg_names_to_values = original_func_signature.bind(*args, **kwargs).arguments
     if old_arg_name not in arg_names_to_values:
         return
     if new_alias and new_alias in arg_names_to_values:
