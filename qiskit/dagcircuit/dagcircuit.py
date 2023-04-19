@@ -29,7 +29,7 @@ from typing import Generator, Any, List
 import numpy as np
 import rustworkx as rx
 
-from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp
+from qiskit.circuit import ControlFlowOp, ForLoopOp, IfElseOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister, Qubit
 from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
@@ -60,7 +60,7 @@ class DAGCircuit:
         self.name = None
 
         # Circuit metadata
-        self.metadata = None
+        self.metadata = {}
 
         # Set of wires (Register,idx) in the dag
         self._wires = set()
@@ -700,38 +700,31 @@ class DAGCircuit:
             new_condition = (new_creg, new_cond_val)
         return new_condition
 
-    def _map_condition_with_import(self, op, wire_map, creg_map):
-        """Map the condition in ``op`` to its counterpart in ``self`` using ``wire_map`` and
-        ``creg_map`` as lookup caches.  All single-bit conditions should have a cache hit in the
-        ``wire_map``, but registers may involve a full linear search the first time they are
-        encountered.  ``creg_map`` is mutated by this function.  ``wire_map`` is not; it is an error
-        if a wire is not in the map.
+    def _map_classical_resource_with_import(self, resource, wire_map, creg_map):
+        """Map the classical ``resource`` (a bit or register) in its counterpart in ``self`` using
+        ``wire_map`` and ``creg_map`` as lookup caches.  All single-bit conditions should have a
+        cache hit in the ``wire_map``, but registers may involve a full linear search the first time
+        they are encountered.  ``creg_map`` is mutated by this function.  ``wire_map`` is not; it is
+        an error if a wire is not in the map.
 
-        This is different to ``_map_condition`` because it always succeeds; since the mapping for
-        all wires in the condition is assumed to exist, there can be no fragmented registers.  If
-        there is no matching register (has the same bits in the same order) in ``self``, a new
-        register alias is added to represent the condition.  This does not change the bits available
-        to ``self``, it just adds a new aliased grouping of them."""
-        op_condition = getattr(op, "condition", None)
-        if op_condition is None:
-            return op
-        new_op = copy.copy(op)
-        target, value = op_condition
-        if isinstance(target, Clbit):
-            new_op.condition = (wire_map[target], value)
-        else:
-            if target.name not in creg_map:
-                mapped_bits = [wire_map[bit] for bit in target]
-                for our_creg in self.cregs.values():
-                    if mapped_bits == list(our_creg):
-                        new_target = our_creg
-                        break
-                else:
-                    new_target = ClassicalRegister(bits=[wire_map[bit] for bit in target])
-                    self.add_creg(new_target)
-                creg_map[target.name] = new_target
-            new_op.condition = (creg_map[target.name], value)
-        return new_op
+        This is different to the logic in ``_map_condition`` because it always succeeds; since the
+        mapping for all wires in the condition is assumed to exist, there can be no fragmented
+        registers.  If there is no matching register (has the same bits in the same order) in
+        ``self``, a new register alias is added to represent the condition.  This does not change
+        the bits available to ``self``, it just adds a new aliased grouping of them."""
+        if isinstance(resource, Clbit):
+            return wire_map[resource]
+        if resource.name not in creg_map:
+            mapped_bits = [wire_map[bit] for bit in resource]
+            for our_creg in self.cregs.values():
+                if mapped_bits == list(our_creg):
+                    new_resource = our_creg
+                    break
+            else:
+                new_resource = ClassicalRegister(bits=[wire_map[bit] for bit in resource])
+                self.add_creg(new_resource)
+            creg_map[resource.name] = new_resource
+        return creg_map[resource.name]
 
     def compose(self, other, qubits=None, clbits=None, front=False, inplace=True):
         """Compose the ``other`` circuit onto the output of this circuit.
@@ -908,7 +901,9 @@ class DAGCircuit:
         """
         length = len(self._multi_graph) - 2 * len(self._wires)
         if not recurse:
-            if any(x in self._op_names for x in ("for_loop", "while_loop", "if_else")):
+            if any(
+                x in self._op_names for x in ("for_loop", "while_loop", "if_else", "switch_case")
+            ):
                 raise DAGCircuitError(
                     "Size with control flow is ambiguous."
                     " You may use `recurse=True` to get a result,"
@@ -924,7 +919,7 @@ class DAGCircuit:
                 inner = len(indexset) * circuit_to_dag(node.op.blocks[0]).size(recurse=True)
             elif isinstance(node.op, WhileLoopOp):
                 inner = circuit_to_dag(node.op.blocks[0]).size(recurse=True)
-            elif isinstance(node.op, IfElseOp):
+            elif isinstance(node.op, (IfElseOp, SwitchCaseOp)):
                 inner = sum(circuit_to_dag(block).size(recurse=True) for block in node.op.blocks)
             else:
                 raise DAGCircuitError(f"unknown control-flow type: '{node.op.name}'")
@@ -970,7 +965,9 @@ class DAGCircuit:
                 return node_lookup.get(target, 1)
 
         else:
-            if any(x in self._op_names for x in ("for_loop", "while_loop", "if_else")):
+            if any(
+                x in self._op_names for x in ("for_loop", "while_loop", "if_else", "switch_case")
+            ):
                 raise DAGCircuitError(
                     "Depth with control flow is ambiguous."
                     " You may use `recurse=True` to get a result,"
@@ -1327,7 +1324,23 @@ class DAGCircuit:
         for old_node_index, new_node_index in node_map.items():
             # update node attributes
             old_node = in_dag._multi_graph[old_node_index]
-            m_op = self._map_condition_with_import(old_node.op, wire_map, creg_map)
+            if isinstance(old_node.op, SwitchCaseOp):
+                m_op = SwitchCaseOp(
+                    self._map_classical_resource_with_import(
+                        old_node.op.target, wire_map, creg_map
+                    ),
+                    old_node.op.cases_specifier(),
+                    label=old_node.op.label,
+                )
+            elif getattr(old_node.op, "condition", None) is not None:
+                cond_target, cond_value = old_node.op.condition
+                m_op = copy.copy(old_node.op)
+                m_op.condition = (
+                    self._map_classical_resource_with_import(cond_target, wire_map, creg_map),
+                    cond_value,
+                )
+            else:
+                m_op = old_node.op
             m_qargs = [wire_map[x] for x in old_node.qargs]
             m_cargs = [wire_map[x] for x in old_node.cargs]
             new_node = DAGOpNode(m_op, qargs=m_qargs, cargs=m_cargs)
@@ -1392,6 +1405,35 @@ class DAGCircuit:
             self._increment_op(op)
             self._decrement_op(node.op)
         return new_node
+
+    def swap_nodes(self, node1, node2):
+        """Swap connected nodes e.g. due to commutation.
+
+        Args:
+            node1 (OpNode): predecessor node
+            node2 (OpNode): successor node
+
+        Raises:
+            DAGCircuitError: if either node is not an OpNode or nodes are not connected
+        """
+        if not (isinstance(node1, DAGOpNode) and isinstance(node2, DAGOpNode)):
+            raise DAGCircuitError("nodes to swap are not both DAGOpNodes")
+        try:
+            connected_edges = self._multi_graph.get_all_edge_data(node1._node_id, node2._node_id)
+        except rx.NoEdgeBetweenNodes as no_common_edge:
+            raise DAGCircuitError("attempt to swap unconnected nodes") from no_common_edge
+        node1_id = node1._node_id
+        node2_id = node2._node_id
+        for edge in connected_edges[::-1]:
+            edge_find = lambda x, y=edge: x == y
+            edge_parent = self._multi_graph.find_predecessors_by_edge(node1_id, edge_find)[0]
+            self._multi_graph.remove_edge(edge_parent._node_id, node1_id)
+            self._multi_graph.add_edge(edge_parent._node_id, node2_id, edge)
+            edge_child = self._multi_graph.find_successors_by_edge(node2_id, edge_find)[0]
+            self._multi_graph.remove_edge(node1_id, node2_id)
+            self._multi_graph.add_edge(node2_id, node1_id, edge)
+            self._multi_graph.remove_edge(node2_id, edge_child._node_id)
+            self._multi_graph.add_edge(node1_id, edge_child._node_id, edge)
 
     def node(self, node_id):
         """Get the node in the dag.

@@ -25,7 +25,7 @@ class FakeKolkataV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_kolkata.json"
     props_filename = "props_kolkata.json"
     defs_filename = "defs_kolkata.json"
-    backend_name = "fake_kolkata_v2"
+    backend_name = "fake_kolkata"
 
 
 class FakeKolkata(fake_pulse_backend.FakePulseBackend):

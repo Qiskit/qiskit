@@ -14,7 +14,7 @@
 
 import io
 import re
-from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable
+from typing import Union, List, Tuple, Callable, Dict, Any, Optional, Iterator, Iterable, TypeVar
 
 import dill
 
@@ -23,6 +23,9 @@ from qiskit.circuit import QuantumCircuit
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager, FlowController
+
+
+_CircuitsT = TypeVar("_CircuitsT", bound=Union[List[QuantumCircuit], QuantumCircuit])
 
 
 class PassManager:
@@ -183,10 +186,10 @@ class PassManager:
 
     def run(
         self,
-        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        output_name: str = None,
-        callback: Callable = None,
-    ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        circuits: _CircuitsT,
+        output_name: Optional[str] = None,
+        callback: Optional[Callable] = None,
+    ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
         Args:
@@ -227,7 +230,7 @@ class PassManager:
         if isinstance(circuits, QuantumCircuit):
             return self._run_single_circuit(circuits, output_name, callback)
         if len(circuits) == 1:
-            return self._run_single_circuit(circuits[0], output_name, callback)
+            return [self._run_single_circuit(circuits[0], output_name, callback)]
         return self._run_several_circuits(circuits, output_name, callback)
 
     def _create_running_passmanager(self) -> RunningPassManager:
@@ -244,7 +247,10 @@ class PassManager:
         return result
 
     def _run_several_circuits(
-        self, circuits: List[QuantumCircuit], output_name: str = None, callback: Callable = None
+        self,
+        circuits: List[QuantumCircuit],
+        output_name: Optional[str] = None,
+        callback: Optional[Callable] = None,
     ) -> List[QuantumCircuit]:
         """Run all the passes on the specified ``circuits``.
 
@@ -266,7 +272,10 @@ class PassManager:
         )
 
     def _run_single_circuit(
-        self, circuit: QuantumCircuit, output_name: str = None, callback: Callable = None
+        self,
+        circuit: QuantumCircuit,
+        output_name: Optional[str] = None,
+        callback: Optional[Callable] = None,
     ) -> QuantumCircuit:
         """Run all the passes on a ``circuit``.
 
@@ -520,10 +529,10 @@ class StagedPassManager(PassManager):
 
     def run(
         self,
-        circuits: Union[QuantumCircuit, List[QuantumCircuit]],
-        output_name: str = None,
-        callback: Callable = None,
-    ) -> Union[QuantumCircuit, List[QuantumCircuit]]:
+        circuits: _CircuitsT,
+        output_name: Optional[str] = None,
+        callback: Optional[Callable] = None,
+    ) -> _CircuitsT:
         self._update_passmanager()
         return super().run(circuits, output_name, callback)
 

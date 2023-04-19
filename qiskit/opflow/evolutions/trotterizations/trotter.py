@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,14 +13,19 @@
 """Trotter Class"""
 
 from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
+from qiskit.utils.deprecation import deprecate_func
 
 
 class Trotter(Suzuki):
     r"""
-    Simple Trotter expansion, composing the evolution circuits of each Operator in the sum
+    Deprecated: Simple Trotter expansion, composing the evolution circuits of each Operator in the sum
     together ``reps`` times and dividing the evolution time of each by ``reps``.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, reps: int = 1) -> None:
         r"""
         Args:

@@ -25,7 +25,7 @@ class FakeSydneyV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_sydney.json"
     props_filename = "props_sydney.json"
     defs_filename = "defs_sydney.json"
-    backend_name = "fake_sydney_v2"
+    backend_name = "fake_sydney"
 
 
 class FakeSydney(fake_pulse_backend.FakePulseBackend):

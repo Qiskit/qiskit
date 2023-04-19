@@ -12,6 +12,7 @@
 
 """Z, CZ and CCZ gates."""
 
+from math import pi
 from typing import Optional, Union
 
 import numpy
@@ -20,7 +21,6 @@ from qiskit.circuit._utils import _compute_control_matrix
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.qasm import pi
 
 from .p import PhaseGate
 

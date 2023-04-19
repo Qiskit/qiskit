@@ -290,8 +290,15 @@ Control Flow Operations
    IfElseOp
    WhileLoopOp
    ForLoopOp
+   SwitchCaseOp
    BreakLoopOp
    ContinueLoopOp
+
+The :class:`.SwitchCaseOp` also understands a special value:
+
+.. py:data: CASE_DEFAULT
+    Used as a possible "label" in a :class:`.SwitchCaseOp` to represent the default case.  This will
+    always match, if it is tried.
 
 Parametric Quantum Circuits
 ---------------------------
@@ -340,6 +347,8 @@ from .controlflow import (
     WhileLoopOp,
     ForLoopOp,
     IfElseOp,
+    SwitchCaseOp,
+    CASE_DEFAULT,
     BreakLoopOp,
     ContinueLoopOp,
 )

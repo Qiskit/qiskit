@@ -12,9 +12,9 @@
 
 """Y and CY gates."""
 
+from math import pi
 from typing import Optional, Union
 import numpy
-from qiskit.qasm import pi
 
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate

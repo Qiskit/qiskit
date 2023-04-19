@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 import itertools
+from collections.abc import Sequence
 
 from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import RXGate, RYGate, RZGate, CRXGate, CRYGate, CRZGate
@@ -90,7 +91,7 @@ def gradient_lookup(gate: Gate) -> list[tuple[complex, QuantumCircuit]]:
 
 def derive_circuit(
     circuit: QuantumCircuit, parameter: Parameter
-) -> list[tuple[complex, QuantumCircuit]]:
+) -> Sequence[tuple[complex, QuantumCircuit]]:
     """Return the analytic gradient expression of the input circuit wrt. a single parameter.
 
     Returns a list of ``(coeff, gradient_circuit)`` tuples, where the derivative of the circuit is

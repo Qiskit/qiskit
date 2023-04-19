@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2020
+# (C) Copyright IBM 2017, 2023
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,7 +23,7 @@ from qiskit.utils.deprecation import deprecate_func
 
 
 class StabilizerTable(PauliTable, AdjointMixin):
-    r"""Symplectic representation of a list Stabilizer matrices.
+    r"""DEPRECATED: Symplectic representation of a list Stabilizer matrices.
 
     **Symplectic Representation**
 
@@ -169,7 +169,7 @@ class StabilizerTable(PauliTable, AdjointMixin):
            `arXiv:quant-ph/0406196 <https://arxiv.org/abs/quant-ph/0406196>`_
     """
 
-    @deprecate_func(additional_msg="Instead, use the class PauliList", since="0.23.0", pending=True)
+    @deprecate_func(additional_msg="Instead, use the class PauliList", since="0.24.0")
     def __init__(self, data, phase=None):
         """Initialize the StabilizerTable.
 

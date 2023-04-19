@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -23,6 +23,7 @@ from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 from qiskit.providers import Backend, JobStatus, JobError, Job
 from qiskit.providers.jobstatus import JOB_FINAL_STATES
 from qiskit.result import Result
+from qiskit.utils.deprecation import deprecate_func
 from ..exceptions import QiskitError, MissingOptionalLibraryError
 from .backend_utils import (
     is_aer_provider,
@@ -39,10 +40,14 @@ MAX_GATES_PER_JOB = os.environ.get("QISKIT_AQUA_MAX_GATES_PER_JOB", None)
 logger = logging.getLogger(__name__)
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def find_regs_by_name(
     circuit: QuantumCircuit, name: str, qreg: bool = True
 ) -> Optional[Union[QuantumRegister, ClassicalRegister]]:
-    """Find the registers in the circuits.
+    """Deprecated: Find the registers in the circuits.
 
     Args:
         circuit: the quantum circuit.
@@ -100,6 +105,10 @@ def _safe_get_job_status(job: Job, job_id: str, max_job_retries: int, wait: floa
     return job_status
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def run_circuits(
     circuits: Union[QuantumCircuit, List[QuantumCircuit]],
     backend: Backend,
@@ -111,7 +120,7 @@ def run_circuits(
     max_job_retries: int = 50,
 ) -> Result:
     """
-    An execution wrapper with Qiskit-Terra, with job auto recover capability.
+    Deprecated: An execution wrapper with Qiskit-Terra, with job auto recover capability.
 
     The auto-recovery feature is only applied for non-simulator backend.
     This wrapper will try to get the result no matter how long it takes.

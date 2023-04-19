@@ -50,9 +50,11 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
     @deprecate_arg(
         "quantum_instance",
-        additional_msg="Instead, use the ``sampler`` argument.",
-        since="0.22.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
@@ -67,7 +69,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
             delta: The probability that the true value is outside of the final confidence interval.
             maxiter: The number of iterations, the maximal power of Q is `2 ** (maxiter - 1)`.
             rescale: Whether to rescale the problem passed to `estimate`.
-            quantum_instance: Pending deprecation\: The quantum instance or backend
+            quantum_instance: Deprecated: The quantum instance or backend
                 to run the circuits.
             sampler: A sampler primitive to evaluate the circuits.
 
@@ -108,9 +110,13 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         self._sampler = sampler
 
     @property
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+    )
     def quantum_instance(self) -> QuantumInstance | None:
-        """Pending deprecation; Get the quantum instance.
+        """Deprecated. Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -118,9 +124,13 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    @deprecate_func(since="0.23.0", pending=True, is_property=True)
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+    )
     def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
-        """Pending deprecation; Set quantum instance.
+        """Deprecated. Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
@@ -185,7 +195,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
 
         return cos_estimate
 
-    def _chernoff(self, cos, shots):
+    def _chernoff(self, cos, shots) -> list[float]:
         width = np.sqrt(np.log(2 / self._delta) * 12 / shots)
         confint = [np.maximum(-1, cos - width), np.minimum(1, cos + width)]
         return confint
@@ -306,14 +316,14 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         theta = np.mean(theta_ci)
         rescaling = 4 if self._rescale else 1
         value = (rescaling * np.sin(theta)) ** 2
-        value_ci = [(rescaling * np.sin(x)) ** 2 for x in theta_ci]
+        value_ci = ((rescaling * np.sin(theta_ci[0])) ** 2, (rescaling * np.sin(theta_ci[1])) ** 2)
 
         result = FasterAmplitudeEstimationResult()
         result.num_oracle_queries = self._num_oracle_calls
         result.num_steps = num_steps
         result.num_first_state_steps = num_first_stage_steps
         if self._quantum_instance is not None and self._quantum_instance.is_statevector:
-            result.success_probability = 1
+            result.success_probability = 1.0
         else:
             result.success_probability = 1 - (2 * self._maxiter - j_0) * self._delta
 
@@ -335,18 +345,18 @@ class FasterAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._success_probability = None
-        self._num_steps = None
-        self._num_first_state_steps = None
-        self._theta_intervals = None
+        self._success_probability: float | None = None
+        self._num_steps: int | None = None
+        self._num_first_state_steps: int | None = None
+        self._theta_intervals: list[list[float]] | None = None
 
     @property
-    def success_probability(self) -> int:
+    def success_probability(self) -> float:
         """Return the success probability of the algorithm."""
         return self._success_probability
 
     @success_probability.setter
-    def success_probability(self, probability: int) -> None:
+    def success_probability(self, probability: float) -> None:
         """Set the success probability of the algorithm."""
         self._success_probability = probability
 

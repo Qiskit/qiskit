@@ -30,7 +30,7 @@ class FakeArmonkV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_armonk.json"
     props_filename = "props_armonk.json"
     defs_filename = "defs_armonk.json"
-    backend_name = "fake_armonk_v2"
+    backend_name = "fake_armonk"
 
 
 class FakeArmonk(fake_pulse_backend.FakePulseBackend):

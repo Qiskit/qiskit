@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 """Evaluator of auxiliary operators for algorithms."""
 
-from typing import Tuple, Union, List
+from __future__ import annotations
 
 import numpy as np
 
@@ -34,24 +34,20 @@ from .list_or_dict import ListOrDict
 @deprecate_func(
     additional_msg=(
         "Instead, use the function "
-        "``qiskit.algorithms.observables_evaluator.estimate_observables``."
+        "``qiskit.algorithms.observables_evaluator.estimate_observables``. See "
+        "https://qisk.it/algo_migration for a migration guide."
     ),
-    since="0.23.0",
-    pending=True,
+    since="0.24.0",
 )
 def eval_observables(
-    quantum_instance: Union[QuantumInstance, Backend],
-    quantum_state: Union[
-        Statevector,
-        QuantumCircuit,
-        OperatorBase,
-    ],
+    quantum_instance: QuantumInstance | Backend,
+    quantum_state: Statevector | QuantumCircuit | OperatorBase,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
     threshold: float = 1e-12,
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, complex]]:
     """
-    Pending deprecation: Accepts a list or a dictionary of operators and calculates
+    Deprecated: Accepts a list or a dictionary of operators and calculates
     their expectation values - means
     and standard deviations. They are calculated with respect to a quantum state provided. A user
     can optionally provide a threshold value which filters mean values falling below the threshold.
@@ -101,8 +97,9 @@ def eval_observables(
     values = np.real(observables_expect_sampled.eval())
 
     # compute standard deviations
+    # We use sampler.quantum_instance to take care of case in which quantum_instance is Backend
     std_devs = _compute_std_devs(
-        observables_expect_sampled, observables, expectation, quantum_instance
+        observables_expect_sampled, observables, expectation, sampler.quantum_instance
     )
 
     # Discard values below threshold
@@ -117,11 +114,7 @@ def eval_observables(
 
 
 def _prepare_list_op(
-    quantum_state: Union[
-        Statevector,
-        QuantumCircuit,
-        OperatorBase,
-    ],
+    quantum_state: Statevector | QuantumCircuit | OperatorBase,
     observables: ListOrDict[OperatorBase],
 ) -> ListOp:
     """
@@ -145,9 +138,9 @@ def _prepare_list_op(
 
 
 def _prepare_result(
-    observables_results: List[Tuple[complex, complex]],
+    observables_results: list[tuple[complex, complex]],
     observables: ListOrDict[OperatorBase],
-) -> ListOrDict[Tuple[complex, complex]]:
+) -> ListOrDict[tuple[complex, complex]]:
     """
     Prepares a list or a dictionary of eigenvalues from ``observables_results`` and
     ``observables``.
@@ -161,7 +154,7 @@ def _prepare_result(
         A list or a dictionary of tuples (mean, standard deviation).
     """
     if isinstance(observables, list):
-        observables_eigenvalues = [None] * len(observables)
+        observables_eigenvalues: ListOrDict[tuple[complex, complex]] = [None] * len(observables)
         key_value_iterator = enumerate(observables_results)
     else:
         observables_eigenvalues = {}
@@ -176,8 +169,8 @@ def _compute_std_devs(
     observables_expect_sampled: OperatorBase,
     observables: ListOrDict[OperatorBase],
     expectation: ExpectationBase,
-    quantum_instance: Union[QuantumInstance, Backend],
-) -> List[complex]:
+    quantum_instance: QuantumInstance | Backend,
+) -> list[complex]:
     """
     Calculates a list of standard deviations from expectation values of observables provided.
 
@@ -197,5 +190,6 @@ def _compute_std_devs(
         # when `variances` is a single value equal to 0., our expectation value is exact and we
         # manually ensure the variances to be a list of the correct length
         variances = np.zeros(len(observables), dtype=float)
+    # TODO: this will crash if quantum_instance is a backend
     std_devs = np.sqrt(variances / quantum_instance.run_config.shots)
     return std_devs
