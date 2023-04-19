@@ -34,13 +34,6 @@ if TYPE_CHECKING:
     since="0.25.0",
     pending=True,
 )
-@deprecate_arg(
-    "inst_map",
-    deprecation_description=("Setting measure's `inst_map` argument to None."),
-    additional_msg=("Instead use the argument `target`."),
-    since="0.25.0",
-    pending=True,
-)
 def measure(
     qubits: List[int],
     backend=None,
@@ -52,10 +45,10 @@ def measure(
     """Return a schedule which measures the requested qubits according to the given
     instruction mapping and measure map, or by using the defaults provided by the backend.
 
-    If the backend has an attribute ``target``, the function uses the newer version
-    of the measurement logic, "_measure_v2" that takes ``target`` of the ``backend``,
-    ``meas_map`` and ``qubit_mem_slots`` assignment.
-    Otherwise, if the backend is None or an older version, the function uses the
+    If the backend has an attribute ``target``, the function uses the measurement logic,
+    "_measure_v2" that takes ``target`` of the ``backend``, ``meas_map`` and ``qubit_mem_slots``
+    assignment.
+    Otherwise, if the backend is None or ``backendV1``, the function uses the
     measurement logic, "_measure_v1" including ``instruction_schedule_map`` and ``meas_map``
     as inputs.
 
@@ -173,7 +166,7 @@ def _measure_v2(
     measure_name: str = "measure",
 ) -> Schedule:
     """Return a schedule which measures the requested qubits according to the given
-    instruction mapping and measure map, or by using the defaults provided by the backendV2.
+    target and measure map, or by using the defaults provided by the backendV2.
 
     Args:
         qubits: List of qubits to be measured.
