@@ -52,7 +52,7 @@ from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopRea
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 
-_CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop"}
+_CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop", "switch_case"}
 
 _ControlFlowState = collections.namedtuple("_ControlFlowState", ("working", "not_working"))
 
