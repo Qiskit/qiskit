@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,18 +10,23 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""TrotterizationFactory Class """
+"""TrotterizationFactory Class"""
 
 from qiskit.opflow.evolutions.trotterizations.qdrift import QDrift
 from qiskit.opflow.evolutions.trotterizations.suzuki import Suzuki
 from qiskit.opflow.evolutions.trotterizations.trotter import Trotter
 from qiskit.opflow.evolutions.trotterizations.trotterization_base import TrotterizationBase
+from qiskit.utils.deprecation import deprecate_func
 
 
 class TrotterizationFactory:
-    """A factory for conveniently creating TrotterizationBase instances."""
+    """Deprecated: A factory for conveniently creating TrotterizationBase instances."""
 
     @staticmethod
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def build(mode: str = "trotter", reps: int = 1) -> TrotterizationBase:
         """A factory for conveniently creating TrotterizationBase instances.
 

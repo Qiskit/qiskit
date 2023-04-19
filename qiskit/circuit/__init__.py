@@ -263,6 +263,8 @@ Quantum Circuit Construction
    AncillaRegister
    AncillaQubit
    CircuitInstruction
+   Register
+   Bit
 
 Gates and Instructions
 ----------------------
@@ -288,8 +290,15 @@ Control Flow Operations
    IfElseOp
    WhileLoopOp
    ForLoopOp
+   SwitchCaseOp
    BreakLoopOp
    ContinueLoopOp
+
+The :class:`.SwitchCaseOp` also understands a special value:
+
+.. py:data: CASE_DEFAULT
+    Used as a possible "label" in a :class:`.SwitchCaseOp` to represent the default case.  This will
+    always match, if it is tried.
 
 Parametric Quantum Circuits
 ---------------------------
@@ -328,6 +337,8 @@ from .parametervector import ParameterVector
 from .parameterexpression import ParameterExpression
 from .quantumcircuitdata import CircuitInstruction
 from .equivalence import EquivalenceLibrary
+from .bit import Bit
+from .register import Register
 from . import library
 from .commutation_checker import CommutationChecker
 
@@ -336,6 +347,8 @@ from .controlflow import (
     WhileLoopOp,
     ForLoopOp,
     IfElseOp,
+    SwitchCaseOp,
+    CASE_DEFAULT,
     BreakLoopOp,
     ContinueLoopOp,
 )

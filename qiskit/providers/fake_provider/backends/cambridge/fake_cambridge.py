@@ -37,7 +37,7 @@ class FakeCambridgeV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_cambridge.json"
     props_filename = "props_cambridge.json"
-    backend_name = "fake_cambridge_v2"
+    backend_name = "fake_cambridge"
 
 
 class FakeCambridge(fake_qasm_backend.FakeQasmBackend):

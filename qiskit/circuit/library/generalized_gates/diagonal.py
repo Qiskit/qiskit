@@ -10,12 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 
 """Diagonal matrix circuit."""
 
-from typing import Union, List
+from __future__ import annotations
 import cmath
 import numpy as np
 
@@ -73,7 +71,7 @@ class Diagonal(QuantumCircuit):
     `arXiv:0406176 <https://arxiv.org/pdf/quant-ph/0406176.pdf>`_
     """
 
-    def __init__(self, diag: Union[List, np.array]) -> None:
+    def __init__(self, diag: list[complex] | np.ndarray) -> None:
         """Create a new Diagonal circuit.
 
         Args:

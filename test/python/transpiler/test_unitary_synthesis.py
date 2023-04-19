@@ -55,7 +55,8 @@ from qiskit.circuit.library import (
     RZZGate,
     RXXGate,
 )
-from qiskit.circuit import Parameter
+from qiskit.circuit.controlflow import IfElseOp
+from qiskit.circuit import Parameter, Gate
 
 
 @ddt
@@ -774,7 +775,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc_true_body.unitary(qc_uni_mat, [0, 1])
 
         qc = QuantumCircuit(qr, cr)
-        qc.if_test((cr, 1), qc_true_body, [0, 1], [0, 1])
+        qc.if_test((cr, 1), qc_true_body, [0, 1], [])
         dag = circuit_to_dag(qc)
         cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
         cqc = dag_to_circuit(cdag)
@@ -820,6 +821,47 @@ class TestUnitarySynthesis(QiskitTestCase):
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(result_qc, QuantumCircuit(1))
+
+    def test_unitary_synthesis_with_ideal_and_variable_width_ops(self):
+        """Test unitary synthesis works with a target that contains ideal and variadic ops."""
+        qc = QuantumCircuit(2)
+        qc.unitary(np.eye(4), [0, 1])
+        dag = circuit_to_dag(qc)
+        target = FakeBelemV2().target
+        target.add_instruction(IfElseOp, name="if_else")
+        target.add_instruction(ZGate())
+        target.add_instruction(ECRGate())
+        unitary_synth_pass = UnitarySynthesis(target=target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(result_qc, QuantumCircuit(2))
+
+    def test_unitary_synthesis_custom_gate_target(self):
+        qc = QuantumCircuit(2)
+        qc.unitary(np.eye(4), [0, 1])
+        dag = circuit_to_dag(qc)
+
+        class CustomGate(Gate):
+            """Custom Opaque Gate"""
+
+            def __init__(self):
+                super().__init__("custom", 2, [])
+
+        target = Target(num_qubits=2)
+        target.add_instruction(
+            UGate(Parameter("t"), Parameter("p"), Parameter("l")), {(0,): None, (1,): None}
+        )
+        target.add_instruction(CustomGate(), {(0, 1): None, (1, 0): None})
+        unitary_synth_pass = UnitarySynthesis(target=target)
+        result_dag = unitary_synth_pass.run(dag)
+        result_qc = dag_to_circuit(result_dag)
+        self.assertEqual(result_qc, QuantumCircuit(2))
+
+    def test_default_does_not_fail_on_no_syntheses(self):
+        qc = QuantumCircuit(1)
+        qc.unitary(np.eye(2), [0])
+        pass_ = UnitarySynthesis(["unknown", "gates"])
+        self.assertEqual(qc, pass_(qc))
 
 
 if __name__ == "__main__":

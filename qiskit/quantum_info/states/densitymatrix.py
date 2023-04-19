@@ -480,8 +480,13 @@ class DensityMatrix(QuantumState, TolerancesMixin):
         probs = self._subsystem_probabilities(
             np.abs(self.data.diagonal()), self._op_shape.dims_l(), qargs=qargs
         )
+
+        # to account for roundoff errors, we clip
+        probs = np.clip(probs, a_min=0, a_max=1)
+
         if decimals is not None:
             probs = probs.round(decimals=decimals)
+
         return probs
 
     def reset(self, qargs=None):
@@ -809,3 +814,22 @@ class DensityMatrix(QuantumState, TolerancesMixin):
 
         psi = evecs[:, np.argmax(evals)]  # eigenvectors returned in columns.
         return Statevector(psi)
+
+    def partial_transpose(self, qargs):
+        """Return partially transposed density matrix.
+
+        Args:
+            qargs (list): The subsystems to be transposed.
+
+        Returns:
+            DensityMatrix: The partially transposed density matrix.
+        """
+        arr = self._data.reshape(self._op_shape.tensor_shape)
+        qargs = len(self._op_shape.dims_l()) - 1 - np.array(qargs)
+        n = len(self.dims())
+        lst = list(range(2 * n))
+        for i in qargs:
+            lst[i], lst[i + n] = lst[i + n], lst[i]
+        rho = np.transpose(arr, lst)
+        rho = np.reshape(rho, self._op_shape.shape)
+        return DensityMatrix(rho)

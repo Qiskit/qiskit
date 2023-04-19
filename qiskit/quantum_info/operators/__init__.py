@@ -14,12 +14,7 @@
 
 from .channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
 from .dihedral import CNOTDihedral
-from .measures import (
-    average_gate_fidelity,
-    diamond_norm,
-    gate_error,
-    process_fidelity,
-)
+from .measures import average_gate_fidelity, diamond_norm, gate_error, process_fidelity
 from .operator import Operator
 from .scalar_op import ScalarOp
 from .symplectic import (
@@ -31,3 +26,4 @@ from .symplectic import (
     StabilizerTable,
     pauli_basis,
 )
+from .utils import anti_commutator, commutator, double_commutator

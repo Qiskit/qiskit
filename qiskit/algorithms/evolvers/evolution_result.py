@@ -12,17 +12,17 @@
 
 """Class for holding evolution result."""
 
-from typing import Optional, Union, Tuple
+from __future__ import annotations
 
 from qiskit import QuantumCircuit
 from qiskit.algorithms.list_or_dict import ListOrDict
 from qiskit.opflow import StateFn, OperatorBase
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from ..algorithm_result import AlgorithmResult
 
 
 class EvolutionResult(AlgorithmResult):
-    """Pending deprecation: Class for holding evolution result.
+    """Deprecated: Class for holding evolution result.
 
     The EvolutionResult class has been superseded by the
     :class:`qiskit.algorithms.time_evolvers.TimeEvolutionResult` class.
@@ -31,17 +31,17 @@ class EvolutionResult(AlgorithmResult):
 
     """
 
-    @deprecate_function(
-        "The EvolutionResult class has been superseded by the "
-        "qiskit.algorithms.time_evolvers.TimeEvolutionResult class. "
-        "This class will be deprecated in a future release and subsequently "
-        "removed after that.",
-        category=PendingDeprecationWarning,
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.time_evolvers.TimeEvolutionResult``. "
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
-        evolved_state: Union[StateFn, QuantumCircuit, OperatorBase],
-        aux_ops_evaluated: Optional[ListOrDict[Tuple[complex, complex]]] = None,
+        evolved_state: StateFn | QuantumCircuit | OperatorBase,
+        aux_ops_evaluated: ListOrDict[tuple[complex, complex]] | None = None,
     ):
         """
         Args:

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Getting empty calibration from :class:`.InstructionProperties` raises
+    AttributeError has been fixed. Now it returns ``None``.
