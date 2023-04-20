@@ -36,6 +36,7 @@ from qiskit._accelerate.sabre_swap import (
 )
 from qiskit.transpiler.passes.routing.sabre_swap import process_swaps, apply_gate
 from qiskit.transpiler.target import Target
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.tools.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
@@ -150,10 +151,11 @@ class SabreLayout(TransformationPass):
         self.skip_routing = skip_routing
         if self.coupling_map is not None:
             if not self.coupling_map.is_symmetric:
-                # deepcopy is needed here to avoid modifications updating
-                # shared references in passes which require directional
-                # constraints
-                self.coupling_map = copy.deepcopy(self.coupling_map)
+                # deepcopy is needed here if we don't own the coupling map (i.e. we were passed it
+                # directly) to avoid modifications updating shared references in passes which
+                # require directional constraints
+                if isinstance(coupling_map, CouplingMap):
+                    self.coupling_map = copy.deepcopy(self.coupling_map)
                 self.coupling_map.make_symmetric()
             self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
 
