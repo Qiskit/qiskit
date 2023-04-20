@@ -21,7 +21,6 @@ from qiskit.pulse import (
     MemorySlot,
     GaussianSquare,
     Play,
-    Delay,
 )
 from qiskit.pulse import macros
 from qiskit.pulse.exceptions import PulseError
@@ -102,7 +101,7 @@ class TestMeasure(QiskitTestCase):
         )
         measure_duration = expected.filter(instruction_types=[Play]).duration
         for qubit in range(self.backend_v2.num_qubits):
-            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(0))
+            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(qubit))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_v2_sched_with_qubit_mem_slots(self):
@@ -117,8 +116,12 @@ class TestMeasure(QiskitTestCase):
         for qubit in range(self.backend_v2.num_qubits):
             if qubit == 0:
                 expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(2))
-            else:
+            elif qubit == 1:
                 expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(0))
+            elif qubit == 2:
+                expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(1))
+            else:
+                expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(qubit))
         self.assertEqual(sched.instructions, expected.instructions)
 
     def test_measure_v2_sched_with_meas_map(self):
@@ -136,7 +139,7 @@ class TestMeasure(QiskitTestCase):
         )
         measure_duration = expected.filter(instruction_types=[Play]).duration
         for qubit in range(self.backend_v2.num_qubits):
-            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(0))
+            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(qubit))
         self.assertEqual(sched_with_meas_map_list.instructions, expected.instructions)
         self.assertEqual(sched_with_meas_map_dict.instructions, expected.instructions)
 
@@ -157,7 +160,7 @@ class TestMeasure(QiskitTestCase):
         expected += Acquire(measure_duration, AcquireChannel(0), MemorySlot(0))
         expected += Acquire(measure_duration, AcquireChannel(1), MemorySlot(1))
         for qubit in range(2, self.backend_v2.num_qubits):
-            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(0))
+            expected += Acquire(measure_duration, AcquireChannel(qubit), MemorySlot(qubit))
         self.assertEqual(sched.instructions, expected.instructions)
 
 

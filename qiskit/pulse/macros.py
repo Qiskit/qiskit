@@ -18,7 +18,6 @@ from typing import Dict, List, Optional, Union, TYPE_CHECKING
 from qiskit.pulse import channels, exceptions, instructions, utils
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.pulse.schedule import Schedule
-from qiskit.utils.deprecation import deprecate_arg
 
 
 if TYPE_CHECKING:
@@ -183,6 +182,13 @@ def _measure_v2(
         meas_group |= set(meas_map[qubit])
     meas_group = sorted(list(meas_group))
 
+    meas_group_set = set(meas_group)
+    unassigned_qubit_indices = list(meas_group_set - qubit_mem_slots.keys())
+    unassigned_reg_indices = sorted(list(meas_group_set - set(qubit_mem_slots.values())))
+    if set(qubit_mem_slots.values()).issubset(meas_group_set):
+        for qubit in unassigned_qubit_indices:
+            qubit_mem_slots[qubit] = unassigned_reg_indices.pop(0)
+
     for measure_qubit in meas_group:
         try:
             if measure_qubit in qubits:
@@ -240,7 +246,7 @@ def _schedule_remapping_memory_slot(
     for t0, inst in schedule.instructions:
         if isinstance(inst, instructions.Acquire):
             qubit_index = inst.channel.index
-            reg_index = qubit_mem_slots.get(qubit_index, 0)
+            reg_index = qubit_mem_slots.get(qubit_index, qubit_index)
             new_schedule.insert(
                 t0,
                 instructions.Acquire(
