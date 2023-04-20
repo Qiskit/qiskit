@@ -223,7 +223,9 @@ def measure_all(backend) -> Schedule:
     return measure(qubits=list(range(backend.configuration().n_qubits)), backend=backend)
 
 
-def _schedule_remapping_memory_slot(schedule: Schedule, qubit_mem_slots: Dict[int, int]) -> Schedule:
+def _schedule_remapping_memory_slot(
+    schedule: Schedule, qubit_mem_slots: Dict[int, int]
+) -> Schedule:
     """
     A helper function to overwrite MemorySlot index of :class:`.Acquire` instruction.
 
