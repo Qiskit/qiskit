@@ -722,7 +722,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         level2_expected.measure(0, 0)
 
         level1_expected = QuantumCircuit(2, 1)
-        level1_expected.for_loop((0,), None, level2_expected.copy(), level1_expected.qubits, level1_expected.clbits)
+        level1_expected.for_loop(
+            (0,), None, level2_expected.copy(), level1_expected.qubits, level1_expected.clbits
+        )
         level1_expected.measure(0, 0)
 
         expected = QuantumCircuit(2, 1)
