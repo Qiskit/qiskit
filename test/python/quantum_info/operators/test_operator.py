@@ -17,7 +17,9 @@
 import unittest
 import logging
 import copy
+from test import combine
 import numpy as np
+from ddt import ddt
 from numpy.testing import assert_allclose
 import scipy.linalg as la
 
@@ -30,6 +32,7 @@ from qiskit.quantum_info.operators import Operator, ScalarOp
 from qiskit.quantum_info.operators.predicates import matrix_equal
 from qiskit.compiler.transpiler import transpile
 from qiskit.circuit import Qubit
+from qiskit.circuit.library import Permutation, PermutationGate
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +94,7 @@ class OperatorTestCase(QiskitTestCase):
         return circ
 
 
+@ddt
 class TestOperator(OperatorTestCase):
     """Tests for Operator linear operator class."""
 
@@ -1049,6 +1053,138 @@ class TestOperator(OperatorTestCase):
         tqc = transpile(circuit, initial_layout=init_layout)
         result = Operator.from_circuit(tqc)
         self.assertTrue(Operator(circuit).equiv(result))
+
+    def test_apply_permutation_back(self):
+        """Test applying permutation to the operator,
+        where the operator is applied first and the permutation second."""
+        op = Operator(self.rand_matrix(64, 64))
+        pattern = [1, 2, 0, 3, 5, 4]
+
+        # Consider several methods of computing this operator and show
+        # they all lead to the same result.
+
+        # Compose the operator with the operator constructed from the
+        # permutation circuit.
+        op2 = op.copy()
+        perm_op = Operator(Permutation(6, pattern))
+        op2 &= perm_op
+
+        # Compose the operator with the operator constructed from the
+        # permutation gate.
+        op3 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op3 &= perm_op
+
+        # Modify the operator using apply_permutation method.
+        op4 = op.copy()
+        op4 = op4.apply_permutation(pattern, front=False)
+
+        self.assertEqual(op2, op3)
+        self.assertEqual(op2, op4)
+
+    def test_apply_permutation_front(self):
+        """Test applying permutation to the operator,
+        where the permutation is applied first and the operator second"""
+        op = Operator(self.rand_matrix(64, 64))
+        pattern = [1, 2, 0, 3, 5, 4]
+
+        # Consider several methods of computing this operator and show
+        # they all lead to the same result.
+
+        # Compose the operator with the operator constructed from the
+        # permutation circuit.
+        op2 = op.copy()
+        perm_op = Operator(Permutation(6, pattern))
+        op2 = perm_op & op2
+
+        # Compose the operator with the operator constructed from the
+        # permutation gate.
+        op3 = op.copy()
+        perm_op = Operator(PermutationGate(pattern))
+        op3 = perm_op & op3
+
+        # Modify the operator using apply_permutation method.
+        op4 = op.copy()
+        op4 = op4.apply_permutation(pattern, front=True)
+
+        self.assertEqual(op2, op3)
+        self.assertEqual(op2, op4)
+
+    def test_apply_permutation_qudits_back(self):
+        """Test applying permutation to the operator with heterogeneous qudit spaces,
+        where the operator O is applied first and the permutation P second.
+        The matrix of the resulting operator is the product [P][O] and
+        corresponds to suitably permuting the rows of O's matrix.
+        """
+        mat = np.array(range(6 * 6)).reshape((6, 6))
+        op = Operator(mat, input_dims=(2, 3), output_dims=(2, 3))
+        perm = [1, 0]
+        actual = op.apply_permutation(perm, front=False)
+
+        # Rows of mat are ordered to 00, 01, 02, 10, 11, 12;
+        # perm maps these to 00, 10, 20, 01, 11, 21,
+        # while the default ordering is 00, 01, 10, 11, 20, 21.
+        permuted_mat = mat.copy()[[0, 2, 4, 1, 3, 5]]
+        expected = Operator(permuted_mat, input_dims=(2, 3), output_dims=(3, 2))
+        self.assertEqual(actual, expected)
+
+    def test_apply_permutation_qudits_front(self):
+        """Test applying permutation to the operator with heterogeneous qudit spaces,
+        where the permutation P is applied first and the operator O is applied second.
+        The matrix of the resulting operator is the product [O][P] and
+        corresponds to suitably permuting the columns of O's matrix.
+        """
+        mat = np.array(range(6 * 6)).reshape((6, 6))
+        op = Operator(mat, input_dims=(2, 3), output_dims=(2, 3))
+        perm = [1, 0]
+        actual = op.apply_permutation(perm, front=True)
+
+        # Columns of mat are ordered to 00, 01, 02, 10, 11, 12;
+        # perm maps these to 00, 10, 20, 01, 11, 21,
+        # while the default ordering is 00, 01, 10, 11, 20, 21.
+        permuted_mat = mat.copy()[:, [0, 2, 4, 1, 3, 5]]
+        expected = Operator(permuted_mat, input_dims=(3, 2), output_dims=(2, 3))
+        self.assertEqual(actual, expected)
+
+    @combine(
+        dims=((2, 3, 4, 5), (5, 2, 4, 3), (3, 5, 2, 4), (5, 3, 4, 2), (4, 5, 2, 3), (4, 3, 2, 5))
+    )
+    def test_reverse_qargs_as_apply_permutation(self, dims):
+        """Test reversing qargs by pre- and post-composing with reversal
+        permutation.
+        """
+        perm = [3, 2, 1, 0]
+        op = Operator(
+            np.array(range(120 * 120)).reshape((120, 120)), input_dims=dims, output_dims=dims
+        )
+        op2 = op.reverse_qargs()
+        op3 = op.apply_permutation(perm, front=True).apply_permutation(perm, front=False)
+        self.assertEqual(op2, op3)
+
+    def test_apply_permutation_exceptions(self):
+        """Checks that applying permutation raises an error when dimensions do not match."""
+        op = Operator(
+            np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
+        )
+
+        with self.assertRaises(QiskitError):
+            op.apply_permutation([1, 0], front=False)
+        with self.assertRaises(QiskitError):
+            op.apply_permutation([2, 1, 0], front=True)
+
+    def test_apply_permutation_dimensions(self):
+        """Checks the dimensions of the operator after applying permutation."""
+        op = Operator(
+            np.array(range(24 * 30)).reshape((24, 30)), input_dims=(6, 5), output_dims=(2, 3, 4)
+        )
+        op2 = op.apply_permutation([1, 2, 0], front=False)
+        self.assertEqual(op2.output_dims(), (4, 2, 3))
+
+        op = Operator(
+            np.array(range(24 * 30)).reshape((30, 24)), input_dims=(2, 3, 4), output_dims=(6, 5)
+        )
+        op2 = op.apply_permutation([2, 0, 1], front=True)
+        self.assertEqual(op2.input_dims(), (4, 2, 3))
 
 
 if __name__ == "__main__":
