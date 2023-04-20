@@ -128,7 +128,6 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         ratio = black_pixels / total_pixels
 
         if ratio != 1:
-            fail_path = diff_name.split("/")
             TestGraphMatplotlibDrawer._black_or_b(diff, current, expected).save(
                 FAILURE_DIFF_DIR + image_name, "PNG"
             )
