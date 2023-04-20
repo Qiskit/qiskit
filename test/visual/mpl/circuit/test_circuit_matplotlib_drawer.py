@@ -43,6 +43,7 @@ from qiskit.circuit import Parameter, Qubit, Clbit
 from qiskit.circuit.library import IQP
 from qiskit.quantum_info.random import random_unitary
 from qiskit.utils import optionals
+from PIL import Image, ImageChops, ImageDraw
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
@@ -51,7 +52,9 @@ else:
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
-
+TEST_IMAGE_PATH = os.getcwd()
+TEST_REFERENCE_PATH = os.path.join(TEST_IMAGE_PATH, "references")
+FAILURE_DIFF_DIR = os.path.join(TEST_IMAGE_PATH, "circuitfailures", "")
 
 @contextmanager
 def cwd(path):
@@ -64,18 +67,82 @@ def cwd(path):
         os.chdir(oldpwd)
 
 
-class TestMatplotlibDrawer(QiskitTestCase):
+class TestCircuitMatplotlibDrawer(QiskitTestCase):
     """Circuit MPL visualization"""
 
     def setUp(self):
         super().setUp()
-        self.circuit_drawer = TestMatplotlibDrawer.save_data_wrap(
+        self.circuit_drawer = TestCircuitMatplotlibDrawer.save_data_wrap(
             _matplotlib_circuit_drawer, str(self)
         )
+
+        if not os.path.exists(FAILURE_DIFF_DIR):
+            os.makedirs(FAILURE_DIFF_DIR)
 
     def tearDown(self):
         super().tearDown()
         mpl_close("all")
+
+    @staticmethod
+    def _image_path(image_name):
+        return os.path.join(TEST_IMAGE_PATH, image_name)
+
+    @staticmethod
+    def _reference_path(image_name):
+        return os.path.join(TEST_REFERENCE_PATH, image_name)
+
+    @staticmethod
+    def _new_gray(size, color):
+        img = Image.new("L", size)
+        drawing = ImageDraw.Draw(img)
+        drawing.rectangle((0, 0) + size, color)
+        return img
+
+    @staticmethod
+    def _black_or_b(diff_image, image, reference, opacity=0.85):
+        """Copied from https://stackoverflow.com/a/30307875"""
+        thresholded_diff = diff_image
+        for _ in range(3):
+            thresholded_diff = ImageChops.add(thresholded_diff, thresholded_diff)
+        size = diff_image.size
+        mask = TestCircuitMatplotlibDrawer._new_gray(size, int(255 * (opacity)))
+        shade = TestCircuitMatplotlibDrawer._new_gray(size, 0)
+        new = reference.copy()
+        new.paste(shade, mask=mask)
+        if image.size != new.size:
+            image = image.resize(new.size)
+        if image.size != thresholded_diff.size:
+            thresholded_diff = thresholded_diff.resize(image.size)
+        new.paste(image, mask=thresholded_diff)
+        return new
+
+    @staticmethod
+    def _get_black_pixels(image):
+        black_and_white_version = image.convert("1")
+        black_pixels = black_and_white_version.histogram()[0]
+        return black_pixels
+
+    @staticmethod
+    def _similarity_ratio(current, expected, image_name):
+        diff_name = current.split(".")
+        diff_name.insert(-1, "diff")
+        diff_name = ".".join(diff_name)
+
+        current = Image.open(current)
+        expected = Image.open(expected)
+
+        diff = ImageChops.difference(expected, current).convert("L")
+
+        black_pixels = TestCircuitMatplotlibDrawer._get_black_pixels(diff)
+        total_pixels = diff.size[0] * diff.size[1]
+        ratio = black_pixels / total_pixels
+
+        if ratio != 1:
+            fail_path = diff_name.split("/")
+            TestCircuitMatplotlibDrawer._black_or_b(diff, current, expected).save(FAILURE_DIFF_DIR + image_name, "PNG")
+        else:
+            TestCircuitMatplotlibDrawer._black_or_b(diff, current, expected).save(diff_name, "PNG")
+        return ratio, diff_name
 
     @staticmethod
     def save_data_wrap(func, testname):
@@ -85,7 +152,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
             image_filename = kwargs["filename"]
             with cwd(RESULTDIR):
                 results = func(*args, **kwargs)
-                TestMatplotlibDrawer.save_data(image_filename, testname)
+                TestCircuitMatplotlibDrawer.save_data(image_filename, testname)
             return results
 
         return wrapper
@@ -107,7 +174,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         """Test empty circuit"""
         circuit = QuantumCircuit()
 
-        self.circuit_drawer(circuit, filename="empty_circut.png")
+        fname = "empty_circut.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_calibrations(self):
         """Test calibrations annotations
@@ -126,7 +197,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         circuit.add_calibration("h", [0], h_q0)
 
-        self.circuit_drawer(circuit, filename="calibrations.png")
+        fname = "calibrations.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_calibrations_with_control_gates(self):
         """Test calibrations annotations
@@ -153,7 +228,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         circuit.add_calibration("ch", [0, 1], ch_q01)
 
-        self.circuit_drawer(circuit, filename="calibrations_with_control_gates.png")
+        fname = "calibrations_with_control_gates.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_calibrations_with_swap_and_reset(self):
         """Test calibrations annotations
@@ -180,7 +259,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         circuit.add_calibration("reset", [0], reset_q0)
 
-        self.circuit_drawer(circuit, filename="calibrations_with_swap_and_reset.png")
+        fname = "calibrations_with_swap_and_reset.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_calibrations_with_rzz_and_rxx(self):
         """Test calibrations annotations
@@ -206,13 +289,22 @@ class TestMatplotlibDrawer(QiskitTestCase):
 
         circuit.add_calibration("rxx", [0, 1], rxx_q01)
 
-        self.circuit_drawer(circuit, filename="calibrations_with_rzz_and_rxx.png")
+        fname = "calibrations_with_rzz_and_rxx.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_no_ops(self):
         """Test circuit with no ops.
         See https://github.com/Qiskit/qiskit-terra/issues/5393"""
         circuit = QuantumCircuit(2, 3)
-        self.circuit_drawer(circuit, filename="no_op_circut.png")
+
+        fname = "no_op_circut.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_long_name(self):
         """Test to see that long register names can be seen completely
@@ -230,7 +322,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr)
         circuit.h(qr)
 
-        self.circuit_drawer(circuit, filename="long_name.png")
+        fname = "long_name.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_multi_underscore_reg_names(self):
         """Test that multi-underscores in register names display properly"""
@@ -240,8 +336,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
         c_reg3 = ClassicalRegister(3, "c3_re_g__g")
         circuit = QuantumCircuit(q_reg1, q_reg3, c_reg1, c_reg3)
 
-        self.circuit_drawer(circuit, cregbundle=True, filename="multi_underscore_true.png")
-        self.circuit_drawer(circuit, cregbundle=False, filename="multi_underscore_false.png")
+        fname = "multi_underscore_true.png"
+        self.circuit_drawer(circuit, cregbundle=True, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+
+        fname2 = "multi_underscore_false.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname2)
+
+        ratio2, diff_name = self._similarity_ratio(self._image_path(fname2), self._reference_path(fname2), fname2)
+
+        assert(ratio == 1)
+        assert(ratio2 == 1)
 
     def test_conditional(self):
         """Test that circuits with conditionals draw correctly"""
@@ -254,7 +360,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(qr, cr)
         circuit.h(qr[0]).c_if(cr, 2)
 
-        self.circuit_drawer(circuit, filename="reg_conditional.png")
+        fname = "reg_conditional.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_bit_conditional_with_cregbundle(self):
         """Test that circuits with single bit conditionals draw correctly
@@ -268,7 +378,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[0]).c_if(cr[0], 1)
         circuit.x(qr[1]).c_if(cr[1], 0)
 
-        self.circuit_drawer(circuit, filename="bit_conditional_bundle.png")
+        fname = "bit_conditional_bundle.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_bit_conditional_no_cregbundle(self):
         """Test that circuits with single bit conditionals draw correctly
@@ -282,7 +396,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[0]).c_if(cr[0], 1)
         circuit.x(qr[1]).c_if(cr[1], 0)
 
-        self.circuit_drawer(circuit, filename="bit_conditional_no_bundle.png", cregbundle=False)
+        fname = "bit_conditional_no_bundle.png"
+        self.circuit_drawer(circuit, filename=fname, cregbundle=False)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_plot_partial_barrier(self):
         """Test plotting of partial barriers."""
@@ -297,7 +415,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(0)
         circuit.h(q[0])
 
-        self.circuit_drawer(circuit, filename="plot_partial_barrier.png", plot_barriers=True)
+        fname = "plot_partial_barrier.png"
+        self.circuit_drawer(circuit, filename=fname, plot_barriers=True)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_plot_barriers(self):
         """Test to see that plotting barriers works.
@@ -321,8 +443,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.snapshot("1")
 
         # check the barriers plot properly when plot_barriers= True
-        self.circuit_drawer(circuit, filename="plot_barriers_true.png", plot_barriers=True)
-        self.circuit_drawer(circuit, filename="plot_barriers_false.png", plot_barriers=False)
+        fname = "plot_barriers_true.png"
+        self.circuit_drawer(circuit, filename=fname, plot_barriers=True)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+
+        fname2 = "plot_barriers_false.png"
+        self.circuit_drawer(circuit, filename=fname2, plot_barriers=False)
+
+        ratio2, diff_name = self._similarity_ratio(self._image_path(fname2), self._reference_path(fname2), fname2)
+
+        assert(ratio == 1)
+        assert(ratio2 == 1)
 
     def test_no_barriers_false(self):
         """Generate the same circuit as test_plot_barriers but without the barrier commands
@@ -333,7 +465,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(q1[0])
         circuit.h(q1[1])
 
-        self.circuit_drawer(circuit, filename="no_barriers.png", plot_barriers=False)
+        fname = "no_barriers.png"
+        self.circuit_drawer(circuit, filename=fname, plot_barriers=False)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_fold_minus1(self):
         """Test to see that fold=-1 is no folding"""
@@ -344,7 +480,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
             circuit.h(0)
             circuit.x(0)
 
-        self.circuit_drawer(circuit, fold=-1, filename="fold_minus1.png")
+        fname = "fold_minus1.png"
+        self.circuit_drawer(circuit, fold=-1, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_fold_4(self):
         """Test to see that fold=4 is folding"""
@@ -355,7 +495,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
             circuit.h(0)
             circuit.x(0)
 
-        self.circuit_drawer(circuit, fold=4, filename="fold_4.png")
+        fname = "fold_4.png"
+        self.circuit_drawer(circuit, fold=4, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_big_gates(self):
         """Test large gates with params"""
@@ -382,7 +526,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = circuit.bind_parameters({theta: 1})
         circuit.isometry(np.eye(4, 4), list(range(3, 5)), [])
 
-        self.circuit_drawer(circuit, filename="big_gates.png")
+        fname = "big_gates.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_cnot(self):
         """Test different cnot gates (ccnot, mcx, etc)"""
@@ -395,7 +543,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(MCXGate(num_ctrl_qubits=3, ctrl_state="101"), [qr[0], qr[1], qr[2], qr[4]])
         circuit.append(MCXVChain(3, dirty_ancillas=True), [qr[0], qr[1], qr[2], qr[3], qr[5]])
 
-        self.circuit_drawer(circuit, filename="cnot.png")
+        fname = "cnot.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_cz(self):
         """Test Z and Controlled-Z Gates"""
@@ -407,7 +559,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(ZGate().control(2), [1, 2, 3])
         circuit.append(ZGate().control(1, ctrl_state="0", label="CZ Gate"), [2, 3])
 
-        self.circuit_drawer(circuit, filename="cz.png")
+        fname = "cz.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_pauli_clifford(self):
         """Test Pauli(green) and Clifford(blue) gates"""
@@ -427,7 +583,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.iswap(3, 4)
         circuit.dcx(3, 4)
 
-        self.circuit_drawer(circuit, filename="pauli_clifford.png")
+        fname = "pauli_clifford.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_creg_initial(self):
         """Test cregbundle and initial state options"""
@@ -438,12 +598,21 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(0)
         circuit.x(1)
 
+        fname = "creg_initial_true.png"
         self.circuit_drawer(
-            circuit, filename="creg_initial_true.png", cregbundle=True, initial_state=True
+            circuit, filename=fname, cregbundle=True, initial_state=True
         )
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+
+        fname2 = "creg_initial_false.png"
         self.circuit_drawer(
-            circuit, filename="creg_initial_false.png", cregbundle=False, initial_state=False
+            circuit, filename=fname2, cregbundle=False, initial_state=False
         )
+
+        ratio2, diff_name = self._similarity_ratio(self._image_path(fname2), self._reference_path(fname2), fname2)
+        assert(ratio == 1)
+        assert(ratio2 == 1)
 
     def test_r_gates(self):
         """Test all R gates"""
@@ -458,7 +627,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.rzx(-pi / 2, 0, 1)
         circuit.rzz(pi / 2, 2, 3)
 
-        self.circuit_drawer(circuit, filename="r_gates.png")
+        fname = "r_gates.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_ctrl_labels(self):
         """Test control labels"""
@@ -472,7 +645,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
             [qr[1], qr[2], qr[3], qr[0]],
         )
 
-        self.circuit_drawer(circuit, filename="ctrl_labels.png")
+        fname = "ctrl_labels.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_cswap_rzz(self):
         """Test controlled swap and rzz gates"""
@@ -481,7 +658,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.cswap(0, 1, 2)
         circuit.append(RZZGate(3 * pi / 4).control(3, ctrl_state="010"), [2, 1, 4, 3, 0])
 
-        self.circuit_drawer(circuit, filename="cswap_rzz.png")
+        fname = "cswap_rzz.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_ghz_to_gate(self):
         """Test controlled GHZ to_gate circuit"""
@@ -495,7 +676,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         ccghz = ghz.control(2, ctrl_state="10")
         circuit.append(ccghz, [4, 0, 1, 3, 2])
 
-        self.circuit_drawer(circuit, filename="ghz_to_gate.png")
+        fname = "ghz_to_gate.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_scale(self):
         """Tests scale
@@ -503,9 +688,23 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(5)
         circuit.unitary(random_unitary(2**5), circuit.qubits)
 
-        self.circuit_drawer(circuit, filename="scale_default.png")
-        self.circuit_drawer(circuit, filename="scale_half.png", scale=0.5)
-        self.circuit_drawer(circuit, filename="scale_double.png", scale=2)
+        fname = "scale_default.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+
+        fname2 = "scale_half.png"
+        self.circuit_drawer(circuit, filename=fname2, scale=0.5)
+
+        ratio2, diff_name = self._similarity_ratio(self._image_path(fname2), self._reference_path(fname2), fname2)
+
+        fname3 = "scale_double.png"
+        self.circuit_drawer(circuit, filename=fname3, scale=2)
+
+        ratio3, diff_name = self._similarity_ratio(self._image_path(fname3), self._reference_path(fname3), fname3)
+        assert(ratio == 1)
+        assert(ratio2 == 1)
+        assert(ratio3 == 1)
 
     def test_pi_param_expr(self):
         """Test pi in circuit with parameter expression."""
@@ -513,7 +712,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.rx((pi - x) * (pi - y), 0)
 
-        self.circuit_drawer(circuit, filename="pi_in_param_expr.png")
+        fname = "pi_in_param_expr.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_partial_layout(self):
         """Tests partial_layout
@@ -529,7 +732,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
             seed_transpiler=0,
         )
 
-        self.circuit_drawer(transpiled, filename="partial_layout.png")
+        fname = "partial_layout.png"
+        self.circuit_drawer(transpiled, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_init_reset(self):
         """Test reset and initialize with 1 and 2 qubits"""
@@ -538,17 +745,26 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.reset(1)
         circuit.initialize([0, 1, 0, 0], [0, 1])
 
-        self.circuit_drawer(circuit, filename="init_reset.png")
+        fname = "init_reset.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_with_global_phase(self):
         """Tests with global phase"""
         circuit = QuantumCircuit(3, global_phase=1.57079632679)
         circuit.h(range(3))
 
-        self.circuit_drawer(circuit, filename="global_phase.png")
+        fname = "global_phase.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_alternative_colors(self):
         """Tests alternative color schemes"""
+        ratios = []
         for style in ["iqx", "iqx-dark", "textbook"]:
             with self.subTest(style=style):
                 circuit = QuantumCircuit(7)
@@ -577,7 +793,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
                 circuit.barrier(5, 6)
                 circuit.reset(5)
 
-                self.circuit_drawer(circuit, style={"name": style}, filename=f"{style}_color.png")
+                fname = f"{style}_color.png"
+                self.circuit_drawer(circuit, style={"name": style}, filename=fname)
+
+                ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+                ratios.append(ratio)
+
+        for ratio in ratios:
+            assert(ratio == 1)
 
     def test_reverse_bits(self):
         """Tests reverse_bits parameter"""
@@ -586,7 +809,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.cx(0, 1)
         circuit.ccx(2, 1, 0)
 
-        self.circuit_drawer(circuit, reverse_bits=True, filename="reverse_bits.png")
+        fname = "reverse_bits.png"
+        self.circuit_drawer(circuit, reverse_bits=True, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_bw(self):
         """Tests black and white style parameter"""
@@ -599,7 +826,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.swap(1, 2)
         circuit.measure_all()
 
-        self.circuit_drawer(circuit, style={"name": "bw"}, filename="bw.png")
+        fname = "bw.png"
+        self.circuit_drawer(circuit, style={"name": "bw"}, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_user_style(self):
         """Tests loading a user style"""
@@ -630,6 +861,7 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.barrier(5, 6)
         circuit.reset(5)
 
+        fname = "user_style.png"
         self.circuit_drawer(
             circuit,
             style={
@@ -637,8 +869,11 @@ class TestMatplotlibDrawer(QiskitTestCase):
                 "displaytext": {"H2": "H_2"},
                 "displaycolor": {"H2": ("#EEDD00", "#FF0000")},
             },
-            filename="user_style.png",
+            filename=fname,
         )
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_subfont_change(self):
         """Tests changing the subfont size"""
@@ -649,8 +884,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.p(pi / 2, 2)
         style = {"name": "iqx", "subfontsize": 11}
 
-        self.circuit_drawer(circuit, style=style, filename="subfont.png")
+        fname = "subfont.png"
+        self.circuit_drawer(circuit, style=style, filename=fname)
         self.assertEqual(style, {"name": "iqx", "subfontsize": 11})  # check does not change style
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_meas_condition(self):
         """Tests measure with a condition"""
@@ -660,7 +899,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(qr[0])
         circuit.measure(qr[0], cr[0])
         circuit.h(qr[1]).c_if(cr, 1)
-        self.circuit_drawer(circuit, filename="meas_condition.png")
+
+        fname = "meas_condition.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_reverse_bits_condition(self):
         """Tests reverse_bits with a condition and gate above"""
@@ -675,12 +919,22 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.x(0)
         circuit.measure(2, 1)
         circuit.x(2).c_if(cr, 2)
+
+        fname = "reverse_bits_cond_true.png"
         self.circuit_drawer(
-            circuit, cregbundle=False, reverse_bits=True, filename="reverse_bits_cond_true.png"
+            circuit, cregbundle=False, reverse_bits=True, filename=fname
         )
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+
+        fname2 = "reverse_bits_cond_false.png"
         self.circuit_drawer(
-            circuit, cregbundle=False, reverse_bits=False, filename="reverse_bits_cond_false.png"
+            circuit, cregbundle=False, reverse_bits=False, filename=fname2
         )
+
+        ratio2, diff_name = self._similarity_ratio(self._image_path(fname2), self._reference_path(fname2), fname2)
+        assert(ratio == 1)
+        assert(ratio2 == 1)
 
     def test_style_custom_gates(self):
         """Tests style for custom gates"""
@@ -700,14 +954,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(cnotnot("CNOTNOT_PRIME"), [q[0], q[1], q[2]])
         circuit.h(q[0])
 
+        fname = "style_custom_gates.png"
         self.circuit_drawer(
             circuit,
             style={
                 "displaycolor": {"CNOTNOT": ("#000000", "#FFFFFF"), "h": ("#A1A1A1", "#043812")},
                 "displaytext": {"CNOTNOT_PRIME": "$\\mathrm{CNOTNOT}'$"},
             },
-            filename="style_custom_gates.png",
+            filename=fname,
         )
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_6095(self):
         """Tests controlled-phase gate style
@@ -716,11 +974,15 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.cp(1.0, 0, 1)
         circuit.h(1)
 
+        fname = "6095.png"
         self.circuit_drawer(
             circuit,
             style={"displaycolor": {"cp": ("#A27486", "#000000"), "h": ("#A27486", "#000000")}},
-            filename="6095.png",
+            filename=fname,
         )
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_instruction_1q_1c(self):
         """Tests q0-cr0 instruction on a circuit"""
@@ -729,7 +991,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr)
         inst = QuantumCircuit(1, 1, name="Inst").to_instruction()
         circuit.append(inst, [qr[0]], [cr[0]])
-        self.circuit_drawer(circuit, filename="instruction_1q_1c.png")
+
+        fname = "instruction_1q_1c.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_instruction_3q_3c_circ1(self):
         """Tests q0-q1-q2-cr_20-cr0-cr1 instruction on a circuit"""
@@ -739,7 +1006,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr, cr2)
         inst = QuantumCircuit(3, 3, name="Inst").to_instruction()
         circuit.append(inst, [qr[0], qr[1], qr[2]], [cr2[0], cr[0], cr[1]])
-        self.circuit_drawer(circuit, filename="instruction_3q_3c_circ1.png")
+
+        fname = "instruction_3q_3c_circ1.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_instruction_3q_3c_circ2(self):
         """Tests q3-q0-q2-cr0-cr1-cr_20 instruction on a circuit"""
@@ -749,7 +1021,13 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr, cr2)
         inst = QuantumCircuit(3, 3, name="Inst").to_instruction()
         circuit.append(inst, [qr[3], qr[0], qr[2]], [cr[0], cr[1], cr2[0]])
-        self.circuit_drawer(circuit, filename="instruction_3q_3c_circ2.png")
+
+        fname = "instruction_3q_3c_circ2.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
+
 
     def test_instruction_3q_3c_circ3(self):
         """Tests q3-q1-q2-cr_31-cr1-cr_30 instruction on a circuit"""
@@ -760,7 +1038,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr, cr, cr2, cr3)
         inst = QuantumCircuit(3, 3, name="Inst").to_instruction()
         circuit.append(inst, [qr[3], qr[1], qr[2]], [cr3[1], cr[1], cr3[0]])
-        self.circuit_drawer(circuit, filename="instruction_3q_3c_circ3.png")
+
+        fname = "instruction_3q_3c_circ3.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_overwide_gates(self):
         """Test gates don't exceed width of default fold"""
@@ -768,7 +1051,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         initial_state = np.zeros(2**5)
         initial_state[5] = 1
         circuit.initialize(initial_state)
-        self.circuit_drawer(circuit, filename="wide_params.png")
+
+        fname = "wide_params.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_one_bit_regs(self):
         """Test registers with only one bit display without number"""
@@ -779,7 +1067,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2, cr1, cr2)
         circuit.h(0)
         circuit.measure(0, 0)
-        self.circuit_drawer(circuit, cregbundle=False, filename="one_bit_regs.png")
+
+        fname = "one_bit_regs.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_user_ax_subplot(self):
         """Test for when user supplies ax for a subplot"""
@@ -797,7 +1090,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(1)
         circuit.cx(1, 2)
         plt.close(fig)
-        self.circuit_drawer(circuit, ax=ax2, filename="user_ax.png")
+
+        fname = "user_ax.png"
+        self.circuit_drawer(circuit, ax=ax2, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_figwidth(self):
         """Test style dict 'figwidth'"""
@@ -807,7 +1105,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.x(1)
         circuit.cx(1, 2)
         circuit.x(2)
-        self.circuit_drawer(circuit, style={"figwidth": 5}, filename="figwidth.png")
+
+        fname = "figwidth.png"
+        self.circuit_drawer(circuit, style={"figwidth": 5}, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_registerless_one_bit(self):
         """Test circuit with one-bit registers and registerless bits."""
@@ -815,7 +1118,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         qry = QuantumRegister(1, "qry")
         crx = ClassicalRegister(2, "crx")
         circuit = QuantumCircuit(qrx, [Qubit(), Qubit()], qry, [Clbit(), Clbit()], crx)
-        self.circuit_drawer(circuit, filename="registerless_one_bit.png")
+
+        fname = "registerless_one_bit.png"
+        self.circuit_drawer(circuit, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_measures_with_conditions(self):
         """Test that a measure containing a condition displays"""
@@ -828,8 +1136,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(0, cr1[1])
         circuit.measure(1, cr2[0]).c_if(cr1, 1)
         circuit.h(0).c_if(cr2, 3)
-        self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_false.png")
-        self.circuit_drawer(circuit, cregbundle=True, filename="measure_cond_true.png")
+
+        fname = "measure_cond_false.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+
+        fname2 = "measure_cond_true.png"
+        self.circuit_drawer(circuit, cregbundle=True, filename=fname2)
+
+        ratio2, diff_name = self._similarity_ratio(self._image_path(fname2), self._reference_path(fname2), fname2)
+        assert(ratio == 1)
+        assert(ratio2 == 1)
 
     def test_conditions_measures_with_bits(self):
         """Test that gates with conditions and measures work with bits"""
@@ -839,8 +1157,18 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
         circuit.x(0).c_if(crx[1], 0)
         circuit.measure(0, bits[3])
-        self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_bits_false.png")
-        self.circuit_drawer(circuit, cregbundle=True, filename="measure_cond_bits_true.png")
+
+        fname = "measure_cond_bits_false.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+
+        fname2 = "measure_cond_bits_true.png"
+        self.circuit_drawer(circuit, cregbundle=True, filename=fname2)
+
+        ratio2, diff_name = self._similarity_ratio(self._image_path(fname2), self._reference_path(fname2), fname2)
+        assert(ratio == 1)
+        assert(ratio2 == 1)
 
     def test_conditional_gates_right_of_measures_with_bits(self):
         """Test that gates with conditions draw to right of measures when same bit"""
@@ -851,7 +1179,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.measure(qr[0], cr[1])
         circuit.h(qr[1]).c_if(cr[1], 0)
         circuit.h(qr[2]).c_if(cr[0], 0)
-        self.circuit_drawer(circuit, cregbundle=False, filename="measure_cond_bits_right.png")
+
+        fname = "measure_cond_bits_right.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_conditions_with_bits_reverse(self):
         """Test that gates with conditions work with bits reversed"""
@@ -860,9 +1193,14 @@ class TestMatplotlibDrawer(QiskitTestCase):
         crx = ClassicalRegister(2, "cs")
         circuit = QuantumCircuit(bits, cr, [Clbit()], crx)
         circuit.x(0).c_if(bits[3], 0)
+
+        fname = "cond_bits_reverse.png"
         self.circuit_drawer(
-            circuit, cregbundle=False, reverse_bits=True, filename="cond_bits_reverse.png"
+            circuit, cregbundle=False, reverse_bits=True, filename=fname
         )
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_sidetext_with_condition(self):
         """Test that sidetext gates align properly with conditions"""
@@ -870,7 +1208,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         cr = ClassicalRegister(2, "c")
         circuit = QuantumCircuit(qr, cr)
         circuit.append(CPhaseGate(pi / 2), [qr[0], qr[1]]).c_if(cr[1], 1)
-        self.circuit_drawer(circuit, cregbundle=False, filename="sidetext_condition.png")
+
+        fname = "sidetext_condition.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_fold_with_conditions(self):
         """Test that gates with conditions draw correctly when folding"""
@@ -894,14 +1237,24 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 27)
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 29)
         circuit.append(U1Gate(0).control(1), [1, 0]).c_if(cr, 31)
-        self.circuit_drawer(circuit, cregbundle=False, filename="fold_with_conditions.png")
+
+        fname = "fold_with_conditions.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_idle_wires_barrier(self):
         """Test that idle_wires False works with barrier"""
         circuit = QuantumCircuit(4, 4)
         circuit.x(2)
         circuit.barrier()
-        self.circuit_drawer(circuit, cregbundle=False, filename="idle_wires_barrier.png")
+
+        fname = "idle_wires_barrier.png"
+        self.circuit_drawer(circuit, cregbundle=False, filename=fname)
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_wire_order(self):
         """Test the wire_order option"""
@@ -913,12 +1266,17 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.h(3)
         circuit.x(1)
         circuit.x(3).c_if(cr, 10)
+
+        fname = "wire_order.png"
         self.circuit_drawer(
             circuit,
             cregbundle=False,
             wire_order=[2, 1, 3, 0, 6, 8, 9, 5, 4, 7],
-            filename="wire_order.png",
+            filename=fname,
         )
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
     def test_barrier_label(self):
         """Test the barrier label"""
@@ -929,7 +1287,12 @@ class TestMatplotlibDrawer(QiskitTestCase):
         circuit.y(0)
         circuit.x(1)
         circuit.barrier(label="End Y/X")
+
+        fname = "barrier_label.png"
         self.circuit_drawer(circuit, filename="barrier_label.png")
+
+        ratio, diff_name = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
+        assert(ratio == 1)
 
 
 if __name__ == "__main__":
