@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixed failure in using :func:`~qiskit.pulse.macros.measure` 
+    with :class:`.BackendV2` backends.
