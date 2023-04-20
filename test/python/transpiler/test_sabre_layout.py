@@ -241,7 +241,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout_routing_pass = SabreLayout(
             self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
         )
-        out = layout_routing_pass(qc)
+        layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
 
@@ -260,7 +260,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout_routing_pass = SabreLayout(
             self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
         )
-        out = layout_routing_pass(qc)
+        layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
 
@@ -281,7 +281,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout_routing_pass = SabreLayout(
             self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
         )
-        out = layout_routing_pass(qc)
+        layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
 
@@ -301,7 +301,7 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         layout_routing_pass = SabreLayout(
             self.dual_grid_cmap, seed=123456, swap_trials=1, layout_trials=1
         )
-        out = layout_routing_pass(qc)
+        layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
 
