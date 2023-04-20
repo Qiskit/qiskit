@@ -56,10 +56,7 @@ def convert_to_target(
     # Parse from properties if it exsits
     if properties is not None:
         qubit_properties = qubit_props_list_from_props(properties=properties)
-        target = Target(
-            num_qubits=configuration.n_qubits,
-            qubit_properties=qubit_properties,
-        )
+        target = Target(num_qubits=configuration.n_qubits, qubit_properties=qubit_properties)
         # Parse instructions
         gates: Dict[str, Any] = {}
         for gate in properties.gates:
