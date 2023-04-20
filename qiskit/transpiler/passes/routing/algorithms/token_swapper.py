@@ -80,7 +80,9 @@ class ApproximateTokenSwapper:
         parallel_swaps = [[swap] for swap in sequential_swaps]
         return permutation_circuit(parallel_swaps)
 
-    def map(self, mapping: Mapping[int, int], trials: int = 4, parallel_threshold: int = 50) -> List[Swap[int]]:
+    def map(
+        self, mapping: Mapping[int, int], trials: int = 4, parallel_threshold: int = 50
+    ) -> List[Swap[int]]:
         """Perform an approximately optimal Token Swapping algorithm to implement the permutation.
 
         Supports partial mappings (i.e. not-permutations) for graphs with missing tokens.
@@ -98,7 +100,7 @@ class ApproximateTokenSwapper:
         Returns:
           The swaps to implement the mapping
         """
-        # Since integer seed is used in rustworkx, take the first random integer from np.random state
+        # Since integer seed is used in rustworkx, take random integer from np.random.randint
         # and use that for the seed.
-        seed = np.random.get_state(self.seed)[1][0]
+        seed = np.random.randint(1, 10000, size=1)[0]
         return rx.graph_token_swapper(self.graph, mapping, trials, seed, parallel_threshold)
