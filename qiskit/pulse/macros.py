@@ -182,8 +182,8 @@ def _measure_v2(
         meas_group |= set(meas_map[qubit])
     meas_group = sorted(list(meas_group))
 
-    meas_group_set = set(meas_group)
-    unassigned_qubit_indices = list(meas_group_set - qubit_mem_slots.keys())
+    meas_group_set = set(range(max(meas_group) + 1))
+    unassigned_qubit_indices = sorted(list(set(meas_group) - qubit_mem_slots.keys()))
     unassigned_reg_indices = sorted(
         list(meas_group_set - set(qubit_mem_slots.values())), reverse=True
     )
