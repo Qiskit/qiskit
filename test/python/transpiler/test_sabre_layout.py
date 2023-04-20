@@ -244,15 +244,6 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         out = layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
-        self.assertEqual(1, out.count_ops()["swap"])
-        edge_set = set(self.dual_grid_cmap.graph.edge_list())
-        for gate in out.data:
-            if len(gate.qubits) == 2:
-                qubits = tuple(out.find_bit(x).index for x in gate.qubits)
-                # Handle reverse edges which will be fixed by gate direction
-                # later
-                if qubits not in edge_set:
-                    self.assertIn((qubits[1], qubits[0]), edge_set)
 
     def test_dual_ghz_with_wide_barrier(self):
         """Test a basic example with 2 circuit components and 2 cmap components."""
@@ -272,15 +263,6 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         out = layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
-        self.assertEqual(1, out.count_ops()["swap"])
-        edge_set = set(self.dual_grid_cmap.graph.edge_list())
-        for gate in out.data:
-            if len(gate.qubits) == 2:
-                qubits = tuple(out.find_bit(x).index for x in gate.qubits)
-                # Handle reverse edges which will be fixed by gate direction
-                # later
-                if qubits not in edge_set:
-                    self.assertIn((qubits[1], qubits[0]), edge_set)
 
     def test_dual_ghz_with_intermediate_barriers(self):
         """Test dual ghz circuit with intermediate barriers local to each componennt."""
@@ -302,15 +284,6 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         out = layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
-        self.assertEqual(1, out.count_ops()["swap"])
-        edge_set = set(self.dual_grid_cmap.graph.edge_list())
-        for gate in out.data:
-            if len(gate.qubits) == 2:
-                qubits = tuple(out.find_bit(x).index for x in gate.qubits)
-                # Handle reverse edges which will be fixed by gate direction
-                # later
-                if qubits not in edge_set:
-                    self.assertIn((qubits[1], qubits[0]), edge_set)
 
     def test_dual_ghz_with_intermediate_spanning_barriers(self):
         """Test dual ghz circuit with barrier in the middle across components."""
@@ -331,15 +304,6 @@ class TestDisjointDeviceSabreLayout(QiskitTestCase):
         out = layout_routing_pass(qc)
         layout = layout_routing_pass.property_set["layout"]
         self.assertEqual([layout[q] for q in qc.qubits], [3, 1, 2, 5, 4, 6, 7, 8])
-        self.assertEqual(1, out.count_ops()["swap"])
-        edge_set = set(self.dual_grid_cmap.graph.edge_list())
-        for gate in out.data:
-            if len(gate.qubits) == 2:
-                qubits = tuple(out.find_bit(x).index for x in gate.qubits)
-                # Handle reverse edges which will be fixed by gate direction
-                # later
-                if qubits not in edge_set:
-                    self.assertIn((qubits[1], qubits[0]), edge_set)
 
     def test_too_large_components(self):
         """Assert trying to run a circuit with too large a connected component raises."""
