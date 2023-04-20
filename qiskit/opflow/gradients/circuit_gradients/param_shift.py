@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
+from qiskit.utils.deprecation import deprecate_func
 from .circuit_gradient import CircuitGradient
 from ...operator_base import OperatorBase
 from ...state_fns.state_fn import StateFn
@@ -39,13 +40,17 @@ from ..derivative_base import _coeff_derivative
 
 
 class ParamShift(CircuitGradient):
-    """Compute the gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the sampling
+    """Deprecated: Compute the gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the sampling
     probabilities of the basis states of a state |ψ(ω)〉w.r.t. ω with the parameter shift
     method.
     """
 
     SUPPORTED_GATES = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"}
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, analytic: bool = True, epsilon: float = 1e-6):
         r"""
         Args:
@@ -57,7 +62,7 @@ class ParamShift(CircuitGradient):
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
         """
-
+        super().__init__()
         self._analytic = analytic
         self._epsilon = epsilon
 

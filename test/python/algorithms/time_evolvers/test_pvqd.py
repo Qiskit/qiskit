@@ -12,6 +12,7 @@
 
 """Tests for PVQD."""
 import unittest
+from test.python.algorithms import QiskitAlgorithmsTestCase
 from functools import partial
 
 import numpy as np
@@ -53,7 +54,7 @@ class WhatAmI(Gate):
 
 
 @ddt
-class TestPVQD(QiskitTestCase):
+class TestPVQD(QiskitAlgorithmsTestCase):
     """Tests for the pVQD algorithm."""
 
     def setUp(self):
@@ -73,7 +74,8 @@ class TestPVQD(QiskitTestCase):
         if hamiltonian_type == "ising":
             hamiltonian = self.hamiltonian
         elif hamiltonian_type == "pauli_sum_op":
-            hamiltonian = PauliSumOp(self.hamiltonian)
+            with self.assertWarns(DeprecationWarning):
+                hamiltonian = PauliSumOp(self.hamiltonian)
         else:  # hamiltonian_type == "pauli":
             hamiltonian = Pauli("XX")
 

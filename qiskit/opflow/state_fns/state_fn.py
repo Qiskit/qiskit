@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -21,11 +21,12 @@ from qiskit.circuit import Instruction, ParameterExpression
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.quantum_info import Statevector
 from qiskit.result import Result
+from qiskit.utils.deprecation import deprecate_func
 
 
 class StateFn(OperatorBase):
     r"""
-    A class for representing state functions and measurements.
+    Deprecated: A class for representing state functions and measurements.
 
     State functions are defined to be complex functions over a single binary string (as
     compared to an operator, which is defined as a function over two binary strings, or a
@@ -112,6 +113,10 @@ class StateFn(OperatorBase):
         )
 
     # TODO allow normalization somehow?
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: Union[

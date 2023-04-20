@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2022.
+# (C) Copyright IBM 2022, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -51,7 +51,8 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
     def test_init_all(self):
         """Tests that all fields are initialized correctly."""
         t_parameter = Parameter("t")
-        hamiltonian = t_parameter * Z + Y
+        with self.assertWarns(DeprecationWarning):
+            hamiltonian = t_parameter * Z + Y
         time = 2
         initial_state = One
         aux_operators = [X, Y]
@@ -66,15 +67,17 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
                 t_param=t_parameter,
                 param_value_dict=param_value_dict,
             )
+            expected_hamiltonian = Y + t_parameter * Z
 
-        expected_hamiltonian = Y + t_parameter * Z
         expected_time = 2
         expected_initial_state = One
         expected_aux_operators = [X, Y]
         expected_t_param = t_parameter
         expected_param_value_dict = {t_parameter: 3.2}
 
-        self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
+        with self.assertWarns(DeprecationWarning):
+            self.assertEqual(evo_problem.hamiltonian, expected_hamiltonian)
+
         self.assertEqual(evo_problem.time, expected_time)
         self.assertEqual(evo_problem.initial_state, expected_initial_state)
         self.assertEqual(evo_problem.aux_operators, expected_aux_operators)
@@ -93,7 +96,9 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
         param_x = Parameter("x")
         param_y = Parameter("y")
         with self.subTest(msg="Parameter missing in dict."):
-            hamiltonian = param_x * X + param_y * Y
+            with self.assertWarns(DeprecationWarning):
+                hamiltonian = param_x * X + param_y * Y
+
             param_dict = {param_y: 2}
             with self.assertWarns(DeprecationWarning):
                 evolution_problem = EvolutionProblem(
@@ -103,7 +108,9 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
                 evolution_problem.validate_params()
 
         with self.subTest(msg="Empty dict."):
-            hamiltonian = param_x * X + param_y * Y
+            with self.assertWarns(DeprecationWarning):
+                hamiltonian = param_x * X + param_y * Y
+
             param_dict = {}
             with self.assertWarns(DeprecationWarning):
                 evolution_problem = EvolutionProblem(
@@ -113,7 +120,9 @@ class TestEvolutionProblem(QiskitAlgorithmsTestCase):
                 evolution_problem.validate_params()
 
         with self.subTest(msg="Extra parameter in dict."):
-            hamiltonian = param_x * X + param_y * Y
+            with self.assertWarns(DeprecationWarning):
+                hamiltonian = param_x * X + param_y * Y
+
             param_dict = {param_y: 2, param_x: 1, Parameter("z"): 1}
             with self.assertWarns(DeprecationWarning):
                 evolution_problem = EvolutionProblem(

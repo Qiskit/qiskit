@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -27,11 +27,12 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.matrix_op import MatrixOp
 from qiskit.opflow.primitive_ops.primitive_op import PrimitiveOp
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_func
 
 
 class EvolvedOp(PrimitiveOp):
     r"""
-    Class for wrapping Operator Evolutions for compilation (``convert``) by an EvolutionBase
+    Deprecated: Class for wrapping Operator Evolutions for compilation (``convert``) by an EvolutionBase
     method later, essentially acting as a placeholder. Note that EvolvedOp is a weird case of
     PrimitiveOp. It happens to be that it fits into the PrimitiveOp interface nearly perfectly,
     and it essentially represents a placeholder for a PrimitiveOp later, even though it doesn't
@@ -39,6 +40,10 @@ class EvolvedOp(PrimitiveOp):
     but would have ended up copying and pasting a lot of code from PrimitiveOp."""
     primitive: PrimitiveOp
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self, primitive: OperatorBase, coeff: Union[complex, ParameterExpression] = 1.0
     ) -> None:
