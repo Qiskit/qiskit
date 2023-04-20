@@ -21,6 +21,7 @@ from qiskit.transpiler import PassManager
 from qiskit.transpiler.passes.optimization import UnrollForLoops, ForLoopBodyOptimizer
 from qiskit.transpiler.passes import Optimize1qGatesDecomposition
 from qiskit.transpiler.passes import CommutativeCancellation
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.test import QiskitTestCase
 from qiskit.quantum_info import Operator
 
@@ -86,8 +87,8 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         cls._pass = UnrollForLoops()
 
     def test_pre_opt_1(self):
-        """Test pre-optimization to pre_opt_cnt=1"""
-        pre_opt_cnt = 1
+        """Test pre-optimization to pre_opt_limit=1"""
+        pre_opt_limit = 1
         circ = QuantumCircuit(2)
         circ.rx(0.1, 0)
         circ.rx(0.2, 0)
@@ -102,7 +103,7 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
             CommutativeCancellation(basis_gates=basis_gates),
         ]
         pm_opt = PassManager(_opt)
-        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
+        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_limit=pre_opt_limit)
         ccirc = _pass(circ)
 
         expected = QuantumCircuit(2)
@@ -114,8 +115,8 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
         self.assertEqual(ccirc, expected)
 
     def test_pre_opt_2(self):
-        """Test pre-optimization to pre_opt_cnt=2"""
-        pre_opt_cnt = 2
+        """Test pre-optimization to pre_opt_limit=2"""
+        pre_opt_limit = 2
         circ = QuantumCircuit(2)
         circ.rx(0.1, 0)
         circ.rx(0.2, 0)
@@ -130,7 +131,7 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
             CommutativeCancellation(basis_gates=basis_gates),
         ]
         pm_opt = PassManager(_opt)
-        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
+        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_limit=pre_opt_limit)
         ccirc = _pass(circ)
 
         expected = QuantumCircuit(2)
@@ -161,7 +162,7 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
            q_1: ────────────────■──┤ X ├┤1          ├
                                    └───┘└───────────┘
         """
-        pre_opt_cnt = 3
+        pre_opt_limit = 3
         circ = QuantumCircuit(2)
         circ.rx(0.1, 0)
         circ.cx(1, 0)
@@ -177,7 +178,7 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
             CommutativeCancellation(basis_gates=basis_gates),
         ]
         pm_opt = PassManager(_opt)
-        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
+        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_limit=pre_opt_limit)
         ccirc = _pass(circ)
 
         expected = QuantumCircuit(2)
@@ -206,7 +207,7 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
 
         Where this circuit considers operations on qubits outside
         """
-        pre_opt_cnt = 10
+        pre_opt_limit = 10
         circ = QuantumCircuit(3)
         circ.rx(0.1, 0)
         circ.x(0)
@@ -226,7 +227,7 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
             CommutativeCancellation(basis_gates=basis_gates),
         ]
         pm_opt = PassManager(_opt)
-        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_cnt=pre_opt_cnt)
+        _pass = ForLoopBodyOptimizer(pm_opt, pre_opt_limit=pre_opt_limit)
         ccirc = _pass(circ)
 
         expected = QuantumCircuit(3)
@@ -255,10 +256,78 @@ class TestForLoopBodyOptimizer(QiskitTestCase):
             CommutativeCancellation(basis_gates=basis_gates),
         ]
         pm_opt = PassManager(_opt)
-        _pass = ForLoopBodyOptimizer(pm_opt, post_opt_cnt=3)
+        _pass = ForLoopBodyOptimizer(pm_opt, post_opt_limit=3)
         ccirc = _pass(circ)
 
         expected = QuantumCircuit(2)
         expected.for_loop(range(1), None, body, [0], [])
         expected.rx(3 * pi / 2 + 0.1 + 0.2, 0)
         self.assertEqual(ccirc, expected)
+
+    def test_loop_jamming_basic_even(self):
+        """basic loop jaming test with an even number of loops"""
+        circ = QuantumCircuit(2)
+        body = QuantumCircuit(2)
+        body.rx(0.1, 0)
+        body.cx(0, 1)
+        body.rx(0.1, 0)
+        circ.for_loop(range(4), None, body, [0, 1], [])
+        basis_gates = ["x", "rx", "cx"]
+        _opt = [
+            Optimize1qGatesDecomposition(basis=basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates),
+        ]
+        pm_opt = PassManager(_opt)
+        _pass = ForLoopBodyOptimizer(pm_opt, jamming_limit=4)
+        ccirc = _pass(circ)
+
+        expected = QuantumCircuit(2)
+        expected_body = QuantumCircuit(2)
+        expected_body.rx(0.1, 0)
+        expected_body.cx(0, 1)
+        expected_body.rx(0.2, 0)
+        expected_body.cx(0, 1)
+        expected_body.rx(0.1, 0)
+        expected.for_loop(range(2), None, expected_body, [0, 1], [])
+        self.assertEqual(ccirc, expected)
+
+    def test_loop_jamming_basic_odd(self):
+        """basic loop jaming test with an odd number of loops"""
+        circ = QuantumCircuit(2)
+        body = QuantumCircuit(2)
+        body.rx(0.1, 0)
+        body.cx(0, 1)
+        body.rx(0.1, 0)
+        circ.for_loop(range(5), None, body, [0, 1], [])
+        basis_gates = ["x", "rx", "cx"]
+        _opt = [
+            Optimize1qGatesDecomposition(basis=basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates),
+        ]
+        pm_opt = PassManager(_opt)
+        _pass = ForLoopBodyOptimizer(pm_opt, jamming_limit=4)
+        ccirc = _pass(circ)
+
+        expected = QuantumCircuit(2)
+        expected_body = QuantumCircuit(2)
+        expected_body.rx(0.1, 0)
+        expected_body.cx(0, 1)
+        expected_body.rx(0.2, 0)
+        expected_body.cx(0, 1)
+        expected_body.rx(0.1, 0)
+        expected.for_loop(range(2), None, expected_body, [0, 1], [])
+        expected.rx(0.1, 0)
+        expected.cx(0, 1)
+        expected.rx(0.1, 0)
+        self.assertEqual(ccirc, expected)
+
+    def test_loop_jamming_limit_too_small(self):
+        """basic loop jaming test with jamming limit set < 2"""
+        basis_gates = ["x", "rx", "cx"]
+        _opt = [
+            Optimize1qGatesDecomposition(basis=basis_gates),
+            CommutativeCancellation(basis_gates=basis_gates),
+        ]
+        pm_opt = PassManager(_opt)
+        with self.assertRaises(TranspilerError):
+            _pass = ForLoopBodyOptimizer(pm_opt, jamming_limit=1)
