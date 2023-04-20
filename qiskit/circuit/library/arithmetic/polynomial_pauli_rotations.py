@@ -140,7 +140,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     .. math::
 
-        |i\rangle |0\rangle \mapsto \cos(\frac{p(i)}{2}) |i\rangle |0\rangle 
+        |i\rangle |0\rangle \mapsto \cos(\frac{p(i)}{2}) |i\rangle |0\rangle
         + \sin(\frac{p(i)}{2}) |i\rangle |1\rangle
 
     Let n be the number of qubits representing the state, d the degree of p(x) and q_i the qubits,
