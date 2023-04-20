@@ -183,10 +183,8 @@ def _measure_v2(
     meas_group = sorted(list(meas_group))
 
     meas_group_set = set(range(max(meas_group) + 1))
-    unassigned_qubit_indices = sorted(list(set(meas_group) - qubit_mem_slots.keys()))
-    unassigned_reg_indices = sorted(
-        list(meas_group_set - set(qubit_mem_slots.values())), reverse=True
-    )
+    unassigned_qubit_indices = sorted(set(meas_group) - qubit_mem_slots.keys())
+    unassigned_reg_indices = sorted(meas_group_set - set(qubit_mem_slots.values()), reverse=True)
     if set(qubit_mem_slots.values()).issubset(meas_group_set):
         for qubit in unassigned_qubit_indices:
             qubit_mem_slots[qubit] = unassigned_reg_indices.pop()
