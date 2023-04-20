@@ -875,7 +875,10 @@ class TestUnitarySynthesis(QiskitTestCase):
         )
         target.add_instruction(CustomGate(), {(0, 1): None, (1, 0): None})
         unitary_synth_pass = UnitarySynthesis(target=target)
-        with self.assertRaises(QiskitError):
+        with self.assertRaisesRegex(
+            QiskitError,
+            "Attempting to synthesize entangling gate with no controlled gates in basis set.",
+        ):
             unitary_synth_pass.run(dag)
 
     def test_default_does_not_fail_on_no_syntheses(self):
