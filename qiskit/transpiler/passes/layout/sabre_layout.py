@@ -232,8 +232,6 @@ class SabreLayout(TransformationPass):
         )
         initial_layout_dict = {}
         final_layout_dict = {}
-        shared_clbits = False
-        seen_clbits = set()
         for (
             layout_dict,
             final_dict,
@@ -244,12 +242,6 @@ class SabreLayout(TransformationPass):
         ) in layout_components:
             initial_layout_dict.update({k: component_map[v] for k, v in layout_dict.items()})
             final_layout_dict.update({component_map[k]: component_map[v] for k, v in final_dict})
-            if not shared_clbits:
-                for clbit in local_dag.clbits:
-                    if clbit in seen_clbits:
-                        shared_clbits = True
-                        break
-                    seen_clbits.add(clbit)
         self.property_set["layout"] = Layout(initial_layout_dict)
         # If skip_routing is set then return the layout in the property set
         # and throwaway the extra work we did to compute the swap map.
