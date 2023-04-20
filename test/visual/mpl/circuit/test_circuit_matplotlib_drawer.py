@@ -180,9 +180,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "empty_circut.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_calibrations(self):
@@ -205,9 +203,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "calibrations.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_calibrations_with_control_gates(self):
@@ -238,9 +234,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "calibrations_with_control_gates.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_calibrations_with_swap_and_reset(self):
@@ -271,9 +265,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "calibrations_with_swap_and_reset.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_calibrations_with_rzz_and_rxx(self):
@@ -303,9 +295,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "calibrations_with_rzz_and_rxx.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_no_ops(self):
@@ -316,9 +306,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "no_op_circut.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_long_name(self):
@@ -340,9 +328,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "long_name.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_multi_underscore_reg_names(self):
@@ -356,9 +342,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "multi_underscore_true.png"
         self.circuit_drawer(circuit, cregbundle=True, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
 
         fname2 = "multi_underscore_false.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname2)
@@ -384,9 +368,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "reg_conditional.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_bit_conditional_with_cregbundle(self):
@@ -404,9 +386,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "bit_conditional_bundle.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_bit_conditional_no_cregbundle(self):
@@ -424,9 +404,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "bit_conditional_no_bundle.png"
         self.circuit_drawer(circuit, filename=fname, cregbundle=False)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_plot_partial_barrier(self):
@@ -445,9 +423,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "plot_partial_barrier.png"
         self.circuit_drawer(circuit, filename=fname, plot_barriers=True)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_plot_barriers(self):
@@ -475,9 +451,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "plot_barriers_true.png"
         self.circuit_drawer(circuit, filename=fname, plot_barriers=True)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
 
         fname2 = "plot_barriers_false.png"
         self.circuit_drawer(circuit, filename=fname2, plot_barriers=False)
@@ -501,9 +475,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "no_barriers.png"
         self.circuit_drawer(circuit, filename=fname, plot_barriers=False)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_fold_minus1(self):
@@ -518,9 +490,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "fold_minus1.png"
         self.circuit_drawer(circuit, fold=-1, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_fold_4(self):
@@ -535,9 +505,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "fold_4.png"
         self.circuit_drawer(circuit, fold=4, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_big_gates(self):
@@ -568,9 +536,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "big_gates.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_cnot(self):
@@ -587,9 +553,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "cnot.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_cz(self):
@@ -605,9 +569,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "cz.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_pauli_clifford(self):
@@ -631,9 +593,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "pauli_clifford.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_creg_initial(self):
@@ -648,9 +608,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "creg_initial_true.png"
         self.circuit_drawer(circuit, filename=fname, cregbundle=True, initial_state=True)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
 
         fname2 = "creg_initial_false.png"
         self.circuit_drawer(circuit, filename=fname2, cregbundle=False, initial_state=False)
@@ -677,9 +635,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "r_gates.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_ctrl_labels(self):
@@ -697,9 +653,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "ctrl_labels.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_cswap_rzz(self):
@@ -712,9 +666,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "cswap_rzz.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_ghz_to_gate(self):
@@ -732,9 +684,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "ghz_to_gate.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_scale(self):
@@ -746,9 +696,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "scale_default.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
 
         fname2 = "scale_half.png"
         self.circuit_drawer(circuit, filename=fname2, scale=0.5)
@@ -776,9 +724,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "pi_in_param_expr.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_partial_layout(self):
@@ -798,9 +744,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "partial_layout.png"
         self.circuit_drawer(transpiled, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_init_reset(self):
@@ -813,9 +757,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "init_reset.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_with_global_phase(self):
@@ -826,9 +768,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "global_phase.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_alternative_colors(self):
@@ -883,9 +823,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "reverse_bits.png"
         self.circuit_drawer(circuit, reverse_bits=True, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_bw(self):
@@ -902,9 +840,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "bw.png"
         self.circuit_drawer(circuit, style={"name": "bw"}, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_user_style(self):
@@ -947,9 +883,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_subfont_change(self):
@@ -965,9 +899,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         self.circuit_drawer(circuit, style=style, filename=fname)
         self.assertEqual(style, {"name": "iqx", "subfontsize": 11})  # check does not change style
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_meas_condition(self):
@@ -982,9 +914,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "meas_condition.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_reverse_bits_condition(self):
@@ -1004,9 +934,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "reverse_bits_cond_true.png"
         self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
 
         fname2 = "reverse_bits_cond_false.png"
         self.circuit_drawer(circuit, cregbundle=False, reverse_bits=False, filename=fname2)
@@ -1045,9 +973,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_6095(self):
@@ -1064,9 +990,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_instruction_1q_1c(self):
@@ -1080,9 +1004,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "instruction_1q_1c.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_instruction_3q_3c_circ1(self):
@@ -1097,9 +1019,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "instruction_3q_3c_circ1.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_instruction_3q_3c_circ2(self):
@@ -1114,9 +1034,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "instruction_3q_3c_circ2.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_instruction_3q_3c_circ3(self):
@@ -1132,9 +1050,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "instruction_3q_3c_circ3.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_overwide_gates(self):
@@ -1147,9 +1063,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "wide_params.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_one_bit_regs(self):
@@ -1165,9 +1079,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "one_bit_regs.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_user_ax_subplot(self):
@@ -1190,9 +1102,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "user_ax.png"
         self.circuit_drawer(circuit, ax=ax2, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_figwidth(self):
@@ -1207,9 +1117,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "figwidth.png"
         self.circuit_drawer(circuit, style={"figwidth": 5}, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_registerless_one_bit(self):
@@ -1222,9 +1130,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "registerless_one_bit.png"
         self.circuit_drawer(circuit, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_measures_with_conditions(self):
@@ -1242,9 +1148,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "measure_cond_false.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
 
         fname2 = "measure_cond_true.png"
         self.circuit_drawer(circuit, cregbundle=True, filename=fname2)
@@ -1267,9 +1171,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "measure_cond_bits_false.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
 
         fname2 = "measure_cond_bits_true.png"
         self.circuit_drawer(circuit, cregbundle=True, filename=fname2)
@@ -1293,9 +1195,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "measure_cond_bits_right.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_conditions_with_bits_reverse(self):
@@ -1309,9 +1209,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "cond_bits_reverse.png"
         self.circuit_drawer(circuit, cregbundle=False, reverse_bits=True, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_sidetext_with_condition(self):
@@ -1324,9 +1222,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "sidetext_condition.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_fold_with_conditions(self):
@@ -1355,9 +1251,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "fold_with_conditions.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_idle_wires_barrier(self):
@@ -1369,9 +1263,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "idle_wires_barrier.png"
         self.circuit_drawer(circuit, cregbundle=False, filename=fname)
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_wire_order(self):
@@ -1393,9 +1285,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
     def test_barrier_label(self):
@@ -1411,9 +1301,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         fname = "barrier_label.png"
         self.circuit_drawer(circuit, filename="barrier_label.png")
 
-        ratio = self._similarity_ratio(
-            self._image_path(fname), self._reference_path(fname), fname
-        )
+        ratio = self._similarity_ratio(self._image_path(fname), self._reference_path(fname), fname)
         assert ratio == 1
 
 
