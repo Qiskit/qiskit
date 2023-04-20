@@ -52,9 +52,8 @@ else:
 
 
 RESULTDIR = os.path.dirname(os.path.abspath(__file__))
-TEST_IMAGE_PATH = os.getcwd()
-TEST_REFERENCE_PATH = os.path.join(TEST_IMAGE_PATH, "references")
-FAILURE_DIFF_DIR = os.path.join(TEST_IMAGE_PATH, "circuitfailures", "")
+TEST_REFERENCE_PATH = os.path.join(RESULTDIR, "references")
+FAILURE_DIFF_DIR = os.path.join(RESULTDIR, "circuitfailures", "")
 
 
 @contextmanager
@@ -86,7 +85,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
     @staticmethod
     def _image_path(image_name):
-        return os.path.join(TEST_IMAGE_PATH, image_name)
+        return os.path.join(RESULTDIR, image_name)
 
     @staticmethod
     def _reference_path(image_name):
