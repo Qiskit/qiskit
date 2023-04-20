@@ -232,8 +232,6 @@ class SabreLayout(TransformationPass):
         )
         initial_layout_dict = {}
         final_layout_dict = {}
-        shared_clbits = False
-        seen_clbits = set()
         for (
             layout_dict,
             final_dict,
@@ -244,20 +242,14 @@ class SabreLayout(TransformationPass):
         ) in layout_components:
             initial_layout_dict.update({k: component_map[v] for k, v in layout_dict.items()})
             final_layout_dict.update({component_map[k]: component_map[v] for k, v in final_dict})
-            if not shared_clbits:
-                for clbit in local_dag.clbits:
-                    if clbit in seen_clbits:
-                        shared_clbits = True
-                        break
-                    seen_clbits.add(clbit)
         self.property_set["layout"] = Layout(initial_layout_dict)
         # If skip_routing is set then return the layout in the property set
         # and throwaway the extra work we did to compute the swap map.
-        # We also skip routing here if the input circuit is split over multiple
-        # connected components and there is a shared clbit between any
-        # components. We can only reliably route the full dag if there is any
-        # shared classical data.
-        if self.skip_routing or shared_clbits:
+        # We also skip routing here if there is more than one connected
+        # component we ran layout on. We can only reliably route the full dag
+        # in this case if there is any dependency between the components
+        # (typically shared classical data or barriers).
+        if self.skip_routing or len(layout_components) > 1:
             return dag
         # After this point the pass is no longer an analysis pass and the
         # output circuit returned is transformed with the layout applied
