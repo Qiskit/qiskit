@@ -26,9 +26,8 @@
 
 """Permutation algorithms for general graphs."""
 
-import copy
 import logging
-from typing import Iterator, Mapping, MutableMapping, MutableSet, List, Iterable, Union
+from typing import Mapping, List, Union
 
 import numpy as np
 import rustworkx as rx
