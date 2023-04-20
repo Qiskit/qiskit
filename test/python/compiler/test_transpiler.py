@@ -12,10 +12,12 @@
 
 """Tests basic functionality of the transpile function"""
 
+import copy
 import io
 import os
 import sys
 import math
+import unittest
 
 from logging import StreamHandler, getLogger
 from unittest.mock import patch
@@ -57,6 +59,7 @@ from qiskit.providers.fake_provider import (
     FakeBoeblingen,
     FakeMumbaiV2,
     FakeNairobiV2,
+    FakeSherbrooke,
 )
 from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler import PassManager, TransformationPass
@@ -2893,3 +2896,17 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         qc.x(4)
         with self.assertRaises(TranspilerError):
             transpile(qc, target=target, optimization_level=opt_level)
+
+    @data(0, 1, 2, 3)
+    def test_transpile_does_not_affect_backend_coupling(self, opt_level):
+        """Test that transpiliation of a circuit does not mutate the `CouplingMap` stored by a V2
+        backend.  Regression test of gh-9997."""
+        if opt_level == 3:
+            raise unittest.SkipTest("unitary resynthesis fails due to gh-10004")
+        qc = QuantumCircuit(127)
+        for i in range(1, 127):
+            qc.ecr(0, i)
+        backend = FakeSherbrooke()
+        original_map = copy.deepcopy(backend.coupling_map)
+        transpile(qc, backend, optimization_level=opt_level)
+        self.assertEqual(original_map, backend.coupling_map)
