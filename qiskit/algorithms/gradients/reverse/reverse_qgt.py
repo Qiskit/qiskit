@@ -24,12 +24,12 @@ from qiskit.providers import Options
 from qiskit.primitives import Estimator
 
 from ..base.base_qgt import BaseQGT
-from .qgt_result import QGTResult
+from ..base.qgt_result import QGTResult
 from ..utils import DerivativeType
 
-from ..reverse.split_circuits import split
-from ..reverse.bind import bind
-from ..reverse.derive_circuit import derive_circuit
+from .split_circuits import split
+from .bind import bind
+from .derive_circuit import derive_circuit
 
 logger = logging.getLogger(__name__)
 

@@ -26,8 +26,8 @@ from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp
 
 from ..base.base_qgt import BaseQGT
-from ..lin_comb.lin_comb_estimator_gradient import LinCombEstimatorGradient
-from .qgt_result import QGTResult
+from .lin_comb_estimator_gradient import LinCombEstimatorGradient
+from ..base.qgt_result import QGTResult
 from ..utils import DerivativeType, _make_lin_comb_qgt_circuit, _make_lin_comb_observables
 
 from ...exceptions import AlgorithmError

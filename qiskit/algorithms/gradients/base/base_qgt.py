@@ -28,7 +28,7 @@ from qiskit.primitives.utils import _circuit_key
 from qiskit.providers import Options
 from qiskit.transpiler.passes import TranslateParameterizedGates
 
-from ..qgt.qgt_result import QGTResult
+from .qgt_result import QGTResult
 from ..utils import (
     DerivativeType,
     GradientCircuit,

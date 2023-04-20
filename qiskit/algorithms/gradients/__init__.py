@@ -28,6 +28,7 @@ Base Classes
    BaseSamplerGradient
    EstimatorGradientResult
    SamplerGradientResult
+   QGTResult
 
 Finite Differences
 ==================
@@ -46,6 +47,7 @@ Linear Combinations
 
    LinCombEstimatorGradient
    LinCombSamplerGradient
+   LinCombQGT
 
 Parameter Shifting
 ==================
@@ -65,16 +67,6 @@ Quantum Fisher Information
    QFIResult
    QFI
 
-Quantum Geometric Tensor
-========================
-
-.. autosummary::
-   :toctree: ../stubs/
-
-   LinCombQGT
-   QGTResult
-   ReverseQGT
-
 Reverse
 =======
 
@@ -82,6 +74,7 @@ Reverse
    :toctree: ../stubs/
 
    ReverseEstimatorGradient
+   ReverseQGT
 
 Simultaneous Perturbation Stochastic Approximation
 ==================================================
@@ -100,18 +93,18 @@ from .base.estimator_gradient_result import EstimatorGradientResult
 from .finite_diff.finite_diff_estimator_gradient import FiniteDiffEstimatorGradient
 from .finite_diff.finite_diff_sampler_gradient import FiniteDiffSamplerGradient
 from .lin_comb.lin_comb_estimator_gradient import DerivativeType, LinCombEstimatorGradient
-from .qgt.lin_comb_qgt import LinCombQGT
+from .lin_comb.lin_comb_qgt import LinCombQGT
 from .lin_comb.lin_comb_sampler_gradient import LinCombSamplerGradient
 from .param_shift.param_shift_estimator_gradient import ParamShiftEstimatorGradient
 from .param_shift.param_shift_sampler_gradient import ParamShiftSamplerGradient
 from .qfi.qfi import QFI
 from .qfi.qfi_result import QFIResult
-from .qgt.qgt_result import QGTResult
+from .base.qgt_result import QGTResult
 from .base.sampler_gradient_result import SamplerGradientResult
 from .spsa.spsa_estimator_gradient import SPSAEstimatorGradient
 from .spsa.spsa_sampler_gradient import SPSASamplerGradient
 from .reverse.reverse_gradient import ReverseEstimatorGradient
-from .qgt.reverse_qgt import ReverseQGT
+from .reverse.reverse_qgt import ReverseQGT
 
 __all__ = [
     "BaseEstimatorGradient",
