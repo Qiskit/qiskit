@@ -182,7 +182,7 @@ def _measure_v2(
         meas_group |= set(meas_map[qubit])
     meas_group = sorted(list(meas_group))
 
-    meas_group_set = set(meas_group)
+    meas_group_set = set(range(max(meas_map)+1))
     unassigned_qubit_indices = list(meas_group_set - qubit_mem_slots.keys())
     unassigned_reg_indices = sorted(list(meas_group_set - set(qubit_mem_slots.values())))
     if set(qubit_mem_slots.values()).issubset(meas_group_set):
