@@ -18,6 +18,7 @@ import json
 import os
 from contextlib import contextmanager
 
+from PIL import Image, ImageChops, ImageDraw
 from qiskit import BasicAer, execute
 from qiskit.test import QiskitTestCase
 from qiskit import QuantumCircuit
@@ -33,7 +34,6 @@ from qiskit.providers.fake_provider import (
     FakeMumbai,
     FakeManhattan,
 )
-from PIL import Image, ImageChops, ImageDraw
 
 if optionals.HAS_MATPLOTLIB:
     from matplotlib.pyplot import close as mpl_close
@@ -134,7 +134,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             )
         else:
             TestGraphMatplotlibDrawer._black_or_b(diff, current, expected).save(diff_name, "PNG")
-        return ratio, diff_name
+        return ratio
 
     @staticmethod
     def save_data_wrap(func, testname):
@@ -185,7 +185,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "bloch_multivector.png"
         self.graph_state_drawer(state=state, output="bloch", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -203,7 +203,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "hinton.png"
         self.graph_state_drawer(state=state, output="hinton", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -221,7 +221,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "qsphere.png"
         self.graph_state_drawer(state=state, output="qsphere", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -239,7 +239,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "state_city.png"
         self.graph_state_drawer(state=state, output="city", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -257,7 +257,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "paulivec.png"
         self.graph_state_drawer(state=state, output="paulivec", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -272,7 +272,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "histogram.png"
         self.graph_count_drawer(counts, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -284,7 +284,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "histogram_with_rest.png"
         self.graph_count_drawer(data, number_to_keep=2, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -299,7 +299,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "histogram_2_sets_with_rest.png"
         self.graph_count_drawer(data, number_to_keep=2, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -312,7 +312,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "histogram_color.png"
         self.graph_count_drawer(data=counts, color="#204940", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -332,7 +332,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -345,7 +345,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "histogram_hamming.png"
         self.graph_count_drawer(data=counts, sort="hamming", target_string="101", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -358,7 +358,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "histogram_value_sort.png"
         self.graph_count_drawer(data=counts, sort="value", target_string="000", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -376,7 +376,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -394,7 +394,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             figsize=(15, 5),
         )
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -407,7 +407,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "histogram_title.png"
         self.graph_count_drawer(data=counts, title="My Histogram", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -421,7 +421,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "1_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -435,7 +435,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "5_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -449,7 +449,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "7_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -463,7 +463,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "16_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -477,7 +477,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "27_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -491,7 +491,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "65_qubit_gate_map.png"
         self.graph_plot_gate_map(backend=backend, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -505,7 +505,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "figsize.png"
         self.graph_plot_gate_map(backend=backend, figsize=(10, 10), filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -519,7 +519,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "qubit_size.png"
         self.graph_plot_gate_map(backend=backend, qubit_size=38, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -533,7 +533,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "qubit_color.png"
         self.graph_plot_gate_map(backend=backend, qubit_color=["#ff0000"] * 7, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -549,7 +549,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             backend=backend, qubit_labels=list(range(10, 17, 1)), filename=fname
         )
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -563,7 +563,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "line_color.png"
         self.graph_plot_gate_map(backend=backend, line_color=["#00ff00"] * 144, filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -577,7 +577,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
         fname = "font_color.png"
         self.graph_plot_gate_map(backend=backend, font_color="#ff00ff", filename=fname)
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -597,7 +597,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
@@ -628,7 +628,7 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
             filename=fname,
         )
 
-        ratio, diff_name = self._similarity_ratio(
+        ratio = self._similarity_ratio(
             self._image_path(fname), self._reference_path(fname), fname
         )
         assert ratio == 1
