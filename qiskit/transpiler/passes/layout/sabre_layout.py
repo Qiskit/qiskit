@@ -253,11 +253,11 @@ class SabreLayout(TransformationPass):
         self.property_set["layout"] = Layout(initial_layout_dict)
         # If skip_routing is set then return the layout in the property set
         # and throwaway the extra work we did to compute the swap map.
-        # We also skip routing here if the input circuit is split over multiple
-        # connected components and there is a shared clbit between any
-        # components. We can only reliably route the full dag if there is any
-        # shared classical data.
-        if self.skip_routing or shared_clbits:
+        # We also skip routing here if there is more than one connected
+        # component we ran layout on. We can only reliably route the full dag
+        # in this case if there is any dependency between the components
+        # (typically shared classical data or barriers).
+        if self.skip_routing or len(layout_components) > 1:
             return dag
         # After this point the pass is no longer an analysis pass and the
         # output circuit returned is transformed with the layout applied
