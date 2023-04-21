@@ -591,7 +591,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         super().__init__()
         self._decomposer_cache = {}
 
-    def _decomposer_2q_from_target(self, target, qubits, approximation_degree):
+    def _decomposer_2q_from_target(self, weyl_decomposition, target, qubits, approximation_degree):
         # we just need 2-qubit decomposers, in any direction.
         # we'll fix the synthesis direction later.
         qubits_tuple = tuple(sorted(qubits))
@@ -635,6 +635,17 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         # TODO: reduce number of decomposers here somehow
         decomposers = []
 
+        def _get_kak(gate):
+            try:
+                operator = Operator(gate)
+            except QiskitError:
+                return False
+            return TwoQubitWeylDecomposition(operator.data)
+
+        def is_product_of_1qs(kak):
+            a, b, c = kak.a, kak.b, kak.c
+            return isclose(a, 0) and isclose(b, 0) and isclose(c, 0)
+
         def is_supercontrolled(gate):
             try:
                 operator = Operator(gate)
@@ -675,6 +686,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
 
         # possible controlled decomposers (i.e. XXDecomposer)
         controlled_basis = {k: v for k, v in available_2q_basis.items() if is_controlled(v)}
+        # If controlled_basis is empty, only trivial unitaries can be synthesized by XXDecomposer
+        if (not controlled_basis) and (not is_product_of_1qs(weyl_decomposition)):
+            self._decomposer_cache[qubits_tuple] = decomposers
+            return decomposers
         basis_2q_fidelity = {}
         embodiments = {}
         pi2_basis = None
@@ -746,9 +761,10 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
             return _decomposer1q._gate_sequence_to_dag(sequence)
         elif unitary.shape == (4, 4):
             # select synthesizers that can lower to the target
+            weyl_decomposition = TwoQubitWeylDecomposition(unitary)
             if target is not None:
                 decomposers2q = self._decomposer_2q_from_target(
-                    target, qubits, approximation_degree
+                    weyl_decomposition, target, qubits, approximation_degree
                 )
             else:
                 decomposer2q = _decomposer_2q_from_basis_gates(
@@ -762,7 +778,7 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     decomposer2q, qubits, natural_direction, coupling_map, gate_lengths, gate_errors
                 )
                 synth_circuit = self._synth_su4(
-                    unitary, decomposer2q, preferred_direction, approximation_degree
+                    unitary, weyl_decomposition, decomposer2q, preferred_direction, approximation_degree
                 )
                 synth_circuits.append(synth_circuit)
             synth_circuit = min(
@@ -781,9 +797,9 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         synth_dag = circuit_to_dag(synth_circuit) if synth_circuit is not None else None
         return synth_dag
 
-    def _synth_su4(self, su4_mat, decomposer2q, preferred_direction, approximation_degree):
+    def _synth_su4(self, su4_mat, weyl_decomposition, decomposer2q, preferred_direction, approximation_degree):
         approximate = not approximation_degree == 1.0
-        synth_circ = decomposer2q(su4_mat, approximate=approximate)
+        synth_circ = decomposer2q(su4_mat, approximate=approximate, weyl_decomposition=weyl_decomposition)
 
         # if the gates in synthesis are in the opposite direction of the preferred direction
         # resynthesize a new operator which is the original conjugated by swaps.
