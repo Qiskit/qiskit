@@ -778,7 +778,11 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
                     decomposer2q, qubits, natural_direction, coupling_map, gate_lengths, gate_errors
                 )
                 synth_circuit = self._synth_su4(
-                    unitary, weyl_decomposition, decomposer2q, preferred_direction, approximation_degree
+                    unitary,
+                    weyl_decomposition,
+                    decomposer2q,
+                    preferred_direction,
+                    approximation_degree,
                 )
                 synth_circuits.append(synth_circuit)
             synth_circuit = min(
@@ -797,9 +801,13 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         synth_dag = circuit_to_dag(synth_circuit) if synth_circuit is not None else None
         return synth_dag
 
-    def _synth_su4(self, su4_mat, weyl_decomposition, decomposer2q, preferred_direction, approximation_degree):
+    def _synth_su4(
+        self, su4_mat, weyl_decomposition, decomposer2q, preferred_direction, approximation_degree
+    ):
         approximate = not approximation_degree == 1.0
-        synth_circ = decomposer2q(su4_mat, approximate=approximate, weyl_decomposition=weyl_decomposition)
+        synth_circ = decomposer2q(
+            su4_mat, approximate=approximate, weyl_decomposition=weyl_decomposition
+        )
 
         # if the gates in synthesis are in the opposite direction of the preferred direction
         # resynthesize a new operator which is the original conjugated by swaps.

@@ -258,7 +258,7 @@ class XXDecomposer:
 
         # get the associated _positive_ canonical coordinate
         if weyl_decomposition is None:
-            weyl_decomposition =  TwoQubitWeylDecomposition(unitary)
+            weyl_decomposition = TwoQubitWeylDecomposition(unitary)
         target = [getattr(weyl_decomposition, x) for x in ("a", "b", "c")]
         if target[-1] < -EPSILON:
             target = [np.pi / 2 - target[0], target[1], -target[2]]
