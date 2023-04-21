@@ -195,6 +195,7 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         target.add_instruction(
             Reset(), {(x,): InstructionProperties(duration=1500) for x in range(4)}
         )
+        target.add_instruction(Delay(Parameter("t")), {(x,): None for x in range(4)})
         dd_sequence = [XGate(), XGate()]
         pm = PassManager(
             [
@@ -821,6 +822,40 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         circ2 = pm2.run(self.ghz4)
 
         self.assertEqual(circ1, circ2)
+
+    def test_respect_target_instruction_constraints(self):
+        """Test if DD pass does not pad delays for qubits that do not support delay instructions.
+        See: https://github.com/Qiskit/qiskit-terra/issues/9993
+        """
+        qc = QuantumCircuit(3)
+        qc.cx(1, 2)
+
+        target = Target(dt=1)
+        target.add_instruction(
+            XGate(), {(q,): InstructionProperties(duration=100) for q in range(3)}
+        )
+        target.add_instruction(CXGate(), {(1, 2): InstructionProperties(duration=1000)})
+        # delays and Y are not supported
+
+        pm = PassManager(
+            [
+                ALAPScheduleAnalysis(target=target),
+                PadDynamicalDecoupling(dd_sequence=[XGate(), XGate()], target=target),
+            ]
+        )
+        scheduled = pm.run(qc)
+        self.assertEqual(qc, scheduled)
+
+        pm2 = PassManager(
+            [
+                ALAPScheduleAnalysis(target=target),
+                PadDynamicalDecoupling(
+                    dd_sequence=[XGate(), YGate(), XGate(), YGate()], target=target
+                ),
+            ]
+        )
+        with self.assertRaises(TranspilerError):
+            pm2.run(qc)
 
 
 if __name__ == "__main__":

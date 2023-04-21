@@ -17,9 +17,11 @@ import unittest
 from ddt import ddt, data, unpack
 from qiskit import QuantumCircuit
 from qiskit.test import QiskitTestCase
+from qiskit.circuit.library.standard_gates import XGate
 from qiskit.transpiler.instruction_durations import InstructionDurations
 from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.target import Target, InstructionProperties
 
 
 @ddt
@@ -715,6 +717,27 @@ class TestSchedulingPass(QiskitTestCase):
         expected.delay(100, 1)  # due to extra dependency on clbits
         expected.x(0).c_if(0, True)
         expected.x(1).c_if(0, True)
+
+        self.assertEqual(expected, scheduled)
+
+    @data(ALAPSchedule, ASAPSchedule)
+    def test_respect_target_instruction_constraints(self, schedule_pass):
+        """Test if ALAP/ASAP does not pad delays for qubits that do not support delay instructions.
+        See: https://github.com/Qiskit/qiskit-terra/issues/9993
+        """
+        target = Target(dt=1)
+        target.add_instruction(XGate(), {(1,): InstructionProperties(duration=200)})
+        # delays are not supported
+
+        qc = QuantumCircuit(2)
+        qc.x(1)
+
+        pm = PassManager(schedule_pass(target=target))
+        scheduled = pm.run(qc)
+
+        expected = QuantumCircuit(2)
+        expected.x(1)
+        # no delay on qubit 0
 
         self.assertEqual(expected, scheduled)
 
