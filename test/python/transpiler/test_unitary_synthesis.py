@@ -873,7 +873,6 @@ class TestUnitarySynthesis(QiskitTestCase):
         """Test basis set with iswap but no cx can synthesize a circuit"""
         target = Target()
         theta = Parameter("theta")
-        phi = Parameter("phi")
 
         i_props = {
             (0,): InstructionProperties(duration=35.5e-9, error=0.000413),

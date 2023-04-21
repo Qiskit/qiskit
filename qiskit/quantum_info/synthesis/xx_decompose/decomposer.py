@@ -244,8 +244,9 @@ class XXDecomposer:
                 interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
                 If given, overrides the basis_fidelity given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0 .
-            weyl_decomposition: If passed, this should be the result of TwoQubitWeylDecomposition(unitary).
-                This is an optimization; the weyl decomposition will be computed if not passed here.
+            weyl_decomposition: If passed, this should be the result of
+                TwoQubitWeylDecomposition(unitary). This is an optimization. The Weyl decomposition
+                will be computed if not passed here.
         Returns:
             QuantumCircuit: Synthesized circuit.
         """

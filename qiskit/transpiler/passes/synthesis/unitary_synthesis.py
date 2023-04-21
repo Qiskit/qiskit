@@ -635,13 +635,6 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         # TODO: reduce number of decomposers here somehow
         decomposers = []
 
-        def _get_kak(gate):
-            try:
-                operator = Operator(gate)
-            except QiskitError:
-                return False
-            return TwoQubitWeylDecomposition(operator.data)
-
         def is_product_of_1qs(kak):
             a, b, c = kak.a, kak.b, kak.c
             return isclose(a, 0) and isclose(b, 0) and isclose(c, 0)
