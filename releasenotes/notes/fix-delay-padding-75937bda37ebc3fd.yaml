@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Fixed an issue with tranpiler passes for padding delays, which did not respect target's
-    constraints and inserted delays even for qubits not supporting :class:`~.Delay` instruction.
+    Fixed an issue in tranpiler passes for padding delays, which did not respect target's constraints
+    and inserted delays even for qubits not supporting :class:`~.circuit.Delay` instruction.
     :class:`~.PadDelay` and :class:`~.PadDynamicalDecoupling` are fixed
     so that they do not pad any idle time of qubits such that the target does not support
     ``Delay`` instructions for the qubits.
