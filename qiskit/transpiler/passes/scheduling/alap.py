@@ -138,7 +138,9 @@ class ALAPSchedule(BaseSchedulerTransform):
             for bit in node.qargs:
                 delta = t0 - idle_before[bit]
                 if delta > 0:
-                    if self.target is None or (bit_indices[bit],) in self.target.get("delay", []):
+                    if self.target is None or self.target.instruction_supported(
+                        "delay", qargs=(bit_indices[bit],)
+                    ):
                         new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
                 idle_before[bit] = t1
 
@@ -149,7 +151,9 @@ class ALAPSchedule(BaseSchedulerTransform):
             delta = circuit_duration - before
             if not (delta > 0 and isinstance(bit, Qubit)):
                 continue
-            if self.target is None or (bit_indices[bit],) in self.target.get("delay", []):
+            if self.target is None or self.target.instruction_supported(
+                "delay", qargs=(bit_indices[bit],)
+            ):
                 new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
 
         new_dag.name = dag.name
