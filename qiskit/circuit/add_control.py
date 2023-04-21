@@ -146,6 +146,7 @@ def control(
                     gate.definition.data[0].operation.params[0],
                     q_control,
                     q_target[bit_indices[qargs[0]]],
+                    use_basis_gates=True,
                 )
                 continue
             elif gate.name == "p":

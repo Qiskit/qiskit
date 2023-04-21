@@ -84,28 +84,28 @@ def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
 
 
 def mcsu2_real_diagonal(
-    circuit,
+    circuit: QuantumCircuit,
     unitary: np.ndarray,
     controls: Union[QuantumRegister, List[Qubit]],
     target: Union[Qubit, int],
-    ctrl_state: str = None,
+    ctrl_state: Optional[str] = None,
 ):
     """
     Apply multi-controlled SU(2) gate with a real main diagonal or secondary diagonal.
     https://arxiv.org/abs/2302.06377
 
     Args:
-        circuit (QuantumCircuit): The QuantumCircuit object to apply the diagonal operator on.
-        unitary (ndarray): SU(2) unitary matrix with one real diagonal
-        controls (QuantumRegister or list(Qubit)): The list of control qubits
-        target (Qubit or int): The target qubit
-        ctrl_state (str): control state of the operator SU(2) operator
+        circuit: The QuantumCircuit object to apply the diagonal operator on.
+        unitary: SU(2) unitary matrix with one real diagonal
+        controls: The list of control qubits
+        target: The target qubit
+        ctrl_state: control state of the operator SU(2) operator
 
     Raises:
         QiskitError: parameter errors
     """
     # pylint: disable=cyclic-import
-    from qiskit.circuit.library import MCXVChain
+    from .x import MCXVChain
     from qiskit.extensions import UnitaryGate
     from qiskit.quantum_info.operators.predicates import is_unitary_matrix
 
@@ -312,7 +312,11 @@ def mcry(
 
 
 def mcrz(
-    self, lam: ParameterValueType, q_controls: Union[QuantumRegister, List[Qubit]], q_target: Qubit
+    self,
+    lam: ParameterValueType,
+    q_controls: Union[QuantumRegister, List[Qubit]],
+    q_target: Qubit,
+    use_basis_gates: bool = False,
 ):
     """
     Apply Multiple-Controlled Z rotation gate
@@ -322,6 +326,7 @@ def mcrz(
         lam (float): angle lambda
         q_controls (list(Qubit)): The list of control qubits
         q_target (Qubit): The target qubit
+        use_basis_gates (bool): use p, u, cx
 
     Raises:
         QiskitError: parameter errors
@@ -338,10 +343,15 @@ def mcrz(
 
     n_c = len(control_qubits)
     if n_c == 1:
-        self.compose(CRZGate(lam), control_qubits + [target_qubit], inplace=True)
+        self.append(CRZGate(lam), control_qubits + [target_qubit])
     else:
-        # self.append(u1_gate.control(n_c), control_qubits + [target_qubit])
         mcsu2_real_diagonal(self, RZGate(lam).to_matrix(), control_qubits, target_qubit)
+
+    if use_basis_gates:
+        # pylint: disable=cyclic-import
+        from qiskit import transpile
+
+        self = transpile(self, basis_gates=["p", "u", "cx"], optimization_level=0)
 
 
 QuantumCircuit.mcrx = mcrx

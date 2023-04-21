@@ -651,7 +651,9 @@ class TestControlledGate(QiskitTestCase):
                     use_basis_gates=use_basis_gates,
                 )
             else:  # case 'x' or 'z' only support the noancilla mode and do not have this keyword
-                getattr(qc, "mcr" + base_gate_name)(theta, q_controls, q_target[0])
+                getattr(qc, "mcr" + base_gate_name)(
+                    theta, q_controls, q_target[0], use_basis_gates=use_basis_gates
+                )
 
             for idx, bit in enumerate(bitstr):
                 if bit == "0":
