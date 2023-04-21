@@ -1092,6 +1092,7 @@ class TwoQubitBasisDecomposer:
         basis_fidelity: Optional[float] = None,
         approximate: bool = True,
         *,
+        weyl_decomposition = None,
         _num_basis_uses: int = None,
     ) -> QuantumCircuit:
         """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
@@ -1113,7 +1114,7 @@ class TwoQubitBasisDecomposer:
             basis_fidelity = 1.0
         unitary = np.asarray(unitary, dtype=complex)
 
-        target_decomposed = TwoQubitWeylDecomposition(unitary)
+        target_decomposed = weyl_decomposition if weyl_decomposition is not None else TwoQubitWeylDecomposition(unitary)
         traces = self.traces(target_decomposed)
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
