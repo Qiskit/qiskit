@@ -282,5 +282,11 @@ class BaseSchedulerTransform(TransformationPass):
 
         return duration
 
+    def _delay_supported(self, qarg: int) -> bool:
+        """Delay operation is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported("delay", qargs=(qarg,)):
+            return True
+        return False
+
     def run(self, dag: DAGCircuit):
         raise NotImplementedError

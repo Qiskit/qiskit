@@ -120,22 +120,18 @@ class BasePadding(TransformationPass):
                     continue
 
                 for bit in node.qargs:
-
                     # Fill idle time with some sequence
-                    if t0 - idle_after[bit] > 0:
-                        if self.target is None or self.target.instruction_supported(
-                            "delay", qargs=(bit_indices[bit],)
-                        ):
-                            # Find previous node on the wire, i.e. always the latest node on the wire
-                            prev_node = next(new_dag.predecessors(new_dag.output_map[bit]))
-                            self._pad(
-                                dag=new_dag,
-                                qubit=bit,
-                                t_start=idle_after[bit],
-                                t_end=t0,
-                                next_node=node,
-                                prev_node=prev_node,
-                            )
+                    if t0 - idle_after[bit] > 0 and self.__delay_supported(bit_indices[bit]):
+                        # Find previous node on the wire, i.e. always the latest node on the wire
+                        prev_node = next(new_dag.predecessors(new_dag.output_map[bit]))
+                        self._pad(
+                            dag=new_dag,
+                            qubit=bit,
+                            t_start=idle_after[bit],
+                            t_end=t0,
+                            next_node=node,
+                            prev_node=prev_node,
+                        )
 
                     idle_after[bit] = t1
 
@@ -148,24 +144,27 @@ class BasePadding(TransformationPass):
 
         # Add delays until the end of circuit.
         for bit in new_dag.qubits:
-            if circuit_duration - idle_after[bit] > 0:
-                if self.target is None or self.target.instruction_supported(
-                    "delay", qargs=(bit_indices[bit],)
-                ):
-                    node = new_dag.output_map[bit]
-                    prev_node = next(new_dag.predecessors(node))
-                    self._pad(
-                        dag=new_dag,
-                        qubit=bit,
-                        t_start=idle_after[bit],
-                        t_end=circuit_duration,
-                        next_node=node,
-                        prev_node=prev_node,
-                    )
+            if circuit_duration - idle_after[bit] > 0 and self.__delay_supported(bit_indices[bit]):
+                node = new_dag.output_map[bit]
+                prev_node = next(new_dag.predecessors(node))
+                self._pad(
+                    dag=new_dag,
+                    qubit=bit,
+                    t_start=idle_after[bit],
+                    t_end=circuit_duration,
+                    next_node=node,
+                    prev_node=prev_node,
+                )
 
         new_dag.duration = circuit_duration
 
         return new_dag
+
+    def __delay_supported(self, qarg: int) -> bool:
+        """Delay operation is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported("delay", qargs=(qarg,)):
+            return True
+        return False
 
     def _pre_runhook(self, dag: DAGCircuit):
         """Extra routine inserted before running the padding pass.

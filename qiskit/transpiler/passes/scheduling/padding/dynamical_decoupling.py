@@ -167,6 +167,11 @@ class PadDynamicalDecoupling(BasePadding):
         self._sequence_phase = 0
         if target is not None:
             self._durations = target.durations()
+            for gate in dd_sequence:
+                if gate.name not in self.target.operation_names:
+                    raise TranspilerError(
+                        f"{gate.name} in dd_sequence is not supported in the target"
+                    )
 
     def _pre_runhook(self, dag: DAGCircuit):
         super()._pre_runhook(dag)
@@ -201,8 +206,7 @@ class PadDynamicalDecoupling(BasePadding):
             self._sequence_phase = np.angle(noop[0][0])
 
         # Precompute qubit-wise DD sequence length for performance
-        for qubit in dag.qubits:
-            physical_index = dag.qubits.index(qubit)
+        for physical_index, qubit in enumerate(dag.qubits):
             if self._qubits and physical_index not in self._qubits:
                 continue
 

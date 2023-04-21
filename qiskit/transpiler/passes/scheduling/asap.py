@@ -150,11 +150,8 @@ class ASAPSchedule(BaseSchedulerTransform):
             # Add delay to qubit wire
             for bit in node.qargs:
                 delta = t0 - idle_after[bit]
-                if delta > 0 and isinstance(bit, Qubit):
-                    if self.target is None or self.target.instruction_supported(
-                        "delay", qargs=(bit_indices[bit],)
-                    ):
-                        new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
+                if delta > 0 and isinstance(bit, Qubit) and self._delay_supported(bit_indices[bit]):
+                    new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
                 idle_after[bit] = t1
 
             new_dag.apply_operation_back(node.op, node.qargs, node.cargs)
@@ -164,9 +161,7 @@ class ASAPSchedule(BaseSchedulerTransform):
             delta = circuit_duration - after
             if not (delta > 0 and isinstance(bit, Qubit)):
                 continue
-            if self.target is None or self.target.instruction_supported(
-                "delay", qargs=(bit_indices[bit],)
-            ):
+            if self._delay_supported(bit_indices[bit]):
                 new_dag.apply_operation_back(Delay(delta, time_unit), [bit], [])
 
         new_dag.name = dag.name
