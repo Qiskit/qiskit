@@ -12,6 +12,7 @@
 
 """Padding pass to fill empty timeslot."""
 
+import logging
 from typing import List, Optional, Union
 
 from qiskit.circuit import Qubit, Clbit, Instruction
@@ -20,6 +21,8 @@ from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.target import Target
+
+logger = logging.getLogger(__name__)
 
 
 class BasePadding(TransformationPass):
@@ -180,6 +183,13 @@ class BasePadding(TransformationPass):
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
                 f"before running the {self.__class__.__name__} pass."
             )
+        for qarg, _ in enumerate(dag.qubits):
+            if not self.__delay_supported(qarg):
+                logger.debug(
+                    "Idle time may not be padded for qubit %d as the target does not support "
+                    "delay instruction on the qubit",
+                    qarg,
+                )
 
     def _apply_scheduled_op(
         self,
