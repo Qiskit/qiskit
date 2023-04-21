@@ -12,6 +12,10 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    env:
+      # Override the `rust-toolchain.toml` file because `grcov` has greater requirements.
+      RUSTUP_TOOLCHAIN: stable
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
