@@ -10,16 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=undefined-all-variable
 
 """Module containing transpiler synthesize."""
 
-import importlib
-
-__all__ = ["graysynth", "cnot_synth"]
-
-
-def __getattr__(name):
-    if name in __all__:
-        return getattr(importlib.import_module(".graysynth", __name__), name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+from .graysynth import graysynth, cnot_synth

@@ -18,6 +18,7 @@ from typing import Tuple, Iterable, Optional
 
 from .exceptions import CircuitError
 from .instruction import Instruction
+from .operation import Operation
 from .quantumregister import Qubit
 from .classicalregister import Clbit
 
@@ -59,7 +60,7 @@ class CircuitInstruction:
 
     __slots__ = ("operation", "qubits", "clbits", "_legacy_format_cache")
 
-    operation: Instruction
+    operation: Operation
     """The logical operation that this instruction represents an execution of."""
     qubits: Tuple[Qubit, ...]
     """A sequence of the qubits that the operation is applied to."""
@@ -68,7 +69,7 @@ class CircuitInstruction:
 
     def __init__(
         self,
-        operation: Instruction,
+        operation: Operation,
         qubits: Iterable[Qubit] = (),
         clbits: Iterable[Clbit] = (),
     ):
@@ -87,7 +88,7 @@ class CircuitInstruction:
 
     def replace(
         self,
-        operation: Optional[Instruction] = None,
+        operation: Optional[Operation] = None,
         qubits: Optional[Iterable[Qubit]] = None,
         clbits: Optional[Iterable[Clbit]] = None,
     ) -> "CircuitInstruction":
@@ -164,14 +165,15 @@ class QuantumCircuitData(MutableSequence):
             operation, qargs, cargs = value
         value = self._resolve_legacy_value(operation, qargs, cargs)
         self._circuit._data[key] = value
-        self._circuit._update_parameter_table(value)
+        if isinstance(value.operation, Instruction):
+            self._circuit._update_parameter_table(value)
 
     def _resolve_legacy_value(self, operation, qargs, cargs) -> CircuitInstruction:
         """Resolve the old-style 3-tuple into the new :class:`CircuitInstruction` type."""
-        if not isinstance(operation, Instruction) and hasattr(operation, "to_instruction"):
+        if not isinstance(operation, Operation) and hasattr(operation, "to_instruction"):
             operation = operation.to_instruction()
-        if not isinstance(operation, Instruction):
-            raise CircuitError("object is not an Instruction.")
+        if not isinstance(operation, Operation):
+            raise CircuitError("object is not an Operation.")
 
         expanded_qargs = [self._circuit.qbit_argument_conversion(qarg) for qarg in qargs or []]
         expanded_cargs = [self._circuit.cbit_argument_conversion(carg) for carg in cargs or []]

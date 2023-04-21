@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, List, Union, Optional
+from typing import Callable, Union, List, Optional
 import logging
 import numpy as np
 from scipy import sparse as scisparse
@@ -310,7 +310,7 @@ class NumPyEigensolverResult(EigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._eigenstates = None
+        self._eigenstates: list[Statevector] | None = None
 
     @property
     def eigenstates(self) -> list[Statevector] | None:

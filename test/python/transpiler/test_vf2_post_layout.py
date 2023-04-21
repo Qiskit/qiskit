@@ -239,6 +239,39 @@ class TestVF2PostLayout(QiskitTestCase):
         self.assertLayout(dag, cmap, pass_.property_set)
         self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
 
+    def test_2q_circuit_5q_backend_max_trials(self):
+        """A simple example, without considering the direction
+          0 - 1
+        qr1 - qr0
+        """
+        max_trials = 11
+        backend = FakeYorktown()
+
+        qr = QuantumRegister(2, "qr")
+        circuit = QuantumCircuit(qr)
+        circuit.cx(qr[1], qr[0])  # qr1 -> qr0
+        tqc = transpile(circuit, backend, layout_method="dense")
+        initial_layout = tqc._layout
+        dag = circuit_to_dag(tqc)
+        cmap = CouplingMap(backend.configuration().coupling_map)
+        props = backend.properties()
+        pass_ = VF2PostLayout(
+            coupling_map=cmap, properties=props, seed=self.seed, max_trials=max_trials
+        )
+
+        with self.assertLogs(
+            "qiskit.transpiler.passes.layout.vf2_post_layout", level="DEBUG"
+        ) as cm:
+            pass_.run(dag)
+        self.assertIn(
+            f"DEBUG:qiskit.transpiler.passes.layout.vf2_post_layout:Trial {max_trials} "
+            f"is >= configured max trials {max_trials}",
+            cm.output,
+        )
+
+        self.assertLayout(dag, cmap, pass_.property_set)
+        self.assertNotEqual(pass_.property_set["post_layout"], initial_layout)
+
     def test_best_mapping_ghz_state_full_device_multiple_qregs_v2(self):
         """Test best mappings with multiple registers"""
         backend = FakeLimaV2()

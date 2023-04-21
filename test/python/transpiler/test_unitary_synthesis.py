@@ -775,7 +775,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc_true_body.unitary(qc_uni_mat, [0, 1])
 
         qc = QuantumCircuit(qr, cr)
-        qc.if_test((cr, 1), qc_true_body, [0, 1], [0, 1])
+        qc.if_test((cr, 1), qc_true_body, [0, 1], [])
         dag = circuit_to_dag(qc)
         cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
         cqc = dag_to_circuit(cdag)

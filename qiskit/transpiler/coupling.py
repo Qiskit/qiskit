@@ -458,7 +458,7 @@ class CouplingMap:
             from qiskit.transpiler import CouplingMap
 
             cmap = CouplingMap([[0, 1], [1, 2], [2, 0], [3, 4], [4, 5], [5, 3]])
-            component_cmaps = cmap.get_component_subgraphs()
+            component_cmaps = cmap.connected_components()
             print(component_cmaps[1].graph[0])
 
         will print ``3`` as index ``0`` in the second component is qubit 3 in the original cmap.

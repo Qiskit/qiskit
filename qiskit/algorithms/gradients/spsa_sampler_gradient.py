@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -114,7 +114,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
             dist_diffs = {}
             result = results.quasi_dists[partial_sum_n : partial_sum_n + n]
             for j, (dist_plus, dist_minus) in enumerate(zip(result[: n // 2], result[n // 2 :])):
-                dist_diff = defaultdict(float)
+                dist_diff: dict[int, float] = defaultdict(float)
                 for key, value in dist_plus.items():
                     dist_diff[key] += value / (2 * self._epsilon)
                 for key, value in dist_minus.items():
@@ -123,7 +123,7 @@ class SPSASamplerGradient(BaseSamplerGradient):
             gradient = []
             indices = [circuits[i].parameters.data.index(p) for p in metadata[i]["parameters"]]
             for j in indices:
-                gradient_j = defaultdict(float)
+                gradient_j: dict[int, float] = defaultdict(float)
                 for k in range(self._batch_size):
                     for key, value in dist_diffs[k].items():
                         gradient_j[key] += value * offsets[i][k][j]

@@ -13,8 +13,7 @@
 """Class for solving linear equations for Quantum Time Evolution."""
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
-from typing import Callable
+from collections.abc import Mapping, Sequence, Callable
 
 import numpy as np
 
@@ -90,7 +89,7 @@ class VarQTELinearSolver:
         self,
         param_dict: Mapping[Parameter, float],
         time_value: float | None = None,
-    ) -> tuple(np.ndarray, np.ndarray, np.ndarray):
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Solve the system of linear equations underlying McLachlan's variational principle for the
         calculation without error bounds.

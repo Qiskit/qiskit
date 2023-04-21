@@ -31,6 +31,9 @@ with open(README_PATH) as readme_file:
         flags=re.S | re.M,
     )
 
+# If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
+# it's an editable installation.
+rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
 
 # If modifying these optional extras, make sure to sync with `requirements-optional.txt` and
 # `qiskit.utils.optionals` as well.
@@ -55,7 +58,7 @@ toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
-    version="0.24.0",
+    version="0.25.0",
     description="Software for developing quantum computing programs",
     long_description=README,
     long_description_content_type="text/markdown",
@@ -105,10 +108,11 @@ setup(
             "qiskit._accelerate",
             "crates/accelerate/Cargo.toml",
             binding=Binding.PyO3,
-            # If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior
-            # of whether it's an editable installation.
-            debug=True if os.getenv("RUST_DEBUG") == "1" else None,
-        )
+            debug=rust_debug,
+        ),
+        RustExtension(
+            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug
+        ),
     ],
     zip_safe=False,
     entry_points={
@@ -119,7 +123,14 @@ setup(
         ],
         "qiskit.synthesis": [
             "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
+            "clifford.ag = qiskit.transpiler.passes.synthesis.high_level_synthesis:AGSynthesisClifford",
+            "clifford.bm = qiskit.transpiler.passes.synthesis.high_level_synthesis:BMSynthesisClifford",
+            "clifford.greedy = qiskit.transpiler.passes.synthesis.high_level_synthesis:GreedySynthesisClifford",
+            "clifford.layers = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerSynthesisClifford",
+            "clifford.lnn = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerLnnSynthesisClifford",
             "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
+            "linear_function.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisLinearFunction",
+            "linear_function.pmh = qiskit.transpiler.passes.synthesis.high_level_synthesis:PMHSynthesisLinearFunction",
             "permutation.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
             "permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
             "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",

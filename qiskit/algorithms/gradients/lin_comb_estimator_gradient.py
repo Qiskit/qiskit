@@ -15,7 +15,7 @@ Gradient of probabilities with linear combination of unitaries (LCU)
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -87,7 +87,7 @@ class LinCombEstimatorGradient(BaseEstimatorGradient):
                 default options > primitive's default setting.
                 Higher priority setting overrides lower priority setting.
         """
-        self._lin_comb_cache = {}
+        self._lin_comb_cache: dict[tuple, dict[Parameter, QuantumCircuit]] = {}
         super().__init__(estimator, options, derivative_type=derivative_type)
 
     @BaseEstimatorGradient.derivative_type.setter

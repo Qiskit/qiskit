@@ -18,17 +18,14 @@ notifications:
     "quantum_info":
         - "@ikkoham"
     "utils/run_circuits":
-        - "@manoelmarques"
         - "@woodsp-ibm"
     "utils/quantum_instance":
-        - "@manoelmarques"
         - "@woodsp-ibm"
     "opflow":
-        - "@manoelmarques"
         - "@woodsp-ibm"
         - "@Cryoris"
     "algorithms":
-        - "@manoelmarques"
+        - "@ElePT"
         - "@woodsp-ibm"
     "circuit/library":
         - "@Cryoris"
