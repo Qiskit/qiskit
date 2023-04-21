@@ -828,15 +828,27 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         See: https://github.com/Qiskit/qiskit-terra/issues/9993
         """
         qc = QuantumCircuit(3)
+        qc.cx(0, 1)
         qc.cx(1, 2)
 
         target = Target(dt=1)
         target.add_instruction(
             XGate(), {(q,): InstructionProperties(duration=100) for q in range(3)}
         )
-        target.add_instruction(CXGate(), {(1, 2): InstructionProperties(duration=1000)})
-        # delays and Y are not supported
+        # Y is partially supported (not supported on qubit 2)
+        target.add_instruction(
+            YGate(), {(q,): InstructionProperties(duration=100) for q in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {
+                (0, 1): InstructionProperties(duration=1000),
+                (1, 2): InstructionProperties(duration=1000),
+            },
+        )
+        # delays are not supported
 
+        # No DD instructions are padded (since no delays are in target)
         pm = PassManager(
             [
                 ALAPScheduleAnalysis(target=target),
@@ -846,7 +858,20 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         scheduled = pm.run(qc)
         self.assertEqual(qc, scheduled)
 
+        # No error because Y is supported on qubit 0 but no DD instructions are padded
         pm2 = PassManager(
+            [
+                ALAPScheduleAnalysis(target=target),
+                PadDynamicalDecoupling(
+                    dd_sequence=[XGate(), YGate(), XGate(), YGate()], qubits=[0], target=target
+                ),
+            ]
+        )
+        scheduled = pm2.run(qc)
+        self.assertEqual(qc, scheduled)
+
+        # Failed since Y is not supported on qubit 2
+        pm3 = PassManager(
             [
                 ALAPScheduleAnalysis(target=target),
                 PadDynamicalDecoupling(
@@ -855,7 +880,12 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
             ]
         )
         with self.assertRaises(TranspilerError):
-            pm2.run(qc)
+            pm3.run(qc)
+
+        # Still fails even if delays are supported since Y is not supported on qubit 2
+        target.add_instruction(Delay(Parameter("t")), {(q,): None for q in range(3)})
+        with self.assertRaises(TranspilerError):
+            pm3.run(qc)
 
 
 if __name__ == "__main__":

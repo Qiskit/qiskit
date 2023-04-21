@@ -212,6 +212,10 @@ class PadDynamicalDecoupling(BasePadding):
 
             sequence_lengths = []
             for gate in self._dd_sequence:
+                if not self.__gate_supported(gate, physical_index):
+                    raise TranspilerError(
+                        f"Gate {gate.name} in dd_sequence is not supported on qubit {physical_index}"
+                    )
                 try:
                     # Check calibration.
                     gate_length = dag.calibrations[gate.name][(physical_index, gate.params)]
@@ -234,6 +238,12 @@ class PadDynamicalDecoupling(BasePadding):
                 # Update gate duration. This is necessary for current timeline drawer, i.e. scheduled.
                 gate.duration = gate_length
             self._dd_sequence_lengths[qubit] = sequence_lengths
+
+    def __gate_supported(self, gate: Gate, qarg: int) -> bool:
+        """A gate is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported(gate.name, qargs=(qarg,)):
+            return True
+        return False
 
     def _pad(
         self,
