@@ -152,7 +152,7 @@ class PadDynamicalDecoupling(BasePadding):
                 non-multiple of the alignment constraint value is found.
             TypeError: If ``dd_sequence`` is not specified
         """
-        super().__init__()
+        super().__init__(target=target)
         self._durations = durations
         if dd_sequence is None:
             raise TypeError("required argument 'dd_sequence' is not specified")

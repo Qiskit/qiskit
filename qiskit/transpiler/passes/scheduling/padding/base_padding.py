@@ -19,6 +19,7 @@ from qiskit.circuit.delay import Delay
 from qiskit.dagcircuit import DAGCircuit, DAGNode
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
 class BasePadding(TransformationPass):
@@ -48,6 +49,20 @@ class BasePadding(TransformationPass):
     tracking the start time of each instruction,
     which may result in violation of hardware alignment constraints.
     """
+
+    def __init__(
+        self,
+        target: Target = None,
+    ):
+        """BasePadding initializer.
+
+        Args:
+            target: The :class:`~.Target` representing the target backend.
+                If it supplied and it does not support delay instruction on a qubit,
+                padding passes do not pad any idle time of the qubit.
+        """
+        super().__init__()
+        self.target = target
 
     def run(self, dag: DAGCircuit):
         """Run the padding pass on ``dag``.
@@ -83,6 +98,7 @@ class BasePadding(TransformationPass):
         new_dag.calibrations = dag.calibrations
         new_dag.global_phase = dag.global_phase
 
+        bit_indices = {q: index for index, q in enumerate(dag.qubits)}
         idle_after = {bit: 0 for bit in dag.qubits}
 
         # Compute fresh circuit duration from the node start time dictionary and op duration.
@@ -107,16 +123,19 @@ class BasePadding(TransformationPass):
 
                     # Fill idle time with some sequence
                     if t0 - idle_after[bit] > 0:
-                        # Find previous node on the wire, i.e. always the latest node on the wire
-                        prev_node = next(new_dag.predecessors(new_dag.output_map[bit]))
-                        self._pad(
-                            dag=new_dag,
-                            qubit=bit,
-                            t_start=idle_after[bit],
-                            t_end=t0,
-                            next_node=node,
-                            prev_node=prev_node,
-                        )
+                        if self.target is None or (bit_indices[bit],) in self.target.get(
+                            "delay", []
+                        ):
+                            # Find previous node on the wire, i.e. always the latest node on the wire
+                            prev_node = next(new_dag.predecessors(new_dag.output_map[bit]))
+                            self._pad(
+                                dag=new_dag,
+                                qubit=bit,
+                                t_start=idle_after[bit],
+                                t_end=t0,
+                                next_node=node,
+                                prev_node=prev_node,
+                            )
 
                     idle_after[bit] = t1
 
@@ -130,16 +149,17 @@ class BasePadding(TransformationPass):
         # Add delays until the end of circuit.
         for bit in new_dag.qubits:
             if circuit_duration - idle_after[bit] > 0:
-                node = new_dag.output_map[bit]
-                prev_node = next(new_dag.predecessors(node))
-                self._pad(
-                    dag=new_dag,
-                    qubit=bit,
-                    t_start=idle_after[bit],
-                    t_end=circuit_duration,
-                    next_node=node,
-                    prev_node=prev_node,
-                )
+                if self.target is None or (bit_indices[bit],) in self.target.get("delay", []):
+                    node = new_dag.output_map[bit]
+                    prev_node = next(new_dag.predecessors(node))
+                    self._pad(
+                        dag=new_dag,
+                        qubit=bit,
+                        t_start=idle_after[bit],
+                        t_end=circuit_duration,
+                        next_node=node,
+                        prev_node=prev_node,
+                    )
 
         new_dag.duration = circuit_duration
 

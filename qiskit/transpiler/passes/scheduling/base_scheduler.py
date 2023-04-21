@@ -245,15 +245,16 @@ class BaseSchedulerTransform(TransformationPass):
         """
         super().__init__()
         self.durations = durations
+        # Ensure op node durations are attached and in consistent unit
+        if target is not None:
+            self.durations = target.durations()
+        self.requires.append(TimeUnitConversion(self.durations))
 
         # Control flow constraints.
         self.clbit_write_latency = clbit_write_latency
         self.conditional_latency = conditional_latency
 
-        # Ensure op node durations are attached and in consistent unit
-        self.requires.append(TimeUnitConversion(durations))
-        if target is not None:
-            self.durations = target.durations()
+        self.target = target
 
     @staticmethod
     def _get_node_duration(
