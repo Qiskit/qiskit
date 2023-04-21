@@ -12,21 +12,20 @@
 
 """Tests for DensityMatrix quantum state class."""
 
-import unittest
 import logging
-from ddt import ddt, data
+import unittest
+
 import numpy as np
+from ddt import data, ddt
 from numpy.testing import assert_allclose
 
-from qiskit.test import QiskitTestCase
-from qiskit import QiskitError
-from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import HGate, QFT
-
-from qiskit.quantum_info.random import random_unitary, random_density_matrix, random_pauli
-from qiskit.quantum_info.states import DensityMatrix, Statevector
+from qiskit import QiskitError, QuantumCircuit, QuantumRegister
+from qiskit.circuit.library import QFT, HGate
 from qiskit.quantum_info.operators.operator import Operator
 from qiskit.quantum_info.operators.symplectic import Pauli, SparsePauliOp
+from qiskit.quantum_info.random import random_density_matrix, random_pauli, random_unitary
+from qiskit.quantum_info.states import DensityMatrix, Statevector
+from qiskit.test import QiskitTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -1201,6 +1200,24 @@ class TestDensityMatrix(QiskitTestCase):
         for drawtype in ["repr", "text", "latex", "latex_source", "qsphere", "hinton", "bloch"]:
             with self.subTest(msg=f"draw('{drawtype}')"):
                 dm.draw(drawtype)
+
+    def test_density_matrix_partial_transpose(self):
+        """Test partial_transpose function on density matrices"""
+        with self.subTest(msg="separable"):
+            rho = DensityMatrix.from_label("10+")
+            rho1 = np.zeros((8, 8), complex)
+            rho1[4, 4] = 0.5
+            rho1[4, 5] = 0.5
+            rho1[5, 4] = 0.5
+            rho1[5, 5] = 0.5
+            self.assertEqual(rho.partial_transpose([0, 1]), DensityMatrix(rho1))
+            self.assertEqual(rho.partial_transpose([0, 2]), DensityMatrix(rho1))
+
+        with self.subTest(msg="entangled"):
+            rho = DensityMatrix([[0, 0, 0, 0], [0, 0.5, -0.5, 0], [0, -0.5, 0.5, 0], [0, 0, 0, 0]])
+            rho1 = DensityMatrix([[0, 0, 0, -0.5], [0, 0.5, 0, 0], [0, 0, 0.5, 0], [-0.5, 0, 0, 0]])
+            self.assertEqual(rho.partial_transpose([0]), DensityMatrix(rho1))
+            self.assertEqual(rho.partial_transpose([1]), DensityMatrix(rho1))
 
     def test_clip_probabilities(self):
         """Test probabilities are clipped to [0, 1]."""

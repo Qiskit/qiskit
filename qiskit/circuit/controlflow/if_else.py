@@ -13,17 +13,17 @@
 "Circuit operation representing an ``if/else`` statement."
 
 
-from typing import Optional, Tuple, Union, Iterable, Set
+from typing import Optional, Tuple, Union, Iterable
 import itertools
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
 from qiskit.circuit.instructionset import InstructionSet
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.register import Register
+
 from .builder import ControlFlowBuilderBlock, InstructionPlaceholder, InstructionResources
 from .condition import validate_condition, condition_bits, condition_registers
 from .control_flow import ControlFlowOp
+from ._builder_utils import partition_registers, unify_circuit_resources
 
 
 # This is just an indication of what's actually meant to be the public API.
@@ -194,7 +194,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
         # These are protected names because we're not trying to clash with parent attributes.
         self.__true_block = true_block
         self.__false_block: Optional[ControlFlowBuilderBlock] = false_block
-        self.__resources = self._placeholder_resources()
+        self.__resources = self._calculate_placeholder_resources()
         super().__init__(
             "if_else", len(self.__resources.qubits), len(self.__resources.clbits), [], label=label
         )
@@ -232,7 +232,7 @@ class IfElsePlaceholder(InstructionPlaceholder):
             return self.__true_block.registers.copy()
         return self.__true_block.registers | self.__false_block.registers
 
-    def _placeholder_resources(self) -> InstructionResources:
+    def _calculate_placeholder_resources(self) -> InstructionResources:
         """Get the placeholder resources (see :meth:`.placeholder_resources`).
 
         This is a separate function because we use the resources during the initialisation to
@@ -240,15 +240,15 @@ class IfElsePlaceholder(InstructionPlaceholder):
         public version as a cache access for efficiency.
         """
         if self.__false_block is None:
-            qregs, cregs = _partition_registers(self.__true_block.registers)
+            qregs, cregs = partition_registers(self.__true_block.registers)
             return InstructionResources(
                 qubits=tuple(self.__true_block.qubits),
                 clbits=tuple(self.__true_block.clbits),
                 qregs=tuple(qregs),
                 cregs=tuple(cregs),
             )
-        true_qregs, true_cregs = _partition_registers(self.__true_block.registers)
-        false_qregs, false_cregs = _partition_registers(self.__false_block.registers)
+        true_qregs, true_cregs = partition_registers(self.__true_block.registers)
+        false_qregs, false_cregs = partition_registers(self.__false_block.registers)
         return InstructionResources(
             qubits=tuple(self.__true_block.qubits | self.__false_block.qubits),
             clbits=tuple(self.__true_block.clbits | self.__false_block.clbits),
@@ -276,13 +276,15 @@ class IfElsePlaceholder(InstructionPlaceholder):
                 f" {current_bits - all_bits!r}"
             )
         true_body = self.__true_block.build(qubits, clbits)
-        false_body = (
-            None if self.__false_block is None else self.__false_block.build(qubits, clbits)
-        )
-        # The bodies are not compelled to use all the resources that the
-        # ControlFlowBuilderBlock.build calls get passed, but they do need to be as wide as each
-        # other.  Now we ensure that they are.
-        true_body, false_body = _unify_circuit_resources(true_body, false_body)
+        if self.__false_block is None:
+            false_body = None
+        else:
+            # The bodies are not compelled to use all the resources that the
+            # ControlFlowBuilderBlock.build calls get passed, but they do need to be as wide as each
+            # other.  Now we ensure that they are.
+            true_body, false_body = unify_circuit_resources(
+                (true_body, self.__false_block.build(qubits, clbits))
+            )
         return (
             self._copy_mutable_properties(
                 IfElseOp(self.condition, true_body, false_body, label=self.label)
@@ -485,7 +487,7 @@ class ElseContext:
             # bits onto the circuits at the end.
             true_body = self._if_instruction.operation.blocks[0]
             false_body = false_block.build(false_block.qubits, false_block.clbits)
-            true_body, false_body = _unify_circuit_resources(true_body, false_body)
+            true_body, false_body = unify_circuit_resources((true_body, false_body))
             circuit.append(
                 IfElseOp(
                     self._if_context.condition,
@@ -497,98 +499,3 @@ class ElseContext:
                 tuple(true_body.clbits),
             )
         return False
-
-
-def _partition_registers(
-    registers: Iterable[Register],
-) -> Tuple[Set[QuantumRegister], Set[ClassicalRegister]]:
-    """Partition a sequence of registers into its quantum and classical registers."""
-    qregs = set()
-    cregs = set()
-    for register in registers:
-        if isinstance(register, QuantumRegister):
-            qregs.add(register)
-        elif isinstance(register, ClassicalRegister):
-            cregs.add(register)
-        else:
-            # Purely defensive against Terra expansion.
-            raise CircuitError(f"Unknown register: {register}.")
-    return qregs, cregs
-
-
-def _unify_circuit_resources(
-    true_body: QuantumCircuit, false_body: Optional[QuantumCircuit]
-) -> Tuple[QuantumCircuit, Union[QuantumCircuit, None]]:
-    """
-    Ensure that ``true_body`` and ``false_body`` have all the same qubits, clbits and registers, and
-    that they are defined in the same order.  The order is important for binding when the bodies are
-    used in the 3-tuple :obj:`.Instruction` context.
-
-    This function will preferentially try to mutate ``true_body`` and ``false_body`` if they share
-    an ordering, but if not, it will rebuild two new circuits.  This is to avoid coupling too
-    tightly to the inner class; there is no real support for deleting or re-ordering bits within a
-    :obj:`.QuantumCircuit` context, and we don't want to rely on the *current* behaviour of the
-    private APIs, since they are very liable to change.  No matter the method used, two circuits
-    with unified bits and registers are returned.
-    """
-    if false_body is None:
-        return true_body, false_body
-    # These may be returned as inner lists, so take care to avoid mutation.
-    true_qubits, true_clbits = true_body.qubits, true_body.clbits
-    n_true_qubits, n_true_clbits = len(true_qubits), len(true_clbits)
-    false_qubits, false_clbits = false_body.qubits, false_body.clbits
-    n_false_qubits, n_false_clbits = len(false_qubits), len(false_clbits)
-    # Attempt to determine if the two resource lists can simply be extended to be equal.  The
-    # messiness with comparing lengths first is to avoid doing multiple full-list comparisons.
-    if n_true_qubits <= n_false_qubits and true_qubits == false_qubits[:n_true_qubits]:
-        true_body.add_bits(false_qubits[n_true_qubits:])
-    elif n_false_qubits < n_true_qubits and false_qubits == true_qubits[:n_false_qubits]:
-        false_body.add_bits(true_qubits[n_false_qubits:])
-    else:
-        return _unify_circuit_resources_rebuild(true_body, false_body)
-    if n_true_clbits <= n_false_clbits and true_clbits == false_clbits[:n_true_clbits]:
-        true_body.add_bits(false_clbits[n_true_clbits:])
-    elif n_false_clbits < n_true_clbits and false_clbits == true_clbits[:n_false_clbits]:
-        false_body.add_bits(true_clbits[n_false_clbits:])
-    else:
-        return _unify_circuit_resources_rebuild(true_body, false_body)
-    return _unify_circuit_registers(true_body, false_body)
-
-
-def _unify_circuit_resources_rebuild(
-    true_body: QuantumCircuit, false_body: QuantumCircuit
-) -> Tuple[QuantumCircuit, QuantumCircuit]:
-    """
-    Ensure that ``true_body`` and ``false_body`` have all the same qubits and clbits, and that they
-    are defined in the same order.  The order is important for binding when the bodies are used in
-    the 3-tuple :obj:`.Instruction` context.
-
-    This function will always rebuild the two parameters into new :obj:`.QuantumCircuit` instances.
-    """
-    qubits = list(set(true_body.qubits).union(false_body.qubits))
-    clbits = list(set(true_body.clbits).union(false_body.clbits))
-    # We use the inner `_append` method because everything is already resolved.
-    true_out = QuantumCircuit(qubits, clbits, *true_body.qregs, *true_body.cregs)
-    for instruction in true_body.data:
-        true_out._append(instruction)
-    false_out = QuantumCircuit(qubits, clbits, *false_body.qregs, *false_body.cregs)
-    for instruction in false_body.data:
-        false_out._append(instruction)
-    return _unify_circuit_registers(true_out, false_out)
-
-
-def _unify_circuit_registers(
-    true_body: QuantumCircuit, false_body: QuantumCircuit
-) -> Tuple[QuantumCircuit, QuantumCircuit]:
-    """
-    Ensure that ``true_body`` and ``false_body`` have the same registers defined within them.  These
-    do not need to be in the same order between circuits.  The two input circuits are returned,
-    mutated to have the same registers.
-    """
-    true_registers = set(true_body.qregs) | set(true_body.cregs)
-    false_registers = set(false_body.qregs) | set(false_body.cregs)
-    for register in false_registers - true_registers:
-        true_body.add_register(register)
-    for register in true_registers - false_registers:
-        false_body.add_register(register)
-    return true_body, false_body
