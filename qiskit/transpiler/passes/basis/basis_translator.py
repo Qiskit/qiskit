@@ -13,10 +13,10 @@
 
 """Translates gates to a target basis using a given equivalence library."""
 
-import sys
 import time
 import logging
 
+from functools import singledispatchmethod
 from itertools import zip_longest
 from collections import defaultdict
 
@@ -28,11 +28,6 @@ from qiskit.converters import circuit_to_dag, dag_to_circuit
 from qiskit.circuit.equivalence import Key, NodeData
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
-
-if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod
-else:
-    from singledispatchmethod import singledispatchmethod
 
 logger = logging.getLogger(__name__)
 
