@@ -24,7 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT
+from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
 from qiskit.providers.basicaer import QasmSimulatorPy
 
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
@@ -183,6 +183,13 @@ class TestStatevector(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.reset(0)
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test 0q instruction
+        target = Statevector([1j, 0])
+        circuit = QuantumCircuit(1)
+        circuit.append(GlobalPhaseGate(np.pi / 2), [], [])
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
