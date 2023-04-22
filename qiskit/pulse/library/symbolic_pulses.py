@@ -1080,50 +1080,65 @@ def GaussianSquareEcho(
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
 ) -> SymbolicPulse:
-    """An echoed Gaussian square pulse with an active tone overlaid on it.
-    
-    Exactly one of the ``risefall_sigma_ratio`` and ``width`` parameters has to be specified.
-    If ``risefall_sigma_ratio`` is not ``None`` and ``width`` is ``None``:
-    .. math::
-        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
-        \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
-    If ``width`` is not None and ``risefall_sigma_ratio`` is None:
-    .. math:: \\text{risefall} = \\frac{\\text{duration} - \\text{width}}{2}
+    """An echoed Gaussian square pulse with an active tone overlaid on it. The ``amp`` and
+    ``angle`` parameters are used to define the amplitude and phase of the echoed Gaussian 
+    square pulse while the ``active_amp`` and ``active_angle`` parameters are used to 
+    define the active tone.
+
     The Gaussian Square Echo pulse is composed of three pulses. First, a Gaussian Square pulse
-    :math: `f_{echo}(x)` with amplitude ``amp`` and phase ``angle`` playing for half duration,
-    followed by a second Gaussian Square pulse :math: `-f_{echo}(x)` with opposite amplitude
-    and same phase playing for the rest of the duration. Third a Gaussian Square pulse
-     :math: `f_{active}(x)` with amplitude ``active_amp`` and phase ``active_angle``
-    playing for the entire duration. The Gaussian Square Echo pulse :math: `g_e()`
+    :math:`f_{echo}(x)` with amplitude ``amp`` and phase ``angle`` playing for half duration,
+    followed by a second Gaussian Square pulse :math:`-f_{echo}(x)` with opposite amplitude
+    and same phase playing for the rest of the duration. Third a Gaussian Square pulse 
+    :math:`f_{active}(x)` with amplitude ``active_amp`` and phase ``active_angle``
+    playing for the entire duration. The Gaussian Square Echo pulse :math:`g_e()` 
     can be written as:
+
     .. math::
 
         g_e(x) &= \\begin{cases}\
             f_{\\text{active}} + f_{\\text{echo}}(x)\
                 & x < \\frac{\\text{duration}}{2}\\\\
             f_{\\text{active}} - f_{\\text{echo}}(x)\
-                & \\frac{\\text{duration}}{2} < x\\\\
+                & \\frac{\\text{duration}}{2} < x\
+        \\end{cases}\\\\
 
+    One case where this pulse can be used is when implementing a direct CNOT gate with 
+    a cross-resonance superconducting qubit architecture. When applying this pulse to 
+    the target qubit, the active portion can be used to cancel IX terms from the 
+    cross-resonance drive while the echo portion can reduce the impact of a static ZZ coupling.
+    
+    Exactly one of the ``risefall_sigma_ratio`` and ``width`` parameters has to be specified.
 
+    If ``risefall_sigma_ratio`` is not ``None`` and ``width`` is ``None``:
+
+    .. math::
+
+        \\text{risefall} &= \\text{risefall_sigma_ratio} \\times \\text{sigma}\\\\
+        \\text{width} &= \\text{duration} - 2 \\times \\text{risefall}
+
+    If ``width`` is not None and ``risefall_sigma_ratio`` is None:
+
+    .. math:: \\text{risefall} = \\frac{\\text{duration} - \\text{width}}{2}
 
     References:
         1. |citation1|_
 
-        .. _citation1: https://journals.aps.org/prxquantum/abstract/10.1103/PRXQuantum.1.020318
+        .. _citation1: https://iopscience.iop.org/article/10.1088/2058-9565/abe519
 
-        .. |citation1| replace:: *Sundaresan, N., Lauer, I., Pritchett, E.,
-           Magesan, E.,  Jurcevic, P. & Gambetta, J. M.
-           Reducing Unitary and Spectator Errors in Cross Resonance with
-           Optimized Rotary Echoes. PRX Quantum 1, 020318 (2020).*
+        .. |citation1| replace:: *Jurcevic, P., Javadi-Abhari, A., Bishop, L. S., 
+            Lauer, I., Bogorin, D. F., Brink, M., Capelluto, L., G{\"u}nl{\"u}k, O., 
+            Itoko, T., Kanazawa, N. & others
+            Demonstration of quantum volume 64 on a superconducting quantum 
+            computing system. (Section V)*
     Args:
         duration: Pulse length in terms of the sampling period `dt`.
-        amp: The amplitude of the rise and fall and of the square pulse.
+        amp: The amplitude of the rise and fall and of the echoed pulse.
         sigma: A measure of how wide or narrow the risefall is; see the class
                docstring for more details.
         width: The duration of the embedded square pulse.
         angle: The angle in radians of the complex phase factor uniformly
-            scaling the pulse. Default value 0.
-        active_amp: The amplitude of the active cancellation tone.
+            scaling the echoed pulse. Default value 0.
+        active_amp: The amplitude of the active pulse.
         active_angle: The angle in radian of the complex phase factor uniformly
             scaling the active pulse. Default value 0.
         risefall_sigma_ratio: The ratio of each risefall duration to sigma.
