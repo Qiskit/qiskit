@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,6 +16,12 @@ Converters (:mod:`qiskit.opflow.converters`)
 
 .. currentmodule:: qiskit.opflow.converters
 
+.. deprecated:: 0.24.0
+
+    The :mod:`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
+
 Converters are objects which manipulate Operators, usually traversing an Operator to
 change certain sub-Operators into a desired representation. Often the converted Operator is
 isomorphic or approximate to the original Operator in some way, but not always. For example,
@@ -30,6 +36,7 @@ which convert :class:`~qiskit.opflow.primitive_ops.PauliOp`'s to
 :class:`~qiskit.opflow.primitive_ops.MatrixOp`'s internally, will require time or space
 exponential in the number of qubits unless a clever trick is known
 (such as the use of sparse matrices).
+
 
 Note:
      Not all converters are in this module, as :mod:`~qiskit.opflow.expectations`
