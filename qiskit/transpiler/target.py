@@ -1001,7 +1001,7 @@ class Target(Mapping):
 
         If there is a mix of two qubit operations that have a connectivity
         constraint and those that are globally defined this will also return
-        ``None`` because the globally connectivity means there is no contstraint
+        ``None`` because the globally connectivity means there is no constraint
         on the target. If you wish to see the constraints of the two qubit
         operations that have constraints you should use the ``two_q_gate``
         argument to limit the output to the gates which have a constraint.
@@ -1059,17 +1059,16 @@ class Target(Mapping):
             if filter_idle_qubits:
                 cmap.graph = self._filter_coupling_graph()
             else:
-                cmap.graph = self._coupling_graph
+                cmap.graph = self._coupling_graph.copy()
             return cmap
         else:
             return None
 
     def _filter_coupling_graph(self):
         has_operations = set(itertools.chain.from_iterable(self.qargs))
-        graph = self._coupling_graph
+        graph = self._coupling_graph.copy()
         to_remove = set(graph.node_indices()).difference(has_operations)
         if to_remove:
-            graph = graph.copy()
             graph.remove_nodes_from(list(to_remove))
         return graph
 
