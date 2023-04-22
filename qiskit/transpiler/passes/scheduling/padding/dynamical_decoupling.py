@@ -12,6 +12,7 @@
 
 """Dynamical Decoupling insertion pass."""
 
+import logging
 from typing import List, Optional
 
 import numpy as np
@@ -28,6 +29,8 @@ from qiskit.transpiler.passes.optimization import Optimize1qGates
 from qiskit.transpiler.target import Target
 
 from .base_padding import BasePadding
+
+logger = logging.getLogger(__name__)
 
 
 class PadDynamicalDecoupling(BasePadding):
@@ -163,6 +166,7 @@ class PadDynamicalDecoupling(BasePadding):
         self._spacing = spacing
         self._extra_slack_distribution = extra_slack_distribution
 
+        self._no_dd_qubits = set()
         self._dd_sequence_lengths = {}
         self._sequence_phase = 0
         if target is not None:
@@ -205,17 +209,22 @@ class PadDynamicalDecoupling(BasePadding):
                 raise TranspilerError("The DD sequence does not make an identity operation.")
             self._sequence_phase = np.angle(noop[0][0])
 
+        # Compute no DD qubits on which any gate in dd_sequence is not supported in the target
+        for qarg, _ in enumerate(dag.qubits):
+            for gate in self._dd_sequence:
+                if not self.__gate_supported(gate, qarg):
+                    self._no_dd_qubits.add(qarg)
+                    logger.debug(
+                        "No DD on qubit %d as gate %s is not supported on it", qarg, gate.name
+                    )
+                    break
         # Precompute qubit-wise DD sequence length for performance
         for physical_index, qubit in enumerate(dag.qubits):
-            if self._qubits and physical_index not in self._qubits:
+            if not self.__is_dd_qubit(physical_index):
                 continue
 
             sequence_lengths = []
             for gate in self._dd_sequence:
-                if not self.__gate_supported(gate, physical_index):
-                    raise TranspilerError(
-                        f"Gate {gate.name} in dd_sequence is not supported on qubit {physical_index}"
-                    )
                 try:
                     # Check calibration.
                     gate_length = dag.calibrations[gate.name][(physical_index, gate.params)]
@@ -244,6 +253,14 @@ class PadDynamicalDecoupling(BasePadding):
         if self.target is None or self.target.instruction_supported(gate.name, qargs=(qarg,)):
             return True
         return False
+
+    def __is_dd_qubit(self, qubit_index: int) -> bool:
+        """DD can be inserted in the qubit or not."""
+        if (qubit_index in self._no_dd_qubits) or (
+            self._qubits and qubit_index not in self._qubits
+        ):
+            return False
+        return True
 
     def _pad(
         self,
@@ -282,7 +299,7 @@ class PadDynamicalDecoupling(BasePadding):
         # Y3: 288 dt + 160 dt + 80 dt = 528 dt (33 x 16 dt)
         # Y4: 368 dt + 160 dt + 80 dt = 768 dt (48 x 16 dt)
         #
-        # As you can see, constraints on t0 are all satified without explicit scheduling.
+        # As you can see, constraints on t0 are all satisfied without explicit scheduling.
         time_interval = t_end - t_start
         if time_interval % self._alignment != 0:
             raise TranspilerError(
@@ -291,7 +308,7 @@ class PadDynamicalDecoupling(BasePadding):
                 f"on qargs {next_node.qargs}."
             )
 
-        if self._qubits and dag.qubits.index(qubit) not in self._qubits:
+        if not self.__is_dd_qubit(dag.qubits.index(qubit)):
             # Target physical qubit is not the target of this DD sequence.
             self._apply_scheduled_op(dag, t_start, Delay(time_interval, dag.unit), qubit)
             return

@@ -186,8 +186,7 @@ class BasePadding(TransformationPass):
         for qarg, _ in enumerate(dag.qubits):
             if not self.__delay_supported(qarg):
                 logger.debug(
-                    "Idle time may not be padded for qubit %d as the target does not support "
-                    "delay instruction on the qubit",
+                    "No padding on qubit %d as delay is not supported on it",
                     qarg,
                 )
 
