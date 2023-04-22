@@ -1393,6 +1393,35 @@ class DAGCircuit:
             self._decrement_op(node.op)
         return new_node
 
+    def swap_nodes(self, node1, node2):
+        """Swap connected nodes e.g. due to commutation.
+
+        Args:
+            node1 (OpNode): predecessor node
+            node2 (OpNode): successor node
+
+        Raises:
+            DAGCircuitError: if either node is not an OpNode or nodes are not connected
+        """
+        if not (isinstance(node1, DAGOpNode) and isinstance(node2, DAGOpNode)):
+            raise DAGCircuitError("nodes to swap are not both DAGOpNodes")
+        try:
+            connected_edges = self._multi_graph.get_all_edge_data(node1._node_id, node2._node_id)
+        except rx.NoEdgeBetweenNodes as no_common_edge:
+            raise DAGCircuitError("attempt to swap unconnected nodes") from no_common_edge
+        node1_id = node1._node_id
+        node2_id = node2._node_id
+        for edge in connected_edges[::-1]:
+            edge_find = lambda x, y=edge: x == y
+            edge_parent = self._multi_graph.find_predecessors_by_edge(node1_id, edge_find)[0]
+            self._multi_graph.remove_edge(edge_parent._node_id, node1_id)
+            self._multi_graph.add_edge(edge_parent._node_id, node2_id, edge)
+            edge_child = self._multi_graph.find_successors_by_edge(node2_id, edge_find)[0]
+            self._multi_graph.remove_edge(node1_id, node2_id)
+            self._multi_graph.add_edge(node2_id, node1_id, edge)
+            self._multi_graph.remove_edge(node2_id, edge_child._node_id)
+            self._multi_graph.add_edge(node1_id, edge_child._node_id, edge)
+
     def node(self, node_id):
         """Get the node in the dag.
 

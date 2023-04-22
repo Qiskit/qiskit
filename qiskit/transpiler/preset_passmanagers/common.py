@@ -84,12 +84,39 @@ def _without_control_flow(property_set):
     return not any(property_set[f"contains_{x}"] for x in _CONTROL_FLOW_OP_NAMES)
 
 
+class _InvalidControlFlowForBackend:
+    # Explicitly stateful closure to allow pickling.
+
+    def __init__(self, basis_gates=(), target=None):
+        if target is not None:
+            self.unsupported = [op for op in _CONTROL_FLOW_OP_NAMES if op not in target]
+        else:
+            basis_gates = set(basis_gates) if basis_gates is not None else set()
+            self.unsupported = [op for op in _CONTROL_FLOW_OP_NAMES if op not in basis_gates]
+
+    def message(self, property_set):
+        """Create an error message for the given property set."""
+        fails = [x for x in self.unsupported if property_set[f"contains_{x}"]]
+        if len(fails) == 1:
+            return f"The control-flow construct '{fails[0]}' is not supported by the backend."
+        return (
+            f"The control-flow constructs [{', '.join(repr(op) for op in fails)}]"
+            " are not supported by the backend."
+        )
+
+    def condition(self, property_set):
+        """Checkable condition for the given property set."""
+        return any(property_set[f"contains_{x}"] for x in self.unsupported)
+
+
 def generate_control_flow_options_check(
     layout_method=None,
     routing_method=None,
     translation_method=None,
     optimization_method=None,
     scheduling_method=None,
+    basis_gates=(),
+    target=None,
 ):
     """Generate a pass manager that, when run on a DAG that contains control flow, fails with an
     error message explaining the invalid options, and what could be used instead.
@@ -99,7 +126,6 @@ def generate_control_flow_options_check(
         control-flow operations, and raises an error if any of the given options do not support
         control flow, but a circuit with control flow is given.
     """
-
     bad_options = []
     message = "Some options cannot be used with control flow."
     for stage, given in [
@@ -123,9 +149,10 @@ def generate_control_flow_options_check(
             bad_options.append(option)
     out = PassManager()
     out.append(ContainsInstruction(_CONTROL_FLOW_OP_NAMES, recurse=False))
-    if not bad_options:
-        return out
-    out.append(Error(message), condition=_has_control_flow)
+    if bad_options:
+        out.append(Error(message), condition=_has_control_flow)
+    backend_control = _InvalidControlFlowForBackend(basis_gates, target)
+    out.append(Error(backend_control.message), condition=backend_control.condition)
     return out
 
 
@@ -168,7 +195,8 @@ def generate_unroll_3q(
             gates on the backend target
         approximation_degree (Optional[float]): The heuristic approximation degree to
             use. Can be between 0 and 1.
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_method (str): The unitary synthesis method to use. You can see
+            a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config (dict): The optional dictionary plugin
             configuration, this is plugin specific refer to the specified plugin's
             documentation for how to use.
@@ -361,7 +389,8 @@ def generate_translation_passmanager(
             documentation for how to use.
         backend_props (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
-        unitary_synthesis_method (str): The unitary synthesis method to use
+        unitary_synthesis_method (str): The unitary synthesis method to use. You can
+            see a list of installed plugins with :func:`.unitary_synthesis_plugin_names`.
         hls_config (HLSConfig): An optional configuration class to use for
             :class:`~qiskit.transpiler.passes.HighLevelSynthesis` pass.
             Specifies how to synthesize various high-level objects.
