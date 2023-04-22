@@ -824,7 +824,8 @@ class TestPadDynamicalDecoupling(QiskitTestCase):
         self.assertEqual(circ1, circ2)
 
     def test_respect_target_instruction_constraints(self):
-        """Test if DD pass does not pad delays for qubits that do not support delay instructions.
+        """Test if DD pass does not pad delays for qubits that do not support delay instructions
+        and does not insert DD gates for qubits that do not support necessary gates.
         See: https://github.com/Qiskit/qiskit-terra/issues/9993
         """
         qc = QuantumCircuit(3)

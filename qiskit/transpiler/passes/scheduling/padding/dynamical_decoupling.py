@@ -172,7 +172,7 @@ class PadDynamicalDecoupling(BasePadding):
         if target is not None:
             self._durations = target.durations()
             for gate in dd_sequence:
-                if gate.name not in self.target.operation_names:
+                if gate.name not in target.operation_names:
                     raise TranspilerError(
                         f"{gate.name} in dd_sequence is not supported in the target"
                     )
