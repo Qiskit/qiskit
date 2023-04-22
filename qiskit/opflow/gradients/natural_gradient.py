@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,6 +20,7 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
 from ..operator_base import OperatorBase
 from ..list_ops.list_op import ListOp
 from ..list_ops.composed_op import ComposedOp
@@ -37,7 +38,7 @@ RCOND = 1e-2
 
 
 class NaturalGradient(GradientBase):
-    r"""Convert an operator expression to the first-order gradient.
+    r"""Deprecated: Convert an operator expression to the first-order gradient.
 
     Given an ill-posed inverse problem
 
@@ -51,6 +52,10 @@ class NaturalGradient(GradientBase):
     where R(x) represents the penalization term.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         grad_method: Union[str, CircuitGradient] = "lin_comb",

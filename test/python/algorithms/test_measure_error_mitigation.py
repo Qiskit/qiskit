@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2022.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """Test Measurement Error Mitigation"""
 
 import unittest
-
 from test.python.algorithms import QiskitAlgorithmsTestCase
 from ddt import ddt, data, unpack
 import numpy as np
@@ -72,16 +71,19 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             CompleteMeasFitter if fitter_str == "CompleteMeasFitter" else TensoredMeasFitter
         )
         backend = Aer.get_backend("aer_simulator")
-        quantum_instance = QuantumInstance(
-            backend=backend,
-            seed_simulator=1679,
-            seed_transpiler=167,
-            shots=1000,
-            noise_model=noise_model,
-            measurement_error_mitigation_cls=fitter_cls,
-            cals_matrix_refresh_period=0,
-            mit_pattern=mit_pattern,
-        )
+
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                backend=backend,
+                seed_simulator=1679,
+                seed_transpiler=167,
+                shots=1000,
+                noise_model=noise_model,
+                measurement_error_mitigation_cls=fitter_cls,
+                cals_matrix_refresh_period=0,
+                mit_pattern=mit_pattern,
+            )
+
         # circuit
         qc1 = QuantumCircuit(2, 2)
         qc1.h(0)
@@ -94,15 +96,16 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         qc2.measure(1, 0)
         qc2.measure(0, 1)
 
-        if fails:
-            self.assertRaisesRegex(
-                QiskitError,
-                "Each element in the mit pattern should have length 1.",
-                quantum_instance.execute,
-                [qc1, qc2],
-            )
-        else:
-            quantum_instance.execute([qc1, qc2])
+        with self.assertWarns(DeprecationWarning):
+            if fails:
+                self.assertRaisesRegex(
+                    QiskitError,
+                    "Each element in the mit pattern should have length 1.",
+                    quantum_instance.execute,
+                    [qc1, qc2],
+                )
+            else:
+                quantum_instance.execute([qc1, qc2])
 
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
@@ -114,7 +117,8 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         qc3.measure(2, 1)
         qc3.measure(1, 2)
 
-        self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
+        with self.assertWarns(DeprecationWarning):
+            self.assertRaises(QiskitError, quantum_instance.execute, [qc1, qc3])
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
     @data(("CompleteMeasFitter", None), ("TensoredMeasFitter", [[0], [1]]))
@@ -133,28 +137,33 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             CompleteMeasFitter if fitter_str == "CompleteMeasFitter" else TensoredMeasFitter
         )
         backend = Aer.get_backend("aer_simulator")
-        quantum_instance = QuantumInstance(
-            backend=backend,
-            seed_simulator=167,
-            seed_transpiler=167,
-            noise_model=noise_model,
-            measurement_error_mitigation_cls=fitter_cls,
-            mit_pattern=mit_pattern,
-        )
 
-        h2_hamiltonian = (
-            -1.052373245772859 * (I ^ I)
-            + 0.39793742484318045 * (I ^ Z)
-            - 0.39793742484318045 * (Z ^ I)
-            - 0.01128010425623538 * (Z ^ Z)
-            + 0.18093119978423156 * (X ^ X)
-        )
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                backend=backend,
+                seed_simulator=167,
+                seed_transpiler=167,
+                noise_model=noise_model,
+                measurement_error_mitigation_cls=fitter_cls,
+                mit_pattern=mit_pattern,
+            )
+
         optimizer = SPSA(maxiter=200)
         ansatz = EfficientSU2(2, reps=1)
 
         with self.assertWarns(DeprecationWarning):
+            h2_hamiltonian = (
+                -1.052373245772859 * (I ^ I)
+                + 0.39793742484318045 * (I ^ Z)
+                - 0.39793742484318045 * (Z ^ I)
+                - 0.01128010425623538 * (Z ^ Z)
+                + 0.18093119978423156 * (X ^ X)
+            )
+
+        with self.assertWarns(DeprecationWarning):
             vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
             result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
@@ -183,7 +192,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
                     pauli_list.append([0.5 * weight_matrix[i, j], Pauli((z_p, x_p))])
                     shift -= 0.5 * weight_matrix[i, j]
         opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
-        return PauliSumOp.from_list(opflow_list), shift
+
+        with self.assertWarns(DeprecationWarning):
+            return PauliSumOp.from_list(opflow_list), shift
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
     def test_measurement_error_mitigation_qaoa(self):
@@ -197,11 +208,13 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         initial_point = np.asarray([0.0, 0.0])
 
         # Compute first without noise
-        quantum_instance = QuantumInstance(
-            backend=backend,
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-        )
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                backend=backend,
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+            )
+
         with self.assertWarns(DeprecationWarning):
             qaoa = QAOA(
                 optimizer=COBYLA(maxiter=3),
@@ -209,6 +222,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
                 initial_point=initial_point,
             )
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+
         ref_eigenvalue = result.eigenvalue.real
 
         # compute with noise
@@ -217,22 +231,25 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         read_err = noise.errors.readout_error.ReadoutError([[0.9, 0.1], [0.25, 0.75]])
         noise_model.add_all_qubit_readout_error(read_err)
 
-        quantum_instance = QuantumInstance(
-            backend=backend,
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-            noise_model=noise_model,
-            measurement_error_mitigation_cls=CompleteMeasFitter,
-            shots=10000,
-        )
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                backend=backend,
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+                noise_model=noise_model,
+                measurement_error_mitigation_cls=CompleteMeasFitter,
+                shots=10000,
+            )
 
         with self.assertWarns(DeprecationWarning):
+
             qaoa = QAOA(
                 optimizer=COBYLA(maxiter=3),
                 quantum_instance=quantum_instance,
                 initial_point=initial_point,
             )
             result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+
         self.assertAlmostEqual(result.eigenvalue.real, ref_eigenvalue, delta=0.05)
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
@@ -251,15 +268,18 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             CompleteMeasFitter_IG if fitter_str == "CompleteMeasFitter" else TensoredMeasFitter_IG
         )
         backend = Aer.get_backend("aer_simulator")
-        quantum_instance = QuantumInstance(
-            backend=backend,
-            seed_simulator=1679,
-            seed_transpiler=167,
-            shots=1000,
-            noise_model=noise_model,
-            measurement_error_mitigation_cls=fitter_cls,
-            cals_matrix_refresh_period=0,
-        )
+
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                backend=backend,
+                seed_simulator=1679,
+                seed_transpiler=167,
+                shots=1000,
+                noise_model=noise_model,
+                measurement_error_mitigation_cls=fitter_cls,
+                cals_matrix_refresh_period=0,
+            )
+
         # circuit
         qc1 = QuantumCircuit(2, 2)
         qc1.h(0)
@@ -314,14 +334,16 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
             CompleteMeasFitter_IG if fitter_str == "CompleteMeasFitter" else TensoredMeasFitter_IG
         )
         backend = Aer.get_backend("aer_simulator")
-        quantum_instance = QuantumInstance(
-            backend=backend,
-            seed_simulator=167,
-            seed_transpiler=167,
-            noise_model=noise_model,
-            measurement_error_mitigation_cls=fitter_cls,
-            mit_pattern=mit_pattern,
-        )
+
+        with self.assertWarns(DeprecationWarning):
+            quantum_instance = QuantumInstance(
+                backend=backend,
+                seed_simulator=167,
+                seed_transpiler=167,
+                noise_model=noise_model,
+                measurement_error_mitigation_cls=fitter_cls,
+                mit_pattern=mit_pattern,
+            )
 
         h2_hamiltonian = (
             -1.052373245772859 * (I ^ I)
@@ -336,6 +358,7 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         with self.assertWarnsRegex(DeprecationWarning):
             vqe = VQE(ansatz=ansatz, optimizer=optimizer, quantum_instance=quantum_instance)
             result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+
         self.assertGreater(quantum_instance.time_taken, 0.0)
         quantum_instance.reset_execution_results()
         self.assertAlmostEqual(result.eigenvalue.real, -1.86, delta=0.05)
@@ -355,24 +378,25 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
 
         counts_array = [None, None]
         for idx, is_use_mitigation in enumerate([True, False]):
-            if is_use_mitigation:
-                quantum_instance = QuantumInstance(
-                    backend,
-                    seed_simulator=algorithm_globals.random_seed,
-                    seed_transpiler=algorithm_globals.random_seed,
-                    shots=1024,
-                    measurement_error_mitigation_cls=CompleteMeasFitter_IG,
-                )
-                with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
+            with self.assertWarns(DeprecationWarning):
+                if is_use_mitigation:
+                    quantum_instance = QuantumInstance(
+                        backend,
+                        seed_simulator=algorithm_globals.random_seed,
+                        seed_transpiler=algorithm_globals.random_seed,
+                        shots=1024,
+                        measurement_error_mitigation_cls=CompleteMeasFitter_IG,
+                    )
+                    with self.assertWarnsRegex(DeprecationWarning, r".*ignis.*"):
+                        counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
+                else:
+                    quantum_instance = QuantumInstance(
+                        backend,
+                        seed_simulator=algorithm_globals.random_seed,
+                        seed_transpiler=algorithm_globals.random_seed,
+                        shots=1024,
+                    )
                     counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
-            else:
-                quantum_instance = QuantumInstance(
-                    backend,
-                    seed_simulator=algorithm_globals.random_seed,
-                    seed_transpiler=algorithm_globals.random_seed,
-                    shots=1024,
-                )
-                counts_array[idx] = quantum_instance.execute(qc_meas).get_counts()
         self.assertEqual(
             counts_array[0], counts_array[1], msg="Counts different with/without fitter."
         )
@@ -388,19 +412,22 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         circuit.x(0)
         circuit.measure_all()
 
-        qi = QuantumInstance(
-            Aer.get_backend("aer_simulator"),
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-            shots=1024,
-            measurement_error_mitigation_cls=CompleteMeasFitter,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qi = QuantumInstance(
+                Aer.get_backend("aer_simulator"),
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+                shots=1024,
+                measurement_error_mitigation_cls=CompleteMeasFitter,
+            )
         # The error happens on transpiled circuits since "execute" was changing the input array
         # Non transpiled circuits didn't have a problem because a new transpiled array was created
         # internally.
         circuits_ref = qi.transpile(circuit)  # always returns a new array
         circuits_input = circuits_ref.copy()
-        _ = qi.execute(circuits_input, had_transpiled=True)
+
+        with self.assertWarns(DeprecationWarning):
+            _ = qi.execute(circuits_input, had_transpiled=True)
         self.assertEqual(circuits_ref, circuits_input, msg="Transpiled circuit array modified.")
 
     @unittest.skipUnless(optionals.HAS_AER, "qiskit-aer is required for this test")
@@ -422,22 +449,27 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         mit_pattern = [[idx] for idx in range(3)]
         backend = Aer.get_backend("aer_simulator")
         backend.set_options(seed_simulator=123)
-        mit_circuits = build_measurement_error_mitigation_circuits(
-            [0, 1, 2],
-            TensoredMeasFitter,
-            backend,
-            backend_config={},
-            compile_config={},
-            mit_pattern=mit_pattern,
-        )
-        result = execute(mit_circuits[0], backend, noise_model=noise_model).result()
-        fitter = TensoredMeasFitter(result, mit_pattern=mit_pattern)
+
+        with self.assertWarns(DeprecationWarning):
+            mit_circuits = build_measurement_error_mitigation_circuits(
+                [0, 1, 2],
+                TensoredMeasFitter,
+                backend,
+                backend_config={},
+                compile_config={},
+                mit_pattern=mit_pattern,
+            )
+            result = execute(mit_circuits[0], backend, noise_model=noise_model).result()
+            fitter = TensoredMeasFitter(result, mit_pattern=mit_pattern)
+
         cal_matrices = fitter.cal_matrices
 
         # Check that permutations and permuted subsets match.
         for subset in [[1, 0], [1, 2], [0, 2], [2, 0, 1]]:
             with self.subTest(subset=subset):
-                new_fitter = fitter.subset_fitter(subset)
+                with self.assertWarns(DeprecationWarning):
+                    new_fitter = fitter.subset_fitter(subset)
+
                 for idx, qubit in enumerate(subset):
                     self.assertTrue(np.allclose(new_fitter.cal_matrices[idx], cal_matrices[qubit]))
 
@@ -458,7 +490,9 @@ class TestMeasurementErrorMitigation(QiskitAlgorithmsTestCase):
         result = execute(
             circuit, backend, noise_model=noise_model, shots=1000, seed_simulator=0
         ).result()
-        new_result = fitter.subset_fitter([1, 2, 0]).filter.apply(result)
+        with self.subTest(subset=subset):
+            with self.assertWarns(DeprecationWarning):
+                new_result = fitter.subset_fitter([1, 2, 0]).filter.apply(result)
 
         # The noisy result should have a poor 111 state, the mit. result should be good.
         self.assertTrue(result.get_counts()["111"] < 800)

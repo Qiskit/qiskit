@@ -62,7 +62,14 @@ from qiskit.quantum_info.operators.channel.kraus import Kraus
 from qiskit.quantum_info.operators.channel import SuperOp
 from qiskit.extensions import Initialize, UnitaryGate
 from qiskit.extensions.quantum_initializer import DiagonalGate, UCGate
-from qiskit.circuit.controlflow import IfElseOp, WhileLoopOp, ForLoopOp, ContinueLoopOp, BreakLoopOp
+from qiskit.circuit.controlflow import (
+    IfElseOp,
+    WhileLoopOp,
+    ForLoopOp,
+    ContinueLoopOp,
+    BreakLoopOp,
+    SwitchCaseOp,
+)
 
 FAKE_PROVIDER_FOR_BACKEND_V2 = FakeProviderForBackendV2()
 FAKE_PROVIDER = FakeProvider()
@@ -429,6 +436,7 @@ class TestFakeBackends(QiskitTestCase):
                 "if_else": IfElseOp,
                 "while_loop": WhileLoopOp,
                 "for_loop": ForLoopOp,
+                "switch_case": SwitchCaseOp,
                 "break_loop": BreakLoopOp,
                 "continue_loop": ContinueLoopOp,
                 "save_statevector": SaveStatevector,
