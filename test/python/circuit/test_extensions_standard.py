@@ -19,7 +19,6 @@ from math import pi
 import numpy as np
 from scipy.linalg import expm
 from ddt import data, ddt, unpack
-
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister, execute
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.exceptions import CircuitError
@@ -36,11 +35,14 @@ from qiskit.circuit.library import (
     RZGate,
     XGate,
     YGate,
+    GlobalPhaseGate,
 )
 from qiskit import BasicAer
 from qiskit.quantum_info import Pauli
 from qiskit.quantum_info.operators.predicates import matrix_equal, is_unitary_matrix
 from qiskit.utils.optionals import HAS_TWEEDLEDUM
+from qiskit.quantum_info import Operator
+from qiskit import transpile
 
 
 class TestStandard1Q(QiskitTestCase):
@@ -851,6 +853,50 @@ class TestStandard1Q(QiskitTestCase):
         self.assertEqual(instruction_set[1].qubits, (self.qr[1],))
         self.assertEqual(instruction_set[2].operation.params, [])
 
+    def test_global_phase(self):
+        qc = self.circuit
+        qc.append(GlobalPhaseGate(0.1), [])
+        self.assertEqual(self.circuit[0].operation.name, "global_phase")
+        self.assertEqual(self.circuit[0].operation.params, [0.1])
+        self.assertEqual(self.circuit[0].qubits, ())
+
+    def test_global_phase_inv(self):
+        instruction_set = self.circuit.append(GlobalPhaseGate(0.1), []).inverse()
+        self.assertEqual(len(instruction_set), 1)
+        self.assertEqual(instruction_set[0].operation.params, [-0.1])
+
+    def test_global_phase_matrix(self):
+        """Test global_phase matrix."""
+        theta = 0.1
+        np.testing.assert_allclose(
+            np.array(GlobalPhaseGate(theta)),
+            np.array([[np.exp(1j * theta)]], dtype=complex),
+            atol=1e-7,
+        )
+
+    def test_global_phase_consistency(self):
+        """Tests compatibility of GlobalPhaseGate with QuantumCircuit.global_phase"""
+        theta = 0.1
+        qc1 = QuantumCircuit(0, global_phase=theta)
+        qc2 = QuantumCircuit(0)
+        qc2.append(GlobalPhaseGate(theta), [])
+        np.testing.assert_allclose(
+            Operator(qc1),
+            Operator(qc2),
+            atol=1e-7,
+        )
+
+    def test_transpile_global_phase_consistency(self):
+        """Tests compatibility of transpiled GlobalPhaseGate with QuantumCircuit.global_phase"""
+        qc1 = QuantumCircuit(0, global_phase=0.3)
+        qc2 = QuantumCircuit(0, global_phase=0.2)
+        qc2.append(GlobalPhaseGate(0.1), [])
+        np.testing.assert_allclose(
+            Operator(transpile(qc1, basis_gates=["u"])),
+            Operator(transpile(qc2, basis_gates=["u"])),
+            atol=1e-7,
+        )
+
 
 @ddt
 class TestStandard2Q(QiskitTestCase):
@@ -1375,7 +1421,6 @@ class TestStandardMethods(QiskitTestCase):
     def test_to_matrix_op(self):
         """test gates implementing to_matrix generate matrix which matches
         definition using Operator."""
-        from qiskit.quantum_info import Operator
         from qiskit.circuit.library.generalized_gates.gms import MSGate
         from qiskit.circuit.library.generalized_gates.pauli import PauliGate
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate

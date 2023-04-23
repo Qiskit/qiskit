@@ -72,6 +72,7 @@ from qiskit.circuit.library import (
     C3SXGate,
     C4XGate,
     MCPhaseGate,
+    GlobalPhaseGate,
 )
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
@@ -222,6 +223,21 @@ class TestControlledGate(QiskitTestCase):
                 if not isinstance(special_case_gate, CXGate):
                     # CX is treated like a primitive within Terra, and doesn't have a definition.
                     self.assertTrue(Operator(special_case_gate.definition).equiv(naive_operator))
+
+    def test_global_phase_control(self):
+        """Test creation of a GlobalPhaseGate."""
+        base = GlobalPhaseGate(np.pi / 7)
+        expected_1q = PhaseGate(np.pi / 7)
+        self.assertEqual(Operator(base.control()), Operator(expected_1q))
+
+        expected_2q = PhaseGate(np.pi / 7).control()
+        self.assertEqual(Operator(base.control(2)), Operator(expected_2q))
+
+        expected_open = QuantumCircuit(1)
+        expected_open.x(0)
+        expected_open.p(np.pi / 7, 0)
+        expected_open.x(0)
+        self.assertEqual(Operator(base.control(ctrl_state=0)), Operator(expected_open))
 
     def test_circuit_append(self):
         """Test appending a controlled gate to a quantum circuit."""

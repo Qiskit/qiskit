@@ -14,13 +14,16 @@
 
 __all__ = ("SwitchCaseOp", "CASE_DEFAULT")
 
+import contextlib
 import sys
 from typing import Union, Iterable, Any, Tuple, Optional, List
 
 from qiskit.circuit import ClassicalRegister, Clbit, QuantumCircuit
 from qiskit.circuit.exceptions import CircuitError
 
+from .builder import InstructionPlaceholder, InstructionResources, ControlFlowBuilderBlock
 from .control_flow import ControlFlowOp
+from ._builder_utils import unify_circuit_resources, partition_registers
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -176,3 +179,221 @@ class SwitchCaseOp(ControlFlowOp):
             "SwitchCaseOp cannot be classically controlled through Instruction.c_if. "
             "Please nest it in an IfElseOp instead."
         )
+
+
+class SwitchCasePlaceholder(InstructionPlaceholder):
+    """A placeholder instruction to use in control-flow context managers, when calculating the
+    number of resources this instruction should block is deferred until the construction of the
+    outer loop.
+
+    This generally should not be instantiated manually; only :obj:`.SwitchContext` should do it when
+    it needs to defer creation of the concrete instruction.
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
+    """
+
+    def __init__(
+        self,
+        target: Union[Clbit, ClassicalRegister],
+        cases: List[Tuple[Any, ControlFlowBuilderBlock]],
+        *,
+        label: Optional[str] = None,
+    ):
+        self.__target = target
+        self.__cases = cases
+        self.__resources = self._calculate_placeholder_resources()
+        super().__init__(
+            "switch_case",
+            len(self.__resources.qubits),
+            len(self.__resources.clbits),
+            [],
+            label=label,
+        )
+
+    def _calculate_placeholder_resources(self):
+        qubits = set()
+        clbits = set()
+        qregs = set()
+        cregs = set()
+        if isinstance(self.__target, Clbit):
+            clbits.add(self.__target)
+        else:
+            clbits.update(self.__target)
+            cregs.add(self.__target)
+        for _, body in self.__cases:
+            qubits |= body.qubits
+            clbits |= body.clbits
+            body_qregs, body_cregs = partition_registers(body.registers)
+            qregs |= body_qregs
+            cregs |= body_cregs
+        return InstructionResources(
+            qubits=tuple(qubits),
+            clbits=tuple(clbits),
+            qregs=tuple(qregs),
+            cregs=tuple(cregs),
+        )
+
+    def placeholder_resources(self):
+        return self.__resources
+
+    def concrete_instruction(self, qubits, clbits):
+        cases = [
+            (labels, unified_body)
+            for (labels, _), unified_body in zip(
+                self.__cases,
+                unify_circuit_resources(body.build(qubits, clbits) for _, body in self.__cases),
+            )
+        ]
+        if cases:
+            resources = InstructionResources(
+                qubits=tuple(cases[0][1].qubits),
+                clbits=tuple(cases[0][1].clbits),
+                qregs=tuple(cases[0][1].qregs),
+                cregs=tuple(cases[0][1].cregs),
+            )
+        else:
+            resources = self.__resources
+        return (
+            self._copy_mutable_properties(SwitchCaseOp(self.__target, cases, label=self.label)),
+            resources,
+        )
+
+
+class SwitchContext:
+    """A context manager for building up ``switch`` statements onto circuits in a natural order,
+    without having to construct the case bodies first.
+
+    The return value of this context manager can be used within the created context to build up the
+    individual ``case`` statements.  No other instructions should be appended to the circuit during
+    the `switch` context.
+
+    This context should almost invariably be created by a :meth:`.QuantumCircuit.switch_case` call,
+    and the resulting instance is a "friend" of the calling circuit.  The context will manipulate
+    the circuit's defined scopes when it is entered (by pushing a new scope onto the stack) and
+    exited (by popping its scope, building it, and appending the resulting :obj:`.SwitchCaseOp`).
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
+    """
+
+    def __init__(
+        self,
+        circuit: QuantumCircuit,
+        target: Union[Clbit, ClassicalRegister],
+        *,
+        in_loop: bool,
+        label: Optional[str] = None,
+    ):
+        self.circuit = circuit
+        self.target = target
+        self.in_loop = in_loop
+        self.complete = False
+        self._op_label = label
+        self._cases: List[Tuple[Tuple[Any, ...], ControlFlowBuilderBlock]] = []
+        self._label_set = set()
+
+    def label_in_use(self, label):
+        """Return whether a case label is already accounted for in the switch statement."""
+        return label in self._label_set
+
+    def add_case(
+        self, labels: Tuple[Union[int, Literal[CASE_DEFAULT]], ...], block: ControlFlowBuilderBlock
+    ):
+        """Add a sequence of conditions and the single block that should be run if they are
+        triggered to the context.  The labels are assumed to have already been validated using
+        :meth:`label_in_use`."""
+        # The labels were already validated when the case scope was entered, so we don't need to do
+        # it again.
+        self._label_set.update(labels)
+        self._cases.append((labels, block))
+
+    def __enter__(self):
+        self.circuit._push_scope(forbidden_message="Cannot have instructions outside a case")
+        return CaseBuilder(self)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.complete = True
+        # The popped scope should be the forbidden scope.
+        self.circuit._pop_scope()
+        if exc_type is not None:
+            return False
+        # If we're in a loop-builder context, we need to emit a placeholder so that any `break` or
+        # `continue`s in any of our cases can be expanded when the loop-builder.  If we're not, we
+        # need to emit a concrete instruction immediately.
+        placeholder = SwitchCasePlaceholder(self.target, self._cases, label=self._op_label)
+        initial_resources = placeholder.placeholder_resources()
+        if self.in_loop:
+            self.circuit.append(placeholder, initial_resources.qubits, initial_resources.clbits)
+        else:
+            operation, resources = placeholder.concrete_instruction(
+                set(initial_resources.qubits), set(initial_resources.clbits)
+            )
+            self.circuit.append(operation, resources.qubits, resources.clbits)
+        return False
+
+
+class CaseBuilder:
+    """A child context manager for building up the ``case`` blocks of ``switch`` statements onto
+    circuits in a natural order, without having to construct the case bodies first.
+
+    This context should never need to be created manually by a user; it is the return value of the
+    :class:`.SwitchContext` context manager, which in turn should only be created by suitable
+    :meth:`.QuantumCircuit.switch_case` calls.
+
+    .. warning::
+
+        This is an internal interface and no part of it should be relied upon outside of Qiskit
+        Terra.
+    """
+
+    DEFAULT = CASE_DEFAULT
+    """Convenient re-exposure of the :data:`.CASE_DEFAULT` constant."""
+
+    def __init__(self, parent: SwitchContext):
+        self.switch = parent
+        self.entered = False
+
+    @contextlib.contextmanager
+    def __call__(self, *values):
+        if self.entered:
+            raise CircuitError(
+                "Cannot enter more than one case at once."
+                " If you want multiple labels to point to the same block,"
+                " pass them all to a single case context,"
+                " such as `with case(1, 2, 3):`."
+            )
+        if self.switch.complete:
+            raise CircuitError("Cannot add a new case to a completed switch statement.")
+        if not all(value is CASE_DEFAULT or isinstance(value, int) for value in values):
+            raise CircuitError("Case values must be integers or `CASE_DEFAULT`")
+        seen = set()
+        for value in values:
+            if self.switch.label_in_use(value) or value in seen:
+                raise CircuitError(f"duplicate case label: '{value}'")
+            seen.add(value)
+        if isinstance(self.switch.target, Clbit):
+            target_clbits = [self.switch.target]
+            target_registers = []
+        else:
+            target_clbits = list(self.switch.target)
+            target_registers = [self.switch.target]
+        self.switch.circuit._push_scope(
+            clbits=target_clbits, registers=target_registers, allow_jumps=self.switch.in_loop
+        )
+
+        try:
+            self.entered = True
+            yield
+        finally:
+            self.entered = False
+            block = self.switch.circuit._pop_scope()
+
+        # This is outside the `finally` because we only want to add the case to the switch if we're
+        # leaving it under normal circumstances.  If there was an exception in the case block, we
+        # should discard anything happened during its construction.
+        self.switch.add_case(values, block)

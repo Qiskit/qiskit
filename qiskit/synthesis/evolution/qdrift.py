@@ -85,14 +85,13 @@ class QDrift(ProductFormula):
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.library.pauli_evolution import PauliEvolutionGate
-        from qiskit.opflow import PauliOp
 
         # Build the evolution circuit using the LieTrotter synthesis with the sampled operators
         lie_trotter = LieTrotter(
             insert_barriers=self.insert_barriers, atomic_evolution=self.atomic_evolution
         )
         evolution_circuit = PauliEvolutionGate(
-            sum(PauliOp(op) for op, coeff in self.sampled_ops),
+            sum(SparsePauliOp(op) for op, coeff in self.sampled_ops),
             time=evolution_time,
             synthesis=lie_trotter,
         ).definition

@@ -36,14 +36,6 @@ def _log_submission_time(start_time, end_time):
     logger.info(log_msg)
 
 
-@deprecate_arg(
-    "max_credits",
-    since="0.20.0",
-    additional_msg=(
-        "This argument has no effect on modern IBM Quantum systems, and no alternative is"
-        "necessary."
-    ),
-)
 @deprecate_arg("qobj_id", since="0.21.0", additional_msg="This argument has no effect anymore.")
 @deprecate_arg("qobj_header", since="0.21.0", additional_msg="This argument has no effect anymore.")
 def execute(
@@ -60,7 +52,6 @@ def execute(
     qobj_header=None,
     shots=None,  # common run options
     memory=None,
-    max_credits=None,
     seed_simulator=None,
     default_qubit_los=None,
     default_meas_los=None,  # schedule run options
@@ -183,10 +174,6 @@ def execute(
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option. Default: False
 
-        max_credits (int): DEPRECATED This parameter is deprecated as of Qiskit Terra 0.20.0
-            and will be removed in a future release. This parameter has no effect on modern
-            IBM Quantum systems, no alternative is necessary.
-
         seed_simulator (int): Random seed to control sampling, for when backend is a simulator
 
         default_qubit_los (Optional[List[float]]): List of job level qubit drive LO frequencies
@@ -293,7 +280,6 @@ def execute(
     """
     del qobj_id
     del qobj_header
-    del max_credits
     if isinstance(experiments, (Schedule, ScheduleBlock)) or (
         isinstance(experiments, list) and isinstance(experiments[0], (Schedule, ScheduleBlock))
     ):
