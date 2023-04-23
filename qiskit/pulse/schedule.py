@@ -1328,31 +1328,23 @@ class ScheduleBlock:
         instruction_types: Union[Iterable[abc.ABCMeta], abc.ABCMeta] = None,
         check_subroutine: bool = True,
     ):
-        """Return a new ``Schedule`` with only the instructions from this ``ScheduleBlock``
-        which pass though the provided filters; i.e. an instruction will be retained iff
+        """Return a new ``ScheduleBlock`` with only the instructions from this ``ScheduleBlock``
+        which pass though the provided filters; i.e. an instruction will be retained if
         every function in ``filter_funcs`` returns ``True``, the instruction occurs on
-        a channel type contained in ``channels``, the instruction type is contained
-        in ``instruction_types``, and the period over which the instruction operates
-        is *fully* contained in one specified in ``time_ranges`` or ``intervals``.
+        a channel type contained in ``channels``, and the instruction type is contained
+        in ``instruction_types``.
 
         If no arguments are provided, ``self`` is returned.
 
-        .. note:: This method is currently not supported. Support will be soon added
-            please create an issue if you believe this must be prioritized.
-
         Args:
-            filter_funcs: A list of Callables which take a (int, Union['Schedule', Instruction])
-                tuple and return a bool.
+            filter_funcs: A list of Callables which take a ``Instruction`` and return a bool.
             channels: For example, ``[DriveChannel(0), AcquireChannel(0)]``.
             instruction_types: For example, ``[PulseInstruction, AcquireInstruction]``.
             check_subroutine: Set `True` to individually filter instructions inside a subroutine
                 defined by the :py:class:`~qiskit.pulse.instructions.Call` instruction.
 
         Returns:
-            ``Schedule`` consisting of instructions that matches with filtering condition.
-
-        Raises:
-            PulseError: When this method is called. This method will be supported soon.
+            ``ScheduleBlock`` consisting of instructions that matches with filtering condition.
         """
         from qiskit.pulse.filters import composite_filter, filter_instructions
 
