@@ -54,7 +54,7 @@ class BaseSamplerGradient(ABC):
         self._default_options = Options()
         if options is not None:
             self._default_options.update_options(**options)
-        self._gradient_circuit_cache: dict[QuantumCircuit, GradientCircuit] = {}
+        self._gradient_circuit_cache: dict[tuple, GradientCircuit] = {}
 
     def run(
         self,
@@ -190,7 +190,7 @@ class BaseSamplerGradient(ABC):
             # by using the chain rule.
             gradient = []
             for parameter in parameters_:
-                grad_dist = defaultdict(float)
+                grad_dist: dict[int, float] = defaultdict(float)
                 for g_parameter, coeff in gradient_circuit.parameter_map[parameter]:
                     # Compute the coefficient
                     if isinstance(coeff, ParameterExpression):

@@ -12,6 +12,7 @@
 
 """The S, Sdg, CS and CSdg gates."""
 
+from math import pi
 from typing import Optional, Union
 
 import numpy
@@ -20,7 +21,6 @@ from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.library.standard_gates.p import CPhaseGate, PhaseGate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.qasm import pi
 
 
 class SGate(Gate):

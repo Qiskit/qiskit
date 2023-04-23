@@ -13,6 +13,7 @@
 """Two-qubit XX-YY gate."""
 import math
 from cmath import exp
+from math import pi
 from typing import Optional
 
 import numpy as np
@@ -26,7 +27,6 @@ from qiskit.circuit.library.standard_gates.x import CXGate
 from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.qasm import pi
 
 
 class XXMinusYYGate(Gate):

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,16 +14,21 @@
 
 from typing import Union
 
+from qiskit.utils.deprecation import deprecate_func
 from .circuit_gradients.circuit_gradient import CircuitGradient
 from .derivative_base import DerivativeBase
 
 
 class GradientBase(DerivativeBase):
-    """Base class for first-order operator gradient.
+    """Deprecated: Base class for first-order operator gradient.
 
     Convert an operator expression to the first-order gradient.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, grad_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
         r"""
         Args:
@@ -35,7 +40,7 @@ class GradientBase(DerivativeBase):
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
         """
-
+        super().__init__()
         if isinstance(grad_method, CircuitGradient):
             self._grad_method = grad_method
         elif grad_method == "param_shift":

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2021.
+# (C) Copyright IBM 2018, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -63,17 +63,18 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         self.seed = 10598
         algorithm_globals.random_seed = self.seed
 
-        self.qasm_simulator = QuantumInstance(
-            BasicAer.get_backend("qasm_simulator"),
-            shots=4096,
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
-        self.statevector_simulator = QuantumInstance(
-            BasicAer.get_backend("statevector_simulator"),
-            seed_simulator=self.seed,
-            seed_transpiler=self.seed,
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.qasm_simulator = QuantumInstance(
+                BasicAer.get_backend("qasm_simulator"),
+                shots=4096,
+                seed_simulator=self.seed,
+                seed_transpiler=self.seed,
+            )
+            self.statevector_simulator = QuantumInstance(
+                BasicAer.get_backend("statevector_simulator"),
+                seed_simulator=self.seed,
+                seed_transpiler=self.seed,
+            )
 
     @idata(
         [
@@ -89,12 +90,15 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         self.log.debug("Testing %s-step QAOA with MaxCut on graph\n%s", prob, w)
 
         qubit_op, _ = self._get_operator(w)
+
         if convert_to_matrix_op:
-            qubit_op = qubit_op.to_matrix_op()
+            with self.assertWarns(DeprecationWarning):
+                qubit_op = qubit_op.to_matrix_op()
 
-        qaoa = QAOA(COBYLA(), prob, mixer=m, quantum_instance=self.statevector_simulator)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(COBYLA(), prob, mixer=m, quantum_instance=self.statevector_simulator)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, solutions)
@@ -119,16 +123,19 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         optimizer = COBYLA()
         qubit_op, _ = self._get_operator(w)
         if convert_to_matrix_op:
-            qubit_op = qubit_op.to_matrix_op()
+            with self.assertWarns(DeprecationWarning):
+                qubit_op = qubit_op.to_matrix_op()
 
         num_qubits = qubit_op.num_qubits
         mixer = QuantumCircuit(num_qubits)
         theta = Parameter("θ")
         mixer.rx(theta, range(num_qubits))
 
-        qaoa = QAOA(optimizer, prob, mixer=mixer, quantum_instance=self.statevector_simulator)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(optimizer, prob, mixer=mixer, quantum_instance=self.statevector_simulator)
 
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         self.assertIn(graph_solution, solutions)
@@ -144,8 +151,10 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             theta = Parameter("θ" + str(i))
             mixer.rx(theta, range(num_qubits))
 
-        qaoa = QAOA(optimizer, reps=2, mixer=mixer, quantum_instance=self.statevector_simulator)
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(optimizer, reps=2, mixer=mixer, quantum_instance=self.statevector_simulator)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+
         x = self._sample_most_likely(result.eigenstate)
         self.log.debug(x)
         graph_solution = self._get_graph_solution(x)
@@ -160,8 +169,10 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         # just arbitrary circuit
         mixer.rx(np.pi / 2, range(num_qubits))
 
-        qaoa = QAOA(COBYLA(), reps=1, mixer=mixer, quantum_instance=self.statevector_simulator)
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(COBYLA(), reps=1, mixer=mixer, quantum_instance=self.statevector_simulator)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+
         # we just assert that we get a result, it is not meaningful.
         self.assertIsNotNone(result.eigenstate)
 
@@ -170,8 +181,10 @@ class TestQAOA(QiskitAlgorithmsTestCase):
         qubit_op, _ = self._get_operator(
             np.array([[0, 1, 0, 1], [1, 0, 1, 0], [0, 1, 0, 1], [1, 0, 1, 0]])
         )
-        qaoa = QAOA(COBYLA(), 1, quantum_instance=self.statevector_simulator)
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(COBYLA(), 1, quantum_instance=self.statevector_simulator)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="QAOA 4x4"):
@@ -189,8 +202,9 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                 ]
             )
         )
+        with self.assertWarns(DeprecationWarning):
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
         with self.subTest(msg="QAOA 6x6"):
@@ -209,14 +223,16 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             if eval_count == 1:
                 first_pt = list(parameters)
 
-        qaoa = QAOA(
-            COBYLA(),
-            initial_point=init_pt,
-            callback=cb_callback,
-            quantum_instance=self.statevector_simulator,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(
+                COBYLA(),
+                initial_point=init_pt,
+                callback=cb_callback,
+                quantum_instance=self.statevector_simulator,
+            )
 
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+
         x = self._sample_most_likely(result.eigenstate)
         graph_solution = self._get_graph_solution(x)
 
@@ -246,21 +262,22 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             initial_state.initialize(init_state, initial_state.qubits)
 
         zero_init_state = QuantumCircuit(QuantumRegister(qubit_op.num_qubits, "q"))
-        qaoa_zero_init_state = QAOA(
-            optimizer=optimizer,
-            initial_state=zero_init_state,
-            initial_point=init_pt,
-            quantum_instance=self.statevector_simulator,
-        )
-        qaoa = QAOA(
-            optimizer=optimizer,
-            initial_state=initial_state,
-            initial_point=init_pt,
-            quantum_instance=self.statevector_simulator,
-        )
 
-        zero_circuits = qaoa_zero_init_state.construct_circuit(init_pt, qubit_op)
-        custom_circuits = qaoa.construct_circuit(init_pt, qubit_op)
+        with self.assertWarns(DeprecationWarning):
+            qaoa_zero_init_state = QAOA(
+                optimizer=optimizer,
+                initial_state=zero_init_state,
+                initial_point=init_pt,
+                quantum_instance=self.statevector_simulator,
+            )
+            qaoa = QAOA(
+                optimizer=optimizer,
+                initial_state=initial_state,
+                initial_point=init_pt,
+                quantum_instance=self.statevector_simulator,
+            )
+            zero_circuits = qaoa_zero_init_state.construct_circuit(init_pt, qubit_op)
+            custom_circuits = qaoa.construct_circuit(init_pt, qubit_op)
 
         self.assertEqual(len(zero_circuits), len(custom_circuits))
 
@@ -281,11 +298,12 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             else:
                 original_init_qc = initial_state
 
-            job_init_state = self.statevector_simulator.execute(original_init_qc)
-            job_qaoa_init_state = self.statevector_simulator.execute(custom_init_qc)
+            with self.assertWarns(DeprecationWarning):
+                job_init_state = self.statevector_simulator.execute(original_init_qc)
+                job_qaoa_init_state = self.statevector_simulator.execute(custom_init_qc)
 
-            statevector_original = job_init_state.get_statevector(original_init_qc)
-            statevector_custom = job_qaoa_init_state.get_statevector(custom_init_qc)
+                statevector_original = job_init_state.get_statevector(original_init_qc)
+                statevector_custom = job_qaoa_init_state.get_statevector(custom_init_qc)
 
             self.assertListEqual(statevector_original.tolist(), statevector_custom.tolist())
 
@@ -295,29 +313,35 @@ class TestQAOA(QiskitAlgorithmsTestCase):
             rx.undirected_gnp_random_graph(5, 0.5, seed=algorithm_globals.random_seed)
         )
         qubit_op, _ = self._get_operator(w)
-        qaoa = QAOA(optimizer=NELDER_MEAD(disp=True), reps=1, quantum_instance=self.qasm_simulator)
-        result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
+
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(
+                optimizer=NELDER_MEAD(disp=True), reps=1, quantum_instance=self.qasm_simulator
+            )
+            result = qaoa.compute_minimum_eigenvalue(operator=qubit_op)
 
         self.assertLess(result.eigenvalue, -0.97)
 
     def test_qaoa_construct_circuit_update(self):
         """Test updating operators with QAOA construct_circuit"""
-        qaoa = QAOA()
-        ref = qaoa.construct_circuit([0, 0], I ^ Z)[0]
-        circ2 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
-        self.assertEqual(circ2, ref)
-        circ3 = qaoa.construct_circuit([0, 0], Z ^ I)[0]
-        self.assertNotEqual(circ3, ref)
-        circ4 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
-        self.assertEqual(circ4, ref)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA()
+            ref = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+            circ2 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+            self.assertEqual(circ2, ref)
+            circ3 = qaoa.construct_circuit([0, 0], Z ^ I)[0]
+            self.assertNotEqual(circ3, ref)
+            circ4 = qaoa.construct_circuit([0, 0], I ^ Z)[0]
+            self.assertEqual(circ4, ref)
 
     def test_optimizer_scipy_callable(self):
         """Test passing a SciPy optimizer directly as callable."""
-        qaoa = QAOA(
-            optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
-            quantum_instance=self.statevector_simulator,
-        )
-        result = qaoa.compute_minimum_eigenvalue(Z)
+        with self.assertWarns(DeprecationWarning):
+            qaoa = QAOA(
+                optimizer=partial(scipy_minimize, method="Nelder-Mead", options={"maxiter": 2}),
+                quantum_instance=self.statevector_simulator,
+            )
+            result = qaoa.compute_minimum_eigenvalue(Z)
         self.assertEqual(result.cost_function_evals, 4)
 
     def _get_operator(self, weight_matrix):
@@ -344,7 +368,9 @@ class TestQAOA(QiskitAlgorithmsTestCase):
                     pauli_list.append([0.5 * weight_matrix[i, j], Pauli((z_p, x_p))])
                     shift -= 0.5 * weight_matrix[i, j]
         opflow_list = [(pauli[1].to_label(), pauli[0]) for pauli in pauli_list]
-        return PauliSumOp.from_list(opflow_list), shift
+
+        with self.assertWarns(DeprecationWarning):
+            return PauliSumOp.from_list(opflow_list), shift
 
     def _get_graph_solution(self, x: np.ndarray) -> str:
         """Get graph solution from binary string.

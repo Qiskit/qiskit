@@ -16,6 +16,8 @@ Quantum Information (:mod:`qiskit.quantum_info`)
 
 .. currentmodule:: qiskit.quantum_info
 
+.. _quantum_info_operators:
+
 Operators
 =========
 
@@ -32,6 +34,8 @@ Operators
    PauliTable
    StabilizerTable
    pauli_basis
+
+.. _quantum_info_states:
 
 States
 ======
@@ -110,6 +114,7 @@ Analysis
 
    hellinger_distance
    hellinger_fidelity
+   Z2Symmetries
 
 Synthesis
 =========
@@ -125,7 +130,7 @@ Synthesis
    XXDecomposer
 """
 
-from .analysis import hellinger_distance, hellinger_fidelity
+from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
 from .operators import (
     Clifford,
     Operator,

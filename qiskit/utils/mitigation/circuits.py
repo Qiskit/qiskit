@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,10 +19,15 @@ Measurement calibration circuits. To apply the measurement mitigation
 use the fitters to produce a filter.
 """
 from typing import List, Tuple, Union
+from qiskit.utils.deprecation import deprecate_func
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def count_keys(num_qubits: int) -> List[str]:
-    """Return ordered count keys.
+    """Deprecated: Return ordered count keys.
 
     Args:
         num_qubits: The number of qubits in the generated list.
@@ -35,6 +40,10 @@ def count_keys(num_qubits: int) -> List[str]:
     return [bin(j)[2:].zfill(num_qubits) for j in range(2**num_qubits)]
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def complete_meas_cal(
     qubit_list: List[int] = None,
     qr: Union[int, List["QuantumRegister"]] = None,
@@ -42,7 +51,7 @@ def complete_meas_cal(
     circlabel: str = "",
 ) -> Tuple[List["QuantumCircuit"], List[str]]:
     """
-    Return a list of measurement calibration circuits for the full
+    Deprecated: Return a list of measurement calibration circuits for the full
     Hilbert space.
 
     If the circuit contains :math:`n` qubits, then :math:`2^n` calibration circuits
@@ -112,6 +121,10 @@ def complete_meas_cal(
     return cal_circuits, state_labels
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def tensored_meas_cal(
     mit_pattern: List[List[int]] = None,
     qr: Union[int, List["QuantumRegister"]] = None,
@@ -119,7 +132,7 @@ def tensored_meas_cal(
     circlabel: str = "",
 ) -> Tuple[List["QuantumCircuit"], List[List[int]]]:
     """
-    Return a list of calibration circuits
+    Deprecated: Return a list of calibration circuits
 
     Args:
         mit_pattern: Qubits on which to perform the

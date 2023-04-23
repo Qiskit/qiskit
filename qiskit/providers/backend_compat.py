@@ -36,9 +36,21 @@ def convert_to_target(
     defaults: PulseDefaults = None,
     custom_name_mapping: Optional[Dict[str, Any]] = None,
     add_delay: bool = False,
+    filter_faulty: bool = False,
 ):
     """Uses configuration, properties and pulse defaults
     to construct and return Target class.
+
+    In order to convert with a ``defaults.instruction_schedule_map``,
+    which has a custom calibration for an operation,
+    the operation name must be in ``configuration.basis_gates`` and
+    ``custom_name_mapping`` must be supplied for the operation.
+    Otherwise, the operation will be dropped in the resulting ``Target`` object.
+
+    That suggests it is recommended to add custom calibrations **after** creating a target
+    with this function instead of adding them to ``defaults`` in advance. For example::
+
+        target.add_instruction(custom_gate, {(0, 1): InstructionProperties(calibration=custom_sched)})
     """
     # pylint: disable=cyclic-import
     from qiskit.transpiler.target import (
@@ -70,6 +82,12 @@ def convert_to_target(
                 )
 
             qubits = tuple(gate.qubits)
+            if filter_faulty:
+                if any(not properties.is_qubit_operational(qubit) for qubit in qubits):
+                    continue
+                if not properties.is_gate_operational(name, gate.qubits):
+                    continue
+
             gate_props = {}
             for param in gate.parameters:
                 if param.name == "gate_error":
@@ -83,6 +101,9 @@ def convert_to_target(
         # Create measurement instructions:
         measure_props = {}
         for qubit, _ in enumerate(properties.qubits):
+            if filter_faulty:
+                if not properties.is_qubit_operational(qubit):
+                    continue
             measure_props[(qubit,)] = InstructionProperties(
                 duration=properties.readout_length(qubit),
                 error=properties.readout_error(qubit),
@@ -116,6 +137,9 @@ def convert_to_target(
         target.acquire_alignment = configuration.timing_constraints.get("acquire_alignment")
     # If a pulse defaults exists use that as the source of truth
     if defaults is not None:
+        faulty_qubits = set()
+        if filter_faulty and properties is not None:
+            faulty_qubits = set(properties.faulty_qubits())
         inst_map = defaults.instruction_schedule_map
         for inst in inst_map.instructions:
             for qarg in inst_map.qubits_with_instruction(inst):
@@ -129,8 +153,12 @@ def convert_to_target(
                 if inst in target:
                     if inst == "measure":
                         for qubit in qargs:
+                            if filter_faulty and qubit in faulty_qubits:
+                                continue
                             target[inst][(qubit,)].calibration = calibration_entry
                     elif qargs in target[inst]:
+                        if filter_faulty and any(qubit in faulty_qubits for qubit in qargs):
+                            continue
                         target[inst][qargs].calibration = calibration_entry
     combined_global_ops = set()
     if configuration.basis_gates:
@@ -189,6 +217,21 @@ class BackendV2Converter(BackendV2):
     common access patterns between :class:`~.BackendV1` and :class:`~.BackendV2`. This
     class should only be used if you need a :class:`~.BackendV2` and still need
     compatibility with :class:`~.BackendV1`.
+
+    When using custom calibrations (or other custom workflows) it is **not** recommended
+    to mutate the ``BackendV1`` object before applying this converter. For example, in order to
+    convert a ``BackendV1`` object with a customized ``defaults().instruction_schedule_map``,
+    which has a custom calibration for an operation, the operation name must be in
+    ``configuration().basis_gates`` and ``name_mapping`` must be supplied for the operation.
+    Otherwise, the operation will be dropped in the resulting ``BackendV2`` object.
+
+    Instead it is typically better to add custom calibrations **after** applying this converter
+    instead of updating ``BackendV1.defaults()`` in advance. For example::
+
+        backend_v2 = BackendV2Converter(backend_v1)
+        backend_v2.target.add_instruction(
+            custom_gate, {(0, 1): InstructionProperties(calibration=custom_sched)}
+        )
     """
 
     def __init__(
@@ -196,6 +239,7 @@ class BackendV2Converter(BackendV2):
         backend: BackendV1,
         name_mapping: Optional[Dict[str, Any]] = None,
         add_delay: bool = False,
+        filter_faulty: bool = False,
     ):
         """Initialize a BackendV2 converter instance based on a BackendV1 instance.
 
@@ -211,6 +255,9 @@ class BackendV2Converter(BackendV2):
             add_delay: If set to true a :class:`~qiskit.circuit.Delay` operation
                 will be added to the target as a supported operation for all
                 qubits
+            filter_faulty: If the :class:`~.BackendProperties` object (if present) for
+                ``backend`` has any qubits or gates flagged as non-operational filter
+                those from the output target.
         """
         self._backend = backend
         self._config = self._backend.configuration()
@@ -229,6 +276,7 @@ class BackendV2Converter(BackendV2):
         self._target = None
         self._name_mapping = name_mapping
         self._add_delay = add_delay
+        self._filter_faulty = filter_faulty
 
     @property
     def target(self):
@@ -247,6 +295,7 @@ class BackendV2Converter(BackendV2):
                 self._defaults,
                 custom_name_mapping=self._name_mapping,
                 add_delay=self._add_delay,
+                filter_faulty=self._filter_faulty,
             )
         return self._target
 

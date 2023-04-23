@@ -25,7 +25,7 @@ class FakeSantiagoV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_santiago.json"
     props_filename = "props_santiago.json"
     defs_filename = "defs_santiago.json"
-    backend_name = "fake_santiago_v2"
+    backend_name = "fake_santiago"
 
 
 class FakeSantiago(fake_pulse_backend.FakePulseBackend):
