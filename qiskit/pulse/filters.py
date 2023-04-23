@@ -96,7 +96,8 @@ def _(
         for element in blk.blocks:
             if isinstance(element, ScheduleBlock):
                 inner_blk = apply_filters_to_insts_in_scheblk(element)
-                blk_new.append(inner_blk)
+                if len(inner_blk) > 0:
+                    blk_new.append(inner_blk)
 
             elif isinstance(element, Instruction):
                 valid_inst = True

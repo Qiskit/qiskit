@@ -895,7 +895,7 @@ class TestBlockFilter(BaseTestBlock):
         self.assertIsInstance(filtered_blk.blocks[0], pulse.Snapshot)
         self.assertEqual(len(filtered_blk.channels), 1)
 
-        # test filtering SnapShot
+        # test filtering TimeBlockade
         filtered_blk = blk.filter(
             instruction_types=[pulse.instructions.TimeBlockade], check_subroutine=False
         )
@@ -940,7 +940,7 @@ class TestBlockFilter(BaseTestBlock):
         blk.append(pulse.Play(pulse.Constant(100, 0.1, name="play0"), self.d0))
         blk.append(pulse.Delay(10, self.d0, "delay0"))
         blk_internal = pulse.ScheduleBlock(name="internal_blk")
-        blk_internal.append(pulse.Play(pulse.Constant(50, 0.1, name="play1"), self.d1))
+        blk_internal.append(pulse.Play(pulse.Constant(50, 0.1, name="play1"), self.d0))
         blk.append(pulse.Call(subroutine=blk_internal))
         blk.append(pulse.instructions.RelativeBarrier(self.d0, self.d1))
         blk.append(pulse.Play(pulse.Constant(100, 0.1, name="play2"), self.d1))
@@ -960,6 +960,16 @@ class TestBlockFilter(BaseTestBlock):
             channels=[self.d1],
             instruction_types=[pulse.Play],
             check_subroutine=False,
+        )
+        self.assertEqual(len(filtered_blk.blocks), 1)
+        self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
+        self.assertEqual(len(filtered_blk.channels), 1)
+
+        filtered_blk = blk.filter(
+            filter_with_pulse_name,
+            channels=[self.d1],
+            instruction_types=[pulse.Play],
+            check_subroutine=True,
         )
         self.assertEqual(len(filtered_blk.blocks), 1)
         self.assertIsInstance(filtered_blk.blocks[0], pulse.Play)
