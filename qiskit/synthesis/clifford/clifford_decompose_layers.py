@@ -22,7 +22,11 @@ from qiskit.synthesis.linear import (
     synth_cnot_count_full_pmh,
     synth_cnot_depth_line_kms,
 )
-from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
+from qiskit.synthesis.linear_phase import (
+    synth_cz_depth_line_mr,
+    synth_cx_cz_line_my,
+)
+
 
 from qiskit.synthesis.linear.linear_matrix_utils import (
     calc_inverse_matrix,
@@ -136,9 +140,6 @@ def synth_clifford_layers(
 
     layeredCircuit.append(S2_circ, qubit_list)
 
-################################################################################
-#### Changed Part ##############################################################
-
     if cx_cz_synth_func is None:
         layeredCircuit.append(CZ2_circ, qubit_list)
 
@@ -146,12 +147,9 @@ def synth_clifford_layers(
         layeredCircuit.append(CXinv, qubit_list)
 
     else:
-        # note CZ2_circ is None and built into the CX_circ when 
+        # note CZ2_circ is None and built into the CX_circ when
         # cx_cz_synth_func is not None
         layeredCircuit.append(CX_circ, qubit_list)
-        
-################################################################################
-
 
     layeredCircuit.append(H2_circ, qubit_list)
     layeredCircuit.append(S1_circ, qubit_list)
@@ -359,11 +357,7 @@ def _decompose_hadamard_free(
         if destabz_update[i][i]:
             S2_circ.s(i)
 
-################################################################################
-#### Changed Part ##############################################################
-
     if cx_cz_synth_func is not None:
-
         # The cx_cz_synth_func takes as input Mx/Mz representing a CX/CZ circuit
         # and returns the circuit -CZ-CX- implementing them both
         for i in range(num_qubits):
@@ -374,11 +368,7 @@ def _decompose_hadamard_free(
 
         CXCZ_circ = cx_cz_synth_func(mat_x, mat_z)
 
-
         return S2_circ, QuantumCircuit(num_qubits), CXCZ_circ
-
-################################################################################
-
 
     CZ2_circ = cz_synth_func(destabz_update)
 
@@ -427,7 +417,7 @@ def _calc_pauli_diff(cliff, cliff_target):
 def synth_clifford_depth_lnn(cliff):
     """Synthesis of a Clifford into layers for linear-nearest neighbour connectivity.
 
-    The depth of the synthesized n-qubit circuit is bounded by 9*n+4, which is not optimal.
+    The depth of the synthesized n-qubit circuit is bounded by 7*n+2, which is not optimal.
     It should be replaced by a better algorithm that provides depth bounded by 7*n-4 [3].
 
     Args:
@@ -451,6 +441,7 @@ def synth_clifford_depth_lnn(cliff):
         cliff,
         cx_synth_func=synth_cnot_depth_line_kms,
         cz_synth_func=synth_cz_depth_line_mr,
+        cx_cz_synth_func=synth_cx_cz_line_my,
         cz_func_reverse_qubits=True,
     )
     return circ

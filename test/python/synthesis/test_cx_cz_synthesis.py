@@ -31,11 +31,13 @@ from qiskit.synthesis.linear import (
 )
 
 from qiskit.synthesis.linear.linear_circuits_utils import (
-    transpose_cx_circ, 
+    transpose_cx_circ,
     optimize_cx_4_options,
-    check_lnn_connectivity)
+    check_lnn_connectivity,
+)
 
 from qiskit.test import QiskitTestCase
+
 
 @ddt
 class TestCXCZSynth(QiskitTestCase):
@@ -50,8 +52,6 @@ class TestCXCZSynth(QiskitTestCase):
         num_trials = 8
 
         for _ in range(num_trials):
-
-
             # Generate a random CZ circuit
             mat_z = np.zeros((num_qubits, num_qubits))
             cir_z = QuantumCircuit(num_qubits)
@@ -70,17 +70,16 @@ class TestCXCZSynth(QiskitTestCase):
             mat_x = np.array(mat_x, dtype=bool)
             cir_x = synth_cnot_depth_line_kms(mat_x)
 
-
             # Joint Synthesis
 
             cirZX_test = QuantumCircuit.compose(cir_z, cir_x)
 
-            cirZX = synth_cx_cz_line_my(mat_x,mat_z)
+            cirZX = synth_cx_cz_line_my(mat_x, mat_z)
 
             # Check that the output circuit 2-qubit depth is at most 5n
 
             depth2q = cirZX.depth(filter_function=lambda x: x.operation.num_qubits == 2)
-            self.assertTrue(depth2q <= 5 * num_qubits )
+            self.assertTrue(depth2q <= 5 * num_qubits)
 
             # Check that the output circuit has LNN connectivity
             self.assertTrue(check_lnn_connectivity(cirZX))

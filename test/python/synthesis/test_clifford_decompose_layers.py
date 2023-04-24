@@ -11,6 +11,12 @@
 # that they have been altered from the originals.
 
 """Tests for Clifford class."""
+import os, sys
+
+HOME = "/Users/willers/Documents/GitHub/qiskit-terra"
+QISKIT_ROOT = HOME
+root_dir = os.path.expanduser(QISKIT_ROOT)
+sys.path = [os.path.expanduser(QISKIT_ROOT)] + sys.path
 
 import unittest
 from test import combine
@@ -58,11 +64,11 @@ class TestCliffordDecomposeLayers(QiskitTestCase):
         for _ in range(samples):
             cliff = random_clifford(num_qubits, seed=rng)
             circ = synth_clifford_depth_lnn(cliff)
-            # Check that the Clifford circuit 2-qubit depth is bounded by 9*n+4
+            # Check that the Clifford circuit 2-qubit depth is bounded by 7*n+2
             depth2q = (circ.decompose()).depth(
                 filter_function=lambda x: x.operation.num_qubits == 2
             )
-            self.assertTrue(depth2q <= 9 * num_qubits + 4)
+            self.assertTrue(depth2q <= 7 * num_qubits + 2)
             # Check that the Clifford circuit has linear nearest neighbour connectivity
             self.assertTrue(check_lnn_connectivity(circ.decompose()))
             cliff_target = Clifford(circ)
