@@ -78,7 +78,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
 
         if not os.path.exists(FAILURE_DIFF_DIR):
             os.makedirs(FAILURE_DIFF_DIR)
-        
+
         if not os.path.exists(RESULTDIR):
             os.makedirs(RESULTDIR)
 
@@ -945,7 +945,7 @@ class TestCircuitMatplotlibDrawer(QiskitTestCase):
         ratio2 = self._similarity_ratio(
             self._image_path(fname2), self._reference_path(fname2), fname2
         )
-        
+
         assert ratio == 1
         assert ratio2 == 1
 
