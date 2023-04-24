@@ -54,7 +54,7 @@ class SXGate(Gate):
                         1 & -i \\
                         -i & 1
                       \end{pmatrix}
-                    = e^{-i pi/4} \sqrt{X}
+                    = e^{-i \pi/4} \sqrt{X}
 
     """
 
