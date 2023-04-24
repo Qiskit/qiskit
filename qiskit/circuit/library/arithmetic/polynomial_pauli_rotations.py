@@ -183,17 +183,18 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     @property
     def coeffs(self) -> list[float]:
-        """
-        The coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the i-th power of x.
-
-        The rotation angles are based on the coefficients value, following the formula
+        """The coefficients of the polynomial. 
+        
+        ``coeffs[i]`` is the coefficient of the i-th power of the function input :math:`x`,
+        that means that the rotation angles are based on the coefficients value,
+        following the formula
 
         .. math::
 
-            c_j x^j ,  j=0,... d
+            c_j x^j ,  j=0, ..., d
 
         where :math:`d` is the degree of the polynomial :math:`p(x)` and :math:`c` are the coefficients
-        , ``coeffs``.
+        ``coeffs``.
 
         Returns:
             The coefficients of the polynomial.
@@ -202,8 +203,9 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
 
     @coeffs.setter
     def coeffs(self, coeffs: list[float]) -> None:
-        """Set the coefficients of the polynomial. ``coeffs[i]`` is the coefficient of the
-                i-th power of x.
+        """Set the coefficients of the polynomial. 
+        
+        ``coeffs[i]`` is the coefficient of the i-th power of x.
 
         Args:
             The coefficients of the polynomial.
