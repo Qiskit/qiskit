@@ -569,7 +569,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                     "Updating transform for mapped instr %s %s from \n%s",
                     mapped_instr_name,
                     dag_params,
-                    dag_to_circuit(dag),
+                    dag_to_circuit(dag, copy_operations=False),
                 )
 
             for node in doomed_nodes:
@@ -588,7 +588,7 @@ def _compose_transforms(basis_transforms, source_basis, source_dag):
                     "Updated transform for mapped instr %s %s to\n%s",
                     mapped_instr_name,
                     dag_params,
-                    dag_to_circuit(dag),
+                    dag_to_circuit(dag, copy_operations=False),
                 )
 
     return mapped_instrs

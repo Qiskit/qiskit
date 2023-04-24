@@ -10,8 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tests for Clifford class."""
-import os, sys
+
+"""Tests for Clifford synthesis methods."""
+
 import unittest
 from test import combine
 from ddt import ddt

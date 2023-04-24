@@ -124,7 +124,7 @@ class RunningPassManager:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
 
-        circuit = dag_to_circuit(dag)
+        circuit = dag_to_circuit(dag, copy_operations=False)
         if output_name:
             circuit.name = output_name
         else:

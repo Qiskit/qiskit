@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,14 +20,15 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
 from qiskit.opflow.primitive_ops.tapered_pauli_sum_op import Z2Symmetries
 from qiskit.quantum_info import Pauli
+from qiskit.utils.deprecation import deprecate_func
 
 logger = logging.getLogger(__name__)
 
 
 class TwoQubitReduction(ConverterBase):
     """
-    Two qubit reduction converter which eliminates the central and last qubit in a list of Pauli
-    that has diagonal operators (Z,I) at those positions.
+    Deprecated: Two qubit reduction converter which eliminates the central and last
+    qubit in a list of Pauli that has diagonal operators (Z,I) at those positions.
 
     Chemistry specific method:
     It can be used to taper two qubits in parity and binary-tree mapped
@@ -35,12 +36,17 @@ class TwoQubitReduction(ConverterBase):
     sectors, (block spin order) according to the number of particles in the system.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, num_particles: Union[int, List[int], Tuple[int, int]]):
         """
         Args:
             num_particles: number of particles, if it is a list,
                            the first number is alpha and the second number if beta.
         """
+        super().__init__()
         if isinstance(num_particles, (tuple, list)):
             num_alpha = num_particles[0]
             num_beta = num_particles[1]

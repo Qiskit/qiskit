@@ -11,19 +11,19 @@
 # that they have been altered from the originals.
 
 """Add control to operation if supported."""
-
-from typing import Union, Optional
+from __future__ import annotations
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.extensions import UnitaryGate
 from . import ControlledGate, Gate, QuantumRegister, QuantumCircuit
+from ._utils import _ctrl_state_to_int
 
 
 def add_control(
-    operation: Union[Gate, ControlledGate],
+    operation: Gate | ControlledGate,
     num_ctrl_qubits: int,
-    label: Union[str, None],
-    ctrl_state: Union[int, str, None],
+    label: str | None,
+    ctrl_state: str | int | None,
 ) -> ControlledGate:
     """For standard gates, if the controlled version already exists in the
     library, it will be returned (e.g. XGate.control() = CnotGate().
@@ -51,8 +51,6 @@ def add_control(
         Controlled version of gate.
 
     """
-    if ctrl_state is None:
-        ctrl_state = 2**num_ctrl_qubits - 1
     if isinstance(operation, UnitaryGate):
         # attempt decomposition
         operation._define()
@@ -62,10 +60,10 @@ def add_control(
 
 
 def control(
-    operation: Union[Gate, ControlledGate],
-    num_ctrl_qubits: Optional[int] = 1,
-    label: Optional[Union[None, str]] = None,
-    ctrl_state: Optional[Union[None, int, str]] = None,
+    operation: Gate | ControlledGate,
+    num_ctrl_qubits: int | None = 1,
+    label: str | None = None,
+    ctrl_state: str | int | None = None,
 ) -> ControlledGate:
     """Return controlled version of gate using controlled rotations. This function
     first checks the name of the operation to see if it knows of a method from which
@@ -92,6 +90,8 @@ def control(
 
     # pylint: disable=cyclic-import
     from qiskit.circuit import controlledgate
+
+    ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
 
     q_control = QuantumRegister(num_ctrl_qubits, name="control")
     q_target = QuantumRegister(operation.num_qubits, name="target")

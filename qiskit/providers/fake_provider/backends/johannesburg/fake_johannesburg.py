@@ -35,7 +35,7 @@ class FakeJohannesburgV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_johannesburg.json"
     props_filename = "props_johannesburg.json"
-    backend_name = "fake_johannesburg_v2"
+    backend_name = "fake_johannesburg"
 
 
 class FakeJohannesburg(fake_qasm_backend.FakeQasmBackend):
