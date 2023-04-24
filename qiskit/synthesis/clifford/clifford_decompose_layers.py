@@ -22,10 +22,8 @@ from qiskit.synthesis.linear import (
     synth_cnot_count_full_pmh,
     synth_cnot_depth_line_kms,
 )
-from qiskit.synthesis.linear_phase import (
-    synth_cz_depth_line_mr,
-    synth_cx_cz_line_my,
-)
+from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
+from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_line_my
 
 
 from qiskit.synthesis.linear.linear_matrix_utils import (
