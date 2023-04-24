@@ -12,12 +12,6 @@
 
 """Tests for Clifford class."""
 import os, sys
-
-HOME = "/Users/willers/Documents/GitHub/qiskit-terra"
-QISKIT_ROOT = HOME
-root_dir = os.path.expanduser(QISKIT_ROOT)
-sys.path = [os.path.expanduser(QISKIT_ROOT)] + sys.path
-
 import unittest
 from test import combine
 from ddt import ddt
