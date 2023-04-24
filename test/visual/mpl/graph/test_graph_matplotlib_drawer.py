@@ -40,10 +40,10 @@ if optionals.HAS_MATPLOTLIB:
 else:
     raise ImportError('Must have Matplotlib installed. To install, run "pip install matplotlib".')
 
-
-RESULTDIR = os.path.dirname(os.path.abspath(__file__))
-TEST_REFERENCE_PATH = os.path.join(RESULTDIR, "references")
-FAILURE_DIFF_DIR = os.path.join(RESULTDIR, "graphfailures", "")
+BASEDIR = os.path.dirname(os.path.abspath(__file__))
+RESULTDIR = os.path.join(BASEDIR, "results", "")
+TEST_REFERENCE_PATH = os.path.join(BASEDIR, "references")
+FAILURE_DIFF_DIR = os.path.join(BASEDIR, "graphfailures", "")
 
 
 @contextmanager
@@ -75,6 +75,9 @@ class TestGraphMatplotlibDrawer(QiskitTestCase):
 
         if not os.path.exists(FAILURE_DIFF_DIR):
             os.makedirs(FAILURE_DIFF_DIR)
+
+        if not os.path.exists(RESULTDIR):
+            os.makedirs(RESULTDIR)
 
     def tearDown(self):
         super().tearDown()
