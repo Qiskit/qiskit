@@ -30,10 +30,19 @@ Now that Qiskit is installed, it's time to begin working with Qiskit. To do this
 we create a `QuantumCircuit` object to define a basic quantum program.
 
 ```python
+# Import the QuantumCircuit class from qiskit
 from qiskit import QuantumCircuit
+
+# Create a quantum circuit with 2 qubits and 2 classical bits
 qc = QuantumCircuit(2, 2)
+
+# Apply a Hadamard gate to the first qubit
 qc.h(0)
+
+# Apply a controlled-NOT gate to the second qubit, with the first qubit as the control
 qc.cx(0, 1)
+
+# Measure both qubits and store the results in the classical bits
 qc.measure([0,1], [0,1])
 ```
 
@@ -47,16 +56,26 @@ implies). You should consider more sophisticated simulators, such as [`qiskit-ae
 for any real simulation work.
 
 ```python
+# Import the transpile function from qiskit
 from qiskit import transpile
+
+# Import the QasmSimulatorPy class from qiskit.providers.basicaer
 from qiskit.providers.basicaer import QasmSimulatorPy
+
+# Create a simulator backend that uses Python
 backend_sim = QasmSimulatorPy()
+
+# Transpile the quantum circuit to optimize it for the simulator backend
 transpiled_qc = transpile(qc, backend_sim)
 ```
 
 After compiling the circuit we can then run this on the ``backend`` object with:
 
 ```python
+# Execute the transpiled circuit on the simulator backend and get the result object
 result = backend_sim.run(transpiled_qc).result()
+
+# Print the counts of each measurement outcome from the result object
 print(result.get_counts(qc))
 ```
 
