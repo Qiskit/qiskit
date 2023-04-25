@@ -17,24 +17,16 @@ from test import combine
 import numpy as np
 from ddt import ddt
 from qiskit import QuantumCircuit
-from qiskit.synthesis.linear.linear_depth_lnn import synth_cnot_depth_line_kms
-from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_line_my
 
 from qiskit.quantum_info import Clifford
 
+from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_line_my
 from qiskit.synthesis.linear import (
-    synth_cnot_count_full_pmh,
     synth_cnot_depth_line_kms,
     random_invertible_binary_matrix,
-    check_invertible_binary_matrix,
-    calc_inverse_matrix,
 )
 
-from qiskit.synthesis.linear.linear_circuits_utils import (
-    transpose_cx_circ,
-    optimize_cx_4_options,
-    check_lnn_connectivity,
-)
+from qiskit.synthesis.linear.linear_circuits_utils import check_lnn_connectivity
 
 from qiskit.test import QiskitTestCase
 
@@ -72,20 +64,20 @@ class TestCXCZSynth(QiskitTestCase):
 
             # Joint Synthesis
 
-            cirZX_test = QuantumCircuit.compose(cir_z, cir_x)
+            cir_zx_test = QuantumCircuit.compose(cir_z, cir_x)
 
-            cirZX = synth_cx_cz_line_my(mat_x, mat_z)
+            cir_zx= synth_cx_cz_line_my(mat_x, mat_z)
 
             # Check that the output circuit 2-qubit depth is at most 5n
 
-            depth2q = cirZX.depth(filter_function=lambda x: x.operation.num_qubits == 2)
+            depth2q = cir_zx.depth(filter_function=lambda x: x.operation.num_qubits == 2)
             self.assertTrue(depth2q <= 5 * num_qubits)
 
             # Check that the output circuit has LNN connectivity
-            self.assertTrue(check_lnn_connectivity(cirZX))
+            self.assertTrue(check_lnn_connectivity(cir_zx))
 
             # Assert that we get the same elements as other methods
-            self.assertEqual(Clifford(cirZX), Clifford(cirZX_test))
+            self.assertEqual(Clifford(cir_zx), Clifford(cir_zx_test))
 
 
 if __name__ == "__main__":
