@@ -2910,3 +2910,51 @@ class TestTranspileMultiChipTarget(QiskitTestCase):
         original_map = copy.deepcopy(backend.coupling_map)
         transpile(qc, backend, optimization_level=opt_level)
         self.assertEqual(original_map, backend.coupling_map)
+
+    @combine(
+        optimization_level=[0, 1, 2, 3],
+        scheduling_method=["asap", "alap"],
+    )
+    def test_transpile_target_with_qubits_without_delays_with_scheduling(
+        self, optimization_level, scheduling_method
+    ):
+        """Test qubits without operations aren't ever used."""
+        no_delay_qubits = [1, 3, 4]
+        target = Target(num_qubits=5, dt=1)
+        target.add_instruction(
+            XGate(), {(i,): InstructionProperties(duration=160) for i in range(4)}
+        )
+        target.add_instruction(
+            HGate(), {(i,): InstructionProperties(duration=160) for i in range(4)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {
+                edge: InstructionProperties(duration=800)
+                for edge in [(0, 1), (1, 2), (2, 0), (2, 3)]
+            },
+        )
+        target.add_instruction(
+            Delay(Parameter("t")), {(i,): None for i in range(4) if i not in no_delay_qubits}
+        )
+        qc = QuantumCircuit(4)
+        qc.x(0)
+        qc.cx(0, 1)
+        qc.cx(0, 2)
+        qc.cx(1, 3)
+        qc.cx(0, 3)
+        tqc = transpile(
+            qc,
+            target=target,
+            optimization_level=optimization_level,
+            scheduling_method=scheduling_method,
+        )
+        invalid_qubits = {
+            4,
+        }
+        self.assertEqual(tqc.num_qubits, 5)
+        for inst in tqc.data:
+            for bit in inst.qubits:
+                self.assertNotIn(tqc.find_bit(bit).index, invalid_qubits)
+                if isinstance(inst.operation, Delay):
+                    self.assertNotIn(tqc.find_bit(bit).index, no_delay_qubits)
