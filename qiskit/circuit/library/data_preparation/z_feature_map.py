@@ -72,12 +72,15 @@ class ZFeatureMap(PauliFeatureMap):
 
     """
 
-    def __init__(self,
-                 feature_dimension: int,
-                 reps: int = 2,
-                 data_map_func: Optional[Callable[[np.ndarray], float]] = None,
-                 insert_barriers: bool = False,
-                 ) -> None:
+    def __init__(
+        self,
+        feature_dimension: int,
+        reps: int = 2,
+        data_map_func: Optional[Callable[[np.ndarray], float]] = None,
+        parameter_prefix: str = "x",
+        insert_barriers: bool = False,
+        name: str = "ZFeatureMap",
+    ) -> None:
         """Create a new first-order Pauli-Z expansion circuit.
 
         Args:
@@ -85,12 +88,17 @@ class ZFeatureMap(PauliFeatureMap):
             reps: The number of repeated circuits. Defaults to 2, has a minimum value of 1.
             data_map_func: A mapping function for data x which can be supplied to override the
                 default mapping from :meth:`self_product`.
+            parameter_prefix: The prefix used if default parameters are generated.
             insert_barriers: If True, barriers are inserted in between the evolution instructions
                 and hadamard layers.
 
         """
-        super().__init__(feature_dimension=feature_dimension,
-                         paulis=['Z'],
-                         reps=reps,
-                         data_map_func=data_map_func,
-                         insert_barriers=insert_barriers)
+        super().__init__(
+            feature_dimension=feature_dimension,
+            paulis=["Z"],
+            reps=reps,
+            data_map_func=data_map_func,
+            parameter_prefix=parameter_prefix,
+            insert_barriers=insert_barriers,
+            name=name,
+        )

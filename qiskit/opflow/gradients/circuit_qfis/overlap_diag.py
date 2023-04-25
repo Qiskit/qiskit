@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,6 +11,7 @@
 # that they have been altered from the originals.
 
 """The module for Quantum the Fisher Information."""
+
 import copy
 from typing import List, Union
 
@@ -18,6 +19,7 @@ import numpy as np
 from qiskit.circuit import ParameterVector, ParameterExpression
 from qiskit.circuit.library import RZGate, RXGate, RYGate
 from qiskit.converters import dag_to_circuit, circuit_to_dag
+from qiskit.utils.deprecation import deprecate_func
 from ...list_ops.list_op import ListOp
 from ...primitive_ops.circuit_op import CircuitOp
 from ...expectations.pauli_expectation import PauliExpectation
@@ -27,19 +29,27 @@ from ...state_fns.circuit_state_fn import CircuitStateFn
 
 
 from .circuit_qfi import CircuitQFI
-from ..derivative_base import DerivativeBase
+from ..derivative_base import _coeff_derivative
 
 
 class OverlapDiag(CircuitQFI):
-    r"""Compute the diagonal of the QFI given a pure, parametrized quantum state.
+    r"""Deprecated: Compute the diagonal of the QFI given a pure, parameterized quantum state.
 
     See also :class:`~qiskit.opflow.QFI`.
     """
 
-    def convert(self,
-                operator: Union[CircuitOp, CircuitStateFn],
-                params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]]
-                ) -> ListOp:
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
+
+    def convert(
+        self,
+        operator: Union[CircuitOp, CircuitStateFn],
+        params: Union[ParameterExpression, ParameterVector, List[ParameterExpression]],
+    ) -> ListOp:
         r"""
         Args:
             operator: The operator corresponding to the quantum state :math:`|\psi(\omega)\rangle`
@@ -56,16 +66,17 @@ class OverlapDiag(CircuitQFI):
         """
 
         if not isinstance(operator, CircuitStateFn):
-            raise NotImplementedError('operator must be a CircuitStateFn')
+            raise NotImplementedError("operator must be a CircuitStateFn")
 
         return self._diagonal_approx(operator=operator, params=params)
 
     # TODO, for some reason diagonal_approx doesn't use the same get_parameter_expression method.
     # This should be fixed.
-    def _diagonal_approx(self,
-                         operator: Union[CircuitOp, CircuitStateFn],
-                         params: Union[ParameterExpression, ParameterVector, List]
-                         ) -> ListOp:
+    def _diagonal_approx(
+        self,
+        operator: Union[CircuitOp, CircuitStateFn],
+        params: Union[ParameterExpression, ParameterVector, List],
+    ) -> ListOp:
         """
         Args:
             operator: The operator corresponding to the quantum state |ψ(ω)〉for which we compute
@@ -84,7 +95,7 @@ class OverlapDiag(CircuitQFI):
         """
 
         if not isinstance(operator, (CircuitOp, CircuitStateFn)):
-            raise NotImplementedError('operator must be a CircuitOp or CircuitStateFn')
+            raise NotImplementedError("operator must be a CircuitOp or CircuitStateFn")
 
         # If a single parameter is given wrap it into a list.
         if isinstance(params, ParameterExpression):
@@ -112,15 +123,18 @@ class OverlapDiag(CircuitQFI):
         diag = []
         for param in params:
             if len(circuit._parameter_table[param]) > 1:
-                raise NotImplementedError("OverlapDiag does not yet support multiple "
-                                          "gates parameterized by a single parameter. For such "
-                                          "circuits use LinCombFull")
+                raise NotImplementedError(
+                    "OverlapDiag does not yet support multiple "
+                    "gates parameterized by a single parameter. For such "
+                    "circuits use LinCombFull"
+                )
 
-            gate = circuit._parameter_table[param][0][0]
+            gate = next(iter(circuit._parameter_table[param]))[0]
 
             if len(gate.params) != 1:
-                raise TypeError("OverlapDiag cannot yet support gates with more than one "
-                                "parameter.")
+                raise TypeError(
+                    "OverlapDiag cannot yet support gates with more than one parameter."
+                )
 
             param_value = gate.params[0]
             generator = generators[param]
@@ -131,32 +145,34 @@ class OverlapDiag(CircuitQFI):
 
             op = meas_op @ psi @ Zero
             if type(param_value) == ParameterExpression:  # pylint: disable=unidiomatic-typecheck
-                expr_grad = DerivativeBase.parameter_expression_grad(param_value, param)
+                expr_grad = _coeff_derivative(param_value, param)
                 op *= expr_grad
             rotated_op = PauliExpectation().convert(op)
             diag.append(rotated_op)
 
-        grad_op = ListOp(diag, combo_fn=lambda x: np.diag(np.real([1 - y ** 2 for y in x])))
+        grad_op = ListOp(diag, combo_fn=lambda x: np.diag(np.real([1 - y**2 for y in x])))
         return grad_op
 
 
 def _partition_circuit(circuit):
     dag = circuit_to_dag(circuit)
-    dag_layers = ([i['graph'] for i in dag.serial_layers()])
+    dag_layers = [i["graph"] for i in dag.serial_layers()]
     num_qubits = circuit.num_qubits
     layers = list(
-        zip(dag_layers, [{x: False for x in range(0, num_qubits)} for layer in dag_layers]))
+        zip(dag_layers, [{x: False for x in range(0, num_qubits)} for layer in dag_layers])
+    )
 
     # initialize the ledger
     # The ledger tracks which qubits in each layer are available to have
     # gates from subsequent layers shifted backward.
     # The idea being that all parameterized gates should have
     # no descendants within their layer
+    bit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
     for i, (layer, ledger) in enumerate(layers):
         op_node = layer.op_nodes()[0]
         is_param = op_node.op.is_parameterized()
         qargs = op_node.qargs
-        indices = [qarg.index for qarg in qargs]
+        indices = [bit_indices[qarg] for qarg in qargs]
         if is_param:
             for index in indices:
                 ledger[index] = True
@@ -165,11 +181,10 @@ def _partition_circuit(circuit):
         op = copy.copy(node.op)
         qargs = copy.copy(node.qargs)
         cargs = copy.copy(node.cargs)
-        condition = copy.copy(node.condition)
         if back:
-            dag.apply_operation_back(op, qargs, cargs, condition)
+            dag.apply_operation_back(op, qargs, cargs)
         else:
-            dag.apply_operation_front(op, qargs, cargs, condition)
+            dag.apply_operation_front(op, qargs, cargs)
 
     converged = False
 
@@ -187,12 +202,12 @@ def _partition_circuit(circuit):
             for next_node in next_layer.op_nodes():
                 is_param = next_node.op.is_parameterized()
                 qargs = next_node.qargs
-                indices = [qarg.index for qarg in qargs]
+                indices = [bit_indices[qarg] for qarg in qargs]
 
                 # If the next_node can be moved back a layer without
                 # without becoming the descendant of a parameterized gate,
                 # then do it.
-                if not any([ledger[x] for x in indices]):
+                if not any(ledger[x] for x in indices):
 
                     apply_node_op(next_node, layer)
                     next_layer.remove_op_node(next_node)
@@ -218,15 +233,20 @@ def _get_generators(params, circuit):
 
     generators = {}
     num_qubits = dag.num_qubits()
+    bit_indices = {bit: index for index, bit in enumerate(circuit.qubits)}
 
     for layer in layers:
-        instr = layer['graph'].op_nodes()[0].op
-        if len(instr.params) == 0:
+        instr = layer["graph"].op_nodes()[0].op
+        # if no gate is parameterized, skip
+        if not any(isinstance(param, ParameterExpression) for param in instr.params):
             continue
-        assert len(instr.params) == 1, "Circuit was not properly decomposed"
+
+        if len(instr.params) != 1:
+            raise NotImplementedError(
+                "The QFI diagonal approximation currently only supports "
+                "gates with a single free parameter."
+            )
         param_value = instr.params[0]
-        if not isinstance(param_value, ParameterExpression):
-            continue
 
         for param in params:
             if param in param_value.parameters:
@@ -238,11 +258,11 @@ def _get_generators(params, circuit):
                 elif isinstance(instr, RXGate):
                     generator = X
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError(f"Generator for gate {instr.name} not implemented.")
 
                 # get all qubit indices in this layer where the param parameterizes
                 # an operation.
-                indices = [[q.index for q in qreg] for qreg in layer['partition']]
+                indices = [[bit_indices[q] for q in qreg] for qreg in layer["partition"]]
                 indices = [item for sublist in indices for item in sublist]
 
                 if len(indices) > 1:

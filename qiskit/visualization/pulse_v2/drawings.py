@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=invalid-name
-
 """
 Drawing objects for pulse drawer.
 
@@ -57,9 +55,11 @@ data arrays, if we introduced such a drawing and wrote a custom wrapper function
 on top of the existing API, it could be difficult to prevent bugs with the CI tools
 due to lack of the effective unittest.
 """
+from __future__ import annotations
+
 from abc import ABC
 from enum import Enum
-from typing import Dict, Any, Optional, Union, List
+from typing import Any
 
 import numpy as np
 
@@ -70,16 +70,19 @@ from qiskit.visualization.exceptions import VisualizationError
 
 class ElementaryData(ABC):
     """Base class of the pulse visualization interface."""
+
     __hash__ = None
 
-    def __init__(self,
-                 data_type: Union[str, Enum],
-                 xvals: np.ndarray,
-                 yvals: np.ndarray,
-                 channels: Optional[Union[Channel, List[Channel]]] = None,
-                 meta: Optional[Dict[str, Any]] = None,
-                 ignore_scaling: bool = False,
-                 styles: Optional[Dict[str, Any]] = None):
+    def __init__(
+        self,
+        data_type: str | Enum,
+        xvals: np.ndarray,
+        yvals: np.ndarray,
+        channels: Channel | list[Channel] | None = None,
+        meta: dict[str, Any] | None = None,
+        ignore_scaling: bool = False,
+        styles: dict[str, Any] | None = None,
+    ):
         """Create new drawing.
 
         Args:
@@ -100,23 +103,20 @@ class ElementaryData(ABC):
         self.data_type = str(data_type)
         self.xvals = np.array(xvals, dtype=object)
         self.yvals = np.array(yvals, dtype=object)
-        self.channels = channels or []
-        self.meta = meta or dict()
+        self.channels: list[Channel] = channels or []
+        self.meta = meta or {}
         self.ignore_scaling = ignore_scaling
-        self.styles = styles or dict()
+        self.styles = styles or {}
 
     @property
     def data_key(self):
         """Return unique hash of this object."""
-        return str(hash((self.__class__.__name__,
-                         self.data_type,
-                         tuple(self.xvals),
-                         tuple(self.yvals))))
+        return str(
+            hash((self.__class__.__name__, self.data_type, tuple(self.xvals), tuple(self.yvals)))
+        )
 
     def __repr__(self):
-        return "{}(type={}, key={})".format(self.__class__.__name__,
-                                            self.data_type,
-                                            self.data_key)
+        return f"{self.__class__.__name__}(type={self.data_type}, key={self.data_key})"
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.data_key == other.data_key
@@ -125,17 +125,20 @@ class ElementaryData(ABC):
 class LineData(ElementaryData):
     """Drawing object to represent object appears as a line.
 
-    This is the counterpart of `matplotlib.pyploy.plot`.
+    This is the counterpart of `matplotlib.pyplot.plot`.
     """
-    def __init__(self,
-                 data_type: Union[str, Enum],
-                 xvals: Union[np.ndarray, List[types.Coordinate]],
-                 yvals: Union[np.ndarray, List[types.Coordinate]],
-                 fill: bool = False,
-                 channels: Optional[Union[Channel, List[Channel]]] = None,
-                 meta: Optional[Dict[str, Any]] = None,
-                 ignore_scaling: bool = False,
-                 styles: Optional[Dict[str, Any]] = None):
+
+    def __init__(
+        self,
+        data_type: str | Enum,
+        xvals: np.ndarray | list[types.Coordinate],
+        yvals: np.ndarray | list[types.Coordinate],
+        fill: bool = False,
+        channels: Channel | list[Channel] | None = None,
+        meta: dict[str, Any] | None = None,
+        ignore_scaling: bool = False,
+        styles: dict[str, Any] | None = None,
+    ):
         """Create new drawing.
 
         Args:
@@ -150,30 +153,35 @@ class LineData(ElementaryData):
         """
         self.fill = fill
 
-        super().__init__(data_type=data_type,
-                         xvals=xvals,
-                         yvals=yvals,
-                         channels=channels,
-                         meta=meta,
-                         ignore_scaling=ignore_scaling,
-                         styles=styles)
+        super().__init__(
+            data_type=data_type,
+            xvals=xvals,
+            yvals=yvals,
+            channels=channels,
+            meta=meta,
+            ignore_scaling=ignore_scaling,
+            styles=styles,
+        )
 
 
 class TextData(ElementaryData):
     """Drawing object to represent object appears as a text.
 
-    This is the counterpart of `matplotlib.pyploy.text`.
+    This is the counterpart of `matplotlib.pyplot.text`.
     """
-    def __init__(self,
-                 data_type: Union[str, Enum],
-                 xvals: Union[np.ndarray, List[types.Coordinate]],
-                 yvals: Union[np.ndarray, List[types.Coordinate]],
-                 text: str,
-                 latex: Optional[str] = None,
-                 channels: Optional[Union[Channel, List[Channel]]] = None,
-                 meta: Optional[Dict[str, Any]] = None,
-                 ignore_scaling: bool = False,
-                 styles: Optional[Dict[str, Any]] = None):
+
+    def __init__(
+        self,
+        data_type: str | Enum,
+        xvals: np.ndarray | list[types.Coordinate],
+        yvals: np.ndarray | list[types.Coordinate],
+        text: str,
+        latex: str | None = None,
+        channels: Channel | list[Channel] | None = None,
+        meta: dict[str, Any] | None = None,
+        ignore_scaling: bool = False,
+        styles: dict[str, Any] | None = None,
+    ):
         """Create new drawing.
 
         Args:
@@ -188,15 +196,17 @@ class TextData(ElementaryData):
             styles: Style keyword args of the object. This conforms to `matplotlib`.
         """
         self.text = text
-        self.latex = latex or ''
+        self.latex = latex or ""
 
-        super().__init__(data_type=data_type,
-                         xvals=xvals,
-                         yvals=yvals,
-                         channels=channels,
-                         meta=meta,
-                         ignore_scaling=ignore_scaling,
-                         styles=styles)
+        super().__init__(
+            data_type=data_type,
+            xvals=xvals,
+            yvals=yvals,
+            channels=channels,
+            meta=meta,
+            ignore_scaling=ignore_scaling,
+            styles=styles,
+        )
 
 
 class BoxData(ElementaryData):
@@ -204,14 +214,17 @@ class BoxData(ElementaryData):
 
     This is the counterpart of `matplotlib.patches.Rectangle`.
     """
-    def __init__(self,
-                 data_type: Union[str, Enum],
-                 xvals: Union[np.ndarray, List[types.Coordinate]],
-                 yvals: Union[np.ndarray, List[types.Coordinate]],
-                 channels: Optional[Union[Channel, List[Channel]]] = None,
-                 meta: Dict[str, Any] = None,
-                 ignore_scaling: bool = False,
-                 styles: Dict[str, Any] = None):
+
+    def __init__(
+        self,
+        data_type: str | Enum,
+        xvals: np.ndarray | list[types.Coordinate],
+        yvals: np.ndarray | list[types.Coordinate],
+        channels: Channel | list[Channel] | None = None,
+        meta: dict[str, Any] | None = None,
+        ignore_scaling: bool = False,
+        styles: dict[str, Any] | None = None,
+    ):
         """Create new box.
 
         Args:
@@ -227,12 +240,14 @@ class BoxData(ElementaryData):
             VisualizationError: When number of data points are not equals to 2.
         """
         if len(xvals) != 2 or len(yvals) != 2:
-            raise VisualizationError('Length of data points are not equals to 2.')
+            raise VisualizationError("Length of data points are not equals to 2.")
 
-        super().__init__(data_type=data_type,
-                         xvals=xvals,
-                         yvals=yvals,
-                         channels=channels,
-                         meta=meta,
-                         ignore_scaling=ignore_scaling,
-                         styles=styles)
+        super().__init__(
+            data_type=data_type,
+            xvals=xvals,
+            yvals=yvals,
+            channels=channels,
+            meta=meta,
+            ignore_scaling=ignore_scaling,
+            styles=styles,
+        )

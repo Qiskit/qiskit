@@ -29,18 +29,17 @@ class RealAmplitudes(TwoLocal):
     It is called ``RealAmplitudes`` since the prepared quantum states will only have
     real amplitudes, the complex part is always 0.
 
-    For example a ``RealAmplitudes`` circuit with 2 repetitions on 3 qubits with ``'full'``
+    For example a ``RealAmplitudes`` circuit with 2 repetitions on 3 qubits with ``'reverse_linear'``
     entanglement is
 
     .. parsed-literal::
-
-         ┌──────────┐ ░                 ░ ┌──────────┐ ░                 ░ ┌──────────┐
-         ┤ RY(θ[0]) ├─░───■────■────────░─┤ RY(θ[3]) ├─░───■────■────────░─┤ RY(θ[6]) ├
-         ├──────────┤ ░ ┌─┴─┐  │        ░ ├──────────┤ ░ ┌─┴─┐  │        ░ ├──────────┤
-         ┤ RY(θ[1]) ├─░─┤ X ├──┼────■───░─┤ RY(θ[4]) ├─░─┤ X ├──┼────■───░─┤ RY(θ[7]) ├
-         ├──────────┤ ░ └───┘┌─┴─┐┌─┴─┐ ░ ├──────────┤ ░ └───┘┌─┴─┐┌─┴─┐ ░ ├──────────┤
-         ┤ RY(θ[2]) ├─░──────┤ X ├┤ X ├─░─┤ RY(θ[5]) ├─░──────┤ X ├┤ X ├─░─┤ RY(θ[8]) ├
-         └──────────┘ ░      └───┘└───┘ ░ └──────────┘ ░      └───┘└───┘ ░ └──────────┘
+         ┌──────────┐ ░            ░ ┌──────────┐ ░            ░ ┌──────────┐
+         ┤ Ry(θ[0]) ├─░────────■───░─┤ Ry(θ[3]) ├─░────────■───░─┤ Ry(θ[6]) ├
+         ├──────────┤ ░      ┌─┴─┐ ░ ├──────────┤ ░      ┌─┴─┐ ░ ├──────────┤
+         ┤ Ry(θ[1]) ├─░───■──┤ X ├─░─┤ Ry(θ[4]) ├─░───■──┤ X ├─░─┤ Ry(θ[7]) ├
+         ├──────────┤ ░ ┌─┴─┐└───┘ ░ ├──────────┤ ░ ┌─┴─┐└───┘ ░ ├──────────┤
+         ┤ Ry(θ[2]) ├─░─┤ X ├──────░─┤ Ry(θ[5]) ├─░─┤ X ├──────░─┤ Ry(θ[8]) ├
+         └──────────┘ ░ └───┘      ░ └──────────┘ ░ └───┘      ░ └──────────┘
 
     The entanglement can be set using the ``entanglement`` keyword as string or a list of
     index-pairs. See the documentation of :class:`~qiskit.circuit.library.TwoLocal` and
@@ -56,6 +55,16 @@ class RealAmplitudes(TwoLocal):
     Examples:
 
         >>> ansatz = RealAmplitudes(3, reps=2)  # create the circuit on 3 qubits
+        >>> print(ansatz)
+             ┌──────────┐                 ┌──────────┐                 ┌──────────┐
+        q_0: ┤ Ry(θ[0]) ├──────────■──────┤ Ry(θ[3]) ├──────────■──────┤ Ry(θ[6]) ├
+             ├──────────┤        ┌─┴─┐    ├──────────┤        ┌─┴─┐    ├──────────┤
+        q_1: ┤ Ry(θ[1]) ├──■─────┤ X ├────┤ Ry(θ[4]) ├──■─────┤ X ├────┤ Ry(θ[7]) ├
+             ├──────────┤┌─┴─┐┌──┴───┴───┐└──────────┘┌─┴─┐┌──┴───┴───┐└──────────┘
+        q_2: ┤ Ry(θ[2]) ├┤ X ├┤ Ry(θ[5]) ├────────────┤ X ├┤ Ry(θ[8]) ├────────────
+             └──────────┘└───┘└──────────┘            └───┘└──────────┘
+
+        >>> ansatz = RealAmplitudes(3, entanglement='full', reps=2)  # it is the same unitary as above
         >>> print(ansatz)
              ┌──────────┐          ┌──────────┐                      ┌──────────┐
         q_0: ┤ RY(θ[0]) ├──■────■──┤ RY(θ[3]) ├──────────────■────■──┤ RY(θ[6]) ├────────────
@@ -104,16 +113,18 @@ class RealAmplitudes(TwoLocal):
 
     """
 
-    def __init__(self,
-                 num_qubits: Optional[int] = None,
-                 entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = 'full',
-                 reps: int = 3,
-                 skip_unentangled_qubits: bool = False,
-                 skip_final_rotation_layer: bool = False,
-                 parameter_prefix: str = 'θ',
-                 insert_barriers: bool = False,
-                 initial_state: Optional[Any] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        num_qubits: Optional[int] = None,
+        entanglement: Union[str, List[List[int]], Callable[[int], List[int]]] = "reverse_linear",
+        reps: int = 3,
+        skip_unentangled_qubits: bool = False,
+        skip_final_rotation_layer: bool = False,
+        parameter_prefix: str = "θ",
+        insert_barriers: bool = False,
+        initial_state: Optional[Any] = None,
+        name: str = "RealAmplitudes",
+    ) -> None:
         """Create a new RealAmplitudes 2-local circuit.
 
         Args:
@@ -121,12 +132,15 @@ class RealAmplitudes(TwoLocal):
             reps: Specifies how often the structure of a rotation layer followed by an entanglement
                 layer is repeated.
             entanglement: Specifies the entanglement structure. Can be a string ('full', 'linear'
-                or 'sca'), a list of integer-pairs specifying the indices of qubits
-                entangled with one another, or a callable returning such a list provided with
+                'reverse_linear, 'circular' or 'sca'), a list of integer-pairs specifying the indices
+                of qubits entangled with one another, or a callable returning such a list provided with
                 the index of the entanglement layer.
+                Default to 'reverse_linear' entanglement.
+                Note that 'reverse_linear' entanglement provides the same unitary as 'full'
+                with fewer entangling gates.
                 See the Examples section of :class:`~qiskit.circuit.library.TwoLocal` for more
                 detail.
-            initial_state: An `InitialState` object to prepend to the circuit.
+            initial_state: A `QuantumCircuit` object to prepend to the circuit.
             skip_unentangled_qubits: If True, the single qubit gates are only applied to qubits
                 that are entangled with another qubit. If False, the single qubit gates are applied
                 to each qubit in the Ansatz. Defaults to False.
@@ -141,16 +155,19 @@ class RealAmplitudes(TwoLocal):
                 no barriers are inserted.
 
         """
-        super().__init__(num_qubits=num_qubits,
-                         reps=reps,
-                         rotation_blocks=RYGate,
-                         entanglement_blocks=CXGate,
-                         entanglement=entanglement,
-                         initial_state=initial_state,
-                         skip_unentangled_qubits=skip_unentangled_qubits,
-                         skip_final_rotation_layer=skip_final_rotation_layer,
-                         parameter_prefix=parameter_prefix,
-                         insert_barriers=insert_barriers)
+        super().__init__(
+            num_qubits=num_qubits,
+            reps=reps,
+            rotation_blocks=RYGate,
+            entanglement_blocks=CXGate,
+            entanglement=entanglement,
+            initial_state=initial_state,
+            skip_unentangled_qubits=skip_unentangled_qubits,
+            skip_final_rotation_layer=skip_final_rotation_layer,
+            parameter_prefix=parameter_prefix,
+            insert_barriers=insert_barriers,
+            name=name,
+        )
 
     @property
     def parameter_bounds(self) -> List[Tuple[float, float]]:

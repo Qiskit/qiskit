@@ -42,10 +42,11 @@ from typing import Dict, Any, List
 from qiskit.visualization.pulse_v2 import drawings, types, device_info
 
 
-def gen_snapshot_name(data: types.SnapshotInstruction,
-                      formatter: Dict[str, Any],
-                      device: device_info.DrawerBackendInfo
-                      ) -> List[drawings.TextData]:
+def gen_snapshot_name(
+    data: types.SnapshotInstruction,
+    formatter: Dict[str, Any],
+    device: device_info.DrawerBackendInfo,
+) -> List[drawings.TextData]:
     """Generate the name of snapshot.
 
     Stylesheets:
@@ -60,27 +61,32 @@ def gen_snapshot_name(data: types.SnapshotInstruction,
     Returns:
         List of `TextData` drawings.
     """
-    style = {'zorder': formatter['layer.snapshot'],
-             'color': formatter['color.snapshot'],
-             'size': formatter['text_size.annotate'],
-             'va': 'center',
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.snapshot"],
+        "color": formatter["color.snapshot"],
+        "size": formatter["text_size.annotate"],
+        "va": "center",
+        "ha": "center",
+    }
 
-    text = drawings.TextData(data_type=types.LabelType.SNAPSHOT,
-                             channels=data.inst.channel,
-                             xvals=[data.t0],
-                             yvals=[formatter['label_offset.snapshot']],
-                             text=data.inst.name,
-                             ignore_scaling=True,
-                             styles=style)
+    text = drawings.TextData(
+        data_type=types.LabelType.SNAPSHOT,
+        channels=data.inst.channel,
+        xvals=[data.t0],
+        yvals=[formatter["label_offset.snapshot"]],
+        text=data.inst.name,
+        ignore_scaling=True,
+        styles=style,
+    )
 
     return [text]
 
 
-def gen_snapshot_symbol(data: types.SnapshotInstruction,
-                        formatter: Dict[str, Any],
-                        device: device_info.DrawerBackendInfo
-                        ) -> List[drawings.TextData]:
+def gen_snapshot_symbol(
+    data: types.SnapshotInstruction,
+    formatter: Dict[str, Any],
+    device: device_info.DrawerBackendInfo,
+) -> List[drawings.TextData]:
     """Generate a snapshot symbol with instruction meta data from provided snapshot instruction.
 
     Stylesheets:
@@ -96,26 +102,32 @@ def gen_snapshot_symbol(data: types.SnapshotInstruction,
     Returns:
         List of `TextData` drawings.
     """
-    style = {'zorder': formatter['layer.snapshot'],
-             'color': formatter['color.snapshot'],
-             'size': formatter['text_size.snapshot'],
-             'va': 'bottom',
-             'ha': 'center'}
+    style = {
+        "zorder": formatter["layer.snapshot"],
+        "color": formatter["color.snapshot"],
+        "size": formatter["text_size.snapshot"],
+        "va": "bottom",
+        "ha": "center",
+    }
 
-    meta = {'snapshot type': data.inst.type,
-            't0 (cycle time)': data.t0,
-            't0 (sec)': data.t0 * data.dt if data.dt else 'N/A',
-            'name': data.inst.name,
-            'label': data.inst.label}
+    meta = {
+        "snapshot type": data.inst.type,
+        "t0 (cycle time)": data.t0,
+        "t0 (sec)": data.t0 * data.dt if data.dt else "N/A",
+        "name": data.inst.name,
+        "label": data.inst.label,
+    }
 
-    text = drawings.TextData(data_type=types.SymbolType.SNAPSHOT,
-                             channels=data.inst.channel,
-                             xvals=[data.t0],
-                             yvals=[0],
-                             text=formatter['unicode_symbol.snapshot'],
-                             latex=formatter['latex_symbol.snapshot'],
-                             ignore_scaling=True,
-                             meta=meta,
-                             styles=style)
+    text = drawings.TextData(
+        data_type=types.SymbolType.SNAPSHOT,
+        channels=data.inst.channel,
+        xvals=[data.t0],
+        yvals=[0],
+        text=formatter["unicode_symbol.snapshot"],
+        latex=formatter["latex_symbol.snapshot"],
+        ignore_scaling=True,
+        meta=meta,
+        styles=style,
+    )
 
     return [text]

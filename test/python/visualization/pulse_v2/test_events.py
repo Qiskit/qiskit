@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=missing-docstring, invalid-name
-
 """Tests for core modules of pulse drawer."""
 
 from qiskit import pulse, circuit
@@ -21,6 +19,7 @@ from qiskit.visualization.pulse_v2 import events
 
 class TestChannelEvents(QiskitTestCase):
     """Tests for ChannelEvents."""
+
     def test_parse_program(self):
         """Test typical pulse program."""
         test_pulse = pulse.Gaussian(10, 0.1, 3)
@@ -99,37 +98,39 @@ class TestChannelEvents(QiskitTestCase):
         inst_data1 = frames[1]
         self.assertAlmostEqual(inst_data1.frame.freq, 1.0)
 
-    def test_parametrized_parametric_pulse(self):
+    def test_parameterized_parametric_pulse(self):
         """Test generating waveforms that are parameterized."""
-        param = circuit.Parameter('amp')
+        param = circuit.Parameter("amp")
 
         test_waveform = pulse.Play(pulse.Constant(10, param), pulse.DriveChannel(0))
 
-        ch_events = events.ChannelEvents(waveforms={0: test_waveform},
-                                         frames={},
-                                         channel=pulse.DriveChannel(0))
+        ch_events = events.ChannelEvents(
+            waveforms={0: test_waveform}, frames={}, channel=pulse.DriveChannel(0)
+        )
 
         pulse_inst = list(ch_events.get_waveforms())[0]
 
         self.assertTrue(pulse_inst.is_opaque)
         self.assertEqual(pulse_inst.inst, test_waveform)
 
-    def test_parametrized_frame_change(self):
+    def test_parameterized_frame_change(self):
         """Test generating waveforms that are parameterized.
 
-        Parametrized phase should be ignored when calculating waveform frame.
+        Parameterized phase should be ignored when calculating waveform frame.
         This is due to phase modulated representation of waveforms,
         i.e. we cannot calculate the phase factor of waveform if the phase is unbound.
         """
-        param = circuit.Parameter('phase')
+        param = circuit.Parameter("phase")
 
         test_fc1 = pulse.ShiftPhase(param, pulse.DriveChannel(0))
         test_fc2 = pulse.ShiftPhase(1.57, pulse.DriveChannel(0))
         test_waveform = pulse.Play(pulse.Constant(10, 0.1), pulse.DriveChannel(0))
 
-        ch_events = events.ChannelEvents(waveforms={0: test_waveform},
-                                         frames={0: [test_fc1, test_fc2]},
-                                         channel=pulse.DriveChannel(0))
+        ch_events = events.ChannelEvents(
+            waveforms={0: test_waveform},
+            frames={0: [test_fc1, test_fc2]},
+            channel=pulse.DriveChannel(0),
+        )
 
         # waveform frame
         pulse_inst = list(ch_events.get_waveforms())[0]
@@ -150,12 +151,12 @@ class TestChannelEvents(QiskitTestCase):
         """
         ch = pulse.DriveChannel(0)
 
-        with pulse.build() as test_sched:
-            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
-            pulse.delay(0, ch)
-            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
-            pulse.delay(1, ch)
-            pulse.play(pulse.Gaussian(160, 0.1, 40), ch)
+        test_sched = pulse.Schedule()
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
+        test_sched += pulse.Delay(0, ch)
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
+        test_sched += pulse.Delay(1, ch)
+        test_sched += pulse.Play(pulse.Gaussian(160, 0.1, 40), ch)
 
         ch_events = events.ChannelEvents.load_program(test_sched, ch)
 

@@ -14,12 +14,12 @@
 
 from qiskit.exceptions import QiskitError
 from qiskit.circuit.instruction import Instruction
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.quantumregister import QuantumRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
 
 
-def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None):
-    """Build an ``Instruction`` object from a ``QuantumCircuit``.
+def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None, label=None):
+    """Build an :class:`~.circuit.Instruction` object from a :class:`.QuantumCircuit`.
 
     The instruction is anonymous (not tied to a named quantum register),
     and so can be inserted into another circuit. The instruction will
@@ -33,6 +33,7 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
            instruction.
         equivalence_library (EquivalenceLibrary): Optional equivalence library
            where the converted instruction will be registered.
+        label (str): Optional instruction label.
 
     Raises:
         QiskitError: if parameter_map is not compatible with circuit
@@ -43,11 +44,10 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         yield the components comprising the original circuit.
 
     Example:
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
             from qiskit.converters import circuit_to_instruction
-            %matplotlib inline
 
             q = QuantumRegister(3, 'q')
             c = ClassicalRegister(3, 'c')
@@ -67,65 +67,68 @@ def circuit_to_instruction(circuit, parameter_map=None, equivalence_library=None
         parameter_dict = circuit._unroll_param_dict(parameter_map)
 
     if parameter_dict.keys() != circuit.parameters:
-        raise QiskitError(('parameter_map should map all circuit parameters. '
-                           'Circuit parameters: {}, parameter_map: {}').format(
-                               circuit.parameters, parameter_dict))
+        raise QiskitError(
+            (
+                "parameter_map should map all circuit parameters. "
+                "Circuit parameters: {}, parameter_map: {}"
+            ).format(circuit.parameters, parameter_dict)
+        )
 
-    instruction = Instruction(name=circuit.name,
-                              num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                              num_clbits=sum([creg.size for creg in circuit.cregs]),
-                              params=sorted(parameter_dict.values(), key=lambda p: p.name))
-    instruction.condition = None
-
-    def find_bit_position(bit):
-        """find the index of a given bit (Register, int) within
-        a flat ordered list of bits of the circuit
-        """
-        if isinstance(bit, Qubit):
-            ordered_regs = circuit.qregs
-        else:
-            ordered_regs = circuit.cregs
-        reg_index = ordered_regs.index(bit.register)
-        return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
+    out_instruction = Instruction(
+        name=circuit.name,
+        num_qubits=circuit.num_qubits,
+        num_clbits=circuit.num_clbits,
+        params=[*parameter_dict.values()],
+        label=label,
+    )
+    out_instruction.condition = None
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
     if equivalence_library is not None:
-        equivalence_library.add_equivalence(instruction, target)
-
-    definition = target.data
+        equivalence_library.add_equivalence(out_instruction, target)
 
     regs = []
-    if instruction.num_qubits > 0:
-        q = QuantumRegister(instruction.num_qubits, 'q')
+    if out_instruction.num_qubits > 0:
+        q = QuantumRegister(out_instruction.num_qubits, "q")
         regs.append(q)
 
-    if instruction.num_clbits > 0:
-        c = ClassicalRegister(instruction.num_clbits, 'c')
+    if out_instruction.num_clbits > 0:
+        c = ClassicalRegister(out_instruction.num_clbits, "c")
         regs.append(c)
 
-    definition = list(map(lambda x:
-                          (x[0],
-                           list(map(lambda y: q[find_bit_position(y)], x[1])),
-                           list(map(lambda y: c[find_bit_position(y)], x[2]))), definition))
+    qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
+    clbit_map = {bit: c[idx] for idx, bit in enumerate(circuit.clbits)}
+
+    definition = [
+        instruction.replace(
+            qubits=[qubit_map[y] for y in instruction.qubits],
+            clbits=[clbit_map[y] for y in instruction.clbits],
+        )
+        for instruction in target.data
+    ]
 
     # fix condition
     for rule in definition:
-        condition = rule[0].condition
+        condition = getattr(rule.operation, "condition", None)
         if condition:
             reg, val = condition
-            if reg.size == c.size:
-                rule[0].condition = (c, val)
+            if isinstance(reg, Clbit):
+                rule.operation.condition = (clbit_map[reg], val)
+            elif reg.size == c.size:
+                rule.operation.condition = (c, val)
             else:
-                raise QiskitError('Cannot convert condition in circuit with '
-                                  'multiple classical registers to instruction')
+                raise QiskitError(
+                    "Cannot convert condition in circuit with "
+                    "multiple classical registers to instruction"
+                )
 
-    qc = QuantumCircuit(*regs, name=instruction.name)
-    for instr, qargs, cargs in definition:
-        qc._append(instr, qargs, cargs)
+    qc = QuantumCircuit(*regs, name=out_instruction.name)
+    for instruction in definition:
+        qc._append(instruction)
     if circuit.global_phase:
         qc.global_phase = circuit.global_phase
 
-    instruction.definition = qc
+    out_instruction.definition = qc
 
-    return instruction
+    return out_instruction

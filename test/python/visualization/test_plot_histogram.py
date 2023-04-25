@@ -1,0 +1,219 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2019.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+
+"""Tests for plot_histogram."""
+
+import unittest
+from io import BytesIO
+from collections import Counter
+
+import matplotlib as mpl
+from PIL import Image
+
+from qiskit.visualization import plot_histogram
+from qiskit.utils import optionals
+from .visualization import QiskitVisualizationTestCase
+
+
+class TestPlotHistogram(QiskitVisualizationTestCase):
+    """Qiskit plot_histogram tests."""
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_different_counts_lengths(self):
+        """Test plotting two different length dists works"""
+        exact_dist = {
+            "000000": 0.015624999999999986,
+            "000001": 0.015624999999999986,
+            "000011": 0.031249999999999965,
+            "000111": 0.06249999999999992,
+            "100000": 0.015624999999999986,
+            "100001": 0.015624999999999986,
+            "100011": 0.031249999999999965,
+            "100111": 0.06249999999999992,
+            "110000": 0.031249999999999965,
+            "110001": 0.031249999999999965,
+            "110011": 0.06249999999999992,
+            "110111": 0.12499999999999982,
+            "111111": 0.4999999999999991,
+        }
+
+        raw_dist = {
+            "000000": 26,
+            "000001": 29,
+            "010000": 10,
+            "010001": 12,
+            "010010": 6,
+            "010011": 14,
+            "010100": 2,
+            "010101": 6,
+            "010110": 4,
+            "010111": 24,
+            "011000": 2,
+            "011001": 5,
+            "011011": 5,
+            "011101": 4,
+            "011110": 7,
+            "011111": 77,
+            "000010": 9,
+            "100000": 31,
+            "100001": 25,
+            "100010": 8,
+            "100011": 46,
+            "100100": 3,
+            "100101": 3,
+            "100110": 9,
+            "100111": 114,
+            "101000": 3,
+            "101001": 6,
+            "101010": 1,
+            "101011": 6,
+            "101100": 7,
+            "101101": 9,
+            "101110": 6,
+            "101111": 48,
+            "000011": 82,
+            "110000": 42,
+            "110001": 53,
+            "110010": 9,
+            "110011": 102,
+            "110100": 10,
+            "110101": 8,
+            "110110": 14,
+            "110111": 215,
+            "111000": 25,
+            "111001": 12,
+            "111010": 2,
+            "111011": 41,
+            "111100": 18,
+            "111101": 24,
+            "111110": 58,
+            "111111": 621,
+            "000100": 1,
+            "000101": 7,
+            "000110": 9,
+            "000111": 73,
+            "001000": 1,
+            "001001": 5,
+            "001011": 6,
+            "001100": 1,
+            "001101": 7,
+            "001110": 1,
+            "001111": 34,
+        }
+
+        fig = plot_histogram([raw_dist, exact_dist])
+        self.assertIsInstance(fig, mpl.figure.Figure)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_with_number_to_keep(self):
+        """Test plotting using number_to_keep"""
+        dist = {"00": 3, "01": 5, "11": 8, "10": 11}
+        fig = plot_histogram(dist, number_to_keep=2)
+        self.assertIsInstance(fig, mpl.figure.Figure)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_with_number_to_keep_multiple_executions(self):
+        """Test plotting using number_to_keep with multiple executions"""
+        dist = [{"00": 3, "01": 5, "11": 8, "10": 11}, {"00": 3, "01": 7, "10": 11}]
+        fig = plot_histogram(dist, number_to_keep=2)
+        self.assertIsInstance(fig, mpl.figure.Figure)
+
+    @unittest.skipUnless(optionals.HAS_MATPLOTLIB, "matplotlib not available.")
+    def test_with_number_to_keep_multiple_executions_correct_image(self):
+        """Test plotting using number_to_keep with multiple executions"""
+        data_noisy = {
+            "00000": 0.22,
+            "00001": 0.003,
+            "00010": 0.005,
+            "00011": 0.0,
+            "00100": 0.004,
+            "00101": 0.001,
+            "00110": 0.004,
+            "00111": 0.001,
+            "01000": 0.005,
+            "01001": 0.0,
+            "01010": 0.002,
+            "01011": 0.0,
+            "01100": 0.225,
+            "01101": 0.001,
+            "01110": 0.003,
+            "01111": 0.003,
+            "10000": 0.012,
+            "10001": 0.002,
+            "10010": 0.001,
+            "10011": 0.001,
+            "10100": 0.247,
+            "10101": 0.004,
+            "10110": 0.003,
+            "10111": 0.001,
+            "11000": 0.225,
+            "11001": 0.005,
+            "11010": 0.002,
+            "11011": 0.0,
+            "11100": 0.015,
+            "11101": 0.004,
+            "11110": 0.001,
+            "11111": 0.0,
+        }
+        data_ideal = {
+            "00000": 0.25,
+            "00001": 0,
+            "00010": 0,
+            "00011": 0,
+            "00100": 0,
+            "00101": 0,
+            "00110": 0,
+            "00111": 0.0,
+            "01000": 0.0,
+            "01001": 0,
+            "01010": 0.0,
+            "01011": 0.0,
+            "01100": 0.25,
+            "01101": 0,
+            "01110": 0,
+            "01111": 0,
+            "10000": 0,
+            "10001": 0,
+            "10010": 0.0,
+            "10011": 0.0,
+            "10100": 0.25,
+            "10101": 0,
+            "10110": 0,
+            "10111": 0,
+            "11000": 0.25,
+            "11001": 0,
+            "11010": 0,
+            "11011": 0,
+            "11100": 0.0,
+            "11101": 0,
+            "11110": 0,
+            "11111": 0.0,
+        }
+        data_ref_noisy = dict(Counter(data_noisy).most_common(5))
+        data_ref_noisy["rest"] = sum(data_noisy.values()) - sum(data_ref_noisy.values())
+        data_ref_ideal = dict(Counter(data_ideal).most_common(4))  # do not add 0 values
+        data_ref_ideal["rest"] = 0
+        figure_ref = plot_histogram([data_ref_ideal, data_ref_noisy])
+        figure_truncated = plot_histogram([data_ideal, data_noisy], number_to_keep=5)
+        with BytesIO() as img_buffer_ref:
+            figure_ref.savefig(img_buffer_ref, format="png")
+            img_buffer_ref.seek(0)
+            with BytesIO() as img_buffer:
+                figure_truncated.savefig(img_buffer, format="png")
+                img_buffer.seek(0)
+                self.assertImagesAreEqual(Image.open(img_buffer_ref), Image.open(img_buffer), 0.2)
+        mpl.pyplot.close(figure_ref)
+        mpl.pyplot.close(figure_truncated)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

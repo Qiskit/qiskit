@@ -16,11 +16,12 @@ import unittest
 from numpy import pi
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.passes import LookaheadSwap
-from qiskit.transpiler import CouplingMap
+from qiskit.transpiler import CouplingMap, Target
 from qiskit.converters import circuit_to_dag
+from qiskit.circuit.library import CXGate
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
-from qiskit.test.mock import FakeMelbourne
+from qiskit.providers.fake_provider import FakeMelbourne
 
 
 class TestLookaheadSwap(QiskitTestCase):
@@ -33,7 +34,7 @@ class TestLookaheadSwap(QiskitTestCase):
         coupling map, and can be applied repeatedly without modifying the circuit.
         """
 
-        qr = QuantumRegister(3, name='q')
+        qr = QuantumRegister(3, name="q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
         circuit.cx(qr[0], qr[1])
@@ -57,7 +58,7 @@ class TestLookaheadSwap(QiskitTestCase):
         that the mapper inserts a single swap to enable the gate.
         """
 
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
         dag_circuit = circuit_to_dag(circuit)
@@ -66,8 +67,9 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        self.assertEqual(mapped_dag.count_ops().get('swap', 0),
-                         dag_circuit.count_ops().get('swap', 0) + 1)
+        self.assertEqual(
+            mapped_dag.count_ops().get("swap", 0), dag_circuit.count_ops().get("swap", 0) + 1
+        )
 
     def test_lookahead_swap_finds_minimal_swap_solution(self):
         """Of many valid SWAPs, test that LookaheadSwap finds the cheapest path.
@@ -81,7 +83,7 @@ class TestLookaheadSwap(QiskitTestCase):
         Verify that we find the first solution, as it requires fewer SWAPs.
         """
 
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[2])
         circuit.cx(qr[0], qr[1])
@@ -92,8 +94,9 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        self.assertEqual(mapped_dag.count_ops().get('swap', 0),
-                         dag_circuit.count_ops().get('swap', 0) + 1)
+        self.assertEqual(
+            mapped_dag.count_ops().get("swap", 0), dag_circuit.count_ops().get("swap", 0) + 1
+        )
 
     def test_lookahead_swap_maps_measurements(self):
         """Verify measurement nodes are updated to map correct cregs to re-mapped qregs.
@@ -105,7 +108,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         """
 
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(2)
         circuit = QuantumCircuit(qr, cr)
 
@@ -119,7 +122,36 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        mapped_measure_qargs = {op.qargs[0] for op in mapped_dag.named_nodes('measure')}
+        mapped_measure_qargs = {op.qargs[0] for op in mapped_dag.named_nodes("measure")}
+
+        self.assertIn(mapped_measure_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
+
+    def test_lookahead_swap_maps_measurements_with_target(self):
+        """Verify measurement nodes are updated to map correct cregs to re-mapped qregs.
+
+        Create a circuit with measures on q0 and q2, following a swap between q0 and q2.
+        Since that swap is not in the coupling, one of the two will be required to move.
+        Verify that the mapped measure corresponds to one of the two possible layouts following
+        the swap.
+
+        """
+
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(2)
+        circuit = QuantumCircuit(qr, cr)
+
+        circuit.cx(qr[0], qr[2])
+        circuit.measure(qr[0], cr[0])
+        circuit.measure(qr[2], cr[1])
+
+        dag_circuit = circuit_to_dag(circuit)
+
+        target = Target()
+        target.add_instruction(CXGate(), {(0, 1): None, (1, 2): None})
+
+        mapped_dag = LookaheadSwap(target).run(dag_circuit)
+
+        mapped_measure_qargs = {op.qargs[0] for op in mapped_dag.named_nodes("measure")}
 
         self.assertIn(mapped_measure_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
 
@@ -133,7 +165,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         """
 
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         cr = ClassicalRegister(2)
         circuit = QuantumCircuit(qr, cr)
 
@@ -146,7 +178,7 @@ class TestLookaheadSwap(QiskitTestCase):
 
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
-        mapped_barrier_qargs = [set(op.qargs) for op in mapped_dag.named_nodes('barrier')][0]
+        mapped_barrier_qargs = [set(op.qargs) for op in mapped_dag.named_nodes("barrier")][0]
 
         self.assertIn(mapped_barrier_qargs, [{qr[0], qr[1]}, {qr[1], qr[2]}])
 
@@ -156,8 +188,39 @@ class TestLookaheadSwap(QiskitTestCase):
         Increasing the tree width and depth is expected to yield a better (or same) quality
         circuit, in the form of fewer SWAPs.
         """
-
-        qr = QuantumRegister(8, name='q')
+        # q_0: ──■───────────────────■───────────────────────────────────────────────»
+        #      ┌─┴─┐                 │                 ┌───┐                         »
+        # q_1: ┤ X ├──■──────────────┼─────────────────┤ X ├─────────────────────────»
+        #      └───┘┌─┴─┐            │                 └─┬─┘┌───┐          ┌───┐     »
+        # q_2: ─────┤ X ├──■─────────┼───────────────────┼──┤ X ├──────────┤ X ├──■──»
+        #           └───┘┌─┴─┐     ┌─┴─┐                 │  └─┬─┘     ┌───┐└─┬─┘  │  »
+        # q_3: ──────────┤ X ├──■──┤ X ├─────────────────┼────┼────■──┤ X ├──┼────┼──»
+        #                └───┘┌─┴─┐└───┘          ┌───┐  │    │    │  └─┬─┘  │    │  »
+        # q_4: ───────────────┤ X ├──■────────────┤ X ├──┼────■────┼────┼────┼────┼──»
+        #                     └───┘┌─┴─┐          └─┬─┘  │         │    │    │    │  »
+        # q_5: ────────────────────┤ X ├──■─────────┼────┼─────────┼────■────┼────┼──»
+        #                          └───┘┌─┴─┐       │    │         │         │    │  »
+        # q_6: ─────────────────────────┤ X ├──■────■────┼─────────┼─────────■────┼──»
+        #                               └───┘┌─┴─┐       │       ┌─┴─┐          ┌─┴─┐»
+        # q_7: ──────────────────────────────┤ X ├───────■───────┤ X ├──────────┤ X ├»
+        #                                    └───┘               └───┘          └───┘»
+        # «q_0: ──■───────
+        # «       │
+        # «q_1: ──┼───────
+        # «       │
+        # «q_2: ──┼───────
+        # «       │
+        # «q_3: ──┼───────
+        # «       │
+        # «q_4: ──┼───────
+        # «       │
+        # «q_5: ──┼────■──
+        # «     ┌─┴─┐  │
+        # «q_6: ┤ X ├──┼──
+        # «     └───┘┌─┴─┐
+        # «q_7: ─────┤ X ├
+        # «          └───┘
+        qr = QuantumRegister(8, name="q")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[2])
@@ -184,8 +247,8 @@ class TestLookaheadSwap(QiskitTestCase):
         mapped_dag_1 = LookaheadSwap(coupling_map, search_depth=3, search_width=3).run(original_dag)
         mapped_dag_2 = LookaheadSwap(coupling_map, search_depth=5, search_width=5).run(original_dag)
 
-        num_swaps_1 = mapped_dag_1.count_ops().get('swap', 0)
-        num_swaps_2 = mapped_dag_2.count_ops().get('swap', 0)
+        num_swaps_1 = mapped_dag_1.count_ops().get("swap", 0)
+        num_swaps_2 = mapped_dag_2.count_ops().get("swap", 0)
 
         self.assertLessEqual(num_swaps_2, num_swaps_1)
 
@@ -193,7 +256,7 @@ class TestLookaheadSwap(QiskitTestCase):
         """Verify LookaheadSwap does not stall in minimal case."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2171
 
-        qr = QuantumRegister(14, 'q')
+        qr = QuantumRegister(14, "q")
         qc = QuantumCircuit(qr)
         qc.cx(qr[0], qr[13])
         qc.cx(qr[1], qr[13])
@@ -211,7 +274,7 @@ class TestLookaheadSwap(QiskitTestCase):
         """Verify LookaheadSwap does not stall in reported case."""
         # ref: https://github.com/Qiskit/qiskit-terra/issues/2171
 
-        qr = QuantumRegister(14, 'q')
+        qr = QuantumRegister(14, "q")
         qc = QuantumCircuit(qr)
         qc.cx(qr[0], qr[13])
         qc.cx(qr[1], qr[13])
@@ -234,10 +297,9 @@ class TestLookaheadSwap(QiskitTestCase):
         self.assertIsInstance(out, DAGCircuit)
 
     def test_global_phase_preservation(self):
-        """Test that LookaheadSwap preserves global phase
-        """
+        """Test that LookaheadSwap preserves global phase"""
 
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
         circuit = QuantumCircuit(qr)
         circuit.global_phase = pi / 3
         circuit.cx(qr[0], qr[2])
@@ -248,9 +310,10 @@ class TestLookaheadSwap(QiskitTestCase):
         mapped_dag = LookaheadSwap(coupling_map).run(dag_circuit)
 
         self.assertEqual(mapped_dag.global_phase, circuit.global_phase)
-        self.assertEqual(mapped_dag.count_ops().get('swap', 0),
-                         dag_circuit.count_ops().get('swap', 0) + 1)
+        self.assertEqual(
+            mapped_dag.count_ops().get("swap", 0), dag_circuit.count_ops().get("swap", 0) + 1
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

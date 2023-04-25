@@ -23,5 +23,4 @@ class CountOpsLongestPath(AnalysisPass):
 
     def run(self, dag):
         """Run the CountOpsLongestPath pass on `dag`."""
-        self.property_set['count_ops_longest_path'] = \
-            dag.count_ops_longest_path()
+        self.property_set["count_ops_longest_path"] = dag.count_ops_longest_path()

@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    The abstract ``Pulse`` class (which is the parent class for classes such
+    as :class:`~qiskit.pulse.library.Waveform`,
+    :class:`~qiskit.pulse.library.Constant`, and
+    :class:`~qiskit.pulse.library.Gaussian` now has a new kwarg on the
+    constructor, ``limit_amplitude``, which can be set to ``False`` to disable
+    the previously hard coded amplitude limit of ``1``. This can also be set as
+    a class attribute directly to change the global default for a Pulse class.
+    For example::
+
+      from qiskit.pulse.library import Waveform
+
+      # Change the default value of limit_amplitude to False
+      Waveform.limit_amplitude = False
+      wave = Waveform(2.0 * np.exp(1j * 2 * np.pi * np.linspace(0, 1, 1000)))

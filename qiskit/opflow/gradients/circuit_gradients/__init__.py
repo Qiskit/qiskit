@@ -10,13 +10,11 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""The module for Aqua's first order derivatives."""
-
+"""
+The module for first order derivatives.
+"""
 from .circuit_gradient import CircuitGradient
 from .lin_comb import LinComb
 from .param_shift import ParamShift
 
-__all__ = ['CircuitGradient',
-           'LinComb',
-           'ParamShift'
-           ]
+__all__ = ["CircuitGradient", "LinComb", "ParamShift"]

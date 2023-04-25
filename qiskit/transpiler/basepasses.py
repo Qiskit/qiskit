@@ -16,6 +16,7 @@ from abc import abstractmethod
 from collections.abc import Hashable
 from inspect import signature
 from .propertyset import PropertySet
+from .layout import TranspileLayout
 
 
 class MetaPass(type):
@@ -35,7 +36,7 @@ class MetaPass(type):
         self_guard = object()
         init_signature = signature(class_.__init__)
         bound_signature = init_signature.bind(self_guard, *args, **kwargs)
-        arguments = [('class_.__name__', class_.__name__)]
+        arguments = [("class_.__name__", class_.__name__)]
         for name, value in bound_signature.arguments.items():
             if value == self_guard:
                 continue
@@ -53,7 +54,7 @@ class BasePass(metaclass=MetaPass):
         self.requires = []  # List of passes that requires
         self.preserves = []  # List of passes that preserves
         self.property_set = PropertySet()  # This pass's pointer to the pass manager's property set.
-        self._hash = None
+        self._hash = hash(None)
 
     def __hash__(self):
         return self._hash
@@ -126,20 +127,40 @@ class BasePass(metaclass=MetaPass):
             property_set.update(self.property_set)
 
         if isinstance(result, DAGCircuit):
-            result_circuit = dag_to_circuit(result)
-
-        if result is None and self.property_set['layout']:
+            result_circuit = dag_to_circuit(result, copy_operations=False)
+        elif result is None:
             result_circuit = circuit.copy()
-            result_circuit._layout = self.property_set['layout']
+
+        if self.property_set["layout"]:
+            result_circuit._layout = TranspileLayout(
+                initial_layout=self.property_set["layout"],
+                input_qubit_mapping=self.property_set["original_qubit_indices"],
+                final_layout=self.property_set["final_layout"],
+            )
+        if self.property_set["clbit_write_latency"] is not None:
+            result_circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
+        if self.property_set["conditional_latency"] is not None:
+            result_circuit._conditional_latency = self.property_set["conditional_latency"]
+        if self.property_set["node_start_time"]:
+            # This is dictionary keyed on the DAGOpNode, which is invalidated once
+            # dag is converted into circuit. So this schedule information is
+            # also converted into list with the same ordering with circuit.data.
+            topological_start_times = []
+            start_times = self.property_set["node_start_time"]
+            for dag_node in result.topological_op_nodes():
+                topological_start_times.append(start_times[dag_node])
+            result_circuit._op_start_times = topological_start_times
 
         return result_circuit
 
 
 class AnalysisPass(BasePass):  # pylint: disable=abstract-method
     """An analysis pass: change property set, not DAG."""
+
     pass
 
 
 class TransformationPass(BasePass):  # pylint: disable=abstract-method
     """A transformation pass: change DAG, not property set."""
+
     pass

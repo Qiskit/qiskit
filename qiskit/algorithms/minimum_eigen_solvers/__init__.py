@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Minimum Eigen Solvers Package """
+"""Minimum Eigen Solvers Package"""
 
 from .vqe import VQE, VQEResult
 from .qaoa import QAOA
@@ -18,10 +18,10 @@ from .numpy_minimum_eigen_solver import NumPyMinimumEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
 
 __all__ = [
-    'VQE',
-    'VQEResult',
-    'QAOA',
-    'NumPyMinimumEigensolver',
-    'MinimumEigensolver',
-    'MinimumEigensolverResult'
+    "VQE",
+    "VQEResult",
+    "QAOA",
+    "NumPyMinimumEigensolver",
+    "MinimumEigensolver",
+    "MinimumEigensolverResult",
 ]

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2020.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,10 +11,17 @@
 # that they have been altered from the originals.
 
 r"""
+================================
 Operators (:mod:`qiskit.opflow`)
-========================================
+================================
 
 .. currentmodule:: qiskit.opflow
+
+.. deprecated:: 0.24.0
+
+    The :mod:`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
 
 Operators and State functions are the building blocks of Quantum Algorithms.
 
@@ -60,25 +67,39 @@ f(1, 1) = 0.
 3. An n-qubit Measurement is a functional taking n-qubit State functions to complex values.
 For example, a Pauli Z Measurement can be defined by f(Zero) = 0 and f(One) = 1.
 
+.. note::
+
+    While every effort has been made to make programming the Operator Flow similar to mathematical
+    notation, in some places our hands are tied by the design of Python.  In particular, when using
+    mathematical operators such as ``+`` and ``^`` (tensor product), beware that these follow
+    `Python operator precedence rules
+    <https://docs.python.org/3/reference/expressions.html#operator-precedence>`__.  For example,
+    ``I^X + X^I`` will actually be interpreted as ``I ^ (X+X) ^ I == 2 * I^X^I``.  In these cases,
+    you should use extra parentheses, like ``(I ^ X) + (X ^ I)``, or use the relevant method calls.
+
 Below, you'll find a base class for all Operators, some convenience immutable global variables
 which simplify Operator construction, and two groups of submodules: Operators and Converters.
 
 Operator Base Class
 ===================
 
-The OperatorBase serves as the base class for all Operators, State functions and measurements, and
-enforces the presence and consistency of methods to manipulate these objects conveniently.
+The OperatorBase serves as the base class for all Operators, State functions
+and measurements, and enforces the presence and consistency of methods to manipulate these
+objects conveniently.
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    OperatorBase
 
+.. _operator_globals:
+
 Operator Globals
 ================
-The :mod:`operator_globals` is a set of immutable Operator instances that are convenient building
-blocks to reach for while working with the Operator flow.
+
+The :mod:`operator_globals` is a set of immutable Operator instances that are
+convenient building blocks to reach for while working with the Operator flow.
 
 One qubit Pauli operators:
    :attr:`X`, :attr:`Y`, :attr:`Z`, :attr:`I`
@@ -93,35 +114,48 @@ Submodules
 ==========
 
 Operators
-+++++++++
+---------
 
-The Operators submodules include the PrimitiveOp, ListOp, and StateFn class groups which
-represent the primary Operator modules.
+The Operators submodules include the PrimitiveOp, ListOp, and StateFn class
+groups which represent the primary Operator modules.
 
 .. autosummary::
-   :toctree:
+    :toctree: ../stubs/
 
-   primitive_ops
-   list_ops
-   state_fns
+    primitive_ops
+    list_ops
+    state_fns
+
 
 Converters
-++++++++++
+----------
 
-The Converter submodules include objects which manipulate Operators, usually recursing over an
-Operator structure and changing certain Operators' representation. For example, the
-:class:`~.expectations.PauliExpectation` traverses an Operator structure, and replaces all of the
-:class:`~.state_fns.OperatorStateFn` measurements containing non-diagonal Pauli terms into
-diagonalizing circuits following by :class:`~.state_fns.OperatorStateFn` measurement containing
-only diagonal Paulis.
+The Converter submodules include objects which manipulate Operators,
+usually recursing over an Operator structure and changing certain Operators' representation.
+For example, the :class:`~.expectations.PauliExpectation` traverses an Operator structure, and
+replaces all of the :class:`~.state_fns.OperatorStateFn` measurements containing non-diagonal
+Pauli terms into diagonalizing circuits following by :class:`~.state_fns.OperatorStateFn`
+measurement containing only diagonal Paulis.
 
 .. autosummary::
-   :toctree:
+    :toctree: ../stubs/
 
-   converters
-   evolutions
-   expectations
-   gradients
+    converters
+    evolutions
+    expectations
+    gradients
+
+
+Utility functions
+=================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   commutator
+   anti_commutator
+   double_commutator
+
 
 Exceptions
 ==========
@@ -131,50 +165,174 @@ Exceptions
 
    OpflowError
 """
+import warnings
 
 # New Operators
 from .operator_base import OperatorBase
-from .primitive_ops import PrimitiveOp, PauliOp, MatrixOp, CircuitOp, PauliSumOp
-from .state_fns import (StateFn, DictStateFn, VectorStateFn, CVaRMeasurement,
-                        CircuitStateFn, OperatorStateFn)
+from .primitive_ops import (
+    PrimitiveOp,
+    PauliOp,
+    MatrixOp,
+    CircuitOp,
+    PauliSumOp,
+    TaperedPauliSumOp,
+    Z2Symmetries,
+)
+from .state_fns import (
+    StateFn,
+    DictStateFn,
+    VectorStateFn,
+    CVaRMeasurement,
+    CircuitStateFn,
+    OperatorStateFn,
+    SparseVectorStateFn,
+)
 from .list_ops import ListOp, SummedOp, ComposedOp, TensoredOp
-from .converters import (ConverterBase, CircuitSampler, PauliBasisChange,
-                         DictToCircuitSum, AbelianGrouper)
-from .expectations import (ExpectationBase, ExpectationFactory, PauliExpectation,
-                           MatrixExpectation, AerPauliExpectation, CVaRExpectation)
-from .evolutions import (EvolutionBase, EvolutionFactory, EvolvedOp, PauliTrotterEvolution,
-                         MatrixEvolution, TrotterizationBase, TrotterizationFactory, Trotter,
-                         Suzuki, QDrift)
+from .converters import (
+    ConverterBase,
+    CircuitSampler,
+    PauliBasisChange,
+    DictToCircuitSum,
+    AbelianGrouper,
+    TwoQubitReduction,
+)
+from .expectations import (
+    ExpectationBase,
+    ExpectationFactory,
+    PauliExpectation,
+    MatrixExpectation,
+    AerPauliExpectation,
+    CVaRExpectation,
+)
+from .evolutions import (
+    EvolutionBase,
+    EvolutionFactory,
+    EvolvedOp,
+    PauliTrotterEvolution,
+    MatrixEvolution,
+    TrotterizationBase,
+    TrotterizationFactory,
+    Trotter,
+    Suzuki,
+    QDrift,
+)
+from .utils import commutator, anti_commutator, double_commutator
 
 # Convenience immutable instances
-from .operator_globals import (EVAL_SIG_DIGITS,
-                               X, Y, Z, I,
-                               CX, S, H, T, Swap, CZ,
-                               Zero, One, Plus, Minus)
+from .operator_globals import (
+    EVAL_SIG_DIGITS,
+    X,
+    Y,
+    Z,
+    I,
+    CX,
+    S,
+    H,
+    T,
+    Swap,
+    CZ,
+    Zero,
+    One,
+    Plus,
+    Minus,
+)
+
 # Gradients
-from .gradients import (DerivativeBase, GradientBase, Gradient, NaturalGradient,
-                        HessianBase, Hessian, QFIBase, QFI,
-                        CircuitGradient, CircuitQFI)
+from .gradients import (
+    DerivativeBase,
+    GradientBase,
+    Gradient,
+    NaturalGradient,
+    HessianBase,
+    Hessian,
+    QFIBase,
+    QFI,
+    CircuitGradient,
+    CircuitQFI,
+)
+
 # Exceptions
 from .exceptions import OpflowError
 
 __all__ = [
     # Operators
-    'OperatorBase',
-    'PrimitiveOp', 'PauliOp', 'MatrixOp', 'CircuitOp', 'PauliSumOp',
-    'StateFn', 'DictStateFn', 'VectorStateFn', 'CircuitStateFn', 'OperatorStateFn',
-    'CVaRMeasurement',
-    'ListOp', 'SummedOp', 'ComposedOp', 'TensoredOp',
+    "OperatorBase",
+    "PrimitiveOp",
+    "PauliOp",
+    "MatrixOp",
+    "CircuitOp",
+    "PauliSumOp",
+    "TaperedPauliSumOp",
+    "StateFn",
+    "DictStateFn",
+    "VectorStateFn",
+    "CircuitStateFn",
+    "OperatorStateFn",
+    "SparseVectorStateFn",
+    "CVaRMeasurement",
+    "ListOp",
+    "SummedOp",
+    "ComposedOp",
+    "TensoredOp",
     # Converters
-    'ConverterBase', 'CircuitSampler', 'AbelianGrouper', 'DictToCircuitSum', 'PauliBasisChange',
-    'ExpectationBase', 'ExpectationFactory', 'PauliExpectation', 'MatrixExpectation',
-    'AerPauliExpectation', 'CVaRExpectation',
-    'EvolutionBase', 'EvolvedOp', 'EvolutionFactory', 'PauliTrotterEvolution', 'MatrixEvolution',
-    'TrotterizationBase', 'TrotterizationFactory', 'Trotter', 'Suzuki', 'QDrift',
+    "ConverterBase",
+    "CircuitSampler",
+    "AbelianGrouper",
+    "DictToCircuitSum",
+    "PauliBasisChange",
+    "ExpectationBase",
+    "ExpectationFactory",
+    "PauliExpectation",
+    "MatrixExpectation",
+    "AerPauliExpectation",
+    "CVaRExpectation",
+    "EvolutionBase",
+    "EvolvedOp",
+    "EvolutionFactory",
+    "PauliTrotterEvolution",
+    "MatrixEvolution",
+    "TrotterizationBase",
+    "TrotterizationFactory",
+    "Trotter",
+    "Suzuki",
+    "QDrift",
+    "TwoQubitReduction",
+    "Z2Symmetries",
     # Convenience immutable instances
-    'X', 'Y', 'Z', 'I', 'CX', 'S', 'H', 'T', 'Swap', 'CZ', 'Zero', 'One', 'Plus', 'Minus',
+    "X",
+    "Y",
+    "Z",
+    "I",
+    "CX",
+    "S",
+    "H",
+    "T",
+    "Swap",
+    "CZ",
+    "Zero",
+    "One",
+    "Plus",
+    "Minus",
     # Gradients
-    'DerivativeBase', 'GradientBase', 'Gradient', 'NaturalGradient',
-    'HessianBase', 'Hessian', 'QFIBase', 'QFI',
-    'OpflowError',
+    "DerivativeBase",
+    "GradientBase",
+    "Gradient",
+    "NaturalGradient",
+    "HessianBase",
+    "Hessian",
+    "QFIBase",
+    "QFI",
+    "OpflowError",
+    # utils
+    "commutator",
+    "anti_commutator",
+    "double_commutator",
 ]
+
+warnings.warn(
+    "The ``qiskit.opflow`` module is deprecated as of qiskit-terra 0.24.0. "
+    "It will be removed no earlier than 3 months after the release date. "
+    "For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    category=DeprecationWarning,
+    stacklevel=2,
+)

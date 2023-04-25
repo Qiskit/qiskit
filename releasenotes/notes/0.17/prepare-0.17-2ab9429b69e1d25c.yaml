@@ -1,0 +1,28 @@
+---
+prelude: |
+    The Qiskit Terra 0.17.0 includes many new features and bug fixes. The major
+    new feature for this release is the introduction of the
+    :mod:`qiskit.algorithms` and :mod:`qiskit.opflow` modules which were
+    migrated and adapted from the :mod:`qiskit.aqua` project.
+features:
+  - |
+    A new module :mod:`qiskit.algorithms` has been introduced. This module
+    contains functionality equivalent to what has previously been
+    provided by the :mod:`qiskit.aqua.algorithms` module (which is now
+    deprecated) and provides the building blocks for constructing quantum
+    algorithms. For details on migrating from ``qiskit-aqua`` to this new
+    module please refer to the migration guide "INSERT LINK HERE"
+  - |
+    A new module :mod:`qiskit.opflow` has been introduced. This module
+    contains functionality equivalent to what has previously been
+    provided by the :mod:`qiskit.aqua.operators` module (which is now
+    deprecated) and provides the operators and state functions which are
+    used to build quantum algorithms. For details on migrating from
+    ``qiskit-aqua`` to this new module please refer to the migration guide
+    "INSERT LINK HERE"
+  - |
+    This is the first release that includes precompiled binary wheels for
+    the for Linux aarch64 systems. If you are running a manylinux2014
+    compatible aarch64 Linux system there are now precompiled wheels available
+    on PyPI, you are no longer required to build from source to install
+    qiskit-terra.

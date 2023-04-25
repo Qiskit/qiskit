@@ -1,0 +1,33 @@
+---
+features:
+  - |
+    A new pulse drawer :func:`qiskit.visualization.pulse_v2.draw`
+    (which is aliased as ``qiskit.visualization.pulse_drawer_v2``) is now
+    available. This new pulse drawer supports multiple new features not
+    present in the original pulse drawer
+    (:func:`~qiskit.visualization.pulse_drawer`).
+
+    * Truncation of long pulse instructions.
+    * Visualization of parametric pulses.
+    * New stylesheets ``IQXStandard``, ``IQXSimple``, ``IQXDebugging``.
+    * Visualization of system info (channel frequency, etc...) by specifying
+      :class:`qiskit.providers.Backend` objects for visualization.
+    * Specifying ``axis`` objects for plotting to allow further extension of
+      generated plots, i.e., for publication manipulations.
+
+    New stylesheets can take callback functions that dynamically modify the apperance of
+    the output image, for example, reassembling a collection of channels,
+    showing details of instructions, updating appearance of pulse envelopes, etc...
+    You can create custom callback functions and feed them into a stylesheet instance to
+    modify the figure appearance without modifying the drawer code.
+    See pulse drawer module docstrings for details.
+
+    Note that file saving is now delegated to Matplotlib.
+    To save image files, you need to call ``savefig`` method with returned ``Figure`` object.
+
+deprecations:
+  - |
+    The current functionality of the :func:`qiskit.visualization.pulse_drawer`
+    function is deprecated and will be replaced by
+    :func:`qiskit.visualization.pulse_drawer_v2` (which is not backwards
+    compatible) in a future release.

@@ -41,16 +41,15 @@ class GMS(QuantumCircuit):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GMS
-        import qiskit.tools.jupyter
-        import numpy as np
-        circuit = GMS(num_qubits=3, theta=[[0, np.pi/4, np.pi/8],
-                                           [0, 0, np.pi/2],
-                                           [0, 0, 0]])
-        %circuit_library_info circuit.decompose()
+       from qiskit.circuit.library import GMS
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import numpy as np
+       circuit = GMS(num_qubits=3, theta=[[0, np.pi/4, np.pi/8],
+                                          [0, 0, np.pi/2],
+                                          [0, 0, 0]])
+       _generate_circuit_library_visualization(circuit.decompose())
 
     The Mølmer–Sørensen gate is native to ion-trap systems. The global MS
     can be applied to multiple ions to entangle multiple qubits simultaneously [1].
@@ -75,9 +74,7 @@ class GMS(QuantumCircuit):
     `arXiv:1707.06356 <https://arxiv.org/abs/1707.06356>`_
     """
 
-    def __init__(self,
-                 num_qubits: int,
-                 theta: Union[List[List[float]], np.ndarray]) -> None:
+    def __init__(self, num_qubits: int, theta: Union[List[List[float]], np.ndarray]) -> None:
         """Create a new Global Mølmer–Sørensen (GMS) gate.
 
         Args:
@@ -93,7 +90,7 @@ class GMS(QuantumCircuit):
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):
                 gms.append(RXXGate(theta[i][j]), [i, j])
-        self.append(gms, self.qubits)
+        self.append(gms.to_gate(), self.qubits)
 
 
 class MSGate(Gate):
@@ -111,11 +108,11 @@ class MSGate(Gate):
 
     def __init__(self, num_qubits, theta, label=None):
         """Create new MS gate."""
-        super().__init__('ms', num_qubits, [theta], label=label)
+        super().__init__("ms", num_qubits, [theta], label=label)
 
     def _define(self):
         theta = self.params[0]
-        q = QuantumRegister(self.num_qubits, 'q')
+        q = QuantumRegister(self.num_qubits, "q")
         qc = QuantumCircuit(q, name=self.name)
         for i in range(self.num_qubits):
             for j in range(i + 1, self.num_qubits):

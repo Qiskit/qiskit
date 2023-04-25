@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Improved the performance of
+    :meth:`qiskit.quantum_info.Statevector.expectation_value`  and
+    :meth:`qiskit.quantum_info.DensityMatrix.expectation_value` when the
+    argument operator is a :class:`~qiskit.quantum_info.Pauli`  or
+    :class:`~qiskit.quantum_info.SparsePauliOp`  operator.

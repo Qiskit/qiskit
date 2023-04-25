@@ -1,0 +1,46 @@
+---
+features:
+  - |
+    Added two new classes,
+    :class:`~qiskit.circuit.library.RGQFTMultiplier` and
+    :class:`~qiskit.circuit.library.HRSCumulativeMultiplier`, to the
+    :mod:`qiskit.circuit.library` module. These classes are used to perform
+    classical multiplication of two equally-sized qubit registers. For two
+    registers :math:`|a\rangle_n` and :math:`|b\rangle_n` on :math:`n`
+    qubits, the two new classes perform the operation
+
+    .. math::
+
+      |a\rangle_n |b\rangle_n |0\rangle_{2n} \mapsto |a\rangle_n |b\rangle_n |a \cdot b\rangle_{2n}.
+
+    For example::
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit.library import RGQFTMultiplier
+      from qiskit.quantum_info import Statevector
+
+      num_state_qubits = 2
+
+      # a encodes |11> = 3
+      a = QuantumCircuit(num_state_qubits)
+      a.x(range(num_state_qubits))
+
+      # b encodes |11> = 3
+      b = QuantumCircuit(num_state_qubits)
+      b.x(range(num_state_qubits))
+
+      # multiplier on 2-bit numbers
+      multiplier = RGQFTMultiplier(num_state_qubits)
+
+      # add the state preparations to the front of the circuit
+      multiplier.compose(a, [0, 1], inplace=True, front=True)
+      multiplier.compose(b, [2, 3], inplace=True, front=True)
+
+      # simulate and get the state of all qubits
+      sv = Statevector(multiplier)
+      counts = sv.probabilities_dict(decimals=10)
+      state = list(counts.keys())[0]  # we only have a single state
+
+      # skip both input registers
+      result = state[:-2*num_state_qubits]
+      print(result)  # '1001' = 9 = 3 * 3

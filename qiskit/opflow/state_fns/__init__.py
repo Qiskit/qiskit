@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,10 +12,17 @@
 
 """
 State Functions (:mod:`qiskit.opflow.state_fns`)
-==============================================================
-State functions are defined to be complex functions over a single binary string (as
-compared to an operator, which is defined as a function over two binary strings, or a
-function taking a binary function to another binary function). This function may be
+================================================
+
+.. deprecated:: 0.24.0
+
+    The :mod:`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
+
+State functions are defined to be complex functions over a single binary
+string (as compared to an operator, which is defined as a function over two binary strings,
+or a function taking a binary function to another binary function). This function may be
 called by the eval() method.
 
 Measurements are defined to be functionals over StateFns, taking them to real values.
@@ -37,16 +44,17 @@ Note:
 .. currentmodule:: qiskit.opflow.state_fns
 
 State Functions
-===============
+---------------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    StateFn
    CircuitStateFn
    DictStateFn
    VectorStateFn
+   SparseVectorStateFn
    OperatorStateFn
    CVaRMeasurement
 
@@ -56,12 +64,15 @@ from .state_fn import StateFn
 from .dict_state_fn import DictStateFn
 from .operator_state_fn import OperatorStateFn
 from .vector_state_fn import VectorStateFn
+from .sparse_vector_state_fn import SparseVectorStateFn
 from .circuit_state_fn import CircuitStateFn
 from .cvar_measurement import CVaRMeasurement
 
-__all__ = ['StateFn',
-           'DictStateFn',
-           'VectorStateFn',
-           'CircuitStateFn',
-           'OperatorStateFn',
-           'CVaRMeasurement']
+__all__ = [
+    "StateFn",
+    "DictStateFn",
+    "VectorStateFn",
+    "CircuitStateFn",
+    "OperatorStateFn",
+    "CVaRMeasurement",
+]

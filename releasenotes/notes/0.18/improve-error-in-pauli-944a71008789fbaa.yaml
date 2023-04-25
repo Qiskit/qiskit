@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    When creating a :class:`~qiskit.quantum_info.Pauli` object with an invalid
+    string label, a :class:`~qiskit.exceptions.QiskitError` is now raised.
+    This is a change from previous releases which would raise an
+    ``AttributeError`` on an invalid string label. This change was made to
+    ensure the error message is more informative and distinct from a generic
+    ``AttributeError``.

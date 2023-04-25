@@ -1,0 +1,15 @@
+---
+upgrade:
+  - |
+    The :attr:`~.PauliEvolutionGate.name` attribute of the
+    :class:`~qiskit.circuit.library.PauliEvolutionGate` class has been changed
+    to always be ``"PauliEvolution"``. This change was made to be consistent
+    with other gates in Qiskit and enables other parts of Qiskit to quickly
+    identify when a particular operation in a circuit is a
+    :class:`~qiskit.circuit.library.PauliEvolutionGate`. For example,
+    it enables the unrolling to Pauli evolution gates.
+
+    Previously, the name contained the operators which are evolved, which is
+    now available via the :attr:`.PauliEvolutionGate.label` attribute.
+    If a circuit with a :class:`~.PauliEvolutionGate` is drawn, the gate will
+    still show the same information, which gates are being evolved.

@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Every attribute of the :class:`~qiskit.algorithms.VQE` class that is set at
+    the initialization is now accessible with getters and setters. Further, the
+    default values of the VQE attributes 
+    :attr:`~qiskit.algorithms.minimimum_eigen_solvers.VQE.ansatz` and
+    :attr:`~qiskit.algorithms.minimimum_eigen_solvers.VQE.optimizer` can be 
+    reset by assigning ``None`` to them::
+    
+        vqe = VQE(my_ansatz, my_optimizer)
+        vqe.ansatz = None   # reset to default: RealAmplitudes ansatz
+        vqe.optimizer = None  # reset to default: SLSQP optimizer
+
+fixes:
+  - |
+    Fixed setting the ``ansatz`` or ``optimizer`` attributes of a
+    :obj:`~qiskit.algorithms.VQE` instance to ``None`` resulting in a buggy
+    behavior.  See `#7093
+    <https://github.com/Qiskit/qiskit-terra/issues/7093>`__ for details.
+
+upgrade:
+  - |
+    The ``sort_parameters_by_name`` of the :class:`~qiskit.algorithms.VQE` class
+    has been removed, following its deprecation in Qiskit Terra 0.18.  There is
+    no alternative provided, as the new ordering of parameters is the more
+    natural sort order.

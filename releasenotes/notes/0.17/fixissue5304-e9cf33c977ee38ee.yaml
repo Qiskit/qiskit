@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~qiskit.compiler.scheduler` function where
+    it would raise an exception if an input circuit contained an unbound
+    :class:`~qiskit.circuit.QuantumCircuit` object.
+    Fixed `#5304 <https://github.com/Qiskit/qiskit-terra/issues/5304>`__

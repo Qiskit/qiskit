@@ -1,0 +1,27 @@
+---
+upgrade:
+  - |
+    The ``._layout`` attribute of the :class:`~.QuantumCircuit` object has
+    been changed from storing a :class:`~.Layout` object to storing a
+    data class with 2 attributes, ``initial_layout`` which contains a
+    :class:`~.Layout` object for the initial layout set during compilation
+    and ``input_qubit_mapping`` which contains a dictionary mapping qubits
+    to position indices in the original circuit. This change was necessary to
+    provide all the information for a post-transpiled circuit to be able to
+    fully reverse the permutation caused by initial layout in all situations. While
+    this attribute is private and shouldn't be used externally, it is
+    the only way to track the initial layout through :func:`~.transpile`
+    so the change is being documented in case you're relying on it. If
+    you have a use case for the ``_layout`` attribute that is not being
+    addressed by the Qiskit API please open an issue so we can address this
+    feature gap.
+fixes:
+  - |
+    The :meth:`.Operator.from_circuit` constructor method has been updated
+    so that it can handle the layout output from :func:`~.transpile` and
+    correctly reverse the qubit permutation caused by layout in all cases.
+    Previously, if your transpiled circuit used loose :class:`~.Qubit` objects,
+    multiple :class:`~.QuantumRegister` objects, or a single
+    :class:`~.QuantumRegister` with a name other than ``"q"`` the constructor
+    would have failed to create an :class:`~.Operator` from the circuit.
+    Fixed `#8800 <https://github.com/Qiskit/qiskit-terra/issues/8800>`__.

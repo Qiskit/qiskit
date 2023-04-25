@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    It is now no longer possible to instantiate a base channel without
+    a prefix such as :class:`qiskit.pulse.Channel` or 
+    :class:`qiskit.pulse.PulseChannel`. These classes are designed to be
+    parent classes for different user facing channel classes, such
+    as :class:`qiskit.pulse.DriveChannel`, and not something directly used.
+    When instantiated directly they were not actually usable. If you were
+    previously directly instantiate either :class:`qiskit.pulse.Channel` or
+    :class:`qiskit.pulse.PulseChannel` this no longer works.

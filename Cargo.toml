@@ -1,0 +1,15 @@
+[workspace]
+members = ["crates/*"]
+
+# This has no meaning until we're on Rust 1.64, but once we get there, the subpackages will be able
+# to inherit from this rather than needing to duplicate its content themselves.  Until we get there,
+# keep this in sync with each subpackage `Cargo.toml`'s `package` key.
+[workspace.package]
+version = "0.25.0"
+edition = "2021"
+rust-version = "1.61"  # Keep in sync with README.md and rust-toolchain.toml.
+license = "Apache-2.0"
+
+[profile.release]
+lto = 'fat'
+codegen-units = 1

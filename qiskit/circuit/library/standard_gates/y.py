@@ -12,8 +12,10 @@
 
 """Y and CY gates."""
 
+from math import pi
+from typing import Optional, Union
 import numpy
-from qiskit.qasm import pi
+
 # pylint: disable=cyclic-import
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -22,6 +24,9 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 class YGate(Gate):
     r"""The single-qubit Pauli-Y gate (:math:`\sigma_y`).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.y` method.
 
     **Matrix Representation:**
 
@@ -63,26 +68,30 @@ class YGate(Gate):
         |1\rangle \rightarrow -i|0\rangle
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new Y gate."""
-        super().__init__('y', 1, [], label=label)
+        super().__init__("y", 1, [], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U3Gate(pi, pi / 2, pi / 2), [q[0]], [])
-        ]
+        rules = [(U3Gate(pi, pi / 2, pi / 2), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-Y gate.
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
+        """Return a (multi-)controlled-Y gate.
 
         One control returns a CY gate.
 
@@ -105,14 +114,16 @@ class YGate(Gate):
         r"""Return inverted Y gate (:math:`Y{\dagger} = Y`)"""
         return YGate()  # self-inverse
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a numpy.array for the Y gate."""
-        return numpy.array([[0, -1j],
-                            [1j, 0]], dtype=dtype)
+        return numpy.array([[0, -1j], [1j, 0]], dtype=dtype)
 
 
 class CYGate(ControlledGate):
     r"""Controlled-Y gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cy` method.
 
     **Circuit symbol:**
 
@@ -164,19 +175,14 @@ class CYGate(ControlledGate):
 
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array([[1, 0, 0, 0],
-                            [0, 0, 0, -1j],
-                            [0, 0, 1, 0],
-                            [0, 1j, 0, 0]])
-    _matrix0 = numpy.array([[0, 0, -1j, 0],
-                            [0, 1, 0, 0],
-                            [1j, 0, 0, 0],
-                            [0, 0, 0, 1]])
+    _matrix1 = numpy.array([[1, 0, 0, 0], [0, 0, 0, -1j], [0, 0, 1, 0], [0, 1j, 0, 0]])
+    _matrix0 = numpy.array([[0, 0, -1j, 0], [0, 1, 0, 0], [1j, 0, 0, 0], [0, 0, 0, 1]])
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CY gate."""
-        super().__init__('cy', 2, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate=YGate())
+        super().__init__(
+            "cy", 2, [], num_ctrl_qubits=1, label=label, ctrl_state=ctrl_state, base_gate=YGate()
+        )
 
     def _define(self):
         """
@@ -186,13 +192,10 @@ class CYGate(ControlledGate):
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .s import SGate, SdgGate
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (SdgGate(), [q[1]], []),
-            (CXGate(), [q[0], q[1]], []),
-            (SGate(), [q[1]], [])
-        ]
+        rules = [(SdgGate(), [q[1]], []), (CXGate(), [q[0], q[1]], []), (SGate(), [q[1]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 

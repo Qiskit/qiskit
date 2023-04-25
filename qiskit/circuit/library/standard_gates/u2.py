@@ -11,10 +11,12 @@
 # that they have been altered from the originals.
 
 """One-pulse single-qubit gate."""
-
+from math import sqrt, pi
+from cmath import exp
+from typing import Optional
 import numpy
-from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
@@ -23,8 +25,20 @@ class U2Gate(Gate):
 
     Implemented using one X90 pulse on IBM Quantum systems:
 
-    .. math::
-        U2(\phi, \lambda) = RZ(\phi).RY(\frac{\pi}{2}).RZ(\lambda)
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           U2(\phi, \lambda) = U\left(\frac{\pi}{2}, \phi, \lambda\right)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(1)
+          circuit.u(pi/2, phi, lambda)
+
+
 
     **Circuit symbol:**
 
@@ -48,9 +62,23 @@ class U2Gate(Gate):
 
     .. math::
 
+        U2(\phi,\lambda) = e^{i \frac{\phi + \lambda}{2}}RZ(\phi)
+        RY\left(\frac{\pi}{2}\right) RZ(\lambda)
+        = e^{- i\frac{\pi}{4}} P\left(\frac{\pi}{2} + \phi\right)
+        \sqrt{X} P\left(\lambda- \frac{\pi}{2}\right)
+
+    .. math::
+
         U2(0, \pi) = H
+
+    .. math::
+
         U2(0, 0) = RY(\pi/2)
+
+    .. math::
+
         U2(-\pi/2, \pi/2) = RX(\pi/2)
+
     .. seealso::
 
         :class:`~qiskit.circuit.library.standard_gates.U3Gate`:
@@ -58,15 +86,18 @@ class U2Gate(Gate):
         using two X90 pulses.
     """
 
-    def __init__(self, phi, lam, label=None):
+    def __init__(
+        self, phi: ParameterValueType, lam: ParameterValueType, label: Optional[str] = None
+    ):
         """Create new U2 gate."""
-        super().__init__('u2', 1, [phi, lam], label=label)
+        super().__init__("u2", 1, [phi, lam], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [(U3Gate(pi / 2, self.params[0], self.params[1]), [q[0]], [])]
         for instr, qargs, cargs in rules:
@@ -81,18 +112,15 @@ class U2Gate(Gate):
         """
         return U2Gate(-self.params[1] - pi, -self.params[0] + pi)
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=complex):
         """Return a Numpy.array for the U2 gate."""
-        isqrt2 = 1 / numpy.sqrt(2)
+        isqrt2 = 1 / sqrt(2)
         phi, lam = self.params
         phi, lam = float(phi), float(lam)
-        return numpy.array([
+        return numpy.array(
             [
-                isqrt2,
-                -numpy.exp(1j * lam) * isqrt2
+                [isqrt2, -exp(1j * lam) * isqrt2],
+                [exp(1j * phi) * isqrt2, exp(1j * (phi + lam)) * isqrt2],
             ],
-            [
-                numpy.exp(1j * phi) * isqrt2,
-                numpy.exp(1j * (phi + lam)) * isqrt2
-            ]
-        ], dtype=dtype)
+            dtype=dtype,
+        )

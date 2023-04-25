@@ -1,7 +1,0 @@
----
-
-features:
-  - |
-    Adds a new gate, ``PauliGate`` which allows applying several pauli gates
-    to different qubits at the same time (allowing more efficient implementation
-    by simulators)

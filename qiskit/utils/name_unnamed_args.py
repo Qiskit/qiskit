@@ -16,7 +16,6 @@ import functools
 
 
 def name_args(mapping, skip=0):
-    # pylint: disable=wrong-spelling-in-docstring
     """Decorator to convert unnamed arguments to named ones.
 
     Can be used to deprecate old signatures of a function, e.g.
@@ -42,6 +41,7 @@ def name_args(mapping, skip=0):
                 # raise warning, this is deprecated!
 
     """
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -49,8 +49,8 @@ def name_args(mapping, skip=0):
             for arg, replacement in zip(args[skip:], mapping):
                 default_name = replacement[0]
                 if len(replacement) == 1:  # just renaming, no special cases
-                    if default_name in kwargs.keys():
-                        raise ValueError('Name collapse on {}'.format(default_name))
+                    if default_name in kwargs:
+                        raise ValueError(f"Name collapse on {default_name}")
                     kwargs[default_name] = arg
                 else:
                     # check if we find a special name
@@ -62,10 +62,12 @@ def name_args(mapping, skip=0):
                     if name is None:
                         name = default_name
 
-                    if name in kwargs.keys():
-                        raise ValueError('Name collapse on {}'.format(default_name))
+                    if name in kwargs:
+                        raise ValueError(f"Name collapse on {default_name}")
                     kwargs[name] = arg
 
             return func(*args[:skip], **kwargs)
+
         return wrapper
+
     return decorator

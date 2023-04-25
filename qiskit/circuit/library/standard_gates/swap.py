@@ -12,6 +12,7 @@
 
 """Swap gate."""
 
+from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
@@ -22,6 +23,9 @@ class SwapGate(Gate):
     r"""The SWAP gate.
 
     This is a symmetric and Clifford gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.swap` method.
 
     **Circuit symbol:**
 
@@ -50,9 +54,9 @@ class SwapGate(Gate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label=None):
+    def __init__(self, label: Optional[str] = None):
         """Create new SWAP gate."""
-        super().__init__('swap', 2, [], label=label)
+        super().__init__("swap", 2, [], label=label)
 
     def _define(self):
         """
@@ -61,19 +65,25 @@ class SwapGate(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
-            (CXGate(), [q[0], q[1]], [])
+            (CXGate(), [q[0], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+    ):
         """Return a (multi-)controlled-SWAP gate.
 
         One control returns a CSWAP (Fredkin) gate.
@@ -99,24 +109,25 @@ class SwapGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the SWAP gate."""
-        return numpy.array([[1, 0, 0, 0],
-                            [0, 0, 1, 0],
-                            [0, 1, 0, 0],
-                            [0, 0, 0, 1]], dtype=dtype)
+        return numpy.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]], dtype=dtype)
 
 
 class CSwapGate(ControlledGate):
-    r"""Controlled-X gate.
+    r"""Controlled-SWAP gate, also known as the Fredkin gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cswap` and
+    :meth:`~qiskit.circuit.QuantumCircuit.fredkin` methods.
 
     **Circuit symbol:**
 
     .. parsed-literal::
 
-        q_0: ─X─
+        q_0: ─■─
               │
         q_1: ─X─
               │
-        q_2: ─■─
+        q_2: ─X─
 
 
     **Matrix representation:**
@@ -124,8 +135,8 @@ class CSwapGate(ControlledGate):
     .. math::
 
         CSWAP\ q_0, q_1, q_2 =
-            |0 \rangle \langle 0| \otimes I \otimes I +
-            |1 \rangle \langle 1| \otimes SWAP =
+            I \otimes I \otimes |0 \rangle \langle 0| +
+            SWAP \otimes |1 \rangle \langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 & 0 & 0 & 0 & 0 \\
@@ -147,11 +158,11 @@ class CSwapGate(ControlledGate):
 
         .. parsed-literal::
 
-            q_0: ─■─
+            q_0: ─X─
                   │
             q_1: ─X─
                   │
-            q_2: ─X─
+            q_2: ─■─
 
         .. math::
 
@@ -178,27 +189,42 @@ class CSwapGate(ControlledGate):
         |1, b, c\rangle \rightarrow |1, c, b\rangle
     """
     # Define class constants. This saves future allocation time.
-    _matrix1 = numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0],
-                            [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 1, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1]])
-    _matrix0 = numpy.array([[1, 0, 0, 0, 0, 0, 0, 0],
-                            [0, 1, 0, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 1, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0, 0, 0],
-                            [0, 0, 0, 0, 0, 1, 0, 0],
-                            [0, 0, 0, 0, 0, 0, 1, 0],
-                            [0, 0, 0, 0, 0, 0, 0, 1]])
+    _matrix1 = numpy.array(
+        [
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1],
+        ]
+    )
+    _matrix0 = numpy.array(
+        [
+            [1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1],
+        ]
+    )
 
-    def __init__(self, label=None, ctrl_state=None):
+    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
         """Create new CSWAP gate."""
-        super().__init__('cswap', 3, [], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate=SwapGate())
+        super().__init__(
+            "cswap",
+            3,
+            [],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=SwapGate(),
+        )
 
     def _define(self):
         """
@@ -211,12 +237,13 @@ class CSwapGate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate, CCXGate
-        q = QuantumRegister(3, 'q')
+
+        q = QuantumRegister(3, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (CXGate(), [q[2], q[1]], []),
             (CCXGate(), [q[0], q[1], q[2]], []),
-            (CXGate(), [q[2], q[1]], [])
+            (CXGate(), [q[2], q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)

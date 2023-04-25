@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    The kwarg, ``template_list``, for the constructor of the
+    :class:`qiskit.transpiler.passes.TemplateOptimization` transpiler pass
+    now supports taking in a list of both
+    :class:`~qiskit.circuit.QuantumCircuit` and
+    :class:`~qiskit.dagcircuit.DAGDependency` objects. Previously, only
+    :class:`~qiskit.circuit.QuantumCircuit` were accepted (which were internally
+    converted to :class:`~qiskit.dagcircuit.DAGDependency` objects) in the
+    input list.

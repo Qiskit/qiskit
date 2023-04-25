@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Improved Stochastic Ranking Evolution Strategy optimizer. """
+"""Improved Stochastic Ranking Evolution Strategy optimizer."""
 
 from .nloptimizer import NLoptOptimizer, NLoptOptimizerType
 
@@ -35,5 +35,5 @@ class ISRES(NLoptOptimizer):
     """
 
     def get_nlopt_optimizer(self) -> NLoptOptimizerType:
-        """ Return NLopt optimizer type """
+        """Return NLopt optimizer type"""
         return NLoptOptimizerType.GN_ISRES

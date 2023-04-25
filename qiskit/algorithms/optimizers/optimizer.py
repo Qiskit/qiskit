@@ -12,16 +12,155 @@
 
 """Optimizer interface"""
 
+from __future__ import annotations
+
+from abc import ABC, abstractmethod
+from collections.abc import Callable
 from enum import IntEnum
 import logging
-from abc import ABC, abstractmethod
+import sys
+from typing import Any, Union
+
 import numpy as np
+import scipy
+
+from qiskit.algorithms.algorithm_result import AlgorithmResult
+
+if sys.version_info >= (3, 8):
+    # pylint: disable=ungrouped-imports
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
 
 logger = logging.getLogger(__name__)
 
+POINT = Union[float, np.ndarray]
+
+
+class OptimizerResult(AlgorithmResult):
+    """The result of an optimization routine."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._x: POINT | None = None
+        self._fun: float | None = None
+        self._jac: POINT | None = None
+        self._nfev: int | None = None
+        self._njev: int | None = None
+        self._nit: int | None = None
+
+    @property
+    def x(self) -> POINT | None:
+        """The final point of the minimization."""
+        return self._x
+
+    @x.setter
+    def x(self, x: POINT | None) -> None:
+        """Set the final point of the minimization."""
+        self._x = x
+
+    @property
+    def fun(self) -> float | None:
+        """The final value of the minimization."""
+        return self._fun
+
+    @fun.setter
+    def fun(self, fun: float | None) -> None:
+        """Set the final value of the minimization."""
+        self._fun = fun
+
+    @property
+    def jac(self) -> POINT | None:
+        """The final gradient of the minimization."""
+        return self._jac
+
+    @jac.setter
+    def jac(self, jac: POINT | None) -> None:
+        """Set the final gradient of the minimization."""
+        self._jac = jac
+
+    @property
+    def nfev(self) -> int | None:
+        """The total number of function evaluations."""
+        return self._nfev
+
+    @nfev.setter
+    def nfev(self, nfev: int | None) -> None:
+        """Set the total number of function evaluations."""
+        self._nfev = nfev
+
+    @property
+    def njev(self) -> int | None:
+        """The total number of gradient evaluations."""
+        return self._njev
+
+    @njev.setter
+    def njev(self, njev: int | None) -> None:
+        """Set the total number of gradient evaluations."""
+        self._njev = njev
+
+    @property
+    def nit(self) -> int | None:
+        """The total number of iterations."""
+        return self._nit
+
+    @nit.setter
+    def nit(self, nit: int | None) -> None:
+        """Set the total number of iterations."""
+        self._nit = nit
+
+
+class Minimizer(Protocol):
+    """Callable Protocol for minimizer.
+
+    This interface is based on `SciPy's optimize module
+    <https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html>`__.
+
+     This protocol defines a callable taking the following parameters:
+
+         fun
+             The objective function to minimize (for example the energy in the case of the VQE).
+         x0
+             The initial point for the optimization.
+         jac
+             The gradient of the objective function.
+         bounds
+             Parameters bounds for the optimization. Note that these might not be supported
+             by all optimizers.
+
+     and which returns a minimization result object (either SciPy's or Qiskit's).
+    """
+
+    # pylint: disable=invalid-name
+    def __call__(
+        self,
+        fun: Callable[[np.ndarray], float],
+        x0: np.ndarray,
+        jac: Callable[[np.ndarray], np.ndarray] | None,
+        bounds: list[tuple[float, float]] | None,
+    ) -> scipy.optimize.OptimizeResult | OptimizerResult:
+        """Minimize the objective function.
+
+        This interface is based on `SciPy's optimize module <https://docs.scipy.org/doc
+        /scipy/reference/generated/scipy.optimize.minimize.html>`__.
+
+        Args:
+            fun: The objective function to minimize (for example the energy in the case of the VQE).
+            x0: The initial point for the optimization.
+            jac: The gradient of the objective function.
+            bounds: Parameters bounds for the optimization. Note that these might not be supported
+                by all optimizers.
+
+        Returns:
+             The minimization result object (either SciPy's or Qiskit's).
+        """
+        ...
+
 
 class OptimizerSupportLevel(IntEnum):
-    """ Support Level enum for features such as bounds, gradient and initial point """
+    """Support Level enum for features such as bounds, gradient and initial point"""
+
+    # pylint: disable=invalid-name
     not_supported = 0  # Does not support the corresponding parameter in optimize()
     ignored = 1  # Feature can be passed as non None but will be ignored
     supported = 2  # Feature is supported
@@ -38,15 +177,15 @@ class Optimizer(ABC):
         level for _gradient_support_level, _bound_support_level,
         _initial_point_support_level, and empty options.
         """
-        self._gradient_support_level = self.get_support_level()['gradient']
-        self._bounds_support_level = self.get_support_level()['bounds']
-        self._initial_point_support_level = self.get_support_level()['initial_point']
+        self._gradient_support_level = self.get_support_level()["gradient"]
+        self._bounds_support_level = self.get_support_level()["bounds"]
+        self._initial_point_support_level = self.get_support_level()["initial_point"]
         self._options = {}
-        self._max_evals_grouped = 1
+        self._max_evals_grouped = None
 
     @abstractmethod
     def get_support_level(self):
-        """ Return support level dictionary """
+        """Return support level dictionary"""
         raise NotImplementedError
 
     def set_options(self, **kwargs):
@@ -63,11 +202,11 @@ class Optimizer(ABC):
         """
         for name, value in kwargs.items():
             self._options[name] = value
-        logger.debug('options: %s', self._options)
+        logger.debug("options: %s", self._options)
 
     # pylint: disable=invalid-name
     @staticmethod
-    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=1):
+    def gradient_num_diff(x_center, f, epsilon, max_evals_grouped=None):
         """
         We compute the gradient with the numeric differentiation in the parallel way,
         around the point x_center.
@@ -76,11 +215,14 @@ class Optimizer(ABC):
             x_center (ndarray): point around which we compute the gradient
             f (func): the function of which the gradient is to be computed.
             epsilon (float): the epsilon used in the numeric differentiation.
-            max_evals_grouped (int): max evals grouped
+            max_evals_grouped (int): max evals grouped, defaults to 1 (i.e. no batching).
         Returns:
             grad: the gradient computed
 
         """
+        if max_evals_grouped is None:  # no batching by default
+            max_evals_grouped = 1
+
         forig = f(*((x_center,)))
         grad = []
         ei = np.zeros((len(x_center),), float)
@@ -128,144 +270,127 @@ class Optimizer(ABC):
         Returns:
             function_wrapper: wrapper
         """
+
         def function_wrapper(*wrapper_args):
             return function(*(wrapper_args + args))
+
         return function_wrapper
 
     @property
     def setting(self):
-        """ Return setting """
-        ret = "Optimizer: {}\n".format(self.__class__.__name__)
+        """Return setting"""
+        ret = f"Optimizer: {self.__class__.__name__}\n"
         params = ""
         for key, value in self.__dict__.items():
             if key[0] == "_":
-                params += "-- {}: {}\n".format(key[1:], value)
-        ret += "{}".format(params)
+                params += f"-- {key[1:]}: {value}\n"
+        ret += f"{params}"
         return ret
 
-    @abstractmethod
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
+    @property
+    def settings(self) -> dict[str, Any]:
+        """The optimizer settings in a dictionary format.
+
+        The settings can for instance be used for JSON-serialization (if all settings are
+        serializable, which e.g. doesn't hold per default for callables), such that the
+        optimizer object can be reconstructed as
+
+        .. code-block::
+
+            settings = optimizer.settings
+            # JSON serialize and send to another server
+            optimizer = OptimizerClass(**settings)
+
         """
-        Perform optimization.
+        raise NotImplementedError("The settings method is not implemented per default.")
+
+    @abstractmethod
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
+    ) -> OptimizerResult:
+        """Minimize the scalar function.
 
         Args:
-            num_vars (int) : Number of parameters to be optimized.
-            objective_function (callable) : A function that
-                computes the objective function.
-            gradient_function (callable) : A function that
-                computes the gradient of the objective function, or
-                None if not available.
-            variable_bounds (list[(float, float)]) : List of variable
-                bounds, given as pairs (lower, upper). None means
-                unbounded.
-            initial_point (numpy.ndarray[float]) : Initial point.
+            fun: The scalar function to minimize.
+            x0: The initial point for the minimization.
+            jac: The gradient of the scalar function ``fun``.
+            bounds: Bounds for the variables of ``fun``. This argument might be ignored if the
+                optimizer does not support bounds.
 
         Returns:
-            point, value, nfev
-               point: is a 1D numpy.ndarray[float] containing the solution
-               value: is a float with the objective function value
-               nfev: number of objective function calls made if available or None
-        Raises:
-            ValueError: invalid input
+            The result of the optimization, containing e.g. the result as attribute ``x``.
         """
-
-        if initial_point is not None and len(initial_point) != num_vars:
-            raise ValueError('Initial point does not match dimension')
-        if variable_bounds is not None and len(variable_bounds) != num_vars:
-            raise ValueError('Variable bounds not match dimension')
-
-        has_bounds = False
-        if variable_bounds is not None:
-            # If *any* value is *equal* in bounds array to None then the does *not* have bounds
-            has_bounds = not np.any(np.equal(variable_bounds, None))
-
-        if gradient_function is None and self.is_gradient_required:
-            raise ValueError('Gradient is required but None given')
-        if not has_bounds and self.is_bounds_required:
-            raise ValueError('Variable bounds is required but None given')
-        if initial_point is None and self.is_initial_point_required:
-            raise ValueError('Initial point is required but None given')
-
-        if gradient_function is not None and self.is_gradient_ignored:
-            logger.debug(
-                'WARNING: %s does not support gradient function. It will be ignored.',
-                self.__class__.__name__)
-        if has_bounds and self.is_bounds_ignored:
-            logger.debug(
-                'WARNING: %s does not support bounds. It will be ignored.',
-                self.__class__.__name__)
-        if initial_point is not None and self.is_initial_point_ignored:
-            logger.debug(
-                'WARNING: %s does not support initial point. It will be ignored.',
-                self.__class__.__name__)
-        pass
+        raise NotImplementedError()
 
     @property
     def gradient_support_level(self):
-        """ Returns gradient support level """
+        """Returns gradient support level"""
         return self._gradient_support_level
 
     @property
     def is_gradient_ignored(self):
-        """ Returns is gradient ignored """
+        """Returns is gradient ignored"""
         return self._gradient_support_level == OptimizerSupportLevel.ignored
 
     @property
     def is_gradient_supported(self):
-        """ Returns is gradient supported """
+        """Returns is gradient supported"""
         return self._gradient_support_level != OptimizerSupportLevel.not_supported
 
     @property
     def is_gradient_required(self):
-        """ Returns is gradient required """
+        """Returns is gradient required"""
         return self._gradient_support_level == OptimizerSupportLevel.required
 
     @property
     def bounds_support_level(self):
-        """ Returns bounds support level """
+        """Returns bounds support level"""
         return self._bounds_support_level
 
     @property
     def is_bounds_ignored(self):
-        """ Returns is bounds ignored """
+        """Returns is bounds ignored"""
         return self._bounds_support_level == OptimizerSupportLevel.ignored
 
     @property
     def is_bounds_supported(self):
-        """ Returns is bounds supported """
+        """Returns is bounds supported"""
         return self._bounds_support_level != OptimizerSupportLevel.not_supported
 
     @property
     def is_bounds_required(self):
-        """ Returns is bounds required """
+        """Returns is bounds required"""
         return self._bounds_support_level == OptimizerSupportLevel.required
 
     @property
     def initial_point_support_level(self):
-        """ Returns initial point support level """
+        """Returns initial point support level"""
         return self._initial_point_support_level
 
     @property
     def is_initial_point_ignored(self):
-        """ Returns is initial point ignored """
+        """Returns is initial point ignored"""
         return self._initial_point_support_level == OptimizerSupportLevel.ignored
 
     @property
     def is_initial_point_supported(self):
-        """ Returns is initial point supported """
+        """Returns is initial point supported"""
         return self._initial_point_support_level != OptimizerSupportLevel.not_supported
 
     @property
     def is_initial_point_required(self):
-        """ Returns is initial point required """
+        """Returns is initial point required"""
         return self._initial_point_support_level == OptimizerSupportLevel.required
 
     def print_options(self):
         """Print algorithm-specific options."""
         for name in sorted(self._options):
-            logger.debug('{:s} = {:s}'.format(name, str(self._options[name])))
+            logger.debug("%s = %s", name, str(self._options[name]))
 
     def set_max_evals_grouped(self, limit):
-        """ Set max evals grouped """
+        """Set max evals grouped"""
         self._max_evals_grouped = limit

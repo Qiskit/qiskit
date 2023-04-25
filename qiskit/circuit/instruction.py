@@ -30,26 +30,33 @@ Instructions are identified by the following:
 Instructions do not have any context about where they are in a circuit (which qubits/clbits).
 The circuit itself keeps this context.
 """
-import warnings
+
 import copy
 from itertools import zip_longest
+from typing import List
 
 import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.circuit.classicalregister import ClassicalRegister
+from qiskit.circuit.classicalregister import ClassicalRegister, Clbit
+from qiskit.qasm.exceptions import QasmError
 from qiskit.qobj.qasm_qobj import QasmQobjInstruction
 from qiskit.circuit.parameter import ParameterExpression
+from qiskit.circuit.operation import Operation
 from .tools import pi_check
 
-_CUTOFF_PRECISION = 1E-10
+_CUTOFF_PRECISION = 1e-10
 
 
-class Instruction:
+class Instruction(Operation):
     """Generic quantum instruction."""
 
-    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit='dt'):
+    # Class attribute to treat like barrier for transpiler, unroller, drawer
+    # NOTE: Using this attribute may change in the future (See issue # 5811)
+    _directive = False
+
+    def __init__(self, name, num_qubits, num_clbits, params, duration=None, unit="dt", label=None):
         """Create a new instruction.
 
         Args:
@@ -60,31 +67,42 @@ class Instruction:
                 list of parameters
             duration (int or float): instruction's duration. it must be integer if ``unit`` is 'dt'
             unit (str): time unit of duration
+            label (str or None): An optional label for identifying the instruction.
 
         Raises:
             CircuitError: when the register is not in the correct format.
+            TypeError: when the optional label is provided, but it is not a string.
         """
         if not isinstance(num_qubits, int) or not isinstance(num_clbits, int):
             raise CircuitError("num_qubits and num_clbits must be integer.")
         if num_qubits < 0 or num_clbits < 0:
             raise CircuitError(
-                "bad instruction dimensions: %d qubits, %d clbits." %
-                num_qubits, num_clbits)
-        self.name = name
-        self.num_qubits = num_qubits
-        self.num_clbits = num_clbits
+                "bad instruction dimensions: %d qubits, %d clbits." % num_qubits, num_clbits
+            )
+        self._name = name
+        self._num_qubits = num_qubits
+        self._num_clbits = num_clbits
 
         self._params = []  # a list of gate params stored
-
-        # tuple (ClassicalRegister, int) when the instruction has a conditional ("if")
+        # Custom instruction label
+        # NOTE: The conditional statement checking if the `_label` attribute is
+        #       already set is a temporary work around that can be removed after
+        #       the next stable qiskit-aer release
+        if not hasattr(self, "_label"):
+            if label is not None and not isinstance(label, str):
+                raise TypeError("label expects a string or None")
+            self._label = label
+        # tuple (ClassicalRegister, int), tuple (Clbit, bool) or tuple (Clbit, int)
+        # when the instruction has a conditional ("if")
         self.condition = None
         # list of instructions (and their contexts) that this instruction is composed of
         # empty definition means opaque or fundamental instruction
         self._definition = None
-        self.params = params
 
         self._duration = duration
         self._unit = unit
+
+        self.params = params  # must be at last (other properties may be required for validation)
 
     def __eq__(self, other):
         """Two instructions are the same if they have the same name,
@@ -96,11 +114,13 @@ class Instruction:
         Returns:
             bool: are self and other equal.
         """
-        if type(self) is not type(other) or \
-                self.name != other.name or \
-                self.num_qubits != other.num_qubits or \
-                self.num_clbits != other.num_clbits or \
-                self.definition != other.definition:
+        if (
+            type(self) is not type(other)
+            or self.name != other.name
+            or self.num_qubits != other.num_qubits
+            or self.num_clbits != other.num_clbits
+            or self.definition != other.definition
+        ):
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
@@ -111,16 +131,19 @@ class Instruction:
                 pass
 
             try:
-                if numpy.shape(self_param) == numpy.shape(other_param) \
-                        and numpy.allclose(self_param, other_param,
-                                           atol=_CUTOFF_PRECISION):
+                self_asarray = numpy.asarray(self_param)
+                other_asarray = numpy.asarray(other_param)
+                if numpy.shape(self_asarray) == numpy.shape(other_asarray) and numpy.allclose(
+                    self_param, other_param, atol=_CUTOFF_PRECISION, rtol=0
+                ):
                     continue
-            except TypeError:
+            except (ValueError, TypeError):
                 pass
 
             try:
-                if numpy.isclose(float(self_param), float(other_param),
-                                 atol=_CUTOFF_PRECISION):
+                if numpy.isclose(
+                    float(self_param), float(other_param), atol=_CUTOFF_PRECISION, rtol=0
+                ):
                     continue
             except TypeError:
                 pass
@@ -129,7 +152,17 @@ class Instruction:
 
         return True
 
-    def soft_compare(self, other: 'Instruction') -> bool:
+    def __repr__(self) -> str:
+        """Generates a representation of the Intruction object instance
+        Returns:
+            str: A representation of the Instruction instance with the name,
+                 number of qubits, classical bits and params( if any )
+        """
+        return "Instruction(name='{}', num_qubits={}, num_clbits={}, params={})".format(
+            self.name, self.num_qubits, self.num_clbits, self.params
+        )
+
+    def soft_compare(self, other: "Instruction") -> bool:
         """
         Soft comparison between gates. Their names, number of qubits, and classical
         bit numbers must match. The number of parameters must match. Each parameter
@@ -142,20 +175,23 @@ class Instruction:
         Returns:
             bool: are self and other equal up to parameter expressions.
         """
-        if self.name != other.name or \
-                other.num_qubits != other.num_qubits or \
-                other.num_clbits != other.num_clbits or \
-                len(self.params) != len(other.params):
+        if (
+            self.name != other.name
+            or other.num_qubits != other.num_qubits
+            or other.num_clbits != other.num_clbits
+            or len(self.params) != len(other.params)
+        ):
             return False
 
         for self_param, other_param in zip_longest(self.params, other.params):
-            if isinstance(self_param, ParameterExpression) or \
-                    isinstance(other_param, ParameterExpression):
+            if isinstance(self_param, ParameterExpression) or isinstance(
+                other_param, ParameterExpression
+            ):
                 continue
-            if isinstance(self_param, numpy.ndarray) and \
-                    isinstance(other_param, numpy.ndarray):
-                if numpy.shape(self_param) == numpy.shape(other_param) \
-                        and numpy.allclose(self_param, other_param, atol=_CUTOFF_PRECISION):
+            if isinstance(self_param, numpy.ndarray) and isinstance(other_param, numpy.ndarray):
+                if numpy.shape(self_param) == numpy.shape(other_param) and numpy.allclose(
+                    self_param, other_param, atol=_CUTOFF_PRECISION
+                ):
                     continue
             else:
                 try:
@@ -192,9 +228,9 @@ class Instruction:
 
     def is_parameterized(self):
         """Return True .IFF. instruction is parameterized else False"""
-        return any(isinstance(param, ParameterExpression)
-                   and param.parameters
-                   for param in self.params)
+        return any(
+            isinstance(param, ParameterExpression) and param.parameters for param in self.params
+        )
 
     @property
     def definition(self):
@@ -213,6 +249,7 @@ class Instruction:
         """Get the decompositions of the instruction from the SessionEquivalenceLibrary."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
         return sel.get_entry(self)
 
     @decompositions.setter
@@ -220,12 +257,14 @@ class Instruction:
         """Set the decompositions of the instruction from the SessionEquivalenceLibrary."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
         sel.set_entry(self, decompositions)
 
     def add_decomposition(self, decomposition):
         """Add a decomposition of the instruction to the SessionEquivalenceLibrary."""
         # pylint: disable=cyclic-import
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
         sel.add_equivalence(self, decomposition)
 
     @property
@@ -253,14 +292,16 @@ class Instruction:
         instruction = QasmQobjInstruction(name=self.name)
         # Evaluate parameters
         if self.params:
-            params = [
-                x.evalf(x) if hasattr(x, 'evalf') else x for x in self.params]
+            params = [x.evalf(x) if hasattr(x, "evalf") else x for x in self.params]
             instruction.params = params
         # Add placeholder for qarg and carg params
         if self.num_qubits:
             instruction.qubits = list(range(self.num_qubits))
         if self.num_clbits:
             instruction.memory = list(range(self.num_clbits))
+        # Add label if defined
+        if self.label:
+            instruction.label = self.label
         # Add condition parameters for assembler. This is needed to convert
         # to a qobj conditional instruction at assemble time and after
         # conversion will be deleted by the assembler.
@@ -268,16 +309,25 @@ class Instruction:
             instruction._condition = self.condition
         return instruction
 
-    def mirror(self):
-        """DEPRECATED: use instruction.reverse_ops().
+    @property
+    def label(self) -> str:
+        """Return instruction label"""
+        return self._label
 
-        Return:
-            qiskit.circuit.Instruction: a new instruction with sub-instructions
-                reversed.
+    @label.setter
+    def label(self, name: str):
+        """Set instruction label to name
+
+        Args:
+            name (str or None): label to assign instruction
+
+        Raises:
+            TypeError: name is not string or None.
         """
-        warnings.warn('instruction.mirror() is deprecated. Use circuit.reverse_ops()'
-                      'to reverse the order of gates.', DeprecationWarning)
-        return self.reverse_ops()
+        if isinstance(name, (str, type(None))):
+            self._label = name
+        else:
+            raise TypeError("label expects a string or None")
 
     def reverse_ops(self):
         """For a composite instruction, reverse the order of sub-instructions.
@@ -292,10 +342,11 @@ class Instruction:
         if not self._definition:
             return self.copy()
 
-        reverse_inst = self.copy(name=self.name + '_reverse')
-        reverse_inst.definition._data = [(inst.reverse_ops(), qargs, cargs)
-                                         for inst, qargs, cargs in reversed(self._definition)]
-
+        reverse_inst = self.copy(name=self.name + "_reverse")
+        reversed_definition = self._definition.copy_empty_like()
+        for inst in reversed(self._definition):
+            reversed_definition.append(inst.operation.reverse_ops(), inst.qubits, inst.clbits)
+        reverse_inst.definition = reversed_definition
         return reverse_inst
 
     def inverse(self):
@@ -317,30 +368,47 @@ class Instruction:
         if self.definition is None:
             raise CircuitError("inverse() not implemented for %s." % self.name)
 
-        from qiskit.circuit import QuantumCircuit, Gate  # pylint: disable=cyclic-import
+        from qiskit.circuit import Gate  # pylint: disable=cyclic-import
+
+        if self.name.endswith("_dg"):
+            name = self.name[:-3]
+        else:
+            name = self.name + "_dg"
         if self.num_clbits:
-            inverse_gate = Instruction(name=self.name + '_dg',
-                                       num_qubits=self.num_qubits,
-                                       num_clbits=self.num_clbits,
-                                       params=self.params.copy())
+            inverse_gate = Instruction(
+                name=name,
+                num_qubits=self.num_qubits,
+                num_clbits=self.num_clbits,
+                params=self.params.copy(),
+            )
 
         else:
-            inverse_gate = Gate(name=self.name + '_dg',
-                                num_qubits=self.num_qubits,
-                                params=self.params.copy())
+            inverse_gate = Gate(name=name, num_qubits=self.num_qubits, params=self.params.copy())
 
-        inverse_gate.definition = QuantumCircuit(*self.definition.qregs, *self.definition.cregs)
-        inverse_gate.definition._data = [(inst.inverse(), qargs, cargs)
-                                         for inst, qargs, cargs in reversed(self._definition)]
-
+        inverse_definition = self._definition.copy_empty_like()
+        inverse_definition.global_phase = -inverse_definition.global_phase
+        for inst in reversed(self._definition):
+            inverse_definition._append(inst.operation.inverse(), inst.qubits, inst.clbits)
+        inverse_gate.definition = inverse_definition
         return inverse_gate
 
     def c_if(self, classical, val):
-        """Add classical condition on register classical and value val."""
-        if not isinstance(classical, ClassicalRegister):
-            raise CircuitError("c_if must be used with a classical register")
+        """Set a classical equality condition on this instruction between the register or cbit
+        ``classical`` and value ``val``.
+
+        .. note::
+
+            This is a setter method, not an additive one.  Calling this multiple times will silently
+            override any previously set condition; it does not stack.
+        """
+        if not isinstance(classical, (ClassicalRegister, Clbit)):
+            raise CircuitError("c_if must be used with a classical register or classical bit")
         if val < 0:
             raise CircuitError("condition value should be non-negative")
+        if isinstance(classical, Clbit):
+            # Casting the conditional value as Boolean when
+            # the classical condition is on a classical bit.
+            val = bool(val)
         self.condition = (classical, val)
         return self
 
@@ -349,12 +417,11 @@ class Instruction:
         Copy of the instruction.
 
         Args:
-          name (str): name to be given to the copied circuit,
-            if None then the name stays the same.
+            name (str): name to be given to the copied circuit, if ``None`` then the name stays the same.
 
         Returns:
-          qiskit.circuit.Instruction: a copy of the current instruction, with the name
-            updated if it was provided
+            qiskit.circuit.Instruction: a copy of the current instruction, with the name updated if it
+            was provided
         """
         cpy = self.__deepcopy__()
 
@@ -373,6 +440,10 @@ class Instruction:
         """Print an if statement if needed."""
         if self.condition is None:
             return string
+        if not isinstance(self.condition[0], ClassicalRegister):
+            raise QasmError(
+                "OpenQASM 2 can only condition on registers, but got '{self.condition[0]}'"
+            )
         return "if(%s==%d) " % (self.condition[0].name, self.condition[1]) + string
 
     def qasm(self):
@@ -383,8 +454,10 @@ class Instruction:
         """
         name_param = self.name
         if self.params:
-            name_param = "%s(%s)" % (name_param, ",".join(
-                [pi_check(i, ndigits=8, output='qasm') for i in self.params]))
+            name_param = "{}({})".format(
+                name_param,
+                ",".join([pi_check(i, output="qasm", eps=1e-12) for i in self.params]),
+            )
 
         return self._qasmif(name_param)
 
@@ -405,7 +478,14 @@ class Instruction:
         """
         if len(qargs) != self.num_qubits:
             raise CircuitError(
-                'The amount of qubit arguments does not match the instruction expectation.')
+                f"The amount of qubit arguments {len(qargs)} does not match"
+                f" the instruction expectation ({self.num_qubits})."
+            )
+        if len(cargs) != self.num_clbits:
+            raise CircuitError(
+                f"The amount of clbit arguments {len(cargs)} does not match"
+                f" the instruction expectation ({self.num_clbits})."
+            )
 
         #  [[q[0], q[1]], [c[0], c[1]]] -> [q[0], c[0]], [q[1], c[1]]
         flat_qargs = [qarg for sublist in qargs for qarg in sublist]
@@ -413,8 +493,12 @@ class Instruction:
         yield flat_qargs, flat_cargs
 
     def _return_repeat(self, exponent):
-        return Instruction(name="%s*%s" % (self.name, exponent), num_qubits=self.num_qubits,
-                           num_clbits=self.num_clbits, params=self.params)
+        return Instruction(
+            name=f"{self.name}*{exponent}",
+            num_qubits=self.num_qubits,
+            num_clbits=self.num_clbits,
+            params=self.params,
+        )
 
     def repeat(self, n):
         """Creates an instruction with `gate` repeated `n` amount of times.
@@ -434,17 +518,60 @@ class Instruction:
         n = int(n)
 
         instruction = self._return_repeat(n)
-        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, 'q')
-        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, 'c')
+        qargs = [] if self.num_qubits == 0 else QuantumRegister(self.num_qubits, "q")
+        cargs = [] if self.num_clbits == 0 else ClassicalRegister(self.num_clbits, "c")
 
         if instruction.definition is None:
             # pylint: disable=cyclic-import
-            from qiskit import QuantumCircuit
+            from qiskit.circuit import QuantumCircuit, CircuitInstruction
+
             qc = QuantumCircuit()
             if qargs:
                 qc.add_register(qargs)
             if cargs:
                 qc.add_register(cargs)
-            qc.data = [(self, qargs[:], cargs[:])] * n
+            circuit_instruction = CircuitInstruction(self, qargs, cargs)
+            for _ in [None] * n:
+                qc._append(circuit_instruction)
         instruction.definition = qc
         return instruction
+
+    @property
+    def condition_bits(self) -> List[Clbit]:
+        """Get Clbits in condition."""
+        if self.condition is None:
+            return []
+        if isinstance(self.condition[0], Clbit):
+            return [self.condition[0]]
+        else:  # ClassicalRegister
+            return list(self.condition[0])
+
+    @property
+    def name(self):
+        """Return the name."""
+        return self._name
+
+    @name.setter
+    def name(self, name):
+        """Set the name."""
+        self._name = name
+
+    @property
+    def num_qubits(self):
+        """Return the number of qubits."""
+        return self._num_qubits
+
+    @num_qubits.setter
+    def num_qubits(self, num_qubits):
+        """Set num_qubits."""
+        self._num_qubits = num_qubits
+
+    @property
+    def num_clbits(self):
+        """Return the number of clbits."""
+        return self._num_clbits
+
+    @num_clbits.setter
+    def num_clbits(self, num_clbits):
+        """Set num_clbits."""
+        self._num_clbits = num_clbits

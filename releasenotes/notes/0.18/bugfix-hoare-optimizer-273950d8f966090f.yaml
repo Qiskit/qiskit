@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    The :class:`~qiskit.transpiler.passes.HoareOptimizer` pass has been
+    improved so that it can now replace a
+    :class:`~qiskit.circuit.ControlledGate` in a circuit with
+    with the base gate if all the control qubits are in the
+    :math:`|1\rangle` state.
+fixes:
+  - |
+    Fixes the triviality check conditions of :class:`~qiskit.circuit.library.CZGate`,
+    :class:`~qiskit.circuit.library.CRZGate`, :class:`~qiskit.circuit.library.CU1Gate`
+    and :class:`~qiskit.circuit.library.MCU1Gate` in the
+    :class:`~qiskit.transpiler.passes.HoareOptimizer` pass. Previously, in some cases
+    the optimizer would remove these gates breaking the semantic equivalence of
+    the transformation.

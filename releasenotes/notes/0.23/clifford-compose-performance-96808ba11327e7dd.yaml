@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    :class:`.Clifford` now takes an optional ``copy`` keyword argument in its
+    constructor.  If set to ``False``, then a :class:`.StabilizerTable` provided
+    as input will not be copied, but will be used directly.  This can have
+    performance benefits, if the data in the table will never be mutated by any
+    other means.
+  - |
+    The performance of :meth:`.Clifford.compose` has been greatly improved for
+    all numbers of qubits.  For operators of 20 qubits, the speedup is on the
+    order of 100 times.

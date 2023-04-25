@@ -13,12 +13,12 @@
 
 """Helper function for converting a circuit to a gate"""
 from qiskit.circuit.gate import Gate
-from qiskit.circuit.quantumregister import QuantumRegister, Qubit
+from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.exceptions import QiskitError
 
 
 def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label=None):
-    """Build a ``Gate`` object from a ``QuantumCircuit``.
+    """Build a :class:`.Gate` object from a :class:`.QuantumCircuit`.
 
     The gate is anonymous (not tied to a named quantum register),
     and so can be inserted into another circuit. The gate will
@@ -45,15 +45,18 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
     """
     # pylint: disable=cyclic-import
     from qiskit.circuit.quantumcircuit import QuantumCircuit
-    if circuit.clbits:
-        raise QiskitError('Circuit with classical bits cannot be converted '
-                          'to gate.')
 
-    for inst, _, _ in circuit.data:
-        if not isinstance(inst, Gate):
-            raise QiskitError(('One or more instructions cannot be converted to'
-                               ' a gate. "{}" is not a gate instruction').format(
-                                   inst.name))
+    if circuit.clbits:
+        raise QiskitError("Circuit with classical bits cannot be converted to gate.")
+
+    for instruction in circuit.data:
+        if not isinstance(instruction.operation, Gate):
+            raise QiskitError(
+                (
+                    "One or more instructions cannot be converted to"
+                    ' a gate. "{}" is not a gate instruction'
+                ).format(instruction.operation.name)
+            )
 
     if parameter_map is None:
         parameter_dict = {p: p for p in circuit.parameters}
@@ -61,47 +64,36 @@ def circuit_to_gate(circuit, parameter_map=None, equivalence_library=None, label
         parameter_dict = circuit._unroll_param_dict(parameter_map)
 
     if parameter_dict.keys() != circuit.parameters:
-        raise QiskitError(('parameter_map should map all circuit parameters. '
-                           'Circuit parameters: {}, parameter_map: {}').format(
-                               circuit.parameters, parameter_dict))
+        raise QiskitError(
+            (
+                "parameter_map should map all circuit parameters. "
+                "Circuit parameters: {}, parameter_map: {}"
+            ).format(circuit.parameters, parameter_dict)
+        )
 
-    gate = Gate(name=circuit.name,
-                num_qubits=sum([qreg.size for qreg in circuit.qregs]),
-                params=sorted(parameter_dict.values(), key=lambda p: p.name),
-                label=label)
+    gate = Gate(
+        name=circuit.name,
+        num_qubits=circuit.num_qubits,
+        params=[*parameter_dict.values()],
+        label=label,
+    )
     gate.condition = None
-
-    def find_bit_position(bit):
-        """find the index of a given bit (Register, int) within
-        a flat ordered list of bits of the circuit
-        """
-        if isinstance(bit, Qubit):
-            ordered_regs = circuit.qregs
-        else:
-            ordered_regs = circuit.cregs
-        reg_index = ordered_regs.index(bit.register)
-        return sum([reg.size for reg in ordered_regs[:reg_index]]) + bit.index
 
     target = circuit.assign_parameters(parameter_dict, inplace=False)
 
     if equivalence_library is not None:
         equivalence_library.add_equivalence(gate, target)
 
-    rules = target.data
-
+    qc = QuantumCircuit(name=gate.name, global_phase=target.global_phase)
     if gate.num_qubits > 0:
-        q = QuantumRegister(gate.num_qubits, 'q')
+        q = QuantumRegister(gate.num_qubits, "q")
+        qc.add_register(q)
+    qubit_map = {bit: q[idx] for idx, bit in enumerate(circuit.qubits)}
 
     # The 3rd parameter in the output tuple) is hard coded to [] because
     # Gate objects do not have cregs set and we've verified that all
     # instructions are gates
-    rules = list(map(
-        lambda x: (x[0],
-                   list(map(lambda y: q[find_bit_position(y)], x[1])),
-                   []),
-        rules))
-    qc = QuantumCircuit(q, name=gate.name, global_phase=target.global_phase)
-    for instr, qargs, cargs in rules:
-        qc._append(instr, qargs, cargs)
+    for instruction in target.data:
+        qc._append(instruction.replace(qubits=tuple(qubit_map[y] for y in instruction.qubits)))
     gate.definition = qc
     return gate

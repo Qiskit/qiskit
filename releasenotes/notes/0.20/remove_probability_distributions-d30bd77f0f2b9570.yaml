@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    The module ``qiskit.circuit.library.probability_distributions`` has been
+    removed and no longer exists as per the deprecation notice from qiskit-terra
+    0.17.0 (released Apr 1, 2021).  The affected classes are
+    ``UniformDistribution``, ``NormalDistribution``, and
+    ``LogNormalDistribution``. They are all moved to the
+    `qiskit-finance <https://qiskit.org/documentation/finance/getting_started.html>`__
+    library, into its circuit library module:
+    ``qiskit_finance.circuit.library.probability_distributions``.

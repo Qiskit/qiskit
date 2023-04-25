@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue with the
+    :class:`~qiskit.transpiler.passes.OptimizeSwapBeforeMeasure` transpiler pass
+    where in some situations a :class:`~qiskit.circuit.library.SwapGate`
+    that that contained a classical condition would be removed.
+    Fixed `#6192 <https://github.com/Qiskit/qiskit-terra/issues/6192>`__

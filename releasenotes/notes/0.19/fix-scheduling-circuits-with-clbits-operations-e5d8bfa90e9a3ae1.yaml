@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixed an issue in scheduling of circuits with clbits operations, e.g. measurements,
+    conditional gates, updating
+    :class:`~qiskit.transpiler.passes.ASAPSchedule`,
+    :class:`~qiskit.transpiler.passes.ALAPSchedule`, and
+    :class:`~qiskit.transpiler.passes.AlignMeasures`.
+    The updated schedulers assume all clbits I/O operations take no time,
+    ``measure`` writes the measured value to a clbit at the end, and
+    ``c_if`` reads the conditional value in clbit(s) at the beginning.
+    Fixed `#7006 <https://github.com/Qiskit/qiskit-terra/issues/7006>`__.

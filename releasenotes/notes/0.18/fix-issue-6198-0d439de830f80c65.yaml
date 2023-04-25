@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :class:`~qiskit.circuit.library.PiecewiseChebyshev`
+    when setting the
+    :attr:`~qiskit.circuit.library.PiecewiseChebyshev.breakpoints` to ``None``
+    on an existing object was incorrectly being treated as a breakpoint. This
+    has been corrected so that when it is set to ``None`` this will switch back
+    to the default  behavior of approximating over the full interval.
+    Fixed `#6198 <https://github.com/Qiskit/qiskit-terra/issues/6198>`__

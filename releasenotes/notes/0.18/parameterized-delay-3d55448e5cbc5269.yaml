@@ -1,0 +1,28 @@
+---
+features:
+  - |
+    The :class:`~qiskit.circuit.Delay` class now can accept a
+    :class:`~qiskit.circuit.ParameterExpression` or
+    :class:`~qiskit.circuit.Parameter` value for the ``duration`` kwarg on its
+    constructor and for its :attr:`~qiskit.circuit.Delay.duration` attribute.
+
+    For example::
+
+        idle_dur = Parameter('t')
+        qc = QuantumCircuit(1, 1)
+        qc.x(0)
+        qc.delay(idle_dur, 0, 'us')
+        qc.measure(0, 0)
+        print(qc)  # parameterized delay in us (micro seconds)
+
+        # assign before transpilation
+        assigned = qc.assign_parameters({idle_dur: 0.1})
+        print(assigned)  # delay in us
+        transpiled = transpile(assigned, some_backend_with_dt)
+        print(transpiled)  # delay in dt
+
+        # assign after transpilation
+        transpiled = transpile(qc, some_backend_with_dt)
+        print(transpiled)  # parameterized delay in dt
+        assigned = transpiled.assign_parameters({idle_dur: 0.1})
+        print(assigned)  # delay in dt

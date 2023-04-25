@@ -12,7 +12,7 @@
 
 """Instantaneous quantum polynomial circuit."""
 
-from typing import Union, List
+from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit import QuantumCircuit
@@ -35,25 +35,22 @@ class IQP(QuantumCircuit):
 
     **Reference Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import IQP
-        import qiskit.tools.jupyter
-        A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-        circuit = IQP(A)
-        circuit.draw('mpl')
+       from qiskit.circuit.library import IQP
+       A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+       circuit = IQP(A)
+       circuit.draw('mpl')
 
     **Expanded Circuit:**
 
-        .. jupyter-execute::
-            :hide-code:
+        .. plot::
 
-            from qiskit.circuit.library import IQP
-            import qiskit.tools.jupyter
-            A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
-            circuit = IQP(A)
-            %circuit_library_info circuit.decompose()
+           from qiskit.circuit.library import IQP
+           from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+           A = [[6, 5, 3], [5, 4, 5], [3, 5, 1]]
+           circuit = IQP(A)
+           _generate_circuit_library_visualization(circuit.decompose())
 
     **References:**
 
@@ -63,7 +60,7 @@ class IQP(QuantumCircuit):
     `arXiv:1504.07999 <https://arxiv.org/abs/1504.07999>`_
     """
 
-    def __init__(self, interactions: Union[List, np.array]) -> None:
+    def __init__(self, interactions: list | np.ndarray) -> None:
         """Create IQP circuit.
 
         Args:
@@ -78,22 +75,22 @@ class IQP(QuantumCircuit):
             raise CircuitError("The interactions matrix is not symmetric")
 
         a_str = np.array_str(interactions)
-        a_str.replace('\n', ';')
-        name = "iqp:" + a_str.replace('\n', ';')
+        a_str.replace("\n", ";")
+        name = "iqp:" + a_str.replace("\n", ";")
 
-        inner = QuantumCircuit(num_qubits, name=name)
-        super().__init__(num_qubits, name=name)
+        circuit = QuantumCircuit(num_qubits, name=name)
 
-        inner.h(range(num_qubits))
+        circuit.h(range(num_qubits))
         for i in range(num_qubits):
-            for j in range(i+1, num_qubits):
+            for j in range(i + 1, num_qubits):
                 if interactions[i][j] % 4 != 0:
-                    inner.cp(interactions[i][j] * np.pi / 2, i, j)
+                    circuit.cp(interactions[i][j] * np.pi / 2, i, j)
 
         for i in range(num_qubits):
             if interactions[i][i] % 8 != 0:
-                inner.p(interactions[i][i] * np.pi / 8, i)
+                circuit.p(interactions[i][i] * np.pi / 8, i)
 
-        inner.h(range(num_qubits))
-        all_qubits = self.qubits
-        self.append(inner, all_qubits)
+        circuit.h(range(num_qubits))
+
+        super().__init__(*circuit.qregs, name=circuit.name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

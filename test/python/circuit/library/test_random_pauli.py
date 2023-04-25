@@ -28,10 +28,20 @@ class TestPauliTwoDesign(QiskitTestCase):
         """Test the Random Pauli circuit."""
         circuit = PauliTwoDesign(4, seed=12, reps=1)
 
-        qr = QuantumRegister(4, 'q')
+        qr = QuantumRegister(4, "q")
         params = circuit.ordered_parameters
 
         # expected circuit for the random seed 12
+        #
+        #      ┌─────────┐┌──────────┐   ┌──────────┐
+        # q_0: ┤ Ry(π/4) ├┤ Ry(θ[0]) ├─■─┤ Rx(θ[4]) ├────────────
+        #      ├─────────┤├──────────┤ │ └──────────┘┌──────────┐
+        # q_1: ┤ Ry(π/4) ├┤ Rx(θ[1]) ├─■──────■──────┤ Rx(θ[5]) ├
+        #      ├─────────┤├──────────┤        │      ├──────────┤
+        # q_2: ┤ Ry(π/4) ├┤ Rz(θ[2]) ├─■──────■──────┤ Rx(θ[6]) ├
+        #      ├─────────┤├──────────┤ │ ┌──────────┐└──────────┘
+        # q_3: ┤ Ry(π/4) ├┤ Rz(θ[3]) ├─■─┤ Rx(θ[7]) ├────────────
+        #      └─────────┘└──────────┘   └──────────┘
         expected = QuantumCircuit(qr)
 
         # initial RYs
@@ -54,22 +64,35 @@ class TestPauliTwoDesign(QiskitTestCase):
         expected.rx(params[6], 2)
         expected.rx(params[7], 3)
 
-        self.assertEqual(circuit, expected)
+        self.assertEqual(circuit.decompose(), expected)
 
     def test_resize(self):
         """Test resizing the Random Pauli circuit preserves the gates."""
         circuit = PauliTwoDesign(1)
-        top_gates = [op.name for op, _, _ in circuit.data]
+        top_gates = [instruction.operation.name for instruction in circuit.decompose().data]
 
         circuit.num_qubits = 3
-        with self.subTest('assert existing gates remain'):
+        decomposed = circuit.decompose()
+        with self.subTest("assert existing gates remain"):
             new_top_gates = []
-            for op, qargs, _ in circuit:
-                if qargs == [circuit.qubits[0]]:  # if top qubit
-                    new_top_gates.append(op.name)
+            for instruction in decomposed:
+                if instruction.qubits == (decomposed.qubits[0],):  # if top qubit
+                    new_top_gates.append(instruction.operation.name)
 
             self.assertEqual(top_gates, new_top_gates)
 
+    def test_assign_keeps_one_initial_layer(self):
+        """Test assigning parameters does not add an additional initial layer."""
+        circuit = PauliTwoDesign(2)
+        values = list(range(circuit.num_parameters))
 
-if __name__ == '__main__':
+        bound0 = circuit.assign_parameters(values)
+        bound1 = circuit.assign_parameters(values)
+        bound2 = circuit.assign_parameters(values)
+
+        self.assertEqual(bound0, bound1)
+        self.assertEqual(bound0, bound2)
+
+
+if __name__ == "__main__":
     unittest.main()

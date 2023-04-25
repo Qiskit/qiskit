@@ -15,13 +15,42 @@ Parameter Class for variable parameters.
 
 from uuid import uuid4
 
+from qiskit.circuit.exceptions import CircuitError
+from qiskit.utils import optionals as _optionals
+
 from .parameterexpression import ParameterExpression
 
 
 class Parameter(ParameterExpression):
-    """Parameter Class for variable parameters."""
+    """Parameter Class for variable parameters.
 
-    def __new__(cls, name, uuid=None):  # pylint:disable=unused-argument
+    A parameter is a variable value that is not required to be fixed
+    at circuit definition.
+
+    Examples:
+
+        Construct a variable-rotation X gate using circuit parameters.
+
+        .. plot::
+           :include-source:
+
+           from qiskit.circuit import QuantumCircuit, Parameter
+
+           # create the parameter
+           phi = Parameter('phi')
+           qc = QuantumCircuit(1)
+
+           # parameterize the rotation
+           qc.rx(phi, 0)
+           qc.draw('mpl')
+
+           # bind the parameters after circuit to create a bound circuit
+           bc = qc.bind_parameters({phi: 3.14})
+           bc.measure_all()
+           bc.draw('mpl')
+    """
+
+    def __new__(cls, name, uuid=None):  # pylint: disable=unused-argument
         # Parameter relies on self._uuid being set prior to other attributes
         # (e.g. symbol_map) which may depend on self._uuid for Parameter's hash
         # or __eq__ functions.
@@ -49,14 +78,26 @@ class Parameter(ParameterExpression):
                 be any unicode string, e.g. "ϕ".
         """
         self._name = name
+        if not _optionals.HAS_SYMENGINE:
+            from sympy import Symbol
 
-        from sympy import Symbol
-        symbol = Symbol(name)
+            symbol = Symbol(name)
+        else:
+            import symengine
+
+            symbol = symengine.Symbol(name)
         super().__init__(symbol_map={self: symbol}, expr=symbol)
 
-    def subs(self, parameter_map: dict):
+    def subs(self, parameter_map: dict, allow_unknown_parameters: bool = False):
         """Substitute self with the corresponding parameter in ``parameter_map``."""
-        return parameter_map[self]
+        if self in parameter_map:
+            return parameter_map[self]
+        if allow_unknown_parameters:
+            return self
+        raise CircuitError(
+            "Cannot bind Parameters ({}) not present in "
+            "expression.".format([str(p) for p in parameter_map])
+        )
 
     @property
     def name(self):
@@ -73,7 +114,7 @@ class Parameter(ParameterExpression):
         return self
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, self.name)
+        return f"{self.__class__.__name__}({self.name})"
 
     def __eq__(self, other):
         if isinstance(other, Parameter):
@@ -85,3 +126,18 @@ class Parameter(ParameterExpression):
 
     def __hash__(self):
         return self._hash
+
+    def __getstate__(self):
+        return {"name": self._name}
+
+    def __setstate__(self, state):
+        self._name = state["name"]
+        if not _optionals.HAS_SYMENGINE:
+            from sympy import Symbol
+
+            symbol = Symbol(self._name)
+        else:
+            import symengine
+
+            symbol = symengine.Symbol(self._name)
+        super().__init__(symbol_map={self: symbol}, expr=symbol)

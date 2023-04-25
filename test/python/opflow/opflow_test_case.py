@@ -10,24 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Opflow Test Case """
+"""Opflow Test Case"""
 
-import platform
-import logging
+import warnings
 from qiskit.test import QiskitTestCase
 
 
 class QiskitOpflowTestCase(QiskitTestCase):
     """Opflow test Case"""
+
     def setUp(self):
         super().setUp()
-        # disable logging due to Unicode logging error
-        if platform.system() == 'Windows':
-            self.disable_logging()
+        # ignore opflow msgs
+        warnings.filterwarnings("ignore", category=DeprecationWarning, message=r".*opflow.*")
 
-    def disable_logging(self):
-        """ Disable Qiskit logging"""
-        logger = logging.getLogger('qiskit')
-        for handler in reversed(logger.handlers):
-            self.addCleanup(logger.addHandler, handler)
-            logger.removeHandler(handler)
+    def tearDown(self):
+        super().tearDown()
+        # restore opflow msgs
+        warnings.filterwarnings("error", category=DeprecationWarning, message=r".*opflow.*")

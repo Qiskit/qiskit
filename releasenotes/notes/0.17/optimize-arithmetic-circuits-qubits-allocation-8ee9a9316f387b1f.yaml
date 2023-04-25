@@ -1,0 +1,22 @@
+---
+deprecations:
+  - |
+    The :class:`~qiskit.circuit.library.WeightedAdder` method
+    :meth:`~qiskit.circuit.library.WeightedAdder.num_ancilla_qubits` is
+    deprecated and will be removed in a future release. It has been replaced
+    with the :attr:`qiskit.circuit.library.WeightedAdder.num_ancillas` attribute
+    which is consistent with other circuit libraries' APIs.
+fixes:
+  - |
+    Improved the allocation of helper qubits in
+    :class:`~qiskit.circuit.library.PolynomialPauliRotations` and
+    :class:`~qiskit.circuit.library.PiecewiseLinearPauliRotations` which makes
+    the implementation of these circuit more efficient.
+    Fixed `#5320 <https://github.com/Qiskit/qiskit-terra/issues/5320>`__ and
+    `#5322 <https://github.com/Qiskit/qiskit-terra/issues/5322>`__
+  - |
+    Fix the usage of the allocated helper qubits in the
+    :class:`~qiskit.circuit.library.MCXGate` in the
+    :class:`~qiskit.circuit.library.WeightedAdder` class. These were previously
+    allocated but not used prior to this fix.
+    Fixed `#5321 <https://github.com/Qiskit/qiskit-terra/issues/5321>`__

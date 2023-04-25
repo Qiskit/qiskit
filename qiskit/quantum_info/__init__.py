@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017.
+# (C) Copyright IBM 2017, 2021.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -16,6 +16,8 @@ Quantum Information (:mod:`qiskit.quantum_info`)
 
 .. currentmodule:: qiskit.quantum_info
 
+.. _quantum_info_operators:
+
 Operators
 =========
 
@@ -27,10 +29,13 @@ Operators
    Clifford
    ScalarOp
    SparsePauliOp
+   CNOTDihedral
+   PauliList
    PauliTable
    StabilizerTable
    pauli_basis
-   pauli_group
+
+.. _quantum_info_states:
 
 States
 ======
@@ -40,6 +45,7 @@ States
 
    Statevector
    DensityMatrix
+   StabilizerState
 
 Channels
 ========
@@ -78,6 +84,9 @@ Utility Functions
 
    partial_trace
    shannon_entropy
+   commutator
+   anti_commutator
+   double_commutator
 
 Random
 ======
@@ -92,7 +101,9 @@ Random
    random_pauli
    random_clifford
    random_quantum_channel
+   random_cnotdihedral
    random_pauli_table
+   random_pauli_list
    random_stabilizer_table
 
 Analysis
@@ -101,7 +112,9 @@ Analysis
 .. autosummary::
    :toctree: ../stubs/
 
+   hellinger_distance
    hellinger_fidelity
+   Z2Symmetries
 
 Synthesis
 =========
@@ -113,28 +126,59 @@ Synthesis
    TwoQubitBasisDecomposer
    two_qubit_cnot_decompose
    Quaternion
+   decompose_clifford
+   XXDecomposer
 """
 
-from .operators import (Operator, ScalarOp, Pauli, Clifford, SparsePauliOp)
-from .operators import (PauliTable, StabilizerTable, pauli_basis, pauli_group)
-from .operators.channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
-from .operators.measures import (process_fidelity,
-                                 average_gate_fidelity,
-                                 gate_error,
-                                 diamond_norm)
-
-from .states import Statevector, DensityMatrix
-from .states import (partial_trace, state_fidelity, purity, entropy,
-                     concurrence, entanglement_of_formation,
-                     mutual_information, shannon_entropy)
-
-from .random import (random_quantum_channel, random_unitary,
-                     random_clifford, random_pauli, random_pauli_table,
-                     random_stabilizer_table,
-                     random_hermitian, random_statevector,
-                     random_density_matrix)
-
-from .synthesis import (OneQubitEulerDecomposer, TwoQubitBasisDecomposer,
-                        two_qubit_cnot_decompose, Quaternion)
-
-from .analysis import hellinger_fidelity
+from .analysis import hellinger_distance, hellinger_fidelity, Z2Symmetries
+from .operators import (
+    Clifford,
+    Operator,
+    Pauli,
+    PauliList,
+    PauliTable,
+    ScalarOp,
+    SparsePauliOp,
+    StabilizerTable,
+    anti_commutator,
+    commutator,
+    double_commutator,
+    pauli_basis,
+)
+from .operators.channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
+from .operators.dihedral import CNOTDihedral
+from .operators.measures import average_gate_fidelity, diamond_norm, gate_error, process_fidelity
+from .random import (
+    random_clifford,
+    random_cnotdihedral,
+    random_density_matrix,
+    random_hermitian,
+    random_pauli,
+    random_pauli_list,
+    random_pauli_table,
+    random_quantum_channel,
+    random_stabilizer_table,
+    random_statevector,
+    random_unitary,
+)
+from .states import (
+    DensityMatrix,
+    StabilizerState,
+    Statevector,
+    concurrence,
+    entanglement_of_formation,
+    entropy,
+    mutual_information,
+    partial_trace,
+    purity,
+    shannon_entropy,
+    state_fidelity,
+)
+from .synthesis import (
+    OneQubitEulerDecomposer,
+    Quaternion,
+    TwoQubitBasisDecomposer,
+    XXDecomposer,
+    decompose_clifford,
+    two_qubit_cnot_decompose,
+)

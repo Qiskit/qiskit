@@ -1,0 +1,20 @@
+---
+deprecations:
+  - |
+    The ``label`` property of class
+    :class:`~qiskit.circuit.library.MCMT` and subclass
+    :class:`~qiskit.circuit.library.MCMTVChain` has been
+    deprecated and will be removed in a future release. Consequently, the
+    ``label`` kwarg on the constructor for both classes is also deprecated,
+    along with the ``label`` kwarg of method :meth:`.MCMT.control`.
+    Currently, the ``label`` property is used to name the controlled target
+    when it is comprised of more than one target qubit, however, this was
+    never intended to be user-specifiable, and can result in an incorrect
+    MCMT gate if the name of a well-known operation is used.
+    After deprecation, the ``label`` property will no longer be
+    user-specifiable. However, you can get the generated name of the controlled
+    target via
+
+    ::
+
+      MCMT.data[0][0].base_gate.name

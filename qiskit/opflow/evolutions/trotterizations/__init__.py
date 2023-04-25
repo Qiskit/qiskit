@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """
-Trotterization methods - Algorithms for approximating Exponentials of Operator Sums.
-
+Trotterization methods - Algorithms for
+approximating Exponentials of Operator Sums.
 """
 
 from .trotterization_base import TrotterizationBase
@@ -21,8 +21,4 @@ from .trotter import Trotter
 from .suzuki import Suzuki
 from .qdrift import QDrift
 
-__all__ = ['TrotterizationBase',
-           'TrotterizationFactory',
-           'Trotter',
-           'Suzuki',
-           'QDrift']
+__all__ = ["TrotterizationBase", "TrotterizationFactory", "Trotter", "Suzuki", "QDrift"]

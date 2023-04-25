@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    A new method, :meth:`~qiskit.circuit.ParameterExpression.gradient`, has
+    been added to the :class:`~qiskit.circuit.ParameterExpression` class. This
+    method is used to  evaluate the gradient of a
+    :class:`~qiskit.circuit.ParameterExpression` object.

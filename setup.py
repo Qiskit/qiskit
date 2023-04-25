@@ -13,61 +13,55 @@
 "The Qiskit Terra setup file."
 
 import os
-import sys
-from setuptools import setup, find_packages, Extension
-try:
-    from Cython.Build import cythonize
-except ImportError:
-    import subprocess
-    subprocess.call([sys.executable, '-m', 'pip', 'install', 'Cython>=0.27.1'])
-    from Cython.Build import cythonize
+import re
+from setuptools import setup, find_packages
+from setuptools_rust import Binding, RustExtension
 
-with open('requirements.txt') as f:
+
+with open("requirements.txt") as f:
     REQUIREMENTS = f.read().splitlines()
 
-# Add Cython extensions here
-CYTHON_EXTS = ['utils', 'swap_trial']
-CYTHON_MODULE = 'qiskit.transpiler.passes.routing.cython.stochastic_swap'
-CYTHON_SOURCE_DIR = 'qiskit/transpiler/passes/routing/cython/stochastic_swap'
-
-INCLUDE_DIRS = []
-# Extra link args
-LINK_FLAGS = []
-# If on Win and not in MSYS2 (i.e. Visual studio compile)
-if (sys.platform == 'win32' and os.environ.get('MSYSTEM') is None):
-    COMPILER_FLAGS = ['/O2']
-# Everything else
-else:
-    COMPILER_FLAGS = ['-O2', '-funroll-loops', '-std=c++11']
-    if sys.platform == 'darwin':
-        # These are needed for compiling on OSX 10.14+
-        COMPILER_FLAGS.append('-mmacosx-version-min=10.9')
-        LINK_FLAGS.append('-mmacosx-version-min=10.9')
-
-
-EXT_MODULES = []
-# Add Cython Extensions
-for ext in CYTHON_EXTS:
-    mod = Extension(CYTHON_MODULE + '.' + ext,
-                    sources=[CYTHON_SOURCE_DIR + '/' + ext + '.pyx'],
-                    include_dirs=INCLUDE_DIRS,
-                    extra_compile_args=COMPILER_FLAGS,
-                    extra_link_args=LINK_FLAGS,
-                    language='c++')
-    EXT_MODULES.append(mod)
-
 # Read long description from README.
-README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                           'README.md')
+README_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), "README.md")
 with open(README_PATH) as readme_file:
-    README = readme_file.read()
+    README = re.sub(
+        "<!--- long-description-skip-begin -->.*<!--- long-description-skip-end -->",
+        "",
+        readme_file.read(),
+        flags=re.S | re.M,
+    )
+
+
+# If RUST_DEBUG is set, force compiling in debug mode. Else, use the default behavior of whether
+# it's an editable installation.
+rust_debug = True if os.getenv("RUST_DEBUG") == "1" else None
+
+
+qasm3_import_extras = [
+    "qiskit-qasm3-import>=0.1.0",
+]
+visualization_extras = [
+    "matplotlib>=3.3",
+    "ipywidgets>=7.3.0",
+    "pydot",
+    "pillow>=4.2.1",
+    "pylatexenc>=1.4",
+    "seaborn>=0.9.0",
+    "pygments>=2.4",
+]
+z3_requirements = [
+    "z3-solver>=4.7",
+]
+bip_requirements = ["cplex", "docplex"]
+csp_requirements = ["python-constraint>=1.4"]
+toqm_requirements = ["qiskit-toqm>=0.1.0"]
 
 setup(
     name="qiskit-terra",
-    version="0.17.0",
+    version="0.25.0",
     description="Software for developing quantum computing programs",
     long_description=README,
-    long_description_content_type='text/markdown',
+    long_description_content_type="text/markdown",
     url="https://github.com/Qiskit/qiskit-terra",
     author="Qiskit Development Team",
     author_email="hello@qiskit.org",
@@ -81,31 +75,73 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering",
     ],
     keywords="qiskit sdk quantum",
-    packages=find_packages(exclude=['test*']),
+    packages=find_packages(exclude=["test*"]),
     install_requires=REQUIREMENTS,
-    setup_requires=['Cython>=0.27.1'],
     include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.7",
     extras_require={
-        'visualization': ['matplotlib>=2.1', 'ipywidgets>=7.3.0',
-                          'pydot', "pillow>=4.2.1", "pylatexenc>=1.4",
-                          "seaborn>=0.9.0", "pygments>=2.4"],
-        'classical-function-compiler': ['tweedledum'],
-        'full-featured-simulators': ['qiskit-aer>=0.1'],
-        'crosstalk-pass': ['z3-solver>=4.7'],
+        "qasm3-import": qasm3_import_extras,
+        "visualization": visualization_extras,
+        "bip-mapper": bip_requirements,
+        "crosstalk-pass": z3_requirements,
+        "csp-layout-pass": csp_requirements,
+        "toqm": toqm_requirements,
+        # Note: 'all' only includes extras that are stable and work on the majority of Python
+        # versions and OSes supported by Terra. You have to ask for anything else explicitly.
+        "all": visualization_extras + z3_requirements + csp_requirements + qasm3_import_extras,
     },
     project_urls={
         "Bug Tracker": "https://github.com/Qiskit/qiskit-terra/issues",
         "Documentation": "https://qiskit.org/documentation/",
         "Source Code": "https://github.com/Qiskit/qiskit-terra",
     },
-    ext_modules=cythonize(EXT_MODULES),
-    zip_safe=False
+    rust_extensions=[
+        RustExtension(
+            "qiskit._accelerate",
+            "crates/accelerate/Cargo.toml",
+            binding=Binding.PyO3,
+            debug=rust_debug,
+        ),
+        RustExtension(
+            "qiskit._qasm2", "crates/qasm2/Cargo.toml", binding=Binding.PyO3, debug=rust_debug
+        ),
+    ],
+    zip_safe=False,
+    entry_points={
+        "qiskit.unitary_synthesis": [
+            "default = qiskit.transpiler.passes.synthesis.unitary_synthesis:DefaultUnitarySynthesis",
+            "aqc = qiskit.transpiler.synthesis.aqc.aqc_plugin:AQCSynthesisPlugin",
+            "sk = qiskit.transpiler.passes.synthesis.solovay_kitaev_synthesis:SolovayKitaevSynthesis",
+        ],
+        "qiskit.synthesis": [
+            "clifford.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisClifford",
+            "clifford.ag = qiskit.transpiler.passes.synthesis.high_level_synthesis:AGSynthesisClifford",
+            "clifford.bm = qiskit.transpiler.passes.synthesis.high_level_synthesis:BMSynthesisClifford",
+            "clifford.greedy = qiskit.transpiler.passes.synthesis.high_level_synthesis:GreedySynthesisClifford",
+            "clifford.layers = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerSynthesisClifford",
+            "clifford.lnn = qiskit.transpiler.passes.synthesis.high_level_synthesis:LayerLnnSynthesisClifford",
+            "linear_function.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:DefaultSynthesisLinearFunction",
+            "linear_function.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisLinearFunction",
+            "linear_function.pmh = qiskit.transpiler.passes.synthesis.high_level_synthesis:PMHSynthesisLinearFunction",
+            "permutation.default = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
+            "permutation.kms = qiskit.transpiler.passes.synthesis.high_level_synthesis:KMSSynthesisPermutation",
+            "permutation.basic = qiskit.transpiler.passes.synthesis.high_level_synthesis:BasicSynthesisPermutation",
+            "permutation.acg = qiskit.transpiler.passes.synthesis.high_level_synthesis:ACGSynthesisPermutation",
+        ],
+        "qiskit.transpiler.routing": [
+            "basic = qiskit.transpiler.preset_passmanagers.builtin_plugins:BasicSwapPassManager",
+            "stochastic = qiskit.transpiler.preset_passmanagers.builtin_plugins:StochasticSwapPassManager",
+            "lookahead = qiskit.transpiler.preset_passmanagers.builtin_plugins:LookaheadSwapPassManager",
+            "sabre = qiskit.transpiler.preset_passmanagers.builtin_plugins:SabreSwapPassManager",
+            "none = qiskit.transpiler.preset_passmanagers.builtin_plugins:NoneRoutingPassManager",
+        ],
+    },
 )

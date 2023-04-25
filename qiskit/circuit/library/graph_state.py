@@ -10,11 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Graph State circuit."""
 
-from typing import Union, List
+from __future__ import annotations
 
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit
@@ -41,17 +39,14 @@ class GraphState(QuantumCircuit):
 
     **Reference Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GraphState
-        import qiskit.tools.jupyter
-        import networkx as nx
-        G = nx.Graph()
-        G.add_edges_from([(1, 2), (2, 3), (3, 4), (4, 5), (5, 1)])
-        adjmat = nx.adjacency_matrix(G)
-        circuit = GraphState(adjmat.toarray())
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GraphState
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import rustworkx as rx
+       G = rx.generators.cycle_graph(5)
+       circuit = GraphState(rx.adjacency_matrix(G))
+       _generate_circuit_library_visualization(circuit)
 
     **References:**
 
@@ -61,8 +56,7 @@ class GraphState(QuantumCircuit):
         `arXiv:1512.07892 <https://arxiv.org/pdf/1512.07892.pdf>`_
     """
 
-    def __init__(self,
-                 adjacency_matrix: Union[List, np.array]) -> None:
+    def __init__(self, adjacency_matrix: list | np.ndarray) -> None:
         """Create graph state preparation circuit.
 
         Args:
@@ -80,10 +74,13 @@ class GraphState(QuantumCircuit):
             raise CircuitError("The adjacency matrix must be symmetric.")
 
         num_qubits = len(adjacency_matrix)
-        super().__init__(num_qubits, name="graph: %s" % (adjacency_matrix))
+        circuit = QuantumCircuit(num_qubits, name="graph: %s" % (adjacency_matrix))
 
-        self.h(range(num_qubits))
+        circuit.h(range(num_qubits))
         for i in range(num_qubits):
-            for j in range(i+1, num_qubits):
+            for j in range(i + 1, num_qubits):
                 if adjacency_matrix[i][j] == 1:
-                    self.cz(i, j)
+                    circuit.cz(i, j)
+
+        super().__init__(*circuit.qregs, name=circuit.name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

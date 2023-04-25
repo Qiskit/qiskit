@@ -12,7 +12,58 @@
 
 """Parameter Vector Class to simplify management of parameter lists."""
 
+from uuid import uuid4
+
 from .parameter import Parameter
+
+
+class ParameterVectorElement(Parameter):
+    """An element of a ParameterVector."""
+
+    def __new__(cls, vector, index, uuid=None):  # pylint:disable=unused-argument
+        obj = object.__new__(cls)
+
+        if uuid is None:
+            obj._uuid = uuid4()
+        else:
+            obj._uuid = uuid
+
+        obj._hash = hash(obj._uuid)
+        return obj
+
+    def __getnewargs__(self):
+        return (self.vector, self.index, self._uuid)
+
+    def __init__(self, vector, index):
+        name = f"{vector.name}[{index}]"
+        super().__init__(name)
+        self._vector = vector
+        self._index = index
+
+    @property
+    def index(self):
+        """Get the index of this element in the parent vector."""
+        return self._index
+
+    @property
+    def vector(self):
+        """Get the parent vector instance."""
+        return self._vector
+
+    def __getstate__(self):
+        return {
+            "name": self._name,
+            "uuid": self._uuid,
+            "vector": self._vector,
+            "index": self._index,
+        }
+
+    def __setstate__(self, state):
+        self._name = state["name"]
+        self._uuid = state["uuid"]
+        self._vector = state["vector"]
+        self._index = state["index"]
+        super().__init__(self._name)
 
 
 class ParameterVector:
@@ -23,7 +74,7 @@ class ParameterVector:
         self._params = []
         self._size = length
         for i in range(length):
-            self._params += [Parameter('{}[{}]'.format(self._name, i))]
+            self._params += [ParameterVectorElement(self, i)]
 
     @property
     def name(self):
@@ -45,29 +96,29 @@ class ParameterVector:
             return self.params[start:stop:step]
 
         if key > self._size:
-            raise IndexError('Index out of range: {} > {}'.format(key, self._size))
+            raise IndexError(f"Index out of range: {key} > {self._size}")
         return self.params[key]
 
     def __iter__(self):
-        return iter(self.params[:self._size])
+        return iter(self.params[: self._size])
 
     def __len__(self):
         return self._size
 
     def __str__(self):
-        return '{}, {}'.format(self.name, [str(item) for item in self.params[:self._size]])
+        return f"{self.name}, {[str(item) for item in self.params[: self._size]]}"
 
     def __repr__(self):
-        return '{}(name={}, length={})'.format(self.__class__.__name__, self.name, len(self))
+        return f"{self.__class__.__name__}(name={self.name}, length={len(self)})"
 
     def resize(self, length):
         """Resize the parameter vector.
 
         If necessary, new elements are generated. If length is smaller than before, the
-        previous elements are cached and not re-generated if the vector is enlargened again.
+        previous elements are cached and not re-generated if the vector is enlarged again.
         This is to ensure that the parameter instances do not change.
         """
         if length > len(self._params):
             for i in range(len(self._params), length):
-                self._params += [Parameter('{}[{}]'.format(self._name, i))]
+                self._params += [ParameterVectorElement(self, i)]
         self._size = length

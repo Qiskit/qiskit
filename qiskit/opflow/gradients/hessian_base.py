@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,16 +14,19 @@
 
 from typing import Union
 
+from qiskit.utils.deprecation import deprecate_func
 from .circuit_gradients.circuit_gradient import CircuitGradient
 from .derivative_base import DerivativeBase
 
 
-class HessianBase(DerivativeBase):  # pylint: disable=abstract-method
-    """Base class for the Hessian of an expected value."""
+class HessianBase(DerivativeBase):
+    """Deprecated: Base class for the Hessian of an expected value."""
 
-    def __init__(self,
-                 hess_method: Union[str, CircuitGradient] = 'param_shift',
-                 **kwargs):
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self, hess_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
         r"""
         Args:
             hess_method: The method used to compute the state/probability gradient. Can be either
@@ -34,26 +37,31 @@ class HessianBase(DerivativeBase):  # pylint: disable=abstract-method
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
         """
-
+        super().__init__()
         if isinstance(hess_method, CircuitGradient):
             self._hess_method = hess_method
-        elif hess_method == 'param_shift':
+        elif hess_method == "param_shift":
             from .circuit_gradients import ParamShift
+
             self._hess_method = ParamShift()
 
-        elif hess_method == 'fin_diff':
+        elif hess_method == "fin_diff":
             from .circuit_gradients import ParamShift
-            epsilon = kwargs.get('epsilon', 1e-6)
+
+            epsilon = kwargs.get("epsilon", 1e-6)
             self._hess_method = ParamShift(analytic=False, epsilon=epsilon)
 
-        elif hess_method == 'lin_comb':
+        elif hess_method == "lin_comb":
             from .circuit_gradients import LinComb
+
             self._hess_method = LinComb()
 
         else:
-            raise ValueError("Unrecognized input provided for `hess_method`. Please provide"
-                             " a CircuitGradient object or one of the pre-defined string"
-                             " arguments: {'param_shift', 'fin_diff', 'lin_comb'}. ")
+            raise ValueError(
+                "Unrecognized input provided for `hess_method`. Please provide"
+                " a CircuitGradient object or one of the pre-defined string"
+                " arguments: {'param_shift', 'fin_diff', 'lin_comb'}. "
+            )
 
     @property
     def hess_method(self) -> CircuitGradient:

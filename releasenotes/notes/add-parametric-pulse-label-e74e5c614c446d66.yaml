@@ -1,7 +1,0 @@
----
-upgrade:
-  - |
-    Support label for parametric pulses in PulseQobjInstruction.
-    Pulse names, such as x90, x90m, etc..., can be passed to Qiskit via PulseDefaults and
-    the pulse name is applied when constructing Schedule of backend calibrated gates.
-    Qiskit toolchain such as pusle drawer can visualize pulse name based on this information.

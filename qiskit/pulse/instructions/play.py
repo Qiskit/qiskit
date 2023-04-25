@@ -13,13 +13,13 @@
 """An instruction to transmit a given pulse on a ``PulseChannel`` (i.e., those which support
 transmitted pulses, such as ``DriveChannel``).
 """
-from typing import Dict, Optional, Union
+from typing import Optional, Union, Tuple, Set
 
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.exceptions import PulseError
-from qiskit.pulse.library.pulse import Pulse
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.library.pulse import Pulse
 
 
 class Play(Instruction):
@@ -31,9 +31,7 @@ class Play(Instruction):
     cycle time, dt, of the backend.
     """
 
-    def __init__(self, pulse: Pulse,
-                 channel: PulseChannel,
-                 name: Optional[str] = None):
+    def __init__(self, pulse: Pulse, channel: PulseChannel, name: Optional[str] = None):
         """Create a new pulse instruction.
 
         Args:
@@ -41,22 +39,23 @@ class Play(Instruction):
                    :py:class:`~qiskit.pulse.library.Waveform`.
             channel: The channel to which the pulse is applied.
             name: Name of the instruction for display purposes. Defaults to ``pulse.name``.
+        """
+        if name is None:
+            name = pulse.name
+        super().__init__(operands=(pulse, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
 
         Raises:
             PulseError: If pulse is not a Pulse type.
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
         """
-        if not isinstance(pulse, Pulse):
+        if not isinstance(self.pulse, Pulse):
             raise PulseError("The `pulse` argument to `Play` must be of type `library.Pulse`.")
-        if name is None:
-            name = pulse.name
-        super().__init__((pulse, channel), None, (channel,), name=name)
 
-        if pulse.is_parameterized():
-            for value in pulse.parameters.values():
-                if isinstance(value, ParameterExpression):
-                    for param in value.parameters:
-                        # Table maps parameter to operand index, 0 for ``pulse``
-                        self._parameter_table[param].append(0)
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def pulse(self) -> Pulse:
@@ -71,14 +70,27 @@ class Play(Instruction):
         return self.operands[1]
 
     @property
+    def channels(self) -> Tuple[PulseChannel]:
+        """Returns the channels that this schedule uses."""
+        return (self.channel,)
+
+    @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.pulse.duration
 
-    def assign_parameters(self,
-                          value_dict: Dict[ParameterExpression, ParameterValueType]
-                          ) -> 'Play':
-        super().assign_parameters(value_dict)
-        pulse = self.pulse.assign_parameters(value_dict)
-        self._operands = (pulse, self.channel)
-        return self
+    @property
+    def parameters(self) -> Set:
+        """Parameters which determine the instruction behavior."""
+        parameters = set()
+
+        # Note that Pulse.parameters returns dict rather than set for convention.
+        # We need special handling for Play instruction.
+        for pulse_param_expr in self.pulse.parameters.values():
+            if isinstance(pulse_param_expr, ParameterExpression):
+                parameters = parameters | pulse_param_expr.parameters
+
+        if self.channel.is_parameterized():
+            parameters = parameters | self.channel.parameters
+
+        return parameters

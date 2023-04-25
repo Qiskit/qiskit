@@ -19,24 +19,28 @@ from qiskit.transpiler import Layout, CouplingMap
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
+from qiskit.transpiler.target import Target
 
 
 class LayoutTransformation(TransformationPass):
-    """ Adds a Swap circuit for a given (partial) permutation to the circuit.
+    """Adds a Swap circuit for a given (partial) permutation to the circuit.
 
     This circuit is found by a 4-approximation algorithm for Token Swapping.
     More details are available in the routing code.
     """
 
-    def __init__(self, coupling_map: CouplingMap,
-                 from_layout: Union[Layout, str],
-                 to_layout: Union[Layout, str],
-                 seed: Union[int, np.random.default_rng] = None,
-                 trials=4):
+    def __init__(
+        self,
+        coupling_map: Union[CouplingMap, Target, None],
+        from_layout: Union[Layout, str],
+        to_layout: Union[Layout, str],
+        seed: Union[int, np.random.default_rng] = None,
+        trials=4,
+    ):
         """LayoutTransformation initializer.
 
         Args:
-            coupling_map (CouplingMap):
+            coupling_map:
                 Directed graph representing a coupling map.
 
             from_layout (Union[Layout, str]):
@@ -44,7 +48,7 @@ class LayoutTransformation(TransformationPass):
                 If the type is str, look up `property_set` when this pass runs.
 
             to_layout (Union[Layout, str]):
-                The final layout of qubits on phyiscal qubits.
+                The final layout of qubits on physical qubits.
                 If the type is str, look up `property_set` when this pass runs.
 
             seed (Union[int, np.random.default_rng]):
@@ -56,12 +60,15 @@ class LayoutTransformation(TransformationPass):
         super().__init__()
         self.from_layout = from_layout
         self.to_layout = to_layout
-        if coupling_map:
-            self.coupling_map = coupling_map
-            graph = coupling_map.graph.to_undirected()
+        if isinstance(coupling_map, Target):
+            self.target = coupling_map
+            self.coupling_map = self.target.build_coupling_map()
         else:
+            self.target = None
+            self.coupling_map = coupling_map
+        if self.coupling_map is None:
             self.coupling_map = CouplingMap.from_full(len(to_layout))
-            graph = self.coupling_map.graph.to_undirected()
+        graph = self.coupling_map.graph.to_undirected()
         self.token_swapper = ApproximateTokenSwapper(graph, seed)
         self.trials = trials
 
@@ -78,29 +85,31 @@ class LayoutTransformation(TransformationPass):
             TranspilerError: if the coupling map or the layout are not compatible with the DAG.
                 Or if either of string from/to_layout is not found in `property_set`.
         """
-        if len(dag.qregs) != 1 or dag.qregs.get('q', None) is None:
-            raise TranspilerError('LayoutTransform runs on physical circuits only')
+        if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
+            raise TranspilerError("LayoutTransform runs on physical circuits only")
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
-            raise TranspilerError('The layout does not match the amount of qubits in the DAG')
+            raise TranspilerError("The layout does not match the amount of qubits in the DAG")
 
         from_layout = self.from_layout
         if isinstance(from_layout, str):
             try:
                 from_layout = self.property_set[from_layout]
-            except Exception:
-                raise TranspilerError('No {} (from_layout) in property_set.'.format(from_layout))
+            except Exception as ex:
+                raise TranspilerError(f"No {from_layout} (from_layout) in property_set.") from ex
 
         to_layout = self.to_layout
         if isinstance(to_layout, str):
             try:
                 to_layout = self.property_set[to_layout]
-            except Exception:
-                raise TranspilerError('No {} (to_layout) in property_set.'.format(to_layout))
+            except Exception as ex:
+                raise TranspilerError(f"No {to_layout} (to_layout) in property_set.") from ex
 
         # Find the permutation between the initial physical qubits and final physical qubits.
-        permutation = {pqubit: to_layout.get_virtual_bits()[vqubit]
-                       for vqubit, pqubit in from_layout.get_virtual_bits().items()}
+        permutation = {
+            pqubit: to_layout.get_virtual_bits()[vqubit]
+            for vqubit, pqubit in from_layout.get_virtual_bits().items()
+        }
 
         perm_circ = self.token_swapper.permutation_circuit(permutation, self.trials)
 

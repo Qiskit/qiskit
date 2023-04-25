@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Fixed an issue where generating QASM output with the
+    :meth:`~qiskit.circuit.QuantumCircuit.qasm` method for a
+    :class:`~qiskit.circuit.QuantumCircuit` object that has a
+    :class:`~qiskit.circuit.ControlledGate` with an open control the output
+    would be as if all controls were closed independent of the specified
+    control state. This would result in a different circuit being created
+    from :meth:`~qiskit.circuit.QuantumCircuit.from_qasm_str` if
+    parsing the generated QASM.
+
+    This was fixed by updating the QASM output from
+    :meth:`~qiskit.circuit.QuantumCircuit.qasm` by defining a composite gate
+    which uses :class:`~qiskit.circuit.XGate` to implement the open controls.
+    The composite gate is named like ``<original_gate_name>_o<ctrl_state>``
+    where ``o`` stands for open control and ``ctrl_state`` is the integer value
+    of the control state.
+    Fixed `#5443 <https://github.com/Qiskit/qiskit-terra/issues/5443>`__

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,20 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ConverterBase Class """
-
-import logging
+"""ConverterBase Class"""
 
 from abc import ABC, abstractmethod
 
-from ..operator_base import OperatorBase
-
-logger = logging.getLogger(__name__)
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ConverterBase(ABC):
     r"""
-    Converters take an Operator and return a new Operator, generally isomorphic
+    Deprecated: Converters take an Operator and return a new Operator, generally isomorphic
     in some way with the first, but with certain desired properties. For example,
     a converter may accept ``CircuitOp`` and return a ``SummedOp`` of
     ``PauliOps`` representing the circuit unitary. Converters may not
@@ -31,11 +28,18 @@ class ConverterBase(ABC):
     converters, such as a ``MatrixExpectation`` or ``MatrixEvolution``, which convert
     ``PauliOps`` to ``MatrixOps`` internally, will require time or space exponential
     in the number of qubits unless a clever trick is known (such as the use of sparse
-    matrices). """
+    matrices)."""
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        pass
 
     @abstractmethod
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """ Accept the Operator and return the converted Operator
+        """Accept the Operator and return the converted Operator
 
         Args:
             operator: The Operator to convert.

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,9 +12,15 @@
 
 """
 Primitive Operators (:mod:`qiskit.opflow.primitive_ops`)
-================================================================
+========================================================
 
 .. currentmodule:: qiskit.opflow.primitive_ops
+
+.. deprecated:: 0.24.0
+
+    The :mod:`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
 
 Operators are defined to be functions which take State functions to State functions.
 
@@ -32,18 +38,27 @@ Note:
      new object, but the underlying primitives are not copied.
 
 Primitive Operators
-===================
+-------------------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    PrimitiveOp
    CircuitOp
    MatrixOp
    PauliOp
    PauliSumOp
+   TaperedPauliSumOp
 
+Symmetries
+----------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   Z2Symmetries
 """
 
 from .primitive_op import PrimitiveOp
@@ -51,10 +66,14 @@ from .pauli_op import PauliOp
 from .matrix_op import MatrixOp
 from .circuit_op import CircuitOp
 from .pauli_sum_op import PauliSumOp
+from .tapered_pauli_sum_op import TaperedPauliSumOp, Z2Symmetries
 
-__all__ = ['PrimitiveOp',
-           'PauliOp',
-           'MatrixOp',
-           'CircuitOp',
-           'PauliSumOp',
-           ]
+__all__ = [
+    "PrimitiveOp",
+    "PauliOp",
+    "MatrixOp",
+    "CircuitOp",
+    "PauliSumOp",
+    "TaperedPauliSumOp",
+    "Z2Symmetries",
+]

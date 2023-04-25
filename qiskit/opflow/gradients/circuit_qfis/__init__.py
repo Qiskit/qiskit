@@ -17,7 +17,4 @@ from .lin_comb_full import LinCombFull
 from .overlap_diag import OverlapDiag
 from .overlap_block_diag import OverlapBlockDiag
 
-__all__ = ['CircuitQFI',
-           'LinCombFull',
-           'OverlapDiag',
-           'OverlapBlockDiag']
+__all__ = ["CircuitQFI", "LinCombFull", "OverlapDiag", "OverlapBlockDiag"]

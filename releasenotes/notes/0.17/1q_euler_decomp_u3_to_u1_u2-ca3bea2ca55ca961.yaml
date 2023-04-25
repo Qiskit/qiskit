@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    The preset pass managers
+    :class:`~qiskit.transpiler.preset_passmanagers.level_1_pass_manager`,
+    :class:`~qiskit.transpiler.preset_passmanagers.level_2_pass_manager`,
+    and :class:`~qiskit.transpiler.preset_passmanagers.level_3_pass_manager`
+    (which are used for ``optimization_level`` 1, 2, and 3 in the
+    :func:`~qiskit.compiler.transpile` and
+    :func:`~qiskit.execute_function.execute` functions) now unconditionally
+    use the :class:`~qiskit.transpiler.passes.Optimize1qGatesDecomposition`
+    pass for 1 qubit gate optimization. Previously, these pass managers would
+    use the :class:`~qiskit.transpiler.passes.Optimize1qGates` pass if the basis
+    gates contained ``u1``, ``u2``, or ``u3``. If you want to still use
+    the old :class:`~qiskit.transpiler.passes.Optimize1qGates` you will need
+    to construct a custom :class:`~qiskit.transpiler.PassManager` with the
+    pass.

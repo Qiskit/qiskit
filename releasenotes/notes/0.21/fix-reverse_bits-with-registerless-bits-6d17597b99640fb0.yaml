@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed :meth:`.QuantumCircuit.reverse_bits` with circuits containing registerless
+    :class:`.Qubit` and :class:`.Clbit`. For example, the following will now work::
+
+        from qiskit.circuit import QuantumCircuit, Qubit, Clbit
+
+        qc = QuantumCircuit([Qubit(), Clbit()])
+        qc.h(0).c_if(qc.clbits[0], 0)
+        qc.reverse_bits()

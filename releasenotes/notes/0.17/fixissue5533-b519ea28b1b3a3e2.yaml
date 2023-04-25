@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :class:`qiskit.transpiler.passes.TemplateOptimization`
+    transpiler passes where template circuits that contained unbound
+    :class:`~qiskit.circuit.Parameter` objects would crash under some scenarios
+    if the parameters could not be bound during the template matching.
+    Now, if the :class:`~qiskit.circuit.Parameter` objects can not be bound
+    templates with unbound :class:`~qiskit.circuit.Parameter` are discarded and
+    ignored by the :class:`~qiskit.transpiler.passes.TemplateOptimization` pass.
+    Fixed `#5533 <https://github.com/Qiskit/qiskit-terra/issues/5533>`__

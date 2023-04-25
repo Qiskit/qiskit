@@ -14,10 +14,10 @@
 
 import unittest
 
-from qiskit.test.base import QiskitTestCase
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.library import GraphState
 from qiskit.quantum_info import Clifford
+from qiskit.test.base import QiskitTestCase
 
 
 class TestGraphStateLibrary(QiskitTestCase):
@@ -28,7 +28,7 @@ class TestGraphStateLibrary(QiskitTestCase):
         Based on https://arxiv.org/pdf/quant-ph/0307130.pdf, Eq. (6).
         """
 
-        stabilizers = Clifford(graph_state).stabilizer.pauli.to_labels()
+        stabilizers = [stabilizer[1:] for stabilizer in Clifford(graph_state).to_labels(mode="S")]
 
         expected_stabilizers = []  # keep track of all expected stabilizers
         num_vertices = len(adjacency_matrix)
@@ -36,35 +36,35 @@ class TestGraphStateLibrary(QiskitTestCase):
             stabilizer = [None] * num_vertices  # Paulis must be put into right place
             for vertex_b in range(num_vertices):
                 if vertex_a == vertex_b:  # self-connection --> 'X'
-                    stabilizer[vertex_a] = 'X'
+                    stabilizer[vertex_a] = "X"
                 elif adjacency_matrix[vertex_a][vertex_b] != 0:  # vertices connected --> 'Z'
-                    stabilizer[vertex_b] = 'Z'
+                    stabilizer[vertex_b] = "Z"
                 else:  # else --> 'I'
-                    stabilizer[vertex_b] = 'I'
+                    stabilizer[vertex_b] = "I"
 
             # need to reverse for Qiskit's tensoring order
-            expected_stabilizers.append(''.join(stabilizer)[::-1])
+            expected_stabilizers.append("".join(stabilizer)[::-1])
 
         self.assertListEqual(expected_stabilizers, stabilizers)
 
     def test_graph_state(self):
         """Verify the GraphState by checking if the circuit has the expected stabilizers."""
-        adjacency_matrix = [[0, 1, 0, 0, 1],
-                            [1, 0, 1, 0, 0],
-                            [0, 1, 0, 1, 0],
-                            [0, 0, 1, 0, 1],
-                            [1, 0, 0, 1, 0]]
+        adjacency_matrix = [
+            [0, 1, 0, 0, 1],
+            [1, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 1],
+            [1, 0, 0, 1, 0],
+        ]
         graph_state = GraphState(adjacency_matrix)
         self.assertGraphStateIsCorrect(adjacency_matrix, graph_state)
 
     def test_non_symmetric_raises(self):
         """Test that adjacency matrix is required to be symmetric."""
-        adjacency_matrix = [[1, 1, 0],
-                            [1, 0, 1],
-                            [1, 1, 1]]
+        adjacency_matrix = [[1, 1, 0], [1, 0, 1], [1, 1, 1]]
         with self.assertRaises(CircuitError):
             GraphState(adjacency_matrix)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

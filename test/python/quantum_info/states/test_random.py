@@ -65,8 +65,7 @@ class TestRandomStatevector(QiskitTestCase):
 class TestRandomDensityMatrix(QiskitTestCase):
     """Testing random_density_matrix function."""
 
-    @combine(dims=[(2,), (3,), (2, 2), (2, 3)],
-             method=['Hilbert-Schmidt', 'Bures'])
+    @combine(dims=[(2,), (3,), (2, 2), (2, 3)], method=["Hilbert-Schmidt", "Bures"])
     def test_tuple_dims(self, dims, method):
         """Test random_density_matrix {method} method is valid with dims {dims}."""
         value = random_density_matrix(dims, method=method)
@@ -74,8 +73,7 @@ class TestRandomDensityMatrix(QiskitTestCase):
         self.assertTrue(value.is_valid())
         self.assertEqual(value.dims(), dims)
 
-    @combine(dim=[2, 3, 4, 5],
-             method=['Hilbert-Schmidt', 'Bures'])
+    @combine(dim=[2, 3, 4, 5], method=["Hilbert-Schmidt", "Bures"])
     def test_int_dims(self, dim, method):
         """Test random_density_matrix {method} method is valid with dims {dim}."""
         value = random_density_matrix(dim, method=method)
@@ -83,7 +81,7 @@ class TestRandomDensityMatrix(QiskitTestCase):
         self.assertTrue(value.is_valid())
         self.assertEqual(np.product(value.dims()), dim)
 
-    @combine(method=['Hilbert-Schmidt', 'Bures'])
+    @combine(method=["Hilbert-Schmidt", "Bures"])
     def test_fixed_seed(self, method):
         """Test fixing seed fixes output ({method} method)"""
         seed = 1532
@@ -91,7 +89,7 @@ class TestRandomDensityMatrix(QiskitTestCase):
         value2 = random_density_matrix(4, method=method, seed=seed)
         self.assertEqual(value1, value2)
 
-    @combine(method=['Hilbert-Schmidt', 'Bures'])
+    @combine(method=["Hilbert-Schmidt", "Bures"])
     def test_not_global_seed(self, method):
         """Test fixing seed is locally scoped ({method} method)."""
         seed = 314159
@@ -103,5 +101,5 @@ class TestRandomDensityMatrix(QiskitTestCase):
         self.assertFalse(np.all(rng_before == rng_after))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

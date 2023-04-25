@@ -47,21 +47,14 @@ class TestFourierCheckingLibrary(QiskitTestCase):
 
         self.assertTrue(expected.equiv(simulated))
 
-    @data(
-        ([1, -1, -1, -1], [1, 1, -1, -1]),
-        ([1, 1, 1, 1], [1, 1, 1, 1])
-    )
+    @data(([1, -1, -1, -1], [1, 1, -1, -1]), ([1, 1, 1, 1], [1, 1, 1, 1]))
     @unpack
     def test_fourier_checking(self, f_truth_table, g_truth_table):
         """Test if the Fourier Checking circuit produces the correct matrix."""
         fc_circuit = FourierChecking(f_truth_table, g_truth_table)
         self.assertFourierCheckingIsCorrect(f_truth_table, g_truth_table, fc_circuit)
 
-    @data(
-        ([1, -1, -1, -1], [1, 1, -1]),
-        ([1], [-1]),
-        ([1, -1, -1, -1, 1], [1, 1, -1, -1, 1])
-    )
+    @data(([1, -1, -1, -1], [1, 1, -1]), ([1], [-1]), ([1, -1, -1, -1, 1], [1, 1, -1, -1, 1]))
     @unpack
     def test_invalid_input_raises(self, f_truth_table, g_truth_table):
         """Test that invalid input truth tables raise an error."""
@@ -69,5 +62,5 @@ class TestFourierCheckingLibrary(QiskitTestCase):
             FourierChecking(f_truth_table, g_truth_table)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,22 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" ExpectationBase Class """
+"""ExpectationBase Class"""
 
-import logging
-from typing import Union
 from abc import abstractmethod
+from typing import Union
+
 import numpy as np
 
-from ..operator_base import OperatorBase
-from ..converters import ConverterBase
-
-logger = logging.getLogger(__name__)
+from qiskit.opflow.converters import ConverterBase
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 
 
 class ExpectationBase(ConverterBase):
     r"""
-    A base for Expectation value converters. Expectations are converters which enable the
+    Deprecated: A base for Expectation value converters. Expectations are converters which enable the
     computation of the expectation value of an Observable with respect to some state function.
     They traverse an Operator tree, replacing OperatorStateFn measurements with equivalent
     measurements which are more amenable to computation on quantum or classical hardware. For
@@ -39,9 +38,16 @@ class ExpectationBase(ConverterBase):
 
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
+
     @abstractmethod
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """ Accept an Operator and return a new Operator with the measurements replaced by
+        """Accept an Operator and return a new Operator with the measurements replaced by
         alternate methods to compute the expectation value.
 
         Args:
@@ -53,8 +59,8 @@ class ExpectationBase(ConverterBase):
         raise NotImplementedError
 
     @abstractmethod
-    def compute_variance(self, exp_op: OperatorBase) -> Union[list, float, complex, np.ndarray]:
-        """ Compute the variance of the expectation estimator.
+    def compute_variance(self, exp_op: OperatorBase) -> Union[list, complex, np.ndarray]:
+        """Compute the variance of the expectation estimator.
 
         Args:
             exp_op: The full expectation value Operator after sampling.

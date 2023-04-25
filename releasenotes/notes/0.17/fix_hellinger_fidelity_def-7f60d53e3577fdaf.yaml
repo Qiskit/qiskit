@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new function, :func:`~qiskit.quantum_info.hellinger_distance`, for
+    computing the Hellinger distance between two counts distributions has
+    been added to the :mod:`qiskit.quantum_info` module.

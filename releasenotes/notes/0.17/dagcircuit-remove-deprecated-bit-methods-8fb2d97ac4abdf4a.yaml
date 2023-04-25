@@ -1,0 +1,22 @@
+---
+upgrade:
+  - |
+    The previously deprecated ``qubits()`` and ``clbits()`` methods on the
+    :class:`~qiskit.dagcircuit.DAGCircuit` class, which were deprecated in the
+    0.15.0 Terra release, have been removed. Instead you should use the 
+    :attr:`~qiskit.dagcircuit.DAGCircuit.qubits` and
+    :attr:`~qiskit.dagcircuit.DAGCircuit.clbits` attributes of the
+    :class:`~qiskit.dagcircuit.DAGCircuit` class. For example, if you were
+    running::
+
+      from qiskit.dagcircuit import DAGCircuit
+
+      dag = DAGCircuit()
+      qubits = dag.qubits()
+
+    That would be replaced by::
+
+      from qiskit.dagcircuit import DAGCircuit
+
+      dag = DAGCircuit()
+      qubits = dag.qubits

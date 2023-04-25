@@ -10,23 +10,51 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""This module defines Pulse Channels. Channels include:
+"""
+.. _pulse-channels:
 
-  - transmit channels, which should subclass ``PulseChannel``
-  - receive channels, such as ``AcquireChannel``
-  - non-signal "channels" such as ``SnapshotChannel``, ``MemorySlot`` and ``RegisterChannel``.
+=======================================
+Channels (:mod:`qiskit.pulse.channels`)
+=======================================
 
-Novel channel types can often utilize the ``ControlChannel``, but if this is not sufficient, new
-channel types can be created. Then, they must be supported in the PulseQobj schema and the
-assembler.
+Pulse is meant to be agnostic to the underlying hardware implementation, while still allowing
+low-level control. Therefore, our signal channels are  *virtual* hardware channels. The backend
+which executes our programs is responsible for mapping these virtual channels to the proper
+physical channel within the quantum control hardware.
+
+Channels are characterized by their type and their index.  Channels include:
+
+* transmit channels, which should subclass ``PulseChannel``
+* receive channels, such as :class:`AcquireChannel`
+* non-signal "channels" such as :class:`SnapshotChannel`, :class:`MemorySlot` and
+  :class:`RegisterChannel`.
+
+Novel channel types can often utilize the :class:`ControlChannel`, but if this is not sufficient,
+new channel types can be created. Then, they must be supported in the PulseQobj schema and the
+assembler.  Channels are characterized by their type and their index. See each channel type below to
+learn more.
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   DriveChannel
+   MeasureChannel
+   AcquireChannel
+   ControlChannel
+   RegisterSlot
+   MemorySlot
+   SnapshotChannel
+
+All channels are children of the same abstract base class:
+
+.. autoclass:: Channel
 """
 from abc import ABCMeta
-from typing import Any, Set
+from typing import Any, Set, Union
 
 import numpy as np
 
-from qiskit.circuit import Parameter
-from qiskit.circuit.parameterexpression import ParameterExpression, ParameterValueType
+from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.exceptions import PulseError
 
 
@@ -58,7 +86,7 @@ class Channel(metaclass=ABCMeta):
                 "See Channel documentation for more information."
             )
 
-        return super(Channel, cls).__new__(cls)
+        return super().__new__(cls)
 
     def __init__(self, index: int):
         """Channel class.
@@ -68,13 +96,10 @@ class Channel(metaclass=ABCMeta):
         """
         self._validate_index(index)
         self._index = index
-        self._hash = None
-        self._parameters = set()
-        if isinstance(index, ParameterExpression):
-            self._parameters = index.parameters
+        self._hash = hash((self.__class__.__name__, self._index))
 
     @property
-    def index(self) -> int:
+    def index(self) -> Union[int, ParameterExpression]:
         """Return the index of this channel. The index is a label for a control signal line
         typically mapped trivially to a qubit index. For instance, ``DriveChannel(0)`` labels
         the signal line driving the qubit labeled with index 0.
@@ -97,50 +122,28 @@ class Channel(metaclass=ABCMeta):
                 index = int(index)
 
         if not isinstance(index, (int, np.integer)) and index < 0:
-            raise PulseError('Channel index must be a nonnegative integer')
+            raise PulseError("Channel index must be a nonnegative integer")
 
     @property
     def parameters(self) -> Set:
         """Parameters which determine the channel index."""
-        return self._parameters
+        if isinstance(self.index, ParameterExpression):
+            return self.index.parameters
+        return set()
 
     def is_parameterized(self) -> bool:
         """Return True iff the channel is parameterized."""
-        return bool(self.parameters)
-
-    def assign(self, parameter: Parameter, value: ParameterValueType) -> 'Channel':
-        """Return a new channel with the input Parameter assigned to value.
-
-        Args:
-            parameter: A parameter in this expression whose value will be updated.
-            value: The new value to bind to.
-
-        Returns:
-            A new channel with updated parameters.
-
-        Raises:
-            PulseError: If the parameter is not present in the channel.
-        """
-        if parameter not in self.parameters:
-            raise PulseError('Cannot bind parameters ({}) not present in the channel.'
-                             ''.format(parameter))
-
-        new_index = self.index.assign(parameter, value)
-        if not new_index.parameters:
-            self._validate_index(new_index)
-            new_index = int(new_index)
-
-        return type(self)(new_index)
+        return isinstance(self.index, ParameterExpression)
 
     @property
     def name(self) -> str:
         """Return the shorthand alias for this channel, which is based on its type and index."""
-        return '{}{}'.format(self.__class__.prefix, self._index)
+        return f"{self.__class__.prefix}{self._index}"
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, self._index)
+        return f"{self.__class__.__name__}({self._index})"
 
-    def __eq__(self, other: 'Channel') -> bool:
+    def __eq__(self, other: "Channel") -> bool:
         """Return True iff self and other are equal, specifically, iff they have the same type
         and the same index.
 
@@ -153,24 +156,31 @@ class Channel(metaclass=ABCMeta):
         return type(self) is type(other) and self._index == other._index
 
     def __hash__(self):
-        if self._hash is None:
-            self._hash = hash((type(self), self._index))
         return self._hash
 
 
 class PulseChannel(Channel, metaclass=ABCMeta):
     """Base class of transmit Channels. Pulses can be played on these channels."""
+
+    pass
+
+
+class ClassicalIOChannel(Channel, metaclass=ABCMeta):
+    """Base class of classical IO channels. These cannot have instructions scheduled on them."""
+
     pass
 
 
 class DriveChannel(PulseChannel):
     """Drive channels transmit signals to qubits which enact gate operations."""
-    prefix = 'd'
+
+    prefix = "d"
 
 
 class MeasureChannel(PulseChannel):
     """Measure channels transmit measurement stimulus pulses for readout."""
-    prefix = 'm'
+
+    prefix = "m"
 
 
 class ControlChannel(PulseChannel):
@@ -178,30 +188,35 @@ class ControlChannel(PulseChannel):
     These are often associated with multi-qubit gate operations. They may not map trivially
     to a particular qubit index.
     """
-    prefix = 'u'
+
+    prefix = "u"
 
 
 class AcquireChannel(Channel):
     """Acquire channels are used to collect data."""
-    prefix = 'a'
+
+    prefix = "a"
 
 
-class SnapshotChannel(Channel):
+class SnapshotChannel(ClassicalIOChannel):
     """Snapshot channels are used to specify instructions for simulators."""
-    prefix = 's'
+
+    prefix = "s"
 
     def __init__(self):
         """Create new snapshot channel."""
         super().__init__(0)
 
 
-class MemorySlot(Channel):
+class MemorySlot(ClassicalIOChannel):
     """Memory slot channels represent classical memory storage."""
-    prefix = 'm'
+
+    prefix = "m"
 
 
-class RegisterSlot(Channel):
+class RegisterSlot(ClassicalIOChannel):
     """Classical resister slot channels represent classical registers (low-latency classical
     memory).
     """
-    prefix = 'c'
+
+    prefix = "c"

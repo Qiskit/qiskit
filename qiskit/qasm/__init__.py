@@ -30,21 +30,24 @@ QASM Routines
 Pygments
 ========
 
-.. autosummary::
-   :toctree: ../stubs/
+.. autoclass:: OpenQASMLexer
+    :class-doc-from: class
 
-   OpenQASMLexer
-   QasmHTMLStyle
-   QasmTerminalStyle
+.. autoclass:: QasmHTMLStyle
+    :class-doc-from: class
 
+.. autoclass:: QasmTerminalStyle
+    :class-doc-from: class
 """
 
 from numpy import pi
 
 from .qasm import Qasm
 from .exceptions import QasmError
+
 try:
     import pygments
+
     HAS_PYGMENTS = True
 except ImportError:
     HAS_PYGMENTS = False

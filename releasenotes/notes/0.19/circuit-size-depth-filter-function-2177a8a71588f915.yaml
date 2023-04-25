@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Added a ``filter_function`` argument to
+    :meth:`.QuantumCircuit.depth` and  
+    :meth:`.QuantumCircuit.size` in order to
+    analyze circuit operations according to some criteria.
+
+    For example, to get the number of two-qubit gates, you can do::
+
+      circuit.size(lambda x: x[0].num_qubits == 2)
+
+    Or to get the depth of T gates acting on the zeroth qubit::
+
+      circuit.depth(lambda x: x[0].name == 't' and circuit.qubits[0] in x[1])

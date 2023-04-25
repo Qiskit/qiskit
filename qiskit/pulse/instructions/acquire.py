@@ -13,7 +13,7 @@
 """The Acquire instruction is used to trigger the qubit measurement unit and provide
 some metadata for the acquisition process, for example, where to store classified readout data.
 """
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 from qiskit.circuit import ParameterExpression
 from qiskit.pulse.channels import MemorySlot, RegisterSlot, AcquireChannel
@@ -39,14 +39,16 @@ class Acquire(Instruction):
      * the discriminator to classify kerneled IQ points.
     """
 
-    def __init__(self,
-                 duration: Union[int, ParameterExpression],
-                 channel: AcquireChannel,
-                 mem_slot: Optional[MemorySlot] = None,
-                 reg_slot: Optional[RegisterSlot] = None,
-                 kernel: Optional[Kernel] = None,
-                 discriminator: Optional[Discriminator] = None,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        duration: Union[int, ParameterExpression],
+        channel: AcquireChannel,
+        mem_slot: Optional[MemorySlot] = None,
+        reg_slot: Optional[RegisterSlot] = None,
+        kernel: Optional[Kernel] = None,
+        discriminator: Optional[Discriminator] = None,
+        name: Optional[str] = None,
+    ):
         """Create a new Acquire instruction.
 
         Args:
@@ -59,23 +61,32 @@ class Acquire(Instruction):
             discriminator: A ``Discriminator`` for discriminating kerneled IQ data into 0/1
                            results.
             name: Name of the instruction for display purposes.
+        """
+        super().__init__(
+            operands=(duration, channel, mem_slot, reg_slot, kernel, discriminator),
+            name=name,
+        )
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
 
         Raises:
-            PulseError: If channels are supplied, and the number of register and/or memory slots
-                        does not equal the number of channels.
+            PulseError: If the input ``channel`` is not type :class:`AcquireChannel`.
+            PulseError: If the input ``mem_slot`` is not type :class:`MemorySlot`.
+            PulseError: If the input ``reg_slot`` is not type :class:`RegisterSlot`.
+            PulseError: When memory slot and register slot are both empty.
         """
-        if isinstance(channel, list) or isinstance(mem_slot, list) or isinstance(reg_slot, list):
-            raise PulseError("The Acquire instruction takes only one AcquireChannel and one "
-                             "classical memory destination for the measurement result.")
+        if not isinstance(self.channel, AcquireChannel):
+            raise PulseError(f"Expected an acquire channel, got {self.channel} instead.")
 
-        if not (mem_slot or reg_slot):
-            raise PulseError('Neither MemorySlots nor RegisterSlots were supplied.')
+        if self.mem_slot and not isinstance(self.mem_slot, MemorySlot):
+            raise PulseError(f"Expected a memory slot, got {self.mem_slot} instead.")
 
-        self._kernel = kernel
-        self._discriminator = discriminator
+        if self.reg_slot and not isinstance(self.reg_slot, RegisterSlot):
+            raise PulseError(f"Expected a register slot, got {self.reg_slot} instead.")
 
-        all_channels = tuple([chan for chan in [channel, mem_slot, reg_slot] if chan is not None])
-        super().__init__((duration, channel, mem_slot, reg_slot), None, all_channels, name=name)
+        if self.mem_slot is None and self.reg_slot is None:
+            raise PulseError("Neither MemorySlots nor RegisterSlots were supplied.")
 
     @property
     def channel(self) -> AcquireChannel:
@@ -85,6 +96,11 @@ class Acquire(Instruction):
         return self.operands[1]
 
     @property
+    def channels(self) -> Tuple[Union[AcquireChannel, MemorySlot, RegisterSlot]]:
+        """Returns the channels that this schedule uses."""
+        return tuple(self.operands[ind] for ind in (1, 2, 3) if self.operands[ind] is not None)
+
+    @property
     def duration(self) -> Union[int, ParameterExpression]:
         """Duration of this instruction."""
         return self.operands[0]
@@ -92,12 +108,12 @@ class Acquire(Instruction):
     @property
     def kernel(self) -> Kernel:
         """Return kernel settings."""
-        return self._kernel
+        return self._operands[4]
 
     @property
     def discriminator(self) -> Discriminator:
         """Return discrimination settings."""
-        return self._discriminator
+        return self._operands[5]
 
     @property
     def acquire(self) -> AcquireChannel:
@@ -118,12 +134,17 @@ class Acquire(Instruction):
         """
         return self.operands[3]
 
+    def is_parameterized(self) -> bool:
+        """Return True iff the instruction is parameterized."""
+        return isinstance(self.duration, ParameterExpression) or super().is_parameterized()
+
     def __repr__(self) -> str:
         return "{}({}{}{}{}{}{})".format(
             self.__class__.__name__,
             self.duration,
-            ', ' + str(self.channel),
-            ', ' + str(self.mem_slot) if self.mem_slot else '',
-            ', ' + str(self.reg_slot) if self.reg_slot else '',
-            ', ' + str(self.kernel) if self.kernel else '',
-            ', ' + str(self.discriminator) if self.discriminator else '')
+            ", " + str(self.channel),
+            ", " + str(self.mem_slot) if self.mem_slot else "",
+            ", " + str(self.reg_slot) if self.reg_slot else "",
+            ", " + str(self.kernel) if self.kernel else "",
+            ", " + str(self.discriminator) if self.discriminator else "",
+        )

@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixed initialization of empty symplectic matrix in :meth:`~.PauliList.from_symplectic` in :class:`~.PauliList` class
+    For example::
+
+        from qiskit.quantum_info.operators import PauliList
+
+        x = np.array([], dtype=bool).reshape((1,0))
+        z = np.array([], dtype=bool).reshape((1,0))
+        pauli_list = PauliList.from_symplectic(x, z)

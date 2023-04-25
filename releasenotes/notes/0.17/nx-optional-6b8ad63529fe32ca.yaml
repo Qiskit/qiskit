@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    `networkx <https://networkx.org/>`__ is no longer a requirement for
+    qiskit-terra. All the networkx usage inside qiskit-terra has been removed
+    with the exception of 3 methods:
+
+    * :class:`qiskit.dagcircuit.DAGCircuit.to_networkx`
+    * :class:`qiskit.dagcircuit.DAGCircuit.from_networkx`
+    * :class:`qiskit.dagcircuit.DAGDependency.to_networkx`
+
+    If you are using any of these methods you will need to manually install
+    networkx in your environment to continue using them.

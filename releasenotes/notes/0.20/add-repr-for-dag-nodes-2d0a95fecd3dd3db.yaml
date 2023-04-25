@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The :class:`.DAGOpNode`, :class:`.DAGInNode` and :class:`.DAGOutNode`
+    classes now define a custom ``__repr__`` method which outputs a
+    representation. Per the
+    `Python documentation <https://docs.python.org/3/library/functions.html#repr>`__
+    the output is a string representation that is roughly equivalent to the
+    Python string used to create an equivalent object.

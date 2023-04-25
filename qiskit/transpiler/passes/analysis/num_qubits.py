@@ -23,4 +23,4 @@ class NumQubits(AnalysisPass):
 
     def run(self, dag):
         """Run the NumQubits pass on `dag`."""
-        self.property_set['num_qubits'] = dag.num_qubits()
+        self.property_set["num_qubits"] = dag.num_qubits()

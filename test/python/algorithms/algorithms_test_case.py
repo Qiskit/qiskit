@@ -10,24 +10,12 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Algorithms Test Case """
+"""Algorithms Test Case"""
 
-import platform
-import logging
 from qiskit.test import QiskitTestCase
 
 
 class QiskitAlgorithmsTestCase(QiskitTestCase):
     """Algorithms test Case"""
-    def setUp(self):
-        super().setUp()
-        # disable logging due to Unicode logging error
-        if platform.system() == 'Windows':
-            self.disable_logging()
 
-    def disable_logging(self):
-        """ Disable Qiskit logging"""
-        logger = logging.getLogger('qiskit')
-        for handler in reversed(logger.handlers):
-            self.addCleanup(logger.addHandler, handler)
-            logger.removeHandler(handler)
+    pass

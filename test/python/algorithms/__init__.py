@@ -14,4 +14,4 @@
 
 from .algorithms_test_case import QiskitAlgorithmsTestCase
 
-__all__ = ['QiskitAlgorithmsTestCase']
+__all__ = ["QiskitAlgorithmsTestCase"]

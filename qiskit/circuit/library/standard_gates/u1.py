@@ -11,10 +11,12 @@
 # that they have been altered from the originals.
 
 """U1 Gate."""
-
+from __future__ import annotations
+from cmath import exp
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.parameterexpression import ParameterValueType
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _ctrl_state_to_int
 
@@ -24,6 +26,22 @@ class U1Gate(Gate):
 
     This is a diagonal gate. It can be implemented virtually in hardware
     via framechanges (i.e. at zero error and duration).
+
+    .. warning::
+
+       This gate is deprecated. Instead, the following replacements should be used
+
+       .. math::
+
+           U1(\lambda) = P(\lambda)= U(0,0,\lambda)
+
+       .. code-block:: python
+
+          circuit = QuantumCircuit(1)
+          circuit.p(lambda, 0) # or circuit.u(0, 0, lambda)
+
+
+
 
     **Circuit symbol:**
 
@@ -74,26 +92,30 @@ class U1Gate(Gate):
         `1612.00858 <https://arxiv.org/abs/1612.00858>`_
     """
 
-    def __init__(self, theta, label=None):
+    def __init__(self, theta: ParameterValueType, label: str | None = None):
         """Create new U1 gate."""
-        super().__init__('u1', 1, [theta], label=label)
+        super().__init__("u1", 1, [theta], label=label)
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .u3 import U3Gate  # pylint: disable=cyclic-import
-        q = QuantumRegister(1, 'q')
+
+        q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (U3Gate(0, 0, self.params[0]), [q[0]], [])
-        ]
+        rules = [(U3Gate(0, 0, self.params[0]), [q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
-        """Return a (mutli-)controlled-U1 gate.
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+    ):
+        """Return a (multi-)controlled-U1 gate.
 
         Args:
             num_ctrl_qubits (int): number of control qubits.
@@ -109,8 +131,9 @@ class U1Gate(Gate):
         elif ctrl_state is None and num_ctrl_qubits > 1:
             gate = MCU1Gate(self.params[0], num_ctrl_qubits, label=label)
         else:
-            return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label,
-                                   ctrl_state=ctrl_state)
+            return super().control(
+                num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state
+            )
         gate.base_gate.label = self.label
         return gate
 
@@ -144,8 +167,8 @@ class CU1Gate(ControlledGate):
 
     .. math::
 
-        CU1 =
-            |0\rangle\langle 0| \otimes I + |1\rangle\langle 1| \otimes U1 =
+        CU1(\lambda) =
+            I \otimes |0\rangle\langle 0| + U1 \otimes |1\rangle\langle 1| =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 1 & 0 & 0 \\
@@ -161,10 +184,22 @@ class CU1Gate(ControlledGate):
         phase difference.
     """
 
-    def __init__(self, theta, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        theta: ParameterValueType,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+    ):
         """Create new CU1 gate."""
-        super().__init__('cu1', 2, [theta], num_ctrl_qubits=1, label=label,
-                         ctrl_state=ctrl_state, base_gate=U1Gate(theta))
+        super().__init__(
+            "cu1",
+            2,
+            [theta],
+            num_ctrl_qubits=1,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=U1Gate(theta),
+        )
 
     def _define(self):
         """
@@ -177,21 +212,32 @@ class CU1Gate(ControlledGate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate  # pylint: disable=cyclic-import
-        q = QuantumRegister(2, 'q')
+
+        #      ┌─────────┐
+        # q_0: ┤ U1(λ/2) ├──■────────────────■─────────────
+        #      └─────────┘┌─┴─┐┌──────────┐┌─┴─┐┌─────────┐
+        # q_1: ───────────┤ X ├┤ U1(-λ/2) ├┤ X ├┤ U1(λ/2) ├
+        #                 └───┘└──────────┘└───┘└─────────┘
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (U1Gate(self.params[0] / 2), [q[0]], []),
             (CXGate(), [q[0], q[1]], []),
             (U1Gate(-self.params[0] / 2), [q[1]], []),
             (CXGate(), [q[0], q[1]], []),
-            (U1Gate(self.params[0] / 2), [q[1]], [])
+            (U1Gate(self.params[0] / 2), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+    ):
         """Controlled version of this gate.
 
         Args:
@@ -215,19 +261,15 @@ class CU1Gate(ControlledGate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the CU1 gate."""
-        eith = numpy.exp(1j * float(self.params[0]))
+        eith = exp(1j * float(self.params[0]))
         if self.ctrl_state:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, 1, 0, 0],
-                                [0, 0, 1, 0],
-                                [0, 0, 0, eith]],
-                               dtype=dtype)
+            return numpy.array(
+                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, eith]], dtype=dtype
+            )
         else:
-            return numpy.array([[1, 0, 0, 0],
-                                [0, 1, 0, 0],
-                                [0, 0, eith, 0],
-                                [0, 0, 0, 1]],
-                               dtype=dtype)
+            return numpy.array(
+                [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, eith, 0], [0, 0, 0, 1]], dtype=dtype
+            )
 
 
 class MCU1Gate(ControlledGate):
@@ -255,15 +297,29 @@ class MCU1Gate(ControlledGate):
         The singly-controlled-version of this gate.
     """
 
-    def __init__(self, lam, num_ctrl_qubits, label=None, ctrl_state=None):
+    def __init__(
+        self,
+        lam: ParameterValueType,
+        num_ctrl_qubits: int,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+    ):
         """Create new MCU1 gate."""
-        super().__init__('mcu1', num_ctrl_qubits + 1, [lam], num_ctrl_qubits=num_ctrl_qubits,
-                         label=label, ctrl_state=ctrl_state, base_gate=U1Gate(lam))
+        super().__init__(
+            "mcu1",
+            num_ctrl_qubits + 1,
+            [lam],
+            num_ctrl_qubits=num_ctrl_qubits,
+            label=label,
+            ctrl_state=ctrl_state,
+            base_gate=U1Gate(lam),
+        )
 
     def _define(self):
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
-        q = QuantumRegister(self.num_qubits, 'q')
+
+        q = QuantumRegister(self.num_qubits, "q")
         qc = QuantumCircuit(q, name=self.name)
 
         if self.num_ctrl_qubits == 0:
@@ -272,6 +328,7 @@ class MCU1Gate(ControlledGate):
             definition = CU1Gate(self.params[0]).definition
         else:
             from .u3 import _gray_code_chain
+
             scaled_lam = self.params[0] / (2 ** (self.num_ctrl_qubits - 1))
             bottom_gate = CU1Gate(scaled_lam)
             definition = _gray_code_chain(q, self.num_ctrl_qubits, bottom_gate)
@@ -279,7 +336,12 @@ class MCU1Gate(ControlledGate):
             qc._append(instr, qargs, cargs)
         self.definition = qc
 
-    def control(self, num_ctrl_qubits=1, label=None, ctrl_state=None):
+    def control(
+        self,
+        num_ctrl_qubits: int = 1,
+        label: str | None = None,
+        ctrl_state: str | int | None = None,
+    ):
         """Controlled version of this gate.
 
         Args:
@@ -293,8 +355,12 @@ class MCU1Gate(ControlledGate):
         """
         ctrl_state = _ctrl_state_to_int(ctrl_state, num_ctrl_qubits)
         new_ctrl_state = (self.ctrl_state << num_ctrl_qubits) | ctrl_state
-        gate = MCU1Gate(self.params[0], num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
-                        label=label, ctrl_state=new_ctrl_state)
+        gate = MCU1Gate(
+            self.params[0],
+            num_ctrl_qubits=num_ctrl_qubits + self.num_ctrl_qubits,
+            label=label,
+            ctrl_state=new_ctrl_state,
+        )
         gate.base_gate.label = self.label
         return gate
 

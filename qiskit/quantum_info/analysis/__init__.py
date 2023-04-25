@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,4 +12,5 @@
 
 """Module for functions for post processing results."""
 from .average import average_data
-from.distance import hellinger_fidelity
+from .distance import hellinger_fidelity, hellinger_distance
+from .z2_symmetries import Z2Symmetries

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,24 +13,25 @@
 """AbelianGrouper Class"""
 
 from collections import defaultdict
-from typing import cast, List, Optional, Tuple, Union
+from typing import List, Tuple, Union, cast
 
 import numpy as np
-import retworkx as rx
+import rustworkx as rx
 
-from .converter_base import ConverterBase
-from ..evolutions.evolved_op import EvolvedOp
-from ..list_ops.list_op import ListOp
-from ..list_ops.summed_op import SummedOp
-from ..operator_base import OperatorBase
-from ..primitive_ops.pauli_op import PauliOp
-from ..primitive_ops.pauli_sum_op import PauliSumOp
-from ..state_fns.operator_state_fn import OperatorStateFn
-from ..exceptions import OpflowError
+from qiskit.opflow.converters.converter_base import ConverterBase
+from qiskit.opflow.evolutions.evolved_op import EvolvedOp
+from qiskit.opflow.exceptions import OpflowError
+from qiskit.opflow.list_ops.list_op import ListOp
+from qiskit.opflow.list_ops.summed_op import SummedOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.primitive_ops.pauli_op import PauliOp
+from qiskit.opflow.primitive_ops.pauli_sum_op import PauliSumOp
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.utils.deprecation import deprecate_func
 
 
 class AbelianGrouper(ConverterBase):
-    """The AbelianGrouper converts SummedOps into a sum of Abelian sums.
+    """Deprecated: The AbelianGrouper converts SummedOps into a sum of Abelian sums.
 
     Meaning, it will traverse the Operator, and when it finds a SummedOp, it will evaluate which of
     the summed sub-Operators commute with one another. It will then convert each of the groups of
@@ -41,12 +42,17 @@ class AbelianGrouper(ConverterBase):
     diagonalized together.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, traverse: bool = True) -> None:
         """
         Args:
             traverse: Whether to convert only the Operator passed to ``convert``, or traverse
                 down that Operator.
         """
+        super().__init__()
         self._traverse = traverse
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
@@ -64,18 +70,21 @@ class AbelianGrouper(ConverterBase):
             return self.group_subops(operator)
 
         if isinstance(operator, ListOp):
-            if isinstance(operator, SummedOp) and all(isinstance(op, PauliOp)
-                                                      for op in operator.oplist):
+            if isinstance(operator, SummedOp) and all(
+                isinstance(op, PauliOp) for op in operator.oplist
+            ):
                 # For now, we only support graphs over Paulis.
                 return self.group_subops(operator)
             elif self._traverse:
                 return operator.traverse(self.convert)
         elif isinstance(operator, OperatorStateFn) and self._traverse:
-            return OperatorStateFn(self.convert(operator.primitive),
-                                   is_measurement=operator.is_measurement,
-                                   coeff=operator.coeff)
+            return OperatorStateFn(
+                self.convert(operator.primitive),
+                is_measurement=operator.is_measurement,
+                coeff=operator.coeff,
+            )
         elif isinstance(operator, EvolvedOp) and self._traverse:
-            return EvolvedOp(self.convert(operator.primitive), coeff=operator.coeff)  # type: ignore
+            return EvolvedOp(self.convert(operator.primitive), coeff=operator.coeff)
         return operator
 
     @classmethod
@@ -95,8 +104,9 @@ class AbelianGrouper(ConverterBase):
             for op in list_op.oplist:
                 if not isinstance(op, PauliOp):
                     raise OpflowError(
-                        'Cannot determine Abelian groups if any Operator in list_op is not '
-                        f'`PauliOp`. E.g., {op} ({type(op)})')
+                        "Cannot determine Abelian groups if any Operator in list_op is not "
+                        f"`PauliOp`. E.g., {op} ({type(op)})"
+                    )
 
         edges = cls._anti_commutation_graph(list_op)
         nodes = range(len(list_op))
@@ -113,20 +123,17 @@ class AbelianGrouper(ConverterBase):
         if isinstance(list_op, PauliSumOp):
             primitive = list_op.primitive
             return SummedOp(
-                [
-                    PauliSumOp(primitive[group], grouping_type="TPB")
-                    for group in groups.values()
-                ],
-                coeff=list_op.coeff
+                [PauliSumOp(primitive[group], grouping_type="TPB") for group in groups.values()],
+                coeff=list_op.coeff,
             )
 
-        group_ops = [
+        group_ops: List[ListOp] = [
             list_op.__class__([list_op[idx] for idx in group], abelian=True)
             for group in groups.values()
         ]
         if len(group_ops) == 1:
-            return group_ops[0] * list_op.coeff  # type: ignore
-        return list_op.__class__(group_ops, coeff=list_op.coeff)  # type: ignore
+            return group_ops[0].mul(list_op.coeff)
+        return list_op.__class__(group_ops, coeff=list_op.coeff)
 
     @staticmethod
     def _anti_commutation_graph(ops: Union[ListOp, PauliSumOp]) -> List[Tuple[int, int]]:
@@ -144,7 +151,7 @@ class AbelianGrouper(ConverterBase):
         # convert a Pauli operator into int vector where {I: 0, X: 2, Y: 3, Z: 1}
         if isinstance(ops, PauliSumOp):
             mat1 = np.array(
-                [op.primitive.table.Z[0] + 2 * op.primitive.table.X[0] for op in ops],
+                [op.primitive.paulis.z[0] + 2 * op.primitive.paulis.x[0] for op in ops],
                 dtype=np.int8,
             )
         else:

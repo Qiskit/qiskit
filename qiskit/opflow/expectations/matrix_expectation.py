@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,27 +10,30 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" MatrixExpectation Class """
+"""MatrixExpectation Class"""
 
-import logging
 from typing import Union
 
-from ..operator_base import OperatorBase
-from .expectation_base import ExpectationBase
-from ..list_ops import ListOp, ComposedOp
-from ..state_fns.operator_state_fn import OperatorStateFn
+from qiskit.opflow.expectations.expectation_base import ExpectationBase
+from qiskit.opflow.list_ops import ComposedOp, ListOp
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.utils.deprecation import deprecate_func
 
-logger = logging.getLogger(__name__)
-
-
-# pylint: disable=invalid-name
 
 class MatrixExpectation(ExpectationBase):
-    """ An Expectation converter which converts Operator measurements to be matrix-based so they
-    can be evaluated by matrix multiplication. """
+    """Deprecated: An Expectation converter which converts Operator measurements to
+    be matrix-based so they can be evaluated by matrix multiplication."""
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
-        """ Accept an Operator and return a new Operator with the Pauli measurements replaced by
+        """Accept an Operator and return a new Operator with the Pauli measurements replaced by
         Matrix based measurements.
 
         Args:
@@ -66,7 +69,7 @@ class MatrixExpectation(ExpectationBase):
             if isinstance(operator, ComposedOp):
                 return 0.0
             elif isinstance(operator, ListOp):
-                return operator._combo_fn([sum_variance(op) for op in operator.oplist])
+                return operator.combo_fn([sum_variance(op) for op in operator.oplist])
             else:
                 return 0.0
 

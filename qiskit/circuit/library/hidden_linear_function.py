@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
-
 """Hidden Linear Function circuit."""
 
 from typing import Union, List
@@ -55,15 +53,13 @@ class HiddenLinearFunction(QuantumCircuit):
 
     **Reference Circuit:**
 
-        .. jupyter-execute::
-            :hide-code:
+        .. plot::
 
-            from qiskit.circuit.library import HiddenLinearFunction
-            import qiskit.tools.jupyter
-            A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
-            circuit = HiddenLinearFunction(A)
-            %circuit_library_info circuit
-
+           from qiskit.circuit.library import HiddenLinearFunction
+           from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+           A = [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+           circuit = HiddenLinearFunction(A)
+           _generate_circuit_library_visualization(circuit)
 
     **Reference:**
 
@@ -71,8 +67,7 @@ class HiddenLinearFunction(QuantumCircuit):
     `arXiv:1704.00690 <https://arxiv.org/abs/1704.00690>`_
     """
 
-    def __init__(self,
-                 adjacency_matrix: Union[List[List[int]], np.ndarray]) -> None:
+    def __init__(self, adjacency_matrix: Union[List[List[int]], np.ndarray]) -> None:
         """Create new HLF circuit.
 
         Args:
@@ -87,15 +82,17 @@ class HiddenLinearFunction(QuantumCircuit):
             raise CircuitError("The adjacency matrix must be symmetric.")
 
         num_qubits = len(adjacency_matrix)
-        super().__init__(num_qubits,
-                         name="hlf: %s" % adjacency_matrix)
+        circuit = QuantumCircuit(num_qubits, name="hlf: %s" % adjacency_matrix)
 
-        self.h(range(num_qubits))
+        circuit.h(range(num_qubits))
         for i in range(num_qubits):
-            for j in range(i+1, num_qubits):
+            for j in range(i + 1, num_qubits):
                 if adjacency_matrix[i][j]:
-                    self.cz(i, j)
+                    circuit.cz(i, j)
         for i in range(num_qubits):
             if adjacency_matrix[i][i]:
-                self.s(i)
-        self.h(range(num_qubits))
+                circuit.s(i)
+        circuit.h(range(num_qubits))
+
+        super().__init__(*circuit.qregs, name=circuit.name)
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

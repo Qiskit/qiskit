@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue where adding a control to a
+    :class:`~qiskit.circuit.ControlledGate` with open controls would unset
+    the inner open controls.
+    Fixes `#5857 <https://github.com/Qiskit/qiskit-terra/issues/5857>`__

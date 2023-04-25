@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The definition of :class:`.XXPlusYYGate` has been changed.
+    See `#7969 <https://github.com/Qiskit/qiskit-terra/pull/7949>`__
+    for details.

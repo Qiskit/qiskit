@@ -41,7 +41,7 @@ print("(BasicAER Backends)")
 print(BasicAer.backends())
 
 # running the job
-job_sim = execute([qc1, qc2], BasicAer.get_backend('qasm_simulator'))
+job_sim = execute([qc1, qc2], BasicAer.get_backend("qasm_simulator"))
 sim_result = job_sim.result()
 
 # Show the results

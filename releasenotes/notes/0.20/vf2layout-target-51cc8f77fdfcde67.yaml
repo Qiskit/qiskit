@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The :class:`~.VF2Layout` transpiler pass has a new keyword argument,
+    ``target`` which is used to provide a :class:`~.Target` object for
+    the pass. When specified, the :class:`~.Target` will be used by the
+    pass for all information about the target device. If it is specified,
+    the ``target`` option will take priority over the ``coupling_map`` and
+    ``properties`` arguments.

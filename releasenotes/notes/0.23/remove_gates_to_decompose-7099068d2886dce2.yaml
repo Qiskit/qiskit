@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The ``gate`` argument to the transpiler pass :class:`~.Decompose` was deprecated in Terra 0.19 and is now removed.

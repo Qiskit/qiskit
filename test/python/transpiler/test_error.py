@@ -20,39 +20,51 @@ from qiskit.transpiler.exceptions import TranspilerError
 
 
 class TestErrorPass(QiskitTestCase):
-    """ Tests the Error pass"""
+    """Tests the Error pass"""
 
     def test_default(self):
         """Raise error with a message (default)"""
-        pass_ = Error(msg='a message')
+        pass_ = Error(msg="a message")
         with self.assertRaises(TranspilerError) as excep:
             pass_.run(None)
-        self.assertEqual(excep.exception.message, 'a message')
+        self.assertEqual(excep.exception.message, "a message")
 
     def test_raise(self):
         """Raise error with a message with variables"""
-        pass_ = Error(msg='a {variable}', action='raise')
-        pass_.property_set['variable'] = 'message'
+        pass_ = Error(msg="a {variable}", action="raise")
+        pass_.property_set["variable"] = "message"
         with self.assertRaises(TranspilerError) as excep:
             pass_.run(None)
-        self.assertEqual(excep.exception.message, 'a message')
+        self.assertEqual(excep.exception.message, "a message")
 
     def test_warning(self):
         """Warning error (message with variable)"""
-        pass_ = Error(msg='a {variable}', action='warn')
-        pass_.property_set['variable'] = 'message'
+        pass_ = Error(msg="a {variable}", action="warn")
+        pass_.property_set["variable"] = "message"
         with self.assertWarns(Warning) as warn:
             pass_.run(None)
-        self.assertEqual(warn.warning.args[-1], 'a message')
+        self.assertEqual(warn.warning.args[-1], "a message")
 
     def test_logger(self):
         """Logger error (message with variable)"""
-        pass_ = Error(msg='a {variable}', action='log')
-        pass_.property_set['variable'] = 'message'
-        with self.assertLogs('qiskit.transpiler.passes.utils.error', level='INFO') as log:
+        pass_ = Error(msg="a {variable}", action="log")
+        pass_.property_set["variable"] = "message"
+        with self.assertLogs("qiskit.transpiler.passes.utils.error", level="INFO") as log:
             pass_.run(None)
-        self.assertEqual(log.output, ['INFO:qiskit.transpiler.passes.utils.error:a message'])
+        self.assertEqual(log.output, ["INFO:qiskit.transpiler.passes.utils.error:a message"])
+
+    def test_message_callable(self):
+        """Test that the message can be a callable that accepts the property set."""
+
+        def message(property_set):
+            self.assertIn("sentinel key", property_set)
+            return property_set["sentinel key"]
+
+        pass_ = Error(message)
+        pass_.property_set["sentinel key"] = "sentinel value"
+        with self.assertRaisesRegex(TranspilerError, "sentinel value"):
+            pass_.run(None)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    The :func:`~.plot_gate_map` visualization function and the functions built
+    on top of it, :func:`~.plot_error_map` and :func:`~.plot_circuit_layout`,
+    have a new keyword argument, ``qubit_coordinates``. This argument takes
+    a sequence of 2D coordinates to use for plotting each qubit in the backend
+    being visualized. If specified this sequence must have a length equal to
+    the number of qubits on the backend and it will be used instead of the 
+    default behavior.
+  - |
+    The :func:`~.plot_gate_map` visualization function and the functions built
+    on top of it, :func:`~.plot_error_map` and :func:`~.plot_circuit_layout`,
+    now are able to plot any backend not just those with the number of qubits
+    equal to one of the IBM backends. This relies on
+    the retworkx ``spring_layout()``
+    `function <https://qiskit.org/documentation/retworkx/apiref/retworkx.spring_layout.html>`__
+    to generate the layout for the visualization. If the default layout doesn't
+    work with a backend's particular coupling graph you can use the
+    ``qubit_coordinates`` function to set a custom layout.
+  - |
+    The :func:`~.plot_gate_map` visualization function and the functions built
+    on top of it, :func:`~.plot_error_map` and :func:`~.plot_circuit_layout`,
+    are now able to function with a :class:`~.BackendV2` based backend.
+    Previously, these functions only worked with :class:`~.BaseBackend` or
+    :class:`~.BackendV1` based backends.

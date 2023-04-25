@@ -12,6 +12,7 @@
 
 """Test the MergeAdjacentBarriers pass"""
 
+import random
 import unittest
 from qiskit.transpiler.passes import MergeAdjacentBarriers
 from qiskit.converters import circuit_to_dag
@@ -23,12 +24,12 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
     """Test the MergeAdjacentBarriers pass"""
 
     def test_two_identical_barriers(self):
-        """ Merges two barriers that are identical into one
-                     ░  ░                  ░
-            q_0: |0>─░──░─   ->   q_0: |0>─░─
-                     ░  ░                  ░
+        """Merges two barriers that are identical into one
+                 ░  ░                  ░
+        q_0: |0>─░──░─   ->   q_0: |0>─░─
+                 ░  ░                  ░
         """
-        qr = QuantumRegister(1, 'q')
+        qr = QuantumRegister(1, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr)
@@ -43,12 +44,12 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_numerous_identical_barriers(self):
-        """ Merges 5 identical barriers in a row into one
+        """Merges 5 identical barriers in a row into one
                  ░  ░  ░  ░  ░  ░                     ░
         q_0: |0>─░──░──░──░──░──░─    ->     q_0: |0>─░─
                  ░  ░  ░  ░  ░  ░                     ░
         """
-        qr = QuantumRegister(1, 'q')
+        qr = QuantumRegister(1, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr)
@@ -70,14 +71,14 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_barriers_of_different_sizes(self):
-        """ Test two barriers of different sizes are merged into one
-                     ░  ░                     ░
-            q_0: |0>─░──░─           q_0: |0>─░─
-                     ░  ░     ->              ░
-            q_1: |0>────░─           q_1: |0>─░─
-                        ░                     ░
+        """Test two barriers of different sizes are merged into one
+                 ░  ░                     ░
+        q_0: |0>─░──░─           q_0: |0>─░─
+                 ░  ░     ->              ░
+        q_1: |0>────░─           q_1: |0>─░─
+                    ░                     ░
         """
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr[0])
@@ -92,17 +93,17 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_not_overlapping_barriers(self):
-        """ Test two barriers with no overlap are not merged
-            (NB in these pictures they look like 1 barrier but they are
-                actually 2 distinct barriers, this is just how the text
-                drawer draws them)
-                     ░                     ░
-            q_0: |0>─░─           q_0: |0>─░─
-                     ░     ->              ░
-            q_1: |0>─░─           q_1: |0>─░─
-                     ░                     ░
+        """Test two barriers with no overlap are not merged
+        (NB in these pictures they look like 1 barrier but they are
+            actually 2 distinct barriers, this is just how the text
+            drawer draws them)
+                 ░                     ░
+        q_0: |0>─░─           q_0: |0>─░─
+                 ░     ->              ░
+        q_1: |0>─░─           q_1: |0>─░─
+                 ░                     ░
         """
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr[0])
@@ -118,14 +119,14 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_barriers_with_obstacle_before(self):
-        """ Test with an obstacle before the larger barrier
+        """Test with an obstacle before the larger barrier
                   ░   ░                          ░
         q_0: |0>──░───░─           q_0: |0>──────░─
                 ┌───┐ ░     ->             ┌───┐ ░
         q_1: |0>┤ H ├─░─           q_1: |0>┤ H ├─░─
                 └───┘ ░                    └───┘ ░
         """
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr[0])
@@ -142,14 +143,14 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_barriers_with_obstacle_after(self):
-        """ Test with an obstacle after the larger barrier
+        """Test with an obstacle after the larger barrier
                  ░   ░                      ░
         q_0: |0>─░───░──           q_0: |0>─░──────
                  ░ ┌───┐    ->              ░ ┌───┐
         q_1: |0>─░─┤ H ├           q_1: |0>─░─┤ H ├
                  ░ └───┘                    ░ └───┘
         """
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr)
@@ -166,13 +167,13 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_barriers_with_blocking_obstacle(self):
-        """ Test that barriers don't merge if there is an obstacle that
-            is blocking
-                     ░ ┌───┐ ░                     ░ ┌───┐ ░
-            q_0: |0>─░─┤ H ├─░─    ->     q_0: |0>─░─┤ H ├─░─
-                     ░ └───┘ ░                     ░ └───┘ ░
+        """Test that barriers don't merge if there is an obstacle that
+        is blocking
+                 ░ ┌───┐ ░                     ░ ┌───┐ ░
+        q_0: |0>─░─┤ H ├─░─    ->     q_0: |0>─░─┤ H ├─░─
+                 ░ └───┘ ░                     ░ └───┘ ░
         """
-        qr = QuantumRegister(1, 'q')
+        qr = QuantumRegister(1, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr)
@@ -190,7 +191,7 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_barriers_with_blocking_obstacle_long(self):
-        """ Test that barriers don't merge if there is an obstacle that
+        """Test that barriers don't merge if there is an obstacle that
             is blocking
                  ░ ┌───┐ ░                     ░ ┌───┐ ░
         q_0: |0>─░─┤ H ├─░─           q_0: |0>─░─┤ H ├─░─
@@ -198,7 +199,7 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         q_1: |0>─────────░─           q_1: |0>─────────░─
                          ░                             ░
         """
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr[0])
@@ -216,7 +217,7 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_barriers_with_blocking_obstacle_narrow(self):
-        """ Test that barriers don't merge if there is an obstacle that
+        """Test that barriers don't merge if there is an obstacle that
             is blocking
                  ░ ┌───┐ ░                     ░ ┌───┐ ░
         q_0: |0>─░─┤ H ├─░─           q_0: |0>─░─┤ H ├─░─
@@ -224,7 +225,7 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         q_1: |0>─░───────░─           q_1: |0>─░───────░─
                  ░       ░                     ░       ░
         """
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(qr)
@@ -242,7 +243,7 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_barriers_with_blocking_obstacle_twoQ(self):
-        """ Test that barriers don't merge if there is an obstacle that
+        """Test that barriers don't merge if there is an obstacle that
             is blocking
 
                  ░       ░                     ░       ░
@@ -254,7 +255,7 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
                    └───┘ ░                       └───┘ ░
 
         """
-        qr = QuantumRegister(3, 'q')
+        qr = QuantumRegister(3, "q")
 
         circuit = QuantumCircuit(qr)
         circuit.barrier(0, 1)
@@ -271,6 +272,28 @@ class TestMergeAdjacentBarriers(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+    def test_output_deterministic(self):
+        """Test that the output barriers have a deterministic ordering (independent of
+        PYTHONHASHSEED).  This is important to guarantee that any subsequent topological iterations
+        through the circuit are also deterministic; it's in general not possible for all transpiler
+        passes to produce identical outputs across all valid topological orderings, especially if
+        those passes have some stochastic element."""
+        order = list(range(20))
+        random.Random(2023_02_10).shuffle(order)
+        circuit = QuantumCircuit(20)
+        circuit.barrier([5, 2, 3])
+        circuit.barrier([7, 11, 14, 2, 4])
+        circuit.barrier(order)
 
-if __name__ == '__main__':
+        # All the barriers should get merged together.
+        expected = QuantumCircuit(20)
+        expected.barrier(range(20))
+
+        output = MergeAdjacentBarriers()(circuit)
+        self.assertEqual(expected, output)
+        # This assertion is that the ordering of the arguments in the barrier is fixed.
+        self.assertEqual(list(output.data[0].qubits), list(output.qubits))
+
+
+if __name__ == "__main__":
     unittest.main()

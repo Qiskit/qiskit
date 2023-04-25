@@ -1,0 +1,14 @@
+---
+deprecations:
+  - |
+    The legacy providers interface, which consisted of the
+    :class:`qiskit.providers.BaseBackend`, :class:`qiskit.providers.BaseJob`,
+    and :class:`qiskit.providers.BaseProvider` abstract classes, has been
+    deprecated and will be removed in a future release. Instead you should use
+    the versioned interface, which the current abstract class versions are
+    :class:`qiskit.providers.BackendV1`, :class:`qiskit.providers.JobV1`, and
+    :class:`qiskit.providers.ProviderV1`. The V1 objects are mostly backwards
+    compatible to ease migration from the legacy interface to the versioned
+    one. However, expect future versions of the abstract interfaces to diverge
+    more. You can refer to the :mod:`qiskit.providers` documentation for
+    more high level details about the versioned interface.

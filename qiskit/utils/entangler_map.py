@@ -39,11 +39,11 @@ def get_entangler_map(map_type, num_qubits, offset=0):
     ret = []
 
     if num_qubits > 1:
-        if map_type == 'full':
+        if map_type == "full":
             ret = [[i, j] for i in range(num_qubits) for j in range(i + 1, num_qubits)]
-        elif map_type == 'linear':
+        elif map_type == "linear":
             ret = [[i, i + 1] for i in range(num_qubits - 1)]
-        elif map_type == 'sca':
+        elif map_type == "sca":
             offset_idx = offset % num_qubits
             if offset_idx % 2 == 0:  # even block numbers
                 for i in reversed(range(offset_idx)):
@@ -95,19 +95,17 @@ def validate_entangler_map(entangler_map, num_qubits, allow_double_entanglement=
 
     for src_to_targ in entangler_map:
         if not isinstance(src_to_targ, list):
-            raise TypeError('Entangle index list expected but got {}'.format(type(src_to_targ)))
+            raise TypeError(f"Entangle index list expected but got {type(src_to_targ)}")
 
     ret_map = []
     ret_map = [[int(src), int(targ)] for src, targ in entangler_map]
 
     for src, targ in ret_map:
         if src < 0 or src >= num_qubits:
-            raise ValueError(
-                'Qubit entangle source value {} invalid for {} qubits'.format(src, num_qubits))
+            raise ValueError(f"Qubit entangle source value {src} invalid for {num_qubits} qubits")
         if targ < 0 or targ >= num_qubits:
-            raise ValueError(
-                'Qubit entangle target value {} invalid for {} qubits'.format(targ, num_qubits))
+            raise ValueError(f"Qubit entangle target value {targ} invalid for {num_qubits} qubits")
         if not allow_double_entanglement and [targ, src] in ret_map:
-            raise ValueError('Qubit {} and {} cross-entangled.'.format(src, targ))
+            raise ValueError(f"Qubit {src} and {targ} cross-entangled.")
 
     return ret_map

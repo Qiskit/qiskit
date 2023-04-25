@@ -12,9 +12,14 @@
 
 """iSWAP gate."""
 
+from typing import Optional
+
 import numpy as np
+
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
+
+from .xx_plus_yy import XXPlusYYGate
 
 
 class iSwapGate(Gate):
@@ -24,6 +29,9 @@ class iSwapGate(Gate):
     This is a Clifford and symmetric gate. Its action is to swap two qubit
     states and phase the :math:`|01\rangle` and :math:`|10\rangle`
     amplitudes by i.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.iswap` method.
 
     **Circuit Symbol:**
 
@@ -47,8 +55,8 @@ class iSwapGate(Gate):
 
     .. math::
 
-        iSWAP = R_{XX+YY}(-\frac{\pi}{2})
-          = exp(i \frac{\pi}{4} (X{\otimes}X+Y{\otimes}Y)) =
+        iSWAP = R_{XX+YY}\left(-\frac{\pi}{2}\right)
+          = \exp\left(i \frac{\pi}{4} \left(X{\otimes}X+Y{\otimes}Y\right)\right) =
             \begin{pmatrix}
                 1 & 0 & 0 & 0 \\
                 0 & 0 & i & 0 \\
@@ -75,9 +83,9 @@ class iSwapGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self):
+    def __init__(self, label: Optional[str] = None):
         """Create new iSwap gate."""
-        super().__init__('iswap', 2, [])
+        super().__init__("iswap", 2, [], label=label)
 
     def _define(self):
         """
@@ -92,10 +100,12 @@ class iSwapGate(Gate):
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
+
         from .h import HGate
         from .s import SGate
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [
             (SGate(), [q[0]], []),
@@ -103,7 +113,7 @@ class iSwapGate(Gate):
             (HGate(), [q[0]], []),
             (CXGate(), [q[0], q[1]], []),
             (CXGate(), [q[1], q[0]], []),
-            (HGate(), [q[1]], [])
+            (HGate(), [q[1]], []),
         ]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
@@ -112,7 +122,8 @@ class iSwapGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the iSWAP gate."""
-        return np.array([[1, 0, 0, 0],
-                         [0, 0, 1j, 0],
-                         [0, 1j, 0, 0],
-                         [0, 0, 0, 1]], dtype=dtype)
+        return np.array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0], [0, 0, 0, 1]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        return XXPlusYYGate(-np.pi * exponent)

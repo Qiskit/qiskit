@@ -12,12 +12,14 @@
 
 """Analytical Quantum Gradient Descent (AQGD) optimizer."""
 
+from __future__ import annotations
 import logging
-from typing import Callable, Tuple, List, Dict, Union
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from qiskit.utils.validation import validate_range_exclusive_max
-from .optimizer import Optimizer, OptimizerSupportLevel
+from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 from ..exceptions import AlgorithmError
 
 logger = logging.getLogger(__name__)
@@ -26,7 +28,7 @@ logger = logging.getLogger(__name__)
 class AQGD(Optimizer):
     """Analytic Quantum Gradient Descent (AQGD) with Epochs optimizer.
     Performs gradient descent optimization with a momentum term, analytic gradients,
-    and customized step length schedule for parametrized quantum gates, i.e.
+    and customized step length schedule for parameterized quantum gates, i.e.
     Pauli Rotations. See, for example:
 
     * K. Mitarai, M. Negoro, M. Kitagawa, and K. Fujii. (2018).
@@ -37,21 +39,24 @@ class AQGD(Optimizer):
       Evaluating analytic gradients on quantum hardware. Phys. Rev. A 99, 032331.
       https://arxiv.org/abs/1811.11184
 
-    for further details on analytic gradients of parametrized quantum gates.
+    for further details on analytic gradients of parameterized quantum gates.
 
     Gradients are computed "analytically" using the quantum circuit when evaluating
     the objective function.
 
     """
-    _OPTIONS = ['maxiter', 'eta', 'tol', 'disp', 'momentum', 'param_tol', 'averaging']
 
-    def __init__(self,
-                 maxiter: Union[int, List[int]] = 1000,
-                 eta: Union[float, List[float]] = 1.0,
-                 tol: float = 1e-6,  # this is tol
-                 momentum: Union[float, List[float]] = 0.25,
-                 param_tol: float = 1e-6,
-                 averaging: int = 10) -> None:
+    _OPTIONS = ["maxiter", "eta", "tol", "disp", "momentum", "param_tol", "averaging"]
+
+    def __init__(
+        self,
+        maxiter: int | list[int] = 1000,
+        eta: float | list[float] = 1.0,
+        tol: float = 1e-6,  # this is tol
+        momentum: float | list[float] = 0.25,
+        param_tol: float = 1e-6,
+        averaging: int = 10,
+    ) -> None:
         """
         Performs Analytical Quantum Gradient Descent (AQGD) with Epochs.
 
@@ -79,10 +84,12 @@ class AQGD(Optimizer):
         if isinstance(momentum, (int, float)):
             momentum = [momentum]
         if len(maxiter) != len(eta) or len(maxiter) != len(momentum):
-            raise AlgorithmError("AQGD input parameter length mismatch. Parameters `maxiter`, "
-                                 "`eta`, and `momentum` must have the same length.")
+            raise AlgorithmError(
+                "AQGD input parameter length mismatch. Parameters `maxiter`, "
+                "`eta`, and `momentum` must have the same length."
+            )
         for m in momentum:
-            validate_range_exclusive_max('momentum', m, 0, 1)
+            validate_range_exclusive_max("momentum", m, 0, 1)
 
         self._eta = eta
         self._maxiter = maxiter
@@ -92,27 +99,39 @@ class AQGD(Optimizer):
         self._averaging = averaging
 
         # state
-        self._avg_objval = None
-        self._prev_param = None
-        self._eval_count = 0    # function evaluations
-        self._prev_loss = []    # type: List[float]
-        self._prev_grad = []    # type: List[List[float]]
+        self._avg_objval: float | None = None
+        self._prev_param: np.ndarray | None = None
+        self._eval_count = 0  # function evaluations
+        self._prev_loss: list[float] = []
+        self._prev_grad: list[list[float]] = []
 
-    def get_support_level(self) -> Dict[str, OptimizerSupportLevel]:
-        """ Support level dictionary
+    def get_support_level(self) -> dict[str, OptimizerSupportLevel]:
+        """Support level dictionary
 
         Returns:
             Dict[str, int]: gradient, bounds and initial point
                             support information that is ignored/required.
         """
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.ignored,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.ignored,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def _compute_objective_fn_and_gradient(self, params: List[float],
-                                           obj: Callable) -> Tuple[float, np.array]:
+    @property
+    def settings(self) -> dict[str, Any]:
+        return {
+            "maxiter": self._maxiter,
+            "eta": self._eta,
+            "momentum": self._momenta_coeff,
+            "param_tol": self._param_tol,
+            "tol": self._tol,
+            "averaging": self._averaging,
+        }
+
+    def _compute_objective_fn_and_gradient(
+        self, params: np.ndarray | list[float], obj: Callable
+    ) -> tuple[float, np.ndarray]:
         """
         Obtains the objective function value for params and the analytical quantum derivatives of
         the objective function with respect to each parameter. Requires
@@ -127,10 +146,13 @@ class AQGD(Optimizer):
         """
         num_params = len(params)
         param_sets_to_eval = params + np.concatenate(
-            (np.zeros((1, num_params)),  # copy of the parameters as is
-             np.eye(num_params) * np.pi / 2,  # copy of the parameters with the positive shift
-             -np.eye(num_params) * np.pi / 2),  # copy of the parameters with the negative shift
-            axis=0)
+            (
+                np.zeros((1, num_params)),  # copy of the parameters as is
+                np.eye(num_params) * np.pi / 2,  # copy of the parameters with the positive shift
+                -np.eye(num_params) * np.pi / 2,
+            ),  # copy of the parameters with the negative shift
+            axis=0,
+        )
         # Evaluate,
         # reshaping to flatten, as expected by objective function
         values = np.array(obj(param_sets_to_eval.reshape(-1)))
@@ -142,11 +164,17 @@ class AQGD(Optimizer):
         obj_value = values[0]
 
         # return the gradient values
-        gradient = 0.5 * (values[1:num_params + 1] - values[1 + num_params:])
+        gradient = 0.5 * (values[1 : num_params + 1] - values[1 + num_params :])
         return obj_value, gradient
 
-    def _update(self, params: np.array, gradient: np.array, mprev: np.array,
-                step_size: float, momentum_coeff: float) -> Tuple[List[float], List[float]]:
+    def _update(
+        self,
+        params: np.ndarray,
+        gradient: np.ndarray,
+        mprev: np.ndarray,
+        step_size: float,
+        momentum_coeff: float,
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Updates full parameter array based on a step that is a convex
         combination of the gradient and previous momentum
@@ -193,7 +221,7 @@ class AQGD(Optimizer):
         # Calculate previous windowed average
         # and current windowed average of objective values
         prev_avg = np.mean(self._prev_loss[:window_size])
-        curr_avg = np.mean(self._prev_loss[1:window_size + 1])
+        curr_avg = np.mean(self._prev_loss[1 : window_size + 1])
         self._avg_objval = curr_avg
 
         # Update window of objective values
@@ -206,7 +234,7 @@ class AQGD(Optimizer):
             return True
         return False
 
-    def _converged_parameter(self, parameter: List[float], tol: float) -> bool:
+    def _converged_parameter(self, parameter: np.ndarray, tol: float) -> bool:
         """
         Tests convergence based on change in parameter
 
@@ -229,7 +257,7 @@ class AQGD(Optimizer):
             return True
         return False
 
-    def _converged_alt(self, gradient: List[float], tol: float, window_size: int) -> bool:
+    def _converged_alt(self, gradient: list[float], tol: float, window_size: int) -> bool:
         """
         Tests convergence from norm of windowed average of gradients
 
@@ -265,23 +293,21 @@ class AQGD(Optimizer):
             return True
         return False
 
-    def optimize(self,
-                 num_vars: int,
-                 objective_function: Callable,
-                 gradient_function: Callable = None,
-                 variable_bounds: List[Tuple[float, float]] = None,
-                 initial_point: np.ndarray = None) -> Tuple[np.ndarray, float, int]:
-        super().optimize(num_vars, objective_function, gradient_function, variable_bounds,
-                         initial_point)
-
-        params = np.array(initial_point)
-        momentum = np.zeros(shape=(num_vars,))
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
+    ) -> OptimizerResult:
+        params = np.asarray(x0)
+        momentum = np.zeros(shape=(params.size,))
         # empty out history of previous objectives/gradients/parameters
         # (in case this object is re-used)
         self._prev_loss = []
         self._prev_grad = []
         self._prev_param = None
-        self._eval_count = 0    # function evaluations
+        self._eval_count = 0  # function evaluations
 
         iter_count = 0
         logger.info("Initial Params: %s", params)
@@ -291,7 +317,7 @@ class AQGD(Optimizer):
         for (eta, mom_coeff) in zip(self._eta, self._momenta_coeff):
             logger.info("Epoch: %4d | Stepsize: %6.4f | Momentum: %6.4f", epoch, eta, mom_coeff)
 
-            sum_max_iters = sum(self._maxiter[0:epoch + 1])
+            sum_max_iters = sum(self._maxiter[0 : epoch + 1])
             while iter_count < sum_max_iters:
                 # update the iteration count
                 iter_count += 1
@@ -302,15 +328,18 @@ class AQGD(Optimizer):
                     break
 
                 # Calculate objective function and estimate of analytical gradient
-                if gradient_function is None:
-                    objval, gradient = \
-                        self._compute_objective_fn_and_gradient(params, objective_function)
+                if jac is None:
+                    objval, gradient = self._compute_objective_fn_and_gradient(params, fun)
                 else:
-                    objval = objective_function(params)
-                    gradient = gradient_function(params)
+                    objval = fun(params)
+                    gradient = jac(params)
 
-                logger.info(" Iter: %4d | Obj: %11.6f | Grad Norm: %f",
-                            iter_count, objval, np.linalg.norm(gradient, ord=np.inf))
+                logger.info(
+                    " Iter: %4d | Obj: %11.6f | Grad Norm: %f",
+                    iter_count,
+                    objval,
+                    np.linalg.norm(gradient, ord=np.inf),
+                )
 
                 # Check for objective convergence
                 converged = self._converged_objective(objval, self._tol, self._averaging)
@@ -326,5 +355,10 @@ class AQGD(Optimizer):
             epoch += 1
         # end epoch iteration
 
-        # return last parameter values, objval estimate, and objective evaluation count
-        return params, objval, self._eval_count
+        result = OptimizerResult()
+        result.x = params
+        result.fun = objval
+        result.nfev = self._eval_count
+        result.nit = iter_count
+
+        return result

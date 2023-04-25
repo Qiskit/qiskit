@@ -22,4 +22,4 @@ class TestVersion(QiskitTestCase):
 
     def test_qiskit_version(self):
         """Test qiskit-version sets the correct version for terra."""
-        self.assertEqual(__version__, __qiskit_version__['qiskit-terra'])
+        self.assertEqual(__version__, __qiskit_version__["qiskit-terra"])

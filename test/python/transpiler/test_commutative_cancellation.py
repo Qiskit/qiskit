@@ -17,13 +17,15 @@ import numpy as np
 from qiskit.test import QiskitTestCase
 
 from qiskit import QuantumRegister, QuantumCircuit
-from qiskit.circuit.library import U1Gate
+from qiskit.circuit.library import U1Gate, RZGate, PhaseGate, CXGate, SXGate
+from qiskit.circuit.parameter import Parameter
+from qiskit.transpiler.target import Target
 from qiskit.transpiler import PassManager, PropertySet
 from qiskit.transpiler.passes import CommutationAnalysis, CommutativeCancellation, FixedPoint, Size
+from qiskit.quantum_info import Operator
 
 
 class TestCommutativeCancellation(QiskitTestCase):
-
     """Test the CommutativeCancellation pass."""
 
     def setUp(self):
@@ -45,7 +47,7 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         qr1:----------
         """
-        qr = QuantumRegister(2, 'q')
+        qr = QuantumRegister(2, "q")
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         circuit.h(qr[0])
@@ -71,7 +73,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         new_circuit = passmanager.run(circuit)
 
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(2.0), [qr[0]])
+        expected.append(RZGate(2.0), [qr[0]])
         expected.rx(1.0, qr[0])
 
         self.assertEqual(expected, new_circuit)
@@ -85,7 +87,7 @@ class TestCommutativeCancellation(QiskitTestCase):
                         |                             |
         qr2:---[H]------.----------       qr2:---[H]--.---
         """
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.h(qr[2])
@@ -110,7 +112,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)----(+)-   =   qr1:------------
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
@@ -125,7 +127,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         """
         Two CNOTs that equals identity, with rotation gates inserted.
         """
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.rx(np.pi, qr[0])
         circuit.cx(qr[0], qr[1])
@@ -133,10 +135,10 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.rx(np.pi, qr[0])
 
         passmanager = PassManager()
-        passmanager.append([CommutationAnalysis(),
-                            CommutativeCancellation(),
-                            Size(), FixedPoint('size')],
-                           do_while=lambda property_set: not property_set['size_fixed_point'])
+        passmanager.append(
+            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
+            do_while=lambda property_set: not property_set["size_fixed_point"],
+        )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
 
@@ -151,7 +153,7 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[0])
@@ -172,7 +174,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)-------------(+)-   =   qr1:---(+)-------------(+)-
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.x(qr[0])
@@ -195,7 +197,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)-------------(+)-   =   qr1:---------
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.z(qr[0])
@@ -216,7 +218,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)-------------(+)-   =   qr1:---------
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.t(qr[0])
@@ -237,7 +239,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)-------- -----(+)-   =   qr1:----------
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.rz(np.pi / 3, qr[0])
@@ -258,7 +260,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)-------------(+)-   =   qr1:---------
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.t(qr[0])
@@ -279,7 +281,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)-----[Z]-----(+)-   =   qr1:---(+)----[Z]------(+)-
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.z(qr[1])
@@ -302,7 +304,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)-----[T]-----(+)-   =   qr1:---(+)----[T]------(+)-
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.t(qr[1])
@@ -325,7 +327,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr1:---(+)-----[Rz]----(+)-   =   qr1:---(+)----[Rz]-----(+)-
         """
 
-        qr = QuantumRegister(2, 'qr')
+        qr = QuantumRegister(2, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.rz(np.pi / 3, qr[1])
@@ -352,7 +354,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr2:---[Rz]---.---[Rz]-[T]--[S]--     qr2:--[U1]---.---
         """
 
-        qr = QuantumRegister(3, 'qr')
+        qr = QuantumRegister(3, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.rz(np.pi / 3, qr[2])
@@ -368,9 +370,9 @@ class TestCommutativeCancellation(QiskitTestCase):
         passmanager.append(CommutativeCancellation())
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(np.pi * 17 / 12), [qr[2]])
+        expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
         expected.cx(qr[2], qr[1])
-
+        expected.global_phase = (np.pi * 17 / 12 - (2 * np.pi / 3)) / 2
         self.assertEqual(expected, new_circuit)
 
     def test_commutative_circuit3(self):
@@ -387,7 +389,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         qr3:-[Rz]--[X]-(+)------(+)--[X]-[Rz]-------     qr3:--[Rz]-------
         """
 
-        qr = QuantumRegister(4, 'qr')
+        qr = QuantumRegister(4, "qr")
         circuit = QuantumCircuit(qr)
 
         circuit.cx(qr[0], qr[1])
@@ -407,23 +409,26 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.x(qr[1])
 
         passmanager = PassManager()
-        passmanager.append([CommutationAnalysis(),
-                            CommutativeCancellation(), Size(), FixedPoint('size')],
-                           do_while=lambda property_set: not property_set['size_fixed_point'])
+        passmanager.append(
+            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
+            do_while=lambda property_set: not property_set["size_fixed_point"],
+        )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
-        expected.append(U1Gate(np.pi * 17 / 12), [qr[2]])
-        expected.append(U1Gate(np.pi * 2 / 3), [qr[3]])
+        expected.append(RZGate(np.pi * 17 / 12), [qr[2]])
+        expected.append(RZGate(np.pi * 2 / 3), [qr[3]])
         expected.cx(qr[2], qr[1])
 
-        self.assertEqual(expected, new_circuit)
+        self.assertEqual(
+            expected, new_circuit, msg=f"expected:\n{expected}\nnew_circuit:\n{new_circuit}"
+        )
 
     def test_cnot_cascade(self):
         """
         A cascade of CNOTs that equals identity.
         """
 
-        qr = QuantumRegister(10, 'qr')
+        qr = QuantumRegister(10, "qr")
         circuit = QuantumCircuit(qr)
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[1], qr[2])
@@ -447,9 +452,10 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
-        passmanager.append([CommutationAnalysis(),
-                            CommutativeCancellation(), Size(), FixedPoint('size')],
-                           do_while=lambda property_set: not property_set['size_fixed_point'])
+        passmanager.append(
+            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
+            do_while=lambda property_set: not property_set["size_fixed_point"],
+        )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
 
@@ -460,7 +466,7 @@ class TestCommutativeCancellation(QiskitTestCase):
         A cascade of CNOTs that equals identity, with rotation gates inserted.
         """
 
-        qr = QuantumRegister(10, 'qr')
+        qr = QuantumRegister(10, "qr")
         circuit = QuantumCircuit(qr)
         circuit.rx(np.pi, qr[0])
         circuit.rx(np.pi, qr[1])
@@ -502,9 +508,10 @@ class TestCommutativeCancellation(QiskitTestCase):
         circuit.rx(np.pi, qr[9])
         passmanager = PassManager()
         # passmanager.append(CommutativeCancellation())
-        passmanager.append([CommutationAnalysis(),
-                            CommutativeCancellation(), Size(), FixedPoint('size')],
-                           do_while=lambda property_set: not property_set['size_fixed_point'])
+        passmanager.append(
+            [CommutationAnalysis(), CommutativeCancellation(), Size(), FixedPoint("size")],
+            do_while=lambda property_set: not property_set["size_fixed_point"],
+        )
         new_circuit = passmanager.run(circuit)
         expected = QuantumCircuit(qr)
 
@@ -512,6 +519,17 @@ class TestCommutativeCancellation(QiskitTestCase):
 
     def test_conditional_gates_dont_commute(self):
         """Conditional gates do not commute and do not cancel"""
+
+        #      ┌───┐┌─┐
+        # q_0: ┤ H ├┤M├─────────────
+        #      └───┘└╥┘       ┌─┐
+        # q_1: ──■───╫────■───┤M├───
+        #      ┌─┴─┐ ║  ┌─┴─┐ └╥┘┌─┐
+        # q_2: ┤ X ├─╫──┤ X ├──╫─┤M├
+        #      └───┘ ║  └─╥─┘  ║ └╥┘
+        #            ║ ┌──╨──┐ ║  ║
+        # c: 2/══════╩═╡ 0x0 ╞═╩══╩═
+        #            0 └─────┘ 0  1
         circuit = QuantumCircuit(3, 2)
         circuit.h(0)
         circuit.measure(0, 0)
@@ -524,6 +542,118 @@ class TestCommutativeCancellation(QiskitTestCase):
 
         self.assertEqual(circuit, new_circuit)
 
+    def test_basis_01(self):
+        """Test basis priority change, phase gate"""
+        circuit = QuantumCircuit(1)
+        circuit.s(0)
+        circuit.z(0)
+        circuit.t(0)
+        circuit.rz(np.pi, 0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation(basis_gates=["cx", "p", "sx"]))
+        new_circuit = passmanager.run(circuit)
+        expected = QuantumCircuit(1)
+        expected.rz(11 * np.pi / 4, 0)
+        expected.global_phase = 11 * np.pi / 4 / 2 - np.pi / 2
 
-if __name__ == '__main__':
+        self.assertEqual(new_circuit, expected)
+
+    def test_target_basis_01(self):
+        """Test basis priority change, phase gate, with target."""
+        circuit = QuantumCircuit(1)
+        circuit.s(0)
+        circuit.z(0)
+        circuit.t(0)
+        circuit.rz(np.pi, 0)
+        theta = Parameter("theta")
+        target = Target(num_qubits=2)
+        target.add_instruction(CXGate())
+        target.add_instruction(PhaseGate(theta))
+        target.add_instruction(SXGate())
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation(target=target))
+        new_circuit = passmanager.run(circuit)
+        expected = QuantumCircuit(1)
+        expected.rz(11 * np.pi / 4, 0)
+        expected.global_phase = 11 * np.pi / 4 / 2 - np.pi / 2
+
+        self.assertEqual(new_circuit, expected)
+
+    def test_basis_02(self):
+        """Test basis priority change, Rz gate"""
+        circuit = QuantumCircuit(1)
+        circuit.s(0)
+        circuit.z(0)
+        circuit.t(0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation(basis_gates=["cx", "rz", "sx"]))
+        new_circuit = passmanager.run(circuit)
+
+        expected = QuantumCircuit(1)
+        expected.rz(7 * np.pi / 4, 0)
+        expected.global_phase = 7 * np.pi / 4 / 2
+        self.assertEqual(new_circuit, expected)
+
+    def test_basis_03(self):
+        """Test no specified basis"""
+        circuit = QuantumCircuit(1)
+        circuit.s(0)
+        circuit.z(0)
+        circuit.t(0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        new_circuit = passmanager.run(circuit)
+
+        expected = QuantumCircuit(1)
+        expected.s(0)
+        expected.z(0)
+        expected.t(0)
+        self.assertEqual(new_circuit, expected)
+
+    def test_basis_global_phase_01(self):
+        """Test no specified basis, rz"""
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi / 2, 0)
+        circ.p(np.pi / 2, 0)
+        circ.p(np.pi / 2, 0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        ccirc = passmanager.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_basis_global_phase_02(self):
+        """Test no specified basis, p"""
+        circ = QuantumCircuit(1)
+        circ.p(np.pi / 2, 0)
+        circ.rz(np.pi / 2, 0)
+        circ.p(np.pi / 2, 0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        ccirc = passmanager.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_basis_global_phase_03(self):
+        """Test global phase preservation if cummulative z-rotation is 0"""
+        circ = QuantumCircuit(1)
+        circ.rz(np.pi / 2, 0)
+        circ.p(np.pi / 2, 0)
+        circ.z(0)
+        passmanager = PassManager()
+        passmanager.append(CommutativeCancellation())
+        ccirc = passmanager.run(circ)
+        self.assertEqual(Operator(circ), Operator(ccirc))
+
+    def test_basic_classical_wires(self):
+        """Test that transpile runs without internal errors when dealing with commutable operations
+        with classical controls. Regression test for gh-8553."""
+        original = QuantumCircuit(2, 1)
+        original.x(0).c_if(original.cregs[0], 0)
+        original.x(1).c_if(original.cregs[0], 0)
+        # This transpilation shouldn't change anything, but it should succeed.  At one point it was
+        # triggering an internal logic error and crashing.
+        transpiled = PassManager([CommutativeCancellation()]).run(original)
+        self.assertEqual(original, transpiled)
+
+
+if __name__ == "__main__":
     unittest.main()

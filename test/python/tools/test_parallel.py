@@ -14,15 +14,16 @@
 import os
 import time
 
-from qiskit.tools.parallel import parallel_map
+from unittest.mock import patch
+
+from qiskit.tools.parallel import get_platform_parallel_default, parallel_map
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.pulse import Schedule
 from qiskit.test import QiskitTestCase
 
 
 def _parfunc(x):
-    """Function for testing parallel_map
-    """
+    """Function for testing parallel_map"""
     time.sleep(1)
     return x
 
@@ -38,16 +39,45 @@ def _build_simple_schedule(_):
     return Schedule()
 
 
+class TestGetPlatformParallelDefault(QiskitTestCase):
+    """Tests get_parallel_default_for_platform."""
+
+    def test_windows_parallel_default(self):
+        """Verifies the parallel default for Windows."""
+        with patch("sys.platform", "win32"):
+            parallel_default = get_platform_parallel_default()
+            self.assertEqual(parallel_default, False)
+
+    def test_mac_os_supported_version_parallel_default(self):
+        """Verifies the parallel default for macOS."""
+        with patch("sys.platform", "darwin"):
+            with patch("sys.version_info", (10, 11, 0, "final", 0)):
+                parallel_default = get_platform_parallel_default()
+                self.assertEqual(parallel_default, True)
+
+    def test_mac_os_unsupported_version_parallel_default(self):
+        """Verifies the parallel default for macOS."""
+        with patch("sys.platform", "darwin"):
+            with patch("sys.version_info", (3, 8, 0, "final", 0)):
+                parallel_default = get_platform_parallel_default()
+                self.assertEqual(parallel_default, False)
+
+    def test_other_os_parallel_default(self):
+        """Verifies the parallel default for Linux and other OSes."""
+        with patch("sys.platform", "linux"):
+            parallel_default = get_platform_parallel_default()
+            self.assertEqual(parallel_default, True)
+
+
 class TestParallel(QiskitTestCase):
-    """A class for testing parallel_map functionality.
-    """
+    """A class for testing parallel_map functionality."""
 
     def test_parallel_env_flag(self):
-        """Verify parallel env flag is set """
-        self.assertEqual(os.getenv('QISKIT_IN_PARALLEL', None), 'FALSE')
+        """Verify parallel env flag is set"""
+        self.assertEqual(os.getenv("QISKIT_IN_PARALLEL", None), "FALSE")
 
     def test_parallel(self):
-        """Test parallel_map """
+        """Test parallel_map"""
         ans = parallel_map(_parfunc, list(range(10)))
         self.assertEqual(ans, list(range(10)))
 

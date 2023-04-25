@@ -24,22 +24,47 @@ class DAGDepNode:
     be supplied to functions that take a node.
     """
 
-    __slots__ = ['type', '_op', 'name', '_qargs', 'cargs', 'condition',
-                 'sort_key', 'node_id', 'successors', 'predecessors',
-                 'reachable', 'matchedwith', 'isblocked', 'successorstovisit',
-                 'qindices', 'cindices']
+    __slots__ = [
+        "type",
+        "_op",
+        "name",
+        "_qargs",
+        "cargs",
+        "sort_key",
+        "node_id",
+        "successors",
+        "predecessors",
+        "reachable",
+        "matchedwith",
+        "isblocked",
+        "successorstovisit",
+        "qindices",
+        "cindices",
+    ]
 
-    def __init__(self, type=None, op=None, name=None, qargs=None, cargs=None,
-                 condition=None, successors=None, predecessors=None, reachable=None,
-                 matchedwith=None, successorstovisit=None, isblocked=None, qindices=None,
-                 cindices=None, nid=-1):
+    def __init__(
+        self,
+        type=None,
+        op=None,
+        name=None,
+        qargs=(),
+        cargs=(),
+        successors=None,
+        predecessors=None,
+        reachable=None,
+        matchedwith=None,
+        successorstovisit=None,
+        isblocked=None,
+        qindices=None,
+        cindices=None,
+        nid=-1,
+    ):
 
         self.type = type
         self._op = op
         self.name = name
-        self._qargs = qargs if qargs is not None else []
-        self.cargs = cargs if cargs is not None else []
-        self.condition = condition
+        self._qargs = tuple(qargs) if qargs is not None else ()
+        self.cargs = tuple(cargs) if cargs is not None else ()
         self.node_id = nid
         self.sort_key = str(self._qargs)
         self.successors = successors if successors is not None else []
@@ -54,7 +79,7 @@ class DAGDepNode:
     @property
     def op(self):
         """Returns the Instruction object corresponding to the op for the node, else None"""
-        if not self.type or self.type != 'op':
+        if not self.type or self.type != "op":
             raise QiskitError("The node %s is not an op node" % (str(self)))
         return self._op
 
@@ -72,7 +97,7 @@ class DAGDepNode:
     @qargs.setter
     def qargs(self, new_qargs):
         """Sets the qargs to be the given list of qargs."""
-        self._qargs = new_qargs
+        self._qargs = tuple(new_qargs)
         self.sort_key = str(new_qargs)
 
     @staticmethod
@@ -88,23 +113,27 @@ class DAGDepNode:
             Bool: If node1 == node2
         """
         # For barriers, qarg order is not significant so compare as sets
-        if 'barrier' == node1.name == node2.name:
+        if "barrier" == node1.name == node2.name:
             return set(node1._qargs) == set(node2._qargs)
-        result = False
+
         if node1.type == node2.type:
             if node1._op == node2._op:
                 if node1.name == node2.name:
                     if node1._qargs == node2._qargs:
                         if node1.cargs == node2.cargs:
-                            if node1.condition == node2.condition:
-                                result = True
-        return result
+                            if node1.type == "op":
+                                if getattr(node1._op, "condition", None) != getattr(
+                                    node2._op, "condition", None
+                                ):
+                                    return False
+                            return True
+        return False
 
     def copy(self):
         """
         Function to copy a DAGDepNode object.
         Returns:
-            DAGDepNode: a copy of a DAGDepNode objectto.
+            DAGDepNode: a copy of a DAGDepNode object.
         """
 
         dagdepnode = DAGDepNode()
@@ -114,7 +143,6 @@ class DAGDepNode:
         dagdepnode.name = self.name
         dagdepnode._qargs = self._qargs
         dagdepnode.cargs = self.cargs
-        dagdepnode.condition = self.condition
         dagdepnode.node_id = self.node_id
         dagdepnode.sort_key = self.sort_key
         dagdepnode.successors = self.successors

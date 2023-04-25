@@ -10,7 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-member
 
 """XOR circuit."""
 
@@ -29,11 +28,12 @@ class XOR(QuantumCircuit):
     This circuit can also represent addition by ``amount`` over the finite field GF(2).
     """
 
-    def __init__(self,
-                 num_qubits: int,
-                 amount: Optional[int] = None,
-                 seed: Optional[int] = None,
-                 ) -> None:
+    def __init__(
+        self,
+        num_qubits: int,
+        amount: Optional[int] = None,
+        seed: Optional[int] = None,
+    ) -> None:
         """Return a circuit implementing bitwise xor.
 
         Args:
@@ -45,15 +45,14 @@ class XOR(QuantumCircuit):
             CircuitError: if the xor bitstring exceeds available qubits.
 
         Reference Circuit:
-            .. jupyter-execute::
-                :hide-code:
+            .. plot::
 
-                from qiskit.circuit.library import XOR
-                import qiskit.tools.jupyter
-                circuit = XOR(5, seed=42)
-                %circuit_library_info circuit
+               from qiskit.circuit.library import XOR
+               from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+               circuit = XOR(5, seed=42)
+               _generate_circuit_library_visualization(circuit)
         """
-        super().__init__(num_qubits, name="xor")
+        circuit = QuantumCircuit(num_qubits, name="xor")
 
         if amount is not None:
             if len(bin(amount)[2:]) > num_qubits:
@@ -66,4 +65,7 @@ class XOR(QuantumCircuit):
             bit = amount & 1
             amount = amount >> 1
             if bit == 1:
-                self.x(i)
+                circuit.x(i)
+
+        super().__init__(*circuit.qregs, name="xor")
+        self.compose(circuit.to_gate(), qubits=self.qubits, inplace=True)

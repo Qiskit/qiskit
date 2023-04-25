@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,29 +11,48 @@
 # that they have been altered from the originals.
 
 """The Numpy Minimum Eigensolver algorithm."""
+from __future__ import annotations
 
-from typing import List, Optional, Union, Callable
 import logging
+import warnings
+from collections.abc import Callable
+
 import numpy as np
 
 from qiskit.opflow import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 from ..eigen_solvers.numpy_eigen_solver import NumPyEigensolver
 from .minimum_eigen_solver import MinimumEigensolver, MinimumEigensolverResult
+from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=invalid-name
-
 class NumPyMinimumEigensolver(MinimumEigensolver):
     """
-    The Numpy Minimum Eigensolver algorithm.
+    Deprecated: Numpy Minimum Eigensolver algorithm.
+
+    The NumPyMinimumEigensolver class has been superseded by the
+    :class:`qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver` class.
+    This class will be deprecated in a future release and subsequently
+    removed after that.
+
     """
 
-    def __init__(self,
-                 filter_criterion: Callable[[Union[List, np.ndarray], float, Optional[List[float]]],
-                                            bool] = None
-                 ) -> None:
+    @deprecate_func(
+        additional_msg=(
+            "Instead, use the class "
+            "``qiskit.algorithms.minimum_eigensolvers.NumPyMinimumEigensolver``. "
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
+    )
+    def __init__(
+        self,
+        filter_criterion: Callable[
+            [list | np.ndarray, float, ListOrDict[float] | None], bool
+        ] = None,
+    ) -> None:
         """
         Args:
             filter_criterion: callable that allows to filter eigenvalues/eigenstates. The minimum
@@ -43,19 +62,26 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
                 whether to consider this value or not. If there is no
                 feasible element, the result can even be empty.
         """
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            super().__init__()
         self._ces = NumPyEigensolver(filter_criterion=filter_criterion)
         self._ret = MinimumEigensolverResult()
 
     @property
-    def filter_criterion(self) -> Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]:
-        """ returns the filter criterion if set """
+    def filter_criterion(
+        self,
+    ) -> Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool] | None:
+        """returns the filter criterion if set"""
         return self._ces.filter_criterion
 
     @filter_criterion.setter
-    def filter_criterion(self, filter_criterion: Optional[
-            Callable[[Union[List, np.ndarray], float, Optional[List[float]]], bool]]) -> None:
-        """ set the filter criterion """
+    def filter_criterion(
+        self,
+        filter_criterion: Callable[[list | np.ndarray, float, ListOrDict[float] | None], bool]
+        | None,
+    ) -> None:
+        """set the filter criterion"""
         self._ces.filter_criterion = filter_criterion
 
     @classmethod
@@ -63,9 +89,7 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
         return NumPyEigensolver.supports_aux_operators()
 
     def compute_minimum_eigenvalue(
-            self,
-            operator: OperatorBase,
-            aux_operators: Optional[List[Optional[OperatorBase]]] = None
+        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
         result_ces = self._ces.compute_eigenvalues(operator, aux_operators)
@@ -76,6 +100,6 @@ class NumPyMinimumEigensolver(MinimumEigensolver):
             if result_ces.aux_operator_eigenvalues:
                 self._ret.aux_operator_eigenvalues = result_ces.aux_operator_eigenvalues[0]
 
-        logger.debug('MinimumEigensolver:\n%s', self._ret)
+        logger.debug("MinimumEigensolver:\n%s", self._ret)
 
         return self._ret

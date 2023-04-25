@@ -1,0 +1,29 @@
+---
+features:
+  - |
+    Added two new constructor methods,
+    :meth:`~qiskit.transpiler.CouplingMap.from_heavy_hex` and
+    :meth:`~qiskit.transpiler.CouplingMap.from_heavy_square`, to the
+    :class:`~qiskit.transpiler.CouplingMap` class. These constructor methods
+    are used to create a :class:`~qiskit.transpiler.CouplingMap` that are
+    a heavy hex or heavy square graph as described in |Chamberland2020|_.
+
+    For example:
+
+    .. code-block::
+
+      from qiskit.transpiler import CouplingMap
+
+      cmap = CouplingMap.from_heavy_hex(5)
+      cmap.draw()
+
+
+    .. code-block::
+
+      from qiskit.transpiler import CouplingMap
+
+      cmap = CouplingMap.from_heavy_square(5)
+      cmap.draw()
+
+    .. |Chamberland2020| replace:: Chamberland *et al.*, 2020 
+    .. _Chamberland2020: https://journals.aps.org/prx/abstract/10.1103/PhysRevX.10.011022

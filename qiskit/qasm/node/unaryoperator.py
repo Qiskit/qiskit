@@ -13,15 +13,14 @@
 """Node for an OPENQASM unary operator."""
 
 import operator
-import warnings
 
 from .node import Node
 from .nodeexception import NodeException
 
 
 VALID_OPERATORS = {
-    '+': operator.pos,
-    '-': operator.neg,
+    "+": operator.pos,
+    "-": operator.neg,
 }
 
 
@@ -30,9 +29,10 @@ class UnaryOperator(Node):
 
     This node has no children. The data is in the value field.
     """
+
     def __init__(self, operation):
         """Create the operator node."""
-        super().__init__('unary_operator', None, None)
+        super().__init__("unary_operator", None, None)
         self.value = operation
 
     def operation(self):
@@ -41,13 +41,9 @@ class UnaryOperator(Node):
         """
         try:
             return VALID_OPERATORS[self.value]
-        except KeyError:
-            raise NodeException("internal error: undefined prefix '%s'" %
-                                self.value)
+        except KeyError as ex:
+            raise NodeException(f"internal error: undefined prefix '{self.value}'") from ex
 
-    def qasm(self, prec=None):
+    def qasm(self):
         """Return QASM representation."""
-        if prec is not None:
-            warnings.warn('Parameter \'UnaryOperator.qasm(..., prec)\' is no longer used and is '
-                          'being deprecated.', DeprecationWarning, 2)
         return self.value

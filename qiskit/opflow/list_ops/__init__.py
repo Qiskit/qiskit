@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,9 +12,15 @@
 
 r"""
 List Operators (:mod:`qiskit.opflow.list_ops`)
-==============================================================
+==============================================
 
 .. currentmodule:: qiskit.opflow.list_ops
+
+.. deprecated:: 0.24.0
+
+    The :mod:`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
 
 List Operators are classes for storing and manipulating lists of Operators, State functions,
 or Measurements, and include some rule or ``combo_fn`` defining how the Operator functions of the
@@ -30,6 +36,7 @@ it should be understood as the operation by which each Operators' underlying fun
 combined to form the underlying Operator function of the :class:`ListOp`. In this way, the
 :mod:`.list_ops` are the basis for constructing large and sophisticated Operators,
 State Functions, and Measurements.
+
 
 The base :class:`ListOp` class is particularly interesting, as its ``combo_fn`` is "the identity
 list Operation". Meaning, if we understand the ``combo_fn`` as a function from a list of complex
@@ -68,11 +75,11 @@ Note:
     before adding them, rather than adding them directly before the measurement.
 
 List Operators
-===============
+--------------
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    ListOp
    ComposedOp
@@ -86,7 +93,4 @@ from .summed_op import SummedOp
 from .composed_op import ComposedOp
 from .tensored_op import TensoredOp
 
-__all__ = ['ListOp',
-           'SummedOp',
-           'TensoredOp',
-           'ComposedOp']
+__all__ = ["ListOp", "SummedOp", "TensoredOp", "ComposedOp"]

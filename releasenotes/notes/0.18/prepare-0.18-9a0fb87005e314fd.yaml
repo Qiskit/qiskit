@@ -1,0 +1,46 @@
+---
+prelude: |
+    This release includes many new features and bug fixes. The highlights of
+    this release are the introduction of two new transpiler
+    passes, :class:`~qiskit.transpiler.passes.BIPMapping` and
+    :class:`~qiskit.transpiler.passes.DynamicalDecoupling`, which when combined
+    with the new ``pulse_optimize`` kwarg on the
+    :class:`~qiskit.transpiler.passes.UnitarySynthesis` pass enables recreating
+    the Quantum Volume 64 results using the techniques
+    described in: https://arxiv.org/abs/2008.08571. These new transpiler passes
+    and options and are also generally applicable to optimizing any circuit.
+features:
+  - |
+    A new binary serialization format, `QPY`, has been introduced. It is
+    designed to be a fast binary serialization format that is backwards
+    compatible (QPY files generated with older versions of Qiskit can be
+    loaded by newer versions of Qiskit) that is native to Qiskit. The QPY
+    serialization tooling is available  via the
+    :mod:`qiskit.circuit.qpy_serialization` module. For example, to generate a
+    QPY file::
+
+      from datetime import datetime
+
+      from qiskit.circuit import QuantumCircuit
+      from qiskit.circuit import qpy_serialization
+
+      qc = QuantumCircuit(
+        2, metadata={'created_at': datetime.utcnow().isoformat()}
+      )
+      qc.h(0)
+      qc.cx(0, 1)
+      qc.measure_all()
+
+      circuits = [qc] * 5
+
+      with open('five_bells.qpy', 'wb') as qpy_file:
+          qpy_serialization.dump(circuits, qpy_file)
+
+    Then the five circuits saved in the QPY file can be loaded with::
+
+      from qiskit.circuit.qpy_serialization
+
+      with open('five_bells.qpy', 'rb') as qpy_file:
+          circuits = qpy_serialization.load(qpy_file)
+
+    The QPY file format specification is available in the module documentation.

@@ -26,14 +26,14 @@ def input_state(circ, n):
     """n-qubit input state for QFT that produces output 1."""
     for j in range(n):
         circ.h(j)
-        circ.p(-math.pi/float(2**(j)), j)
+        circ.p(-math.pi / float(2 ** (j)), j)
 
 
 def qft(circ, n):
     """n-qubit QFT on q in circ."""
     for j in range(n):
         for k in range(j):
-            circ.cp(math.pi/float(2**(j-k)), j, k)
+            circ.cp(math.pi / float(2 ** (j - k)), j, k)
         circ.h(j)
 
 
@@ -66,8 +66,8 @@ print(qft3)
 print(qft4)
 print(qft5)
 
-print('Qasm simulator')
-sim_backend = BasicAer.get_backend('qasm_simulator')
+print("Qasm simulator")
+sim_backend = BasicAer.get_backend("qasm_simulator")
 job = execute([qft3, qft4, qft5], sim_backend, shots=1024)
 result = job.result()
 print(result.get_counts(qft3))

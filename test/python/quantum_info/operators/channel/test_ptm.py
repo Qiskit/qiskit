@@ -44,8 +44,7 @@ class TestPTM(ChannelTestCase):
         self.assertRaises(QiskitError, PTM, mat16, input_dims=2, output_dims=4)
 
         # Non multi-qubit dimensions should raise exception
-        self.assertRaises(
-            QiskitError, PTM, np.eye(6) / 2, input_dims=3, output_dims=2)
+        self.assertRaises(QiskitError, PTM, np.eye(6) / 2, input_dims=3, output_dims=2)
 
     def test_circuit_init(self):
         """Test initialization from a circuit."""
@@ -90,8 +89,7 @@ class TestPTM(ChannelTestCase):
         """Test is_cptp method."""
         self.assertTrue(PTM(self.depol_ptm(0.25)).is_cptp())
         # Non-CPTP should return false
-        self.assertFalse(
-            PTM(1.25 * self.ptmI - 0.25 * self.depol_ptm(1)).is_cptp())
+        self.assertFalse(PTM(1.25 * self.ptmI - 0.25 * self.depol_ptm(1)).is_cptp())
 
     def test_compose_except(self):
         """Test compose different dimension exception"""
@@ -125,7 +123,7 @@ class TestPTM(ChannelTestCase):
         chan = chan1.compose(chan2)
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho.evolve(chan), rho_targ)
-        chan = chan1 @ chan2
+        chan = chan1 & chan2
         self.assertEqual(chan.dim, (2, 2))
         self.assertEqual(rho.evolve(chan), rho_targ)
 
@@ -139,7 +137,7 @@ class TestPTM(ChannelTestCase):
         chan2 = PTM(self.ptmY)
         rho_targ = rho.evolve(PTM(self.ptmZ))
         self.assertEqual(rho.evolve(chan2.dot(chan1)), rho_targ)
-        self.assertEqual(rho.evolve(chan2 * chan1), rho_targ)
+        self.assertEqual(rho.evolve(chan2 @ chan1), rho_targ)
 
         # Compose random
         ptm1 = self.rand_matrix(4, 4, real=True)
@@ -148,7 +146,7 @@ class TestPTM(ChannelTestCase):
         chan2 = PTM(ptm2, input_dims=2, output_dims=2)
         rho_targ = rho.evolve(chan1).evolve(chan2)
         self.assertEqual(rho.evolve(chan2.dot(chan1)), rho_targ)
-        self.assertEqual(rho.evolve(chan2 * chan1), rho_targ)
+        self.assertEqual(rho.evolve(chan2 @ chan1), rho_targ)
 
     def test_compose_front(self):
         """Test deprecated front compose method."""
@@ -236,12 +234,6 @@ class TestPTM(ChannelTestCase):
         targ3 = PTM(self.depol_ptm(1 - p_id3))
         self.assertEqual(chan3, targ3)
 
-    def test_power_except(self):
-        """Test power method raises exceptions."""
-        chan = PTM(self.depol_ptm(1))
-        # Non-integer power raises error
-        self.assertRaises(QiskitError, chan.power, 0.5)
-
     def test_add(self):
         """Test add method."""
         mat1 = 0.5 * self.ptmI
@@ -258,7 +250,7 @@ class TestPTM(ChannelTestCase):
 
     def test_add_qargs(self):
         """Test add method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 
@@ -268,44 +260,44 @@ class TestPTM(ChannelTestCase):
         op01 = op1.tensor(op0)
         eye = PTM(self.ptmI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op + op0([0])
             target = op + eye.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op + op0([1])
             target = op + eye.tensor(op0).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op + op0([2])
             target = op + op0.tensor(eye).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 1]'):
+        with self.subTest(msg="qargs=[0, 1]"):
             value = op + op01([0, 1])
             target = op + eye.tensor(op1).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1, 0]'):
+        with self.subTest(msg="qargs=[1, 0]"):
             value = op + op01([1, 0])
             target = op + eye.tensor(op0).tensor(op1)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 2]'):
+        with self.subTest(msg="qargs=[0, 2]"):
             value = op + op01([0, 2])
             target = op + op1.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2, 0]'):
+        with self.subTest(msg="qargs=[2, 0]"):
             value = op + op01([2, 0])
             target = op + op0.tensor(eye).tensor(op1)
             self.assertEqual(value, target)
 
     def test_sub_qargs(self):
         """Test subtract method with qargs."""
-        mat = self.rand_matrix(8 ** 2, 8 ** 2)
+        mat = self.rand_matrix(8**2, 8**2)
         mat0 = self.rand_matrix(4, 4)
         mat1 = self.rand_matrix(4, 4)
 
@@ -315,37 +307,37 @@ class TestPTM(ChannelTestCase):
         op01 = op1.tensor(op0)
         eye = PTM(self.ptmI)
 
-        with self.subTest(msg='qargs=[0]'):
+        with self.subTest(msg="qargs=[0]"):
             value = op - op0([0])
             target = op - eye.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1]'):
+        with self.subTest(msg="qargs=[1]"):
             value = op - op0([1])
             target = op - eye.tensor(op0).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2]'):
+        with self.subTest(msg="qargs=[2]"):
             value = op - op0([2])
             target = op - op0.tensor(eye).tensor(eye)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 1]'):
+        with self.subTest(msg="qargs=[0, 1]"):
             value = op - op01([0, 1])
             target = op - eye.tensor(op1).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[1, 0]'):
+        with self.subTest(msg="qargs=[1, 0]"):
             value = op - op01([1, 0])
             target = op - eye.tensor(op0).tensor(op1)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[0, 2]'):
+        with self.subTest(msg="qargs=[0, 2]"):
             value = op - op01([0, 2])
             target = op - op1.tensor(eye).tensor(op0)
             self.assertEqual(value, target)
 
-        with self.subTest(msg='qargs=[2, 0]'):
+        with self.subTest(msg="qargs=[2, 0]"):
             value = op - op01([2, 0])
             target = op - op0.tensor(eye).tensor(op1)
             self.assertEqual(value, target)
@@ -364,12 +356,14 @@ class TestPTM(ChannelTestCase):
         targ = PTM(val * self.ptmI)
         self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        targ = PTM(self.ptmI * val)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""
         chan = PTM(self.ptmI)
-        self.assertRaises(QiskitError, chan._multiply, 's')
-        self.assertRaises(QiskitError, chan.__rmul__, 's')
+        self.assertRaises(QiskitError, chan._multiply, "s")
+        self.assertRaises(QiskitError, chan.__rmul__, "s")
         self.assertRaises(QiskitError, chan._multiply, chan)
         self.assertRaises(QiskitError, chan.__rmul__, chan)
 
@@ -380,5 +374,5 @@ class TestPTM(ChannelTestCase):
         self.assertEqual(-chan, targ)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

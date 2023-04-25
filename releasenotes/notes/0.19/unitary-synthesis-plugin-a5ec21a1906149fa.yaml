@@ -1,0 +1,32 @@
+---
+features:
+  - |
+    Introduced a new unitary synthesis plugin interface which is used to enable
+    using alternative synthesis techniques included in external packages
+    seamlessly with the :class:`~qiskit.transpiler.passes.UnitarySynthesis`
+    transpiler pass. Users can select a plugin to use when calling
+    :func:`~qiskit.compiler.transpile` by setting the
+    ``unitary_synthesis_method`` kwarg to the plugin's name. A full list of
+    installed plugins can be found using the
+    :func:`qiskit.transpiler.passes.synthesis.plugin.unitary_synthesis_plugin_names`
+    function. For example, if you installed a package that includes a synthesis
+    plugin named ``special_synth`` you could use it with::
+
+      from qiskit import transpile
+
+      transpile(qc, unitary_synthesis_method='special_synth', optimization_level=3)
+
+    This will replace all uses of the :class:`~qiskit.transpiler.passes.UnitarySynthesis`
+    with the method included in the external package that exports the ``special_synth``
+    plugin.
+
+    The plugin interface is built around setuptools
+    `entry points <https://setuptools.readthedocs.io/en/latest/userguide/entry_point.html>`__
+    which enable packages external to Qiskit to advertise they include a
+    synthesis plugin. For details on writing a new plugin refer to the
+    :mod:`qiskit.transpiler.passes.synthesis.plugin` module documentation.
+upgrade:
+  - |
+    A new dependency `stevedore <https://pypi.org/project/stevedore/>`__ has
+    been added to the requirements list. This is required by qiskit-terra as
+    it is used to build the unitary synthesis plugin interface.

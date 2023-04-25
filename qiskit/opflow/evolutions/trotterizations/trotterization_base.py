@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,38 +10,40 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Trotterization Algorithm Base """
+"""Trotterization Algorithm Base"""
 
-import logging
 from abc import abstractmethod
 
-from ...operator_base import OperatorBase
-from ..evolution_base import EvolutionBase
+from qiskit.opflow.evolutions.evolution_base import EvolutionBase
+from qiskit.opflow.operator_base import OperatorBase
+from qiskit.utils.deprecation import deprecate_func
 
 # TODO centralize handling of commuting groups
 
-logger = logging.getLogger(__name__)
-
 
 class TrotterizationBase(EvolutionBase):
-    """ A base for Trotterization methods, algorithms for approximating exponentiations of
+    """Deprecated: A base for Trotterization methods, algorithms for approximating exponentiations of
     operator sums by compositions of exponentiations.
     """
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, reps: int = 1) -> None:
-
+        super().__init__()
         self._reps = reps
 
     @property
     def reps(self) -> int:
-        """ The number of repetitions to use in the Trotterization, improving the approximation
+        """The number of repetitions to use in the Trotterization, improving the approximation
         accuracy.
         """
         return self._reps
 
     @reps.setter
     def reps(self, reps: int) -> None:
-        r""" Set the number of repetitions to use in the Trotterization. """
+        r"""Set the number of repetitions to use in the Trotterization."""
         self._reps = reps
 
     @abstractmethod

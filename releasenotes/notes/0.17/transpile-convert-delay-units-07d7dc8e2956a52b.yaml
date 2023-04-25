@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    When running :func:`~qiskit.compiler.transpile` on a
+    :class:`~qiskit.circuit.QuantumCircuit` with
+    :meth:`~qiskit.circuit.QuantumCircuit.delay` instructions, the units will
+    be converted to dt if the value of dt (sample time) is known to
+    :func:`~qiskit.compiler.transpile`, either explicitly via the ``dt``
+    kwarg or via the :class:`~qiskit.providers.models.BackendConfiguration` for
+    a ``Backend`` object passed in via the ``backend`` kwarg.

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :meth:`qiskit.opflow.gradients.Gradient.gradient_wrapper`
+    method with the gradient calculation. Previously, if the operator was
+    not diagonal an incorrect result would be returned in some situations.
+    This has been fixed by using an expectation converter to ensure the
+    result is always correct.

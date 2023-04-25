@@ -23,22 +23,22 @@ logger = "LocalLogger"
 
 
 class DummyTP(TransformationPass):
-    """ A dummy transformation pass."""
+    """A dummy transformation pass."""
 
     def run(self, dag):
-        logging.getLogger(logger).info('run transformation pass %s', self.name())
+        logging.getLogger(logger).info("run transformation pass %s", self.name())
         return dag
 
 
 class DummyAP(AnalysisPass):
-    """ A dummy analysis pass."""
+    """A dummy analysis pass."""
 
     def run(self, dag):
-        logging.getLogger(logger).info('run analysis pass %s', self.name())
+        logging.getLogger(logger).info("run analysis pass %s", self.name())
 
 
 class PassA_TP_NR_NP(DummyTP):
-    """ A dummy pass without any requires/preserves.
+    """A dummy pass without any requires/preserves.
     TP: Transformation Pass
     NR: No requires
     NP: No preserves
@@ -50,7 +50,7 @@ class PassA_TP_NR_NP(DummyTP):
 
 
 class PassB_TP_RA_PA(DummyTP):
-    """ A dummy pass that requires PassA_TP_NR_NP and preserves it.
+    """A dummy pass that requires PassA_TP_NR_NP and preserves it.
     TP: Transformation Pass
     RA: Requires PassA
     PA: Preserves PassA
@@ -64,7 +64,7 @@ class PassB_TP_RA_PA(DummyTP):
 
 
 class PassC_TP_RA_PA(DummyTP):
-    """ A dummy pass that requires PassA_TP_NR_NP and preserves it.
+    """A dummy pass that requires PassA_TP_NR_NP and preserves it.
     TP: Transformation Pass
     RA: Requires PassA
     PA: Preserves PassA
@@ -78,7 +78,7 @@ class PassC_TP_RA_PA(DummyTP):
 
 
 class PassD_TP_NR_NP(DummyTP):
-    """ A dummy transformation pass that takes an argument.
+    """A dummy transformation pass that takes an argument.
     TP: Transformation Pass
     NR: No Requires
     NP: No Preserves
@@ -92,12 +92,12 @@ class PassD_TP_NR_NP(DummyTP):
 
     def run(self, dag):
         super().run(dag)
-        logging.getLogger(logger).info('argument %s', self.argument1)
+        logging.getLogger(logger).info("argument %s", self.argument1)
         return dag
 
 
 class PassE_AP_NR_NP(DummyAP):
-    """ A dummy analysis pass that takes an argument.
+    """A dummy analysis pass that takes an argument.
     AP: Analysis Pass
     NR: No Requires
     NP: No Preserves
@@ -109,12 +109,12 @@ class PassE_AP_NR_NP(DummyAP):
 
     def run(self, dag):
         super().run(dag)
-        self.property_set['property'] = self.argument1
-        logging.getLogger(logger).info('set property as %s', self.property_set['property'])
+        self.property_set["property"] = self.argument1
+        logging.getLogger(logger).info("set property as %s", self.property_set["property"])
 
 
 class PassF_reduce_dag_property(DummyTP):
-    """ A dummy transformation pass that (sets and) reduces a property in the DAG.
+    """A dummy transformation pass that (sets and) reduces a property in the DAG.
     NI: Non-idempotent transformation pass
     NR: No Requires
     NP: No Preserves
@@ -122,15 +122,15 @@ class PassF_reduce_dag_property(DummyTP):
 
     def run(self, dag):
         super().run(dag)
-        if not hasattr(dag, 'property'):
+        if not hasattr(dag, "property"):
             dag.property = 8
         dag.property = round(dag.property * 0.8)
-        logging.getLogger(logger).info('dag property = %i', dag.property)
+        logging.getLogger(logger).info("dag property = %i", dag.property)
         return dag
 
 
 class PassG_calculates_dag_property(DummyAP):
-    """ A dummy transformation pass that "calculates" property in the DAG.
+    """A dummy transformation pass that "calculates" property in the DAG.
     AP: Analysis Pass
     NR: No Requires
     NP: No Preserves
@@ -138,29 +138,30 @@ class PassG_calculates_dag_property(DummyAP):
 
     def run(self, dag):
         super().run(dag)
-        if hasattr(dag, 'property'):
-            self.property_set['property'] = dag.property
+        if hasattr(dag, "property"):
+            self.property_set["property"] = dag.property
         else:
-            self.property_set['property'] = 8
-        logging.getLogger(logger).info('set property as %s (from dag.property)',
-                                       self.property_set['property'])
+            self.property_set["property"] = 8
+        logging.getLogger(logger).info(
+            "set property as %s (from dag.property)", self.property_set["property"]
+        )
 
 
 class PassH_Bad_TP(DummyTP):
-    """ A dummy transformation pass tries to modify the property set.
+    """A dummy transformation pass tries to modify the property set.
     NR: No Requires
     NP: No Preserves
     """
 
     def run(self, dag):
         super().run(dag)
-        self.property_set['property'] = "value"
-        logging.getLogger(logger).info('set property as %s', self.property_set['property'])
+        self.property_set["property"] = "value"
+        logging.getLogger(logger).info("set property as %s", self.property_set["property"])
         return dag
 
 
 class PassI_Bad_AP(DummyAP):
-    """ A dummy analysis pass tries to modify the dag.
+    """A dummy analysis pass tries to modify the dag.
     NR: No Requires
     NP: No Preserves
     """
@@ -177,13 +178,13 @@ class PassI_Bad_AP(DummyAP):
                 curr.append(node._node_id)
             cx_runs_ids.add(tuple(curr))
 
-        logging.getLogger(logger).info('cx_runs: %s', cx_runs_ids)
+        logging.getLogger(logger).info("cx_runs: %s", cx_runs_ids)
         dag.remove_op_node(cx_runs.pop()[0])
-        logging.getLogger(logger).info('done removing')
+        logging.getLogger(logger).info("done removing")
 
 
 class PassJ_Bad_NoReturn(DummyTP):
-    """ A bad dummy transformation pass that does not return a DAG.
+    """A bad dummy transformation pass that does not return a DAG.
     NR: No Requires
     NP: No Preserves
     """
@@ -194,14 +195,14 @@ class PassJ_Bad_NoReturn(DummyTP):
 
 
 class PassK_check_fixed_point_property(DummyAP, FixedPoint):
-    """ A dummy analysis pass that checks if a property reached a fixed point. The results is saved
+    """A dummy analysis pass that checks if a property reached a fixed point. The results is saved
     in property_set['fixed_point'][<property>] as a boolean
     AP: Analysis Pass
     R: PassG_calculates_dag_property()
     """
 
     def __init__(self):
-        FixedPoint.__init__(self, 'property')
+        FixedPoint.__init__(self, "property")
         self.requires.append(PassG_calculates_dag_property())
 
     def run(self, dag):
@@ -210,7 +211,7 @@ class PassK_check_fixed_point_property(DummyAP, FixedPoint):
 
 
 class PassM_AP_NR_NP(DummyAP):
-    """ A dummy analysis pass that modifies internal state at runtime
+    """A dummy analysis pass that modifies internal state at runtime
     AP: Analysis Pass
     NR: No Requires
     NP: No Preserves
@@ -223,11 +224,11 @@ class PassM_AP_NR_NP(DummyAP):
     def run(self, dag):
         super().run(dag)
         self.argument1 *= 2
-        logging.getLogger(logger).info('self.argument1 = %s', self.argument1)
+        logging.getLogger(logger).info("self.argument1 = %s", self.argument1)
 
 
 class PassN_AP_NR_NP(DummyAP):
-    """ A dummy analysis pass that deletes and nones properties.
+    """A dummy analysis pass that deletes and nones properties.
     AP: Analysis Pass
     NR: No Requires
     NP: No Preserves
@@ -241,6 +242,6 @@ class PassN_AP_NR_NP(DummyAP):
     def run(self, dag):
         super().run(dag)
         del self.property_set[self.to_delete]
-        logging.getLogger(logger).info('property %s deleted', self.to_delete)
+        logging.getLogger(logger).info("property %s deleted", self.to_delete)
         self.property_set[self.to_none] = None
-        logging.getLogger(logger).info('property %s noned', self.to_none)
+        logging.getLogger(logger).info("property %s noned", self.to_none)

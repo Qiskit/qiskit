@@ -18,32 +18,17 @@ import os
 from qiskit.transpiler import CouplingMap, Layout
 from qiskit.transpiler.passmanager import PassManager
 from qiskit import QuantumRegister
-from qiskit.transpiler.passes import Unroller
+from qiskit.transpiler.passes import GateDirection, Unroller
 from qiskit.transpiler.passes import CheckMap
-from qiskit.transpiler.passes import CXDirection
 from qiskit.transpiler.passes import SetLayout
 from qiskit.transpiler.passes import TrivialLayout
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.transpiler.passes import FullAncillaAllocation
 from qiskit.transpiler.passes import EnlargeWithAncilla
 from qiskit.transpiler.passes import RemoveResetInZeroState
+from qiskit.utils import optionals
 
 from .visualization import QiskitVisualizationTestCase, path_to_diagram_reference
-
-try:
-    import subprocess
-
-    _PROC = subprocess.Popen(['dot', '-V'], stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-    _PROC.communicate()
-    if _PROC.returncode != 0:
-        HAS_GRAPHVIZ = False
-    else:
-        HAS_GRAPHVIZ = True
-except Exception:  # pylint: disable=broad-except
-    # this is raised when the dot command cannot be found, which means GraphViz
-    # isn't installed
-    HAS_GRAPHVIZ = False
 
 
 class TestPassManagerDrawer(QiskitVisualizationTestCase):
@@ -53,8 +38,8 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         super().setUp()
         coupling = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6]]
         coupling_map = CouplingMap(couplinglist=coupling)
-        basis_gates = ['u1', 'u3', 'u2', 'cx']
-        qr = QuantumRegister(7, 'q')
+        basis_gates = ["u1", "u3", "u2", "cx"]
+        qr = QuantumRegister(7, "q")
         layout = Layout({qr[i]: i for i in range(coupling_map.size())})
 
         # Create a pass manager with a variety of passes and flow control structures
@@ -66,33 +51,41 @@ class TestPassManagerDrawer(QiskitVisualizationTestCase):
         self.pass_manager.append(Unroller(basis_gates))
         self.pass_manager.append(CheckMap(coupling_map))
         self.pass_manager.append(BarrierBeforeFinalMeasurements(), do_while=lambda x: False)
-        self.pass_manager.append(CXDirection(coupling_map))
+        self.pass_manager.append(GateDirection(coupling_map))
         self.pass_manager.append(RemoveResetInZeroState())
 
-    @unittest.skipIf(not HAS_GRAPHVIZ, 'Graphviz not installed.')
+    @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
     def test_pass_manager_drawer_basic(self):
         """Test to see if the drawer draws a normal pass manager correctly"""
-        filename = self._get_resource_path('current_standard.dot')
+        filename = "current_standard.dot"
         self.pass_manager.draw(filename=filename, raw=True)
 
-        self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_standard.dot'))
-        os.remove(filename)
+        try:
+            self.assertFilesAreEqual(
+                filename, path_to_diagram_reference("pass_manager_standard.dot")
+            )
+        finally:
+            os.remove(filename)
 
-    @unittest.skipIf(not HAS_GRAPHVIZ, 'Graphviz not installed.')
+    @unittest.skipIf(not optionals.HAS_GRAPHVIZ, "Graphviz not installed.")
     def test_pass_manager_drawer_style(self):
         """Test to see if the colours are updated when provided by the user"""
         # set colours for some passes, but leave others to take the default values
-        style = {SetLayout: 'cyan',
-                 CheckMap: 'green',
-                 EnlargeWithAncilla: 'pink',
-                 RemoveResetInZeroState: 'grey'}
+        style = {
+            SetLayout: "cyan",
+            CheckMap: "green",
+            EnlargeWithAncilla: "pink",
+            RemoveResetInZeroState: "grey",
+        }
 
-        filename = self._get_resource_path('current_style.dot')
+        filename = "current_style.dot"
         self.pass_manager.draw(filename=filename, style=style, raw=True)
 
-        self.assertFilesAreEqual(filename, path_to_diagram_reference('pass_manager_style.dot'))
-        os.remove(filename)
+        try:
+            self.assertFilesAreEqual(filename, path_to_diagram_reference("pass_manager_style.dot"))
+        finally:
+            os.remove(filename)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main(verbosity=2)

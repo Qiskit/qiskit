@@ -1,7 +1,6 @@
-
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,13 +12,17 @@
 
 """The Iterative Quantum Amplitude Estimation Algorithm."""
 
-from typing import Optional, Union, List, Tuple, Dict, cast
+from __future__ import annotations
+from typing import cast
+import warnings
 import numpy as np
 from scipy.stats import beta
 
 from qiskit import ClassicalRegister, QuantumCircuit
-from qiskit.providers import BaseBackend, Backend
+from qiskit.providers import Backend
+from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
+from qiskit.utils.deprecation import deprecate_arg, deprecate_func
 
 from .amplitude_estimator import AmplitudeEstimator, AmplitudeEstimatorResult
 from .estimation_problem import EstimationProblem
@@ -47,13 +50,23 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
              `arXiv:quant-ph/0005055 <http://arxiv.org/abs/quant-ph/0005055>`_.
     """
 
-    def __init__(self,
-                 epsilon_target: float,
-                 alpha: float,
-                 confint_method: str = 'beta',
-                 min_ratio: float = 2,
-                 quantum_instance: Optional[Union[QuantumInstance, BaseBackend, Backend]] = None
-                 ) -> None:
+    @deprecate_arg(
+        "quantum_instance",
+        additional_msg=(
+            "Instead, use the ``sampler`` argument. See https://qisk.it/algo_migration for a "
+            "migration guide."
+        ),
+        since="0.24.0",
+    )
+    def __init__(
+        self,
+        epsilon_target: float,
+        alpha: float,
+        confint_method: str = "beta",
+        min_ratio: float = 2,
+        quantum_instance: QuantumInstance | Backend | None = None,
+        sampler: BaseSampler | None = None,
+    ) -> None:
         r"""
         The output of the algorithm is an estimate for the amplitude `a`, that with at least
         probability 1 - alpha has an error of epsilon. The number of A operator calls scales
@@ -66,7 +79,8 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 each iteration, can be 'chernoff' for the Chernoff intervals or 'beta' for the
                 Clopper-Pearson intervals (default)
             min_ratio: Minimal q-ratio (:math:`K_{i+1} / K_i`) for FindNextK
-            quantum_instance: Quantum Instance or Backend
+            quantum_instance: Deprecated: Quantum Instance or Backend
+            sampler: A sampler primitive to evaluate the circuits.
 
         Raises:
             AlgorithmError: if the method to compute the confidence intervals is not supported
@@ -76,29 +90,56 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         """
         # validate ranges of input arguments
         if not 0 < epsilon_target <= 0.5:
-            raise ValueError(f'The target epsilon must be in (0, 0.5], but is {epsilon_target}.')
+            raise ValueError(f"The target epsilon must be in (0, 0.5], but is {epsilon_target}.")
 
         if not 0 < alpha < 1:
-            raise ValueError(f'The confidence level alpha must be in (0, 1), but is {alpha}')
+            raise ValueError(f"The confidence level alpha must be in (0, 1), but is {alpha}")
 
-        if confint_method not in {'chernoff', 'beta'}:
-            raise ValueError('The confidence interval method must be chernoff or beta, but '
-                             f'is {confint_method}.')
+        if confint_method not in {"chernoff", "beta"}:
+            raise ValueError(
+                f"The confidence interval method must be chernoff or beta, but is {confint_method}."
+            )
 
         super().__init__()
 
         # set quantum instance
-        self.quantum_instance = quantum_instance
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.quantum_instance = quantum_instance
 
         # store parameters
         self._epsilon = epsilon_target
         self._alpha = alpha
         self._min_ratio = min_ratio
         self._confint_method = confint_method
+        self._sampler = sampler
 
     @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
-        """Get the quantum instance.
+    def sampler(self) -> BaseSampler | None:
+        """Get the sampler primitive.
+
+        Returns:
+            The sampler primitive to evaluate the circuits.
+        """
+        return self._sampler
+
+    @sampler.setter
+    def sampler(self, sampler: BaseSampler) -> None:
+        """Set sampler primitive.
+
+        Args:
+            sampler: A sampler primitive to evaluate the circuits.
+        """
+        self._sampler = sampler
+
+    @property
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+    )
+    def quantum_instance(self) -> QuantumInstance | None:
+        """Deprecated. Get the quantum instance.
 
         Returns:
             The quantum instance used to run this algorithm.
@@ -106,14 +147,18 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance,
-                                                       BaseBackend, Backend]) -> None:
-        """Set quantum instance.
+    @deprecate_func(
+        since="0.24.0",
+        is_property=True,
+        additional_msg="See https://qisk.it/algo_migration for a migration guide.",
+    )
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
+        """Deprecated. Set quantum instance.
 
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, (BaseBackend, Backend)):
+        if isinstance(quantum_instance, Backend):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
@@ -135,8 +180,13 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         """
         self._epsilon = epsilon
 
-    def _find_next_k(self, k: int, upper_half_circle: bool, theta_interval: Tuple[float, float],
-                     min_ratio: float = 2.0) -> Tuple[int, bool]:
+    def _find_next_k(
+        self,
+        k: int,
+        upper_half_circle: bool,
+        theta_interval: tuple[float, float],
+        min_ratio: float = 2.0,
+    ) -> tuple[int, bool]:
         """Find the largest integer k_next, such that the interval (4 * k_next + 2)*theta_interval
         lies completely in [0, pi] or [pi, 2pi], for theta_interval = (theta_lower, theta_upper).
 
@@ -155,7 +205,7 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             AlgorithmError: if min_ratio is smaller or equal to 1
         """
         if min_ratio <= 1:
-            raise AlgorithmError('min_ratio must be larger than 1 to ensure convergence')
+            raise AlgorithmError("min_ratio must be larger than 1 to ensure convergence")
 
         # initialize variables
         theta_l, theta_u = theta_interval
@@ -186,8 +236,9 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         # if we do not find a feasible k, return the old one
         return int(k), upper_half_circle
 
-    def construct_circuit(self, estimation_problem: EstimationProblem,
-                          k: int = 0, measurement: bool = False) -> QuantumCircuit:
+    def construct_circuit(
+        self, estimation_problem: EstimationProblem, k: int = 0, measurement: bool = False
+    ) -> QuantumCircuit:
         r"""Construct the circuit :math:`\mathcal{Q}^k \mathcal{A} |0\rangle`.
 
         The A operator is the unitary specifying the QAE problem and Q the associated Grover
@@ -202,9 +253,11 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         Returns:
             The circuit implementing :math:`\mathcal{Q}^k \mathcal{A} |0\rangle`.
         """
-        num_qubits = max(estimation_problem.state_preparation.num_qubits,
-                         estimation_problem.grover_operator.num_qubits)
-        circuit = QuantumCircuit(num_qubits, name='circuit')
+        num_qubits = max(
+            estimation_problem.state_preparation.num_qubits,
+            estimation_problem.grover_operator.num_qubits,
+        )
+        circuit = QuantumCircuit(num_qubits, name="circuit")
 
         # add classical register if needed
         if measurement:
@@ -227,11 +280,12 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
         return circuit
 
-    def _good_state_probability(self,
-                                problem: EstimationProblem,
-                                counts_or_statevector: Union[Dict[str, int], np.ndarray],
-                                num_state_qubits: int,
-                                ) -> Union[Tuple[int, float], float]:
+    def _good_state_probability(
+        self,
+        problem: EstimationProblem,
+        counts_or_statevector: dict[str, int] | np.ndarray,
+        num_state_qubits: int,
+    ) -> tuple[int, float] | float:
         """Get the probability to measure '1' in the last qubit.
 
         Args:
@@ -263,12 +317,28 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 bitstr = bin(i)[2:].zfill(num_qubits)[-num_state_qubits:][::-1]
                 objectives = [bitstr[index] for index in problem.objective_qubits]
                 if problem.is_good_state(objectives):
-                    prob = prob + np.abs(amplitude)**2
+                    prob = prob + np.abs(amplitude) ** 2
 
             return prob
 
-    def estimate(self, estimation_problem: EstimationProblem
-                 ) -> 'IterativeAmplitudeEstimationResult':
+    def estimate(
+        self, estimation_problem: EstimationProblem
+    ) -> "IterativeAmplitudeEstimationResult":
+        """Run the amplitude estimation algorithm on provided estimation problem.
+
+        Args:
+            estimation_problem: The estimation problem.
+
+        Returns:
+            An amplitude estimation results object.
+
+        Raises:
+            ValueError: A quantum instance or Sampler must be provided.
+            AlgorithmError: Sampler job run error.
+        """
+        if self._quantum_instance is None and self._sampler is None:
+            raise ValueError("A quantum instance or sampler must be provided.")
+
         # initialize memory variables
         powers = [0]  # list of powers k: Q^k, (called 'k' in paper)
         ratios = []  # list of multiplication factors (called 'q' in paper)
@@ -278,13 +348,14 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         num_one_shots = []
 
         # maximum number of rounds
-        max_rounds = int(np.log(self._min_ratio * np.pi / 8
-                                / self._epsilon) / np.log(self._min_ratio)) + 1
+        max_rounds = (
+            int(np.log(self._min_ratio * np.pi / 8 / self._epsilon) / np.log(self._min_ratio)) + 1
+        )
         upper_half_circle = True  # initially theta is in the upper half-circle
 
-        # for statevector we can directly return the probability to measure 1
-        # note, that no iterations here are necessary
-        if self._quantum_instance.is_statevector:
+        if self._quantum_instance is not None and self._quantum_instance.is_statevector:
+            # for statevector we can directly return the probability to measure 1
+            # note, that no iterations here are necessary
             # simulate circuit
             circuit = self.construct_circuit(estimation_problem, k=0, measurement=False)
             ret = self._quantum_instance.execute(circuit)
@@ -297,26 +368,30 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
             prob = self._good_state_probability(estimation_problem, statevector, num_qubits)
             prob = cast(float, prob)  # tell MyPy it's a float and not Tuple[int, float ]
 
-            a_confidence_interval = [prob, prob]  # type: List[float]
+            a_confidence_interval = [prob, prob]  # type: list[float]
             a_intervals.append(a_confidence_interval)
 
-            theta_i_interval = [np.arccos(1 - 2 * a_i) / 2 / np.pi  # type: ignore
-                                for a_i in a_confidence_interval]
+            theta_i_interval = [
+                np.arccos(1 - 2 * a_i) / 2 / np.pi for a_i in a_confidence_interval  # type: ignore
+            ]
             theta_intervals.append(theta_i_interval)
             num_oracle_queries = 0  # no Q-oracle call, only a single one to A
 
         else:
             num_iterations = 0  # keep track of the number of iterations
-            shots = self._quantum_instance._run_config.shots  # number of shots per iteration
-
+            # number of shots per iteration
+            shots = 0
             # do while loop, keep in mind that we scaled theta mod 2pi such that it lies in [0,1]
             while theta_intervals[-1][1] - theta_intervals[-1][0] > self._epsilon / np.pi:
                 num_iterations += 1
 
                 # get the next k
-                k, upper_half_circle = self._find_next_k(powers[-1], upper_half_circle,
-                                                         theta_intervals[-1],  # type: ignore
-                                                         min_ratio=self._min_ratio)
+                k, upper_half_circle = self._find_next_k(
+                    powers[-1],
+                    upper_half_circle,
+                    theta_intervals[-1],  # type: ignore
+                    min_ratio=self._min_ratio,
+                )
 
                 # store the variables
                 powers.append(k)
@@ -324,16 +399,58 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
 
                 # run measurements for Q^k A|0> circuit
                 circuit = self.construct_circuit(estimation_problem, k, measurement=True)
-                ret = self._quantum_instance.execute(circuit)
+                counts = {}
+                if self._quantum_instance is not None:
+                    ret = self._quantum_instance.execute(circuit)
+                    # get the counts and store them
+                    counts = ret.get_counts(circuit)
+                    shots = self._quantum_instance._run_config.shots
+                else:
+                    try:
+                        job = self._sampler.run([circuit])
+                        ret = job.result()
+                    except Exception as exc:
+                        raise AlgorithmError("The job was not completed successfully. ") from exc
 
-                # get the counts and store them
-                counts = ret.get_counts(circuit)
+                    shots = ret.metadata[0].get("shots")
+                    if shots is None:
+                        circuit = self.construct_circuit(estimation_problem, k=0, measurement=True)
+                        try:
+                            job = self._sampler.run([circuit])
+                            ret = job.result()
+                        except Exception as exc:
+                            raise AlgorithmError(
+                                "The job was not completed successfully. "
+                            ) from exc
+
+                        # calculate the probability of measuring '1'
+                        prob = 0.0
+                        for bit, probabilities in ret.quasi_dists[0].binary_probabilities().items():
+                            # check if it is a good state
+                            if estimation_problem.is_good_state(bit):
+                                prob += probabilities
+
+                        a_confidence_interval = [prob, prob]
+                        a_intervals.append(a_confidence_interval)
+
+                        theta_i_interval = [
+                            np.arccos(1 - 2 * a_i) / 2 / np.pi for a_i in a_confidence_interval
+                        ]
+                        theta_intervals.append(theta_i_interval)
+                        num_oracle_queries = 0  # no Q-oracle call, only a single one to A
+                        break
+
+                    counts = {
+                        k: round(v * shots)
+                        for k, v in ret.quasi_dists[0].binary_probabilities().items()
+                    }
 
                 # calculate the probability of measuring '1', 'prob' is a_i in the paper
                 num_qubits = circuit.num_qubits - circuit.num_ancillas
                 # type: ignore
-                one_counts, prob = self._good_state_probability(estimation_problem, counts,
-                                                                num_qubits)
+                one_counts, prob = self._good_state_probability(
+                    estimation_problem, counts, num_qubits
+                )
 
                 num_one_shots.append(one_counts)
 
@@ -345,19 +462,21 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 round_shots = shots
                 round_one_counts = one_counts
                 if num_iterations > 1:
-                    while powers[num_iterations - j] == powers[num_iterations] \
-                            and num_iterations >= j + 1:
+                    while (
+                        powers[num_iterations - j] == powers[num_iterations]
+                        and num_iterations >= j + 1
+                    ):
                         j = j + 1
                         round_shots += shots
                         round_one_counts += num_one_shots[-j]
 
                 # compute a_min_i, a_max_i
-                if self._confint_method == 'chernoff':
-                    a_i_min, a_i_max = _chernoff_confint(prob, round_shots, max_rounds,
-                                                         self._alpha)
+                if self._confint_method == "chernoff":
+                    a_i_min, a_i_max = _chernoff_confint(prob, round_shots, max_rounds, self._alpha)
                 else:  # 'beta'
-                    a_i_min, a_i_max = _clopper_pearson_confint(round_one_counts, round_shots,
-                                                                self._alpha / max_rounds)
+                    a_i_min, a_i_max = _clopper_pearson_confint(
+                        round_one_counts, round_shots, self._alpha / max_rounds
+                    )
 
                 # compute theta_min_i, theta_max_i
                 if upper_half_circle:
@@ -374,8 +493,8 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
                 theta_intervals.append([theta_l, theta_u])
 
                 # compute a_u_i, a_l_i
-                a_u = np.sin(2 * np.pi * theta_u)**2
-                a_l = np.sin(2 * np.pi * theta_l)**2
+                a_u = np.sin(2 * np.pi * theta_u) ** 2
+                a_l = np.sin(2 * np.pi * theta_l) ** 2
                 a_u = cast(float, a_u)
                 a_l = cast(float, a_l)
                 a_intervals.append([a_l, a_u])
@@ -396,8 +515,9 @@ class IterativeAmplitudeEstimation(AmplitudeEstimator):
         result.confidence_interval = confidence_interval
 
         result.estimation_processed = estimation_problem.post_processing(estimation)
-        confidence_interval = tuple(estimation_problem.post_processing(x)
-                                    for x in confidence_interval)
+        confidence_interval = tuple(
+            estimation_problem.post_processing(x) for x in confidence_interval
+        )
         result.confidence_interval_processed = confidence_interval
         result.epsilon_estimated_processed = (confidence_interval[1] - confidence_interval[0]) / 2
         result.estimate_intervals = a_intervals
@@ -413,15 +533,15 @@ class IterativeAmplitudeEstimationResult(AmplitudeEstimatorResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._alpha = None
-        self._epsilon_target = None
-        self._epsilon_estimated = None
-        self._epsilon_estimated_processed = None
-        self._estimate_intervals = None
-        self._theta_intervals = None
-        self._powers = None
-        self._ratios = None
-        self._confidence_interval_processed = None
+        self._alpha: float | None = None
+        self._epsilon_target: float | None = None
+        self._epsilon_estimated: float | None = None
+        self._epsilon_estimated_processed: float | None = None
+        self._estimate_intervals: list[list[float]] | None = None
+        self._theta_intervals: list[list[float]] | None = None
+        self._powers: list[int] | None = None
+        self._ratios: list[float] | None = None
+        self._confidence_interval_processed: tuple[float, float] | None = None
 
     @property
     def alpha(self) -> float:
@@ -464,58 +584,59 @@ class IterativeAmplitudeEstimationResult(AmplitudeEstimatorResult):
         self._epsilon_estimated_processed = value
 
     @property
-    def estimate_intervals(self) -> List[List[float]]:
+    def estimate_intervals(self) -> list[list[float]]:
         """Return the confidence intervals for the estimate in each iteration."""
         return self._estimate_intervals
 
     @estimate_intervals.setter
-    def estimate_intervals(self, value: List[List[float]]) -> None:
+    def estimate_intervals(self, value: list[list[float]]) -> None:
         """Set the confidence intervals for the estimate in each iteration."""
         self._estimate_intervals = value
 
     @property
-    def theta_intervals(self) -> List[List[float]]:
+    def theta_intervals(self) -> list[list[float]]:
         """Return the confidence intervals for the angles in each iteration."""
         return self._theta_intervals
 
     @theta_intervals.setter
-    def theta_intervals(self, value: List[List[float]]) -> None:
+    def theta_intervals(self, value: list[list[float]]) -> None:
         """Set the confidence intervals for the angles in each iteration."""
         self._theta_intervals = value
 
     @property
-    def powers(self) -> List[int]:
+    def powers(self) -> list[int]:
         """Return the powers of the Grover operator in each iteration."""
         return self._powers
 
     @powers.setter
-    def powers(self, value: List[int]) -> None:
+    def powers(self, value: list[int]) -> None:
         """Set the powers of the Grover operator in each iteration."""
         self._powers = value
 
     @property
-    def ratios(self) -> List[float]:
+    def ratios(self) -> list[float]:
         r"""Return the ratios :math:`K_{i+1}/K_{i}` for each iteration :math:`i`."""
         return self._ratios
 
     @ratios.setter
-    def ratios(self, value: List[float]) -> None:
+    def ratios(self, value: list[float]) -> None:
         r"""Set the ratios :math:`K_{i+1}/K_{i}` for each iteration :math:`i`."""
         self._ratios = value
 
     @property
-    def confidence_interval_processed(self) -> Tuple[float, float]:
+    def confidence_interval_processed(self) -> tuple[float, float]:
         """Return the post-processed confidence interval."""
         return self._confidence_interval_processed
 
     @confidence_interval_processed.setter
-    def confidence_interval_processed(self, value: Tuple[float, float]) -> None:
+    def confidence_interval_processed(self, value: tuple[float, float]) -> None:
         """Set the post-processed confidence interval."""
         self._confidence_interval_processed = value
 
 
-def _chernoff_confint(value: float, shots: int, max_rounds: int, alpha: float
-                      ) -> Tuple[float, float]:
+def _chernoff_confint(
+    value: float, shots: int, max_rounds: int, alpha: float
+) -> tuple[float, float]:
     """Compute the Chernoff confidence interval for `shots` i.i.d. Bernoulli trials.
 
     The confidence interval is
@@ -539,7 +660,7 @@ def _chernoff_confint(value: float, shots: int, max_rounds: int, alpha: float
     return lower, upper
 
 
-def _clopper_pearson_confint(counts: int, shots: int, alpha: float) -> Tuple[float, float]:
+def _clopper_pearson_confint(counts: int, shots: int, alpha: float) -> tuple[float, float]:
     """Compute the Clopper-Pearson confidence interval for `shots` i.i.d. Bernoulli trials.
 
     Args:

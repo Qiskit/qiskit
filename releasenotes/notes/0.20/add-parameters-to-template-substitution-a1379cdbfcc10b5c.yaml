@@ -1,0 +1,73 @@
+---
+features:
+  - |
+    The :class:`.TemplateOptimization` transpiler pass can now work
+    with :class:`~.Gate` objects that have :class:`.ParameterExpression`
+    parameters. An illustrative example of using :class:`.Parameter`\s
+    with :class:`.TemplateOptimization` is the following::
+
+      from qiskit import QuantumCircuit, transpile, schedule
+      from qiskit.circuit import Parameter
+      
+      from qiskit.transpiler import PassManager
+      from qiskit.transpiler.passes import TemplateOptimization
+      
+      # New contributions to the template optimization
+      from qiskit.transpiler.passes.calibration import RZXCalibrationBuilder, rzx_templates
+      
+      from qiskit.test.mock import FakeCasablanca
+      backend = FakeCasablanca()
+      
+      phi = Parameter('φ')
+      
+      qc = QuantumCircuit(2)
+      qc.cx(0,1)
+      qc.p(2*phi, 1)
+      qc.cx(0,1)
+      print('Original circuit:')
+      print(qc)
+      
+      pass_ = TemplateOptimization(**rzx_templates.rzx_templates(['zz2']))
+      qc_cz = PassManager(pass_).run(qc)
+      print('ZX based circuit:')
+      print(qc_cz)
+      
+      # Add the calibrations
+      pass_ = RZXCalibrationBuilder(backend)
+      cal_qc = PassManager(pass_).run(qc_cz.bind_parameters({phi: 0.12}))
+      
+      # Transpile to the backend basis gates
+      cal_qct = transpile(cal_qc, backend)
+      qct = transpile(qc.bind_parameters({phi: 0.12}), backend)
+      
+      # Compare the schedule durations
+      print('Duration of schedule with the calibration:')
+      print(schedule(cal_qct, backend).duration)
+      print('Duration of standard with two CNOT gates:')
+      print(schedule(qct, backend).duration)
+          
+    outputs
+
+    .. parsed-literal::
+
+      Original circuit:
+      			 
+      q_0: ──■──────────────■──
+           ┌─┴─┐┌────────┐┌─┴─┐
+      q_1: ┤ X ├┤ P(2*φ) ├┤ X ├
+           └───┘└────────┘└───┘
+      ZX based circuit:
+      					 ┌─────────────┐            »
+      q_0: ────────────────────────────────────┤0            ├────────────»
+           ┌──────────┐┌──────────┐┌──────────┐│  Rzx(2.0*φ) │┌──────────┐»
+      q_1: ┤ Rz(-π/2) ├┤ Rx(-π/2) ├┤ Rz(-π/2) ├┤1            ├┤ Rx(-2*φ) ├»
+           └──────────┘└──────────┘└──────────┘└─────────────┘└──────────┘»
+      «                                                     
+      «q_0: ────────────────────────────────────────────────
+      «     ┌──────────┐┌──────────┐┌──────────┐┌──────────┐
+      «q_1: ┤ Rz(-π/2) ├┤ Rx(-π/2) ├┤ Rz(-π/2) ├┤ P(2.0*φ) ├
+      «     └──────────┘└──────────┘└──────────┘└──────────┘
+      Duration of schedule with the calibration:
+      1600
+      Duration of standard with two CNOT gates:
+      6848

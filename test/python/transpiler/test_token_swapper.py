@@ -28,7 +28,7 @@
 
 import itertools
 
-import retworkx as rx
+import rustworkx as rx
 from numpy import random
 from qiskit.transpiler.passes.routing.algorithms import ApproximateTokenSwapper
 from qiskit.transpiler.passes.routing.algorithms import util
@@ -68,9 +68,9 @@ class TestGeneral(QiskitTestCase):
     def test_bug1(self) -> None:
         """Tests for a bug that occured in happy swap chains of length >2."""
         graph = rx.PyGraph()
-        graph.extend_from_edge_list([
-            (0, 1), (0, 2), (0, 3), (0, 4),
-            (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3, 6)])
+        graph.extend_from_edge_list(
+            [(0, 1), (0, 2), (0, 3), (0, 4), (1, 2), (1, 3), (1, 4), (2, 3), (2, 4), (3, 4), (3, 6)]
+        )
         permutation = {0: 4, 1: 0, 2: 3, 3: 6, 4: 2, 6: 1}
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
@@ -103,15 +103,14 @@ class TestGeneral(QiskitTestCase):
         """Test a random (partial) mapping on a large randomly generated graph"""
         size = 100
         # Note that graph may have "gaps" in the node counts, i.e. the numbering is noncontiguous.
-        graph = rx.undirected_gnm_random_graph(size, size ** 2 // 10)
+        graph = rx.undirected_gnm_random_graph(size, size**2 // 10)
         for i in graph.node_indexes():
             try:
                 graph.remove_edge(i, i)  # Remove self-loops.
             except rx.NoEdgeBetweenNodes:
                 continue
         # Make sure the graph is connected by adding C_n
-        graph.add_edges_from_no_data(
-            [(i, i + 1) for i in range(len(graph) - 1)])
+        graph.add_edges_from_no_data([(i, i + 1) for i in range(len(graph) - 1)])
         swapper = ApproximateTokenSwapper(graph)  # type: ApproximateTokenSwapper[int]
 
         # Generate a randomized permutation.

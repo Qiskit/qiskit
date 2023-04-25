@@ -48,26 +48,25 @@ an iterator of drawings with the unique data key.
 If a plotter provides object handler for plotted shapes, the plotter API can manage
 the lookup table of the handler and the drawings by using this data key.
 """
-
+from __future__ import annotations
+import warnings
+from collections.abc import Iterator
 from copy import deepcopy
 from functools import partial
-from itertools import chain
-from typing import Tuple, Iterator, Dict
 from enum import Enum
 
 import numpy as np
 
 from qiskit import circuit
 from qiskit.visualization.exceptions import VisualizationError
-from qiskit.visualization.timeline import drawings, events, types
+from qiskit.visualization.timeline import drawings, types
 from qiskit.visualization.timeline.stylesheet import QiskitTimelineStyle
 
 
 class DrawerCanvas:
     """Data container for drawings."""
 
-    def __init__(self,
-                 stylesheet: QiskitTimelineStyle):
+    def __init__(self, stylesheet: QiskitTimelineStyle):
         """Create new data container."""
         # stylesheet
         self.formatter = stylesheet.formatter
@@ -75,16 +74,16 @@ class DrawerCanvas:
         self.layout = stylesheet.layout
 
         # drawings
-        self._collections = dict()
-        self._output_dataset = dict()
+        self._collections: dict[str, drawings.ElementaryData] = {}
+        self._output_dataset: dict[str, drawings.ElementaryData] = {}
 
         # vertical offset of bits
-        self.bits = []
-        self.assigned_coordinates = {}
+        self.bits: list[types.Bits] = []
+        self.assigned_coordinates: dict[types.Bits, float] = {}
 
         # visible controls
-        self.disable_bits = set()
-        self.disable_types = set()
+        self.disable_bits: set[types.Bits] = set()
+        self.disable_types: set[str] = set()
 
         # time
         self._time_range = (0, 0)
@@ -94,7 +93,7 @@ class DrawerCanvas:
         self.vmin = 0
 
     @property
-    def time_range(self) -> Tuple[int, int]:
+    def time_range(self) -> tuple[int, int]:
         """Return current time range to draw.
 
         Calculate net duration and add side margin to edge location.
@@ -105,29 +104,27 @@ class DrawerCanvas:
         t0, t1 = self._time_range
 
         duration = t1 - t0
-        new_t0 = t0 - duration * self.formatter['margin.left_percent']
-        new_t1 = t1 + duration * self.formatter['margin.right_percent']
+        new_t0 = t0 - duration * self.formatter["margin.left_percent"]
+        new_t1 = t1 + duration * self.formatter["margin.right_percent"]
 
         return new_t0, new_t1
 
+    @time_range.setter
+    def time_range(self, new_range: tuple[int, int]):
+        """Update time range to draw."""
+        self._time_range = new_range
+
     @property
-    def collections(self) -> Iterator[Tuple[str, drawings.ElementaryData]]:
+    def collections(self) -> Iterator[tuple[str, drawings.ElementaryData]]:
         """Return currently active entries from drawing data collection.
 
         The object is returned with unique name as a key of an object handler.
         When the horizontal coordinate contains `AbstractCoordinate`,
         the value is substituted by current time range preference.
         """
-        for name, data in self._output_dataset.items():
-            yield name, data
+        yield from self._output_dataset.items()
 
-    @time_range.setter
-    def time_range(self, new_range: Tuple[int, int]):
-        """Update time range to draw."""
-        self._time_range = new_range
-
-    def add_data(self,
-                 data: drawings.ElementaryData):
+    def add_data(self, data: drawings.ElementaryData):
         """Add drawing to collections.
 
         If the given object already exists in the collections,
@@ -136,60 +133,94 @@ class DrawerCanvas:
         Args:
             data: New drawing to add.
         """
-        if not self.formatter['control.show_clbits']:
+        if not self.formatter["control.show_clbits"]:
             data.bits = [b for b in data.bits if not isinstance(b, circuit.Clbit)]
         self._collections[data.data_key] = data
 
-    def load_program(self,
-                     program: circuit.QuantumCircuit):
+    # pylint: disable=cyclic-import
+    def load_program(self, program: circuit.QuantumCircuit):
         """Load quantum circuit and create drawing..
 
         Args:
             program: Scheduled circuit object to draw.
+
+        Raises:
+           VisualizationError: When circuit is not scheduled.
         """
-        self.bits = program.qubits + program.clbits
-        stop_time = 0
+        not_gate_like = (circuit.Barrier,)
 
+        if getattr(program, "_op_start_times") is None:
+            # Run scheduling for backward compatibility
+            from qiskit import transpile
+            from qiskit.transpiler import InstructionDurations, TranspilerError
+
+            warnings.warn(
+                "Visualizing un-scheduled circuit with timeline drawer has been deprecated. "
+                "This circuit should be transpiled with scheduler though it consists of "
+                "instructions with explicit durations.",
+                DeprecationWarning,
+            )
+
+            try:
+                program = transpile(
+                    program,
+                    scheduling_method="alap",
+                    instruction_durations=InstructionDurations(),
+                    optimization_level=0,
+                )
+            except TranspilerError as ex:
+                raise VisualizationError(
+                    f"Input circuit {program.name} is not scheduled and it contains "
+                    "operations with unknown delays. This cannot be visualized."
+                ) from ex
+
+        for t0, instruction in zip(program.op_start_times, program.data):
+            bits = list(instruction.qubits) + list(instruction.clbits)
+            for bit_pos, bit in enumerate(bits):
+                if not isinstance(instruction.operation, not_gate_like):
+                    # Generate draw object for gates
+                    gate_source = types.ScheduledGate(
+                        t0=t0,
+                        operand=instruction.operation,
+                        duration=instruction.operation.duration,
+                        bits=bits,
+                        bit_position=bit_pos,
+                    )
+                    for gen in self.generator["gates"]:
+                        obj_generator = partial(gen, formatter=self.formatter)
+                        for datum in obj_generator(gate_source):
+                            self.add_data(datum)
+                    if len(bits) > 1 and bit_pos == 0:
+                        # Generate draw object for gate-gate link
+                        line_pos = t0 + 0.5 * instruction.operation.duration
+                        link_source = types.GateLink(
+                            t0=line_pos, opname=instruction.operation.name, bits=bits
+                        )
+                        for gen in self.generator["gate_links"]:
+                            obj_generator = partial(gen, formatter=self.formatter)
+                            for datum in obj_generator(link_source):
+                                self.add_data(datum)
+                if isinstance(instruction.operation, circuit.Barrier):
+                    # Generate draw object for barrier
+                    barrier_source = types.Barrier(t0=t0, bits=bits, bit_position=bit_pos)
+                    for gen in self.generator["barriers"]:
+                        obj_generator = partial(gen, formatter=self.formatter)
+                        for datum in obj_generator(barrier_source):
+                            self.add_data(datum)
+
+        self.bits = list(program.qubits) + list(program.clbits)
         for bit in self.bits:
-            bit_events = events.BitEvents.load_program(scheduled_circuit=program,
-                                                       bit=bit)
-
-            # create objects associated with gates
-            for gen in self.generator['gates']:
+            for gen in self.generator["bits"]:
+                # Generate draw objects for bit
                 obj_generator = partial(gen, formatter=self.formatter)
-                draw_targets = [obj_generator(gate) for gate in bit_events.get_gates()]
-                for data in list(chain.from_iterable(draw_targets)):
-                    self.add_data(data)
-
-            # create objects associated with gate links
-            for gen in self.generator['gate_links']:
-                obj_generator = partial(gen, formatter=self.formatter)
-                draw_targets = [obj_generator(link) for link in bit_events.get_gate_links()]
-                for data in list(chain.from_iterable(draw_targets)):
-                    self.add_data(data)
-
-            # create objects associated with barrier
-            for gen in self.generator['barriers']:
-                obj_generator = partial(gen, formatter=self.formatter)
-                draw_targets = [obj_generator(barrier) for barrier in bit_events.get_barriers()]
-                for data in list(chain.from_iterable(draw_targets)):
-                    self.add_data(data)
-
-            # create objects associated with bit
-            for gen in self.generator['bits']:
-                obj_generator = partial(gen, formatter=self.formatter)
-                for data in obj_generator(bit):
-                    self.add_data(data)
-
-            stop_time = max(stop_time, bit_events.stop_time)
+                for datum in obj_generator(bit):
+                    self.add_data(datum)
 
         # update time range
-        t_end = max(stop_time, self.formatter['margin.minimum_duration'])
+        t_end = max(program.duration, self.formatter["margin.minimum_duration"])
         self.set_time_range(t_start=0, t_end=t_end)
 
-    def set_time_range(self,
-                       t_start: int,
-                       t_end: int):
+    def set_time_range(self, t_start: int, t_end: int):
         """Set time range to draw.
 
         Args:
@@ -198,9 +229,7 @@ class DrawerCanvas:
         """
         self.time_range = (t_start, t_end)
 
-    def set_disable_bits(self,
-                         bit: types.Bits,
-                         remove: bool = True):
+    def set_disable_bits(self, bit: types.Bits, remove: bool = True):
         """Interface method to control visibility of bits.
 
         Specified object in the blocked list will not be shown.
@@ -214,9 +243,7 @@ class DrawerCanvas:
         else:
             self.disable_bits.discard(bit)
 
-    def set_disable_type(self,
-                         data_type: types.DataTypes,
-                         remove: bool = True):
+    def set_disable_type(self, data_type: types.DataTypes, remove: bool = True):
         """Interface method to control visibility of data types.
 
         Specified object in the blocked list will not be shown.
@@ -244,10 +271,10 @@ class DrawerCanvas:
         self.assigned_coordinates.clear()
 
         # update coordinate
-        y0 = -self.formatter['margin.top']
-        for bit in self.layout['bit_arrange'](self.bits):
+        y0 = -self.formatter["margin.top"]
+        for bit in self.layout["bit_arrange"](self.bits):
             # remove classical bit
-            if isinstance(bit, circuit.Clbit) and not self.formatter['control.show_clbits']:
+            if isinstance(bit, circuit.Clbit) and not self.formatter["control.show_clbits"]:
                 continue
             # remove idle bit
             if not self._check_bit_visible(bit):
@@ -256,11 +283,11 @@ class DrawerCanvas:
             self.assigned_coordinates[bit] = offset
             y0 = offset - 0.5
         self.vmax = 0
-        self.vmin = y0 - self.formatter['margin.bottom']
+        self.vmin = y0 - self.formatter["margin.bottom"]
 
         # add data
-        temp_gate_links = dict()
-        temp_data = dict()
+        temp_gate_links = {}
+        temp_data = {}
         for data_key, data in self._collections.items():
             # deep copy to keep original data hash
             new_data = deepcopy(data)
@@ -290,8 +317,7 @@ class DrawerCanvas:
         """
         _barriers = [str(types.LineType.BARRIER.value)]
 
-        _delays = [str(types.BoxType.DELAY.value),
-                   str(types.LabelType.DELAY.value)]
+        _delays = [str(types.BoxType.DELAY.value), str(types.LabelType.DELAY.value)]
 
         def _time_range_check(_data):
             """If data is located outside the current time range."""
@@ -302,7 +328,7 @@ class DrawerCanvas:
 
         def _associated_bit_check(_data):
             """If any associated bit is not shown."""
-            if all([bit not in self.assigned_coordinates for bit in _data.bits]):
+            if all(bit not in self.assigned_coordinates for bit in _data.bits):
                 return False
             return True
 
@@ -312,14 +338,14 @@ class DrawerCanvas:
                 active_bits = [bit for bit in _data.bits if bit not in self.disable_bits]
                 if len(active_bits) < 2:
                     return False
-            elif _data.data_type in _barriers and not self.formatter['control.show_barriers']:
+            elif _data.data_type in _barriers and not self.formatter["control.show_barriers"]:
                 return False
-            elif _data.data_type in _delays and not self.formatter['control.show_delays']:
+            elif _data.data_type in _delays and not self.formatter["control.show_delays"]:
                 return False
             return True
 
         checks = [_time_range_check, _associated_bit_check, _data_check]
-        if all([check(data) for check in checks]):
+        if all(check(data) for check in checks):
             return True
 
         return False
@@ -333,13 +359,12 @@ class DrawerCanvas:
         Returns:
             Return `True` if the bit is visible.
         """
-        _gates = [str(types.BoxType.SCHED_GATE.value),
-                  str(types.SymbolType.FRAME.value)]
+        _gates = [str(types.BoxType.SCHED_GATE.value), str(types.SymbolType.FRAME.value)]
 
         if bit in self.disable_bits:
             return False
 
-        if self.formatter['control.show_idle']:
+        if self.formatter["control.show_idle"]:
             return True
 
         for data in self._collections.values():
@@ -356,6 +381,7 @@ class DrawerCanvas:
         Returns:
             Numpy data array with substituted values.
         """
+
         def substitute(val: types.Coordinate):
             if val == types.AbstractCoordinate.LEFT:
                 return self.time_range[0]
@@ -365,29 +391,29 @@ class DrawerCanvas:
                 return self.vmax
             if val == types.AbstractCoordinate.BOTTOM:
                 return self.vmin
-            raise VisualizationError('Coordinate {name} is not supported.'.format(name=val))
+            raise VisualizationError(f"Coordinate {val} is not supported.")
 
         try:
             return np.asarray(vals, dtype=float)
         except TypeError:
             return np.asarray(list(map(substitute, vals)), dtype=float)
 
-    def _check_link_overlap(self,
-                            links: Dict[str, drawings.GateLinkData]
-                            ) -> Dict[str, drawings.GateLinkData]:
+    def _check_link_overlap(
+        self, links: dict[str, drawings.GateLinkData]
+    ) -> dict[str, drawings.GateLinkData]:
         """Helper method to check overlap of bit links.
 
         This method dynamically shifts horizontal position of links if they are overlapped.
         """
         duration = self.time_range[1] - self.time_range[0]
-        allowed_overlap = self.formatter['margin.link_interval_percent'] * duration
+        allowed_overlap = self.formatter["margin.link_interval_percent"] * duration
 
         # return y coordinates
         def y_coords(link: drawings.GateLinkData):
             return np.array([self.assigned_coordinates.get(bit, np.nan) for bit in link.bits])
 
         # group overlapped links
-        overlapped_group = []
+        overlapped_group: list[list[str]] = []
         data_keys = list(links.keys())
         while len(data_keys) > 0:
             ref_key = data_keys.pop()
@@ -408,13 +434,12 @@ class DrawerCanvas:
             overlapped_group.append(list(overlaps))
 
         # renew horizontal offset
-        new_links = dict()
+        new_links = {}
         for overlaps in overlapped_group:
             if len(overlaps) > 1:
                 xpos_mean = np.mean([links[key].xvals[0] for key in overlaps])
                 # sort link key by y position
-                sorted_keys = sorted(overlaps,
-                                     key=lambda x: np.nanmax(y_coords(links[x])))
+                sorted_keys = sorted(overlaps, key=lambda x: np.nanmax(y_coords(links[x])))
                 x0 = xpos_mean - 0.5 * allowed_overlap * (len(overlaps) - 1)
                 for ind, key in enumerate(sorted_keys):
                     data = links[key]

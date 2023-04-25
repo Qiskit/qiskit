@@ -12,13 +12,14 @@
 
 """Job abstract interface."""
 
+import time
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
-import time
 
-from qiskit.providers.jobstatus import JobStatus, JOB_FINAL_STATES
-from qiskit.providers.exceptions import JobTimeoutError
+from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import Backend
+from qiskit.providers.exceptions import JobTimeoutError
+from qiskit.providers.jobstatus import JOB_FINAL_STATES, JobStatus
 
 
 class Job:
@@ -29,6 +30,7 @@ class Job:
     the versioned abstract classes as the parent class and not this class
     directly.
     """
+
     version = 0
 
 
@@ -41,10 +43,11 @@ class JobV1(Job, ABC):
     future versions of this abstract class to change the data model and
     interface.
     """
+
     version = 1
     _async = True
 
-    def __init__(self, backend: Backend, job_id: str, **kwargs) -> None:
+    def __init__(self, backend: Optional[Backend], job_id: str, **kwargs) -> None:
         """Initializes the asynchronous job.
 
         Args:
@@ -63,6 +66,8 @@ class JobV1(Job, ABC):
 
     def backend(self) -> Backend:
         """Return the backend where this job was executed."""
+        if self._backend is None:
+            raise QiskitError("The job does not have any backend.")
         return self._backend
 
     def done(self) -> bool:
@@ -82,10 +87,7 @@ class JobV1(Job, ABC):
         return self.status() in JOB_FINAL_STATES
 
     def wait_for_final_state(
-            self,
-            timeout: Optional[float] = None,
-            wait: float = 5,
-            callback: Optional[Callable] = None
+        self, timeout: Optional[float] = None, wait: float = 5, callback: Optional[Callable] = None
     ) -> None:
         """Poll the job status until it progresses to a final state such as ``DONE`` or ``ERROR``.
 
@@ -113,8 +115,7 @@ class JobV1(Job, ABC):
         while status not in JOB_FINAL_STATES:
             elapsed_time = time.time() - start_time
             if timeout is not None and elapsed_time >= timeout:
-                raise JobTimeoutError(
-                    'Timeout while waiting for job {}.'.format(self.job_id()))
+                raise JobTimeoutError(f"Timeout while waiting for job {self.job_id()}.")
             if callback:
                 callback(self.job_id(), status, self)
             time.sleep(wait)

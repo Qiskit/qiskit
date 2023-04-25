@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    Removed the ``optimize`` method from the :class:`~qiskit.algorithms.optimizers.Optimizer`
+    classes, which is superseded by the :meth:`~.algorithms.optimizers.Optimizer.minimize` method as direct replacement.
+    The one exception is :class:`~qiskit.algorithms.optimizers.SPSA`, where the
+    deprecation warning was not triggered so the method there is still kept.
+deprecations:
+  - |
+    The :meth:`.SPSA.optimize` method is deprecated in
+    favor of :meth:`.SPSA.minimize`, which can be used
+    as direct replacement. Note that this method returns a complete result
+    object with more information than before available.
+fixes:
+  - |
+    Fixed the getter of :attr:`.OptimizerResult.nit`, which
+    previously returned the number of Jacobian evaluations instead of the number of iterations.

@@ -18,9 +18,24 @@ import numpy as np
 from ddt import ddt, data
 
 from qiskit import QuantumCircuit
+from qiskit.utils import algorithm_globals
 from qiskit.opflow import (
-    CVaRMeasurement, StateFn, Z, I, X, Y, Plus, PauliExpectation, MatrixExpectation,
-    CVaRExpectation, ListOp, CircuitOp, AerPauliExpectation, MatrixOp, OpflowError
+    CVaRMeasurement,
+    StateFn,
+    Z,
+    I,
+    X,
+    Y,
+    Plus,
+    PauliSumOp,
+    PauliExpectation,
+    MatrixExpectation,
+    CVaRExpectation,
+    ListOp,
+    CircuitOp,
+    AerPauliExpectation,
+    MatrixOp,
+    OpflowError,
 )
 
 
@@ -56,6 +71,10 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
                 break
 
         return result / alpha
+
+    def cleanup_algorithm_globals(self, massive):
+        """Method used to reset the values of algorithm_globals."""
+        algorithm_globals.massive = massive
 
     def test_cvar_simple(self):
         """Test a simple case with a single Pauli."""
@@ -106,30 +125,30 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
         """Test invalid input raises an error."""
         op = Z
 
-        with self.subTest('alpha < 0'):
+        with self.subTest("alpha < 0"):
             with self.assertRaises(ValueError):
                 _ = CVaRMeasurement(op, alpha=-0.2)
 
-        with self.subTest('alpha > 1'):
+        with self.subTest("alpha > 1"):
             with self.assertRaises(ValueError):
                 _ = CVaRMeasurement(op, alpha=12.3)
 
-        with self.subTest('Single pauli operator not diagonal'):
+        with self.subTest("Single pauli operator not diagonal"):
             op = Y
             with self.assertRaises(OpflowError):
                 _ = CVaRMeasurement(op)
 
-        with self.subTest('Summed pauli operator not diagonal'):
+        with self.subTest("Summed pauli operator not diagonal"):
             op = X ^ Z + Z ^ I
             with self.assertRaises(OpflowError):
                 _ = CVaRMeasurement(op)
 
-        with self.subTest('List operator not diagonal'):
+        with self.subTest("List operator not diagonal"):
             op = ListOp([X ^ Z, Z ^ I])
             with self.assertRaises(OpflowError):
                 _ = CVaRMeasurement(op)
 
-        with self.subTest('Matrix operator not diagonal'):
+        with self.subTest("Matrix operator not diagonal"):
             op = MatrixOp([[1, 1], [0, 1]])
             with self.assertRaises(OpflowError):
                 _ = CVaRMeasurement(op)
@@ -138,15 +157,35 @@ class TestCVaRMeasurement(QiskitOpflowTestCase):
         """Assert unsupported operations raise an error."""
         cvar = CVaRMeasurement(Z)
 
-        attrs = ['to_matrix', 'to_matrix_op', 'to_density_matrix', 'to_circuit_op', 'sample']
+        attrs = ["to_matrix", "to_matrix_op", "to_density_matrix", "to_circuit_op", "sample"]
         for attr in attrs:
             with self.subTest(attr):
                 with self.assertRaises(NotImplementedError):
                     _ = getattr(cvar, attr)()
 
-        with self.subTest('adjoint'):
+        with self.subTest("adjoint"):
             with self.assertRaises(OpflowError):
                 cvar.adjoint()
+
+    def test_cvar_on_paulisumop(self):
+        """Test a large PauliSumOp is checked for diagonality efficiently.
+
+        Regression test for Qiskit/qiskit-terra#7573.
+        """
+        op = PauliSumOp.from_list([("Z" * 30, 1)])
+        # assert global algorithm settings do not have massive calculations turned on
+        # -- which is the default, but better to be sure in the test!
+        # also add a cleanup so we're sure to reset to the original value after the test, even if
+        # the test would fail
+        self.addCleanup(self.cleanup_algorithm_globals, algorithm_globals.massive)
+        algorithm_globals.massive = False
+
+        cvar = CVaRMeasurement(op, alpha=0.1)
+        fake_probabilities = [0.2, 0.8]
+        fake_energies = [1, 2]
+
+        expectation = cvar.compute_cvar(fake_energies, fake_probabilities)
+        self.assertEqual(expectation, 1)
 
 
 @ddt
@@ -160,18 +199,20 @@ class TestCVaRExpectation(QiskitOpflowTestCase):
         base_expecation = PauliExpectation()
         cvar_expecation = CVaRExpectation(alpha=alpha, expectation=base_expecation)
 
-        with self.subTest('single operator'):
+        with self.subTest("single operator"):
             op = ~StateFn(Z) @ Plus
             expected = CVaRMeasurement(Z, alpha) @ Plus
             cvar = cvar_expecation.convert(op)
             self.assertEqual(cvar, expected)
 
-        with self.subTest('list operator'):
+        with self.subTest("list operator"):
             op = ~StateFn(ListOp([Z ^ Z, I ^ Z])) @ (Plus ^ Plus)
             expected = ListOp(
-                [CVaRMeasurement((Z ^ Z), alpha) @ (Plus ^ Plus),
-                 CVaRMeasurement((I ^ Z), alpha) @ (Plus ^ Plus)]
-                )
+                [
+                    CVaRMeasurement((Z ^ Z), alpha) @ (Plus ^ Plus),
+                    CVaRMeasurement((I ^ Z), alpha) @ (Plus ^ Plus),
+                ]
+            )
             cvar = cvar_expecation.convert(op)
             self.assertEqual(cvar, expected)
 
@@ -200,7 +241,7 @@ class TestCVaRExpectation(QiskitOpflowTestCase):
 
     def test_compute_variance(self):
         """Test if the compute_variance method works"""
-        alphas = [0, .3, 0.5, 0.7, 1]
+        alphas = [0, 0.3, 0.5, 0.7, 1]
         correct_vars = [0, 0, 0, 0.8163, 1]
         for i, alpha in enumerate(alphas):
             base_expecation = PauliExpectation()
@@ -210,5 +251,5 @@ class TestCVaRExpectation(QiskitOpflowTestCase):
             np.testing.assert_almost_equal(cvar_var, correct_vars[i], decimal=3)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

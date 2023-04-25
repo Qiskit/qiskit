@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    The :func:`~qiskit.quantum_info.decompose_clifford` function in the
+    :mod:`~qiskit.quantum_info` module (which gets used internally by the
+    :meth:`qiskit.quantum_info.Clifford.to_circuit` method) has a new kwarg
+    ``method`` which enables selecting the synthesis method used by either
+    setting it to ``'AG'`` or ``'greedy'``. By default for more than three
+    qubits it is set to ``'greedy'`` which uses a non-optimal greedy compilation
+    routine for Clifford elements synthesis, by Bravyi et. al., which typically
+    yields better CX cost compared to the previously used Aaronson-Gottesman
+    method (for more than two qubits). You can use the ``method`` kwarg to revert
+    to the previous default Aaronson-Gottesman method by setting ``method='AG'``.
+upgrade:
+  - |
+    The default synthesis method used by
+    :func:`~qiskit.quantum_info.decompose_clifford` function in the
+    :mod:`~qiskit.quantum_info` module (which gets used internally by the
+    :meth:`qiskit.quantum_info.Clifford.to_circuit` method) for more than
+    3 qubits now uses a non-optimal greedy compilation routine for Clifford
+    elements synthesis, by Bravyi et. al., which typically yields better CX
+    cost compared to the old default. If you need to revert to the previous
+    Aaronson-Gottesman method this can be done by setting ``method='AG'``.

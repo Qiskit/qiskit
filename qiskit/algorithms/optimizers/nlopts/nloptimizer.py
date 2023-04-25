@@ -10,29 +10,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Minimize using objective function """
+"""Minimize using objective function"""
+from __future__ import annotations
 
-from typing import List, Optional, Tuple, Callable
+from collections.abc import Callable
 from enum import Enum
 from abc import abstractmethod
 import logging
 import numpy as np
-from qiskit.exceptions import MissingOptionalLibraryError
-from ..optimizer import Optimizer, OptimizerSupportLevel
+
+from qiskit.utils import optionals as _optionals
+from ..optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 logger = logging.getLogger(__name__)
 
-try:
-    import nlopt
-    logger.info('NLopt version: %s.%s.%s', nlopt.version_major(),
-                nlopt.version_minor(), nlopt.version_bugfix())
-    _HAS_NLOPT = True
-except ImportError:
-    _HAS_NLOPT = False
-
 
 class NLoptOptimizerType(Enum):
-    """ NLopt Valid Optimizer """
+    """NLopt Valid Optimizer"""
+
     GN_CRS2_LM = 1
     GN_DIRECT_L_RAND = 2
     GN_DIRECT_L = 3
@@ -40,12 +35,13 @@ class NLoptOptimizerType(Enum):
     GN_ISRES = 5
 
 
+@_optionals.HAS_NLOPT.require_in_instance
 class NLoptOptimizer(Optimizer):
     """
     NLopt global optimizer base class
     """
 
-    _OPTIONS = ['max_evals']
+    _OPTIONS = ["max_evals"]
 
     def __init__(self, max_evals: int = 1000) -> None:  # pylint: disable=unused-argument
         """
@@ -55,13 +51,7 @@ class NLoptOptimizer(Optimizer):
         Raises:
             MissingOptionalLibraryError: NLopt library not installed.
         """
-        if not _HAS_NLOPT:
-            raise MissingOptionalLibraryError(
-                libname='nlopt',
-                name='NLoptOptimizer',
-                msg='See https://qiskit.org/documentation/apidoc/'
-                    'qiskit.aqua.components.optimizers.nlopts.html'
-                    ' for installation information')
+        import nlopt
 
         super().__init__()
         for k, v in list(locals().items()):
@@ -78,54 +68,40 @@ class NLoptOptimizer(Optimizer):
 
     @abstractmethod
     def get_nlopt_optimizer(self) -> NLoptOptimizerType:
-        """ return NLopt optimizer enum type """
+        """return NLopt optimizer enum type"""
         raise NotImplementedError
 
     def get_support_level(self):
-        """ return support level dictionary """
+        """return support level dictionary"""
         return {
-            'gradient': OptimizerSupportLevel.ignored,
-            'bounds': OptimizerSupportLevel.supported,
-            'initial_point': OptimizerSupportLevel.required
+            "gradient": OptimizerSupportLevel.ignored,
+            "bounds": OptimizerSupportLevel.supported,
+            "initial_point": OptimizerSupportLevel.required,
         }
 
-    def optimize(self, num_vars, objective_function, gradient_function=None,
-                 variable_bounds=None, initial_point=None):
-        super().optimize(num_vars, objective_function,
-                         gradient_function, variable_bounds, initial_point)
-        if variable_bounds is None:
-            variable_bounds = [(None, None)] * num_vars
-        return self._minimize(self._optimizer_names[self.get_nlopt_optimizer()],
-                              objective_function,
-                              variable_bounds,
-                              initial_point, **self._options)
+    @property
+    def settings(self):
+        return {"max_evals": self._options.get("max_evals", 1000)}
 
-    def _minimize(self,
-                  name: str,
-                  objective_function: Callable,
-                  variable_bounds: Optional[List[Tuple[float, float]]],
-                  initial_point: Optional[np.ndarray] = None,
-                  max_evals: int = 1000) -> Tuple[float, float, int]:
-        """Minimize using objective function
+    def minimize(
+        self,
+        fun: Callable[[POINT], float],
+        x0: POINT,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
+    ) -> OptimizerResult:
+        import nlopt
 
-        Args:
-            name: NLopt optimizer name
-            objective_function: handle to a function that
-                                            computes the objective function.
-            variable_bounds: list of variable
-                                bounds, given as pairs (lower, upper). None means
-                                unbounded.
-            initial_point: initial point.
-            max_evals: Maximum evaluations
+        x0 = np.asarray(x0)
 
-        Returns:
-            tuple(float, float, int): Solution at minimum found,
-                    value at minimum found, num evaluations performed
-        """
+        if bounds is None:
+            bounds = [(None, None)] * x0.size
+
         threshold = 3 * np.pi
-        low = [(l if l is not None else -threshold) for (l, u) in variable_bounds]
-        high = [(u if u is not None else threshold) for (l, u) in variable_bounds]
+        low = [(l if l is not None else -threshold) for (l, u) in bounds]
+        high = [(u if u is not None else threshold) for (l, u) in bounds]
 
+        name = self._optimizer_names[self.get_nlopt_optimizer()]
         opt = nlopt.opt(name, len(low))
         logger.debug(opt.get_algorithm_name())
 
@@ -137,13 +113,19 @@ class NLoptOptimizer(Optimizer):
         def wrap_objfunc_global(x, _grad):
             nonlocal eval_count
             eval_count += 1
-            return objective_function(x)
+            return fun(x)
 
         opt.set_min_objective(wrap_objfunc_global)
-        opt.set_maxeval(max_evals)
+        opt.set_maxeval(self._options.get("max_evals", 1000))
 
-        xopt = opt.optimize(initial_point)
+        xopt = opt.optimize(x0)
         minf = opt.last_optimum_value()
 
-        logger.debug('Global minimize found %s eval count %s', minf, eval_count)
-        return xopt, minf, eval_count
+        logger.debug("Global minimize found %s eval count %s", minf, eval_count)
+
+        result = OptimizerResult()
+        result.x = xopt
+        result.fun = minf
+        result.nfev = eval_count
+
+        return result

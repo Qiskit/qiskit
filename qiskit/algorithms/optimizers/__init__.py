@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2018, 2020.
+# (C) Copyright IBM 2018, 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -34,8 +34,29 @@ Optimizer Base Class
    :toctree: ../stubs/
    :nosignatures:
 
+   OptimizerResult
    OptimizerSupportLevel
    Optimizer
+   Minimizer
+
+Steppable Optimizer Base Class
+==============================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   optimizer_utils
+
+.. autosummary::
+   :toctree: ../stubs/
+   :nosignatures:
+
+   SteppableOptimizer
+   AskData
+   TellData
+   OptimizerState
+
+
 
 Local Optimizers
 ================
@@ -50,13 +71,18 @@ Local Optimizers
    COBYLA
    L_BFGS_B
    GSLS
+   GradientDescent
+   GradientDescentState
    NELDER_MEAD
    NFT
    P_BFGS
    POWELL
    SLSQP
    SPSA
+   QNSPSA
    TNC
+   SciPyOptimizer
+   UMDA
 
 Qiskit also provides the following optimizers, which are built-out using the optimizers from
 the `scikit-quant` package. The `scikit-quant` package is not installed by default but must be
@@ -76,14 +102,7 @@ not. To install the `scikit-quant` dependent package you can use
 Global Optimizers
 =================
 The global optimizers here all use NLopt for their core function and can only be
-used if their dependent NLopt package is manually installed. See the following
-section for installation instructions.
-
-.. toctree::
-
-   qiskit.algorithms.optimizers.nlopts
-
-The global optimizers are as follows:
+used if their dependent NLopt package is manually installed.
 
 .. autosummary::
    :toctree: ../stubs/
@@ -97,43 +116,67 @@ The global optimizers are as follows:
 
 """
 
-from .optimizer import OptimizerSupportLevel, Optimizer
 from .adam_amsgrad import ADAM
+from .aqgd import AQGD
+from .bobyqa import BOBYQA
 from .cg import CG
 from .cobyla import COBYLA
-from .l_bfgs_b import L_BFGS_B
 from .gsls import GSLS
+from .gradient_descent import GradientDescent, GradientDescentState
+from .imfil import IMFIL
+from .l_bfgs_b import L_BFGS_B
 from .nelder_mead import NELDER_MEAD
-from .p_bfgs import P_BFGS
-from .powell import POWELL
-from .slsqp import SLSQP
-from .spsa import SPSA
-from .tnc import TNC
-from .aqgd import AQGD
 from .nft import NFT
 from .nlopts.crs import CRS
 from .nlopts.direct_l import DIRECT_L
 from .nlopts.direct_l_rand import DIRECT_L_RAND
 from .nlopts.esch import ESCH
 from .nlopts.isres import ISRES
+from .steppable_optimizer import SteppableOptimizer, AskData, TellData, OptimizerState
+from .optimizer import Minimizer, Optimizer, OptimizerResult, OptimizerSupportLevel
+from .p_bfgs import P_BFGS
+from .powell import POWELL
+from .qnspsa import QNSPSA
+from .scipy_optimizer import SciPyOptimizer
+from .slsqp import SLSQP
 from .snobfit import SNOBFIT
-from .bobyqa import BOBYQA
-from .imfil import IMFIL
+from .spsa import SPSA
+from .tnc import TNC
+from .umda import UMDA
 
-__all__ = ['Optimizer',
-           'OptimizerSupportLevel',
-           'ADAM',
-           'AQGD',
-           'CG',
-           'COBYLA',
-           'GSLS',
-           'L_BFGS_B',
-           'NELDER_MEAD',
-           'NFT',
-           'P_BFGS',
-           'POWELL',
-           'SLSQP',
-           'SPSA',
-           'TNC',
-           'CRS', 'DIRECT_L', 'DIRECT_L_RAND', 'ESCH', 'ISRES',
-           'SNOBFIT', 'BOBYQA', 'IMFIL']
+__all__ = [
+    "Optimizer",
+    "OptimizerSupportLevel",
+    "SteppableOptimizer",
+    "AskData",
+    "TellData",
+    "OptimizerState",
+    "OptimizerResult",
+    "Minimizer",
+    "ADAM",
+    "AQGD",
+    "CG",
+    "COBYLA",
+    "GSLS",
+    "GradientDescent",
+    "GradientDescentState",
+    "L_BFGS_B",
+    "NELDER_MEAD",
+    "NFT",
+    "P_BFGS",
+    "POWELL",
+    "SciPyOptimizer",
+    "SLSQP",
+    "SPSA",
+    "QNSPSA",
+    "TNC",
+    "CRS",
+    "DIRECT_L",
+    "DIRECT_L_RAND",
+    "ESCH",
+    "ISRES",
+    "SNOBFIT",
+    "BOBYQA",
+    "IMFIL",
+    "UMDA",
+]

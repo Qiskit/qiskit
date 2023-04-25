@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    A new requirement `symengine <https://pypi.org/project/symengine>`__ has
+    been added for Linux (on x86_64, aarch64, and ppc64le) and macOS users
+    (x86_64 and arm64). It is an optional dependency on Windows (and available
+    on PyPi as a precompiled package for 64bit Windows) and other
+    architectures. If it is installed it provides significantly improved
+    performance for the evaluation of :class:`~qiskit.circuit.Parameter` and
+    :class:`~qiskit.circuit.ParameterExpression` objects.

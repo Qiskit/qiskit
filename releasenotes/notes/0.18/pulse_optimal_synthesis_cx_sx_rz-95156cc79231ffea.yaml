@@ -1,0 +1,90 @@
+---
+features:
+  - |
+    The :class:`~qiskit.quantum_info.TwoQubitBasisDecomposer` class has been
+    updated to perform pulse optimal decompositions for a basis with CX, √X, and
+    virtual Rz gates as described in
+    https://arxiv.org/pdf/2008.08571. Pulse optimal here means that
+    the duration of gates between the CX gates of the decomposition is
+    reduced in exchange for possibly more local gates before or after
+    all the CX gates such that, when composed into a circuit, there is the
+    possibility of single qubit compression with neighboring gates
+    reducing the overall sequence duration.
+
+    A new keyword argument, ```pulse_optimize``, has been added to the constructor
+    for :class:`~qiskit.quantum_info.TwoQubitBasisDecomposer` to control this:
+
+    * ``None``: Attempt pulse optimal decomposition. If a pulse optimal
+      decomposition is unknown for the basis of the decomposer, drop
+      back to the standard decomposition without warning. This is the default
+      setting.
+    * ``True``: Attempt pulse optimal decomposition. If a pulse optimal
+      decomposition is unknown for the basis of the decomposer, raise
+      `QiskitError`.
+    * ``False``: Do not attempt pulse optimal decomposition.
+
+    For example:
+
+    .. code-block:: python
+
+         from qiskit.quantum_info import TwoQubitBasisDecomposer
+         from qiskit.circuit.library import CXGate
+         from qiskit.quantum_info import random_unitary
+
+         unitary_matrix = random_unitary(4)
+
+         decomposer = TwoQubitBasisDecomposer(CXGate(), euler_basis="ZSX", pulse_optimize=True)
+         circuit = decomposer(unitary_matrix)
+
+  - |
+    The transpiler pass :class:`~qiskit.transpiler.passes.synthesis.UnitarySynthesis`
+    located in :mod:`qiskit.transpiler.passes` has been updated to support performing
+    pulse optimal decomposition. This is done primarily with the the
+    ``pulse_optimize`` keyword argument which was added to the constructor and
+    used to control whether pulse optimal synthesis is performed. The behavior of
+    this kwarg mirrors the ``pulse_optimize`` kwarg in the
+    :class:`~qiskit.quantum_info.TwoQubitBasisDecomposer` class's constructor.
+    Additionally, the constructor has another new keyword argument, ``synth_gates``,
+    which is used to specify the list of gate names over which synthesis should be attempted. If
+    ``None`` and ``pulse_optimize`` is ``False`` or ``None``, use ``"unitary"``.
+    If `None` and `pulse_optimize` is ``True``, use ``"unitary"`` and ``"swap"``.
+    Since the direction of the CX gate in the synthesis is arbitrary, another
+    keyword argument, ``natural_direction``, is added to consider first
+    a coupling map and then :class:`~qiskit.circuit.library.CXGate` durations in
+    choosing for which direction of CX to generate the synthesis.
+
+    .. code-block:: python
+
+        from qiskit.circuit import QuantumCircuit
+        from qiskit.transpiler import PassManager, CouplingMap
+        from qiskit.transpiler.passes import TrivialLayout, UnitarySynthesis
+        from qiskit.test.mock import FakeVigo
+        from qiskit.quantum_info.random import random_unitary
+
+        backend = FakeVigo()
+        conf = backend.configuration()
+        coupling_map = CouplingMap(conf.coupling_map)
+        triv_layout_pass = TrivialLayout(coupling_map)
+        circ = QuantumCircuit(2)
+        circ.unitary(random_unitary(4), [0, 1])
+        unisynth_pass = UnitarySynthesis(
+            basis_gates=conf.basis_gates,
+            coupling_map=None,
+            backend_props=backend.properties(),
+            pulse_optimize=True,
+            natural_direction=True,
+            synth_gates=['unitary'])
+        pm = PassManager([triv_layout_pass, unisynth_pass])
+        optimal_circ = pm.run(circ)
+
+  - |
+    A new basis option, ``'XZX'``, was added for the ``basis`` argument
+    :class:`~qiskit.quantum_info.OneQubitEulerDecomposer` class.
+  - |
+    Added a new method, :meth:`~qiskit.circuit.QuantumCircuit.get_instructions`,
+    was added to the :class:`~qiskit.circuit.QuantumCircuit` class. This method
+    is used to return all :class:`~qiskit.circuit.Instruction` objects in the
+    circuit which have a :attr:`~qiskit.circuit.Instruction.name` that matches
+    the provided ``name`` argument along with its associated ``qargs`` and
+    ``cargs`` lists of :class:`~qiskit.circuit.Qubit` and
+    :class:`~qiskit.circuit.Clbit` objects.

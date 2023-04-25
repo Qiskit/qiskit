@@ -1,0 +1,25 @@
+---
+upgrade:
+  - |
+    The data type of each element in :attr:`.QuantumCircuit.data` has changed.
+    It used to be a simple 3-tuple of an :class:`~.circuit.Instruction`, a list
+    of :class:`.Qubit`\ s, and a list of :class:`.Clbit`\ s, whereas it is now
+    an instance of :class:`.CircuitInstruction`.
+
+    The attributes of this new class are :attr:`~.CircuitInstruction.operation`,
+    :attr:`~.CircuitInstruction.qubits` and :attr:`~.CircuitInstruction.clbits`,
+    corresponding to the elements of the previous tuple.  However,
+    :attr:`~.CircuitInstruction.qubits` and :attr:`~.CircuitInstruction.clbits`
+    are now ``tuple`` instances, not ``list``\ s.
+
+    This new class will behave exactly like the old 3-tuple if one attempts to
+    access its index its elements, or iterate through it.  This includes casting
+    the :attr:`~.CircuitInstruction.qubits` and :attr:`~.CircuitInstruction.clbits`
+    elements to lists.  This is to assist backwards compatibility.  Starting from
+    Qiskit Terra 0.21, this is no longer the preferred way to access these elements.
+    Instead, you should use the attribute-access form described above.
+
+    This has been done to allow further developments of the :class:`.QuantumCircuit`
+    data structure in Terra, without constantly breaking backwards compatibility.
+    Planned developments include dynamic parameterized circuits, and an overall
+    reduction in memory usage of deep circuits.

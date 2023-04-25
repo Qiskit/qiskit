@@ -12,10 +12,11 @@
 
 """Test the BarrierBeforeFinalMeasurements pass"""
 
+import random
 import unittest
 from qiskit.transpiler.passes import BarrierBeforeFinalMeasurements
 from qiskit.converters import circuit_to_dag
-from qiskit import QuantumRegister, QuantumCircuit, ClassicalRegister
+from qiskit.circuit import QuantumRegister, QuantumCircuit, ClassicalRegister, Clbit
 from qiskit.test import QiskitTestCase
 
 
@@ -23,14 +24,14 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
     """Tests the BarrierBeforeFinalMeasurements pass."""
 
     def test_single_measure(self):
-        """ A single measurement at the end
-                           |
-         q:--[m]--     q:--|-[m]---
-              |    ->      |  |
-         c:---.---     c:-----.---
+        """A single measurement at the end
+                          |
+        q:--[m]--     q:--|-[m]---
+             |    ->      |  |
+        c:---.---     c:-----.---
         """
-        qr = QuantumRegister(1, 'q')
-        cr = ClassicalRegister(1, 'c')
+        qr = QuantumRegister(1, "q")
+        cr = ClassicalRegister(1, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
@@ -46,12 +47,12 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
 
     def test_ignore_single_measure(self):
         """Ignore single measurement because it is not at the end
-         q:--[m]-[H]-      q:--[m]-[H]-
-              |        ->       |
-         c:---.------      c:---.------
+        q:--[m]-[H]-      q:--[m]-[H]-
+             |        ->       |
+        c:---.------      c:---.------
         """
-        qr = QuantumRegister(1, 'q')
-        cr = ClassicalRegister(1, 'c')
+        qr = QuantumRegister(1, "q")
+        cr = ClassicalRegister(1, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
@@ -68,13 +69,13 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
 
     def test_single_measure_mix(self):
         """Two measurements, but only one is at the end
-                                                 |
-         q0:--[m]--[H]--[m]--     q0:--[m]--[H]--|-[m]---
-               |         |    ->        |        |  |
-          c:---.---------.---      c:---.-----------.---
+                                                |
+        q0:--[m]--[H]--[m]--     q0:--[m]--[H]--|-[m]---
+              |         |    ->        |        |  |
+         c:---.---------.---      c:---.-----------.---
         """
-        qr = QuantumRegister(1, 'q')
-        cr = ClassicalRegister(1, 'c')
+        qr = QuantumRegister(1, "q")
+        cr = ClassicalRegister(1, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr, cr)
@@ -94,19 +95,19 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
 
     def test_two_qregs(self):
         """Two measurements in different qregs to different cregs
-                                           |
-         q0:--[H]--[m]------     q0:--[H]--|--[m]------
-                    |                      |   |
-         q1:--------|--[m]--  -> q1:-------|---|--[m]--
-                    |   |                  |   |   |
-         c0:--------.---|---      c0:----------.---|---
-                        |                          |
-         c1:------------.---      c0:--------------.---
+                                          |
+        q0:--[H]--[m]------     q0:--[H]--|--[m]------
+                   |                      |   |
+        q1:--------|--[m]--  -> q1:-------|---|--[m]--
+                   |   |                  |   |   |
+        c0:--------.---|---      c0:----------.---|---
+                       |                          |
+        c1:------------.---      c0:--------------.---
         """
-        qr0 = QuantumRegister(1, 'q0')
-        qr1 = QuantumRegister(1, 'q1')
-        cr0 = ClassicalRegister(1, 'c0')
-        cr1 = ClassicalRegister(1, 'c1')
+        qr0 = QuantumRegister(1, "q0")
+        qr1 = QuantumRegister(1, "q1")
+        cr0 = ClassicalRegister(1, "c0")
+        cr1 = ClassicalRegister(1, "c1")
 
         circuit = QuantumCircuit(qr0, qr1, cr0, cr1)
         circuit.h(qr0)
@@ -126,17 +127,17 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
 
     def test_two_qregs_to_a_single_creg(self):
         """Two measurements in different qregs to the same creg
-                                           |
-         q0:--[H]--[m]------     q0:--[H]--|--[m]------
-                    |                      |   |
-         q1:--------|--[m]--  -> q1:-------|---|--[m]--
-                    |   |                  |   |   |
-         c0:--------.---|---     c0:-----------.---|---
-            ------------.---        ---------------.---
+                                          |
+        q0:--[H]--[m]------     q0:--[H]--|--[m]------
+                   |                      |   |
+        q1:--------|--[m]--  -> q1:-------|---|--[m]--
+                   |   |                  |   |   |
+        c0:--------.---|---     c0:-----------.---|---
+           ------------.---        ---------------.---
         """
-        qr0 = QuantumRegister(1, 'q0')
-        qr1 = QuantumRegister(1, 'q1')
-        cr0 = ClassicalRegister(2, 'c0')
+        qr0 = QuantumRegister(1, "q0")
+        qr1 = QuantumRegister(1, "q1")
+        cr0 = ClassicalRegister(2, "c0")
 
         circuit = QuantumCircuit(qr0, qr1, cr0)
         circuit.h(qr0)
@@ -157,18 +158,18 @@ class TestBarrierBeforeFinalMeasurements(QiskitTestCase):
     def test_preserve_measure_for_conditional(self):
         """Test barrier is inserted after any measurements used for conditionals
 
-         q0:--[H]--[m]------------     q0:--[H]--[m]-------|-------
-                    |                             |        |
-         q1:--------|--[ z]--[m]--  -> q1:--------|--[ z]--|--[m]--
-                    |    |    |                   |    |       |
-         c0:--------.--[=1]---|---     c0:--------.--[=1]------|---
-                              |                                |
-         c1:------------------.---     c1:---------------------.---
+        q0:--[H]--[m]------------     q0:--[H]--[m]-------|-------
+                   |                             |        |
+        q1:--------|--[ z]--[m]--  -> q1:--------|--[ z]--|--[m]--
+                   |    |    |                   |    |       |
+        c0:--------.--[=1]---|---     c0:--------.--[=1]------|---
+                             |                                |
+        c1:------------------.---     c1:---------------------.---
         """
-        qr0 = QuantumRegister(1, 'q0')
-        qr1 = QuantumRegister(1, 'q1')
-        cr0 = ClassicalRegister(1, 'c0')
-        cr1 = ClassicalRegister(1, 'c1')
+        qr0 = QuantumRegister(1, "q0")
+        qr1 = QuantumRegister(1, "q1")
+        cr0 = ClassicalRegister(1, "c0")
+        cr1 = ClassicalRegister(1, "c1")
         circuit = QuantumCircuit(qr0, qr1, cr0, cr1)
 
         circuit.h(qr0)
@@ -194,13 +195,13 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
 
     def test_handle_redundancy(self):
         """The pass is idempotent
-             |                |
-         q:--|-[m]--      q:--|-[m]---
-             |  |     ->      |  |
-         c:-----.---      c:-----.---
+            |                |
+        q:--|-[m]--      q:--|-[m]---
+            |  |     ->      |  |
+        c:-----.---      c:-----.---
         """
-        qr = QuantumRegister(1, 'q')
-        cr = ClassicalRegister(1, 'c')
+        qr = QuantumRegister(1, "q")
+        cr = ClassicalRegister(1, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.barrier(qr)
@@ -225,8 +226,8 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
          c:----.-------|---     c:-------.-------|---
            ------------.---       ---------------.---
         """
-        qr = QuantumRegister(2, 'q')
-        cr = ClassicalRegister(2, 'c')
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.measure(qr[0], cr[0])
@@ -254,8 +255,8 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
          c:------------.-------|---     c:------------.------|---
            --------------------.---       -------------------.---
         """
-        qr = QuantumRegister(2, 'q')
-        cr = ClassicalRegister(2, 'c')
+        qr = QuantumRegister(2, "q")
+        cr = ClassicalRegister(2, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.h(qr)
@@ -288,8 +289,8 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
            ------------.----|----       ------------.----|----
            -----------------.----       -----------------.----
         """
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.barrier(qr[0], qr[1])
@@ -316,8 +317,8 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
            ---------------.---       --------------.---
            -------------------       ------------------
         """
-        qr = QuantumRegister(3, 'q')
-        cr = ClassicalRegister(3, 'c')
+        qr = QuantumRegister(3, "q")
+        cr = ClassicalRegister(3, "c")
 
         circuit = QuantumCircuit(qr, cr)
         circuit.barrier(qr)
@@ -333,17 +334,17 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
         self.assertEqual(result, circuit_to_dag(expected))
 
     def test_barrier_doesnt_reorder_gates(self):
-        """ A barrier should not allow the reordering of gates, as pointed out in #2102
+        """A barrier should not allow the reordering of gates, as pointed out in #2102
 
-         q:--[p(0)]----------[m]---------      q:--[p(0)]-----------|--[m]---------
-           --[p(1)]-----------|-[m]------  ->    --[p(1)]-----------|---|-[m]------
-           --[p(2)]-|---------|--|-[m]----       --[p(2)]-|---------|---|--|-[m]----
-           ---------|-[p(03)]-|--|--|-[m]-       ---------|-[p(03)]-|---|--|--|-[m]-
-                              |  |  |  |                                |  |  |  |
-         c:-------------------.--|--|--|-     c:------------------------.--|--|--|-
-           ----------------------.--|--|-       ---------------------------.--|--|-
-           -------------------------.--|-       ------------------------------.--|-
-           ----------------------------.-       ---------------------------------.-
+        q:--[p(0)]----------[m]---------      q:--[p(0)]-----------|--[m]---------
+          --[p(1)]-----------|-[m]------  ->    --[p(1)]-----------|---|-[m]------
+          --[p(2)]-|---------|--|-[m]----       --[p(2)]-|---------|---|--|-[m]----
+          ---------|-[p(03)]-|--|--|-[m]-       ---------|-[p(03)]-|---|--|--|-[m]-
+                             |  |  |  |                                |  |  |  |
+        c:-------------------.--|--|--|-     c:------------------------.--|--|--|-
+          ----------------------.--|--|-       ---------------------------.--|--|-
+          -------------------------.--|-       ------------------------------.--|-
+          ----------------------------.-       ---------------------------------.-
 
         """
 
@@ -370,6 +371,51 @@ class TestBarrierBeforeMeasurementsWhenABarrierIsAlreadyThere(QiskitTestCase):
 
         self.assertEqual(result, circuit_to_dag(expected))
 
+    def test_conditioned_on_single_bit(self):
+        """Test that the pass can handle cases where there is a loose-bit condition."""
+        circuit = QuantumCircuit(QuantumRegister(3), ClassicalRegister(2), [Clbit()])
+        circuit.h(range(3))
+        circuit.measure(range(3), range(3))
+        circuit.h(0).c_if(circuit.cregs[0], 3)
+        circuit.h(1).c_if(circuit.clbits[-1], True)
+        circuit.h(2).c_if(circuit.clbits[-1], False)
+        circuit.measure(range(3), range(3))
 
-if __name__ == '__main__':
+        expected = circuit.copy_empty_like()
+        expected.h(range(3))
+        expected.measure(range(3), range(3))
+        expected.h(0).c_if(expected.cregs[0], 3)
+        expected.h(1).c_if(expected.clbits[-1], True)
+        expected.h(2).c_if(expected.clbits[-1], False)
+        expected.barrier(range(3))
+        expected.measure(range(3), range(3))
+
+        pass_ = BarrierBeforeFinalMeasurements()
+        self.assertEqual(expected, pass_(circuit))
+
+    def test_output_deterministic(self):
+        """Test that the output barriers have a deterministic ordering (independent of
+        PYTHONHASHSEED).  This is important to guarantee that any subsequent topological iterations
+        through the circuit are also deterministic; it's in general not possible for all transpiler
+        passes to produce identical outputs across all valid topological orderings, especially if
+        those passes have some stochastic element."""
+        measure_order = list(range(20))
+        random.Random(2023_02_10).shuffle(measure_order)
+        circuit = QuantumCircuit(20, 20)
+        circuit.barrier([5, 2, 3])
+        circuit.barrier([7, 11, 14, 2, 4])
+        circuit.measure(measure_order, measure_order)
+
+        # All the barriers should get merged together.
+        expected = QuantumCircuit(20, 20)
+        expected.barrier(range(20))
+        expected.measure(measure_order, measure_order)
+
+        output = BarrierBeforeFinalMeasurements()(circuit)
+        self.assertEqual(expected, output)
+        # This assertion is that the ordering of the arguments in the barrier is fixed.
+        self.assertEqual(list(output.data[0].qubits), list(output.qubits))
+
+
+if __name__ == "__main__":
     unittest.main()

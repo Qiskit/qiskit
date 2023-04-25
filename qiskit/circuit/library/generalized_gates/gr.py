@@ -44,21 +44,17 @@ class GR(QuantumCircuit):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GR
-        import qiskit.tools.jupyter
-        import numpy as np
-        circuit = GR(num_qubits=3, theta=np.pi/4, phi=np.pi/2)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GR
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import numpy as np
+       circuit = GR(num_qubits=3, theta=np.pi/4, phi=np.pi/2)
+       _generate_circuit_library_visualization(circuit)
 
     """
 
-    def __init__(self,
-                 num_qubits: int,
-                 theta: float,
-                 phi: float) -> None:
+    def __init__(self, num_qubits: int, theta: float, phi: float) -> None:
         """Create a new Global R (GR) gate.
 
         Args:
@@ -66,8 +62,12 @@ class GR(QuantumCircuit):
             theta: rotation angle about axis determined by phi
             phi: angle of rotation axis in xy-plane
         """
-        super().__init__(num_qubits, name="gr")
-        self.r(theta, phi, self.qubits)
+        name = f"GR({theta:.2f}, {phi:.2f})"
+        circuit = QuantumCircuit(num_qubits, name=name)
+        circuit.r(theta, phi, circuit.qubits)
+
+        super().__init__(num_qubits, name=name)
+        self.append(circuit.to_gate(), self.qubits)
 
 
 class GRX(GR):
@@ -98,20 +98,17 @@ class GRX(GR):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
         from qiskit.circuit.library import GRX
-        import qiskit.tools.jupyter
+        from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
         import numpy as np
         circuit = GRX(num_qubits=3, theta=np.pi/4)
-        %circuit_library_info circuit
+        _generate_circuit_library_visualization(circuit)
 
     """
 
-    def __init__(self,
-                 num_qubits: int,
-                 theta: float) -> None:
+    def __init__(self, num_qubits: int, theta: float) -> None:
         """Create a new Global RX (GRX) gate.
 
         Args:
@@ -149,27 +146,24 @@ class GRY(GR):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GRY
-        import qiskit.tools.jupyter
-        import numpy as np
-        circuit = GRY(num_qubits=3, theta=np.pi/4)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GRY
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import numpy as np
+       circuit = GRY(num_qubits=3, theta=np.pi/4)
+       _generate_circuit_library_visualization(circuit)
 
     """
 
-    def __init__(self,
-                 num_qubits: int,
-                 theta: float) -> None:
+    def __init__(self, num_qubits: int, theta: float) -> None:
         """Create a new Global RY (GRY) gate.
 
         Args:
             num_qubits: number of qubits.
             theta: rotation angle about y-axis
         """
-        super().__init__(num_qubits, theta, phi=np.pi/2)
+        super().__init__(num_qubits, theta, phi=np.pi / 2)
 
 
 class GRZ(QuantumCircuit):
@@ -200,20 +194,17 @@ class GRZ(QuantumCircuit):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GRZ
-        import qiskit.tools.jupyter
-        import numpy as np
-        circuit = GRZ(num_qubits=3, phi=np.pi/2)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import GRZ
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import numpy as np
+       circuit = GRZ(num_qubits=3, phi=np.pi/2)
+       _generate_circuit_library_visualization(circuit)
 
     """
 
-    def __init__(self,
-                 num_qubits: int,
-                 phi: float) -> None:
+    def __init__(self, num_qubits: int, phi: float) -> None:
         """Create a new Global RZ (GRZ) gate.
 
         Args:

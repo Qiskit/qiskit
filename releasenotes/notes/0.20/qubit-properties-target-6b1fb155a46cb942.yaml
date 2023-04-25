@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Added a new attribute, :attr:`~.Target.qubit_properties` to the
+    :class:`~.Target` class. This attribute contains a list of
+    :class:`~.QubitProperties` objects for each qubit in the target.
+    For example::
+
+        target.qubit_properties[2]
+
+    will contain the :class:`~.QubitProperties` for qubit number 2 in the
+    target.
+
+    For :class:`~.BackendV2` authors, if you were previously defining
+    :class:`~.QubitProperties` directly on your :class:`~.BackendV2`
+    implementation by overriding :meth:`.BackendV2.qubit_properties` this
+    will still work fine. However, if you do move the definition to the 
+    underlying :class:`~.Target` object and remove the specialized
+    :meth:`.BackendV2.qubit_properties` implementation which will enable
+    using qubit properties in the transpiler and also maintain API compatibility
+    with your previous implementation.

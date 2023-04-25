@@ -23,6 +23,9 @@ class DCXGate(Gate):
     A 2-qubit Clifford gate consisting of two back-to-back
     CNOTs with alternate controls.
 
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.dcx` method.
+
     .. parsed-literal::
                   ┌───┐
         q_0: ──■──┤ X ├
@@ -46,21 +49,19 @@ class DCXGate(Gate):
 
     def __init__(self):
         """Create new DCX gate."""
-        super().__init__('dcx', 2, [])
+        super().__init__("dcx", 2, [])
 
     def _define(self):
         """
-        gate dcx a, b { cx a, b; cx a, b; }
+        gate dcx a, b { cx a, b; cx b, a; }
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.quantumcircuit import QuantumCircuit
         from .x import CXGate
-        q = QuantumRegister(2, 'q')
+
+        q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
-        rules = [
-            (CXGate(), [q[0], q[1]], []),
-            (CXGate(), [q[1], q[0]], [])
-        ]
+        rules = [(CXGate(), [q[0], q[1]], []), (CXGate(), [q[1], q[0]], [])]
         for instr, qargs, cargs in rules:
             qc._append(instr, qargs, cargs)
 
@@ -68,7 +69,4 @@ class DCXGate(Gate):
 
     def __array__(self, dtype=None):
         """Return a numpy.array for the DCX gate."""
-        return np.array([[1, 0, 0, 0],
-                         [0, 0, 0, 1],
-                         [0, 1, 0, 0],
-                         [0, 0, 1, 0]], dtype=dtype)
+        return np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 1, 0, 0], [0, 0, 1, 0]], dtype=dtype)

@@ -13,7 +13,10 @@
 
 """Test Qiskit's EquivalenceLibrary class."""
 
+import unittest
 import numpy as np
+
+import rustworkx as rx
 
 from qiskit.test import QiskitTestCase
 
@@ -21,29 +24,32 @@ from qiskit.circuit import QuantumCircuit, Parameter, Gate
 from qiskit.circuit.library import U2Gate
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.converters import circuit_to_instruction, circuit_to_gate
-
 from qiskit.circuit import EquivalenceLibrary
+from qiskit.utils import optionals
+from qiskit.circuit.equivalence import Key, Equivalence, NodeData, EdgeData
+
+from ..visualization.visualization import QiskitVisualizationTestCase, path_to_diagram_reference
 
 
 class OneQubitZeroParamGate(Gate):
     """Mock one qubit zero param gate."""
 
     def __init__(self):
-        super().__init__('1q0p', 1, [])
+        super().__init__("1q0p", 1, [])
 
 
 class OneQubitOneParamGate(Gate):
     """Mock one qubit one  param gate."""
 
     def __init__(self, theta):
-        super().__init__('1q1p', 1, [theta])
+        super().__init__("1q1p", 1, [theta])
 
 
 class OneQubitTwoParamGate(Gate):
     """Mock one qubit two param gate."""
 
     def __init__(self, phi, lam):
-        super().__init__('1q2p', 1, [phi, lam])
+        super().__init__("1q2p", 1, [phi, lam])
 
 
 class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
@@ -151,6 +157,47 @@ class TestEquivalenceLibraryWithoutBase(QiskitTestCase):
 
         self.assertFalse(eq_lib.has_entry(OneQubitZeroParamGate()))
 
+    def test_equivalence_graph(self):
+        """Verify valid graph created by add_equivalence"""
+
+        eq_lib = EquivalenceLibrary()
+
+        gate = OneQubitZeroParamGate()
+        first_equiv = QuantumCircuit(1)
+        first_equiv.h(0)
+        eq_lib.add_equivalence(gate, first_equiv)
+
+        equiv_copy = eq_lib._get_equivalences(Key(name="1q0p", num_qubits=1))[0].circuit
+
+        egraph = rx.PyDiGraph()
+        node_wt = NodeData(
+            key=Key(name="1q0p", num_qubits=1), equivs=[Equivalence(params=[], circuit=equiv_copy)]
+        )
+
+        egraph.add_node(node_wt)
+
+        node_wt = NodeData(key=Key(name="h", num_qubits=1), equivs=[])
+        egraph.add_node(node_wt)
+
+        edge_wt = EdgeData(
+            index=0,
+            num_gates=1,
+            rule=Equivalence(params=[], circuit=equiv_copy),
+            source=Key(name="h", num_qubits=1),
+        )
+        egraph.add_edge(0, 1, edge_wt)
+
+        for node in eq_lib.graph.nodes():
+            self.assertTrue(node in egraph.nodes())
+            for edge in eq_lib.graph.edges():
+                self.assertTrue(edge in egraph.edges())
+
+        self.assertEqual(len(eq_lib.graph.nodes()), len(egraph.nodes()))
+        self.assertEqual(len(eq_lib.graph.edges()), len(egraph.edges()))
+
+        keys = {Key(name="1q0p", num_qubits=1): 0, Key(name="h", num_qubits=1): 1}.keys()
+        self.assertEqual(keys, eq_lib.keys())
+
 
 class TestEquivalenceLibraryWithBase(QiskitTestCase):
     """Test cases for EquivalenceLibrary with base library."""
@@ -204,8 +251,9 @@ class TestEquivalenceLibraryWithBase(QiskitTestCase):
         entry = eq_lib.get_entry(gate)
 
         self.assertEqual(len(entry), 2)
-        self.assertEqual(entry[0], second_equiv)
-        self.assertEqual(entry[1], first_equiv)
+        self.assertNotEqual(entry[0], entry[1])
+        self.assertTrue(entry[0] in [first_equiv, second_equiv])
+        self.assertTrue(entry[1] in [first_equiv, second_equiv])
 
     def test_set_entry(self):
         """Verify we find only equivalences from top when explicitly set."""
@@ -269,8 +317,8 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify we raise if adding a circuit and gate with different sets of parameters."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter('theta')
-        phi = Parameter('phi')
+        theta = Parameter("theta")
+        phi = Parameter("phi")
 
         gate = OneQubitOneParamGate(theta)
         equiv = QuantumCircuit(1)
@@ -286,7 +334,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify query parameters will be included in returned entry."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter('theta')
+        theta = Parameter("theta")
 
         gate = OneQubitOneParamGate(theta)
         equiv = QuantumCircuit(1)
@@ -294,7 +342,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         eq_lib.add_equivalence(gate, equiv)
 
-        phi = Parameter('phi')
+        phi = Parameter("phi")
         gate_phi = OneQubitOneParamGate(phi)
 
         entry = eq_lib.get_entry(gate_phi)
@@ -309,8 +357,8 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify numeric query parameters will be included in returned entry."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter('theta')
-        phi = Parameter('phi')
+        theta = Parameter("theta")
+        phi = Parameter("phi")
 
         gate = OneQubitTwoParamGate(theta, phi)
         equiv = QuantumCircuit(1)
@@ -318,7 +366,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         eq_lib.add_equivalence(gate, equiv)
 
-        lam = Parameter('lam')
+        lam = Parameter("lam")
         gate_partial = OneQubitTwoParamGate(lam, 1.59)
 
         entry = eq_lib.get_entry(gate_partial)
@@ -333,7 +381,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify a gate can be added under different sets of parameters."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter('theta')
+        theta = Parameter("theta")
 
         gate_theta = OneQubitOneParamGate(theta)
         equiv_theta = QuantumCircuit(1)
@@ -341,14 +389,14 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         eq_lib.add_equivalence(gate_theta, equiv_theta)
 
-        phi = Parameter('phi')
+        phi = Parameter("phi")
         gate_phi = OneQubitOneParamGate(phi)
         equiv_phi = QuantumCircuit(1)
         equiv_phi.rz(phi, 0)
 
         eq_lib.add_equivalence(gate_phi, equiv_phi)
 
-        lam = Parameter('lam')
+        lam = Parameter("lam")
         gate_query = OneQubitOneParamGate(lam)
 
         entry = eq_lib.get_entry(gate_query)
@@ -367,8 +415,8 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
         """Verify entries will different numbers of parameters will be returned."""
         eq_lib = EquivalenceLibrary()
 
-        theta = Parameter('theta')
-        phi = Parameter('phi')
+        theta = Parameter("theta")
+        phi = Parameter("phi")
 
         # e.g. RGate(theta, phi)
         gate_full = OneQubitTwoParamGate(theta, phi)
@@ -383,7 +431,7 @@ class TestEquivalenceLibraryWithParameters(QiskitTestCase):
 
         eq_lib.add_equivalence(gate_partial, equiv_partial)
 
-        lam = Parameter('lam')
+        lam = Parameter("lam")
         gate_query = OneQubitTwoParamGate(lam, 0)
 
         entry = eq_lib.get_entry(gate_query)
@@ -409,6 +457,7 @@ class TestSessionEquivalenceLibrary(QiskitTestCase):
         qc_gate.cx(0, 1)
 
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
         bell_gate = circuit_to_gate(qc_gate, equivalence_library=sel)
 
         qc_inst = QuantumCircuit(2)
@@ -433,6 +482,7 @@ class TestSessionEquivalenceLibrary(QiskitTestCase):
         qc.cx(0, 1)
 
         from qiskit.circuit.equivalence_library import SessionEquivalenceLibrary as sel
+
         gate = circuit_to_gate(qc, equivalence_library=sel)
 
         decomps = gate.decompositions
@@ -459,3 +509,26 @@ class TestSessionEquivalenceLibrary(QiskitTestCase):
 
         self.assertEqual(len(decomps), 1)
         self.assertEqual(decomps[0], qc2)
+
+
+class TestEquivalenceLibraryVisualization(QiskitVisualizationTestCase):
+    """Test cases for EquivalenceLibrary visualization."""
+
+    @unittest.skipUnless(optionals.HAS_GRAPHVIZ, "Graphviz not installed")
+    def test_equivalence_draw(self):
+        """Verify EquivalenceLibrary drawing with reference image."""
+        sel = EquivalenceLibrary()
+        gate = OneQubitZeroParamGate()
+        first_equiv = QuantumCircuit(1)
+        first_equiv.h(0)
+
+        sel.add_equivalence(gate, first_equiv)
+
+        second_equiv = QuantumCircuit(1)
+        second_equiv.append(U2Gate(0, np.pi), [0])
+
+        sel.add_equivalence(gate, second_equiv)
+
+        image = sel.draw()
+        image_ref = path_to_diagram_reference("equivalence_library.png")
+        self.assertImagesAreEqual(image, image_ref, 0.04)

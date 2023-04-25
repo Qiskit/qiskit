@@ -16,10 +16,13 @@ Random symplectic operator functions
 import numpy as np
 from numpy.random import default_rng
 
-from .pauli import Pauli
+from qiskit.utils.deprecation import deprecate_func
+
 from .clifford import Clifford
-from .stabilizer_table import StabilizerTable
+from .pauli import Pauli
+from .pauli_list import PauliList
 from .pauli_table import PauliTable
+from .stabilizer_table import StabilizerTable
 
 
 def random_pauli(num_qubits, group_phase=False, seed=None):
@@ -49,6 +52,34 @@ def random_pauli(num_qubits, group_phase=False, seed=None):
     return pauli
 
 
+def random_pauli_list(num_qubits, size=1, seed=None, phase=True):
+    """Return a random PauliList.
+
+    Args:
+        num_qubits (int): the number of qubits.
+        size (int): Optional. The length of the Pauli list (Default: 1).
+        seed (int or np.random.Generator): Optional. Set a fixed seed or generator for RNG.
+        phase (bool): If True the Pauli phases are randomized, otherwise the phases are fixed to 0.
+                     [Default: True]
+
+    Returns:
+        PauliList: a random PauliList.
+    """
+    if seed is None:
+        rng = np.random.default_rng()
+    elif isinstance(seed, np.random.Generator):
+        rng = seed
+    else:
+        rng = default_rng(seed)
+
+    z = rng.integers(2, size=(size, num_qubits)).astype(bool)
+    x = rng.integers(2, size=(size, num_qubits)).astype(bool)
+    if phase:
+        _phase = rng.integers(4, size=(size))
+        return PauliList.from_symplectic(z, x, _phase)
+    return PauliList.from_symplectic(z, x)
+
+
 def random_pauli_table(num_qubits, size=1, seed=None):
     """Return a random PauliTable.
 
@@ -72,8 +103,12 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     return PauliTable(table)
 
 
+@deprecate_func(
+    additional_msg="Instead, use the function ``random_pauli_list``.",
+    since="0.22.0",
+)
 def random_stabilizer_table(num_qubits, size=1, seed=None):
-    """Return a random StabilizerTable.
+    """DEPRECATED: Return a random StabilizerTable.
 
     Args:
         num_qubits (int): the number of qubits.
@@ -159,11 +194,12 @@ def random_clifford(num_qubits, seed=None):
     table[lhs_inds, :] = table[rhs_inds, :]
 
     # Apply table
-    table = np.mod(np.matmul(table1, table), 2).astype(bool)
+    tableau = np.zeros((2 * num_qubits, 2 * num_qubits + 1), dtype=bool)
+    tableau[:, :-1] = np.mod(np.matmul(table1, table), 2)
 
     # Generate random phases
-    phase = rng.integers(2, size=2 * num_qubits).astype(bool)
-    return Clifford(StabilizerTable(table, phase))
+    tableau[:, -1] = rng.integers(2, size=2 * num_qubits)
+    return Clifford(tableau, validate=False)
 
 
 def _sample_qmallows(n, rng=None):
@@ -239,15 +275,19 @@ def _inverse_tril(mat, block_inverse_threshold):
 
     if dim <= 5:
         inv = mat.copy()
-        inv[2, 0] = (mat[2, 0] ^ (mat[1, 0] & mat[2, 1]))
+        inv[2, 0] = mat[2, 0] ^ (mat[1, 0] & mat[2, 1])
         if dim > 3:
-            inv[3, 1] = (mat[3, 1] ^ (mat[2, 1] & mat[3, 2]))
+            inv[3, 1] = mat[3, 1] ^ (mat[2, 1] & mat[3, 2])
             inv[3, 0] = mat[3, 0] ^ (mat[3, 2] & mat[2, 0]) ^ (mat[1, 0] & inv[3, 1])
         if dim > 4:
             inv[4, 2] = (mat[4, 2] ^ (mat[3, 2] & mat[4, 3])) & 1
             inv[4, 1] = mat[4, 1] ^ (mat[4, 3] & mat[3, 1]) ^ (mat[2, 1] & inv[4, 2])
-            inv[4, 0] = mat[4, 0] ^ (mat[1, 0] & inv[4, 1]) ^ (
-                mat[2, 0] & inv[4, 2]) ^ (mat[3, 0] & mat[4, 3])
+            inv[4, 0] = (
+                mat[4, 0]
+                ^ (mat[1, 0] & inv[4, 1])
+                ^ (mat[2, 0] & inv[4, 2])
+                ^ (mat[3, 0] & mat[4, 3])
+            )
         return inv % 2
 
     # For higher dimensions we use Numpy's inverse function

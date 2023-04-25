@@ -18,31 +18,31 @@ from qiskit.test import QiskitTestCase
 
 
 class TestPropertySet(QiskitTestCase):
-    """ Tests for PropertySet methods. """
+    """Tests for PropertySet methods."""
 
     def setUp(self):
         super().setUp()
         self.pset = PropertySet()
 
     def test_get_non_existent(self):
-        """ Getting non-existent property should return None. """
-        self.assertIsNone(self.pset['does_not_exists'])
+        """Getting non-existent property should return None."""
+        self.assertIsNone(self.pset["does_not_exists"])
 
     def test_get_set_and_retrive(self):
-        """ Setting and retrieving."""
-        self.pset['property'] = 'value'
-        self.assertEqual(self.pset['property'], 'value')
+        """Setting and retrieving."""
+        self.pset["property"] = "value"
+        self.assertEqual(self.pset["property"], "value")
 
     def test_str(self):
-        """ Test __str__ method. """
-        self.pset['property'] = 'value'
+        """Test __str__ method."""
+        self.pset["property"] = "value"
         self.assertEqual(str(self.pset), "{'property': 'value'}")
 
     def test_repr(self):
-        """ Test __repr__ method. """
-        self.pset['property'] = 'value'
+        """Test __repr__ method."""
+        self.pset["property"] = "value"
         self.assertEqual(str(repr(self.pset)), "{'property': 'value'}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

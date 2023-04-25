@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Fix a bug where the overlap quantum Fisher information methods
-    attempted to query the variable of a bound parameter.

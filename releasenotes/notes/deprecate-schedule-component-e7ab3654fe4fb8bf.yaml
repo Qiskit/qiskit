@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-        The ``ScheduleComponent`` has been deprecated. Anywhere that currently accepts a ``ScheduleComponent`` should instead accept a ``Union[Schedule, Instruction]``.``ch_start_time`` channels argument has been deprecated. Refer to `#5076 <https://github.com/Qiskit/qiskit-terra/issues/5076>` for more details

@@ -1,7 +1,0 @@
----
-features:
-  - |
-    This adds a general rotation gate, similar to the UGate, but instead of specifying
-    Euler angles the three components of a rotation vector are specified where the direction
-    of the vector specifies the rotation axis and the magnitude specifies the rotation angle
-    about the axis in radians.

@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -12,9 +12,15 @@
 
 """
 Converters (:mod:`qiskit.opflow.converters`)
-====================================================
+============================================
 
 .. currentmodule:: qiskit.opflow.converters
+
+.. deprecated:: 0.24.0
+
+    The :mod:`qiskit.opflow` module is deprecated and will be removed no earlier
+    than 3 months after the release date. For code migration guidelines,
+    visit https://qisk.it/opflow_migration.
 
 Converters are objects which manipulate Operators, usually traversing an Operator to
 change certain sub-Operators into a desired representation. Often the converted Operator is
@@ -31,34 +37,35 @@ which convert :class:`~qiskit.opflow.primitive_ops.PauliOp`'s to
 exponential in the number of qubits unless a clever trick is known
 (such as the use of sparse matrices).
 
+
 Note:
      Not all converters are in this module, as :mod:`~qiskit.opflow.expectations`
      and :mod:`~qiskit.opflow.evolutions` are also converters.
 
 Converter Base Class
-====================
+--------------------
 The converter base class simply enforces the presence of a :meth:`~ConverterBase.convert` method.
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    ConverterBase
 
 Converters
-==========
+----------
 In addition to the base class, directory holds a few miscellaneous converters which are used
 frequently around the Operator flow.
 
 .. autosummary::
    :toctree: ../stubs/
-   :nosignatures:
+   :template: autosummary/class_no_inherited_members.rst
 
    CircuitSampler
    AbelianGrouper
    DictToCircuitSum
    PauliBasisChange
-
+   TwoQubitReduction
 """
 
 from .converter_base import ConverterBase
@@ -66,9 +73,13 @@ from .circuit_sampler import CircuitSampler
 from .pauli_basis_change import PauliBasisChange
 from .dict_to_circuit_sum import DictToCircuitSum
 from .abelian_grouper import AbelianGrouper
+from .two_qubit_reduction import TwoQubitReduction
 
-__all__ = ['ConverterBase',
-           'CircuitSampler',
-           'PauliBasisChange',
-           'DictToCircuitSum',
-           'AbelianGrouper']
+__all__ = [
+    "ConverterBase",
+    "CircuitSampler",
+    "PauliBasisChange",
+    "DictToCircuitSum",
+    "AbelianGrouper",
+    "TwoQubitReduction",
+]
