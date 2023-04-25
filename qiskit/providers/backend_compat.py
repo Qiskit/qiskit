@@ -104,9 +104,17 @@ def convert_to_target(
             if filter_faulty:
                 if not properties.is_qubit_operational(qubit):
                     continue
+            try:
+                duration = properties.readout_length(qubit)
+            except BackendPropertyError:
+                duration = None
+            try:
+                error = properties.readout_error(qubit)
+            except BackendPropertyError:
+                error = None
             measure_props[(qubit,)] = InstructionProperties(
-                duration=properties.readout_length(qubit),
-                error=properties.readout_error(qubit),
+                duration=duration,
+                error=error,
             )
         target.add_instruction(Measure(), measure_props)
     # Parse from configuration because properties doesn't exist

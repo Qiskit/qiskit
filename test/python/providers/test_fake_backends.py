@@ -34,6 +34,8 @@ from qiskit.providers.fake_provider import (
     FakeYorktown,
     FakeMumbai,
     FakeWashington,
+    FakeSherbrooke,
+    FakePrague,
 )
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models.backendproperties import BackendProperties
@@ -55,6 +57,8 @@ from qiskit.circuit.library import (
     RGate,
     MCXGrayCode,
     RYGate,
+    CZGate,
+    ECRGate,
 )
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -229,6 +233,12 @@ class TestFakeBackends(QiskitTestCase):
         qc.measure_all()
         res = transpile(qc, backend_v2)
         self.assertIn("delay", res.count_ops())
+
+    def test_non_cx_tests(self):
+        backend = FakePrague()
+        self.assertIsInstance(backend.target.operation_from_name("cz"), CZGate)
+        backend = FakeSherbrooke()
+        self.assertIsInstance(backend.target.operation_from_name("ecr"), ECRGate)
 
     @unittest.skipUnless(optionals.HAS_AER, "Aer required for this test")
     def test_converter_simulator(self):
