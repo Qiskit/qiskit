@@ -37,6 +37,8 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    Literal,
+    overload,
 )
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -2607,6 +2609,22 @@ class QuantumCircuit:
             parameters.update(self.global_phase.parameters)
 
         return parameters
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[False] = ...,
+    ) -> "QuantumCircuit":
+        ...
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[True] = ...,
+    ) -> None:
+        ...
 
     def assign_parameters(
         self,
