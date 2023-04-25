@@ -172,7 +172,7 @@ def deprecate_arg(
                 args,
                 kwargs,
                 func_name=func_name,
-                original_func_signature=wrapper.__original_func_signature,
+                original_func_co_varnames=wrapper.__original_func_co_varnames,
                 old_arg_name=name,
                 new_alias=new_alias,
                 warning_msg=msg,
@@ -184,9 +184,18 @@ def deprecate_arg(
         # When decorators get called repeatedly, `func` refers to the result of the prior
         # decorator, not the original underlying function. This trick allows us to record the
         # original function's variable names regardless of how many decorators are used.
-        wrapper.__original_func_signature = getattr(
-            func, "__original_func_signature", inspect.signature(func)
-        )
+        #
+        # If it's the very first decorator call, we also check that *args and **kwargs are not used.
+        if hasattr(func, "__original_func_co_varnames"):
+            wrapper.__original_func_co_varnames = func.__original_func_co_varnames
+        else:
+            wrapper.__original_func_co_varnames = func.__code__.co_varnames
+            param_kinds = {param.kind for param in inspect.signature(func).parameters.values()}
+            if inspect.Parameter.VAR_POSITIONAL in param_kinds:
+                raise ValueError(
+                    "@deprecate_arg cannot be used with functions that take variable *args. Use "
+                    "warnings.warn() directly instead."
+                )
 
         add_deprecation_to_docstring(wrapper, msg, since=since, pending=pending)
         return wrapper
@@ -232,7 +241,7 @@ def deprecate_arguments(
                     args,
                     kwargs,
                     func_name=func_name,
-                    original_func_signature=wrapper.__original_func_signature,
+                    original_func_co_varnames=wrapper.__original_func_co_varnames,
                     old_arg_name=old,
                     new_alias=new,
                     warning_msg=old_kwarg_to_msg[old],
@@ -244,9 +253,18 @@ def deprecate_arguments(
         # When decorators get called repeatedly, `func` refers to the result of the prior
         # decorator, not the original underlying function. This trick allows us to record the
         # original function's variable names regardless of how many decorators are used.
-        wrapper.__original_func_signature = getattr(
-            func, "__original_func_signature", inspect.signature(func)
-        )
+        #
+        # If it's the very first decorator call, we also check that *args and **kwargs are not used.
+        if hasattr(func, "__original_func_co_varnames"):
+            wrapper.__original_func_co_varnames = func.__original_func_co_varnames
+        else:
+            wrapper.__original_func_co_varnames = func.__code__.co_varnames
+            param_kinds = {param.kind for param in inspect.signature(func).parameters.values()}
+            if inspect.Parameter.VAR_POSITIONAL in param_kinds:
+                raise ValueError(
+                    "@deprecate_arg cannot be used with functions that take variable *args. Use "
+                    "warnings.warn() directly instead."
+                )
 
         for msg in old_kwarg_to_msg.values():
             add_deprecation_to_docstring(
@@ -298,14 +316,19 @@ def _maybe_warn_and_rename_kwarg(
     kwargs: Dict[str, Any],
     *,
     func_name: str,
-    original_func_signature: inspect.Signature,
+    original_func_co_varnames: tuple[str, ...],
     old_arg_name: str,
     new_alias: Optional[str],
     warning_msg: str,
     category: Type[Warning],
     predicate: Optional[Callable[[Any], bool]],
 ) -> None:
-    arg_names_to_values = original_func_signature.bind(*args, **kwargs).arguments
+    # In Python 3.10+, we should set `zip(strict=False)` (the default). That is, we want to
+    # stop iterating once `args` is done, since some args may have not been explicitly passed as
+    # positional args.
+    arg_names_to_values = {name: val for val, name in zip(args, original_func_co_varnames)}
+    arg_names_to_values.update(kwargs)
+
     if old_arg_name not in arg_names_to_values:
         return
     if new_alias and new_alias in arg_names_to_values:
