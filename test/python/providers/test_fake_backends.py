@@ -494,6 +494,27 @@ class TestFakeBackends(QiskitTestCase):
             for qarg in v2_backend.target.qargs:
                 self.assertNotIn(i, qarg)
 
+    def test_filter_faulty_qubits_backend_v2_converter_with_delay(self):
+        """Test faulty qubits in v2 conversion."""
+        backend = FakeWashington()
+        # Get properties dict to make it easier to work with the properties API
+        # is difficult to edit because of the multiple layers of nesting and
+        # different object types
+        props_dict = backend.properties().to_dict()
+        for i in range(62, 67):
+            non_operational = {
+                "date": datetime.datetime.utcnow(),
+                "name": "operational",
+                "unit": "",
+                "value": 0,
+            }
+            props_dict["qubits"][i].append(non_operational)
+        backend._properties = BackendProperties.from_dict(props_dict)
+        v2_backend = BackendV2Converter(backend, filter_faulty=True, add_delay=True)
+        for i in range(62, 67):
+            for qarg in v2_backend.target.qargs:
+                self.assertNotIn(i, qarg)
+
     def test_filter_faulty_qubits_and_gates_backend_v2_converter(self):
         """Test faulty gates and qubits."""
         backend = FakeWashington()
