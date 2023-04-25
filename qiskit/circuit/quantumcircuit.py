@@ -1757,12 +1757,12 @@ class QuantumCircuit:
             return None
         return out
 
-    def _ipython_display_(self):
-        if self.width() > 50 or self.size() > 50 or self.depth() > 20:
-            print(self.__repr__())
-            return
-        from IPython.display import display
-        display(self.draw())
+    def _repr_png_(self):
+        import io
+
+        img_byte = io.BytesIO()
+        self.draw("mpl").savefig(img_byte, format="PNG")
+        return img_byte.getvalue()
 
     def draw(
         self,
