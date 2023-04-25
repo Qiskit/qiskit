@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Added the :class:`.ReverseEstimatorGradient` class for a classical, fast evaluation of
+    expectation value gradients based on backpropagation or reverse-mode gradients.
+    This class uses statevectors and thus provides exact gradients but scales 
+    exponentially in system size. It is designed for fast reference calculation of smaller system
+    sizes. It can for example be used as::
+
+      from qiskit.circuit.library import EfficientSU2
+      from qiskit.quantum_info import SparsePauliOp
+      from qiskit.algorithms.gradients import ReverseEstimatorGradient
+
+      observable = SparsePauliOp.from_sparse_list([("ZZ", [0, 1], 1)], num_qubits=10)
+      circuit = EfficientSU2(num_qubits=10)
+      values = [i / 100 for i in range(circuit.num_parameters)]
+      gradient = ReverseEstimatorGradient()
+
+      result = gradient.run([circuit], [observable], [values]).result()
+
+

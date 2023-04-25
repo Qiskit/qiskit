@@ -1,0 +1,48 @@
+---
+deprecations:
+  - |
+    Several public methods of pulse Qobj converters have been deprecated and in a future
+    release they will no longer be directly callable. The list of methods is:
+
+    In :class:`.InstructionToQobjConverter`,
+
+    * :meth:`~InstructionToQobjConverter.convert_acquire`
+    * :meth:`~InstructionToQobjConverter.convert_bundled_acquires`
+    * :meth:`~InstructionToQobjConverter.convert_set_frequency`
+    * :meth:`~InstructionToQobjConverter.convert_shift_frequency`
+    * :meth:`~InstructionToQobjConverter.convert_set_phase`
+    * :meth:`~InstructionToQobjConverter.convert_shift_phase`
+    * :meth:`~InstructionToQobjConverter.convert_delay`
+    * :meth:`~InstructionToQobjConverter.convert_play`
+    * :meth:`~InstructionToQobjConverter.convert_snapshot`
+
+    In :class:`.QobjToInstructionConverter`,
+
+    * :meth:`~QobjToInstructionConverter.convert_acquire`
+    * :meth:`~QobjToInstructionConverter.convert_set_phase`
+    * :meth:`~QobjToInstructionConverter.convert_shift_phase`
+    * :meth:`~QobjToInstructionConverter.convert_set_frequency`
+    * :meth:`~QobjToInstructionConverter.convert_shift_frequency`
+    * :meth:`~QobjToInstructionConverter.convert_delay`
+    * :meth:`~QobjToInstructionConverter.bind_pulse`
+    * :meth:`~QobjToInstructionConverter.convert_parametric`
+    * :meth:`~QobjToInstructionConverter.convert_snapshot`
+
+    Instead of calling any of these methods directly they will be implicitly selected when a
+    converter instance is directly called. For example::
+
+        converter = QobjToInstructionConverter()
+        converter(pulse_qobj)
+
+fixes:
+  - |
+    :class:`.QobjToInstructionConverter` has been upgraded to fix waveform name
+    collision when multiple backends are called and they accidentally have the
+    same pulse name in the pulse library.
+
+    This is an edge case caused only when a user keeps a converter instance,
+    while instantiating another converter with different backend.
+    Usually a converter instance is immediately discarted in the Qiskit client,
+    thus usually an end-user should not have encountered to this bug.
+
+    See Qiskit/qiskit-terra/#8839 for more details.

@@ -1,0 +1,38 @@
+---
+fixes:
+  - |
+    :meth:`.QuantumCircuit.qasm` will now correctly escape gate and register
+    names that collide with reserved OpenQASM 2 keywords.  Fixes
+    `#5043 <https://github.com/Qiskit/qiskit-terra/issues/5043>`__.
+upgrade:
+  - |
+    The names of :class:`.Register` instances are no longer constrained to be
+    valid OpenQASM 2 identifiers.  This is being done as the restriction is
+    overly strict as Qiskit becomes more decoupled from OpenQASM 2, and even the
+    OpenQASM 3 specification is not so restrictive.  If you were relying on
+    registers having valid OpenQASM 2 identifier names, you will need to begin
+    escaping the names.  A simplistic version of this could be done, for example,
+    by::
+
+      import re
+      import string
+      
+      def escape(name: str) -> str:
+        out = re.sub(r"\W", "_", name, flags=re.ASCII)
+        if not out or out[0] not in string.ascii_lowercase:
+          return "reg_" + out
+        return out
+deprecations:
+  - |
+    The method :meth:`.Register.qasm` is deprecated and will be removed in a
+    future release.  This method is found on the subclasses :class:`.QuantumRegister`
+    and :class:`.ClassicalRegister`.  The deprecation is because the
+    :meth:`~.Register.qasm` method promotes a false view of the responsible
+    party for safe conversion to OpenQASM 2; a single object alone does not
+    have the context to provide a safe conversion, such as whether its name
+    clashes after escaping it to produce a valid identifier.
+  - |
+    The class-variable regular expression :attr:`.Register.name_format` is
+    deprecated and wil be removed in a future release.  The names of registers
+    are now permitted to be any valid Python string, so the regular expression
+    has no use.

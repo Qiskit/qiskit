@@ -593,6 +593,7 @@ class TestMultipleTrials(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
+        qc.cx(0, 1)
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -612,6 +613,7 @@ class TestMultipleTrials(QiskitTestCase):
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
         qc.x(qr)
+        qc.cx(0, 1)
         qc.measure_all()
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -633,7 +635,7 @@ class TestMultipleTrials(QiskitTestCase):
         """Test that the default trials is set to a reasonable number."""
         backend = FakeManhattan()
         qc = QuantumCircuit(5)
-        qc.h(2)
+        qc.cx(2, 3)
         qc.cx(0, 1)
         cmap = CouplingMap(backend.configuration().coupling_map)
         properties = backend.properties()
@@ -646,7 +648,7 @@ class TestMultipleTrials(QiskitTestCase):
             "DEBUG:qiskit.transpiler.passes.layout.vf2_layout:Trial 159 is >= configured max trials 159",
             cm.output,
         )
-        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 58, 0, 1})
+        self.assertEqual(set(property_set["layout"].get_physical_bits()), {49, 40, 33, 0, 34})
 
     def test_no_limits_with_negative(self):
         """Test that we're not enforcing a trial limit if set to negative."""

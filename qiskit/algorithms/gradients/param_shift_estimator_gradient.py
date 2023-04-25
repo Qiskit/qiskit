@@ -15,9 +15,8 @@ Gradient of probabilities with parameter shift
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
-from qiskit.algorithms import AlgorithmError
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.opflow import PauliSumOp
 from qiskit.quantum_info.operators.base_operator import BaseOperator
@@ -25,6 +24,8 @@ from qiskit.quantum_info.operators.base_operator import BaseOperator
 from .base_estimator_gradient import BaseEstimatorGradient
 from .estimator_gradient_result import EstimatorGradientResult
 from .utils import _make_param_shift_parameter_values
+
+from ..exceptions import AlgorithmError
 
 
 class ParamShiftEstimatorGradient(BaseEstimatorGradient):
@@ -59,36 +60,36 @@ class ParamShiftEstimatorGradient(BaseEstimatorGradient):
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the gradients of the expectation values by the parameter shift rule."""
-        g_circuits, g_parameter_values, g_parameter_sets = self._preprocess(
-            circuits, parameter_values, parameter_sets, self.SUPPORTED_GATES
+        g_circuits, g_parameter_values, g_parameters = self._preprocess(
+            circuits, parameter_values, parameters, self.SUPPORTED_GATES
         )
         results = self._run_unique(
-            g_circuits, observables, g_parameter_values, g_parameter_sets, **options
+            g_circuits, observables, g_parameter_values, g_parameters, **options
         )
-        return self._postprocess(results, circuits, parameter_values, parameter_sets)
+        return self._postprocess(results, circuits, parameter_values, parameters)
 
     def _run_unique(
         self,
         circuits: Sequence[QuantumCircuit],
         observables: Sequence[BaseOperator | PauliSumOp],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[set[Parameter]],
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> EstimatorGradientResult:
         """Compute the estimator gradients on the given circuits."""
         job_circuits, job_observables, job_param_values, metadata = [], [], [], []
         all_n = []
-        for circuit, observable, parameter_values_, parameter_set in zip(
-            circuits, observables, parameter_values, parameter_sets
+        for circuit, observable, parameter_values_, parameters_ in zip(
+            circuits, observables, parameter_values, parameters
         ):
-            metadata.append({"parameters": [p for p in circuit.parameters if p in parameter_set]})
+            metadata.append({"parameters": parameters_})
             # Make parameter values for the parameter shift rule.
             param_shift_parameter_values = _make_param_shift_parameter_values(
-                circuit, parameter_values_, parameter_set
+                circuit, parameter_values_, parameters_
             )
             # Combine inputs into a single job to reduce overhead.
             n = len(param_shift_parameter_values)

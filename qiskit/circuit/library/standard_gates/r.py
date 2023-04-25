@@ -14,9 +14,9 @@
 
 import math
 from cmath import exp
+from math import pi
 from typing import Optional
 import numpy
-from qiskit.qasm import pi
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.parameterexpression import ParameterValueType
@@ -88,3 +88,8 @@ class RGate(Gate):
         exp_m = exp(-1j * phi)
         exp_p = exp(1j * phi)
         return numpy.array([[cos, -1j * exp_m * sin], [-1j * exp_p * sin, cos]], dtype=dtype)
+
+    def power(self, exponent: float):
+        """Raise gate to a power."""
+        theta, phi = self.params
+        return RGate(exponent * theta, phi)

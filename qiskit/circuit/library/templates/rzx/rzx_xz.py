@@ -25,11 +25,15 @@ q_1: ──■──┤ RX(ϴ) ├──■────────────�
 «
 """
 
+from __future__ import annotations
+
 import numpy as np
+
 from qiskit.circuit import Parameter, QuantumCircuit
+from qiskit.circuit.parameterexpression import ParameterValueType
 
 
-def rzx_xz(theta: float = None):
+def rzx_xz(theta: ParameterValueType | None = None):
     """Template for CX - RXGate - CX."""
     if theta is None:
         theta = Parameter("ϴ")

@@ -10,12 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+# pylint: disable=bad-docstring-quotes
+
 """
 Quantum register reference object.
 """
 import itertools
 
 from qiskit.circuit.exceptions import CircuitError
+
+# Over-specific import to avoid cyclic imports.
+from qiskit.utils.deprecation import deprecate_function
 from .register import Register
 from .bit import Bit
 
@@ -53,6 +58,12 @@ class QuantumRegister(Register):
     prefix = "q"
     bit_type = Qubit
 
+    @deprecate_function(
+        "Register.qasm() is deprecated since Terra 0.23, as correct exporting to OpenQASM 2 is "
+        "the responsibility of a larger exporter; it cannot safely be done on an object-by-object "
+        "basis without context. No replacement will be provided, because the premise is wrong.",
+        since="0.23.0",
+    )
     def qasm(self):
         """Return OPENQASM string for this register."""
         return "qreg %s[%d];" % (self.name, self.size)

@@ -1,0 +1,14 @@
+---
+deprecations:
+  - |
+    The transpiler routing pass, :class:`~.BIPMapping` has been deprecated
+    and will be removed in a future release. It has been replaced by an external
+    plugin package: ``qiskit-bip-mapper``. Details for this new package can
+    be found at the package's github repository:
+
+    https://github.com/qiskit-community/qiskit-bip-mapper
+
+    The pass was made into a separate plugin package for two reasons, first
+    the dependency on CPLEX makes it harder to use and secondly the plugin
+    packge more cleanly integrates with :func:`~.transpile`.
+

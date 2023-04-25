@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2018.
+# (C) Copyright IBM 2017, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,7 +13,6 @@
 """Tests for qiskit.quantum_info.analysis"""
 
 import unittest
-
 from qiskit.result import Counts, QuasiDistribution, ProbDistribution, sampled_expectation_value
 from qiskit.quantum_info import Pauli, SparsePauliOp
 from qiskit.opflow import PauliOp, PauliSumOp
@@ -83,11 +82,13 @@ class TestSampledExpval(QiskitTestCase):
         exp2 = sampled_expectation_value(counts, Pauli(oper))
         self.assertAlmostEqual(exp2, ans)
 
-        exp3 = sampled_expectation_value(counts, PauliOp(Pauli(oper)))
+        with self.assertWarns(DeprecationWarning):
+            exp3 = sampled_expectation_value(counts, PauliOp(Pauli(oper)))
         self.assertAlmostEqual(exp3, ans)
 
         spo = SparsePauliOp([oper], coeffs=[1])
-        exp4 = sampled_expectation_value(counts, PauliSumOp(spo, coeff=2))
+        with self.assertWarns(DeprecationWarning):
+            exp4 = sampled_expectation_value(counts, PauliSumOp(spo, coeff=2))
         self.assertAlmostEqual(exp4, 2 * ans)
 
         exp5 = sampled_expectation_value(counts, SparsePauliOp.from_list([[oper, 1]]))

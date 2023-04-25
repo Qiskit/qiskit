@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Updated the reference implementation :meth:`~.Sampler.run` to return
+    only states with non-zero probabilities.

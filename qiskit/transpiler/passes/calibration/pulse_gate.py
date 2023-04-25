@@ -15,11 +15,10 @@
 from typing import List, Union
 
 from qiskit.circuit import Instruction as CircuitInst
-from qiskit.pulse import (
-    Schedule,
-    ScheduleBlock,
-)
+from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
+from qiskit.transpiler.target import Target
+from qiskit.transpiler.exceptions import TranspilerError
 
 from .base_builder import CalibrationBuilder
 
@@ -50,15 +49,26 @@ class PulseGates(CalibrationBuilder):
 
     def __init__(
         self,
-        inst_map: InstructionScheduleMap,
+        inst_map: InstructionScheduleMap = None,
+        target: Target = None,
     ):
         """Create new pass.
 
         Args:
             inst_map: Instruction schedule map that user may override.
+            target: The :class:`~.Target` representing the target backend, if both
+                ``inst_map`` and this are specified then it updates instructions
+                in the ``target`` with ``inst_map``.
         """
         super().__init__()
-        self.inst_map = inst_map
+
+        if inst_map is None and target is None:
+            raise TranspilerError("inst_map and target cannot be None simulataneously.")
+
+        if target is None:
+            target = Target()
+            target.update_from_instruction_schedule_map(inst_map)
+        self.target = target
 
     def supported(self, node_op: CircuitInst, qubits: List) -> bool:
         """Determine if a given node supports the calibration.
@@ -70,7 +80,7 @@ class PulseGates(CalibrationBuilder):
         Returns:
             Return ``True`` is calibration can be provided.
         """
-        return self.inst_map.has(instruction=node_op.name, qubits=qubits)
+        return self.target.has_calibration(node_op.name, tuple(qubits))
 
     def get_calibration(self, node_op: CircuitInst, qubits: List) -> Union[Schedule, ScheduleBlock]:
         """Gets the calibrated schedule for the given instruction and qubits.
@@ -81,5 +91,8 @@ class PulseGates(CalibrationBuilder):
 
         Returns:
             Return Schedule of target gate instruction.
+
+        Raises:
+            TranspilerError: When node is parameterized and calibration is raw schedule object.
         """
-        return self.inst_map.get(node_op.name, qubits, *node_op.params)
+        return self.target.get_calibration(node_op.name, tuple(qubits), *node_op.params)

@@ -18,17 +18,14 @@ notifications:
     "quantum_info":
         - "@ikkoham"
     "utils/run_circuits":
-        - "@manoelmarques"
         - "@woodsp-ibm"
     "utils/quantum_instance":
-        - "@manoelmarques"
         - "@woodsp-ibm"
     "opflow":
-        - "@manoelmarques"
         - "@woodsp-ibm"
         - "@Cryoris"
     "algorithms":
-        - "@manoelmarques"
+        - "@ElePT"
         - "@woodsp-ibm"
     "circuit/library":
         - "@Cryoris"
@@ -41,6 +38,11 @@ notifications:
     ".*\\.rs$|^Cargo":
         - "@mtreinish"
         - "@kevinhartman"
+        - "@Eric-Arellano"
     "(?!.*pulse.*)\\bvisualization\\b":
         - "@enavarro51"
+    "^docs/":
+        - "@javabster"
+        - "@HuangJunye"
+        - "@Eric-Arellano"
 always_notify: true

@@ -17,7 +17,7 @@ import statistics
 import random
 
 import numpy as np
-from rustworkx import PyDiGraph, PyGraph
+from rustworkx import PyDiGraph, PyGraph, connected_components
 
 from qiskit.circuit import ControlFlowOp, ForLoopOp
 from qiskit.converters import circuit_to_dag
@@ -79,7 +79,20 @@ def build_interaction_graph(dag, strict_direction=True):
         _visit(dag, 1, {bit: bit for bit in dag.qubits})
     except MultiQEncountered:
         return None
-    return im_graph, im_graph_node_map, reverse_im_graph_node_map
+    # Remove components with no 2q interactions from interaction graph
+    # these will be evaluated separately independently of scoring isomorphic
+    # mappings. This is not done for strict direction because for post layout
+    # we need to factor in local operation constraints when evaluating a graph
+    free_nodes = {}
+    if not strict_direction:
+        conn_comp = connected_components(im_graph)
+        for comp in conn_comp:
+            if len(comp) == 1:
+                index = comp.pop()
+                free_nodes[index] = im_graph[index]
+                im_graph.remove_node(index)
+
+    return im_graph, im_graph_node_map, reverse_im_graph_node_map, free_nodes
 
 
 def score_layout(
@@ -98,8 +111,9 @@ def score_layout(
         size = 0
     nlayout = NLayout(layout_mapping, size + 1, size + 1)
     bit_list = np.zeros(len(im_graph), dtype=np.int32)
-    for node_index in bit_map.values():
-        bit_list[node_index] = sum(im_graph[node_index].values())
+    if strict_direction:
+        for node_index in bit_map.values():
+            bit_list[node_index] = sum(im_graph[node_index].values())
     edge_list = {
         (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
     }
@@ -162,7 +176,12 @@ def build_average_error_map(target, properties, coupling_map):
                 continue
             avg_map.add_error(qargs, statistics.mean(v))
             built = True
-    elif coupling_map is not None:
+    # if there are no error rates in the target we should fallback to using the degree heuristic
+    # used for a coupling map. To do this we can build the coupling map from the target before
+    # running the fallback heuristic
+    if not built and target is not None and coupling_map is None:
+        coupling_map = target.build_coupling_map()
+    if not built and coupling_map is not None:
         for qubit in range(num_qubits):
             avg_map.add_error(
                 (qubit, qubit),
@@ -194,3 +213,28 @@ def shuffle_coupling_graph(coupling_map, seed, strict_direction=True):
         cm_nodes = [k for k, v in sorted(enumerate(cm_nodes), key=lambda item: item[1])]
         cm_graph = shuffled_cm_graph
     return cm_graph, cm_nodes
+
+
+def map_free_qubits(
+    free_nodes, partial_layout, num_physical_qubits, reverse_bit_map, avg_error_map
+):
+    """Add any free nodes to a layout."""
+    if not free_nodes:
+        return partial_layout
+    if avg_error_map is not None:
+        free_qubits = sorted(
+            set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys(),
+            key=lambda bit: avg_error_map.get((bit, bit), 1.0),
+        )
+    # If no error map is available this means there is no scoring heuristic available for this
+    # backend and we can just randomly pick a free qubit
+    else:
+        free_qubits = list(
+            set(range(num_physical_qubits)) - partial_layout.get_physical_bits().keys()
+        )
+    for im_index in sorted(free_nodes, key=lambda x: sum(free_nodes[x].values())):
+        if not free_qubits:
+            return None
+        selected_qubit = free_qubits.pop(0)
+        partial_layout.add(reverse_bit_map[im_index], selected_qubit)
+    return partial_layout

@@ -6,7 +6,7 @@ features:
     reordering both the quantum and classical bits in the output visualization.
     For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister
 

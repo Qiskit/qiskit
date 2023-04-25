@@ -23,10 +23,19 @@ from qiskit.pulse.library import (
     Constant,
     Gaussian,
     GaussianSquare,
+    GaussianSquareDrag,
     Drag,
+    Sin,
+    Cos,
+    Sawtooth,
+    Triangle,
     gaussian,
     gaussian_square,
     drag as pl_drag,
+    sin,
+    cos,
+    triangle,
+    sawtooth,
 )
 
 from qiskit.pulse import functional_pulse, PulseError
@@ -120,6 +129,10 @@ class TestParametricPulses(QiskitTestCase):
         GaussianSquare(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=2.5)
         Constant(duration=150, amp=0.1 + 0.4j)
         Drag(duration=25, amp=0.2 + 0.3j, sigma=7.8, beta=4)
+        Sin(duration=25, amp=0.5, freq=0.1, phase=0.5, angle=0.5)
+        Cos(duration=30, amp=0.5, freq=0.1, phase=-0.5)
+        Sawtooth(duration=40, amp=0.5, freq=0.2, phase=3.14)
+        Triangle(duration=50, amp=0.5, freq=0.01, phase=0.5)
 
     # This test should be removed once deprecation of complex amp is completed.
     def test_complex_amp_deprecation(self):
@@ -192,6 +205,79 @@ class TestParametricPulses(QiskitTestCase):
         pulse = GaussianSquare(duration=125, sigma=4, amp=0.5j, width=100)
         pulse.validate_parameters()
 
+    def test_gaussian_square_drag_pulse(self):
+        """Test that GaussianSquareDrag sample pulse matches expectations.
+
+        Test that the real part of the envelop matches GaussianSquare and that
+        the rise and fall match Drag.
+        """
+        risefall = 32
+        sigma = 4
+        amp = 0.5
+        width = 100
+        beta = 1
+        duration = width + 2 * risefall
+
+        gsd = GaussianSquareDrag(duration=duration, sigma=sigma, amp=amp, width=width, beta=beta)
+        gsd_samples = gsd.get_waveform().samples
+
+        gs_pulse = GaussianSquare(duration=duration, sigma=sigma, amp=amp, width=width)
+        np.testing.assert_almost_equal(
+            np.real(gsd_samples),
+            np.real(gs_pulse.get_waveform().samples),
+        )
+        gsd2 = GaussianSquareDrag(
+            duration=duration,
+            sigma=sigma,
+            amp=amp,
+            beta=beta,
+            risefall_sigma_ratio=risefall / sigma,
+        )
+        np.testing.assert_almost_equal(
+            gsd_samples,
+            gsd2.get_waveform().samples,
+        )
+
+        drag_pulse = Drag(duration=2 * risefall, amp=amp, sigma=sigma, beta=beta)
+        np.testing.assert_almost_equal(
+            gsd_samples[:risefall],
+            drag_pulse.get_waveform().samples[:risefall],
+        )
+        np.testing.assert_almost_equal(
+            gsd_samples[-risefall:],
+            drag_pulse.get_waveform().samples[-risefall:],
+        )
+
+    def test_gauss_square_drag_extreme(self):
+        """Test that the gaussian square drag pulse can build a drag pulse."""
+        duration = 125
+        sigma = 4
+        amp = 0.5
+        angle = 1.5
+        beta = 1
+        gsd = GaussianSquareDrag(
+            duration=duration, sigma=sigma, amp=amp, width=0, beta=beta, angle=angle
+        )
+        drag = Drag(duration=duration, sigma=sigma, amp=amp, beta=beta, angle=angle)
+        np.testing.assert_almost_equal(gsd.get_waveform().samples, drag.get_waveform().samples)
+
+    def test_gaussian_square_drag_validation(self):
+        """Test drag beta parameter validation."""
+
+        GaussianSquareDrag(duration=50, width=0, sigma=16, amp=1, beta=2)
+        GaussianSquareDrag(duration=50, width=0, sigma=16, amp=1, beta=4)
+        GaussianSquareDrag(duration=50, width=0, sigma=16, amp=0.5, beta=20)
+        GaussianSquareDrag(duration=50, width=0, sigma=16, amp=-1, beta=2)
+        GaussianSquareDrag(duration=50, width=0, sigma=16, amp=1, beta=-2)
+        GaussianSquareDrag(duration=50, width=0, sigma=16, amp=1, beta=6)
+        GaussianSquareDrag(duration=50, width=0, sigma=16, amp=-0.5, beta=25, angle=1.5)
+        with self.assertRaises(PulseError):
+            GaussianSquareDrag(duration=50, width=0, sigma=16, amp=1, beta=20)
+        with self.assertRaises(PulseError):
+            GaussianSquareDrag(duration=50, width=0, sigma=4, amp=0.8, beta=20)
+        with self.assertRaises(PulseError):
+            GaussianSquareDrag(duration=50, width=0, sigma=4, amp=0.8, beta=-20)
+
     def test_drag_pulse(self):
         """Test that the Drag sample pulse matches the pulse library."""
         drag = Drag(duration=25, sigma=4, amp=0.5j, beta=1)
@@ -240,6 +326,77 @@ class TestParametricPulses(QiskitTestCase):
         with self.assertRaises(PulseError):
             check_drag(duration=50, sigma=4, amp=0.8, beta=-20)
 
+    def test_sin_pulse(self):
+        """Test that Sin sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0
+
+        sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=phase)
+        sin_waveform = sin(duration=duration, amp=amp, freq=freq, phase=phase)
+
+        np.testing.assert_almost_equal(sin_pulse.get_waveform().samples, sin_waveform.samples)
+
+        with self.assertRaises(PulseError):
+            Sin(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_cos_pulse(self):
+        """Test that Cin sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0
+        cos_pulse = Cos(duration=duration, amp=amp, freq=freq, phase=phase)
+        cos_waveform = cos(duration=duration, amp=amp, freq=freq, phase=phase)
+        np.testing.assert_almost_equal(cos_pulse.get_waveform().samples, cos_waveform.samples)
+
+        shifted_sin_pulse = Sin(duration=duration, amp=amp, freq=freq, phase=phase + np.pi / 2)
+        np.testing.assert_almost_equal(
+            shifted_sin_pulse.get_waveform().samples, cos_pulse.get_waveform().samples
+        )
+        with self.assertRaises(PulseError):
+            Cos(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_sawtooth_pulse(self):
+        """Test that Sawtooth sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0.5
+        sawtooth_pulse = Sawtooth(duration=duration, amp=amp, freq=freq, phase=phase)
+        sawtooth_waveform = sawtooth(duration=duration, amp=amp, freq=freq, phase=phase / 2)
+        # Note that the phase definition in `Sawtooth` was changed compared to `sawtooth`
+        np.testing.assert_almost_equal(
+            sawtooth_pulse.get_waveform().samples, sawtooth_waveform.samples
+        )
+        sawtooth_pulse_2 = Sawtooth(duration=duration, amp=amp, freq=freq, phase=phase + 2 * np.pi)
+        np.testing.assert_almost_equal(
+            sawtooth_pulse.get_waveform().samples, sawtooth_pulse_2.get_waveform().samples
+        )
+
+        with self.assertRaises(PulseError):
+            Sawtooth(duration=duration, amp=amp, freq=5, phase=phase)
+
+    def test_triangle_pulse(self):
+        """Test that Sawtooth sample pulse matches expectations, and parameter validation"""
+        duration = 100
+        amp = 0.5
+        freq = 0.1
+        phase = 0.5
+        triangle_pulse = Triangle(duration=duration, amp=amp, freq=freq, phase=phase)
+        triangle_waveform = triangle(duration=duration, amp=amp, freq=freq, phase=phase)
+        np.testing.assert_almost_equal(
+            triangle_pulse.get_waveform().samples, triangle_waveform.samples
+        )
+        triangle_pulse_2 = Triangle(duration=duration, amp=amp, freq=freq, phase=phase + 2 * np.pi)
+        np.testing.assert_almost_equal(
+            triangle_pulse.get_waveform().samples, triangle_pulse_2.get_waveform().samples
+        )
+
+        with self.assertRaises(PulseError):
+            Triangle(duration=duration, amp=amp, freq=5, phase=phase)
+
     def test_constant_samples(self):
         """Test the constant pulse and its sampled construction."""
         const = Constant(duration=150, amp=0.1 + 0.4j)
@@ -257,25 +414,35 @@ class TestParametricPulses(QiskitTestCase):
     def test_repr(self):
         """Test the repr methods for parametric pulses."""
         gaus = Gaussian(duration=25, amp=0.7, sigma=4, angle=0.3)
-        self.assertEqual(repr(gaus), "Gaussian(duration=25, amp=0.7, sigma=4, angle=0.3)")
+        self.assertEqual(repr(gaus), "Gaussian(duration=25, sigma=4, amp=0.7, angle=0.3)")
         gaus = Gaussian(
             duration=25, amp=0.1 + 0.7j, sigma=4
         )  # Should be removed once the deprecation of complex
         # amp is completed.
-        self.assertEqual(repr(gaus), "Gaussian(duration=25, amp=(0.1+0.7j), sigma=4, angle=0)")
+        self.assertEqual(repr(gaus), "Gaussian(duration=25, sigma=4, amp=(0.1+0.7j), angle=0)")
         gaus_square = GaussianSquare(duration=20, sigma=30, amp=1.0, width=3)
         self.assertEqual(
-            repr(gaus_square), "GaussianSquare(duration=20, amp=1.0, sigma=30, width=3, angle=0)"
+            repr(gaus_square), "GaussianSquare(duration=20, sigma=30, width=3, amp=1.0, angle=0)"
         )
         gaus_square = GaussianSquare(
             duration=20, sigma=30, amp=1.0, angle=0.2, risefall_sigma_ratio=0.1
         )
         self.assertEqual(
             repr(gaus_square),
-            "GaussianSquare(duration=20, amp=1.0, sigma=30, width=14.0, angle=0.2)",
+            "GaussianSquare(duration=20, sigma=30, width=14.0, amp=1.0, angle=0.2)",
+        )
+        gsd = GaussianSquareDrag(duration=20, sigma=30, amp=1.0, width=3, beta=1)
+        self.assertEqual(
+            repr(gsd),
+            "GaussianSquareDrag(duration=20, sigma=30, width=3, beta=1, amp=1.0, angle=0.0)",
+        )
+        gsd = GaussianSquareDrag(duration=20, sigma=30, amp=1.0, risefall_sigma_ratio=0.1, beta=1)
+        self.assertEqual(
+            repr(gsd),
+            "GaussianSquareDrag(duration=20, sigma=30, width=14.0, beta=1, amp=1.0, angle=0.0)",
         )
         drag = Drag(duration=5, amp=0.5, sigma=7, beta=1)
-        self.assertEqual(repr(drag), "Drag(duration=5, amp=0.5, sigma=7, beta=1, angle=0)")
+        self.assertEqual(repr(drag), "Drag(duration=5, sigma=7, beta=1, amp=0.5, angle=0)")
         const = Constant(duration=150, amp=0.1, angle=0.3)
         self.assertEqual(repr(const), "Constant(duration=150, amp=0.1, angle=0.3)")
 
@@ -291,21 +458,18 @@ class TestParametricPulses(QiskitTestCase):
             GaussianSquare(duration=150, amp=0.2, sigma=8, width=160)
         with self.assertRaises(PulseError):
             GaussianSquare(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=10)
+
+        with self.assertRaises(PulseError):
+            GaussianSquareDrag(duration=150, amp=0.2, sigma=8, beta=1)
+        with self.assertRaises(PulseError):
+            GaussianSquareDrag(duration=150, amp=0.2, sigma=8, width=160, beta=1)
+        with self.assertRaises(PulseError):
+            GaussianSquareDrag(duration=150, amp=0.2, sigma=8, risefall_sigma_ratio=10, beta=1)
+
         with self.assertRaises(PulseError):
             Constant(duration=150, amp=0.9 + 0.8j)
         with self.assertRaises(PulseError):
             Drag(duration=25, amp=0.2 + 0.3j, sigma=-7.8, beta=4)
-
-    def test_hash_generation(self):
-        """Test if pulse generate unique hash."""
-        test_hash = [
-            hash(GaussianSquare(duration=688, amp=0.1 + 0.1j, sigma=64, width=432))
-            for _ in range(10)
-        ]
-
-        ref_hash = [test_hash[0] for _ in range(10)]
-
-        self.assertListEqual(test_hash, ref_hash)
 
     def test_gaussian_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
@@ -343,6 +507,25 @@ class TestParametricPulses(QiskitTestCase):
         )
         self.assertGreater(np.abs(waveform.amp), 1.0)
 
+    def test_gaussian_square_drag_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            GaussianSquareDrag(duration=100, sigma=1.0, amp=1.1, beta=0.1, width=10)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = GaussianSquareDrag(duration=100, sigma=1.0, amp=1.1, beta=0.1, width=10)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_gaussian_square_drag_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            GaussianSquareDrag(duration=100, sigma=1.0, amp=1.1, beta=0.1, width=10)
+
+        waveform = GaussianSquareDrag(
+            duration=100, sigma=1.0, amp=1.1, beta=0.1, width=10, limit_amplitude=False
+        )
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
     def test_drag_limit_amplitude(self):
         """Test that the check for amplitude less than or equal to 1 can be disabled."""
         with self.assertRaises(PulseError):
@@ -375,6 +558,57 @@ class TestParametricPulses(QiskitTestCase):
             Constant(duration=100, amp=1.1 + 0.8j)
 
         waveform = Constant(duration=100, amp=1.1 + 0.8j, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sin_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            Sin(duration=100, amp=1.1, phase=0)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Sin(duration=100, amp=1.1, phase=0)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sin_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Sin(duration=100, amp=1.1, phase=0)
+
+        waveform = Sin(duration=100, amp=1.1, phase=0, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sawtooth_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            Sawtooth(duration=100, amp=1.1, phase=0)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Sawtooth(duration=100, amp=1.1, phase=0)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_sawtooth_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Sawtooth(duration=100, amp=1.1, phase=0)
+
+        waveform = Sawtooth(duration=100, amp=1.1, phase=0, limit_amplitude=False)
+        self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_triangle_limit_amplitude(self):
+        """Test that the check for amplitude less than or equal to 1 can be disabled."""
+        with self.assertRaises(PulseError):
+            Triangle(duration=100, amp=1.1, phase=0)
+
+        with patch("qiskit.pulse.library.pulse.Pulse.limit_amplitude", new=False):
+            waveform = Triangle(duration=100, amp=1.1, phase=0)
+            self.assertGreater(np.abs(waveform.amp), 1.0)
+
+    def test_triangle_limit_amplitude_per_instance(self):
+        """Test that the check for amplitude per instance."""
+        with self.assertRaises(PulseError):
+            Triangle(duration=100, amp=1.1, phase=0)
+
+        waveform = Triangle(duration=100, amp=1.1, phase=0, limit_amplitude=False)
         self.assertGreater(np.abs(waveform.amp), 1.0)
 
     def test_get_parameters(self):
@@ -444,21 +678,6 @@ class TestParametricPulses(QiskitTestCase):
         reference = np.concatenate([-0.1 * np.ones(30), 0.1j * np.ones(50), -0.1 * np.ones(20)])
         np.testing.assert_array_almost_equal(waveform.samples, reference)
 
-    def test_no_subclass(self):
-        """Test no dedicated pulse subclass is created."""
-
-        gaussian_pulse = Gaussian(160, 0.1, 40)
-        self.assertIs(type(gaussian_pulse), SymbolicPulse)
-
-        gaussian_square_pulse = GaussianSquare(800, 0.1, 64, 544)
-        self.assertIs(type(gaussian_square_pulse), SymbolicPulse)
-
-        drag_pulse = Drag(160, 0.1, 40, 1.5)
-        self.assertIs(type(drag_pulse), SymbolicPulse)
-
-        constant_pulse = Constant(800, 0.1)
-        self.assertIs(type(constant_pulse), SymbolicPulse)
-
     def test_gaussian_deprecated_type_check(self):
         """Test isinstance check works with deprecation."""
         gaussian_pulse = Gaussian(160, 0.1, 40)
@@ -507,7 +726,7 @@ class TestParametricPulses(QiskitTestCase):
 class TestFunctionalPulse(QiskitTestCase):
     """Waveform tests."""
 
-    # pylint: disable=invalid-name, unexpected-keyword-arg
+    # pylint: disable=invalid-name
     def test_gaussian(self):
         """Test gaussian pulse."""
 
@@ -541,6 +760,27 @@ class TestFunctionalPulse(QiskitTestCase):
         for _duration in _durations:
             pulse_wf_inst = local_gaussian(duration=_duration, amp=1, t0=5, sig=1)
             self.assertEqual(len(pulse_wf_inst.samples), _duration)
+
+
+class TestScalableSymbolicPulse(QiskitTestCase):
+    """ScalableSymbolicPulse tests"""
+
+    def test_scalable_comparison(self):
+        """Test equating of pulses"""
+        # amp,angle comparison
+        gaussian_negamp = Gaussian(duration=25, sigma=4, amp=-0.5, angle=0)
+        gaussian_piphase = Gaussian(duration=25, sigma=4, amp=0.5, angle=np.pi)
+        self.assertEqual(gaussian_negamp, gaussian_piphase)
+
+        # Parameterized library pulses
+        amp = Parameter("amp")
+        gaussian1 = Gaussian(duration=25, sigma=4, amp=amp, angle=0)
+        gaussian2 = Gaussian(duration=25, sigma=4, amp=amp, angle=0)
+        self.assertEqual(gaussian1, gaussian2)
+
+        # pulses with different parameters
+        gaussian1._params["sigma"] = 10
+        self.assertNotEqual(gaussian1, gaussian2)
 
 
 if __name__ == "__main__":

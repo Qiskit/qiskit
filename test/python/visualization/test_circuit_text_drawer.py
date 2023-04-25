@@ -10,21 +10,24 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" `_text_circuit_drawer` "draws" a circuit in "ascii art" """
+"""`_text_circuit_drawer` draws a circuit in ascii art"""
 
+import pathlib
 import os
-import unittest
+import tempfile
+import unittest.mock
 from codecs import encode
 from math import pi
 
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter, Qubit, Clbit
+from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.layout import Layout, TranspileLayout
+from qiskit.visualization import circuit_drawer
 from qiskit.visualization.circuit import text as elements
 from qiskit.visualization.circuit.circuit_visualization import _text_circuit_drawer
 from qiskit.extensions import UnitaryGate, HamiltonianGate
@@ -381,6 +384,53 @@ class TestTextDrawerGatesInCircuit(QiskitTestCase):
         circuit = QuantumCircuit(qr1, qr2)
         circuit.swap(qr1, qr2)
         self.assertEqual(str(_text_circuit_drawer(circuit, reverse_bits=True)), expected)
+
+    def test_text_reverse_bits_read_from_config(self):
+        """Swap drawing with reverse_bits set in the configuration file."""
+        expected_forward = "\n".join(
+            [
+                "            ",
+                "q1_0: ─X────",
+                "       │    ",
+                "q1_1: ─┼──X─",
+                "       │  │ ",
+                "q2_0: ─X──┼─",
+                "          │ ",
+                "q2_1: ────X─",
+                "            ",
+            ]
+        )
+        expected_reverse = "\n".join(
+            [
+                "            ",
+                "q2_1: ────X─",
+                "          │ ",
+                "q2_0: ─X──┼─",
+                "       │  │ ",
+                "q1_1: ─┼──X─",
+                "       │    ",
+                "q1_0: ─X────",
+                "            ",
+            ]
+        )
+        qr1 = QuantumRegister(2, "q1")
+        qr2 = QuantumRegister(2, "q2")
+        circuit = QuantumCircuit(qr1, qr2)
+        circuit.swap(qr1, qr2)
+
+        self.assertEqual(str(circuit_drawer(circuit, output="text")), expected_forward)
+
+        config_content = """
+            [default]
+            circuit_reverse_bits = true
+        """
+        with tempfile.TemporaryDirectory() as dir_path:
+            file_path = pathlib.Path(dir_path) / "qiskit.conf"
+            with open(file_path, "w") as fptr:
+                fptr.write(config_content)
+            with unittest.mock.patch.dict(os.environ, {"QISKIT_SETTINGS": str(file_path)}):
+                test_reverse = str(circuit_drawer(circuit, output="text"))
+        self.assertEqual(test_reverse, expected_reverse)
 
     def test_text_cswap(self):
         """CSwap drawing."""
@@ -1789,6 +1839,21 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 class TestTextDrawerParams(QiskitTestCase):
     """Test drawing parameters."""
 
+    def test_text_no_parameters(self):
+        """Test drawing with no parameters"""
+        expected = "\n".join(
+            [
+                "      ┌───┐",
+                "q: |0>┤ X ├",
+                "      └───┘",
+            ]
+        )
+
+        qr = QuantumRegister(1, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.x(0)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_text_parameters_mix(self):
         """cu3 drawing with parameters"""
         expected = "\n".join(
@@ -1853,6 +1918,39 @@ class TestTextDrawerParams(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.u(0, phi, lam, 0)
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
+
+    def test_text_ndarray_parameters(self):
+        """Test that if params are type ndarray, params are not displayed."""
+        # fmt: off
+        expected = "\n".join(["      ┌─────────┐",
+                              "q: |0>┤ Unitary ├",
+                              "      └─────────┘"])
+        # fmt: on
+        qr = QuantumRegister(1, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.unitary(numpy.array([[0, 1], [1, 0]]), 0)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_qc_parameters(self):
+        """Test that if params are type QuantumCircuit, params are not displayed."""
+        expected = "\n".join(
+            [
+                "        ┌───────┐",
+                "q_0: |0>┤0      ├",
+                "        │  name │",
+                "q_1: |0>┤1      ├",
+                "        └───────┘",
+            ]
+        )
+
+        my_qc_param = QuantumCircuit(2)
+        my_qc_param.h(0)
+        my_qc_param.cx(0, 1)
+        inst = Instruction("name", 2, 0, [my_qc_param])
+        qr = QuantumRegister(2, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.append(inst, [0, 1])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
@@ -1938,14 +2036,19 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
             [
                 "         ┌───┐     ┌─┐     ┌───┐",
                 "qr_2: |0>┤ H ├─────┤M├─────┤ X ├",
-                "         ├───┤     └╥┘     └─╥─┘",
+                "         └───┘     └╥┘     └─╥─┘",
+                "         ┌───┐      ║        ║  ",
                 "qr_1: |0>┤ H ├──────╫────────╫──",
-                "         ├───┤┌───┐ ║ ┌───┐  ║  ",
+                "         └───┘      ║        ║  ",
+                "         ┌───┐┌───┐ ║ ┌───┐  ║  ",
                 "qr_0: |0>┤ H ├┤ X ├─╫─┤ X ├──╫──",
                 "         └───┘└───┘ ║ └───┘  ║  ",
+                "                    ║        ║  ",
                 "  cr2: 0 ═══════════╬════════╬══",
                 "                    ║        ║  ",
+                "                    ║        ║  ",
                 " cr_1: 0 ═══════════╩════════■══",
+                "                             ║  ",
                 "                             ║  ",
                 " cr_0: 0 ════════════════════o══",
                 "                            0x2 ",
@@ -1953,7 +2056,12 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
         )
 
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=True)), expected
+            str(
+                _text_circuit_drawer(
+                    circuit, vertical_compression="low", cregbundle=False, reverse_bits=True
+                )
+            ),
+            expected,
         )
 
     def test_text_conditional_reverse_bits_false(self):
@@ -1974,22 +2082,32 @@ class TestTextDrawerVerticalCompressionLow(QiskitTestCase):
             [
                 "         ┌───┐┌───┐┌───┐",
                 "qr_0: |0>┤ H ├┤ X ├┤ X ├",
-                "         ├───┤└───┘└───┘",
+                "         └───┘└───┘└───┘",
+                "         ┌───┐          ",
                 "qr_1: |0>┤ H ├──────────",
-                "         ├───┤ ┌─┐ ┌───┐",
+                "         └───┘          ",
+                "         ┌───┐ ┌─┐ ┌───┐",
                 "qr_2: |0>┤ H ├─┤M├─┤ X ├",
                 "         └───┘ └╥┘ └─╥─┘",
+                "                ║    ║  ",
                 " cr_0: 0 ═══════╬════o══",
+                "                ║    ║  ",
                 "                ║    ║  ",
                 " cr_1: 0 ═══════╩════■══",
                 "                    0x2 ",
+                "                        ",
                 "  cr2: 0 ═══════════════",
                 "                        ",
             ]
         )
 
         self.assertEqual(
-            str(_text_circuit_drawer(circuit, cregbundle=False, reverse_bits=False)), expected
+            str(
+                _text_circuit_drawer(
+                    circuit, vertical_compression="low", cregbundle=False, reverse_bits=False
+                )
+            ),
+            expected,
         )
 
     def test_text_justify_right(self):

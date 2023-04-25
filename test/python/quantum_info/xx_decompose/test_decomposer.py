@@ -34,8 +34,8 @@ EPSILON = 1e-8
 
 
 @ddt.ddt
-class TestMonodromyQISKit(unittest.TestCase):
-    """Check QISKit routines."""
+class TestXXDecomposer(unittest.TestCase):
+    """Tests for decomposition of two-qubit unitaries over discrete gates from XX family."""
 
     decomposer = XXDecomposer(euler_basis="PSX")
 

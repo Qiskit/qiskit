@@ -24,7 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT
+from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
 from qiskit.providers.basicaer import QasmSimulatorPy
 
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
@@ -183,6 +183,13 @@ class TestStatevector(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.reset(0)
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test 0q instruction
+        target = Statevector([1j, 0])
+        circuit = QuantumCircuit(1)
+        circuit.append(GlobalPhaseGate(np.pi / 2), [], [])
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -1323,13 +1330,14 @@ class TestStatevector(QiskitTestCase):
             ([-1, 1j], ["-", "+i"]),
             ([1e-16 + 1j], ["i"]),
             ([-1 + 1e-16 * 1j], ["-"]),
-            ([-1, -1 - 1j], ["-", "+ (-1 - i)"]),
+            ([-1, -1 - 1j], ["-", "+(-1 - i)"]),
             ([np.sqrt(2) / 2, np.sqrt(2) / 2], ["\\frac{\\sqrt{2}}{2}", "+\\frac{\\sqrt{2}}{2}"]),
             ([1 + np.sqrt(2)], ["(1 + \\sqrt{2})"]),
         ]
-        for numbers, latex_terms in cases:
-            terms = numbers_to_latex_terms(numbers, 15)
-            self.assertListEqual(terms, latex_terms)
+        with self.assertWarns(DeprecationWarning):
+            for numbers, latex_terms in cases:
+                terms = numbers_to_latex_terms(numbers, 15)
+                self.assertListEqual(terms, latex_terms)
 
     def test_statevector_draw_latex_regression(self):
         """Test numerical rounding errors are not printed"""
@@ -1360,6 +1368,24 @@ class TestStatevector(QiskitTestCase):
         sv = Statevector(dummy_vector)
         self.assertEqual(len(empty_vector), len(empty_sv))
         self.assertEqual(len(dummy_vector), len(sv))
+
+    def test_clip_probabilities(self):
+        """Test probabilities are clipped to [0, 1]."""
+        sv = Statevector([1.1, 0])
+
+        self.assertEqual(list(sv.probabilities()), [1.0, 0.0])
+        # The "1" key should be zero and therefore omitted.
+        self.assertEqual(sv.probabilities_dict(), {"0": 1.0})
+
+    def test_round_probabilities(self):
+        """Test probabilities are correctly rounded.
+
+        This is good to test to ensure clipping, renormalizing and rounding work together.
+        """
+        p = np.sqrt(1 / 3)
+        sv = Statevector([p, p, p, 0])
+        expected = [0.33, 0.33, 0.33, 0]
+        self.assertEqual(list(sv.probabilities(decimals=2)), expected)
 
 
 if __name__ == "__main__":

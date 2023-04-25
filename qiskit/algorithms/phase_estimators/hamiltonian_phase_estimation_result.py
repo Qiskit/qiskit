@@ -13,7 +13,9 @@
 """Result from running HamiltonianPhaseEstimation"""
 
 from __future__ import annotations
-from typing import cast, Mapping
+
+from collections.abc import Mapping
+from typing import cast
 from qiskit.algorithms.algorithm_result import AlgorithmResult
 from .phase_estimation_result import PhaseEstimationResult
 from .phase_estimation_scale import PhaseEstimationScale

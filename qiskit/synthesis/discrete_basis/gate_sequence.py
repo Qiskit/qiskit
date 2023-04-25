@@ -19,7 +19,6 @@ import math
 import numpy as np
 
 from qiskit.circuit import Gate, QuantumCircuit, Qubit
-from qiskit.dagcircuit import DAGCircuit
 from qiskit.extensions import UnitaryGate
 
 
@@ -113,6 +112,8 @@ class GateSequence:
         If no gates set but the product is not the identity, returns a circuit with a
         unitary operation to implement the matrix.
         """
+        from qiskit.dagcircuit import DAGCircuit
+
         qreg = [Qubit()]
         dag = DAGCircuit()
         dag.add_qubits(qreg)

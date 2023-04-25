@@ -14,7 +14,7 @@ features:
 
     For example
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit.quantum_info import Pauli
 
@@ -25,7 +25,7 @@ features:
     Pauli's can also be directly appended to
     :class:`~qiskit.circuit.QuantumCircuit` objects
 
-    .. jupyter-execute::
+    .. code-block::
 
       from qiskit import QuantumCircuit
       from qiskit.quantum_info import Pauli

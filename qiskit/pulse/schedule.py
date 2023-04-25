@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=cyclic-import, missing-return-doc
+# pylint: disable=cyclic-import
 
 """
 =========
@@ -633,10 +633,7 @@ class Schedule:
 
         The replacement matching is based on an instruction equality check.
 
-        .. jupyter-kernel:: python3
-            :id: replace
-
-        .. jupyter-execute::
+        .. code-block::
 
             from qiskit import pulse
 
@@ -657,7 +654,7 @@ class Schedule:
         perform this replacement over all instructions in the schedule tree.
         Flatten the schedule prior to running::
 
-        .. jupyter-execute::
+        .. code-block::
 
             sched = pulse.Schedule()
 
@@ -888,7 +885,7 @@ class ScheduleBlock:
     can be a hard task. Schedule block offers a convenient feature to help with this
     by automatically scoping the parameters and subroutines.
 
-    .. jupyter-execute::
+    .. code-block::
 
         from qiskit import pulse
         from qiskit.circuit.parameter import Parameter
@@ -899,6 +896,10 @@ class ScheduleBlock:
             pulse.play(pulse.Constant(100, amp1), pulse.DriveChannel(0))
 
         print(sched1.scoped_parameters())
+
+    .. parsed-literal::
+
+       (Parameter(root::amp),)
 
     The :meth:`~ScheduleBlock.scoped_parameters` method returns all :class:`~.Parameter`
     objects defined in the schedule block. The parameter name is updated to reflect
@@ -914,7 +915,7 @@ class ScheduleBlock:
     You can call a subroutine without specifying a substantial program
     (like ``sched1`` above which we will assign later).
 
-    .. jupyter-execute::
+    .. code-block::
 
         amp2 = Parameter("amp")
 
@@ -925,28 +926,41 @@ class ScheduleBlock:
 
         print(sched2.scoped_parameters())
 
+    .. parsed-literal::
+
+       (Parameter(root::amp),)
+
     This only returns "root::amp" because the "grand_child" reference is unknown.
     Now you assign the actual pulse program to this reference.
 
-    .. jupyter-execute::
+    .. code-block::
 
         sched2.assign_references({("grand_child", ): sched1})
         print(sched2.scoped_parameters())
+
+    .. parsed-literal::
+
+       (Parameter(root::amp), Parameter(root::grand_child::amp))
 
     Now you get two parameters "root::amp" and "root::grand_child::amp".
     The second parameter name indicates it is defined within the referred program "grand_child".
     The program calling the "grand_child" has a reference program description
     which is accessed through :attr:`ScheduleBlock.references`.
 
-    .. jupyter-execute::
+    .. code-block::
 
         print(sched2.references)
+
+    .. parsed-literal::
+
+       ReferenceManager:
+         - ('grand_child',): ScheduleBlock(Play(Constant(duration=100, amp=amp,...
 
     Finally, you may want to call this program from another program.
     Here we try a different approach to define subroutine. Namely, we call
     a subroutine from the root program with the actual program ``sched2``.
 
-    .. jupyter-execute::
+    .. code-block::
 
         amp3 = Parameter("amp")
 
@@ -956,6 +970,10 @@ class ScheduleBlock:
 
         print(main.scoped_parameters())
 
+    .. parsed-literal::
+
+       (Parameter(root::amp), Parameter(root::child::amp), Parameter(root::child::grand_child::amp))
+
     This implicitly creates a reference named "child" within
     the root program and assigns ``sched2`` to it.
     You get three parameters "root::amp", "root::child::amp", and "root::child::grand_child::amp".
@@ -963,7 +981,7 @@ class ScheduleBlock:
     If you know the scope of a parameter, you can directly get the parameter object
     using :meth:`ScheduleBlock.search_parameters` as follows.
 
-    .. jupyter-execute::
+    .. code-block::
 
         main.search_parameters("root::child::grand_child::amp")
 
@@ -972,22 +990,27 @@ class ScheduleBlock:
     regardless of its parent scope. This is sometimes convenient if you
     want to extract parameters from a deeply nested program.
 
-    .. jupyter-execute::
+    .. code-block::
 
         main.search_parameters("\\S::grand_child::amp")
 
     Note that the root program is only aware of its direct references.
 
-    .. jupyter-execute::
+    .. code-block::
 
         print(main.references)
+
+    .. parsed-literal::
+
+       ReferenceManager:
+         - ('child',): ScheduleBlock(ScheduleBlock(ScheduleBlock(Play(Con...
 
     As you can see the main program cannot directly assign a subroutine to the "grand_child" because
     this subroutine is not called within the root program, i.e. it is indirectly called by "child".
     However, the returned :class:`.ReferenceManager` is a dict-like object, and you can still
     reach to "grand_child" via the "child" program with the following chained dict access.
 
-    .. jupyter-execute::
+    .. code-block::
 
         main.references[("child", )].references[("grand_child", )]
 
@@ -1779,7 +1802,7 @@ def draw(
         The returned data type depends on the ``plotter``.
         If matplotlib family is specified, this will be a ``matplotlib.pyplot.Figure`` data.
     """
-    # pylint: disable=cyclic-import, missing-return-type-doc
+    # pylint: disable=cyclic-import
     from qiskit.visualization import pulse_drawer
 
     return pulse_drawer(

@@ -144,7 +144,7 @@ class CommutationChecker:
             # being the lowest possible indices so the identity can be tensored before it.
             extra_qarg2 = num_qubits - len(qarg1)
             if extra_qarg2:
-                id_op = _identity_op(2**extra_qarg2)
+                id_op = _identity_op(extra_qarg2)
                 operator_1 = id_op.tensor(operator_1)
             op12 = operator_1.compose(operator_2, qargs=qarg2, front=False)
             op21 = operator_1.compose(operator_2, qargs=qarg2, front=True)

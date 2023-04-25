@@ -121,7 +121,7 @@ def _read_registers(file_obj, num_registers):
     return registers
 
 
-def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
+def _loads_instruction_parameter(type_key, data_bytes, version, vectors, registers, circuit):
     if type_key == type_keys.Program.CIRCUIT:
         param = common.data_from_binary(data_bytes, read_circuit, version=version)
     elif type_key == type_keys.Container.RANGE:
@@ -134,6 +134,8 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
                 _loads_instruction_parameter,
                 version=version,
                 vectors=vectors,
+                registers=registers,
+                circuit=circuit,
             )
         )
     elif type_key == type_keys.Value.INTEGER:
@@ -142,10 +144,20 @@ def _loads_instruction_parameter(type_key, data_bytes, version, vectors):
     elif type_key == type_keys.Value.FLOAT:
         # TODO This uses little endian. Should be fixed in the next QPY version.
         param = struct.unpack("<d", data_bytes)[0]
+    elif type_key == type_keys.Value.REGISTER:
+        param = _loads_register_param(data_bytes.decode(common.ENCODE), circuit, registers)
     else:
         param = value.loads_value(type_key, data_bytes, version, vectors)
 
     return param
+
+
+def _loads_register_param(data_bytes, circuit, registers):
+    # If register name prefixed with null character it's a clbit index for single bit condition.
+    if data_bytes[0] == "\x00":
+        conditional_bit = int(data_bytes[1:])
+        return circuit.clbits[conditional_bit]
+    return registers["c"][data_bytes]
 
 
 def _read_instruction(file_obj, circuit, registers, custom_operations, version, vectors):
@@ -171,21 +183,10 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     params = []
     condition_tuple = None
     if instruction.has_condition:
-        # If an invalid register name is used assume it's a single bit
-        # condition and treat the register name as a string of the clbit index
-        if ClassicalRegister.name_format.match(condition_register) is None:
-            # If invalid register prefixed with null character it's a clbit
-            # index for single bit condition
-            if condition_register[0] == "\x00":
-                conditional_bit = int(condition_register[1:])
-                condition_tuple = (circuit.clbits[conditional_bit], instruction.condition_value)
-            else:
-                raise ValueError(
-                    f"Invalid register name: {condition_register} for condition register of "
-                    f"instruction: {gate_name}"
-                )
-        else:
-            condition_tuple = (registers["c"][condition_register], instruction.condition_value)
+        condition_tuple = (
+            _loads_register_param(condition_register, circuit, registers),
+            instruction.condition_value,
+        )
     if circuit is not None:
         qubit_indices = dict(enumerate(circuit.qubits))
         clbit_indices = dict(enumerate(circuit.clbits))
@@ -219,7 +220,9 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     # Load Parameters
     for _param in range(instruction.num_parameters):
         type_key, data_bytes = common.read_generic_typed_data(file_obj)
-        param = _loads_instruction_parameter(type_key, data_bytes, version, vectors)
+        param = _loads_instruction_parameter(
+            type_key, data_bytes, version, vectors, registers, circuit
+        )
         params.append(param)
 
     # Load Gate object
@@ -261,7 +264,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
         gate = gate_class(condition_tuple, *params)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
-        if gate_name in {"MCPhaseGate", "MCU1Gate"}:
+        if gate_name in {
+            "MCPhaseGate",
+            "MCU1Gate",
+            "MCXGrayCode",
+            "MCXGate",
+            "MCXRecursive",
+            "MCXVChain",
+        }:
             gate = gate_class(*params, instruction.num_ctrl_qubits)
         else:
             gate = gate_class(*params)
@@ -269,7 +279,7 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             gate.ctrl_state = instruction.ctrl_state
         gate.condition = condition_tuple
     else:
-        if gate_name in {"Initialize", "UCRXGate", "UCRYGate", "UCRZGate"}:
+        if gate_name in {"Initialize", "StatePreparation", "UCRXGate", "UCRYGate", "UCRZGate"}:
             gate = gate_class(params)
         else:
             if gate_name == "Barrier":
@@ -434,7 +444,7 @@ def _read_custom_operations(file_obj, version, vectors):
     return custom_operations
 
 
-def _read_calibrations(file_obj, version, vectors, metadata_deserializer, qiskit_version=None):
+def _read_calibrations(file_obj, version, vectors, metadata_deserializer):
     calibrations = {}
 
     header = formats.CALIBRATION._make(
@@ -452,9 +462,7 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer, qiskit
         params = tuple(
             value.read_value(file_obj, version, vectors) for _ in range(defheader.num_params)
         )
-        schedule = schedules.read_schedule_block(
-            file_obj, version, metadata_deserializer, qiskit_version=qiskit_version
-        )
+        schedule = schedules.read_schedule_block(file_obj, version, metadata_deserializer)
 
         if name not in calibrations:
             calibrations[name] = {(qubits, params): schedule}
@@ -464,7 +472,14 @@ def _read_calibrations(file_obj, version, vectors, metadata_deserializer, qiskit
     return calibrations
 
 
-def _dumps_instruction_parameter(param):
+def _dumps_register(register, index_map):
+    if isinstance(register, ClassicalRegister):
+        return register.name.encode(common.ENCODE)
+    # Clbit.
+    return b"\x00" + str(index_map["c"][register]).encode(common.ENCODE)
+
+
+def _dumps_instruction_parameter(param, index_map):
     if isinstance(param, QuantumCircuit):
         type_key = type_keys.Program.CIRCUIT
         data_bytes = common.data_to_binary(param, write_circuit)
@@ -473,7 +488,9 @@ def _dumps_instruction_parameter(param):
         data_bytes = struct.pack(formats.RANGE_PACK, param.start, param.stop, param.step)
     elif isinstance(param, tuple):
         type_key = type_keys.Container.TUPLE
-        data_bytes = common.sequence_to_binary(param, _dumps_instruction_parameter)
+        data_bytes = common.sequence_to_binary(
+            param, _dumps_instruction_parameter, index_map=index_map
+        )
     elif isinstance(param, int):
         # TODO This uses little endian. This should be fixed in next QPY version.
         type_key = type_keys.Value.INTEGER
@@ -482,6 +499,9 @@ def _dumps_instruction_parameter(param):
         # TODO This uses little endian. This should be fixed in next QPY version.
         type_key = type_keys.Value.FLOAT
         data_bytes = struct.pack("<d", param)
+    elif isinstance(param, (Clbit, ClassicalRegister)):
+        type_key = type_keys.Value.REGISTER
+        data_bytes = _dumps_register(param, index_map)
     else:
         type_key, data_bytes = value.dumps_value(param)
 
@@ -520,13 +540,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     condition_value = 0
     if getattr(instruction.operation, "condition", None):
         has_condition = True
-        if isinstance(instruction.operation.condition[0], Clbit):
-            bit_index = index_map["c"][instruction.operation.condition[0]]
-            condition_register = b"\x00" + str(bit_index).encode(common.ENCODE)
-            condition_value = int(instruction.operation.condition[1])
-        else:
-            condition_register = instruction.operation.condition[0].name.encode(common.ENCODE)
-            condition_value = instruction.operation.condition[1]
+        condition_register = _dumps_register(instruction.operation.condition[0], index_map)
+        condition_value = int(instruction.operation.condition[1])
 
     gate_class_name = gate_class_name.encode(common.ENCODE)
     label = getattr(instruction.operation, "label")
@@ -535,13 +550,23 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
     else:
         label_raw = b""
 
+    # The instruction params we store are about being able to reconstruct the objects; they don't
+    # necessarily need to match one-to-one to the `params` field.
+    if isinstance(instruction.operation, controlflow.SwitchCaseOp):
+        instruction_params = [
+            instruction.operation.target,
+            tuple(instruction.operation.cases_specifier()),
+        ]
+    else:
+        instruction_params = instruction.operation.params
+
     num_ctrl_qubits = getattr(instruction.operation, "num_ctrl_qubits", 0)
     ctrl_state = getattr(instruction.operation, "ctrl_state", 0)
     instruction_raw = struct.pack(
         formats.CIRCUIT_INSTRUCTION_V2_PACK,
         len(gate_class_name),
         len(label_raw),
-        len(instruction.operation.params),
+        len(instruction_params),
         instruction.operation.num_qubits,
         instruction.operation.num_clbits,
         has_condition,
@@ -566,8 +591,8 @@ def _write_instruction(file_obj, instruction, custom_operations, index_map):
         )
         file_obj.write(instruction_arg_raw)
     # Encode instruction params
-    for param in instruction.operation.params:
-        type_key, data_bytes = _dumps_instruction_parameter(param)
+    for param in instruction_params:
+        type_key, data_bytes = _dumps_instruction_parameter(param, index_map)
         common.write_generic_typed_data(file_obj, type_key, data_bytes)
     return custom_operations_list
 
@@ -705,7 +730,6 @@ def _write_calibrations(file_obj, calibrations, metadata_serializer):
 
 def _write_registers(file_obj, in_circ_regs, full_bits):
     bitmap = {bit: index for index, bit in enumerate(full_bits)}
-    processed_indices = set()
 
     out_circ_regs = set()
     for bit in full_bits:
@@ -731,12 +755,7 @@ def _write_registers(file_obj, in_circ_regs, full_bits):
             REGISTER_ARRAY_PACK = "!%sq" % reg.size
             bit_indices = []
             for bit in reg:
-                bit_index = bitmap.get(bit, -1)
-                if bit_index in processed_indices:
-                    bit_index = -1
-                if bit_index >= 0:
-                    processed_indices.add(bit_index)
-                bit_indices.append(bit_index)
+                bit_indices.append(bitmap.get(bit, -1))
             file_obj.write(struct.pack(REGISTER_ARRAY_PACK, *bit_indices))
 
     return len(in_circ_regs) + len(out_circ_regs)
@@ -813,7 +832,7 @@ def write_circuit(file_obj, circuit, metadata_serializer=None):
     _write_calibrations(file_obj, circuit.calibrations, metadata_serializer)
 
 
-def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=None):
+def read_circuit(file_obj, version, metadata_deserializer=None):
     """Read a single QuantumCircuit object from the file like object.
 
     Args:
@@ -826,7 +845,6 @@ def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=N
             in the file-like object. If this is not specified the circuit metadata will
             be parsed as JSON with the stdlib ``json.load()`` function using
             the default ``JSONDecoder`` class.
-        qiskit_version (tuple): tuple with major, minor and patch versions of qiskit.
 
     Returns:
         QuantumCircuit: The circuit object from the file.
@@ -847,39 +865,77 @@ def read_circuit(file_obj, version, metadata_deserializer=None, qiskit_version=N
     num_clbits = header["num_clbits"]
     num_registers = header["num_registers"]
     num_instructions = header["num_instructions"]
+    # `out_registers` is two "name: registter" maps segregated by type for the rest of QPY, and
+    # `all_registers` is the complete ordered list used to construct the `QuantumCircuit`.
     out_registers = {"q": {}, "c": {}}
-    circ = QuantumCircuit(
-        [Qubit() for _ in [None] * num_qubits],
-        [Clbit() for _ in [None] * num_clbits],
-        name=name,
-        global_phase=global_phase,
-        metadata=metadata,
-    )
+    all_registers = []
+    out_bits = {"q": [None] * num_qubits, "c": [None] * num_clbits}
     if num_registers > 0:
         if version < 4:
             registers = _read_registers(file_obj, num_registers)
         else:
             registers = _read_registers_v4(file_obj, num_registers)
-
-        for bit_type_label, reg_type in [("q", QuantumRegister), ("c", ClassicalRegister)]:
-            # Add quantum registers and bits
-            circuit_bits = {"q": circ.qubits, "c": circ.clbits}[bit_type_label]
-            for register_name, (_, indices, in_circuit) in registers[bit_type_label].items():
-                register = reg_type(
-                    name=register_name, bits=[circuit_bits[x] for x in indices if x >= 0]
-                )
-                if in_circuit:
-                    circ.add_register(register)
+        for bit_type_label, bit_type, reg_type in [
+            ("q", Qubit, QuantumRegister),
+            ("c", Clbit, ClassicalRegister),
+        ]:
+            # This does two passes through the registers. In the first, we're actually just
+            # constructing the `Bit` instances: any register that is `standalone` "owns" all its
+            # bits in the old Qiskit data model, so we have to construct those by creating the
+            # register and taking the bits from them.  That's the case even if that register isn't
+            # actually in the circuit, which is why we stored them (with `in_circuit=False`) in QPY.
+            #
+            # Since there's no guarantees in QPY about the ordering of registers, we have to pass
+            # through all registers to create the bits first, because we can't reliably know if a
+            # non-standalone register contains bits from a standalone one until we've seen all
+            # standalone registers.
+            typed_bits = out_bits[bit_type_label]
+            typed_registers = registers[bit_type_label]
+            for register_name, (standalone, indices, _incircuit) in typed_registers.items():
+                if not standalone:
+                    continue
+                register = reg_type(len(indices), register_name)
                 out_registers[bit_type_label][register_name] = register
+                for owned, index in zip(register, indices):
+                    # Negative indices are for bits that aren't in the circuit.
+                    if index >= 0:
+                        typed_bits[index] = owned
+            # Any remaining unset bits aren't owned, so we can construct them in the standard way.
+            typed_bits = [bit if bit is not None else bit_type() for bit in typed_bits]
+            # Finally _properly_ construct all the registers.  Bits can be in more than one
+            # register, including bits that are old-style "owned" by a register.
+            for register_name, (standalone, indices, in_circuit) in typed_registers.items():
+                if standalone:
+                    register = out_registers[bit_type_label][register_name]
+                else:
+                    register = reg_type(
+                        name=register_name,
+                        bits=[typed_bits[x] if x >= 0 else bit_type() for x in indices],
+                    )
+                    out_registers[bit_type_label][register_name] = register
+                if in_circuit:
+                    all_registers.append(register)
+            out_bits[bit_type_label] = typed_bits
+    else:
+        out_bits = {
+            "q": [Qubit() for _ in out_bits["q"]],
+            "c": [Clbit() for _ in out_bits["c"]],
+        }
+    circ = QuantumCircuit(
+        out_bits["q"],
+        out_bits["c"],
+        *all_registers,
+        name=name,
+        global_phase=global_phase,
+        metadata=metadata,
+    )
     custom_operations = _read_custom_operations(file_obj, version, vectors)
     for _instruction in range(num_instructions):
         _read_instruction(file_obj, circ, out_registers, custom_operations, version, vectors)
 
     # Read calibrations
     if version >= 5:
-        circ.calibrations = _read_calibrations(
-            file_obj, version, vectors, metadata_deserializer, qiskit_version=qiskit_version
-        )
+        circ.calibrations = _read_calibrations(file_obj, version, vectors, metadata_deserializer)
 
     for vec_name, (vector, initialized_params) in vectors.items():
         if len(initialized_params) != len(vector):

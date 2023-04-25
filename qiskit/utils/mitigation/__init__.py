@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -20,6 +20,11 @@ Measurement Mitigation Utils (:mod:`qiskit.utils.mitigation`)
 =============================================================
 
 .. currentmodule:: qiskit.utils.mitigation
+
+.. deprecated:: 0.24.0
+    This module is deprecated and will be removed no sooner than 3 months
+    after the release date. For code migration guidelines,
+    visit https://qisk.it/qi_migration.
 
 .. warning::
 

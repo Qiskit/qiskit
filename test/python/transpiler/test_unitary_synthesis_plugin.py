@@ -255,10 +255,10 @@ class TestUnitarySynthesisPlugin(QiskitTestCase):
             ControllableSynthesis, "run", return_value=return_dag
         ) as plugin_mock:
             pm.run(qc)
-            plugin_mock.assert_called()  # pylint: disable=no-member
+            plugin_mock.assert_called()
             # This access should be `run.call_args.kwargs`, but the namedtuple access wasn't added
             # until Python 3.8.
-            call_kwargs = plugin_mock.call_args[1]  # pylint: disable=no-member
+            call_kwargs = plugin_mock.call_args[1]
         expected_kwargs = [
             "config",
         ]
