@@ -146,8 +146,8 @@ def _update_phase_schedule(n, phase_schedule, swap_plus):
                     phase_schedule[min(k, j), max(k, j)] = 0
 
                     # Step 1, apply phase to c_i, c_j, c_k
-                    for l in (i, j, k):
-                        phase_schedule[l, l] = (phase_schedule[l, l] + phase * 3) % 4
+                    for l_s in (i, j, k):
+                        phase_schedule[l_s, l_s] = (phase_schedule[l_s, l_s] + phase * 3) % 4
 
                     # Step 2, apply phase to c_i+ c_j, c_i+c_k, c_j+c_k:
                     for l1, l2 in [(i, j), (i, k), (j, k)]:
@@ -207,7 +207,7 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
     return cir
 
 
-def synth_cx_cz_line_my(mat_x, mat_z):
+def synth_cx_cz_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
     """
     Joint synthesis of a -CZ-CX- circuit for linear nearest neighbour (LNN) connectivity,
     with 2-qubit depth at most 5n, based on Maslov and Yang [2].

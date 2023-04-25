@@ -66,7 +66,7 @@ class TestCXCZSynth(QiskitTestCase):
 
             cir_zx_test = QuantumCircuit.compose(cir_z, cir_x)
 
-            cir_zx= synth_cx_cz_line_my(mat_x, mat_z)
+            cir_zx = synth_cx_cz_line_my(mat_x, mat_z)
 
             # Check that the output circuit 2-qubit depth is at most 5n
 
