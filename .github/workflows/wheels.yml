@@ -18,9 +18,7 @@ jobs:
         name: Install Python
         with:
           python-version: '3.7'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      - uses: dtolnay/rust-toolchain@stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
@@ -53,9 +51,7 @@ jobs:
         name: Install Python
         with:
           python-version: '3.7'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      - uses: dtolnay/rust-toolchain@stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
@@ -88,9 +84,7 @@ jobs:
         name: Install Python
         with:
           python-version: '3.7'
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
+      - uses: dtolnay/rust-toolchain@stable
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:

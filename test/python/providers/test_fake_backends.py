@@ -34,6 +34,8 @@ from qiskit.providers.fake_provider import (
     FakeYorktown,
     FakeMumbai,
     FakeWashington,
+    FakeSherbrooke,
+    FakePrague,
 )
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.models.backendproperties import BackendProperties
@@ -55,6 +57,8 @@ from qiskit.circuit.library import (
     RGate,
     MCXGrayCode,
     RYGate,
+    CZGate,
+    ECRGate,
 )
 from qiskit.circuit import ControlledGate, Parameter
 from qiskit.quantum_info.operators.channel.quantum_channel import QuantumChannel
@@ -229,6 +233,12 @@ class TestFakeBackends(QiskitTestCase):
         qc.measure_all()
         res = transpile(qc, backend_v2)
         self.assertIn("delay", res.count_ops())
+
+    def test_non_cx_tests(self):
+        backend = FakePrague()
+        self.assertIsInstance(backend.target.operation_from_name("cz"), CZGate)
+        backend = FakeSherbrooke()
+        self.assertIsInstance(backend.target.operation_from_name("ecr"), ECRGate)
 
     @unittest.skipUnless(optionals.HAS_AER, "Aer required for this test")
     def test_converter_simulator(self):
@@ -490,6 +500,27 @@ class TestFakeBackends(QiskitTestCase):
             props_dict["qubits"][i].append(non_operational)
         backend._properties = BackendProperties.from_dict(props_dict)
         v2_backend = BackendV2Converter(backend, filter_faulty=True)
+        for i in range(62, 67):
+            for qarg in v2_backend.target.qargs:
+                self.assertNotIn(i, qarg)
+
+    def test_filter_faulty_qubits_backend_v2_converter_with_delay(self):
+        """Test faulty qubits in v2 conversion."""
+        backend = FakeWashington()
+        # Get properties dict to make it easier to work with the properties API
+        # is difficult to edit because of the multiple layers of nesting and
+        # different object types
+        props_dict = backend.properties().to_dict()
+        for i in range(62, 67):
+            non_operational = {
+                "date": datetime.datetime.utcnow(),
+                "name": "operational",
+                "unit": "",
+                "value": 0,
+            }
+            props_dict["qubits"][i].append(non_operational)
+        backend._properties = BackendProperties.from_dict(props_dict)
+        v2_backend = BackendV2Converter(backend, filter_faulty=True, add_delay=True)
         for i in range(62, 67):
             for qarg in v2_backend.target.qargs:
                 self.assertNotIn(i, qarg)
