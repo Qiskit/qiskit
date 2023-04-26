@@ -39,8 +39,8 @@ Finite Differences
    FiniteDiffEstimatorGradient
    FiniteDiffSamplerGradient
 
-Linear Combinations
-===================
+Linear Combination of Unitaries
+===============================
 
 .. autosummary::
    :toctree: ../stubs/
