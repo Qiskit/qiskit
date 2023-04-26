@@ -81,7 +81,7 @@ class BasisTranslator(TransformationPass):
         have ``u`` on qubit 1 and ``x`` on qubit 0. Typically running this pass
         a second time will correct these issues.
 
-    .. translation_errors:
+    .. _translation_errors:
 
     Translation Errors
     ------------------
