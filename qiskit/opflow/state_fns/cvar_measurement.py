@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -28,10 +28,11 @@ from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
 from qiskit.opflow.state_fns.vector_state_fn import VectorStateFn
 from qiskit.quantum_info import Statevector
+from qiskit.utils.deprecation import deprecate_func
 
 
 class CVaRMeasurement(OperatorStateFn):
-    r"""A specialized measurement class to compute CVaR expectation values.
+    r"""Deprecated: A specialized measurement class to compute CVaR expectation values.
         See https://arxiv.org/pdf/1907.04769.pdf for further details.
 
     Used in :class:`~qiskit.opflow.CVaRExpectation`, see there for more details.
@@ -40,6 +41,10 @@ class CVaRMeasurement(OperatorStateFn):
     primitive: OperatorBase
 
     # TODO allow normalization somehow?
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(
         self,
         primitive: OperatorBase = None,

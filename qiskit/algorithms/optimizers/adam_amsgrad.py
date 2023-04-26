@@ -11,13 +11,15 @@
 # that they have been altered from the originals.
 
 """The Adam and AMSGRAD optimizers."""
+from __future__ import annotations
 
-from typing import Any, Optional, Callable, Dict, Tuple, List
+from collections.abc import Callable
+from typing import Any
 import os
 
 import csv
 import numpy as np
-from qiskit.utils.deprecation import deprecate_arguments
+from qiskit.utils.deprecation import deprecate_arg
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
 
 # pylint: disable=invalid-name
@@ -73,7 +75,7 @@ class ADAM(Optimizer):
         noise_factor: float = 1e-8,
         eps: float = 1e-10,
         amsgrad: bool = False,
-        snapshot_dir: Optional[str] = None,
+        snapshot_dir: str | None = None,
     ) -> None:
         """
         Args:
@@ -121,7 +123,7 @@ class ADAM(Optimizer):
                 writer.writeheader()
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         return {
             "maxiter": self._maxiter,
             "tol": self._tol,
@@ -193,24 +195,19 @@ class ADAM(Optimizer):
         t = t[1:-1]
         self._t = np.fromstring(t, dtype=int, sep=" ")
 
-    @deprecate_arguments(
-        {
-            "objective_function": "fun",
-            "initial_point": "x0",
-            "gradient_function": "jac",
-        },
-        since="0.19.0",
-    )
+    @deprecate_arg("objective_function", new_alias="fun", since="0.19.0")
+    @deprecate_arg("initial_point", new_alias="fun", since="0.19.0")
+    @deprecate_arg("gradient_function", new_alias="jac", since="0.19.0")
     def minimize(
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
         # pylint:disable=unused-argument
-        objective_function: Optional[Callable[[np.ndarray], float]] = None,
-        initial_point: Optional[np.ndarray] = None,
-        gradient_function: Optional[Callable[[np.ndarray], float]] = None,
+        objective_function: Callable[[np.ndarray], float] | None = None,
+        initial_point: np.ndarray | None = None,
+        gradient_function: Callable[[np.ndarray], float] | None = None,
         # ) -> Tuple[np.ndarray, float, int]:
     ) -> OptimizerResult:  # TODO find proper way to deprecate return type
         """Minimize the scalar function.

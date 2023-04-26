@@ -172,9 +172,8 @@ def generate_preset_pass_manager(
         seed_transpiler (int): Sets random seed for the stochastic parts of
             the transpiler.
         unitary_synthesis_method (str): The name of the unitary synthesis
-            method to use. By default 'default' is used, which is the only
-            method included with qiskit. If you have installed any unitary
-            synthesis plugins you can use the name exported by the plugin.
+            method to use. By default ``'default'`` is used. You can see a list of
+            installed plugins with :func:`.unitary_synthesis_plugin_names`.
         unitary_synthesis_plugin_config (dict): An optional configuration dictionary
             that will be passed directly to the unitary synthesis plugin. By
             default this setting will have no effect as the default unitary

@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from abc import ABC
 from collections.abc import Sequence
-from typing import Any
 
 import numpy as np
 
@@ -32,9 +31,6 @@ class BasePrimitive(ABC):
         if options is not None:
             self._run_options.update_options(**options)
 
-    ################################################################################
-    ## PROPERTIES
-    ################################################################################
     @property
     def options(self) -> Options:
         """Return options values for the estimator.
@@ -52,9 +48,6 @@ class BasePrimitive(ABC):
         """
         self._run_options.update_options(**fields)
 
-    ################################################################################
-    ## VALIDATION
-    ################################################################################
     @staticmethod
     def _validate_circuits(
         circuits: Sequence[QuantumCircuit] | QuantumCircuit,
@@ -126,13 +119,13 @@ class BasePrimitive(ABC):
                 )
 
 
-def _isint(obj: Any) -> bool:
+def _isint(obj: Sequence[Sequence[float]] | Sequence[float] | float) -> bool:
     """Check if object is int."""
     int_types = (int, np.integer)
     return isinstance(obj, int_types) and not isinstance(obj, bool)
 
 
-def _isreal(obj: Any) -> bool:
+def _isreal(obj: Sequence[Sequence[float]] | Sequence[float] | float) -> bool:
     """Check if object is a real number: int or float except ``±Inf`` and ``NaN``."""
     float_types = (float, np.floating)
     return _isint(obj) or isinstance(obj, float_types) and float("-Inf") < obj < float("Inf")

@@ -775,7 +775,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc_true_body.unitary(qc_uni_mat, [0, 1])
 
         qc = QuantumCircuit(qr, cr)
-        qc.if_test((cr, 1), qc_true_body, [0, 1], [0, 1])
+        qc.if_test((cr, 1), qc_true_body, [0, 1], [])
         dag = circuit_to_dag(qc)
         cdag = UnitarySynthesis(basis_gates=basis_gates).run(dag)
         cqc = dag_to_circuit(cdag)
@@ -856,6 +856,12 @@ class TestUnitarySynthesis(QiskitTestCase):
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
         self.assertEqual(result_qc, QuantumCircuit(2))
+
+    def test_default_does_not_fail_on_no_syntheses(self):
+        qc = QuantumCircuit(1)
+        qc.unitary(np.eye(2), [0])
+        pass_ = UnitarySynthesis(["unknown", "gates"])
+        self.assertEqual(qc, pass_(qc))
 
 
 if __name__ == "__main__":

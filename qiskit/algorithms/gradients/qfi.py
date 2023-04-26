@@ -89,20 +89,20 @@ class QFI(ABC):
 
         if parameters is None:
             # If parameters is None, we calculate the gradients of all parameters in each circuit.
-            parameter_sets = [set(circuit.parameters) for circuit in circuits]
+            parameters = [circuit.parameters for circuit in circuits]
         else:
             # If parameters is not None, we calculate the gradients of the specified parameters.
             # None in parameters means that the gradients of all parameters in the corresponding
             # circuit are calculated.
-            parameter_sets = [
-                set(parameters_) if parameters_ is not None else set(circuits[i].parameters)
-                for i, parameters_ in enumerate(parameters)
+            parameters = [
+                params if params is not None else circuits[i].parameters
+                for i, params in enumerate(parameters)
             ]
         # The priority of run option is as follows:
         # options in ``run`` method > QFI's default options > QGT's default setting.
         opts = copy(self._default_options)
         opts.update_options(**options)
-        job = AlgorithmJob(self._run, circuits, parameter_values, parameter_sets, **opts.__dict__)
+        job = AlgorithmJob(self._run, circuits, parameter_values, parameters, **opts.__dict__)
         job.submit()
         return job
 
@@ -110,7 +110,7 @@ class QFI(ABC):
         self,
         circuits: Sequence[QuantumCircuit],
         parameter_values: Sequence[Sequence[float]],
-        parameter_sets: Sequence[Sequence[Parameter] | None] | None = None,
+        parameters: Sequence[Sequence[Parameter]],
         **options,
     ) -> QFIResult:
         """Compute the QFI on the given circuits."""
@@ -119,13 +119,14 @@ class QFI(ABC):
             self._qgt.derivative_type,
             DerivativeType.REAL,
         )
-        job = self._qgt.run(circuits, parameter_values, parameter_sets, **options)
-        self._qgt.derivative_type = temp_derivative_type
+        job = self._qgt.run(circuits, parameter_values, parameters, **options)
 
         try:
             result = job.result()
         except AlgorithmError as exc:
             raise AlgorithmError("Estimator job or gradient job failed.") from exc
+
+        self._qgt.derivative_type = temp_derivative_type
 
         return QFIResult(
             qfis=[4 * qgt.real for qgt in result.qgts],
