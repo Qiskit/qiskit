@@ -749,7 +749,7 @@ def plot_circuit_layout(circuit, backend, view="virtual", qubit_coordinates=None
         view (str): Layout view: either 'virtual' or 'physical'.
         qubit_coordinates (Sequence): An optional sequence input (list or array being the
             most common) of 2d coordinates for each qubit. The length of the
-            sequence much mast the number of qubits on the backend. The sequence
+            sequence must match the number of qubits on the backend. The sequence
             should be the planar coordinates in a 0-based square grid where each
             qubit is located.
 

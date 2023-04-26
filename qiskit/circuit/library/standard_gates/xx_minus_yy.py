@@ -41,7 +41,7 @@ class XXMinusYYGate(Gate):
 
              ┌───────────────┐
         q_0: ┤0              ├
-             │  {XX-YY}(θ,β) │
+             │  (XX-YY)(θ,β) │
         q_1: ┤1              ├
              └───────────────┘
 
@@ -73,7 +73,7 @@ class XXMinusYYGate(Gate):
 
                  ┌───────────────┐
             q_0: ┤1              ├
-                 │  {XX-YY}(θ,β) │
+                 │  (XX-YY)(θ,β) │
             q_1: ┤0              ├
                  └───────────────┘
 
@@ -95,7 +95,7 @@ class XXMinusYYGate(Gate):
         self,
         theta: ParameterValueType,
         beta: ParameterValueType = 0,
-        label: Optional[str] = "{XX-YY}",
+        label: Optional[str] = "(XX-YY)",
     ):
         """Create new XX-YY gate.
 

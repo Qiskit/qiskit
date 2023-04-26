@@ -243,6 +243,16 @@ def _possible_decomposers(basis_set):
         for euler_basis_name, gates in euler_basis_gates.items():
             if set(gates).issubset(basis_set):
                 decomposers.append(euler_basis_name)
+        # If both U3 and U321 are in decomposer list only run U321 because
+        # in worst case it will produce the same U3 output, but in the general
+        # case it will use U2 and U1 which will be more efficient.
         if "U3" in decomposers and "U321" in decomposers:
             decomposers.remove("U3")
+        # If both ZSX and ZSXX are in decomposer list only run ZSXX because
+        # in the worst case it will produce the same output, but in the general
+        # case it will simplify X rotations to use X gate instead of multiple
+        # SX gates and be more efficient. Running multiple decomposers in this
+        # case will just waste time.
+        if "ZSX" in decomposers and "ZSXX" in decomposers:
+            decomposers.remove("ZSX")
     return decomposers
