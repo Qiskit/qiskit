@@ -49,8 +49,8 @@ Linear Combination of Unitaries
    LinCombSamplerGradient
    LinCombQGT
 
-Parameter Shifting
-==================
+Parameter Shift Rules
+=====================
 
 .. autosummary::
    :toctree: ../stubs/
