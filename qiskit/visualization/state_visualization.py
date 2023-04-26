@@ -1343,7 +1343,9 @@ def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[s
 
 def _numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
     """Convert a list of numbers to latex formatted terms
+
     The first non-zero term is treated differently. For this term a leading + is suppressed.
+
     Args:
         numbers: List of numbers to format
         decimals: Number of decimal places to round to (default: 10).
