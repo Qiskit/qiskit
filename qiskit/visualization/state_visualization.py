@@ -1341,6 +1341,24 @@ def numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[s
     return terms
 
 
+def _numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[str]:
+    """Convert a list of numbers to latex formatted terms
+    The first non-zero term is treated differently. For this term a leading + is suppressed.
+    Args:
+        numbers: List of numbers to format
+        decimals: Number of decimal places to round to (default: 10).
+    Returns:
+        List of formatted terms
+    """
+    first_term = True
+    terms = []
+    for number in numbers:
+        term = _num_to_latex(number, decimals=decimals, first_term=first_term, coefficient=True)
+        terms.append(term)
+        first_term = False
+    return terms
+
+
 def _state_to_latex_ket(
     data: List[complex], max_size: int = 12, prefix: str = "", decimals: int = 10
 ) -> str:
@@ -1367,10 +1385,10 @@ def _state_to_latex_ket(
         nonzero_indices = (
             nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
         )
-        latex_terms = numbers_to_latex_terms(data[nonzero_indices], decimals)
+        latex_terms = _numbers_to_latex_terms(data[nonzero_indices], decimals)
         nonzero_indices[max_size // 2] = None
     else:
-        latex_terms = numbers_to_latex_terms(data[nonzero_indices], decimals)
+        latex_terms = _numbers_to_latex_terms(data[nonzero_indices], decimals)
 
     latex_str = ""
     for idx, ket_idx in enumerate(nonzero_indices):
