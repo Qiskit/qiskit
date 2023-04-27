@@ -1080,10 +1080,7 @@ def GaussianSquareEcho(
     name: Optional[str] = None,
     limit_amplitude: Optional[bool] = None,
 ) -> SymbolicPulse:
-    """An echoed Gaussian square pulse with an active tone overlaid on it. The ``amp`` and
-    ``angle`` parameters are used to define the amplitude and phase of the echoed Gaussian 
-    square pulse while the ``active_amp`` and ``active_angle`` parameters are used to 
-    define the active tone.
+    """An echoed Gaussian square pulse with an active tone overlaid on it.
 
     The Gaussian Square Echo pulse is composed of three pulses. First, a Gaussian Square pulse
     :math:`f_{echo}(x)` with amplitude ``amp`` and phase ``angle`` playing for half duration,
