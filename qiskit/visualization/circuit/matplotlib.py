@@ -20,8 +20,7 @@ from warnings import warn
 
 import numpy as np
 
-from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
+from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister, Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -69,21 +68,16 @@ class MatplotlibDrawer:
         qubits,
         clbits,
         nodes,
+        circuit,
         scale=None,
         style=None,
         reverse_bits=False,
         plot_barriers=True,
-        layout=None,
         fold=25,
         ax=None,
         initial_state=False,
         cregbundle=None,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
-        calibrations=None,
         with_layout=False,
-        circuit=None,
     ):
         from matplotlib import patches
         from matplotlib import pyplot as plt
@@ -91,65 +85,7 @@ class MatplotlibDrawer:
         self._patches_mod = patches
         self._plt_mod = plt
 
-        if qregs is not None:
-            warn(
-                "The 'qregs' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if cregs is not None:
-            warn(
-                "The 'cregs' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if global_phase is not None:
-            warn(
-                "The 'global_phase' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if layout is not None:
-            warn(
-                "The 'layout' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        if calibrations is not None:
-            warn(
-                "The 'calibrations' kwarg to the MatplotlibDrawer class is deprecated "
-                "as of 0.20.0 and will be removed no earlier than 3 months "
-                "after the release date.",
-                DeprecationWarning,
-                2,
-            )
-        # This check should be removed when the 5 deprecations above are removed
-        if circuit is None:
-            warn(
-                "The 'circuit' kwarg to the MaptlotlibDrawer class must be a valid "
-                "QuantumCircuit and not None. A new circuit is being created using "
-                "the qubits and clbits for rendering the drawing.",
-                DeprecationWarning,
-                2,
-            )
-            circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs:
-                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
-                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs:
-                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
-                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
-            self._circuit = circ
-        else:
-            self._circuit = circuit
+        self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
         self._qubits_dict = {}
