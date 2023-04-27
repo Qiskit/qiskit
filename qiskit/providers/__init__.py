@@ -289,6 +289,8 @@ a :class:`~qiskit.transpiler.Target` object from the :attr:`~qiskit.providers.Ba
 attribute which the :func:`~qiskit.compiler.transpile` function will use as
 its model of a backend target for compilation.
 
+.. _custom_basis_gates:
+
 Custom Basis Gates
 ^^^^^^^^^^^^^^^^^^
 
