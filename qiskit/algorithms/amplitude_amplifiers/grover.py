@@ -24,7 +24,7 @@ import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit
 from qiskit.algorithms.exceptions import AlgorithmError
 from qiskit.primitives import BaseSampler
-from qiskit.providers import Backend
+from qiskit.providers import Backend, is_backend
 from qiskit.quantum_info import partial_trace, Statevector
 from qiskit.utils import QuantumInstance, algorithm_globals
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
@@ -221,7 +221,7 @@ class Grover(AmplitudeAmplifier):
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, Backend):
+        if is_backend(quantum_instance):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 

@@ -29,7 +29,7 @@ from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.circuit_state_fn import CircuitStateFn
 from qiskit.opflow.state_fns.dict_state_fn import DictStateFn
 from qiskit.opflow.state_fns.state_fn import StateFn
-from qiskit.providers import Backend
+from qiskit.providers import Backend, is_backend
 from qiskit.utils.backend_utils import is_aer_provider, is_statevector_backend
 from qiskit.utils.quantum_instance import QuantumInstance
 from qiskit.utils.deprecation import deprecate_func
@@ -140,7 +140,7 @@ class CircuitSampler(ConverterBase):
         Raises:
             ValueError: statevector or param_qobj are True when not supported by backend.
         """
-        if isinstance(quantum_instance, Backend):
+        if is_backend(quantum_instance):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
         self._check_quantum_instance_and_modes_consistent()

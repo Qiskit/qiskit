@@ -247,9 +247,9 @@ class QuantumInstance:
 
         # if the shots are none, try to get them from the backend
         if shots is None:
-            from qiskit.providers.backend import Backend  # pylint: disable=cyclic-import
+            from qiskit.providers.backend import is_backend  # pylint: disable=cyclic-import
 
-            if isinstance(backend, Backend):
+            if is_backend(backend):
                 if hasattr(backend, "options"):  # should always be true for V1
                     backend_shots = backend.options.get("shots", 1024)
                     if shots != backend_shots:

@@ -15,29 +15,19 @@
 """Backend abstract interface for providers."""
 
 
-from abc import ABC
-from abc import abstractmethod
 import datetime
-from typing import List, Union, Iterable, Tuple
+import typing
+from abc import ABC, abstractmethod
+from typing import Any, Iterable, List, Tuple, Union
 
-from qiskit.providers.provider import Provider
-from qiskit.providers.models.backendstatus import BackendStatus
+from typing_extensions import TypeAlias, TypeGuard
+
 from qiskit.circuit.gate import Instruction
+from qiskit.providers.models.backendstatus import BackendStatus
+from qiskit.providers.provider import Provider
 
 
-class Backend:
-    """Base common type for all versioned Backend abstract classes.
-
-    Note this class should not be inherited from directly, it is intended
-    to be used for type checking. When implementing a provider you should use
-    the versioned abstract classes as the parent class and not this class
-    directly.
-    """
-
-    version = 0
-
-
-class BackendV1(Backend, ABC):
+class BackendV1(ABC):
     """Abstract class for Backends
 
     This abstract class is to be used for all Backend objects created by a
@@ -265,7 +255,7 @@ class QubitProperties:
         return f"QubitProperties(t1={self.t1}, t2={self.t2}, " f"frequency={self.frequency})"
 
 
-class BackendV2(Backend, ABC):
+class BackendV2(ABC):
     """Abstract class for Backends
 
     This abstract class is to be used for all Backend objects created by a
@@ -635,3 +625,27 @@ class BackendV2(Backend, ABC):
             Job: The job object for the run
         """
         pass
+
+
+Backend: TypeAlias = Union[BackendV1, BackendV2]
+"""Type that represents any backend type version.
+
+Use this type for functions that take a backend in any version.
+The :func:`is_backend_v1` and :func:`is_backend_v2` functions can
+be used to narrow the type appropriately.
+"""
+
+
+def is_backend(obj: Any) -> TypeGuard[Backend]:
+    """Type guard that narrows an object to the Backend union type."""
+    return isinstance(obj, typing.get_args(Backend))
+
+
+def is_backend_v1(obj: Backend) -> TypeGuard[BackendV1]:
+    """Type guard that narrows a backend instance to the BackendV1 type."""
+    return isinstance(obj, BackendV1)
+
+
+def is_backend_v2(obj: Backend) -> TypeGuard[BackendV2]:
+    """Type guard that narrows a backend instance to the BackendV2 type."""
+    return isinstance(obj, BackendV2)

@@ -23,7 +23,7 @@ import logging
 from time import time
 
 from qiskit.compiler import transpile, schedule
-from qiskit.providers.backend import Backend
+from qiskit.providers.backend import is_backend
 from qiskit.pulse import Schedule, ScheduleBlock
 from qiskit.exceptions import QiskitError
 from qiskit.utils.deprecation import deprecate_arg
@@ -319,7 +319,7 @@ def execute(
             method=scheduling_method,
         )
 
-    if isinstance(backend, Backend):
+    if is_backend(backend):
         start_time = time()
         run_kwargs = {
             "shots": shots,

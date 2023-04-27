@@ -21,7 +21,7 @@ from qiskit.circuit import QuantumCircuit
 import qiskit
 from qiskit import circuit
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.providers import Backend
+from qiskit.providers import Backend, is_backend
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_arg
 from qiskit.result import Result
@@ -114,7 +114,7 @@ class PhaseEstimation(PhaseEstimator):
         if num_evaluation_qubits is not None:
             self._num_evaluation_qubits = num_evaluation_qubits
 
-        if isinstance(quantum_instance, Backend):
+        if is_backend(quantum_instance):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
         self._sampler = sampler

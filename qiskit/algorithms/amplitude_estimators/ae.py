@@ -20,7 +20,7 @@ from scipy.stats import chi2, norm
 from scipy.optimize import bisect
 
 from qiskit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import Backend
+from qiskit.providers import Backend, is_backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
@@ -157,7 +157,7 @@ class AmplitudeEstimation(AmplitudeEstimator):
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, Backend):
+        if is_backend(quantum_instance):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 

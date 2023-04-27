@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Define the :class:`qiskit.providers.Backend` type as a union of all
+    existing backend versions types instead of an empty base class.
+    Functions that take a backend can handle the corresponding argument in a
+    uniform and typed manner as:
+
+      ```python
+      from qiskit.providers import Backend, BackendV2, BackendV2Converter, is_backend_v2
+      from typing_extensions import backend_v2
+
+      def func(backend: Backend) -> None:
+          if is_backend_v1(backend):
+              backend_v2 = BackendV2Converter(backend)
+          else:
+              backend_v2 = backend
+
+          assert_type(backend_v2, BackendV2)
+          print(backend_v2.name)
+      ```

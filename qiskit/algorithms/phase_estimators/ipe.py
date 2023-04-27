@@ -20,7 +20,7 @@ import numpy
 import qiskit
 from qiskit.circuit import QuantumCircuit, QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
-from qiskit.providers import Backend
+from qiskit.providers import Backend, is_backend
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_arg
 from qiskit.algorithms.exceptions import AlgorithmError
@@ -68,7 +68,7 @@ class IterativePhaseEstimation(PhaseEstimator):
             raise AlgorithmError(
                 "Neither a sampler nor a quantum instance was provided. Please provide one of them."
             )
-        if isinstance(quantum_instance, Backend):
+        if is_backend(quantum_instance):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
         if num_iterations <= 0:

@@ -21,7 +21,7 @@ import numpy as np
 from scipy.optimize import brute
 from scipy.stats import norm, chi2
 
-from qiskit.providers import Backend
+from qiskit.providers import Backend, is_backend
 from qiskit import ClassicalRegister, QuantumRegister, QuantumCircuit
 from qiskit.utils import QuantumInstance
 from qiskit.primitives import BaseSampler
@@ -162,7 +162,7 @@ class MaximumLikelihoodAmplitudeEstimation(AmplitudeEstimator):
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, Backend):
+        if is_backend(quantum_instance):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 

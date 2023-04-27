@@ -31,7 +31,7 @@ from qiskit.opflow import (
     OperatorBase,
 )
 from qiskit.circuit.library import PauliEvolutionGate
-from qiskit.providers import Backend
+from qiskit.providers import Backend, is_backend
 from qiskit.synthesis import ProductFormula, LieTrotter
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_func
@@ -125,7 +125,7 @@ class TrotterQRTE(RealEvolver):
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, Backend):
+        if is_backend(quantum_instance):
             quantum_instance = QuantumInstance(quantum_instance)
 
         self._circuit_sampler = None

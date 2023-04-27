@@ -760,6 +760,7 @@ from qiskit.providers.provider import ProviderV1
 from qiskit.providers.backend import Backend
 from qiskit.providers.backend import BackendV1
 from qiskit.providers.backend import BackendV2
+from qiskit.providers.backend import is_backend_v1, is_backend_v2, is_backend
 from qiskit.providers.backend import QubitProperties
 from qiskit.providers.backend_compat import BackendV2Converter
 from qiskit.providers.backend_compat import convert_to_target

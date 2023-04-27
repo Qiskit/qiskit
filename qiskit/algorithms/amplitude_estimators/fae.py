@@ -17,7 +17,7 @@ import warnings
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister
-from qiskit.providers import Backend
+from qiskit.providers import Backend, is_backend
 from qiskit.primitives import BaseSampler
 from qiskit.utils import QuantumInstance
 from qiskit.utils.deprecation import deprecate_arg, deprecate_func
@@ -135,7 +135,7 @@ class FasterAmplitudeEstimation(AmplitudeEstimator):
         Args:
             quantum_instance: The quantum instance used to run this algorithm.
         """
-        if isinstance(quantum_instance, Backend):
+        if is_backend(quantum_instance):
             quantum_instance = QuantumInstance(quantum_instance)
         self._quantum_instance = quantum_instance
 
