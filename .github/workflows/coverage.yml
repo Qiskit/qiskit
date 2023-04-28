@@ -12,6 +12,10 @@ jobs:
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    env:
+      # Override the `rust-toolchain.toml` file because `grcov` has greater requirements.
+      RUSTUP_TOOLCHAIN: stable
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -20,11 +24,8 @@ jobs:
           python-version: '3.8'
 
       - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
-          profile: default
           components: llvm-tools-preview
 
       - name: Install dependencies

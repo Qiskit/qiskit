@@ -19,6 +19,7 @@ import rustworkx
 
 from qiskit.circuit.library.standard_gates import SwapGate
 from qiskit.transpiler.basepasses import TransformationPass
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
 from qiskit.transpiler.target import Target
@@ -148,10 +149,11 @@ class SabreSwap(TransformationPass):
             self.coupling_map = coupling_map
             self.target = None
         if self.coupling_map is not None and not self.coupling_map.is_symmetric:
-            # A deepcopy is needed here to avoid modifications updating
-            # shared references in passes which require directional
-            # constraints
-            self.coupling_map = deepcopy(self.coupling_map)
+            # A deepcopy is needed here if we don't own the coupling map (i.e. we were given it,
+            # rather than calculated it from the Target), to avoid modifications updating shared
+            # references in passes which require directional constraints.
+            if isinstance(coupling_map, CouplingMap):
+                self.coupling_map = deepcopy(self.coupling_map)
             self.coupling_map.make_symmetric()
         self._neighbor_table = None
         if self.coupling_map is not None:
@@ -213,7 +215,9 @@ class SabreSwap(TransformationPass):
             heuristic = Heuristic.Decay
         else:
             raise TranspilerError("Heuristic %s not recognized." % self.heuristic)
-        disjoint_utils.require_layout_isolated_to_component(dag, self.coupling_map)
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map if self.target is None else self.target
+        )
 
         self.dist_matrix = self.coupling_map.distance_matrix
 

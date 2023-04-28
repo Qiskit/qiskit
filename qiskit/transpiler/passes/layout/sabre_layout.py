@@ -36,6 +36,7 @@ from qiskit._accelerate.sabre_swap import (
 )
 from qiskit.transpiler.passes.routing.sabre_swap import process_swaps, apply_gate
 from qiskit.transpiler.target import Target
+from qiskit.transpiler.coupling import CouplingMap
 from qiskit.tools.parallel import CPU_COUNT
 
 logger = logging.getLogger(__name__)
@@ -150,10 +151,11 @@ class SabreLayout(TransformationPass):
         self.skip_routing = skip_routing
         if self.coupling_map is not None:
             if not self.coupling_map.is_symmetric:
-                # deepcopy is needed here to avoid modifications updating
-                # shared references in passes which require directional
-                # constraints
-                self.coupling_map = copy.deepcopy(self.coupling_map)
+                # deepcopy is needed here if we don't own the coupling map (i.e. we were passed it
+                # directly) to avoid modifications updating shared references in passes which
+                # require directional constraints
+                if isinstance(coupling_map, CouplingMap):
+                    self.coupling_map = copy.deepcopy(self.coupling_map)
                 self.coupling_map.make_symmetric()
             self._neighbor_table = NeighborTable(rx.adjacency_matrix(self.coupling_map.graph))
 
@@ -217,13 +219,21 @@ class SabreLayout(TransformationPass):
             self.routing_pass.fake_run = False
             return dag
         # Combined
+        if self.target is not None:
+            # This is a special case SABRE only works with a bidirectional coupling graph
+            # which we explicitly can't create from the target. So do this manually here
+            # to avoid altering the shared state with the unfiltered indices.
+            target = self.target.build_coupling_map(filter_idle_qubits=True)
+            target.make_symmetric()
+        else:
+            target = self.coupling_map
         layout_components = disjoint_utils.run_pass_over_connected_components(
-            dag, self.coupling_map, self._inner_run
+            dag,
+            target,
+            self._inner_run,
         )
         initial_layout_dict = {}
         final_layout_dict = {}
-        shared_clbits = False
-        seen_clbits = set()
         for (
             layout_dict,
             final_dict,
@@ -234,20 +244,14 @@ class SabreLayout(TransformationPass):
         ) in layout_components:
             initial_layout_dict.update({k: component_map[v] for k, v in layout_dict.items()})
             final_layout_dict.update({component_map[k]: component_map[v] for k, v in final_dict})
-            if not shared_clbits:
-                for clbit in local_dag.clbits:
-                    if clbit in seen_clbits:
-                        shared_clbits = True
-                        break
-                    seen_clbits.add(clbit)
         self.property_set["layout"] = Layout(initial_layout_dict)
         # If skip_routing is set then return the layout in the property set
         # and throwaway the extra work we did to compute the swap map.
-        # We also skip routing here if the input circuit is split over multiple
-        # connected components and there is a shared clbit between any
-        # components. We can only reliably route the full dag if there is any
-        # shared classical data.
-        if self.skip_routing or shared_clbits:
+        # We also skip routing here if there is more than one connected
+        # component we ran layout on. We can only reliably route the full dag
+        # in this case if there is any dependency between the components
+        # (typically shared classical data or barriers).
+        if self.skip_routing or len(layout_components) > 1:
             return dag
         # After this point the pass is no longer an analysis pass and the
         # output circuit returned is transformed with the layout applied
