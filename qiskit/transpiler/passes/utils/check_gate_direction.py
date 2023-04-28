@@ -34,37 +34,31 @@ class CheckGateDirection(AnalysisPass):
         self.coupling_map = coupling_map
         self.target = target
 
-    def _coupling_map_visit(self, dag, wire_map, edges=None):
+    def _coupling_map_visit(self, dag, edges=None):
         if edges is None:
             edges = self.coupling_map.get_edges()
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
                 for block in node.op.blocks:
-                    inner_wire_map = {
-                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
-                    }
-                    if not self._coupling_map_visit(circuit_to_dag(block), inner_wire_map, edges):
+                    if not self._coupling_map_visit(circuit_to_dag(block), edges):
                         return False
             elif (
                 len(node.qargs) == 2
-                and (wire_map[node.qargs[0]], wire_map[node.qargs[1]]) not in edges
+                and (dag.find_bit(node.qargs[0]), dag.find_bit(node.qargs[1])) not in edges
             ):
                 return False
         return True
 
-    def _target_visit(self, dag, wire_map):
+    def _target_visit(self, dag):
         # Don't include directives to avoid things like barrier, which are assumed always supported.
         for node in dag.op_nodes(include_directives=False):
             if isinstance(node.op, ControlFlowOp):
                 for block in node.op.blocks:
-                    inner_wire_map = {
-                        inner: wire_map[outer] for outer, inner in zip(node.qargs, block.qubits)
-                    }
-                    if not self._target_visit(circuit_to_dag(block), inner_wire_map):
+                    if not self._target_visit(circuit_to_dag(block)):
                         return False
             elif len(node.qargs) == 2 and not self.target.instruction_supported(
-                node.op.name, (wire_map[node.qargs[0]], wire_map[node.qargs[1]])
+                node.op.name, (dag.find_bit(node.qargs[0]), dag.find_bit(node.qargs[1]))
             ):
                 return False
         return True
@@ -78,9 +72,9 @@ class CheckGateDirection(AnalysisPass):
         Args:
             dag (DAGCircuit): DAG to check.
         """
-        wire_map = {bit: i for i, bit in enumerate(dag.qubits)}
+
         self.property_set["is_direction_mapped"] = (
-            self._coupling_map_visit(dag, wire_map)
+            self._coupling_map_visit(dag)
             if self.target is None
-            else self._target_visit(dag, wire_map)
+            else self._target_visit(dag)
         )

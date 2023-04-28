@@ -62,7 +62,7 @@ class CalibrationBuilder(TransformationPass):
         """
         
         for node in dag.gate_nodes():
-            qubits = [dag.locate_bit(q).index for q in node.qargs]
+            qubits = [dag.find_bit(q).index for q in node.qargs]
 
             if self.supported(node.op, qubits) and not dag.has_calibration_for(node):
                 # calibration can be provided and no user-defined calibration is already provided

@@ -448,13 +448,7 @@ class UnitarySynthesis(TransformationPass):
 
         for node in dag.op_nodes(ControlFlowOp):
             node.op = control_flow.map_blocks(_recurse, node.op)
-
-        dag_bit_indices = (
-            {bit: i for i, bit in enumerate(dag.qubits)}
-            if plugin_method.supports_coupling_map or default_method.supports_coupling_map
-            else {}
-        )
-
+            
         for node in dag.named_nodes(*self._synth_gates):
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
                 continue
@@ -470,7 +464,7 @@ class UnitarySynthesis(TransformationPass):
             if method.supports_coupling_map:
                 kwargs["coupling_map"] = (
                     self._coupling_map,
-                    [dag_bit_indices[x] for x in node.qargs],
+                    [dag.find_bit(x) for x in node.qargs],
                 )
             synth_dag = method.run(unitary, **kwargs)
             if synth_dag is not None:

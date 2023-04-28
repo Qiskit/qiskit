@@ -224,8 +224,8 @@ class SabreSwap(TransformationPass):
 
         canonical_register = dag.qregs["q"]
         current_layout = Layout.generate_trivial_layout(canonical_register)
-        self._qubit_indices = {bit: idx for idx, bit in enumerate(canonical_register)}
-        self._clbit_indices = {bit: idx for idx, bit in enumerate(dag.clbits)}
+        self._qubit_indices = {bit: dag.find_bit(bit).index for bit in canonical_register}
+        self._clbit_indices = {bit: dag.find_bit(bit).index for bit in dag.clbits}
         layout_mapping = {
             self._qubit_indices[k]: v for k, v in current_layout.get_virtual_bits().items()
         }

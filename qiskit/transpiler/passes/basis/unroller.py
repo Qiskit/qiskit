@@ -55,9 +55,9 @@ class Unroller(TransformationPass):
         """
         if self.basis is None and self.target is None:
             return dag
-        qubit_mapping = {}
-        if self.target is not None:
-            qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
+
+        # if self.target is not None:
+        #     qubit_mapping = {bit: dag.find_bit(bit).index for bit in dag.qubits}
         # Walk through the DAG and expand each non-basis node
         basic_insts = ["measure", "reset", "barrier", "snapshot", "delay"]
         for node in dag.op_nodes():
@@ -66,7 +66,7 @@ class Unroller(TransformationPass):
 
             run_qubits = None
             if self.target is not None:
-                run_qubits = tuple(qubit_mapping[x] for x in node.qargs)
+                run_qubits = tuple(dag.find_bit(x) for x in node.qargs)
                 if (
                     self.target.instruction_supported(node.op.name, qargs=run_qubits)
                     or node.op.name == "barrier"

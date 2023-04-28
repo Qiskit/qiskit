@@ -71,14 +71,13 @@ class CheckMap(AnalysisPass):
         if not self.qargs:
             return
 
-        qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in dag.op_nodes(include_directives=False):
             is_controlflow_op = isinstance(node.op, ControlFlowOp)
             if len(node.qargs) == 2 and not is_controlflow_op:
                 if dag.has_calibration_for(node):
                     continue
-                physical_q0 = qubit_indices[node.qargs[0]]
-                physical_q1 = qubit_indices[node.qargs[1]]
+                physical_q0 = dag.find_bit(node.qargs[0])
+                physical_q1 = dag.find_bit(node.qargs[1])
                 if (physical_q0, physical_q1) not in self.qargs:
                     self.property_set["check_map_msg"] = "{}({}, {}) failed".format(
                         node.name,
@@ -88,7 +87,7 @@ class CheckMap(AnalysisPass):
                     self.property_set[self.property_set_field] = False
                     return
             elif is_controlflow_op:
-                order = [qubit_indices[bit] for bit in node.qargs]
+                order = [dag.find_bit(bit) for bit in node.qargs]
                 for block in node.op.blocks:
                     dag_block = circuit_to_dag(block)
                     mapped_dag = dag.copy_empty_like()

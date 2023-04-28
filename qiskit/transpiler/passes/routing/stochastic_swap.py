@@ -114,7 +114,7 @@ class StochasticSwap(TransformationPass):
             self.initial_layout = Layout.generate_trivial_layout(canonical_register)
         # Qubit indices are used to assign an integer to each virtual qubit during the routing: it's
         # a mapping of {virtual: virtual}, for converting between Python and Rust forms.
-        self._qubit_to_int = {bit: idx for idx, bit in enumerate(dag.qubits)}
+        self._qubit_to_int = {bit: dag.find_bit(bit).index for bit in dag.qubits}
         self._int_to_qubit = tuple(dag.qubits)
 
         self.qregs = dag.qregs
