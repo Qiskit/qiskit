@@ -16,13 +16,13 @@ from typing import Optional
 
 import numpy as np
 
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 
 from .xx_plus_yy import XXPlusYYGate
 
 
-class iSwapGate(Gate):
+class iSwapGate(SingletonGate):
     r"""iSWAP gate.
 
     A 2-qubit XX+YY interaction.
@@ -83,9 +83,13 @@ class iSwapGate(Gate):
             \end{pmatrix}
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
         """Create new iSwap gate."""
-        super().__init__("iswap", 2, [], label=label)
+        if unit is None:
+            unit = "dt"
+        super().__init__(
+            "iswap", 2, [], label=label, _condition=_condition, duration=duration, unit=unit
+        )
 
     def _define(self):
         """

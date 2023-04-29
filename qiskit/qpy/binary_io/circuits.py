@@ -14,6 +14,7 @@
 
 """Binary IO for circuit objects."""
 
+import inspect
 import io
 import json
 import struct
@@ -261,8 +262,10 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
     else:
         raise AttributeError("Invalid instruction type: %s" % gate_name)
 
+    if instruction.label_size <= 0:
+        label = None
     if gate_name in {"IfElseOp", "WhileLoopOp"}:
-        gate = gate_class(condition_tuple, *params)
+        gate = gate_class(condition_tuple, *params, label=label)
     elif version >= 5 and issubclass(gate_class, ControlledGate):
         if gate_name in {
             "MCPhaseGate",
@@ -272,9 +275,9 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
             "MCXRecursive",
             "MCXVChain",
         }:
-            gate = gate_class(*params, instruction.num_ctrl_qubits)
+            gate = gate_class(*params, instruction.num_ctrl_qubits, label=label)
         else:
-            gate = gate_class(*params)
+            gate = gate_class(*params, label=label)
             gate.num_ctrl_qubits = instruction.num_ctrl_qubits
             gate.ctrl_state = instruction.ctrl_state
         gate.condition = condition_tuple
@@ -286,10 +289,14 @@ def _read_instruction(file_obj, circuit, registers, custom_operations, version, 
                 params = [len(qargs)]
             elif gate_name in {"BreakLoopOp", "ContinueLoopOp"}:
                 params = [len(qargs), len(cargs)]
-            gate = gate_class(*params)
-        gate.condition = condition_tuple
-    if instruction.label_size > 0:
-        gate.label = label
+            if "label" in inspect.signature(gate_class).parameters:
+                gate = gate_class(*params, label=label)
+            else:
+                gate = gate_class(*params)
+                if label is not None:
+                    gate.label = label
+        if condition_tuple:
+            gate = gate.c_if(*condition_tuple)
     if circuit is None:
         return gate
     if not isinstance(gate, Instruction):

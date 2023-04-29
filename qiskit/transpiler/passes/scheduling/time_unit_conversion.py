@@ -14,6 +14,7 @@
 from typing import Set
 
 from qiskit.circuit import Delay
+from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.exceptions import TranspilerError
@@ -96,14 +97,31 @@ class TimeUnitConversion(TransformationPass):
         # Make units consistent
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in dag.op_nodes():
-            try:
-                node.op = node.op.copy()
-                node.op.duration = self.inst_durations.get(
-                    node.op, [bit_indices[qarg] for qarg in node.qargs], unit=time_unit
-                )
-                node.op.unit = time_unit
-            except TranspilerError:
-                pass
+            if isinstance(node.op, SingletonGate):
+                try:
+                    duration = self.inst_durations.get(
+                        node.op, [bit_indices[qarg] for qarg in node.qargs], unit=time_unit
+                    )
+                    # Right now singleton gates can only be non controlled and have no parameters
+                    # so there are only 4 mutable properties that need to be set when instanitating
+                    # new instance with duration and singleton gates can't have any extra mutable
+                    # attributes. In the future if the use of singleton operations expands this
+                    # will need to be adjusted to ensuure that any mutable state is preservedd
+                    new_op = type(node.op)(label=node.op.label, duration=duration, unit=time_unit)
+                    if node.op.condition:
+                        new_op = new_op.c_if(*node.op.condition)
+                    node.op = new_op
+                except TranspilerError:
+                    pass
+            else:
+                try:
+                    node.op = node.op.copy()
+                    node.op.duration = self.inst_durations.get(
+                        node.op, [bit_indices[qarg] for qarg in node.qargs], unit=time_unit
+                    )
+                    node.op.unit = time_unit
+                except TranspilerError:
+                    pass
 
         self.property_set["time_unit"] = time_unit
         return dag

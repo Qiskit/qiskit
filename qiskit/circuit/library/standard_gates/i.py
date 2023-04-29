@@ -14,10 +14,10 @@
 
 from typing import Optional
 import numpy
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton_gate import SingletonGate
 
 
-class IGate(Gate):
+class IGate(SingletonGate):
     r"""Identity gate.
 
     Identity gate corresponds to a single-qubit gate wait cycle,
@@ -44,9 +44,13 @@ class IGate(Gate):
              └───┘
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
         """Create new Identity gate."""
-        super().__init__("id", 1, [], label=label)
+        if unit is None:
+            unit = "dt"
+        super().__init__(
+            "id", 1, [], label=label, _condition=_condition, duration=duration, unit=unit
+        )
 
     def inverse(self):
         """Invert this gate."""

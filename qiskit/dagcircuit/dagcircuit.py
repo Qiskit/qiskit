@@ -828,7 +828,11 @@ class DAGCircuit:
                 op = nd.op.copy()
                 if condition and not isinstance(op, Instruction):
                     raise DAGCircuitError("Cannot add a condition on a generic Operation.")
-                op.condition = condition
+                if condition:
+                    if not isinstance(op, ControlFlowOp):
+                        op = op.c_if(*condition)
+                    else:
+                        op.condition = condition
                 dag.apply_operation_back(op, m_qargs, m_cargs)
             else:
                 raise DAGCircuitError("bad node type %s" % type(nd))
@@ -1251,7 +1255,11 @@ class DAGCircuit:
                         "cannot propagate a condition to an element that acts on those bits"
                     )
                 new_op = copy.copy(in_node.op)
-                new_op.condition = new_condition
+                if new_condition:
+                    if not isinstance(new_op, ControlFlowOp):
+                        new_op = new_op.c_if(*new_condition)
+                    else:
+                        new_op.condition = new_condition
                 in_dag.apply_operation_back(new_op, in_node.qargs, in_node.cargs)
         else:
             in_dag = input_dag
@@ -1335,11 +1343,19 @@ class DAGCircuit:
                 )
             elif getattr(old_node.op, "condition", None) is not None:
                 cond_target, cond_value = old_node.op.condition
-                m_op = copy.copy(old_node.op)
-                m_op.condition = (
-                    self._map_classical_resource_with_import(cond_target, wire_map, creg_map),
-                    cond_value,
-                )
+                # Deepcopy needed here in case of singletone gate usage the condition will be sticky
+                # globally
+                m_op = copy.deepcopy(old_node.op)
+                if not isinstance(old_node.op, ControlFlowOp):
+                    m_op = m_op.c_if(
+                        self._map_classical_resource_with_import(cond_target, wire_map, creg_map),
+                        cond_value,
+                    )
+                else:
+                    m_op.condition = (
+                        self._map_classical_resource_with_import(cond_target, wire_map, creg_map),
+                        cond_value,
+                    )
             else:
                 m_op = old_node.op
             m_qargs = [wire_map[x] for x in old_node.qargs]
@@ -1392,7 +1408,11 @@ class DAGCircuit:
             node.op = op
             if save_condition and not isinstance(op, Instruction):
                 raise DAGCircuitError("Cannot add a condition on a generic Operation.")
-            node.op.condition = save_condition
+            if save_condition:
+                if not isinstance(node.op, ControlFlowOp):
+                    node.op = node.op.c_if(*save_condition)
+                else:
+                    node.op.condition = save_condition
             return node
 
         new_node = copy.copy(node)
@@ -1400,7 +1420,11 @@ class DAGCircuit:
         new_node.op = op
         if save_condition and not isinstance(new_node.op, Instruction):
             raise DAGCircuitError("Cannot add a condition on a generic Operation.")
-        new_node.op.condition = save_condition
+        if save_condition:
+            if not isinstance(op, ControlFlowOp):
+                new_node.op = new_node.op.c_if(*save_condition)
+            else:
+                new_node.op.condition = save_condition
         self._multi_graph[node._node_id] = new_node
         if op.name != node.op.name:
             self._increment_op(op)

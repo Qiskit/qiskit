@@ -15,11 +15,11 @@
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
-from qiskit.circuit.gate import Gate
+from qiskit.circuit.singleton_gate import SingletonGate
 from qiskit.circuit.quantumregister import QuantumRegister
 
 
-class SwapGate(Gate):
+class SwapGate(SingletonGate):
     r"""The SWAP gate.
 
     This is a symmetric and Clifford gate.
@@ -54,9 +54,13 @@ class SwapGate(Gate):
         |a, b\rangle \rightarrow |b, a\rangle
     """
 
-    def __init__(self, label: Optional[str] = None):
+    def __init__(self, label: Optional[str] = None, duration=None, unit=None, _condition=None):
         """Create new SWAP gate."""
-        super().__init__("swap", 2, [], label=label)
+        if unit is None:
+            unit = "dt"
+        super().__init__(
+            "swap", 2, [], label=label, _condition=_condition, duration=duration, unit=unit
+        )
 
     def _define(self):
         """
@@ -98,8 +102,7 @@ class SwapGate(Gate):
             ControlledGate: controlled version of this gate.
         """
         if num_ctrl_qubits == 1:
-            gate = CSwapGate(label=label, ctrl_state=ctrl_state)
-            gate.base_gate.label = self.label
+            gate = CSwapGate(label=label, ctrl_state=ctrl_state, _base_label=self.label)
             return gate
         return super().control(num_ctrl_qubits=num_ctrl_qubits, label=label, ctrl_state=ctrl_state)
 
@@ -214,7 +217,12 @@ class CSwapGate(ControlledGate):
         ]
     )
 
-    def __init__(self, label: Optional[str] = None, ctrl_state: Optional[Union[str, int]] = None):
+    def __init__(
+        self,
+        label: Optional[str] = None,
+        ctrl_state: Optional[Union[str, int]] = None,
+        _base_label=None,
+    ):
         """Create new CSWAP gate."""
         super().__init__(
             "cswap",
@@ -223,7 +231,7 @@ class CSwapGate(ControlledGate):
             num_ctrl_qubits=1,
             label=label,
             ctrl_state=ctrl_state,
-            base_gate=SwapGate(),
+            base_gate=SwapGate(label=_base_label),
         )
 
     def _define(self):
