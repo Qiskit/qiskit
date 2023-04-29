@@ -1758,6 +1758,8 @@ class QuantumCircuit:
         return out
 
     def _repr_png_(self):
+        if self.width() > 50 or self.size() > 50 or self.depth() > 25:
+            return None
         import io
 
         img_byte = io.BytesIO()
