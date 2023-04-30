@@ -14,7 +14,7 @@
 from __future__ import annotations
 import numpy
 
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 from qiskit.result import Result
 from .phase_estimator import PhaseEstimatorResult
 
@@ -67,11 +67,10 @@ class PhaseEstimationResult(PhaseEstimatorResult):
         return self._circuit_result
 
     @property
-    @deprecate_function(
-        "The 'PhaseEstimationResult.most_likely_phase' attribute is deprecated as of 0.18.0 and "
-        "will be removed no earlier than 3 months after the release date. It has been renamed as "
-        "the 'phase' attribute.",
+    @deprecate_func(
+        additional_msg="Instead, use the property ``phase``, which behaves the same.",
         since="0.18.0",
+        is_property=True,
     )
     def most_likely_phase(self) -> float:
         r"""DEPRECATED - Return the most likely phase as a number in :math:`[0.0, 1.0)`.
@@ -135,7 +134,7 @@ class PhaseEstimationResult(PhaseEstimatorResult):
                     # in reverse order. So, we reverse the bitstrings here.
                     binary_phase_string = numpy.binary_repr(idx, self._num_evaluation_qubits)[::-1]
                     if as_float:
-                        _key = _bit_string_to_phase(binary_phase_string)
+                        _key: str | float = _bit_string_to_phase(binary_phase_string)
                     else:
                         _key = binary_phase_string
                     phases[_key] = amplitude

@@ -20,9 +20,9 @@ import socket
 import sys
 from typing import Union, Callable, Type, Iterable
 import unittest
-from warnings import warn
 
 from qiskit.utils import wrap_method
+from qiskit.utils.deprecation import deprecate_func
 from .testing_options import get_test_options
 
 HAS_NET_CONNECTION = None
@@ -141,11 +141,9 @@ def _get_credentials():
     )
 
 
+@deprecate_func(additional_msg="Instead, use ``online_test``", since="0.17.0")
 def requires_qe_access(func):
     """Deprecated in favor of `online_test`"""
-    warn(
-        "`requires_qe_access` is going to be replaced in favor of `online_test`", DeprecationWarning
-    )
 
     @functools.wraps(func)
     def _wrapper(self, *args, **kwargs):

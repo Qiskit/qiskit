@@ -11,8 +11,8 @@
 # that they have been altered from the originals.
 
 """Truncated Newton (TNC) optimizer."""
+from __future__ import annotations
 
-from typing import Optional
 
 from .scipy_optimizer import SciPyOptimizer
 
@@ -42,9 +42,9 @@ class TNC(SciPyOptimizer):
         ftol: float = -1,
         xtol: float = -1,
         gtol: float = -1,
-        tol: Optional[float] = None,
+        tol: float | None = None,
         eps: float = 1e-08,
-        options: Optional[dict] = None,
+        options: dict | None = None,
         max_evals_grouped: int = 1,
         **kwargs,
     ) -> None:

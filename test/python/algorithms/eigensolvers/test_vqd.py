@@ -240,6 +240,46 @@ class TestVQD(QiskitAlgorithmsTestCase):
             self.assertIsInstance(result, VQDResult)
 
     @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
+    def test_optimizer_list(self, op):
+        """Test sending an optimizer list"""
+
+        optimizers = [SLSQP(), L_BFGS_B()]
+        initial_point_1 = [
+            1.70256666,
+            -5.34843975,
+            -0.39542903,
+            5.99477786,
+            -2.74374986,
+            -4.85284669,
+            0.2442925,
+            -1.51638917,
+        ]
+        initial_point_2 = [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+        ]
+        vqd = VQD(
+            estimator=self.estimator,
+            fidelity=self.fidelity,
+            ansatz=RealAmplitudes(),
+            optimizer=optimizers,
+            initial_point=[initial_point_1, initial_point_2],
+            k=2,
+            betas=self.betas,
+        )
+
+        result = vqd.compute_eigenvalues(operator=op)
+        np.testing.assert_array_almost_equal(
+            result.eigenvalues.real, self.h2_energy_excited[:2], decimal=3
+        )
+
+    @data(H2_PAULI, H2_OP, H2_SPARSE_PAULI)
     def test_aux_operators_list(self, op):
         """Test list-based aux_operators."""
         wavefunction = self.ry_wavefunction

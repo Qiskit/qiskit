@@ -11,13 +11,12 @@
 # that they have been altered from the originals.
 
 """Hadamard gate."""
-from math import sqrt
+from math import sqrt, pi
 from typing import Optional, Union
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
-from qiskit.qasm import pi
 from .t import TGate, TdgGate
 from .s import SGate, SdgGate
 

@@ -14,6 +14,9 @@
 
 import unittest
 
+import numpy as np
+import rustworkx as rx
+
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.exceptions import CouplingError
 from qiskit.providers.fake_provider import FakeRueschlikon
@@ -80,6 +83,13 @@ class CouplingTest(QiskitTestCase):
         graph.add_physical_qubit(0)
         graph.add_physical_qubit(1)
         self.assertRaises(CouplingError, graph.distance, 0, 1)
+
+    def test_distance_self_loop(self):
+        """Test distance between the same physical qubit."""
+        graph = CouplingMap()
+        graph.add_physical_qubit(0)
+        graph.add_physical_qubit(1)
+        self.assertEqual(0.0, graph.distance(0, 0))
 
     def test_init_with_couplinglist(self):
         coupling_list = [[0, 1], [1, 2]]
@@ -447,6 +457,50 @@ class CouplingTest(QiskitTestCase):
         coupling = CouplingMap.from_line(3)
         expected = [(0, 1), (1, 0), (1, 2), (2, 1)]
         self.assertEqual(sorted(coupling), expected)
+
+    def test_disjoint_coupling_map(self):
+        cmap = CouplingMap([[0, 1], [1, 0], [2, 3], [3, 2]])
+        self.assertFalse(cmap.is_connected())
+        distance_matrix = cmap.distance_matrix
+        expected = np.array(
+            [
+                [0, 1, np.inf, np.inf],
+                [1, 0, np.inf, np.inf],
+                [np.inf, np.inf, 0, 1],
+                [np.inf, np.inf, 1, 0],
+            ]
+        )
+        np.testing.assert_array_equal(expected, distance_matrix)
+
+    def test_disjoint_coupling_map_distance_no_path_qubits(self):
+        cmap = CouplingMap([[0, 1], [1, 0], [2, 3], [3, 2]])
+        self.assertFalse(cmap.is_connected())
+        with self.assertRaises(CouplingError):
+            cmap.distance(0, 3)
+
+    def test_component_mapping(self):
+        cmap = CouplingMap([[0, 1], [1, 0], [2, 3], [3, 2]])
+        components = cmap.connected_components()
+        self.assertEqual(components[1].graph[0], 2)
+        self.assertEqual(components[1].graph[1], 3)
+        self.assertEqual(components[0].graph[0], 0)
+        self.assertEqual(components[0].graph[1], 1)
+
+    def test_components_connected_graph(self):
+        cmap = CouplingMap.from_line(5)
+        self.assertTrue(cmap.is_connected())
+        subgraphs = cmap.connected_components()
+        self.assertEqual(len(subgraphs), 1)
+        self.assertTrue(rx.is_isomorphic(cmap.graph, subgraphs[0].graph))
+
+    def test_components_disconnected_graph(self):
+        cmap = CouplingMap([[0, 1], [1, 2], [3, 4], [4, 5]])
+        self.assertFalse(cmap.is_connected())
+        subgraphs = cmap.connected_components()
+        self.assertEqual(len(subgraphs), 2)
+        expected_subgraph = CouplingMap([[0, 1], [1, 2]])
+        self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[0].graph))
+        self.assertTrue(rx.is_isomorphic(expected_subgraph.graph, subgraphs[1].graph))
 
     def test_equality(self):
         """Test that equality checks that the graphs have the same nodes, node labels, and edges."""

@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The :attr:`~.BackendV2.name` attribute on the :class:`~.BackendV2` based
+    fake backend classes in :mod:`qiskit.providers.fake_provider` have changed
+    from earlier releases. Previously, the names had a suffix ``"_v2"`` to
+    differentiate the class from the :class:`~.BackendV1` version. This suffix
+    has been removed as having the suffix could lead to inconsistencies with
+    other snapshotted data used to construct the backend object.

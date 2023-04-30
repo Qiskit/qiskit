@@ -11,8 +11,10 @@
 # that they have been altered from the originals.
 
 """Univariate Marginal Distribution Algorithm (Estimation-of-Distribution-Algorithm)."""
+from __future__ import annotations
 
-from typing import Callable, List, Optional, Tuple, Dict, Any
+from collections.abc import Callable
+from typing import Any
 import numpy as np
 from scipy.stats import norm
 from qiskit.utils import algorithm_globals
@@ -131,22 +133,22 @@ class UMDA(Optimizer):
         self.size_gen = size_gen
         self.maxiter = maxiter
         self.alpha = alpha
-        self._vector = None
+        self._vector: np.ndarray | None = None
         # initialization of generation
-        self._generation = None
+        self._generation: np.ndarray | None = None
         self._dead_iter = int(self._maxiter / 5)
 
         self._truncation_length = int(size_gen * alpha)
 
         super().__init__()
 
-        self._best_cost_global = None
-        self._best_ind_global = None
-        self._evaluations = None
+        self._best_cost_global: float | None = None
+        self._best_ind_global: int | None = None
+        self._evaluations: np.ndarray | None = None
 
-        self._n_variables = None
+        self._n_variables: int | None = None
 
-    def _initialization(self):
+    def _initialization(self) -> np.ndarray:
         vector = np.zeros((4, self._n_variables))
 
         vector[0, :] = np.pi  # mu
@@ -196,14 +198,17 @@ class UMDA(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
 
         not_better_count = 0
         result = OptimizerResult()
 
+        if isinstance(x0, float):
+            x0 = [x0]
         self._n_variables = len(x0)
+
         self._best_cost_global = 999999999999
         self._best_ind_global = 9999999
         history = []
@@ -221,7 +226,7 @@ class UMDA(Optimizer):
             self._truncation()
             self._update_vector()
 
-            best_mae_local = min(self._evaluations)
+            best_mae_local: float = min(self._evaluations)
 
             history.append(best_mae_local)
             best_ind_local = np.where(self._evaluations == best_mae_local)[0][0]
@@ -311,7 +316,7 @@ class UMDA(Optimizer):
         self._alpha = value
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         return {
             "maxiter": self.maxiter,
             "alpha": self.alpha,

@@ -94,7 +94,7 @@ class NumPyMinimumEigensolverResult(MinimumEigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._eigenstate = None
+        self._eigenstate: Statevector | None = None
 
     @property
     def eigenstate(self) -> Statevector | None:

@@ -1361,7 +1361,9 @@ def _numbers_to_latex_terms(numbers: List[complex], decimals: int = 10) -> List[
     return terms
 
 
-def _state_to_latex_ket(data: List[complex], max_size: int = 12, prefix: str = "") -> str:
+def _state_to_latex_ket(
+    data: List[complex], max_size: int = 12, prefix: str = "", decimals: int = 10
+) -> str:
     """Convert state vector to latex representation
 
     Args:
@@ -1369,6 +1371,7 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12, prefix: str = "
         max_size: Maximum number of non-zero terms in the expression. If the number of
                  non-zero terms is larger than the max_size, then the representation is truncated.
         prefix: Latex string to be prepended to the latex, intended for labels.
+        decimals: Number of decimal places to round to (default: 10).
 
     Returns:
         String with LaTeX representation of the state vector
@@ -1378,16 +1381,16 @@ def _state_to_latex_ket(data: List[complex], max_size: int = 12, prefix: str = "
     def ket_name(i):
         return bin(i)[2:].zfill(num)
 
-    data = np.around(data, max_size)
+    data = np.around(data, decimals)
     nonzero_indices = np.where(data != 0)[0].tolist()
     if len(nonzero_indices) > max_size:
         nonzero_indices = (
             nonzero_indices[: max_size // 2] + [0] + nonzero_indices[-max_size // 2 + 1 :]
         )
-        latex_terms = _numbers_to_latex_terms(data[nonzero_indices], max_size)
+        latex_terms = _numbers_to_latex_terms(data[nonzero_indices], decimals)
         nonzero_indices[max_size // 2] = None
     else:
-        latex_terms = _numbers_to_latex_terms(data[nonzero_indices], max_size)
+        latex_terms = _numbers_to_latex_terms(data[nonzero_indices], decimals)
 
     latex_str = ""
     for idx, ket_idx in enumerate(nonzero_indices):

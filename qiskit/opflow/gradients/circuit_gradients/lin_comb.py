@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -50,6 +50,7 @@ from qiskit.circuit.library.standard_gates import (
     ZGate,
 )
 from qiskit.quantum_info import partial_trace
+from qiskit.utils.deprecation import deprecate_func
 from ...operator_base import OperatorBase
 from ...list_ops.list_op import ListOp
 from ...list_ops.composed_op import ComposedOp
@@ -67,7 +68,7 @@ from ...converters import PauliBasisChange
 
 
 class LinComb(CircuitGradient):
-    """Compute the state gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the
+    """Deprecated: Compute the state gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the
     sampling probabilities of the basis states of
     a state |ψ(ω)〉w.r.t. ω.
     This method employs a linear combination of unitaries,
@@ -99,7 +100,11 @@ class LinComb(CircuitGradient):
         "z",
     }
 
-    # pylint: disable=signature-differs
+    # pylint: disable=signature-differs, arguments-differ
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, aux_meas_op: OperatorBase = Z):
         """
         Args:
