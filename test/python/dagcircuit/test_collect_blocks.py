@@ -652,7 +652,7 @@ class TestCollectBlocks(QiskitTestCase):
 
     def test_collect_blocks_with_clbits2_dagdependency(self):
         """Test collecting and collapsing blocks with classical bits appearing under
-        condition."""
+        condition, using DAGDependency."""
 
         qreg = QuantumRegister(4, "qr")
         creg = ClassicalRegister(3, "cr")
@@ -687,6 +687,84 @@ class TestCollectBlocks(QiskitTestCase):
         self.assertEqual(len(collapsed_qc.data), 1)
         self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 4)
+        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
+
+    def test_collect_blocks_with_cregs(self):
+        """Test collecting and collapsing blocks with classical registers appearing under
+        condition."""
+
+        qreg = QuantumRegister(4, "qr")
+        creg = ClassicalRegister(3, "cr")
+        creg2 = ClassicalRegister(2, "cr2")
+
+        qc = QuantumCircuit(qreg, creg, creg2)
+        qc.cx(0, 1).c_if(creg, 3)
+        qc.cx(1, 2)
+        qc.cx(0, 1).c_if(creg[2], 1)
+
+        dag = circuit_to_dag(qc)
+
+        # Collect all cx gates (including the conditional ones)
+        blocks = BlockCollector(dag).collect_all_matching_blocks(
+            lambda node: node.op.name == "cx", split_blocks=False, min_block_size=1
+        )
+
+        # We should have a single block consisting of all CX nodes
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(len(blocks[0]), 3)
+
+        def _collapse_fn(circuit):
+            op = circuit_to_instruction(circuit)
+            op.name = "COLLAPSED"
+            return op
+
+        # Collapse block with measures into a single "COLLAPSED" block
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        collapsed_qc = dag_to_circuit(dag)
+
+        self.assertEqual(len(collapsed_qc.data), 1)
+        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
+        self.assertEqual(len(collapsed_qc.data[0].operation.definition.cregs), 1)
+        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 3)
+        self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
+
+    def test_collect_blocks_with_cregs_dagdependency(self):
+        """Test collecting and collapsing blocks with classical registers appearing under
+        condition, using DAGDependency."""
+
+        qreg = QuantumRegister(4, "qr")
+        creg = ClassicalRegister(3, "cr")
+        creg2 = ClassicalRegister(2, "cr2")
+
+        qc = QuantumCircuit(qreg, creg, creg2)
+        qc.cx(0, 1).c_if(creg, 3)
+        qc.cx(1, 2)
+        qc.cx(0, 1).c_if(creg[2], 1)
+
+        dag = circuit_to_dagdependency(qc)
+
+        # Collect all cx gates (including the conditional ones)
+        blocks = BlockCollector(dag).collect_all_matching_blocks(
+            lambda node: node.op.name == "cx", split_blocks=False, min_block_size=1
+        )
+
+        # We should have a single block consisting of all CX nodes
+        self.assertEqual(len(blocks), 1)
+        self.assertEqual(len(blocks[0]), 3)
+
+        def _collapse_fn(circuit):
+            op = circuit_to_instruction(circuit)
+            op.name = "COLLAPSED"
+            return op
+
+        # Collapse block with measures into a single "COLLAPSED" block
+        dag = BlockCollapser(dag).collapse_to_operation(blocks, _collapse_fn)
+        collapsed_qc = dagdependency_to_circuit(dag)
+
+        self.assertEqual(len(collapsed_qc.data), 1)
+        self.assertEqual(collapsed_qc.data[0].operation.name, "COLLAPSED")
+        self.assertEqual(len(collapsed_qc.data[0].operation.definition.cregs), 1)
+        self.assertEqual(collapsed_qc.data[0].operation.definition.num_qubits, 3)
         self.assertEqual(collapsed_qc.data[0].operation.definition.num_clbits, 3)
 
 
