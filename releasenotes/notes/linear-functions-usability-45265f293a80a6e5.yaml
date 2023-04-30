@@ -4,6 +4,10 @@ features:
     Added :meth:`.LinearFunction.__eq__` method. Two objects of type :class:`.LinearFunction`
     are considered equal when their representations as binary invertible matrices are equal.
   - |
+    Added :meth:`.LinearFunction.extend_with_identity` method, which allows to extend
+    a linear function over ``k`` qubits to a linear function over ``n >= k`` qubits,
+    with identities on other subsystems.
+  - |
     Allowing to construct a :class:`.LinearFunction` from a quantum circuit with
     :class:`~qiskit.circuit.Barrier` and :class:`~qiskit.circuit.Delay` instructions.
 

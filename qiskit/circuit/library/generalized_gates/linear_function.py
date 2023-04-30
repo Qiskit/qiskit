@@ -175,6 +175,26 @@ class LinearFunction(Gate):
         locs = np.where(linear == 1)
         return locs[1]
 
+    def extend_with_identity(self, nq: int, positions: list[int]) -> LinearFunction:
+        """Extend linear function to a linear function over nq qubits,
+        with identities on other subsystems.
+
+        Args:
+            nq: number of qubits of the extended function.
+
+            positions: describes the positions of original qubits in the extended
+                function's qubits.
+
+        Returns:
+            LinearFunction: extended linear function.
+        """
+        extended_mat = np.eye(nq, dtype=bool)
+
+        for i, pos in enumerate(positions):
+            extended_mat[positions, pos] = self.linear[:, i]
+
+        return LinearFunction(extended_mat)
+
 
 def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
     """This creates a n x n matrix corresponding to the given linear quantum circuit."""
@@ -192,6 +212,9 @@ def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
             mat[[cb, tb]] = mat[[tb, cb]]
         elif instruction.operation.name in ("barrier", "delay"):
             continue
+        elif getattr(instruction.operation, "definition", None) is not None:
+            raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")
+
         else:
             raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")
 

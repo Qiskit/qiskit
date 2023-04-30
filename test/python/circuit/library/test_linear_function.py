@@ -294,6 +294,22 @@ class TestLinearFunctions(QiskitTestCase):
         self.assertTrue(np.all(linear_function_1.linear == linear_function_2.linear))
         self.assertEqual(linear_function_1, linear_function_2)
 
+    def test_extend_with_identity(self):
+        """Test extending linear function with identity."""
+        lf = LinearFunction([[1, 1, 1], [0, 1, 1], [0, 0, 1]])
+
+        extended1 = lf.extend_with_identity(4, [0, 1, 2])
+        expected1 = LinearFunction([[1, 1, 1, 0], [0, 1, 1, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        self.assertEqual(extended1, expected1)
+
+        extended2 = lf.extend_with_identity(4, [1, 2, 3])
+        expected2 = LinearFunction([[1, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1], [0, 0, 0, 1]])
+        self.assertEqual(extended2, expected2)
+
+        extended3 = lf.extend_with_identity(4, [3, 2, 1])
+        expected3 = LinearFunction([[1, 0, 0, 0], [0, 1, 0, 0], [0, 1, 1, 0], [0, 1, 1, 1]])
+        self.assertEqual(extended3, expected3)
+
 
 if __name__ == "__main__":
     unittest.main()
