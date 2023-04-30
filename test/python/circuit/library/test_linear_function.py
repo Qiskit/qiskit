@@ -239,6 +239,61 @@ class TestLinearFunctions(QiskitTestCase):
         linear_function = LinearFunction(mat)
         self.assertIsNone(linear_function.original_circuit)
 
+    def test_barriers(self):
+        """Test constructing linear functions from circuits with barriers."""
+        linear_circuit_1 = QuantumCircuit(4)
+        linear_circuit_1.cx(0, 1)
+        linear_circuit_1.cx(1, 2)
+        linear_circuit_1.cx(2, 3)
+        linear_function_1 = LinearFunction(linear_circuit_1)
+
+        linear_circuit_2 = QuantumCircuit(4)
+        linear_circuit_2.barrier()
+        linear_circuit_2.cx(0, 1)
+        linear_circuit_2.cx(1, 2)
+        linear_circuit_2.barrier()
+        linear_circuit_2.cx(2, 3)
+        linear_circuit_2.barrier()
+        linear_function_2 = LinearFunction(linear_circuit_2)
+
+        self.assertTrue(np.all(linear_function_1.linear == linear_function_2.linear))
+        self.assertEqual(linear_function_1, linear_function_2)
+
+    def test_delays(self):
+        """Test constructing linear functions from circuits with delays."""
+        linear_circuit_1 = QuantumCircuit(4)
+        linear_circuit_1.cx(0, 1)
+        linear_circuit_1.cx(1, 2)
+        linear_circuit_1.cx(2, 3)
+        linear_function_1 = LinearFunction(linear_circuit_1)
+
+        linear_circuit_2 = QuantumCircuit(4)
+        linear_circuit_2.delay(500, 1)
+        linear_circuit_2.cx(0, 1)
+        linear_circuit_2.cx(1, 2)
+        linear_circuit_2.delay(100, 0)
+        linear_circuit_2.cx(2, 3)
+        linear_circuit_2.delay(200, 2)
+        linear_function_2 = LinearFunction(linear_circuit_2)
+
+        self.assertTrue(np.all(linear_function_1.linear == linear_function_2.linear))
+        self.assertEqual(linear_function_1, linear_function_2)
+
+    def test_eq(self):
+        """Test that checking equality between two linear functions only depends on matrices."""
+        linear_circuit_1 = QuantumCircuit(3)
+        linear_circuit_1.cx(0, 1)
+        linear_circuit_1.cx(0, 2)
+        linear_function_1 = LinearFunction(linear_circuit_1)
+
+        linear_circuit_2 = QuantumCircuit(3)
+        linear_circuit_2.cx(0, 2)
+        linear_circuit_2.cx(0, 1)
+        linear_function_2 = LinearFunction(linear_circuit_1)
+
+        self.assertTrue(np.all(linear_function_1.linear == linear_function_2.linear))
+        self.assertEqual(linear_function_1, linear_function_2)
+
 
 if __name__ == "__main__":
     unittest.main()

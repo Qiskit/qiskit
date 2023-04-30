@@ -120,6 +120,10 @@ class LinearFunction(Gate):
             name="linear_function", num_qubits=len(linear), params=[linear, original_circuit]
         )
 
+    def __eq__(self, other):
+        """Check if two linear functions represent the same matrix."""
+        return (self.linear == other.linear).all()
+
     def validate_parameter(self, parameter):
         """Parameter validation"""
         return parameter
@@ -186,6 +190,8 @@ def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
             cb = qc.find_bit(instruction.qubits[0]).index
             tb = qc.find_bit(instruction.qubits[1]).index
             mat[[cb, tb]] = mat[[tb, cb]]
+        elif instruction.operation.name in ("barrier", "delay"):
+            continue
         else:
             raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")
 

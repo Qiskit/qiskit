@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added :meth:`.LinearFunction.__eq__` method. Two objects of type :class:`.LinearFunction`
+    are considered equal when their representations as binary invertible matrices are equal.
+  - |
+    Allowing to construct a :class:`.LinearFunction` from a quantum circuit with
+    :class:`~qiskit.circuit.Barrier` and :class:`~qiskit.circuit.Delay` instructions.
+
