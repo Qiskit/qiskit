@@ -127,6 +127,7 @@ class LinearFunction(Gate):
             linear = LinearFunction._clifford_to_mat(linear)
 
         else:
+            # TODO: CHANGE THIS ERROR MESSAGE!!
             raise CircuitError(
                 "A linear function must be represented either by a list, "
                 "a numpy array, or a quantum circuit with linear gates."
@@ -182,21 +183,12 @@ class LinearFunction(Gate):
         phase vector. In this case, the required matrix is A^t.
         Raises an error otherwise.
         """
-        num_qubits = cliff.num_qubits
-
-        if (
-            cliff.phase.any()
-            or cliff.destab_z.any()
-            or cliff.stab_x.any()
-            or not np.array_equal(
-                np.dot(np.transpose(cliff.destab_x.astype(int)), cliff.stab_z.astype(int)) % 2,
-                np.eye(num_qubits),
-            )
-        ):
+        # Note: since cliff is a valid Clifford, then the condition D = A^{-1}^t
+        # holds automatically once B = C = 0.
+        if cliff.phase.any() or cliff.destab_z.any() or cliff.stab_x.any():
             raise CircuitError(
                 "The given clifford does not correspond to a linear function."
             )
-
         return np.transpose(cliff.destab_x)
 
     @staticmethod
