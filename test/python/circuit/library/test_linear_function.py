@@ -373,6 +373,34 @@ class TestLinearFunctions(QiskitTestCase):
         extracted_pattern = linear_from_perm.permutation_pattern()
         self.assertTrue(np.all(pattern == extracted_pattern))
 
+    def test_from_linear_function(self):
+        """Test constructing a linear function from another linear function."""
+        linear_function1 = LinearFunction([[1, 1, 1], [0, 1, 1], [0, 0, 1]])
+        linear_function2 = LinearFunction(linear_function1)
+        self.assertEquals(linear_function1, linear_function2)
+
+    def test_from_quantum_circuit_with_linear_functions(self):
+        """Test constructing a linear function from a quantum circuit with
+        linear functions."""
+
+        qc1 = QuantumCircuit(3)
+        qc1.swap(1, 2)
+        linear1 = LinearFunction(qc1)
+        print(linear1)
+
+        qc2 = QuantumCircuit(2)
+        qc2.swap(0, 1)
+        linear2 = LinearFunction(qc2)
+
+        qc3 = QuantumCircuit(4)
+        qc3.append(linear1, [0, 1, 2])
+        qc3.append(linear2, [2, 3])
+        linear3 = LinearFunction(qc3)
+        # linear3 is a permutation: 1->3->2, 0 unchanged
+
+        expected = LinearFunction([[1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0]])
+        self.assertEquals(linear3, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

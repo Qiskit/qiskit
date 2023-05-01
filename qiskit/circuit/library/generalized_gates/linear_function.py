@@ -116,7 +116,7 @@ class LinearFunction(Gate):
             linear = LinearFunction._circuit_to_mat(linear)
 
         elif isinstance(linear, LinearFunction):
-            pass
+            linear = linear.linear.copy()
 
         elif isinstance(linear, PermutationGate):
             linear = LinearFunction._permutation_to_mat(linear)
@@ -126,12 +126,12 @@ class LinearFunction(Gate):
             # to a linear function.
             linear = LinearFunction._clifford_to_mat(linear)
 
+        # Note: if we wanted, we could also try to construct a linear function from a
+        # general operator, by first attempting to convert it to clifford, and then to
+        # a linear function.
+
         else:
-            # TODO: CHANGE THIS ERROR MESSAGE!!
-            raise CircuitError(
-                "A linear function must be represented either by a list, "
-                "a numpy array, or a quantum circuit with linear gates."
-            )
+            raise CircuitError("A linear function cannot be successfully constructed.")
 
         super().__init__(
             name="linear_function", num_qubits=len(linear), params=[linear, original_circuit]
