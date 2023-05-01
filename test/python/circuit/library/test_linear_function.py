@@ -16,6 +16,7 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
+from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
 
@@ -327,6 +328,40 @@ class TestLinearFunctions(QiskitTestCase):
         linear_function = LinearFunction(qc3)
         expected = LinearFunction([[0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [1, 0, 0, 0]])
         self.assertEquals(linear_function, expected)
+
+    def test_from_clifford_when_possible(self):
+        """Test constructing a linear function from a clifford which corresponds to a valid
+        linear function."""
+
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.swap(1, 2)
+
+        # Linear function constructed from qc
+        linear_from_qc = LinearFunction(qc)
+
+        # Linear function constructed from clifford
+        cliff = Clifford(qc)
+        linear_from_clifford = LinearFunction(cliff)
+
+        self.assertEquals(linear_from_qc, linear_from_clifford)
+
+    def test_to_clifford_and_back(self):
+        """Test converting linear function to clifford and back."""
+        linear = LinearFunction([[1, 1, 1], [0, 1, 1], [0, 0, 1]])
+        cliff = Clifford(linear)
+        linear_from_clifford = LinearFunction(cliff)
+        self.assertEquals(linear, linear_from_clifford)
+
+    def test_from_clifford_when_impossible(self):
+        """Test that constructing a linear function from a clifford that does not correspond
+        to a linear function produces a circuit error."""
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.h(0)
+        qc.swap(1, 2)
+        with self.assertRaises(CircuitError):
+            LinearFunction(qc)
 
 
 if __name__ == "__main__":

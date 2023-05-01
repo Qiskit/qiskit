@@ -88,9 +88,9 @@ class LinearFunction(Gate):
         # pylint: disable=cyclic-import
         from qiskit.circuit.library import PermutationGate
 
-        if isinstance(linear, (list, np.ndarray)):
-            original_circuit = None
+        original_circuit = None
 
+        if isinstance(linear, (list, np.ndarray)):
             # Normalize to numpy array (coercing entries to 0s and 1s)
             try:
                 linear = np.array(linear, dtype=bool, copy=True)
@@ -122,7 +122,9 @@ class LinearFunction(Gate):
             pass
 
         elif isinstance(linear, Clifford):
-            pass
+            # The following function will raise a CircuitError if clifford does not correspond
+            # to a linear function.
+            linear = LinearFunction._clifford_to_mat(linear)
 
         else:
             raise CircuitError(
