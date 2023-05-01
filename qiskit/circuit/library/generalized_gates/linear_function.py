@@ -186,9 +186,7 @@ class LinearFunction(Gate):
         # Note: since cliff is a valid Clifford, then the condition D = A^{-1}^t
         # holds automatically once B = C = 0.
         if cliff.phase.any() or cliff.destab_z.any() or cliff.stab_x.any():
-            raise CircuitError(
-                "The given clifford does not correspond to a linear function."
-            )
+            raise CircuitError("The given clifford does not correspond to a linear function.")
         return np.transpose(cliff.destab_x)
 
     @staticmethod
