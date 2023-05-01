@@ -14,8 +14,9 @@
 
 from __future__ import annotations
 import numpy as np
-from qiskit.circuit import QuantumCircuit, Gate
+from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.quantum_info import Clifford
 from qiskit.synthesis.linear import check_invertible_binary_matrix
 
 
@@ -83,18 +84,11 @@ class LinearFunction(Gate):
                 or a quantum circuit contains non-linear gates.
 
         """
-        if not isinstance(linear, (list, np.ndarray, QuantumCircuit)):
-            raise CircuitError(
-                "A linear function must be represented either by a list, "
-                "a numpy array, or a quantum circuit with linear gates."
-            )
 
-        if isinstance(linear, QuantumCircuit):
-            # The following function will raise a CircuitError if there are nonlinear gates.
-            original_circuit = linear
-            linear = _linear_quantum_circuit_to_mat(linear)
+        # pylint: disable=cyclic-import
+        from qiskit.circuit.library import PermutationGate
 
-        else:
+        if isinstance(linear, (list, np.ndarray)):
             original_circuit = None
 
             # Normalize to numpy array (coercing entries to 0s and 1s)
@@ -116,9 +110,92 @@ class LinearFunction(Gate):
                         "A linear function must be represented by an invertible matrix."
                     )
 
+        elif isinstance(linear, QuantumCircuit):
+            # The following function will raise a CircuitError if there are nonlinear gates.
+            original_circuit = linear
+            linear = LinearFunction._circuit_to_mat(linear)
+
+        elif isinstance(linear, LinearFunction):
+            pass
+
+        elif isinstance(linear, PermutationGate):
+            pass
+
+        elif isinstance(linear, Clifford):
+            pass
+
+        else:
+            raise CircuitError(
+                "A linear function must be represented either by a list, "
+                "a numpy array, or a quantum circuit with linear gates."
+            )
+
         super().__init__(
             name="linear_function", num_qubits=len(linear), params=[linear, original_circuit]
         )
+
+    @staticmethod
+    def _circuit_to_mat(qc: QuantumCircuit):
+        """This creates a nxn matrix corresponding to the given quantum circuit."""
+        nq = qc.num_qubits
+        mat = np.eye(nq, nq, dtype=bool)
+
+        for instruction in qc.data:
+            if instruction.operation.name in ("barrier", "delay"):
+                # can be ignored
+                continue
+            elif instruction.operation.name == "cx":
+                # implemented directly
+                cb = qc.find_bit(instruction.qubits[0]).index
+                tb = qc.find_bit(instruction.qubits[1]).index
+                mat[tb, :] = (mat[tb, :]) ^ (mat[cb, :])
+                continue
+            elif instruction.operation.name == "swap":
+                # implemented directly
+                cb = qc.find_bit(instruction.qubits[0]).index
+                tb = qc.find_bit(instruction.qubits[1]).index
+                mat[[cb, tb]] = mat[[tb, cb]]
+                continue
+
+            # In all other cases, we construct the linear function for the operation.
+            # and compose (multiply) linear matrices.
+
+            if getattr(instruction.operation, "definition", None) is not None:
+                other = LinearFunction(instruction.operation.definition)
+            else:
+                other = LinearFunction(instruction.operation)
+
+            positions = [qc.find_bit(q).index for q in instruction.qubits]
+            other = other.extend_with_identity(len(mat), positions)
+            mat = np.dot(other.linear.astype(int), mat.astype(int)) % 2
+            mat = mat.astype(bool)
+
+        return mat
+
+    @staticmethod
+    def _clifford_to_mat(cliff):
+        """This creates a nxn matrix corresponding to the given Clifford, when Clifford
+        can be converted to a linear function. This is possible when the clifford has
+        tableau of the form [[A, B], [C, D]], with B = C = 0 and D = A^{-1}^t, and zero
+        phase vector. In this case, the required matrix is A^t.
+        Raises an error otherwise.
+        """
+        num_qubits = cliff.num_qubits
+
+        if (
+            cliff.phase.any()
+            or cliff.destab_z.any()
+            or cliff.stab_x.any()
+            or not np.array_equal(
+                np.dot(np.transpose(cliff.destab_x.astype(int)), cliff.stab_z.astype(int)) % 2,
+                np.eye(num_qubits),
+            )
+        ):
+            raise CircuitError(
+                "The given clifford does not correspond to a linear function."
+            )
+
+        return np.transpose(cliff.destab_x)
 
     def __eq__(self, other):
         """Check if two linear functions represent the same matrix."""
@@ -194,33 +271,3 @@ class LinearFunction(Gate):
             extended_mat[positions, pos] = self.linear[:, i]
 
         return LinearFunction(extended_mat)
-
-
-def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
-    """This creates a n x n matrix corresponding to the given linear quantum circuit."""
-    nq = qc.num_qubits
-    mat = np.eye(nq, nq, dtype=bool)
-
-    for instruction in qc.data:
-        if instruction.operation.name == "cx":
-            cb = qc.find_bit(instruction.qubits[0]).index
-            tb = qc.find_bit(instruction.qubits[1]).index
-            mat[tb, :] = (mat[tb, :]) ^ (mat[cb, :])
-        elif instruction.operation.name == "swap":
-            cb = qc.find_bit(instruction.qubits[0]).index
-            tb = qc.find_bit(instruction.qubits[1]).index
-            mat[[cb, tb]] = mat[[tb, cb]]
-        elif instruction.operation.name in ("barrier", "delay"):
-            continue
-        elif getattr(instruction.qoperation, "definition", None) is not None:
-            # Iteratively construct linear function for the operation, and
-            # compose (multiply) linear matrices.
-            other = LinearFunction(instruction.operation.definition)
-            positions = [qc.find_bit(q).index for q in instruction.qubits]
-            other = other.extend_with_identity(len(mat), positions)
-            mat = np.dot(other.linear.astype(int), mat.astype(int)) % 2
-            mat = mat.astype(bool)
-        else:
-            raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")
-
-    return mat
