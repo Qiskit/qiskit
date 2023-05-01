@@ -66,12 +66,13 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             phase_est = HamiltonianPhaseEstimation(
                 num_evaluation_qubits=num_evaluation_qubits, quantum_instance=quantum_instance
             )
-        result = phase_est.estimate(
-            hamiltonian=hamiltonian,
-            state_preparation=state_preparation,
-            evolution=evolution,
-            bound=bound,
-        )
+        with self.assertWarns(DeprecationWarning):
+            result = phase_est.estimate(
+                hamiltonian=hamiltonian,
+                state_preparation=state_preparation,
+                evolution=evolution,
+                bound=bound,
+            )
         return result
 
     @data(MatrixEvolution(), PauliTrotterEvolution("suzuki", 4))
