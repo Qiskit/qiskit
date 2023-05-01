@@ -14,8 +14,6 @@
 
 from typing import List
 
-import rustworkx as rx
-
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.measure import Measure
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
@@ -112,28 +110,37 @@ class ConstrainedReschedule(AnalysisPass):
         conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
-        overlap_dict = {node: shift}
+        nodes_with_overlap = [(node, shift)]
+        visited = set()
+        shift_stack = []
+        while nodes_with_overlap:
+            node, shift = nodes_with_overlap.pop()
+            if node in visited:
+                continue
+            visited.add(node)
+            shift_stack.append((node, shift))
+            # Compute shifted t1 of this node separately for qreg and creg
+            this_t0 = node_start_time[node]
+            new_t1q = this_t0 + node.op.duration + shift
+            this_qubits = set(node.qargs)
+            if isinstance(node.op, Measure):
+                # creg access ends at the end of instruction
+                new_t1c = new_t1q
+                this_clbits = set(node.cargs)
+            else:
+                if node.op.condition_bits:
+                    # conditional access ends at the beginning of node start time
+                    new_t1c = this_t0 + shift
+                    this_clbits = set(node.op.condition_bits)
+                else:
+                    new_t1c = None
+                    this_clbits = set()
 
-        class PushBackVisitor(rx.visit.DFSVisitor):
-            def __init__(self):
-                super().__init__()
-                self.new_t1c = {}
-                self.new_t1q = {}
-                self.this_qubits = {}
-                self.this_clbits = {}
-
-            def tree_edge(self, edge):
-                node = dag._multi_graph[edge[0]]
-                next_node = dag._multi_graph[edge[1]]
-                if not isinstance(next_node, DAGOpNode):
-                    raise rx.visit.PruneSearch
-                # COmpute next node start time separately for qreg and creg
+            # Check successors for overlap
+            for next_node in self._get_next_gate(dag, node):
+                # Compute next node start time separately for qreg and creg
                 next_t0q = node_start_time[next_node]
                 next_qubits = set(next_node.qargs)
-                new_t1q = self.new_t1q[node]
-                new_t1c = self.new_t1c[node]
-                this_qubits = self.this_qubits[node]
-                this_clbits = self.this_clbits[node]
                 if isinstance(next_node.op, Measure):
                     # creg access starts after write latency
                     next_t0c = next_t0q + clbit_write_latency
@@ -159,42 +166,11 @@ class ConstrainedReschedule(AnalysisPass):
                 # Shift next node if there is finite overlap in either in qubits or clbits
                 overlap = max(qreg_overlap, creg_overlap)
                 if overlap > 0:
-                    overlap_dict[next_node] = overlap
-                else:
-                    raise rx.visit.PruneSearch
-
-            def discover_vertex(self, node_id, _t):
-                node = dag._multi_graph[node_id]
-
-                if not isinstance(node, DAGOpNode):
-                    raise rx.visit.PruneSearch
-                shift = overlap_dict[node]
-                # Compute shifted t1 of this node separately for qreg and creg
-                this_t0 = node_start_time[node]
-                new_t1q = this_t0 + node.op.duration + shift
-                this_qubits = set(node.qargs)
-                if isinstance(node.op, Measure):
-                    # creg access ends at the end of instruction
-                    new_t1c = new_t1q
-                    this_clbits = set(node.cargs)
-                else:
-                    if node.op.condition_bits:
-                        # conditional access ends at the beginning of node start time
-                        new_t1c = this_t0 + shift
-                        this_clbits = set(node.op.condition_bits)
-                    else:
-                        new_t1c = None
-                        this_clbits = set()
-                self.new_t1q[node] = new_t1q
-                self.new_t1c[node] = new_t1c
-                self.this_qubits[node] = this_qubits
-                self.this_clbits[node] = this_clbits
-
-            def finish_vertex(self, node_id, _t):
-                node = dag._multi_graph[node_id]
-                node_start_time[node] += overlap_dict[node]
-
-        rx.dfs_search(dag._multi_graph, [node._node_id], PushBackVisitor())
+                    nodes_with_overlap.append((next_node, overlap))
+        # Update start time of this node after all overlaps are resolved
+        while shift_stack:
+            node, shift = shift_stack.pop()
+            node_start_time[node] += shift
 
     def run(self, dag: DAGCircuit):
         """Run rescheduler.
