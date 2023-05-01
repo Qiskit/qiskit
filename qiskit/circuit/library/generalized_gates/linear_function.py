@@ -212,9 +212,14 @@ def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
             mat[[cb, tb]] = mat[[tb, cb]]
         elif instruction.operation.name in ("barrier", "delay"):
             continue
-        elif getattr(instruction.operation, "definition", None) is not None:
-            raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")
-
+        elif getattr(instruction.qoperation, "definition", None) is not None:
+            # Iteratively construct linear function for the operation, and
+            # compose (multiply) linear matrices.
+            other = LinearFunction(instruction.operation.definition)
+            positions = [qc.find_bit(q).index for q in instruction.qubits]
+            other = other.extend_with_identity(len(mat), positions)
+            mat = np.dot(other.linear.astype(int), mat.astype(int)) % 2
+            mat = mat.astype(bool)
         else:
             raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")
 

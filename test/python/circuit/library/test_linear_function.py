@@ -310,6 +310,24 @@ class TestLinearFunctions(QiskitTestCase):
         expected3 = LinearFunction([[1, 0, 0, 0], [0, 1, 0, 0], [0, 1, 1, 0], [0, 1, 1, 1]])
         self.assertEqual(extended3, expected3)
 
+    def test_from_nested_quantum_circuit(self):
+        """Test constructing a linear function from a quantum circuit with
+        nested linear quantum circuits."""
+
+        qc1 = QuantumCircuit(3)
+        qc1.swap(1, 2)
+
+        qc2 = QuantumCircuit(3)
+        qc2.append(qc1, [2, 1, 0])  # swaps 0 and 1
+        qc2.swap(1, 2)  # cycles 0->2->1->0
+
+        qc3 = QuantumCircuit(4)
+        qc3.append(qc2, [0, 1, 3])  # cycles 0->3->1->0, 2 untouched
+
+        linear_function = LinearFunction(qc3)
+        expected = LinearFunction([[0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [1, 0, 0, 0]])
+        self.assertEquals(linear_function, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
