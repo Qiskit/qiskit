@@ -16,6 +16,7 @@ import unittest
 import numpy as np
 from ddt import ddt, data
 
+from qiskit.circuit.library import PermutationGate
 from qiskit.quantum_info import Clifford
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import QuantumCircuit
@@ -362,6 +363,15 @@ class TestLinearFunctions(QiskitTestCase):
         qc.swap(1, 2)
         with self.assertRaises(CircuitError):
             LinearFunction(qc)
+
+    def test_from_permutation_gate(self):
+        """Test constructing a linear function from a permutation gate."""
+        pattern = [1, 2, 0, 3]
+        perm_gate = PermutationGate(pattern)
+        linear_from_perm = LinearFunction(perm_gate)
+        self.assertTrue(linear_from_perm.is_permutation())
+        extracted_pattern = linear_from_perm.permutation_pattern()
+        self.assertTrue(np.all(pattern == extracted_pattern))
 
 
 if __name__ == "__main__":

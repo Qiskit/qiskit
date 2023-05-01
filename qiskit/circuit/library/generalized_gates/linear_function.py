@@ -119,7 +119,7 @@ class LinearFunction(Gate):
             pass
 
         elif isinstance(linear, PermutationGate):
-            pass
+            linear = LinearFunction._permutation_to_mat(linear)
 
         elif isinstance(linear, Clifford):
             # The following function will raise a CircuitError if clifford does not correspond
@@ -198,6 +198,15 @@ class LinearFunction(Gate):
             )
 
         return np.transpose(cliff.destab_x)
+
+    @staticmethod
+    def _permutation_to_mat(perm):
+        """This creates a nxn matrix from a given permutation gate."""
+        nq = len(perm.pattern)
+        mat = np.zeros((nq, nq), dtype=bool)
+        for i, j in enumerate(perm.pattern):
+            mat[i, j] = True
+        return mat
 
     def __eq__(self, other):
         """Check if two linear functions represent the same matrix."""
