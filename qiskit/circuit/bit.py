@@ -68,7 +68,7 @@ class Bit:
             "circuit."
         ),
     )
-    def register(self):
+    def register(self):  # pylint: disable=bad-docstring-quotes
         """Get the register of an old-style bit.
 
         In modern Qiskit Terra (version 0.17+), bits are the fundamental object and registers are
@@ -90,7 +90,7 @@ class Bit:
             "circuit."
         ),
     )
-    def index(self):
+    def index(self):  # pylint: disable=bad-docstring-quotes
         """Get the index of an old-style bit in the register that owns it.
 
         In modern Qiskit Terra (version 0.17+), bits are the fundamental object and registers are

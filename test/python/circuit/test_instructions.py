@@ -575,7 +575,7 @@ class TestInstructions(QiskitTestCase):
             raise CircuitError
 
         with self.subTest("cannot pass both registers and requester"):
-            with self.assertRaisesRegex(
+            with self.assertWarns(DeprecationWarning), self.assertRaisesRegex(
                 CircuitError, r"Cannot pass both 'circuit_cregs' and 'resource_requester'\."
             ):
                 InstructionSet(registers, resource_requester=dummy_requester)
