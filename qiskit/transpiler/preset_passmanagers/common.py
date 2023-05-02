@@ -575,14 +575,14 @@ def get_vf2_limits(
     optimization_level: int,
     layout_method: Optional[str] = None,
     initial_layout: Optional[Layout] = None,
-) -> Optional[VF2Limits]:
+) -> VF2Limits:
     """Get the VF2 limits for VF2-based layout passes.
 
     Returns:
-        Optional[VF2Limits]: An optional namedtuple with elements
+        VF2Limits: An namedtuple with optional elements
         ``call_limit`` and ``max_trials``.
     """
-    limits = None
+    limits = VF2Limits(None, None)
     if layout_method is None and initial_layout is None:
         if optimization_level == 1:
             limits = VF2Limits(
