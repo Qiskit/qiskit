@@ -61,18 +61,18 @@ class LinearFunction(Gate):
     `Online at umich.edu. <https://web.eecs.umich.edu/~imarkov/pubs/jour/qic08-cnot.pdf>`_
     """
 
-    def __init__(
-        self,
-        linear: list[list[int]] | np.ndarray | QuantumCircuit,
-        validate_input: bool | None = False,
-    ) -> None:
+    def __init__(self, linear, validate_input=False):
         """Create a new linear function.
 
         Args:
-            linear (list[list] or ndarray[bool] or QuantumCircuit):
-                either an n x n matrix, describing the linear function,
-                or a quantum circuit composed of linear gates only
-                (currently supported gates are CX and SWAP).
+            linear (list[list] or ndarray[bool] or QuantumCircuit or LinearFunction
+                or PermutationGate or Clifford): data from which a linear function
+                can be constructed. It can be either a nxn matrix (describing the
+                linear transformation), a permutation (which is a special case of
+                a linear function), another linear function, a clifford (when it
+                corresponds to a linear function), or a quantum circuit composed of
+                linear gates (CX and SWAP) and other objects described above, including
+                nested subcircuits.
 
             validate_input: if True, performs more expensive input validation checks,
                 such as checking that a given n x n matrix is invertible.
