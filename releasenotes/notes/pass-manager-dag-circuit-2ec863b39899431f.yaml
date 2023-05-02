@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds support for working direclty with :class:`.DAGCircuit` inputs and
+    outputs to :class:`.PassManager`. :meth:`.PassManager.run` may now be called
+    directly with :class:`.DAGCircuit` input inputs to bypass conversion from a
+    :class:`.QauntumCircuit`, and can optionally can return :class:`.DAGCircuit`
+    outputs instead of converting to :class:`.QuantumCircuits` by calling with
+    ``return_dag=True`` kwarg.
