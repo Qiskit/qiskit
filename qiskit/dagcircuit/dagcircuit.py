@@ -528,7 +528,7 @@ class DAGCircuit:
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the method ``DAGCircuit.copy_empty_like()``, which acts identically."
+            "Instead, use :meth:`~copy_empty_like()`, which acts identically."
         ),
         since="0.20.0",
     )
