@@ -269,6 +269,7 @@ class TestPresetPassManager(QiskitTestCase):
         with self.assertWarns(DeprecationWarning):
             qiskit.transpiler.preset_passmanagers.common.get_vf2_call_limit(optimization_level=3)
 
+
 @ddt
 class TestTranspileLevels(QiskitTestCase):
     """Test transpiler on fake backend"""
@@ -1421,6 +1422,7 @@ class TestGeenratePresetPassManagers(QiskitTestCase):
             for y in x["passes"]
         ]
         self.assertIn("RemoveResetInZeroState", post_translation_pass_list)
+
 
 @ddt
 class TestIntegrationControlFlow(QiskitTestCase):

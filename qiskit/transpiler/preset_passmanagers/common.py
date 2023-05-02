@@ -546,6 +546,7 @@ def generate_scheduling(
 
     return scheduling
 
+
 @deprecate_func(
     additional_msg="Instead, use :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits`.",
     since="0.25.0",
