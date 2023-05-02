@@ -85,6 +85,14 @@ something like::
             return False
 
         @property
+        def supports_gate_lengths_by_qubit(self):
+            return False
+
+        @property
+        def supports_gate_errors_by_qubit(self):
+            return False
+
+        @property
         def min_qubits(self):
             return None
 
@@ -341,8 +349,7 @@ class UnitarySynthesisPlugin(abc.ABC):
         pass
 
     @property
-    @abc.abstractmethod
-    def supports_gate_lengths(self):
+    def supports_gate_lengths_by_qubit(self):
         """Return whether the plugin supports taking ``gate_lengths``
 
         ``gate_lengths`` will be a dictionary in the form of
@@ -359,11 +366,10 @@ class UnitarySynthesisPlugin(abc.ABC):
         as it depends on the target backend reporting gate lengths on every
         gate for each qubit.
         """
-        pass
+        return False
 
     @property
-    @abc.abstractmethod
-    def supports_gate_errors(self):
+    def supports_gate_errors_by_qubit(self):
         """Return whether the plugin supports taking ``gate_errors``
 
         ``gate_errors`` will be a dictionary in the form of
@@ -372,6 +378,48 @@ class UnitarySynthesisPlugin(abc.ABC):
             {
             (0,): [SXGate(): 0.0006149355812506126, RZGate(): 0.0],
             (0, 1): [CXGate(): 0.012012477900732316]
+            }
+
+        Do note that this dictionary might not be complete or could be empty
+        as it depends on the target backend reporting gate errors on every
+        gate for each qubit. The gate error rates reported in ``gate_errors``
+        are provided by the target device ``Backend`` object and the exact
+        meaning might be different depending on the backend.
+        """
+        return False
+
+    @property
+    @abc.abstractmethod
+    def supports_gate_lengths(self):
+        """Return whether the plugin supports taking ``gate_lengths``
+
+        ``gate_lengths`` will be a dictionary in the form of
+        ``{gate_name: {(qubit_1, qubit_2): length}}``. For example::
+
+            {
+            'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
+            'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
+            }
+
+        where the ``length`` value is in units of seconds.
+
+        Do note that this dictionary might not be complete or could be empty
+        as it depends on the target backend reporting gate lengths on every
+        gate for each qubit.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def supports_gate_errors(self):
+        """Return whether the plugin supports taking ``gate_errors``
+
+        ``gate_errors`` will be a dictionary in the form of
+        ``{gate_name: {(qubit_1, qubit_2): error}}``. For example::
+
+            {
+            'sx': {(0,): 0.0006149355812506126, (1,): 0.0006149355812506126},
+            'cx': {(0, 1): 0.012012477900732316, (1, 0): 5.191111111111111e-07}
             }
 
         Do note that this dictionary might not be complete or could be empty
