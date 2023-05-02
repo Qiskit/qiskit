@@ -238,7 +238,7 @@ class PassManager:
             return [
                 self._run_single_circuit(circuits[0], output_name, callback, return_dag=return_dag)
             ]
-        return self._run_several_circuits(circuits, output_name, callback)
+        return self._run_several_circuits(circuits, output_name, callback, return_dag=return_dag)
 
     def _create_running_passmanager(self) -> RunningPassManager:
         running_passmanager = RunningPassManager(self.max_iteration)
