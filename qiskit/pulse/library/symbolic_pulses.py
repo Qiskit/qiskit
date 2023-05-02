@@ -1068,7 +1068,7 @@ def GaussianSquareDrag(
     return instance
 
 
-def GaussianSquareEcho(
+def gaussian_square_echo(
     duration: Union[int, ParameterExpression],
     amp: Union[float, ParameterExpression],
     sigma: Union[float, ParameterExpression],
@@ -1258,7 +1258,7 @@ def GaussianSquareEcho(
     valid_amp_conditions_expr = sym.And(sym.Abs(_amp) + sym.Abs(_active_amp) <= 1.0)
 
     instance = SymbolicPulse(
-        pulse_type="GaussianSquareEcho",
+        pulse_type="gaussian_square_echo",
         duration=duration,
         parameters=parameters,
         name=name,
