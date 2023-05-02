@@ -111,13 +111,9 @@ class ConstrainedReschedule(AnalysisPass):
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         nodes_with_overlap = [(node, shift)]
-        visited = set()
         shift_stack = []
         while nodes_with_overlap:
             node, shift = nodes_with_overlap.pop()
-            if node in visited:
-                continue
-            visited.add(node)
             shift_stack.append((node, shift))
             # Compute shifted t1 of this node separately for qreg and creg
             this_t0 = node_start_time[node]
