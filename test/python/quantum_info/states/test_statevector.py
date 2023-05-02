@@ -24,7 +24,7 @@ from qiskit.test import QiskitTestCase
 from qiskit import QiskitError
 from qiskit import QuantumRegister, QuantumCircuit
 from qiskit import transpile
-from qiskit.circuit.library import HGate, QFT
+from qiskit.circuit.library import HGate, QFT, GlobalPhaseGate
 from qiskit.providers.basicaer import QasmSimulatorPy
 
 from qiskit.quantum_info.random import random_unitary, random_statevector, random_pauli
@@ -183,6 +183,13 @@ class TestStatevector(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.h(0)
         circuit.reset(0)
+        psi = Statevector.from_instruction(circuit)
+        self.assertEqual(psi, target)
+
+        # Test 0q instruction
+        target = Statevector([1j, 0])
+        circuit = QuantumCircuit(1)
+        circuit.append(GlobalPhaseGate(np.pi / 2), [], [])
         psi = Statevector.from_instruction(circuit)
         self.assertEqual(psi, target)
 
@@ -1255,6 +1262,60 @@ class TestStatevector(QiskitTestCase):
         sv = Statevector(np.eye(2**15, 1))
         latex_representation = state_to_latex(sv)
         self.assertEqual(latex_representation, " |000000000000000\\rangle")
+
+    def test_state_to_latex_with_max_size_limit(self):
+        """Test limit the maximum number of non-zero terms in the expression"""
+        sv = Statevector(
+            [
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 - 0.35355339j,
+                0.0 + 0.35355339j,
+                0.0 + 0.35355339j,
+                0.0 - 0.35355339j,
+            ],
+            dims=(2, 2, 2, 2),
+        )
+        latex_representation = state_to_latex(sv, max_size=5)
+        self.assertEqual(
+            latex_representation,
+            "\\frac{\\sqrt{2}}{4} |0000\\rangle+"
+            "\\frac{\\sqrt{2}}{4} |0001\\rangle + "
+            "\\ldots +"
+            "\\frac{\\sqrt{2} i}{4} |1110\\rangle- "
+            "\\frac{\\sqrt{2} i}{4} |1111\\rangle",
+        )
+
+    def test_state_to_latex_with_decimals_round(self):
+        """Test rounding of decimal places in the expression"""
+        sv = Statevector(
+            [
+                0.35355339 + 0.0j,
+                0.35355339 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 + 0.0j,
+                0.0 - 0.35355339j,
+                0.0 + 0.35355339j,
+            ],
+            dims=(2, 2, 2),
+        )
+        latex_representation = state_to_latex(sv, decimals=3)
+        self.assertEqual(
+            latex_representation,
+            "0.354 |000\\rangle+0.354 |001\\rangle- 0.354 i |110\\rangle+0.354 i |111\\rangle",
+        )
 
     def test_number_to_latex_terms(self):
         """Test conversions of complex numbers to latex terms"""

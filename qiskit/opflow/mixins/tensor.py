@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -14,10 +14,11 @@
 
 from abc import ABC, abstractmethod
 from numbers import Integral
+from qiskit.utils.deprecation import deprecate_func
 
 
 class TensorMixin(ABC):
-    """The mixin class for tensor operations.
+    """Deprecated: The mixin class for tensor operations.
 
     This class overrides:
         - ``^``, ``__xor__``, `__rxor__` -> :meth:`tensor` between two operators and
@@ -26,6 +27,13 @@ class TensorMixin(ABC):
         - :meth:``tensor(self, other)``
         - :meth:``tensorpower(self, other: int)``
     """
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        pass
 
     def __xor__(self, other):
         if isinstance(other, Integral):

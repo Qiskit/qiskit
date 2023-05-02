@@ -72,8 +72,9 @@ class BasicSwap(TransformationPass):
 
         if len(dag.qubits) > len(self.coupling_map.physical_qubits):
             raise TranspilerError("The layout does not match the amount of qubits in the DAG")
-        disjoint_utils.require_layout_isolated_to_component(dag, self.coupling_map)
-
+        disjoint_utils.require_layout_isolated_to_component(
+            dag, self.coupling_map if self.target is None else self.target
+        )
         canonical_register = dag.qregs["q"]
         trivial_layout = Layout.generate_trivial_layout(canonical_register)
         current_layout = trivial_layout.copy()
