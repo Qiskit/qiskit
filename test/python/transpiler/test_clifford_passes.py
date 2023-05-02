@@ -244,18 +244,12 @@ class TestCliffordPasses(QiskitTestCase):
 
         test = QuantumCircuit(cliff1.num_qubits, 1)
         test.measure(0, 0)
-        test.if_else(
-            (test.clbits[0], True), inner_test.copy(), inner_test.copy(), test.qubits, test.clbits
-        )
+        test.if_else((test.clbits[0], True), inner_test.copy(), inner_test.copy(), test.qubits, [])
 
         expected = QuantumCircuit(combined.num_qubits, 1)
         expected.measure(0, 0)
         expected.if_else(
-            (expected.clbits[0], True),
-            inner_expected,
-            inner_expected,
-            expected.qubits,
-            expected.clbits,
+            (expected.clbits[0], True), inner_expected, inner_expected, expected.qubits, []
         )
 
         self.assertEqual(OptimizeCliffords()(test), expected)

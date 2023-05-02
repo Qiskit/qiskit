@@ -231,9 +231,9 @@ def marginal_distribution(
         res = results_rs.marginal_distribution(counts, indices)
     else:
         first_value = next(iter(counts.values()))
-        if isinstance(first_value, int):
+        if isinstance(first_value, (int, np.integer)):
             res = results_rs.marginal_counts(counts, indices)
-        elif isinstance(first_value, float):
+        elif isinstance(first_value, (float, np.floating)):
             res = results_rs.marginal_distribution(counts, indices)
         else:
             raise QiskitError("Values of counts must be an int or float")

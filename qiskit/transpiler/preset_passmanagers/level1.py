@@ -121,7 +121,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
     _choose_layout_0 = (
         []
         if pass_manager_config.layout_method
-        else [TrivialLayout(coupling_map_layout), CheckMap(coupling_map, target=target)]
+        else [TrivialLayout(coupling_map_layout), CheckMap(coupling_map_layout)]
     )
 
     _choose_layout_1 = (
@@ -300,6 +300,8 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
         translation_method=translation_method,
         optimization_method=optimization_method,
         scheduling_method=scheduling_method,
+        basis_gates=basis_gates,
+        target=target,
     )
     if init_method is not None:
         init += plugin_manager.get_passmanager_stage(

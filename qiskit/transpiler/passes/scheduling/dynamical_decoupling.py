@@ -16,8 +16,7 @@ import itertools
 import warnings
 
 import numpy as np
-from qiskit.circuit.delay import Delay
-from qiskit.circuit.reset import Reset
+from qiskit.circuit import Gate, Delay, Reset
 from qiskit.circuit.library.standard_gates import IGate, UGate, U3Gate
 from qiskit.dagcircuit import DAGOpNode, DAGInNode
 from qiskit.quantum_info.operators.predicates import matrix_equal
@@ -128,8 +127,14 @@ class DynamicalDecoupling(TransformationPass):
         self._qubits = qubits
         self._spacing = spacing
         self._skip_reset_qubits = skip_reset_qubits
+        self._target = target
         if target is not None:
             self._durations = target.durations()
+            for gate in dd_sequence:
+                if gate.name not in target.operation_names:
+                    raise TranspilerError(
+                        f"{gate.name} in dd_sequence is not supported in the target"
+                    )
 
     def run(self, dag):
         """Run the DynamicalDecoupling pass on dag.
@@ -178,18 +183,22 @@ class DynamicalDecoupling(TransformationPass):
             end = mid / 2
             self._spacing = [end] + [mid] * (num_pulses - 1) + [end]
 
-        new_dag = dag.copy_empty_like()
+        for qarg in list(self._qubits):
+            for gate in self._dd_sequence:
+                if not self.__gate_supported(gate, qarg):
+                    self._qubits.discard(qarg)
+                    break
 
-        qubit_index_map = {qubit: index for index, qubit in enumerate(new_dag.qubits)}
         index_sequence_duration_map = {}
-        for qubit in new_dag.qubits:
-            physical_qubit = qubit_index_map[qubit]
+        for physical_qubit in self._qubits:
             dd_sequence_duration = 0
             for gate in self._dd_sequence:
                 gate.duration = self._durations.get(gate, physical_qubit)
                 dd_sequence_duration += gate.duration
             index_sequence_duration_map[physical_qubit] = dd_sequence_duration
 
+        new_dag = dag.copy_empty_like()
+        qubit_index_map = {qubit: index for index, qubit in enumerate(new_dag.qubits)}
         for nd in dag.topological_op_nodes():
             if not isinstance(nd.op, Delay):
                 new_dag.apply_operation_back(nd.op, nd.qargs, nd.cargs)
@@ -251,6 +260,12 @@ class DynamicalDecoupling(TransformationPass):
             new_dag.global_phase = _mod_2pi(new_dag.global_phase + sequence_gphase)
 
         return new_dag
+
+    def __gate_supported(self, gate: Gate, qarg: int) -> bool:
+        """A gate is supported on the qubit (qarg) or not."""
+        if self._target is None or self._target.instruction_supported(gate.name, qargs=(qarg,)):
+            return True
+        return False
 
 
 def _mod_2pi(angle: float, atol: float = 0):
