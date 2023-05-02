@@ -20,8 +20,7 @@ from warnings import warn
 
 import numpy as np
 
-from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister
-from qiskit.circuit import Measure, QuantumCircuit, QuantumRegister
+from qiskit.circuit import ControlledGate, Qubit, Clbit, ClassicalRegister, Measure
 from qiskit.circuit.library.standard_gates import (
     SwapGate,
     RZZGate,
@@ -33,7 +32,6 @@ from qiskit.circuit.library.standard_gates import (
 from qiskit.extensions import Initialize
 from qiskit.circuit.tools.pi_check import pi_check
 from qiskit.utils import optionals as _optionals
-from qiskit.utils.deprecation import deprecate_arg
 
 from .qcstyle import load_style
 from ._utils import (
@@ -65,67 +63,29 @@ class MatplotlibDrawer:
 
     _mathmode_regex = re.compile(r"(?<!\\)\$(.*)(?<!\\)\$")
 
-    @deprecate_arg("gregs", since="0.20.0")
-    @deprecate_arg("cregs", since="0.20.0")
-    @deprecate_arg("layout", since="0.20.0")
-    @deprecate_arg("global_phase", since="0.20.0")
-    @deprecate_arg("calibrations", since="0.20.0")
-    @deprecate_arg(
-        "circuit",
-        deprecation_description=(
-            "Not setting the ``circuit`` argument in the ``MatplotlibDrawer`` constructor`"
-        ),
-        since="0.20.0",
-        predicate=lambda circuit: circuit is None,
-        additional_msg=(
-            "The ``circuit`` argument must be a valid QuantumCircuit. If ``circuit`` is set to "
-            "``None``, then the circuit will be built using the ``qubits`` and ``clbits`` "
-            "arguments for rendering the drawing."
-        ),
-    )
     def __init__(
         self,
         qubits,
         clbits,
         nodes,
+        circuit,
         scale=None,
         style=None,
         reverse_bits=False,
         plot_barriers=True,
-        layout=None,
         fold=25,
         ax=None,
         initial_state=False,
         cregbundle=None,
-        global_phase=None,
-        qregs=None,
-        cregs=None,
-        calibrations=None,
         with_layout=False,
-        circuit=None,
     ):
-        del layout
-        del global_phase
-        del calibrations
-
         from matplotlib import patches
         from matplotlib import pyplot as plt
 
         self._patches_mod = patches
         self._plt_mod = plt
 
-        # This check should be removed when the 5 deprecations above are removed
-        if circuit is None:
-            circ = QuantumCircuit(qubits, clbits)
-            for reg in qregs or []:
-                bits = [qubits[circ._qubit_indices[q].index] for q in reg]
-                circ.add_register(QuantumRegister(None, reg.name, list(bits)))
-            for reg in cregs or []:
-                bits = [clbits[circ._clbit_indices[q].index] for q in reg]
-                circ.add_register(ClassicalRegister(None, reg.name, list(bits)))
-            self._circuit = circ
-        else:
-            self._circuit = circuit
+        self._circuit = circuit
         self._qubits = qubits
         self._clbits = clbits
         self._qubits_dict = {}

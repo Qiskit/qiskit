@@ -12,10 +12,14 @@
 
 """Module containing cnot circuits"""
 
-from .graysynth import graysynth, synth_cnot_count_full_pmh
+from .cnot_synth import synth_cnot_count_full_pmh
 from .linear_depth_lnn import synth_cnot_depth_line_kms
 from .linear_matrix_utils import (
     random_invertible_binary_matrix,
     calc_inverse_matrix,
     check_invertible_binary_matrix,
 )
+
+# This is re-import is kept for compatibility with Terra 0.23. Eligible for deprecation in 0.25+.
+# pylint: disable=cyclic-import,wrong-import-order
+from qiskit.synthesis.linear_phase import synth_cnot_phase_aam as graysynth

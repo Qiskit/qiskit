@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 
 """Class for generating ODE functions based on ODE gradients."""
-from typing import Iterable
+from collections.abc import Iterable
 
 from .abstract_ode_function import AbstractOdeFunction
 

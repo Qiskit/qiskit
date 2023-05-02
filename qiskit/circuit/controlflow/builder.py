@@ -21,7 +21,7 @@
 import abc
 import itertools
 import typing
-from typing import Callable, Collection, Iterable, List, FrozenSet, Tuple, Union
+from typing import Callable, Collection, Iterable, List, FrozenSet, Tuple, Union, Optional
 
 from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
@@ -95,8 +95,13 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         The returned resources may not be the full width of the given resources, but will certainly
         be a subset of them; this can occur if (for example) a placeholder ``if`` statement is
         present, but does not itself contain any placeholder instructions.  For resource efficiency,
-        the returned :obj:`.IfElseOp` will not unnecessarily span all resources, but only the ones
-        that it needs.
+        the returned :class:`.ControlFlowOp` will not unnecessarily span all resources, but only the
+        ones that it needs.
+
+        .. note::
+
+            The caller of this function is responsible for ensuring that the inputs to this function
+            are non-strict supersets of the bits returned by :meth:`placeholder_resources`.
 
         Any condition added in by a call to :obj:`.Instruction.c_if` will be propagated through, but
         set properties like ``duration`` will not; it doesn't make sense for control-flow operations
@@ -202,6 +207,7 @@ class ControlFlowBuilderBlock:
         "_allow_jumps",
         "_resource_requester",
         "_built",
+        "_forbidden_message",
     )
 
     def __init__(
@@ -212,6 +218,7 @@ class ControlFlowBuilderBlock:
         registers: Iterable[Register] = (),
         resource_requester: Callable,
         allow_jumps: bool = True,
+        forbidden_message: Optional[str] = None,
     ):
         """
         Args:
@@ -238,6 +245,11 @@ class ControlFlowBuilderBlock:
                 :meth:`.QuantumCircuit._resolve_classical_resource` for the normal expected input
                 here, and the documentation of :obj:`.InstructionSet`, which uses this same
                 callback.
+            forbidden_message: If a string is given here, a :exc:`.CircuitError` will be raised on
+                any attempts to append instructions to the scope with this message.  This is used by
+                pseudo scopes where the state machine of the builder scopes has changed into a
+                position where no instructions should be accepted, such as when inside a ``switch``
+                but outside any cases.
         """
         self.instructions: List[CircuitInstruction] = []
         self.qubits = set(qubits)
@@ -246,6 +258,7 @@ class ControlFlowBuilderBlock:
         self._allow_jumps = allow_jumps
         self._resource_requester = resource_requester
         self._built = False
+        self._forbidden_message = forbidden_message
 
     @property
     def allow_jumps(self):
@@ -264,6 +277,9 @@ class ControlFlowBuilderBlock:
     def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
         """Add an instruction into the scope, keeping track of the qubits and clbits that have been
         used in total."""
+        if self._forbidden_message is not None:
+            raise CircuitError(self._forbidden_message)
+
         if not self._allow_jumps:
             # pylint: disable=cyclic-import
             from .break_loop import BreakLoopOp, BreakLoopPlaceholder
@@ -393,6 +409,10 @@ class ControlFlowBuilderBlock:
         # that may have been built into other objects.
         self._built = True
 
+        if self._forbidden_message is not None:
+            # Reaching this implies a logic error in the builder interface.
+            raise RuntimeError("Cannot build a forbidden scope. Please report this as a bug.")
+
         potential_qubits = all_qubits - self.qubits
         potential_clbits = all_clbits - self.clbits
 
@@ -452,4 +472,5 @@ class ControlFlowBuilderBlock:
         out.clbits = self.clbits.copy()
         out.registers = self.registers.copy()
         out._allow_jumps = self._allow_jumps
+        out._forbidden_message = self._forbidden_message
         return out

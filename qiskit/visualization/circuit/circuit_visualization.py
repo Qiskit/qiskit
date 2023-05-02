@@ -645,6 +645,7 @@ def _matplotlib_circuit_drawer(
         qubits,
         clbits,
         nodes,
+        circuit,
         scale=scale,
         style=style,
         reverse_bits=reverse_bits,
@@ -654,6 +655,5 @@ def _matplotlib_circuit_drawer(
         initial_state=initial_state,
         cregbundle=cregbundle,
         with_layout=with_layout,
-        circuit=circuit,
     )
     return qcd.draw(filename)
