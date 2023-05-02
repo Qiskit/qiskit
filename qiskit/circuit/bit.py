@@ -63,8 +63,9 @@ class Bit:
         is_property=True,
         since="0.17",
         additional_msg=(
-            "Instead, use the method ``QuantumCircuit.find_bit`` to find all the containing "
-            "registers within a circuit and the index of the bit within the circuit."
+            "Instead, use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find "
+            "all the containing registers within a circuit and the index of the bit within the "
+            "circuit."
         ),
     )
     def register(self):
@@ -84,8 +85,9 @@ class Bit:
         is_property=True,
         since="0.17",
         additional_msg=(
-            "Instead, use the method ``QuantumCircuit.find_bit`` to find all the containing "
-            "registers within a circuit and the index of the bit within the circuit."
+            "Instead, use :meth:`~qiskit.circuit.quantumcircuit.QuantumCircuit.find_bit` to find "
+            "all the containing registers within a circuit and the index of the bit within the "
+            "circuit."
         ),
     )
     def index(self):

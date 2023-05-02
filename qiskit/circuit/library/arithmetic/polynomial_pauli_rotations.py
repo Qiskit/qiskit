@@ -217,7 +217,7 @@ class PolynomialPauliRotations(FunctionalPauliRotations):
     @deprecate_func(
         is_property=True,
         since="0.16.0",
-        additional_msg="Instead, use the property ``num_ancillas``.",
+        additional_msg="Instead, use the property :attr:`~num_ancillas`.",
     )
     def num_ancilla_qubits(self):
         """Deprecated. Use num_ancillas instead."""

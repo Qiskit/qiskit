@@ -583,14 +583,14 @@ class TestInstructions(QiskitTestCase):
         with self.subTest("classical register"):
             instruction = HGate()
             with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(circuit_cregs=registers)
+                instructions = InstructionSet(registers)
             instructions.add(instruction, [Qubit()], [])
             instructions.c_if(registers[0], 0)
             self.assertIs(instruction.condition[0], registers[0])
         with self.subTest("classical bit"):
             instruction = HGate()
             with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(circuit_cregs=registers)
+                instructions = InstructionSet(registers)
             instructions.add(instruction, [Qubit()], [])
             instructions.c_if(registers[0][1], 0)
             self.assertIs(instruction.condition[0], registers[0][1])
@@ -598,7 +598,7 @@ class TestInstructions(QiskitTestCase):
             with self.subTest("bit index", index=i):
                 instruction = HGate()
                 with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                    instructions = InstructionSet(circuit_cregs=registers)
+                    instructions = InstructionSet(registers)
                 instructions.add(instruction, [Qubit()], [])
                 instructions.c_if(i, 0)
                 self.assertIs(instruction.condition[0], bit)
@@ -606,7 +606,7 @@ class TestInstructions(QiskitTestCase):
         with self.subTest("raises on bad register"):
             instruction = HGate()
             with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(circuit_cregs=registers)
+                instructions = InstructionSet(registers)
             instructions.add(instruction, [Qubit()], [])
             with self.assertRaisesRegex(
                 CircuitError, r"Condition register .* is not one of the registers known here: .*"
@@ -615,7 +615,7 @@ class TestInstructions(QiskitTestCase):
         with self.subTest("raises on bad bit"):
             instruction = HGate()
             with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(circuit_cregs=registers)
+                instructions = InstructionSet(registers)
             instructions.add(instruction, [Qubit()], [])
             with self.assertRaisesRegex(
                 CircuitError, "Condition bit .* is not in the registers known here: .*"
@@ -624,14 +624,14 @@ class TestInstructions(QiskitTestCase):
         with self.subTest("raises on bad index"):
             instruction = HGate()
             with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(circuit_cregs=registers)
+                instructions = InstructionSet(registers)
             instructions.add(instruction, [Qubit()], [])
             with self.assertRaisesRegex(CircuitError, r"Bit index .* is out-of-range\."):
                 instructions.c_if(len(bits), 0)
         with self.subTest("raises on bad type"):
             instruction = HGate()
             with self.assertWarnsRegex(DeprecationWarning, deprecated_regex):
-                instructions = InstructionSet(circuit_cregs=registers)
+                instructions = InstructionSet(registers)
             instructions.add(instruction, [Qubit()], [])
             with self.assertRaisesRegex(CircuitError, r"Invalid classical condition\. .*"):
                 instructions.c_if([0], 0)

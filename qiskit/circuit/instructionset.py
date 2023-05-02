@@ -100,9 +100,9 @@ class InstructionSet:
         since="0.19.0",
         additional_msg=(
             "Instead, pass a complete resource requester with the 'resource_requester' argument. "
-            "(The classical registers are insufficient to access all classical resources in a "
+            "The classical registers are insufficient to access all classical resources in a "
             "circuit, as there may be loose classical bits as well. It can also cause integer "
-            "indices to be resolved incorrectly if any registers overlap.)"
+            "indices to be resolved incorrectly if any registers overlap."
         ),
     )
     def __init__(  # pylint: disable=bad-docstring-quotes
