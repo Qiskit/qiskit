@@ -295,7 +295,10 @@ future be removed.
 
         @deprecate_arg("my_kwarg", since="9.99")
         def my_func2(my_kwarg: int | None = None, **kwargs) -> None:
-            c = 0
+            # We assign an arbitrary variable `c` because it will be included in
+            # `my_func.__code__.co_varnames` and we want to make sure that does not break the
+            # implementation.
+            c = 0  # pylint: disable=unused-variable
             del kwargs
             del my_kwarg
 
