@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Equivalences between the controlled Pauli rotations and translations to two-Pauli rotations
     are now available in the equivalence library for Qiskit standard gates. This allows,

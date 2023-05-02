@@ -1,7 +1,9 @@
 ---
-features:
+features_quantum_info:
   - |
-    Add utility functions :func:`~qiskit.quantum_info.commutator`,
+    Added new utility functions: :func:`~qiskit.quantum_info.commutator`,
     :func:`~qiskit.quantum_info.anti_commutator`, and
-    :func:`~qiskit.quantum_info.double_commutator` to compute commutators
-    for any objects implementing a :class:`.LinearOp`.
+    :func:`~qiskit.quantum_info.double_commutator` which are used to compute
+    commutators for any object implementing the ``LinearOp`` abstract base
+    class such as :class:`~.QuantumChannel`, :class:`~.SparsePauliOp`,  or
+    :class:`~.ScalarOp`.

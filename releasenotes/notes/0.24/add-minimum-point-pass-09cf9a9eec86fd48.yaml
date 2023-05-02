@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new transpiler pass, :class:`~.MinimumPoint` which is used primarily as
     a pass to check a loop condition in a :class:`~.PassManager`. This pass will

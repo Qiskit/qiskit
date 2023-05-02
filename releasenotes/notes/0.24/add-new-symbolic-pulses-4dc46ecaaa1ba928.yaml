@@ -1,13 +1,15 @@
 ---
-features:
+features_pulse:
   - |
-    The ``SymbolicPulse`` library was extended. The new pulses in the library are:
+    Added new :class:`~.SymbolicPulse` classes to the pulse library (:mod:`qiskit.pulse.library`)
+    The new pulses in the library are:
 
-      * :class:``~qiskit.pulse.library.Sin``
-      * :class:``~qiskit.pulse.library.Cos``
-      * :class:``~qiskit.pulse.library.Sawtooth``
-      * :class:``~qiskit.pulse.library.Triangle``
+      * :class:`~qiskit.pulse.library.Sin`
+      * :class:`~qiskit.pulse.library.Cos`
+      * :class:`~qiskit.pulse.library.Sawtooth`
+      * :class:`~qiskit.pulse.library.Triangle`
 
-    The new functions return a ``ScalableSymbolicPulse``. With the exception of the ``Sawtooth`` phase,
-    behaviour is identical to that of the corresponding waveform generators (:class:``~qiskit.pulse.library.sin`` etc).
-    The ``Sawtooth`` phase is defined such that a phase of :math:``2\\pi`` shifts by a full cycle.
+    These new classes are instances of :class:`~.ScalableSymbolicPulse`. With the exception of
+    the :class:`~.Sawtooth` phase, behavior is identical to that of the corresponding waveform generator
+    function(e.g. :func:`~qiskit.pulse.library.sin`). The phase for the :class:`~.Sawtooth` class
+    is defined such that a phase of :math:`2\pi` shifts by a full cycle.

@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The :class:`~.SabreLayout` pass now supports running against a target
     with a disjoint :class:`~.CouplingMap`. When targeting a disjoint coupling

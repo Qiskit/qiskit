@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     Added a new attribute, :attr:`~.QuantumCircuit.layout`, to the
     :class:`~.QuantumCircuit` class. This attribute is typically populated

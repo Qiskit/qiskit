@@ -1,9 +1,11 @@
 ---
-features:
+features_pulse:
   - |
-    QPY supports pulse :class:`~.ScheduleBlock` with unassigned reference,
-    and preserves the data structure for the reference to subroutines.
-    This feature allows to save a template pulse program for tasks such as pulse calibration.
+    Added support to QPY (:mod:`qiskit.qpy) for working with pulse
+    :class:`~.ScheduleBlock` instances with unassigned references,
+    and preserving the data structure for the reference to subroutines.
+    This feature allows users to serialize and deserialize a template pulse
+    program for tasks such as pulse calibration. For example:
 
     .. code-block:: python
 

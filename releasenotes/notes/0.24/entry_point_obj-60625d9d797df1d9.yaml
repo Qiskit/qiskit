@@ -1,13 +1,15 @@
 ---
 features:
   - |
-    The function ``passmanager_stage_plugins`` in the module
-    ``qiskit.transpiler.preset_passmanagers.plugin`` was added to obtain a map between
-    plugin names and their  class type.
-    This allows to identify and query passmanager plugin documentation. For example::
+    Added a new function :func:`passmanager_stage_plugins` to the
+    :mod:`qiskit.transpiler.preset_passmanagers.plugin` module. This function
+    is used to obtain a mapping from plugin names to their their class type.
+    This enables identifying and querying any defined passmanager stage plugin's
+    documentation. For example::
 
         >>> from qiskit.transpiler.preset_passmanagers.plugin import passmanager_stage_plugins
         >>> passmanager_stage_plugins('routing')['lookahead'].__class__
+
         qiskit.transpiler.preset_passmanagers.builtin_plugins.LookaheadSwapPassManager
 
         >>> help(passmanager_stage_plugins('routing')['lookahead'])

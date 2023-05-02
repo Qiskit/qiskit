@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Add a new synthesis algorithm :class:`.synth_cz_depth_line_mr` of a CZ circuit
     for linear nearest neighbor (LNN) connectivity in 2-qubit depth of 2n+2

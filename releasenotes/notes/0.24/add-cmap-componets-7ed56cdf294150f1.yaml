@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added support to the :class:`~.CouplingMap` object to have a disjoint
     connectivity. Previously, a :class:`~.CouplingMap` could only be

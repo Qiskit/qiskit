@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     When running the :func:`~.transpile` function with a :class:`~.BackendV1`
     based backend or a :class:`~.BackendProperties` via the ``backend_properties``

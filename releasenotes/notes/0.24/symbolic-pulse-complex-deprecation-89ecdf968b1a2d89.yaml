@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_pulse:
   - |
     Assignment of complex values to ``ParameterExpression`` in any Qiskit Pulse object
     now raises a ``PendingDeprecationWarning``. This will align the Pulse module with

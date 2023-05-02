@@ -1,0 +1,15 @@
+---
+prelude: |
+  This release
+
+  The main changes of this release are:
+
+   * QuantumInstance, OpFlow deprecation
+
+   * QASM2 improvements
+
+   * Transpiler support for devices with disjoint connectivity
+
+  This release is also the final release with support for running Qiskit
+  with Python 3.7. Starting in the next minor version release Python >=3.8 will
+  be required to run Qiskit.

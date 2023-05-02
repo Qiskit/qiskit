@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added an alternative way to specify in :class:`~.HLSConfig` the list of
     synthesis methods used for a given high-level-object.
