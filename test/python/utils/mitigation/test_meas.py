@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2021.
+# (C) Copyright IBM 2021, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -46,9 +46,9 @@ from qiskit.utils import optionals
 
 if optionals.HAS_AER:
     # pylint: disable=no-name-in-module
-    from qiskit.providers.aer import Aer
-    from qiskit.providers.aer.noise import NoiseModel
-    from qiskit.providers.aer.noise.errors.standard_errors import pauli_error
+    from qiskit_aer import AerSimulator
+    from qiskit_aer.noise import NoiseModel
+    from qiskit_aer.noise.errors.standard_errors import pauli_error
 
 # fixed seed for tests - for both simulator and transpiler
 SEED = 42
@@ -156,7 +156,7 @@ def meas_calibration_circ_execution(shots: int, seed: int):
     noise_model.add_all_qubit_quantum_error(error_meas, "measure")
 
     # run the circuits multiple times
-    backend = qiskit.Aer.get_backend("qasm_simulator")
+    backend = AerSimulator()
     cal_results = qiskit.execute(
         meas_calibs, backend=backend, shots=shots, noise_model=noise_model, seed_simulator=seed
     ).result()
@@ -193,7 +193,7 @@ def tensored_calib_circ_execution(shots: int, seed: int):
     noise_model.add_all_qubit_quantum_error(error_meas, "measure")
 
     # run the circuits multiple times
-    backend = qiskit.Aer.get_backend("qasm_simulator")
+    backend = AerSimulator()
     cal_results = qiskit.execute(
         meas_calibs, backend=backend, shots=shots, noise_model=noise_model, seed_simulator=seed
     ).result()
@@ -278,16 +278,20 @@ class TestMeasCal(QiskitTestCase):
                 # Generate the quantum register according to the pattern
                 qubits, weight = self.choose_calibration(nq, pattern_type)
 
-                # Generate the calibration circuits
-                meas_calibs, state_labels = complete_meas_cal(qubit_list=qubits, circlabel="test")
+                with self.assertWarns(DeprecationWarning):
+                    # Generate the calibration circuits
+                    meas_calibs, state_labels = complete_meas_cal(
+                        qubit_list=qubits, circlabel="test"
+                    )
 
                 # Perform an ideal execution on the generated circuits
-                backend = Aer.get_backend("qasm_simulator")
+                backend = AerSimulator()
                 job = qiskit.execute(meas_calibs, backend=backend, shots=self.shots)
                 cal_results = job.result()
 
-                # Make a calibration matrix
-                meas_cal = CompleteMeasFitter(cal_results, state_labels, circlabel="test")
+                with self.assertWarns(DeprecationWarning):
+                    # Make a calibration matrix
+                    meas_cal = CompleteMeasFitter(cal_results, state_labels, circlabel="test")
 
                 # Assert that the calibration matrix is equal to identity
                 IdentityMatrix = np.identity(2**weight)
@@ -307,8 +311,9 @@ class TestMeasCal(QiskitTestCase):
                 # Generate ideal (equally distributed) results
                 results_dict, results_list = self.generate_ideal_results(state_labels, weight)
 
-                # Output the filter
-                meas_filter = meas_cal.filter
+                with self.assertWarns(DeprecationWarning):
+                    # Output the filter
+                    meas_filter = meas_cal.filter
 
                 # Apply the calibration matrix to results
                 # in list and dict forms using different methods
@@ -329,10 +334,11 @@ class TestMeasCal(QiskitTestCase):
     def test_meas_cal_on_circuit(self):
         """Test an execution on a circuit."""
         # Generate the calibration circuits
-        meas_calibs, state_labels, ghz = meas_calib_circ_creation()
+        with self.assertWarns(DeprecationWarning):
+            meas_calibs, state_labels, ghz = meas_calib_circ_creation()
 
         # Run the calibration circuits
-        backend = Aer.get_backend("qasm_simulator")
+        backend = AerSimulator()
         job = qiskit.execute(
             meas_calibs,
             backend=backend,
@@ -342,8 +348,9 @@ class TestMeasCal(QiskitTestCase):
         )
         cal_results = job.result()
 
-        # Make a calibration matrix
-        meas_cal = CompleteMeasFitter(cal_results, state_labels)
+        with self.assertWarns(DeprecationWarning):
+            # Make a calibration matrix
+            meas_cal = CompleteMeasFitter(cal_results, state_labels)
         # Calculate the fidelity
         fidelity = meas_cal.readout_fidelity()
 
@@ -355,7 +362,8 @@ class TestMeasCal(QiskitTestCase):
         # Predicted equally distributed results
         predicted_results = {"000": 0.5, "111": 0.5}
 
-        meas_filter = meas_cal.filter
+        with self.assertWarns(DeprecationWarning):
+            meas_filter = meas_cal.filter
 
         # Calculate the results after mitigation
         output_results_pseudo_inverse = meas_filter.apply(
@@ -390,14 +398,16 @@ class TestMeasCal(QiskitTestCase):
         meas_layout = [1, 2, 3, 4, 5, 6]
 
         # Generate the calibration circuits
-        meas_calibs, _ = tensored_meas_cal(mit_pattern=mit_pattern)
+        with self.assertWarns(DeprecationWarning):
+            meas_calibs, _ = tensored_meas_cal(mit_pattern=mit_pattern)
 
         # Perform an ideal execution on the generated circuits
-        backend = Aer.get_backend("qasm_simulator")
+        backend = AerSimulator()
         cal_results = qiskit.execute(meas_calibs, backend=backend, shots=self.shots).result()
 
-        # Make calibration matrices
-        meas_cal = TensoredMeasFitter(cal_results, mit_pattern=mit_pattern)
+        with self.assertWarns(DeprecationWarning):
+            # Make calibration matrices
+            meas_cal = TensoredMeasFitter(cal_results, mit_pattern=mit_pattern)
 
         # Assert that the calibration matrices are equal to identity
         cal_matrices = meas_cal.cal_matrices
@@ -419,20 +429,19 @@ class TestMeasCal(QiskitTestCase):
             "Error: the average fidelity is not equal to 1",
         )
 
-        # Generate ideal (equally distributed) results
-        results_dict, _ = self.generate_ideal_results(count_keys(6), 6)
-
-        # Output the filter
-        meas_filter = meas_cal.filter
-
-        # Apply the calibration matrix to results
-        # in list and dict forms using different methods
-        results_dict_1 = meas_filter.apply(
-            results_dict, method="least_squares", meas_layout=meas_layout
-        )
-        results_dict_0 = meas_filter.apply(
-            results_dict, method="pseudo_inverse", meas_layout=meas_layout
-        )
+        with self.assertWarns(DeprecationWarning):
+            # Generate ideal (equally distributed) results
+            results_dict, _ = self.generate_ideal_results(count_keys(6), 6)
+            # Output the filter
+            meas_filter = meas_cal.filter
+            # Apply the calibration matrix to results
+            # in list and dict forms using different methods
+            results_dict_1 = meas_filter.apply(
+                results_dict, method="least_squares", meas_layout=meas_layout
+            )
+            results_dict_0 = meas_filter.apply(
+                results_dict, method="pseudo_inverse", meas_layout=meas_layout
+            )
 
         # Assert that the results are equally distributed
         self.assertDictEqual(results_dict, results_dict_0)
@@ -444,11 +453,12 @@ class TestMeasCal(QiskitTestCase):
     def test_tensored_meas_cal_on_circuit(self):
         """Test an execution on a circuit."""
 
-        # Generate the calibration circuits
-        meas_calibs, mit_pattern, ghz, meas_layout = tensored_calib_circ_creation()
+        with self.assertWarns(DeprecationWarning):
+            # Generate the calibration circuits
+            meas_calibs, mit_pattern, ghz, meas_layout = tensored_calib_circ_creation()
 
         # Run the calibration circuits
-        backend = Aer.get_backend("qasm_simulator")
+        backend = AerSimulator()
         cal_results = qiskit.execute(
             meas_calibs,
             backend=backend,
@@ -457,8 +467,9 @@ class TestMeasCal(QiskitTestCase):
             seed_transpiler=SEED,
         ).result()
 
-        # Make a calibration matrix
-        meas_cal = TensoredMeasFitter(cal_results, mit_pattern=mit_pattern)
+        with self.assertWarns(DeprecationWarning):
+            # Make a calibration matrix
+            meas_cal = TensoredMeasFitter(cal_results, mit_pattern=mit_pattern)
         # Calculate the fidelity
         fidelity = meas_cal.readout_fidelity(0) * meas_cal.readout_fidelity(1)
 
@@ -469,15 +480,15 @@ class TestMeasCal(QiskitTestCase):
         # Predicted equally distributed results
         predicted_results = {"000": 0.5, "111": 0.5}
 
-        meas_filter = meas_cal.filter
-
-        # Calculate the results after mitigation
-        output_results_pseudo_inverse = meas_filter.apply(
-            results, method="pseudo_inverse", meas_layout=meas_layout
-        ).get_counts(0)
-        output_results_least_square = meas_filter.apply(
-            results, method="least_squares", meas_layout=meas_layout
-        ).get_counts(0)
+        with self.assertWarns(DeprecationWarning):
+            meas_filter = meas_cal.filter
+            # Calculate the results after mitigation
+            output_results_pseudo_inverse = meas_filter.apply(
+                results, method="pseudo_inverse", meas_layout=meas_layout
+            ).get_counts(0)
+            output_results_least_square = meas_filter.apply(
+                results, method="least_squares", meas_layout=meas_layout
+            ).get_counts(0)
 
         # Compare with expected fidelity and expected results
         self.assertAlmostEqual(fidelity, 1.0)
@@ -501,89 +512,89 @@ class TestMeasCal(QiskitTestCase):
         """Test the MeasurementFitter with noise."""
         tests = []
         runs = 3
-        for run in range(runs):
-            cal_results, state_labels, circuit_results = meas_calibration_circ_execution(
-                1000, SEED + run
-            )
+        with self.assertWarns(DeprecationWarning):
+            for run in range(runs):
+                cal_results, state_labels, circuit_results = meas_calibration_circ_execution(
+                    1000, SEED + run
+                )
 
-            meas_cal = CompleteMeasFitter(cal_results, state_labels)
-            meas_filter = MeasurementFilter(meas_cal.cal_matrix, state_labels)
+                meas_cal = CompleteMeasFitter(cal_results, state_labels)
+                meas_filter = MeasurementFilter(meas_cal.cal_matrix, state_labels)
 
-            # Calculate the results after mitigation
-            results_pseudo_inverse = meas_filter.apply(circuit_results, method="pseudo_inverse")
-            results_least_square = meas_filter.apply(circuit_results, method="least_squares")
-            tests.append(
-                {
-                    "cal_matrix": convert_ndarray_to_list_in_data(meas_cal.cal_matrix),
-                    "fidelity": meas_cal.readout_fidelity(),
-                    "results": circuit_results,
-                    "results_pseudo_inverse": results_pseudo_inverse,
-                    "results_least_square": results_least_square,
-                }
-            )
+                # Calculate the results after mitigation
+                results_pseudo_inverse = meas_filter.apply(circuit_results, method="pseudo_inverse")
+                results_least_square = meas_filter.apply(circuit_results, method="least_squares")
+                tests.append(
+                    {
+                        "cal_matrix": convert_ndarray_to_list_in_data(meas_cal.cal_matrix),
+                        "fidelity": meas_cal.readout_fidelity(),
+                        "results": circuit_results,
+                        "results_pseudo_inverse": results_pseudo_inverse,
+                        "results_least_square": results_least_square,
+                    }
+                )
+            # Set the state labels
+            state_labels = ["000", "001", "010", "011", "100", "101", "110", "111"]
+            meas_cal = CompleteMeasFitter(None, state_labels, circlabel="test")
 
-        # Set the state labels
-        state_labels = ["000", "001", "010", "011", "100", "101", "110", "111"]
-        meas_cal = CompleteMeasFitter(None, state_labels, circlabel="test")
+            for tst_index, _ in enumerate(tests):
+                # Set the calibration matrix
+                meas_cal.cal_matrix = tests[tst_index]["cal_matrix"]
+                # Calculate the fidelity
+                fidelity = meas_cal.readout_fidelity()
 
-        for tst_index, _ in enumerate(tests):
-            # Set the calibration matrix
-            meas_cal.cal_matrix = tests[tst_index]["cal_matrix"]
-            # Calculate the fidelity
-            fidelity = meas_cal.readout_fidelity()
+                meas_filter = MeasurementFilter(tests[tst_index]["cal_matrix"], state_labels)
 
-            meas_filter = MeasurementFilter(tests[tst_index]["cal_matrix"], state_labels)
+                # Calculate the results after mitigation
+                output_results_pseudo_inverse = meas_filter.apply(
+                    tests[tst_index]["results"], method="pseudo_inverse"
+                )
+                output_results_least_square = meas_filter.apply(
+                    tests[tst_index]["results"], method="least_squares"
+                )
 
-            # Calculate the results after mitigation
-            output_results_pseudo_inverse = meas_filter.apply(
-                tests[tst_index]["results"], method="pseudo_inverse"
-            )
-            output_results_least_square = meas_filter.apply(
-                tests[tst_index]["results"], method="least_squares"
-            )
+                # Compare with expected fidelity and expected results
+                self.assertAlmostEqual(fidelity, tests[tst_index]["fidelity"], places=0)
+                self.assertAlmostEqual(
+                    output_results_pseudo_inverse["000"],
+                    tests[tst_index]["results_pseudo_inverse"]["000"],
+                    places=0,
+                )
 
-            # Compare with expected fidelity and expected results
-            self.assertAlmostEqual(fidelity, tests[tst_index]["fidelity"], places=0)
-            self.assertAlmostEqual(
-                output_results_pseudo_inverse["000"],
-                tests[tst_index]["results_pseudo_inverse"]["000"],
-                places=0,
-            )
+                self.assertAlmostEqual(
+                    output_results_least_square["000"],
+                    tests[tst_index]["results_least_square"]["000"],
+                    places=0,
+                )
 
-            self.assertAlmostEqual(
-                output_results_least_square["000"],
-                tests[tst_index]["results_least_square"]["000"],
-                places=0,
-            )
+                self.assertAlmostEqual(
+                    output_results_pseudo_inverse["111"],
+                    tests[tst_index]["results_pseudo_inverse"]["111"],
+                    places=0,
+                )
 
-            self.assertAlmostEqual(
-                output_results_pseudo_inverse["111"],
-                tests[tst_index]["results_pseudo_inverse"]["111"],
-                places=0,
-            )
-
-            self.assertAlmostEqual(
-                output_results_least_square["111"],
-                tests[tst_index]["results_least_square"]["111"],
-                places=0,
-            )
+                self.assertAlmostEqual(
+                    output_results_least_square["111"],
+                    tests[tst_index]["results_least_square"]["111"],
+                    places=0,
+                )
 
     def test_tensored_meas_fitter_with_noise(self):
         """Test the TensoredFitter with noise."""
-        cal_results, mit_pattern, circuit_results, meas_layout = tensored_calib_circ_execution(
-            1000, SEED
-        )
+        with self.assertWarns(DeprecationWarning):
+            cal_results, mit_pattern, circuit_results, meas_layout = tensored_calib_circ_execution(
+                1000, SEED
+            )
+            meas_cal = TensoredMeasFitter(cal_results, mit_pattern=mit_pattern)
+            meas_filter = meas_cal.filter
+            # Calculate the results after mitigation
+            results_pseudo_inverse = meas_filter.apply(
+                circuit_results.get_counts(), method="pseudo_inverse", meas_layout=meas_layout
+            )
+            results_least_square = meas_filter.apply(
+                circuit_results.get_counts(), method="least_squares", meas_layout=meas_layout
+            )
 
-        meas_cal = TensoredMeasFitter(cal_results, mit_pattern=mit_pattern)
-        meas_filter = meas_cal.filter
-
-        # Calculate the results after mitigation
-        results_pseudo_inverse = meas_filter.apply(
-            circuit_results.get_counts(), method="pseudo_inverse", meas_layout=meas_layout
-        )
-        results_least_square = meas_filter.apply(
-            circuit_results.get_counts(), method="least_squares", meas_layout=meas_layout
-        )
         saved_info = {
             "cal_results": cal_results.to_dict(),
             "results": circuit_results.to_dict(),
@@ -597,26 +608,27 @@ class TestMeasCal(QiskitTestCase):
         saved_info["cal_results"] = Result.from_dict(saved_info["cal_results"])
         saved_info["results"] = Result.from_dict(saved_info["results"])
 
-        meas_cal = TensoredMeasFitter(
-            saved_info["cal_results"], mit_pattern=saved_info["mit_pattern"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            meas_cal = TensoredMeasFitter(
+                saved_info["cal_results"], mit_pattern=saved_info["mit_pattern"]
+            )
+            # Calculate the fidelity
+            fidelity = meas_cal.readout_fidelity(0) * meas_cal.readout_fidelity(1)
+            # Compare with expected fidelity and expected results
 
-        # Calculate the fidelity
-        fidelity = meas_cal.readout_fidelity(0) * meas_cal.readout_fidelity(1)
-        # Compare with expected fidelity and expected results
         self.assertAlmostEqual(fidelity, saved_info["fidelity"], places=0)
 
-        meas_filter = meas_cal.filter
-
-        # Calculate the results after mitigation
-        output_results_pseudo_inverse = meas_filter.apply(
-            saved_info["results"].get_counts(0),
-            method="pseudo_inverse",
-            meas_layout=saved_info["meas_layout"],
-        )
-        output_results_least_square = meas_filter.apply(
-            saved_info["results"], method="least_squares", meas_layout=saved_info["meas_layout"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            meas_filter = meas_cal.filter
+            # Calculate the results after mitigation
+            output_results_pseudo_inverse = meas_filter.apply(
+                saved_info["results"].get_counts(0),
+                method="pseudo_inverse",
+                meas_layout=saved_info["meas_layout"],
+            )
+            output_results_least_square = meas_filter.apply(
+                saved_info["results"], method="least_squares", meas_layout=saved_info["meas_layout"]
+            )
 
         self.assertAlmostEqual(
             output_results_pseudo_inverse["000"],
@@ -643,30 +655,30 @@ class TestMeasCal(QiskitTestCase):
         )
 
         substates_list = []
-        for qubit_list in saved_info["mit_pattern"]:
-            substates_list.append(count_keys(len(qubit_list))[::-1])
-
-        fitter_other_order = TensoredMeasFitter(
-            saved_info["cal_results"],
-            substate_labels_list=substates_list,
-            mit_pattern=saved_info["mit_pattern"],
-        )
+        with self.assertWarns(DeprecationWarning):
+            for qubit_list in saved_info["mit_pattern"]:
+                substates_list.append(count_keys(len(qubit_list))[::-1])
+            fitter_other_order = TensoredMeasFitter(
+                saved_info["cal_results"],
+                substate_labels_list=substates_list,
+                mit_pattern=saved_info["mit_pattern"],
+            )
 
         fidelity = fitter_other_order.readout_fidelity(0) * meas_cal.readout_fidelity(1)
 
         self.assertAlmostEqual(fidelity, saved_info["fidelity"], places=0)
 
-        meas_filter = fitter_other_order.filter
-
-        # Calculate the results after mitigation
-        output_results_pseudo_inverse = meas_filter.apply(
-            saved_info["results"].get_counts(0),
-            method="pseudo_inverse",
-            meas_layout=saved_info["meas_layout"],
-        )
-        output_results_least_square = meas_filter.apply(
-            saved_info["results"], method="least_squares", meas_layout=saved_info["meas_layout"]
-        )
+        with self.assertWarns(DeprecationWarning):
+            meas_filter = fitter_other_order.filter
+            # Calculate the results after mitigation
+            output_results_pseudo_inverse = meas_filter.apply(
+                saved_info["results"].get_counts(0),
+                method="pseudo_inverse",
+                meas_layout=saved_info["meas_layout"],
+            )
+            output_results_least_square = meas_filter.apply(
+                saved_info["results"], method="least_squares", meas_layout=saved_info["meas_layout"]
+            )
 
         self.assertAlmostEqual(
             output_results_pseudo_inverse["000"],

@@ -15,11 +15,16 @@
 import unittest
 
 from ddt import ddt, data, unpack
+
 from qiskit import QuantumCircuit
+from qiskit.circuit import Delay, Parameter
+from qiskit.circuit.library.standard_gates import XGate, YGate, CXGate
 from qiskit.test import QiskitTestCase
+from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule
+from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, DynamicalDecoupling
 from qiskit.transpiler.passmanager import PassManager
+from qiskit.transpiler.target import Target, InstructionProperties
 
 
 @ddt
@@ -716,6 +721,89 @@ class TestSchedulingPass(QiskitTestCase):
         expected.x(0).c_if(0, True)
         expected.x(1).c_if(0, True)
 
+        self.assertEqual(expected, scheduled)
+
+    @data(ALAPSchedule, ASAPSchedule)
+    def test_respect_target_instruction_constraints(self, schedule_pass):
+        """Test if ALAP/ASAP does not pad delays for qubits that do not support delay instructions.
+        See: https://github.com/Qiskit/qiskit-terra/issues/9993
+        """
+        target = Target(dt=1)
+        target.add_instruction(XGate(), {(1,): InstructionProperties(duration=200)})
+        # delays are not supported
+
+        qc = QuantumCircuit(2)
+        qc.x(1)
+
+        pm = PassManager(schedule_pass(target=target))
+        scheduled = pm.run(qc)
+
+        expected = QuantumCircuit(2)
+        expected.x(1)
+        # no delay on qubit 0
+
+        self.assertEqual(expected, scheduled)
+
+    def test_dd_respect_target_instruction_constraints(self):
+        """Test if DD pass does not pad delays for qubits that do not support delay instructions
+        and does not insert DD gates for qubits that do not support necessary gates.
+        See: https://github.com/Qiskit/qiskit-terra/issues/9993
+        """
+        qc = QuantumCircuit(3)
+        qc.cx(0, 1)
+        qc.cx(1, 2)
+
+        target = Target(dt=1)
+        # Y is partially supported (not supported on qubit 2)
+        target.add_instruction(
+            XGate(), {(q,): InstructionProperties(duration=100) for q in range(2)}
+        )
+        target.add_instruction(
+            CXGate(),
+            {
+                (0, 1): InstructionProperties(duration=1000),
+                (1, 2): InstructionProperties(duration=1000),
+            },
+        )
+        # delays are not supported
+
+        # No DD instructions nor delays are padded due to no delay support in the target
+        pm_xx = PassManager(
+            [
+                ALAPSchedule(target=target),
+                DynamicalDecoupling(durations=None, dd_sequence=[XGate(), XGate()], target=target),
+            ]
+        )
+        scheduled = pm_xx.run(qc)
+        self.assertEqual(qc, scheduled)
+
+        # Fails since Y is not supported in the target
+        with self.assertRaises(TranspilerError):
+            PassManager(
+                [
+                    ALAPSchedule(target=target),
+                    DynamicalDecoupling(
+                        durations=None,
+                        dd_sequence=[XGate(), YGate(), XGate(), YGate()],
+                        target=target,
+                    ),
+                ]
+            )
+
+        # Add delay support to the target
+        target.add_instruction(Delay(Parameter("t")), {(q,): None for q in range(3)})
+        # No error but no DD on qubit 2 (just delay is padded) since X is not supported on it
+        scheduled = pm_xx.run(qc)
+
+        expected = QuantumCircuit(3)
+        expected.delay(1000, [2])
+        expected.cx(0, 1)
+        expected.cx(1, 2)
+        expected.delay(200, [0])
+        expected.x([0])
+        expected.delay(400, [0])
+        expected.x([0])
+        expected.delay(200, [0])
         self.assertEqual(expected, scheduled)
 
 

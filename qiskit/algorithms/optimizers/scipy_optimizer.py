@@ -11,8 +11,10 @@
 # that they have been altered from the originals.
 
 """Wrapper class of scipy.optimize.minimize."""
+from __future__ import annotations
 
-from typing import Any, Callable, Dict, Union, List, Optional, Tuple
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 from scipy.optimize import minimize
@@ -46,8 +48,8 @@ class SciPyOptimizer(Optimizer):
 
     def __init__(
         self,
-        method: Union[str, Callable],
-        options: Optional[Dict[str, Any]] = None,
+        method: str | Callable,
+        options: dict[str, Any] | None = None,
         max_evals_grouped: int = 1,
         **kwargs,
     ):
@@ -84,7 +86,7 @@ class SciPyOptimizer(Optimizer):
         }
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         options = self._options.copy()
         if hasattr(self, "_OPTIONS"):
             # all _OPTIONS should be keys in self._options, but add a failsafe here
@@ -112,8 +114,8 @@ class SciPyOptimizer(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         # Remove ignored parameters to supress the warning of scipy.optimize.minimize
         if self.is_bounds_ignored:

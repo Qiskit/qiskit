@@ -14,35 +14,21 @@
 
 from types import SimpleNamespace
 
-from qiskit.utils.deprecation import deprecate_arg
-
 
 class RunConfig(SimpleNamespace):
     """Class for Run Configuration.
 
     Attributes:
         shots (int): the number of shots
-        max_credits (int): DEPRECATED This parameter is deprecated as of
-            Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
-            no effect on modern IBM Quantum systems, and no alternative is necessary.
         seed_simulator (int): the seed to use in the simulator
         memory (bool): whether to request memory from backend (per-shot
             readouts)
         parameter_binds (list[dict]): List of parameter bindings
     """
 
-    @deprecate_arg(
-        "max_credits",
-        since="0.20.0",
-        additional_msg=(
-            "This argument has no effect on modern IBM Quantum systems, and no alternative is"
-            "necessary."
-        ),
-    )
     def __init__(
         self,
         shots=None,
-        max_credits=None,
         seed_simulator=None,
         memory=None,
         parameter_binds=None,
@@ -52,8 +38,6 @@ class RunConfig(SimpleNamespace):
 
         Args:
             shots (int): the number of shots
-            max_credits (int): DEPRECATED the max_credits to use on the IBM Q public
-                devices
             seed_simulator (int): the seed to use in the simulator
             memory (bool): whether to request memory from backend
                 (per-shot readouts)
@@ -62,8 +46,6 @@ class RunConfig(SimpleNamespace):
         """
         if shots is not None:
             self.shots = shots
-        if max_credits is not None:
-            self.max_credits = max_credits
         if seed_simulator is not None:
             self.seed_simulator = seed_simulator
         if memory is not None:

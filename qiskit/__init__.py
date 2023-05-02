@@ -30,10 +30,10 @@ if sys.version_info < (3, 8):
     )
 
 
-# Globally define compiled modules. The normal import mechanism will not
-# find compiled submodules in _accelerate because it relies on file paths
-# manually define them on import so people can directly import
-# qiskit._accelerate.* submodules and not have to rely on attribute access
+# Globally define compiled submodules. The normal import mechanism will not find compiled submodules
+# in _accelerate because it relies on file paths, but PyO3 generates only one shared library file.
+# We manually define them on import so people can directly import qiskit._accelerate.* submodules
+# and not have to rely on attribute access.  No action needed for top-level extension packages.
 sys.modules["qiskit._accelerate.nlayout"] = qiskit._accelerate.nlayout
 sys.modules["qiskit._accelerate.stochastic_swap"] = qiskit._accelerate.stochastic_swap
 sys.modules["qiskit._accelerate.sabre_swap"] = qiskit._accelerate.sabre_swap

@@ -29,7 +29,6 @@ from qiskit.pulse import Instruction, LoConfig, Schedule, ScheduleBlock
 from qiskit.pulse.channels import PulseChannel
 from qiskit.qobj import Qobj, QobjHeader
 from qiskit.qobj.utils import MeasLevel, MeasReturnType
-from qiskit.utils.deprecation import deprecate_arg
 
 logger = logging.getLogger(__name__)
 
@@ -40,14 +39,6 @@ def _log_assembly_time(start_time, end_time):
 
 
 # TODO: parallelize over the experiments (serialize each separately, then add global header/config)
-@deprecate_arg(
-    "max_credits",
-    since="0.20.0",
-    additional_msg=(
-        "This argument has no effect on modern IBM Quantum systems, and no alternative is"
-        "necessary."
-    ),
-)
 def assemble(
     experiments: Union[
         QuantumCircuit,
@@ -62,7 +53,6 @@ def assemble(
     qobj_header: Optional[Union[QobjHeader, Dict]] = None,
     shots: Optional[int] = None,
     memory: Optional[bool] = False,
-    max_credits: Optional[int] = None,
     seed_simulator: Optional[int] = None,
     qubit_lo_freq: Optional[List[float]] = None,
     meas_lo_freq: Optional[List[float]] = None,
@@ -111,9 +101,6 @@ def assemble(
         memory: If ``True``, per-shot measurement bitstrings are returned as well
             (provided the backend supports it). For OpenPulse jobs, only
             measurement level 2 supports this option.
-        max_credits: DEPRECATED This parameter is deprecated as of
-            Qiskit Terra 0.20.0, and will be removed in a future release. This parameter has
-            no effect on modern IBM Quantum systems, and no alternative is necessary.
         seed_simulator: Random seed to control sampling, for when backend is a simulator
         qubit_lo_freq: List of job level qubit drive LO frequencies in Hz. Overridden by
             ``schedule_los`` if specified. Must have length ``n_qubits.``
@@ -166,8 +153,6 @@ def assemble(
     Raises:
         QiskitError: if the input cannot be interpreted as either circuits or schedules
     """
-    if max_credits is not None:
-        max_credits = None
     start_time = time()
     experiments = experiments if isinstance(experiments, list) else [experiments]
     pulse_qobj = any(isinstance(exp, (ScheduleBlock, Schedule, Instruction)) for exp in experiments)
@@ -177,7 +162,6 @@ def assemble(
         qobj_header,
         shots,
         memory,
-        max_credits,
         seed_simulator,
         init_qubits,
         rep_delay,
@@ -243,7 +227,6 @@ def _parse_common_args(
     qobj_header,
     shots,
     memory,
-    max_credits,
     seed_simulator,
     init_qubits,
     rep_delay,
@@ -370,7 +353,6 @@ def _parse_common_args(
     run_config_dict = dict(
         shots=shots,
         memory=memory,
-        max_credits=max_credits,
         seed_simulator=seed_simulator,
         init_qubits=init_qubits,
         rep_delay=rep_delay,

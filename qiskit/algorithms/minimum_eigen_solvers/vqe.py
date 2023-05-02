@@ -19,8 +19,8 @@ from __future__ import annotations
 
 import logging
 import warnings
+from collections.abc import Callable
 from time import time
-from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -54,7 +54,7 @@ logger = logging.getLogger(__name__)
 
 
 class VQE(VariationalAlgorithm, MinimumEigensolver):
-    r"""Pending deprecation: Variational Quantum Eigensolver algorithm.
+    r"""Deprecated: Variational Quantum Eigensolver algorithm.
 
     The VQE class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.VQE` class.
@@ -128,21 +128,23 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
     """
 
     @deprecate_func(
-        additional_msg="Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.VQE``.",
-        since="0.23.0",
-        pending=True,
+        additional_msg=(
+            "Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.VQE``. "
+            "See https://qisk.it/algo_migration for a migration guide."
+        ),
+        since="0.24.0",
     )
     def __init__(
         self,
-        ansatz: Optional[QuantumCircuit] = None,
-        optimizer: Optional[Union[Optimizer, Minimizer]] = None,
-        initial_point: Optional[np.ndarray] = None,
-        gradient: Optional[Union[GradientBase, Callable]] = None,
-        expectation: Optional[ExpectationBase] = None,
+        ansatz: QuantumCircuit | None = None,
+        optimizer: Optimizer | Minimizer | None = None,
+        initial_point: np.ndarray | None = None,
+        gradient: GradientBase | Callable | None = None,
+        expectation: ExpectationBase | None = None,
         include_custom: bool = False,
         max_evals_grouped: int = 1,
-        callback: Optional[Callable[[int, np.ndarray, float, float], None]] = None,
-        quantum_instance: Optional[Union[QuantumInstance, Backend]] = None,
+        callback: Callable[[int, np.ndarray, float, float], None] | None = None,
+        quantum_instance: QuantumInstance | Backend | None = None,
     ) -> None:
         """
 
@@ -188,35 +190,35 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             super().__init__()
 
         self._max_evals_grouped = max_evals_grouped
-        self._circuit_sampler = None  # type: Optional[CircuitSampler]
+        self._circuit_sampler: CircuitSampler | None = None
         self._expectation = None
         self.expectation = expectation
         self._include_custom = include_custom
 
-        self._ansatz = None
+        self._ansatz: QuantumCircuit | None = None
         self.ansatz = ansatz
 
-        self._optimizer = None
+        self._optimizer: Optimizer | None = None
         self.optimizer = optimizer
 
-        self._initial_point = None
+        self._initial_point: np.ndarray | None = None
         self.initial_point = initial_point
-        self._gradient = None
+        self._gradient: GradientBase | Callable | None = None
         self.gradient = gradient
-        self._quantum_instance = None
+        self._quantum_instance: QuantumInstance | None = None
 
         if quantum_instance is not None:
             self.quantum_instance = quantum_instance
 
         self._eval_time = None
         self._eval_count = 0
-        self._callback = None
+        self._callback: Callable[[int, np.ndarray, float, float], None] | None = None
         self.callback = callback
 
         logger.info(self.print_settings())
 
         # TODO remove this once the stateful methods are deleted
-        self._ret = None
+        self._ret: VQEResult | None = None
 
     @property
     def ansatz(self) -> QuantumCircuit:
@@ -224,7 +226,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return self._ansatz
 
     @ansatz.setter
-    def ansatz(self, ansatz: Optional[QuantumCircuit]):
+    def ansatz(self, ansatz: QuantumCircuit | None):
         """Sets the ansatz.
 
         Args:
@@ -238,22 +240,22 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self._ansatz = ansatz
 
     @property
-    def gradient(self) -> Optional[Union[GradientBase, Callable]]:
+    def gradient(self) -> GradientBase | Callable | None:
         """Returns the gradient."""
         return self._gradient
 
     @gradient.setter
-    def gradient(self, gradient: Optional[Union[GradientBase, Callable]]):
+    def gradient(self, gradient: GradientBase | Callable | None):
         """Sets the gradient."""
         self._gradient = gradient
 
     @property
-    def quantum_instance(self) -> Optional[QuantumInstance]:
+    def quantum_instance(self) -> QuantumInstance | None:
         """Returns quantum instance."""
         return self._quantum_instance
 
     @quantum_instance.setter
-    def quantum_instance(self, quantum_instance: Union[QuantumInstance, Backend]) -> None:
+    def quantum_instance(self, quantum_instance: QuantumInstance | Backend) -> None:
         """Sets quantum_instance"""
         if not isinstance(quantum_instance, QuantumInstance):
             quantum_instance = QuantumInstance(quantum_instance)
@@ -264,7 +266,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         )
 
     @property
-    def initial_point(self) -> Optional[np.ndarray]:
+    def initial_point(self) -> np.ndarray | None:
         """Returns initial point"""
         return self._initial_point
 
@@ -299,23 +301,23 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             self.expectation = None
 
     @property
-    def callback(self) -> Optional[Callable[[int, np.ndarray, float, float], None]]:
+    def callback(self) -> Callable[[int, np.ndarray, float, float], None] | None:
         """Returns callback"""
         return self._callback
 
     @callback.setter
-    def callback(self, callback: Optional[Callable[[int, np.ndarray, float, float], None]]):
+    def callback(self, callback: Callable[[int, np.ndarray, float, float], None] | None):
         """Sets callback"""
         self._callback = callback
 
     @property
-    def expectation(self) -> Optional[ExpectationBase]:
+    def expectation(self) -> ExpectationBase | None:
         """The expectation value algorithm used to construct the expectation measurement from
         the observable."""
         return self._expectation
 
     @expectation.setter
-    def expectation(self, exp: Optional[ExpectationBase]) -> None:
+    def expectation(self, exp: ExpectationBase | None) -> None:
         self._expectation = exp
 
     def _check_operator_ansatz(self, operator: OperatorBase):
@@ -338,7 +340,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return self._optimizer
 
     @optimizer.setter
-    def optimizer(self, optimizer: Optional[Optimizer]):
+    def optimizer(self, optimizer: Optimizer | None):
         """Sets the optimizer attribute.
 
         Args:
@@ -394,10 +396,10 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     def construct_expectation(
         self,
-        parameter: Union[List[float], List[Parameter], np.ndarray],
+        parameter: list[float] | list[Parameter] | np.ndarray,
         operator: OperatorBase,
         return_expectation: bool = False,
-    ) -> Union[OperatorBase, Tuple[OperatorBase, ExpectationBase]]:
+    ) -> OperatorBase | tuple[OperatorBase, ExpectationBase]:
         r"""
         Generate the ansatz circuit and expectation value measurement, and return their
         runnable composition.
@@ -446,9 +448,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
     def construct_circuit(
         self,
-        parameter: Union[List[float], List[Parameter], np.ndarray],
+        parameter: list[float] | list[Parameter] | np.ndarray,
         operator: OperatorBase,
-    ) -> List[QuantumCircuit]:
+    ) -> list[QuantumCircuit]:
         """Return the circuits used to compute the expectation value.
 
         Args:
@@ -479,7 +481,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         return True
 
     def compute_minimum_eigenvalue(
-        self, operator: OperatorBase, aux_operators: Optional[ListOrDict[OperatorBase]] = None
+        self, operator: OperatorBase, aux_operators: ListOrDict[OperatorBase] | None = None
     ) -> MinimumEigensolverResult:
         super().compute_minimum_eigenvalue(operator, aux_operators)
 
@@ -505,7 +507,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
             # Drop None and convert zero values when aux_operators is a dict.
             if isinstance(aux_operators, list):
                 key_op_iterator = enumerate(aux_operators)
-                converted = [zero_op] * len(aux_operators)
+                converted: ListOrDict[OperatorBase] = [zero_op] * len(aux_operators)
             else:
                 key_op_iterator = aux_operators.items()
                 converted = {}
@@ -580,7 +582,9 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
         self,
         operator: OperatorBase,
         return_expectation: bool = False,
-    ) -> Callable[[np.ndarray], Union[float, List[float]]]:
+    ) -> Callable[[np.ndarray], float | list[float]] | tuple[
+        Callable[[np.ndarray], float | list[float]], ExpectationBase
+    ]:
         """Returns a function handle to evaluates the energy at given parameters for the ansatz.
 
         This is the objective function to be passed to the optimizer that is used for evaluation.
@@ -642,7 +646,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
         return energy_evaluation
 
-    def _get_eigenstate(self, optimal_parameters) -> Union[List[float], Dict[str, int]]:
+    def _get_eigenstate(self, optimal_parameters) -> list[float] | dict[str, int]:
         """Get the simulation outcome of the ansatz, provided with parameters."""
         optimal_circuit = self.ansatz.bind_parameters(optimal_parameters)
         state_fn = self._circuit_sampler.convert(StateFn(optimal_circuit)).eval()
@@ -655,7 +659,7 @@ class VQE(VariationalAlgorithm, MinimumEigensolver):
 
 
 class VQEResult(VariationalResult, MinimumEigensolverResult):
-    """Pending deprecation: VQE Result.
+    """Deprecated: VQE Result.
 
     The VQEResult class has been superseded by the
     :class:`qiskit.algorithms.minimum_eigensolvers.VQEResult` class.
@@ -666,19 +670,19 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
 
     @deprecate_func(
         additional_msg=(
-            "Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.VQEResult``."
+            "Instead, use the class ``qiskit.algorithms.minimum_eigensolvers.VQEResult``. "
+            "See https://qisk.it/algo_migration for a migration guide."
         ),
-        since="0.23.0",
-        pending=True,
+        since="0.24.0",
     )
     def __init__(self) -> None:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             super().__init__()
-        self._cost_function_evals = None
+        self._cost_function_evals: int | None = None
 
     @property
-    def cost_function_evals(self) -> Optional[int]:
+    def cost_function_evals(self) -> int | None:
         """Returns number of cost optimizer evaluations"""
         return self._cost_function_evals
 
@@ -688,7 +692,7 @@ class VQEResult(VariationalResult, MinimumEigensolverResult):
         self._cost_function_evals = value
 
     @property
-    def eigenstate(self) -> Optional[np.ndarray]:
+    def eigenstate(self) -> np.ndarray | None:
         """return eigen state"""
         return self._eigenstate
 

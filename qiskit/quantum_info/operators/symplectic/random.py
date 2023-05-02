@@ -16,7 +16,7 @@ Random symplectic operator functions
 import numpy as np
 from numpy.random import default_rng
 
-from qiskit.utils.deprecation import deprecate_function
+from qiskit.utils.deprecation import deprecate_func
 
 from .clifford import Clifford
 from .pauli import Pauli
@@ -103,10 +103,8 @@ def random_pauli_table(num_qubits, size=1, seed=None):
     return PauliTable(table)
 
 
-@deprecate_function(
-    "The random_stabilizer_table function is deprecated as of Qiskit Terra 0.22.0 "
-    "and will be removed no sooner than 3 months after the release date. "
-    "Use random_pauli_list method instead.",
+@deprecate_func(
+    additional_msg="Instead, use the function ``random_pauli_list``.",
     since="0.22.0",
 )
 def random_stabilizer_table(num_qubits, size=1, seed=None):

@@ -35,7 +35,7 @@ class FakeAlmadenV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_almaden.json"
     props_filename = "props_almaden.json"
-    backend_name = "fake_almaden_v2"
+    backend_name = "fake_almaden"
 
 
 class FakeAlmaden(fake_qasm_backend.FakeQasmBackend):

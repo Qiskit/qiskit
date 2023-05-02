@@ -25,7 +25,7 @@ class FakeBelemV2(fake_backend.FakeBackendV2):
     conf_filename = "conf_belem.json"
     props_filename = "props_belem.json"
     defs_filename = "defs_belem.json"
-    backend_name = "fake_belem_v2"
+    backend_name = "fake_belem"
 
 
 class FakeBelem(fake_pulse_backend.FakePulseBackend):
