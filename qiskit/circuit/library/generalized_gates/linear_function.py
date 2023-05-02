@@ -16,7 +16,6 @@ from __future__ import annotations
 import numpy as np
 from qiskit.circuit.quantumcircuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
-from qiskit.quantum_info import Clifford
 from qiskit.synthesis.linear import check_invertible_binary_matrix
 
 
@@ -87,6 +86,7 @@ class LinearFunction(Gate):
 
         # pylint: disable=cyclic-import
         from qiskit.circuit.library import PermutationGate
+        from qiskit.quantum_info import Clifford
 
         original_circuit = None
 
@@ -147,13 +147,13 @@ class LinearFunction(Gate):
             if instruction.operation.name in ("barrier", "delay"):
                 # can be ignored
                 continue
-            elif instruction.operation.name == "cx":
+            if instruction.operation.name == "cx":
                 # implemented directly
                 cb = qc.find_bit(instruction.qubits[0]).index
                 tb = qc.find_bit(instruction.qubits[1]).index
                 mat[tb, :] = (mat[tb, :]) ^ (mat[cb, :])
                 continue
-            elif instruction.operation.name == "swap":
+            if instruction.operation.name == "swap":
                 # implemented directly
                 cb = qc.find_bit(instruction.qubits[0]).index
                 tb = qc.find_bit(instruction.qubits[1]).index
@@ -253,12 +253,12 @@ class LinearFunction(Gate):
         locs = np.where(linear == 1)
         return locs[1]
 
-    def extend_with_identity(self, nq: int, positions: list[int]) -> LinearFunction:
+    def extend_with_identity(self, num_qubits: int, positions: list[int]) -> LinearFunction:
         """Extend linear function to a linear function over nq qubits,
         with identities on other subsystems.
 
         Args:
-            nq: number of qubits of the extended function.
+            num_qubits: number of qubits of the extended function.
 
             positions: describes the positions of original qubits in the extended
                 function's qubits.
@@ -266,7 +266,7 @@ class LinearFunction(Gate):
         Returns:
             LinearFunction: extended linear function.
         """
-        extended_mat = np.eye(nq, dtype=bool)
+        extended_mat = np.eye(num_qubits, dtype=bool)
 
         for i, pos in enumerate(positions):
             extended_mat[positions, pos] = self.linear[:, i]

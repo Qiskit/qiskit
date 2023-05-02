@@ -328,7 +328,7 @@ class TestLinearFunctions(QiskitTestCase):
 
         linear_function = LinearFunction(qc3)
         expected = LinearFunction([[0, 1, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [1, 0, 0, 0]])
-        self.assertEquals(linear_function, expected)
+        self.assertEqual(linear_function, expected)
 
     def test_from_clifford_when_possible(self):
         """Test constructing a linear function from a clifford which corresponds to a valid
@@ -345,14 +345,14 @@ class TestLinearFunctions(QiskitTestCase):
         cliff = Clifford(qc)
         linear_from_clifford = LinearFunction(cliff)
 
-        self.assertEquals(linear_from_qc, linear_from_clifford)
+        self.assertEqual(linear_from_qc, linear_from_clifford)
 
     def test_to_clifford_and_back(self):
         """Test converting linear function to clifford and back."""
         linear = LinearFunction([[1, 1, 1], [0, 1, 1], [0, 0, 1]])
         cliff = Clifford(linear)
         linear_from_clifford = LinearFunction(cliff)
-        self.assertEquals(linear, linear_from_clifford)
+        self.assertEqual(linear, linear_from_clifford)
 
     def test_from_clifford_when_impossible(self):
         """Test that constructing a linear function from a clifford that does not correspond
@@ -377,7 +377,7 @@ class TestLinearFunctions(QiskitTestCase):
         """Test constructing a linear function from another linear function."""
         linear_function1 = LinearFunction([[1, 1, 1], [0, 1, 1], [0, 0, 1]])
         linear_function2 = LinearFunction(linear_function1)
-        self.assertEquals(linear_function1, linear_function2)
+        self.assertEqual(linear_function1, linear_function2)
 
     def test_from_quantum_circuit_with_linear_functions(self):
         """Test constructing a linear function from a quantum circuit with
@@ -399,7 +399,7 @@ class TestLinearFunctions(QiskitTestCase):
         # linear3 is a permutation: 1->3->2, 0 unchanged
 
         expected = LinearFunction([[1, 0, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1], [0, 1, 0, 0]])
-        self.assertEquals(linear3, expected)
+        self.assertEqual(linear3, expected)
 
 
 if __name__ == "__main__":
