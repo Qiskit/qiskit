@@ -51,7 +51,6 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
-from qiskit.utils.deprecation import deprecate_func
 
 _CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop", "switch_case"}
 
