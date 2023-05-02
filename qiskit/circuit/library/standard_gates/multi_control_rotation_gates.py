@@ -92,7 +92,8 @@ def _mcsu2_real_diagonal(
 ):
     """
     Apply multi-controlled SU(2) gate with a real main diagonal or secondary diagonal.
-    https://arxiv.org/abs/2302.06377
+
+    The algorithm this method implements is described in: https://arxiv.org/abs/2302.06377
 
     Args:
         circuit (QuantumCircuit): The QuantumCircuit object to apply the diagonal operator on.

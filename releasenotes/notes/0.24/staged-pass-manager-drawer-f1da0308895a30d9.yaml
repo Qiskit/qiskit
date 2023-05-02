@@ -5,13 +5,10 @@ features_visualization:
     for visualizing a :class:`~.StagedPassManager` instance. It draws the full
     pass manager with each stage represented as an outer box
 
-    For example:
-
-    .. plot::
-       :include-source:
+    For example::
 
        from qiskit.visualization import staged_pass_manager_drawer
-       from qiskit.preset_passmanagers import generate_preset_pass_manager
+       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
        from qiskit.providers.fake_provider import FakeSherbrooke
 
        backend = FakeSherbrooke()
@@ -22,12 +19,9 @@ features_visualization:
     The :meth:`.StagedPassManager.draw` method has been updated to include
     visualization of the stages in addition to the overall pass manager. The
     stages are represented by outer boxes in the visualization. In previous
-    releases the stages were not included in the visualization.
+    releases the stages were not included in the visualization. For example::
 
-    .. plot::
-       :include-source:
-
-       from qiskit.preset_passmanagers import generate_preset_pass_manager
+       from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
        from qiskit.providers.fake_provider import FakeSherbrooke
 
        backend = FakeSherbrooke()

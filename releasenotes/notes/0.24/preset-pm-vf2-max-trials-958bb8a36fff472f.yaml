@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
     The maximum number of trials evaluated when searching for the best
     layout using :class:`.VF2Layout` and :class:`.VF2PostLayout` is now

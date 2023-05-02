@@ -1,5 +1,5 @@
 ---
-features:
+features_quantum_info:
   - |
     Added a method :meth:`qiskit.quantum_info.Operator.apply_permutation` that
     pre-composes or post-composes an Operator with a Permutation. This method

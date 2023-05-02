@@ -198,6 +198,7 @@ set the amount of qubits involved at instantiation time.
    RVGate
    PauliGate
    LinearFunction
+   mcsu2_real_diagonal
 
 Boolean Logic Circuits
 ======================

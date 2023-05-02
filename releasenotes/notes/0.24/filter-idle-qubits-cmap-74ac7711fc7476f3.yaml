@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The :meth:`~.Target.build_coupling_map` method has a new keyword argument,
     ``filter_idle_qubits`` which when set to ``True`` will remove any qubits

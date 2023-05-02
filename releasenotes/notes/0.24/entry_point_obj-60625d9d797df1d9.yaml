@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new function :func:`passmanager_stage_plugins` to the
     :mod:`qiskit.transpiler.preset_passmanagers.plugin` module. This function

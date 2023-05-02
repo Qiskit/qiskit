@@ -1,8 +1,15 @@
 ---
-features:
+features_algorithms:
   - |
-    Add support for time-dependent Hamiltonians in 
-    :class:`~.time_evolvers.TrotterQRTE`.
-  - | 
-    Add support for observable evaluations at every time-step in 
-    :class:`~.time_evolvers.TrotterQRTE`.
+    Added support for handling time-dependent Hamiltonians (i.e. singly
+    parametrized operators) to the :class:`~.TrotterQRTE` class.
+    To facilitate working with this the :attr:`~.TrotterQRTE.num_timestamps`
+    attribute and a matching keyword argument to the :class:`~.TrotterQRTE`
+    constructor to control the number of time steps to divide the full evolution
+    into.
+  - |
+    Added support for evaluating observable evaluations at every time-step
+    during the execution of the :class:`~.TrotterQRTE` class. The
+    :attr:`.TimeEvolutionProblem.aux_operators` is evaluated at every time
+    step if the :attr:`.ProductFormula.reps`  attribute of the input
+    ``product_formula`` argument in the constructor is set to 1.
