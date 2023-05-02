@@ -240,6 +240,13 @@ class QiskitTestCase(BaseQiskitTestCase):
         ]
         for msg in allow_DeprecationWarning_message:
             warnings.filterwarnings("default", category=DeprecationWarning, message=msg)
+        # This warning should be fixed once Qiskit/qiskit-aer#1761 is in a release version of Aer.
+        warnings.filterwarnings(
+            "default",
+            category=DeprecationWarning,
+            module="qiskit_aer.*",
+            message="Setting metadata to None.*",
+        )
 
 
 class FullQiskitTestCase(QiskitTestCase):

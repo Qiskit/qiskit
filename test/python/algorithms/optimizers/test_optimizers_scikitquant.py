@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020, 2021.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -35,26 +35,29 @@ class TestOptimizers(QiskitAlgorithmsTestCase):
         """Set the problem."""
         super().setUp()
         algorithm_globals.random_seed = 50
-        self.qubit_op = PauliSumOp.from_list(
-            [
-                ("II", -1.052373245772859),
-                ("IZ", 0.39793742484318045),
-                ("ZI", -0.39793742484318045),
-                ("ZZ", -0.01128010425623538),
-                ("XX", 0.18093119978423156),
-            ]
-        )
+        with self.assertWarns(DeprecationWarning):
+            self.qubit_op = PauliSumOp.from_list(
+                [
+                    ("II", -1.052373245772859),
+                    ("IZ", 0.39793742484318045),
+                    ("ZI", -0.39793742484318045),
+                    ("ZZ", -0.01128010425623538),
+                    ("XX", 0.18093119978423156),
+                ]
+            )
 
     def _optimize(self, optimizer):
         """launch vqe"""
-        qe = QuantumInstance(
-            BasicAer.get_backend("statevector_simulator"),
-            seed_simulator=algorithm_globals.random_seed,
-            seed_transpiler=algorithm_globals.random_seed,
-        )
+        with self.assertWarns(DeprecationWarning):
+            qe = QuantumInstance(
+                BasicAer.get_backend("statevector_simulator"),
+                seed_simulator=algorithm_globals.random_seed,
+                seed_transpiler=algorithm_globals.random_seed,
+            )
         with self.assertWarns(DeprecationWarning):
             vqe = VQE(ansatz=RealAmplitudes(), optimizer=optimizer, quantum_instance=qe)
             result = vqe.compute_minimum_eigenvalue(operator=self.qubit_op)
+
         self.assertAlmostEqual(result.eigenvalue.real, -1.857, places=1)
 
     def test_bobyqa(self):

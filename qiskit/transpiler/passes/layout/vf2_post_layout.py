@@ -16,6 +16,7 @@ import os
 from enum import Enum
 import logging
 import inspect
+import itertools
 import time
 
 from rustworkx import PyDiGraph, vf2_mapping, PyGraph
@@ -215,6 +216,16 @@ class VF2PostLayout(AnalysisPass):
                         ops.update(global_ops[2])
                     cm_graph.add_edge(qargs[0], qargs[1], ops)
             cm_nodes = list(cm_graph.node_indexes())
+            # Filter qubits without any supported operations. If they
+            # don't support any operations, they're not valid for layout selection.
+            # This is only needed in the undirected case because in strict direction
+            # mode the node matcher will not match since none of the circuit ops
+            # will match the cmap ops.
+            if not self.strict_direction:
+                has_operations = set(itertools.chain.from_iterable(self.target.qargs))
+                to_remove = set(cm_graph.node_indices()).difference(has_operations)
+                if to_remove:
+                    cm_graph.remove_nodes_from(list(to_remove))
         else:
             cm_graph, cm_nodes = vf2_utils.shuffle_coupling_graph(
                 self.coupling_map, self.seed, self.strict_direction

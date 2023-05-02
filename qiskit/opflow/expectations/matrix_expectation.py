@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -18,11 +18,19 @@ from qiskit.opflow.expectations.expectation_base import ExpectationBase
 from qiskit.opflow.list_ops import ComposedOp, ListOp
 from qiskit.opflow.operator_base import OperatorBase
 from qiskit.opflow.state_fns.operator_state_fn import OperatorStateFn
+from qiskit.utils.deprecation import deprecate_func
 
 
 class MatrixExpectation(ExpectationBase):
-    """An Expectation converter which converts Operator measurements to be matrix-based so they
-    can be evaluated by matrix multiplication."""
+    """Deprecated: An Expectation converter which converts Operator measurements to
+    be matrix-based so they can be evaluated by matrix multiplication."""
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self) -> None:
+        super().__init__()
 
     def convert(self, operator: OperatorBase) -> OperatorBase:
         """Accept an Operator and return a new Operator with the Pauli measurements replaced by

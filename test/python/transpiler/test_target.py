@@ -30,7 +30,7 @@ from qiskit.circuit.library import (
     RZXGate,
     CZGate,
 )
-from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp
+from qiskit.circuit import IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp
 from qiskit.circuit.measure import Measure
 from qiskit.circuit.parameter import Parameter
 from qiskit import pulse
@@ -487,6 +487,53 @@ class TestTarget(QiskitTestCase):
             set(self.ibm_target.build_coupling_map().get_edges()),
         )
         self.assertEqual(None, self.ideal_sim_target.build_coupling_map())
+
+    def test_coupling_map_mutations_do_not_propagate(self):
+        cm = CouplingMap.from_line(5, bidirectional=False)
+        cx_props = {
+            edge: InstructionProperties(duration=270.22e-9, error=0.00713)
+            for edge in cm.get_edges()
+        }
+        target = Target()
+        target.add_instruction(CXGate(), cx_props)
+        self.assertEqual(cm, target.build_coupling_map())
+        symmetric = target.build_coupling_map()
+        symmetric.make_symmetric()
+        self.assertNotEqual(cm, symmetric)  # sanity check for the test.
+        # Verify that mutating the output of `build_coupling_map` doesn't affect the target.
+        self.assertNotEqual(target.build_coupling_map(), symmetric)
+
+    def test_coupling_map_filtered_mutations_do_not_propagate(self):
+        cm = CouplingMap.from_line(5, bidirectional=False)
+        cx_props = {
+            edge: InstructionProperties(duration=270.22e-9, error=0.00713)
+            for edge in cm.get_edges()
+            if 2 not in edge
+        }
+        target = Target()
+        target.add_instruction(CXGate(), cx_props)
+        symmetric = target.build_coupling_map(filter_idle_qubits=True)
+        symmetric.make_symmetric()
+        self.assertNotEqual(cm, symmetric)  # sanity check for the test.
+        # Verify that mutating the output of `build_coupling_map` doesn't affect the target.
+        self.assertNotEqual(target.build_coupling_map(filter_idle_qubits=True), symmetric)
+
+    def test_coupling_map_no_filter_mutations_do_not_propagate(self):
+        cm = CouplingMap.from_line(5, bidirectional=False)
+        cx_props = {
+            edge: InstructionProperties(duration=270.22e-9, error=0.00713)
+            for edge in cm.get_edges()
+        }
+        target = Target()
+        target.add_instruction(CXGate(), cx_props)
+        # The filter here does not actually do anything, because there's no idle qubits.  This is
+        # just a test that this path is also not cached.
+        self.assertEqual(cm, target.build_coupling_map(filter_idle_qubits=True))
+        symmetric = target.build_coupling_map(filter_idle_qubits=True)
+        symmetric.make_symmetric()
+        self.assertNotEqual(cm, symmetric)  # sanity check for the test.
+        # Verify that mutating the output of `build_coupling_map` doesn't affect the target.
+        self.assertNotEqual(target.build_coupling_map(filter_idle_qubits=True), symmetric)
 
     def test_coupling_map_2q_gate(self):
         cmap = self.fake_backend_target.build_coupling_map("ecr")
@@ -1320,6 +1367,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
         self.target_global_gates_only.add_instruction(IfElseOp, name="if_else")
         self.target_global_gates_only.add_instruction(ForLoopOp, name="for_loop")
         self.target_global_gates_only.add_instruction(WhileLoopOp, name="while_loop")
+        self.target_global_gates_only.add_instruction(SwitchCaseOp, name="switch_case")
         self.ibm_target = Target()
         i_props = {
             (0,): InstructionProperties(duration=35.5e-9, error=0.000413),
@@ -1375,6 +1423,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
         self.ibm_target.add_instruction(IfElseOp, name="if_else")
         self.ibm_target.add_instruction(ForLoopOp, name="for_loop")
         self.ibm_target.add_instruction(WhileLoopOp, name="while_loop")
+        self.ibm_target.add_instruction(SwitchCaseOp, name="switch_case")
         self.aqt_target = Target(description="AQT Target")
         rx_props = {
             (0,): None,
@@ -1442,6 +1491,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
         self.aqt_target.add_instruction(IfElseOp, name="if_else")
         self.aqt_target.add_instruction(ForLoopOp, name="for_loop")
         self.aqt_target.add_instruction(WhileLoopOp, name="while_loop")
+        self.aqt_target.add_instruction(SwitchCaseOp, name="switch_case")
 
     def test_qargs(self):
         expected_ibm = {
@@ -1510,19 +1560,42 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
         self.assertIsNone(self.target_global_gates_only.qargs_for_operation_name("cx"))
         self.assertIsNone(self.ibm_target.qargs_for_operation_name("if_else"))
         self.assertIsNone(self.aqt_target.qargs_for_operation_name("while_loop"))
+        self.assertIsNone(self.aqt_target.qargs_for_operation_name("switch_case"))
 
     def test_instruction_names(self):
         self.assertEqual(
             self.ibm_target.operation_names,
-            {"rz", "id", "sx", "x", "cx", "measure", "if_else", "while_loop", "for_loop"},
+            {
+                "rz",
+                "id",
+                "sx",
+                "x",
+                "cx",
+                "measure",
+                "if_else",
+                "while_loop",
+                "for_loop",
+                "switch_case",
+            },
         )
         self.assertEqual(
             self.aqt_target.operation_names,
-            {"rz", "ry", "rx", "rxx", "r", "measure", "if_else", "while_loop", "for_loop"},
+            {
+                "rz",
+                "ry",
+                "rx",
+                "rxx",
+                "r",
+                "measure",
+                "if_else",
+                "while_loop",
+                "for_loop",
+                "switch_case",
+            },
         )
         self.assertEqual(
             self.target_global_gates_only.operation_names,
-            {"u", "cx", "measure", "if_else", "while_loop", "for_loop"},
+            {"u", "cx", "measure", "if_else", "while_loop", "for_loop", "switch_case"},
         )
 
     def test_operations_for_qargs(self):
@@ -1535,6 +1608,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             IfElseOp,
             ForLoopOp,
             WhileLoopOp,
+            SwitchCaseOp,
         ]
         res = self.ibm_target.operations_for_qargs((0,))
         self.assertEqual(len(expected), len(res))
@@ -1545,6 +1619,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             IfElseOp,
             ForLoopOp,
             WhileLoopOp,
+            SwitchCaseOp,
         ]
         res = self.ibm_target.operations_for_qargs((0, 1))
         self.assertEqual(len(expected), len(res))
@@ -1559,12 +1634,13 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             IfElseOp,
             ForLoopOp,
             WhileLoopOp,
+            SwitchCaseOp,
         ]
         res = self.aqt_target.operations_for_qargs((0,))
         self.assertEqual(len(expected), len(res))
         for x in expected:
             self.assertIn(x, res)
-        expected = [RXXGate(self.theta), IfElseOp, ForLoopOp, WhileLoopOp]
+        expected = [RXXGate(self.theta), IfElseOp, ForLoopOp, WhileLoopOp, SwitchCaseOp]
         res = self.aqt_target.operations_for_qargs((0, 1))
         self.assertEqual(len(expected), len(res))
         for x in expected:
@@ -1580,6 +1656,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             "if_else",
             "for_loop",
             "while_loop",
+            "switch_case",
         }
         self.assertEqual(expected, self.ibm_target.operation_names_for_qargs((0,)))
         expected = {
@@ -1587,6 +1664,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             "if_else",
             "for_loop",
             "while_loop",
+            "switch_case",
         }
         self.assertEqual(expected, self.ibm_target.operation_names_for_qargs((0, 1)))
         expected = {
@@ -1598,9 +1676,10 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             "if_else",
             "for_loop",
             "while_loop",
+            "switch_case",
         }
         self.assertEqual(self.aqt_target.operation_names_for_qargs((0,)), expected)
-        expected = {"rxx", "if_else", "for_loop", "while_loop"}
+        expected = {"rxx", "if_else", "for_loop", "while_loop", "switch_case"}
         self.assertEqual(self.aqt_target.operation_names_for_qargs((0, 1)), expected)
 
     def test_operations(self):
@@ -1614,6 +1693,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             WhileLoopOp,
             IfElseOp,
             ForLoopOp,
+            SwitchCaseOp,
         ]
         for gate in ibm_expected:
             self.assertIn(gate, self.ibm_target.operations)
@@ -1626,6 +1706,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             ForLoopOp,
             IfElseOp,
             WhileLoopOp,
+            SwitchCaseOp,
         ]
         for gate in aqt_expected:
             self.assertIn(gate, self.aqt_target.operations)
@@ -1636,6 +1717,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             ForLoopOp,
             WhileLoopOp,
             IfElseOp,
+            SwitchCaseOp,
         ]
         for gate in fake_expected:
             self.assertIn(gate, self.target_global_gates_only.operations)
@@ -1684,6 +1766,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             (IfElseOp, None),
             (ForLoopOp, None),
             (WhileLoopOp, None),
+            (SwitchCaseOp, None),
         ]
         self.assertEqual(ibm_expected, self.ibm_target.instructions)
         ideal_sim_expected = [
@@ -1693,6 +1776,7 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
             (IfElseOp, None),
             (ForLoopOp, None),
             (WhileLoopOp, None),
+            (SwitchCaseOp, None),
         ]
         self.assertEqual(ideal_sim_expected, self.target_global_gates_only.instructions)
 
@@ -1705,6 +1789,9 @@ class TestGlobalVariableWidthOperations(QiskitTestCase):
         self.assertTrue(self.aqt_target.instruction_supported("while_loop", (0, 1, 2, 3)))
         self.assertTrue(
             self.aqt_target.instruction_supported(operation_class=WhileLoopOp, qargs=(0, 1, 2, 3))
+        )
+        self.assertTrue(
+            self.aqt_target.instruction_supported(operation_class=SwitchCaseOp, qargs=(0, 1, 2, 3))
         )
         self.assertFalse(
             self.ibm_target.instruction_supported(

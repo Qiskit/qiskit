@@ -15,6 +15,7 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
+import sys
 import collections.abc
 import copy
 import itertools
@@ -22,6 +23,7 @@ import functools
 import multiprocessing as mp
 import string
 import re
+import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
@@ -36,6 +38,7 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    overload,
 )
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -69,6 +72,11 @@ try:
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -300,9 +308,7 @@ class QuantumCircuit:
 
         self.duration = None
         self.unit = "dt"
-        if not isinstance(metadata, dict) and metadata is not None:
-            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
-        self._metadata = metadata
+        self.metadata = {} if metadata is None else metadata
 
     @staticmethod
     def from_instructions(
@@ -469,7 +475,7 @@ class QuantumCircuit:
 
     @property
     def metadata(self) -> dict:
-        """The user provided metadata associated with the circuit
+        """The user provided metadata associated with the circuit.
 
         The metadata for the circuit is a user provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
@@ -483,8 +489,16 @@ class QuantumCircuit:
     @metadata.setter
     def metadata(self, metadata: dict | None):
         """Update the circuit metadata"""
-        if not isinstance(metadata, dict) and metadata is not None:
-            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        if metadata is None:
+            metadata = {}
+            warnings.warn(
+                "Setting metadata to None was deprecated in Terra 0.24.0 and this ability will be "
+                "removed in a future release. Instead, set metadata to an empty dictionary.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        elif not isinstance(metadata, dict):
+            raise TypeError("Only a dictionary is accepted for circuit metadata")
         self._metadata = metadata
 
     def __str__(self) -> str:
@@ -1568,8 +1582,11 @@ class QuantumCircuit:
         to decompose one level (shallow decompose).
 
         Args:
-            gates_to_decompose (str or list(str)): optional subset of gates to decompose.
-                Defaults to all gates in circuit.
+            gates_to_decompose (type or str or list(type, str)): Optional subset of gates
+                to decompose. Can be a gate type, such as ``HGate``, or a gate name, such
+                as 'h', or a gate label, such as 'My H Gate', or a list of any combination
+                of these. If a gate name is entered, it will decompose all gates with that
+                name, whether the gates have labels or not. Defaults to all gates in circuit.
             reps (int): Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
                 can decompose specific gates specific time
@@ -2600,6 +2617,22 @@ class QuantumCircuit:
             parameters.update(self.global_phase.parameters)
 
         return parameters
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[False] = ...,
+    ) -> "QuantumCircuit":
+        ...
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[True] = ...,
+    ) -> None:
+        ...
 
     def assign_parameters(
         self,
