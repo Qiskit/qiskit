@@ -52,19 +52,6 @@ class QCircuitImage:
     @deprecate_arg("cregs", since="0.20.0")
     @deprecate_arg("layout", since="0.20.0")
     @deprecate_arg("global_phase", since="0.20.0")
-    @deprecate_arg(
-        "circuit",
-        deprecation_description=(
-            "Not setting the ``circuit`` argument in the ``QCircuitImage`` constructor"
-        ),
-        since="0.20.0",
-        predicate=lambda circuit: circuit is None,
-        additional_msg=(
-            "The ``circuit`` argument must be a valid QuantumCircuit. If ``circuit`` is set to "
-            "``None``, then the circuit will be built using the ``qubits`` and ``clbits`` "
-            "arguments for rendering the drawing."
-        ),
-    )
     def __init__(  # pylint: disable=bad-docstring-quotes
         self,
         qubits,
@@ -107,6 +94,13 @@ class QCircuitImage:
         del global_phase
         # This check should be removed when the 4 deprecations above are removed
         if circuit is None:
+            warn(
+                "The 'circuit' kwarg to the QCircuitImage class must be a valid "
+                "QuantumCircuit and not None. A new circuit is being created using "
+                "the qubits and clbits for rendering the drawing.",
+                DeprecationWarning,
+                2,
+            )
             circ = QuantumCircuit(qubits, clbits)
             for reg in qregs or []:
                 bits = [qubits[circ._qubit_indices[q].index] for q in reg]
