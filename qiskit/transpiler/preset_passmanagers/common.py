@@ -51,6 +51,7 @@ from qiskit.transpiler.passes.layout.vf2_layout import VF2LayoutStopReason
 from qiskit.transpiler.passes.layout.vf2_post_layout import VF2PostLayoutStopReason
 from qiskit.transpiler.exceptions import TranspilerError
 from qiskit.transpiler.layout import Layout
+from qiskit.utils.deprecation import deprecate_func
 
 _CONTROL_FLOW_OP_NAMES = {"for_loop", "if_else", "while_loop", "switch_case"}
 
@@ -263,6 +264,7 @@ def generate_routing_passmanager(
     seed_transpiler=None,
     check_trivial=False,
     use_barrier_before_measurement=True,
+    vf2_max_trials=None,
 ):
     """Generate a routing :class:`~qiskit.transpiler.PassManager`
 
@@ -273,7 +275,8 @@ def generate_routing_passmanager(
         coupling_map (CouplingMap): The coupling map of the backend to route
             for
         vf2_call_limit (int): The internal call limit for the vf2 post layout
-            pass. If this is ``None`` the vf2 post layout will not be run.
+            pass. If this is ``None`` or ``0`` the vf2 post layout will not be
+            run.
         backend_properties (BackendProperties): Properties of a backend to
             synthesize for (e.g. gate fidelities).
         seed_transpiler (int): Sets random seed for the stochastic parts of
@@ -287,6 +290,9 @@ def generate_routing_passmanager(
         use_barrier_before_measurement (bool): If true (the default) the
             :class:`~.BarrierBeforeFinalMeasurements` transpiler pass will be run prior to the
             specified pass in the ``routing_pass`` argument.
+        vf2_max_trials (int): The maximum number of trials to run VF2 when
+            evaluating the vf2 post layout
+            pass. If this is ``None`` or ``0`` the vf2 post layout will not be run.
     Returns:
         PassManager: The routing pass manager
     """
@@ -314,7 +320,8 @@ def generate_routing_passmanager(
     else:
         routing.append([routing_pass], condition=_swap_condition)
 
-    if (target is not None or backend_properties is not None) and vf2_call_limit is not None:
+    is_vf2_fully_bounded = vf2_call_limit and vf2_max_trials
+    if (target is not None or backend_properties is not None) and is_vf2_fully_bounded:
         routing.append(
             VF2PostLayout(
                 target,
@@ -322,6 +329,7 @@ def generate_routing_passmanager(
                 backend_properties,
                 seed_transpiler,
                 call_limit=vf2_call_limit,
+                max_trials=vf2_max_trials,
                 strict_direction=False,
             ),
             condition=_run_post_layout_condition,
@@ -539,6 +547,10 @@ def generate_scheduling(
     return scheduling
 
 
+@deprecate_func(
+    additional_msg="Instead, use ``get_vf2_limits``.",
+    since="0.24.0",
+)
 def get_vf2_call_limit(
     optimization_level: int,
     layout_method: Optional[str] = None,
@@ -554,3 +566,37 @@ def get_vf2_call_limit(
         elif optimization_level == 3:
             vf2_call_limit = int(3e7)  # Set call limit to ~60 sec with rustworkx 0.10.2
     return vf2_call_limit
+
+
+VF2Limits = collections.namedtuple("VF2Limits", ("call_limit", "max_trials"))
+
+
+def get_vf2_limits(
+    optimization_level: int,
+    layout_method: Optional[str] = None,
+    initial_layout: Optional[Layout] = None,
+) -> Optional[VF2Limits]:
+    """Get the VF2 limits for VF2-based layout passes.
+
+    Returns:
+        Optional[VF2Limits]: An optional namedtuple with elements
+        ``call_limit`` and ``max_trials``.
+    """
+    limits = None
+    if layout_method is None and initial_layout is None:
+        if optimization_level == 1:
+            limits = VF2Limits(
+                int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
+                2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
+            )
+        elif optimization_level == 2:
+            limits = VF2Limits(
+                int(5e6),  # Set call limit to ~10 sec with rustworkx 0.10.2
+                25000,  # Limits layout scoring to < 6 sec on ~400 qubit devices
+            )
+        elif optimization_level == 3:
+            limits = VF2Limits(
+                int(3e7),  # Set call limit to ~60 sec with rustworkx 0.10.2
+                250000,  # Limits layout scoring to < 60 sec on ~400 qubit devices
+            )
+    return limits
