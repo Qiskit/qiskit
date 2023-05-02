@@ -102,20 +102,27 @@ class RunningPassManager:
                 raise TranspilerError("The flow controller parameter %s is not callable" % name)
         return flow_controller
 
-    def run(self, circuit, output_name=None, callback=None):
+    def run(self, circuit, output_name=None, callback=None, return_dag=False):
         """Run all the passes on a QuantumCircuit
 
         Args:
-            circuit (QuantumCircuit): circuit to transform via all the registered passes
+            circuit (QuantumCircuit | DAGCircuit): circuit to transform via all the
+                                                   registered passes
             output_name (str): The output circuit name. If not given, the same as the
                                input circuit
-            callback (callable): A callback function that will be called after each pass execution.
+            callback (callable): A callback function that will be called after each
+                                 pass execution.
+            return_dag (bool): If True return DAGCircuit as output instead of converting
+                               back to a QuantumCircuit.
+
         Returns:
             QuantumCircuit: Transformed circuit.
         """
-        name = circuit.name
-        dag = circuit_to_dag(circuit)
-        del circuit
+        if isinstance(circuit, DAGCircuit):
+            dag = circuit
+        else:
+            dag = circuit_to_dag(circuit)
+            del circuit
 
         if callback:
             self.callback = callback
@@ -124,19 +131,17 @@ class RunningPassManager:
             for pass_ in passset:
                 dag = self._do_pass(pass_, dag, passset.options)
 
-        circuit = dag_to_circuit(dag, copy_operations=False)
         if output_name:
-            circuit.name = output_name
-        else:
-            circuit.name = name
+            dag.name = output_name
+
         if self.property_set["layout"] is not None:
-            circuit._layout = TranspileLayout(
+            dag._layout = TranspileLayout(
                 initial_layout=self.property_set["layout"],
                 input_qubit_mapping=self.property_set["original_qubit_indices"],
                 final_layout=self.property_set["final_layout"],
             )
-        circuit._clbit_write_latency = self.property_set["clbit_write_latency"]
-        circuit._conditional_latency = self.property_set["conditional_latency"]
+        dag._clbit_write_latency = self.property_set["clbit_write_latency"]
+        dag._conditional_latency = self.property_set["conditional_latency"]
 
         if self.property_set["node_start_time"]:
             # This is dictionary keyed on the DAGOpNode, which is invalidated once
@@ -146,8 +151,13 @@ class RunningPassManager:
             start_times = self.property_set["node_start_time"]
             for dag_node in dag.topological_op_nodes():
                 topological_start_times.append(start_times[dag_node])
-            circuit._op_start_times = topological_start_times
+            dag._op_start_times = topological_start_times
 
+        if return_dag:
+            return dag
+
+        circuit = dag_to_circuit(dag, copy_operations=False)
+        del dag
         return circuit
 
     def _do_pass(self, pass_, dag, options):

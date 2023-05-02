@@ -71,4 +71,15 @@ def circuit_to_dag(circuit, copy_operations=True):
 
     dagcircuit.duration = circuit.duration
     dagcircuit.unit = circuit.unit
+
+    # Set attributes hardcoded by RunningPassManager
+    for attr in [
+        "_layout",
+        "_clbit_write_latency",
+        "_conditional_latency",
+        "_op_start_times",
+    ]:
+        if hasattr(circuit, attr):
+            setattr(dagcircuit, attr, getattr(circuit, attr))
+
     return dagcircuit

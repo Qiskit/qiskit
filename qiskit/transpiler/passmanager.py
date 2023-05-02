@@ -21,11 +21,13 @@ import dill
 
 from qiskit.tools.parallel import parallel_map
 from qiskit.circuit import QuantumCircuit
+from qiskit.dagcircuit import DAGCircuit
 from .basepasses import BasePass
 from .exceptions import TranspilerError
 from .runningpassmanager import RunningPassManager, FlowController
 
-_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit]
+
+_CircuitsT = Union[List[QuantumCircuit], QuantumCircuit, List[DAGCircuit], DAGCircuit]
 
 
 class PassManager:
@@ -189,6 +191,7 @@ class PassManager:
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable | None = None,
+        return_dag: bool = False,
     ) -> _CircuitsT:
         """Run all the passes on the specified ``circuits``.
 
@@ -221,6 +224,8 @@ class PassManager:
                         property_set = kwargs['property_set']
                         count = kwargs['count']
                         ...
+            return_dag: If True return DAGCircuit as output instead of converting
+                        back to a QuantumCircuit.
 
         Returns:
             The transformed circuit(s).
@@ -228,9 +233,11 @@ class PassManager:
         if not self._pass_sets and output_name is None and callback is None:
             return circuits
         if isinstance(circuits, QuantumCircuit):
-            return self._run_single_circuit(circuits, output_name, callback)
+            return self._run_single_circuit(circuits, output_name, callback, return_dag=return_dag)
         if len(circuits) == 1:
-            return [self._run_single_circuit(circuits[0], output_name, callback)]
+            return [
+                self._run_single_circuit(circuits[0], output_name, callback, return_dag=return_dag)
+            ]
         return self._run_several_circuits(circuits, output_name, callback)
 
     def _create_running_passmanager(self) -> RunningPassManager:
@@ -240,10 +247,10 @@ class PassManager:
         return running_passmanager
 
     @staticmethod
-    def _in_parallel(circuit, pm_dill=None) -> QuantumCircuit:
+    def _in_parallel(circuit, pm_dill=None, return_dag=False) -> Union[QuantumCircuit, DAGCircuit]:
         """Task used by the parallel map tools from ``_run_several_circuits``."""
         running_passmanager = dill.loads(pm_dill)._create_running_passmanager()
-        result = running_passmanager.run(circuit)
+        result = running_passmanager.run(circuit, return_dag=return_dag)
         return result
 
     def _run_several_circuits(
@@ -251,7 +258,8 @@ class PassManager:
         circuits: List[QuantumCircuit],
         output_name: str | None = None,
         callback: Callable | None = None,
-    ) -> List[QuantumCircuit]:
+        return_dag: bool = False,
+    ) -> Union[List[QuantumCircuit], List[DAGCircuit]]:
         """Run all the passes on the specified ``circuits``.
 
         Args:
@@ -259,6 +267,8 @@ class PassManager:
             output_name: The output circuit name. If ``None``, it will be set to the same as the
                 input circuit name.
             callback: A callback function that will be called after each pass execution.
+            return_dag: If True return DAGCircuit as output instead of converting
+                        back to a QuantumCircuit.
 
         Returns:
             The transformed circuits.
@@ -268,7 +278,9 @@ class PassManager:
         del callback
 
         return parallel_map(
-            PassManager._in_parallel, circuits, task_kwargs={"pm_dill": dill.dumps(self)}
+            PassManager._in_parallel,
+            circuits,
+            task_kwargs={"pm_dill": dill.dumps(self), "return_dag": return_dag},
         )
 
     def _run_single_circuit(
@@ -276,7 +288,8 @@ class PassManager:
         circuit: QuantumCircuit,
         output_name: str | None = None,
         callback: Callable | None = None,
-    ) -> QuantumCircuit:
+        return_dag: bool = False,
+    ) -> Union[QuantumCircuit, DAGCircuit]:
         """Run all the passes on a ``circuit``.
 
         Args:
@@ -284,12 +297,16 @@ class PassManager:
             output_name: The output circuit name. If ``None``, it will be set to the same as the
                 input circuit name.
             callback: A callback function that will be called after each pass execution.
+            return_dag: If True return DAGCircuit as output instead of converting
+                        back to a QuantumCircuit.
 
         Returns:
             The transformed circuit.
         """
         running_passmanager = self._create_running_passmanager()
-        result = running_passmanager.run(circuit, output_name=output_name, callback=callback)
+        result = running_passmanager.run(
+            circuit, output_name=output_name, callback=callback, return_dag=return_dag
+        )
         self.property_set = running_passmanager.property_set
         return result
 
@@ -532,9 +549,12 @@ class StagedPassManager(PassManager):
         circuits: _CircuitsT,
         output_name: str | None = None,
         callback: Callable | None = None,
+        return_dag: bool = False,
     ) -> _CircuitsT:
         self._update_passmanager()
-        return super().run(circuits, output_name, callback)
+        return super().run(
+            circuits, output_name=output_name, callback=callback, return_dag=return_dag
+        )
 
     def draw(self, filename=None, style=None, raw=False):
         """Draw the staged pass manager."""
