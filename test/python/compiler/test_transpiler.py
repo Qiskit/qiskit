@@ -753,7 +753,8 @@ class TestTranspile(QiskitTestCase):
         msg = f"after:\n{after}\nexpected:\n{expected}"
         self.assertEqual(after, expected, msg=msg)
 
-    def test_pass_manager_empty(self):
+    @data(False, True)
+    def test_pass_manager_empty(self, return_dag):
         """Test passing an empty PassManager() to the transpiler.
 
         It should perform no transformations on the circuit.
@@ -766,10 +767,12 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
         circuit.cx(qr[0], qr[1])
+        if return_dag:
+            circuit = circuit_to_dag(circuit)
         resources_before = circuit.count_ops()
 
         pass_manager = PassManager()
-        out_circuit = pass_manager.run(circuit)
+        out_circuit = pass_manager.run(circuit, return_dag=return_dag)
         resources_after = out_circuit.count_ops()
 
         self.assertDictEqual(resources_before, resources_after)
@@ -1866,10 +1869,12 @@ class TestLogTranspile(QiskitTestCase):
         self.assertTranspileLog("Total Transpile Time")
 
 
+@ddt
 class TestTranspileCustomPM(QiskitTestCase):
     """Test transpile function with custom pass manager"""
 
-    def test_custom_multiple_circuits(self):
+    @data(False, True)
+    def test_custom_multiple_circuits(self, return_dag):
         """Test transpiling with custom pass manager and multiple circuits.
         This tests created a deadlock, so it needs to be monitored for timeout.
         See: https://github.com/Qiskit/qiskit-terra/issues/3925
@@ -1886,12 +1891,15 @@ class TestTranspileCustomPM(QiskitTestCase):
             seed_transpiler=1,
         )
         passmanager = level_0_pass_manager(pm_conf)
-
-        transpiled = passmanager.run([qc, qc])
+        if return_dag:
+            qc = circuit_to_dag(qc)
+        transpiled = passmanager.run([qc, qc], return_dag=return_dag)
 
         expected = QuantumCircuit(QuantumRegister(2, "q"))
         expected.append(U2Gate(0, 3.141592653589793), [0])
         expected.cx(0, 1)
+        if return_dag:
+            expected = circuit_to_dag(expected)
 
         self.assertEqual(len(transpiled), 2)
         self.assertEqual(transpiled[0], expected)
@@ -1961,7 +1969,8 @@ class TestTranspileParallel(QiskitTestCase):
             self.assertTrue(math.isclose(count["0000000000000000"], 500, rel_tol=0.1))
             self.assertTrue(math.isclose(count["0111111111111111"], 500, rel_tol=0.1))
 
-    def test_parallel_dispatch_lazy_cal_loading(self):
+    @data(False, True)
+    def test_parallel_dispatch_lazy_cal_loading(self, return_dag):
         """Test adding calibration by lazy loading in parallel environment."""
 
         class TestAddCalibration(TransformationPass):
@@ -1990,9 +1999,11 @@ class TestTranspileParallel(QiskitTestCase):
 
         qc = QuantumCircuit(1)
         qc.sx(0)
+        if return_dag:
+            qc = circuit_to_dag(qc)
         qc_copied = [qc for _ in range(10)]
 
-        qcs_cal_added = pm.run(qc_copied)
+        qcs_cal_added = pm.run(qc_copied, return_dag=return_dag)
         ref_cal = backend.target["sx"][(0,)].calibration
         for qc_test in qcs_cal_added:
             added_cal = qc_test.calibrations["sx"][((0,), ())]
