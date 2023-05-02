@@ -547,10 +547,6 @@ def generate_scheduling(
     return scheduling
 
 
-@deprecate_func(
-    additional_msg="Instead, use ``get_vf2_limits``.",
-    since="0.24.0",
-)
 def get_vf2_call_limit(
     optimization_level: int,
     layout_method: Optional[str] = None,

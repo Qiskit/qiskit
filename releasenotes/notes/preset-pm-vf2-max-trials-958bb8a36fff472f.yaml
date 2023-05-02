@@ -16,13 +16,6 @@ upgrade:
     positions on the device. To perform a full search as
     before, manually run :class:`.VF2PostLayout` over the transpiled circuit
     in strict mode, specifying ``0`` for ``max_trials``.
-deprecations:
-  - |
-    The method
-    :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_call_limit`
-    is deprecated. Instead, use replacement method
-    :func:`~qiskit.transpiler.preset_passmanagers.common.get_vf2_limits` and
-    access the ``call_limit`` field of the returned namedtuple.
 fixes:
   - |
     Fixed a potential performance scaling issue with layout scoring in preset
