@@ -527,9 +527,7 @@ class DAGCircuit:
         return node_index
 
     @deprecate_func(
-        additional_msg=(
-            "Instead, use :meth:`~copy_empty_like()`, which acts identically."
-        ),
+        additional_msg="Instead, use :meth:`~copy_empty_like()`, which acts identically.",
         since="0.20.0",
     )
     def _copy_circuit_metadata(self):
