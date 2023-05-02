@@ -79,9 +79,10 @@ class LinearFunction(Gate):
 
         Raises:
             CircuitError: if the input is invalid:
-                either a matrix is non {square, invertible},
-                or a quantum circuit contains non-linear gates.
-
+                either the input matrix is not square or not invertible,
+                or the input quantum circuit contains non-linear objects
+                (for example, a Hadamard gate, or a Clifford that does
+                not correspond to a linear function).
         """
 
         # pylint: disable=cyclic-import
