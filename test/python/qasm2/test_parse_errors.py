@@ -220,6 +220,11 @@ class TestIncompleteStructure(QiskitTestCase):
         with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "unexpected end-of-file"):
             qiskit.qasm2.loads(full)
 
+    def test_loading_directory(self):
+        """Test that the correct error is raised when a file fails to open."""
+        with self.assertRaisesRegex(qiskit.qasm2.QASM2ParseError, "failed to read"):
+            qiskit.qasm2.load(".")
+
 
 class TestVersion(QiskitTestCase):
     def test_invalid_version(self):

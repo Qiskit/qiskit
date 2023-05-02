@@ -15,6 +15,7 @@
 """Quantum circuit object."""
 
 from __future__ import annotations
+import sys
 import collections.abc
 import copy
 import itertools
@@ -22,6 +23,7 @@ import functools
 import multiprocessing as mp
 import string
 import re
+import warnings
 import typing
 from collections import OrderedDict, defaultdict, namedtuple
 from typing import (
@@ -36,6 +38,7 @@ from typing import (
     Iterable,
     Any,
     DefaultDict,
+    overload,
 )
 import numpy as np
 from qiskit.exceptions import QiskitError, MissingOptionalLibraryError
@@ -69,6 +72,11 @@ try:
     HAS_PYGMENTS = True
 except Exception:  # pylint: disable=broad-except
     HAS_PYGMENTS = False
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 if typing.TYPE_CHECKING:
     import qiskit  # pylint: disable=cyclic-import
@@ -300,9 +308,7 @@ class QuantumCircuit:
 
         self.duration = None
         self.unit = "dt"
-        if not isinstance(metadata, dict) and metadata is not None:
-            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
-        self._metadata = metadata
+        self.metadata = {} if metadata is None else metadata
 
     @staticmethod
     def from_instructions(
@@ -469,7 +475,7 @@ class QuantumCircuit:
 
     @property
     def metadata(self) -> dict:
-        """The user provided metadata associated with the circuit
+        """The user provided metadata associated with the circuit.
 
         The metadata for the circuit is a user provided ``dict`` of metadata
         for the circuit. It will not be used to influence the execution or
@@ -483,8 +489,16 @@ class QuantumCircuit:
     @metadata.setter
     def metadata(self, metadata: dict | None):
         """Update the circuit metadata"""
-        if not isinstance(metadata, dict) and metadata is not None:
-            raise TypeError("Only a dictionary or None is accepted for circuit metadata")
+        if metadata is None:
+            metadata = {}
+            warnings.warn(
+                "Setting metadata to None was deprecated in Terra 0.24.0 and this ability will be "
+                "removed in a future release. Instead, set metadata to an empty dictionary.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        elif not isinstance(metadata, dict):
+            raise TypeError("Only a dictionary is accepted for circuit metadata")
         self._metadata = metadata
 
     def __str__(self) -> str:
@@ -1568,8 +1582,11 @@ class QuantumCircuit:
         to decompose one level (shallow decompose).
 
         Args:
-            gates_to_decompose (str or list(str)): optional subset of gates to decompose.
-                Defaults to all gates in circuit.
+            gates_to_decompose (type or str or list(type, str)): Optional subset of gates
+                to decompose. Can be a gate type, such as ``HGate``, or a gate name, such
+                as 'h', or a gate label, such as 'My H Gate', or a list of any combination
+                of these. If a gate name is entered, it will decompose all gates with that
+                name, whether the gates have labels or not. Defaults to all gates in circuit.
             reps (int): Optional number of times the circuit should be decomposed.
                 For instance, ``reps=2`` equals calling ``circuit.decompose().decompose()``.
                 can decompose specific gates specific time
@@ -1620,7 +1637,7 @@ class QuantumCircuit:
         if self.num_parameters > 0:
             raise QasmError("Cannot represent circuits with unbound parameters in OpenQASM 2.")
 
-        existing_gate_names = [
+        existing_gate_names = {
             "barrier",
             "measure",
             "reset",
@@ -1666,12 +1683,11 @@ class QuantumCircuit:
             "c3x",
             "c3sx",  # This is the Qiskit gate name, but the qelib1.inc name is 'c3sqrtx'.
             "c4x",
-        ]
+        }
 
-        existing_composite_circuits: list[Instruction] = []
-
-        string_temp = self.header + "\n"
-        string_temp += self.extension_lib + "\n"
+        # Mapping of instruction name to a pair of the source for a definition, and an OQ2 string
+        # that includes the `gate` or `opaque` statement that defines the gate.
+        gates_to_define: OrderedDict[str, tuple[Instruction, str]] = OrderedDict()
 
         regless_qubits = [bit for bit in self.qubits if not self.find_bit(bit).registers]
         regless_clbits = [bit for bit in self.clbits if not self.find_bit(bit).registers]
@@ -1691,72 +1707,51 @@ class QuantumCircuit:
             for name, register in register_escaped_names.items()
             for (idx, bit) in enumerate(register)
         }
-        for name, reg in register_escaped_names.items():
-            string_temp += (
-                f"{'qreg' if isinstance(reg, QuantumRegister) else 'creg'} {name}[{reg.size}];\n"
-            )
-
+        register_definitions_qasm = "".join(
+            f"{'qreg' if isinstance(reg, QuantumRegister) else 'creg'} {name}[{reg.size}];\n"
+            for name, reg in register_escaped_names.items()
+        )
+        instruction_calls = []
         for instruction in self._data:
             operation = instruction.operation
             if operation.name == "measure":
                 qubit = instruction.qubits[0]
                 clbit = instruction.clbits[0]
-                string_temp += "{} {} -> {};\n".format(
-                    operation.qasm(),
-                    bit_labels[qubit],
-                    bit_labels[clbit],
-                )
+                instruction_qasm = f"measure {bit_labels[qubit]} -> {bit_labels[clbit]};"
             elif operation.name == "reset":
-                string_temp += f"reset {bit_labels[instruction.qubits[0]]};\n"
+                instruction_qasm = f"reset {bit_labels[instruction.qubits[0]]};"
             elif operation.name == "barrier":
                 qargs = ",".join(bit_labels[q] for q in instruction.qubits)
-                string_temp += "barrier;\n" if not qargs else f"barrier {qargs};\n"
+                instruction_qasm = "barrier;" if not qargs else f"barrier {qargs};"
             else:
-                # Check instructions names or label are valid
-                escaped = _qasm_escape_name(operation.name, "gate_")
-                if escaped != operation.name:
-                    operation = operation.copy(name=escaped)
-
-                # decompose gate using definitions if they are not defined in OpenQASM2
-                if operation.name not in existing_gate_names:
-                    op_qasm_name = None
-                    if operation.name == "permutation":
-                        op_qasm_name = getattr(operation, "_qasm_name", None)
-                    if op_qasm_name:
-                        operation = operation.copy(name=op_qasm_name)
-
-                    if operation not in existing_composite_circuits:
-                        if operation.name in [
-                            operation.name for operation in existing_composite_circuits
-                        ]:
-                            # append operation id to name of operation copy to make it unique
-                            operation = operation.copy(name=f"{operation.name}_{id(operation)}")
-
-                        existing_composite_circuits.append(operation)
-
-                        # Strictly speaking, the code below does not work for operations that
-                        # do not have the "definition" method but require a complex (recursive)
-                        # "_qasm_definition". Fortunately, right now we do not have any such operations.
-                        if getattr(operation, "definition", None) is not None:
-                            _add_sub_instruction_to_existing_composite_circuits(
-                                operation, existing_gate_names, existing_composite_circuits
-                            )
-
-                # Insert qasm representation of the original instruction
-                string_temp += "{} {};\n".format(
-                    operation.qasm(),
-                    ",".join([bit_labels[j] for j in instruction.qubits + instruction.clbits]),
+                operation = _qasm2_define_custom_operation(
+                    operation, existing_gate_names, gates_to_define
                 )
 
-        # insert gate definitions
-        string_temp = _insert_composite_gate_definition_qasm(
-            string_temp, existing_composite_circuits, self.extension_lib
+                # Insert qasm representation of the original instruction
+                bits_qasm = ",".join(
+                    bit_labels[j] for j in itertools.chain(instruction.qubits, instruction.clbits)
+                )
+                instruction_qasm = f"{operation.qasm()} {bits_qasm};"
+            instruction_calls.append(instruction_qasm)
+        instructions_qasm = "".join(f"{call}\n" for call in instruction_calls)
+        gate_definitions_qasm = "".join(f"{qasm}\n" for _, qasm in gates_to_define.values())
+
+        out = "".join(
+            (
+                self.header,
+                "\n",
+                self.extension_lib,
+                "\n",
+                gate_definitions_qasm,
+                register_definitions_qasm,
+                instructions_qasm,
+            )
         )
 
         if filename:
             with open(filename, "w+", encoding=encoding) as file:
-                file.write(string_temp)
-            file.close()
+                file.write(out)
 
         if formatted:
             if not HAS_PYGMENTS:
@@ -1766,12 +1761,11 @@ class QuantumCircuit:
                     pip_install="pip install pygments",
                 )
             code = pygments.highlight(
-                string_temp, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
+                out, OpenQASMLexer(), Terminal256Formatter(style=QasmTerminalStyle)
             )
             print(code)
             return None
-        else:
-            return string_temp
+        return out
 
     def draw(
         self,
@@ -2623,6 +2617,22 @@ class QuantumCircuit:
             parameters.update(self.global_phase.parameters)
 
         return parameters
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[False] = ...,
+    ) -> "QuantumCircuit":
+        ...
+
+    @overload
+    def assign_parameters(
+        self,
+        parameters: Union[Mapping[Parameter, ParameterValueType], Sequence[ParameterValueType]],
+        inplace: Literal[True] = ...,
+    ) -> None:
+        ...
 
     def assign_parameters(
         self,
@@ -4179,6 +4189,7 @@ class QuantumCircuit:
         clbits: Iterable[Clbit] = (),
         registers: Iterable[Register] = (),
         allow_jumps: bool = True,
+        forbidden_message: Optional[str] = None,
     ):
         """Add a scope for collecting instructions into this circuit.
 
@@ -4189,6 +4200,8 @@ class QuantumCircuit:
             qubits: Any qubits that this scope should automatically use.
             clbits: Any clbits that this scope should automatically use.
             allow_jumps: Whether this scope allows jumps to be used within it.
+            forbidden_message: If given, all attempts to add instructions to this scope will raise a
+                :exc:`.CircuitError` with this message.
         """
         # pylint: disable=cyclic-import
         from qiskit.circuit.controlflow.builder import ControlFlowBuilderBlock
@@ -4207,6 +4220,7 @@ class QuantumCircuit:
                 resource_requester=resource_requester,
                 registers=registers,
                 allow_jumps=allow_jumps,
+                forbidden_message=forbidden_message,
             )
         )
 
@@ -4615,6 +4629,19 @@ class QuantumCircuit:
         condition = (self._resolve_classical_resource(condition[0]), condition[1])
         return self.append(IfElseOp(condition, true_body, false_body, label), qubits, clbits)
 
+    @typing.overload
+    def switch(
+        self,
+        target: Union[ClbitSpecifier, ClassicalRegister],
+        cases: None,
+        qubits: None,
+        clbits: None,
+        *,
+        label: Optional[str],
+    ) -> "qiskit.circuit.controlflow.switch_case.SwitchContext":
+        ...
+
+    @typing.overload
     def switch(
         self,
         target: Union[ClbitSpecifier, ClassicalRegister],
@@ -4622,30 +4649,75 @@ class QuantumCircuit:
         qubits: Sequence[QubitSpecifier],
         clbits: Sequence[ClbitSpecifier],
         *,
-        label: Optional[str] = None,
+        label: Optional[str],
     ) -> InstructionSet:
+        ...
+
+    def switch(self, target, cases=None, qubits=None, clbits=None, *, label=None):
         """Create a ``switch``/``case`` structure on this circuit.
+
+        There are two forms for calling this function.  If called with all its arguments (with the
+        possible exception of ``label``), it will create a :class:`.SwitchCaseOp` with the given
+        case structure.  If ``cases`` (and ``qubits`` and ``clbits``) are *not* passed, then this
+        acts as a context manager, which will automatically build a :class:`.SwitchCaseOp` when the
+        scope finishes.  In this form, you do not need to keep track of the qubits or clbits you are
+        using, because the scope will handle it for you.
+
+        Example usage::
+
+            from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
+            qreg = QuantumRegister(3)
+            creg = ClassicalRegister(3)
+            qc = QuantumCircuit(qreg, creg)
+            qc.h([0, 1, 2])
+            qc.measure([0, 1, 2], [0, 1, 2])
+
+            with qc.switch(creg) as case:
+                with case(0):
+                    qc.x(0)
+                with case(1, 2):
+                    qc.z(1)
+                with case(case.DEFAULT):
+                    qc.cx(0, 1)
 
         Args:
             target (Union[ClassicalRegister, Clbit]): The classical value to switch one.  This must
-                be integer valued.
-            cases (Iterable[Tuple[typing.Any, QuantumCircuit]]): A sequence of case specifiers.  Each
-                tuple defines one case body (the second item).  The first item of the tuple can be
-                either a single integer value, the special value :data:`.CASE_DEFAULT`, or a tuple
-                of several integer values.  Each of the integer values will be tried in turn; control
-                will then pass to the body corresponding to the first match.  :data:`.CASE_DEFAULT`
-                matches all possible values.
-            qubits (Sequence[Qubit]): The circuit qubits over which all case bodies execute.
-            clbits (Sequence[Clbit]): The circuit clbits over which all case bodies execute.
+                be integer-like.
+            cases (Iterable[Tuple[typing.Any, QuantumCircuit]]): A sequence of case specifiers.
+                Each tuple defines one case body (the second item).  The first item of the tuple can
+                be either a single integer value, the special value :data:`.CASE_DEFAULT`, or a
+                tuple of several integer values.  Each of the integer values will be tried in turn;
+                control will then pass to the body corresponding to the first match.
+                :data:`.CASE_DEFAULT` matches all possible values.  Omit in context-manager form.
+            qubits (Sequence[Qubit]): The circuit qubits over which all case bodies execute. Omit in
+                context-manager form.
+            clbits (Sequence[Clbit]): The circuit clbits over which all case bodies execute. Omit in
+                context-manager form.
             label (Optional[str]): The string label of the instruction in the circuit.
 
         Returns:
-            InstructionSet: A handle to the instruction created.
+            InstructionSet or SwitchCaseContext: If used in context-manager mode, then this should
+            be used as a ``with`` resource, which will return an object that can be repeatedly
+            entered to produce cases for the switch statement.  If the full form is used, then this
+            returns a handle to the instructions created.
+
+        Raises:
+            CircuitError: if an incorrect calling convention is used.
         """
         # pylint: disable=cyclic-import
-        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp
+        from qiskit.circuit.controlflow.switch_case import SwitchCaseOp, SwitchContext
 
         target = self._resolve_classical_resource(target)
+        if cases is None:
+            if qubits is not None or clbits is not None:
+                raise CircuitError(
+                    "When using 'switch' as a context manager, you cannot pass qubits or clbits."
+                )
+            in_loop = bool(self._control_flow_scopes and self._control_flow_scopes[-1].allow_jumps)
+            return SwitchContext(self, target, in_loop=in_loop, label=label)
+
+        if qubits is None or clbits is None:
+            raise CircuitError("When using 'switch' with cases, you must pass qubits and clbits.")
         return self.append(SwitchCaseOp(target, cases, label=label), qubits, clbits)
 
     def break_loop(self) -> InstructionSet:
@@ -4886,28 +4958,100 @@ def _compare_parameters(param1: Parameter, param2: Parameter) -> int:
     return _standard_compare(param1.name, param2.name)
 
 
-def _add_sub_instruction_to_existing_composite_circuits(
-    instruction: Instruction,
-    existing_gate_names: list[str],
-    existing_composite_circuits: list[Instruction],
-) -> None:
-    """Recursively add undefined sub-instructions in the definition of the given
-    instruction to existing_composite_circuit list.
-    """
-    for sub_instruction in instruction.definition:
-        sub_operation = sub_instruction.operation
-        # Check instructions names are valid
-        escaped = _qasm_escape_name(sub_operation.name, "gate_")
-        if escaped != sub_operation.name:
-            sub_operation = sub_operation.copy(name=escaped)
-        if (
-            sub_operation.name not in existing_gate_names
-            and sub_operation not in existing_composite_circuits
-        ):
-            existing_composite_circuits.insert(0, sub_operation)
-            _add_sub_instruction_to_existing_composite_circuits(
-                sub_operation, existing_gate_names, existing_composite_circuits
+# Used by the OQ2 exporter.  Just needs to have enough parameters to support the largest standard
+# (non-controlled) gate in our standard library.  We have to use the same `Parameter` instances each
+# time so the equality comparisons will work.
+_QASM2_FIXED_PARAMETERS = [Parameter("param0"), Parameter("param1"), Parameter("param2")]
+
+
+def _qasm2_define_custom_operation(operation, existing_gate_names, gates_to_define):
+    """Extract a custom definition from the given operation, and append any necessary additional
+    subcomponents' definitions to the ``gates_to_define`` ordered dictionary.
+
+    Returns a potentially new :class:`.Instruction`, which should be used for the
+    :meth:`~.Instruction.qasm` call (it may have been renamed)."""
+    from qiskit.circuit import library as lib  # pylint: disable=cyclic-import
+
+    if operation.name in existing_gate_names:
+        return operation
+
+    # Check instructions names or label are valid
+    escaped = _qasm_escape_name(operation.name, "gate_")
+    if escaped != operation.name:
+        operation = operation.copy(name=escaped)
+
+    # These are built-in gates that are known to be safe to construct by passing the correct number
+    # of `Parameter` instances positionally, and have no other information.  We can't guarantee that
+    # if they've been subclassed, though.  This is a total hack; ideally we'd be able to inspect the
+    # "calling" signatures of Qiskit `Gate` objects to know whether they're safe to re-parameterise.
+    known_good_parameterized = {
+        lib.PhaseGate,
+        lib.RGate,
+        lib.RXGate,
+        lib.RXXGate,
+        lib.RYGate,
+        lib.RYYGate,
+        lib.RZGate,
+        lib.RZXGate,
+        lib.RZZGate,
+        lib.XXMinusYYGate,
+        lib.XXPlusYYGate,
+        lib.UGate,
+        lib.U1Gate,
+        lib.U2Gate,
+        lib.U3Gate,
+    }
+
+    # In known-good situations we want to use a manually parametrised object as the source of the
+    # definition, but still continue to return the given object as the call-site object.
+    if type(operation) in known_good_parameterized:
+        parameterized_operation = type(operation)(*_QASM2_FIXED_PARAMETERS[: len(operation.params)])
+    elif hasattr(operation, "_qasm2_decomposition"):
+        new_op = operation._qasm2_decomposition()
+        parameterized_operation = operation = new_op.copy(
+            name=_qasm_escape_name(new_op.name, "gate_")
+        )
+    else:
+        parameterized_operation = operation
+
+    # If there's an _equal_ operation in the existing circuits to be defined, then our job is done.
+    previous_definition_source, _ = gates_to_define.get(operation.name, (None, None))
+    if parameterized_operation == previous_definition_source:
+        return operation
+
+    # Otherwise, if there's a naming clash, we need a unique name.
+    if operation.name in gates_to_define:
+        new_name = f"{operation.name}_{id(operation)}"
+        operation = operation.copy(name=new_name)
+    else:
+        new_name = operation.name
+
+    if parameterized_operation.params:
+        parameters_qasm = (
+            "(" + ",".join(f"param{i}" for i in range(len(parameterized_operation.params))) + ")"
+        )
+    else:
+        parameters_qasm = ""
+    qubits_qasm = ",".join(f"q{i}" for i in range(parameterized_operation.num_qubits))
+    parameterized_definition = getattr(parameterized_operation, "definition", None)
+    if parameterized_definition is None:
+        gates_to_define[new_name] = (
+            parameterized_operation,
+            f"opaque {new_name}{parameters_qasm} {qubits_qasm};",
+        )
+    else:
+        statements = []
+        qubit_labels = {bit: f"q{i}" for i, bit in enumerate(parameterized_definition.qubits)}
+        for instruction in parameterized_definition.data:
+            new_operation = _qasm2_define_custom_operation(
+                instruction.operation, existing_gate_names, gates_to_define
             )
+            bits_qasm = ",".join(qubit_labels[q] for q in instruction.qubits)
+            statements.append(f"{new_operation.qasm()} {bits_qasm};")
+        body_qasm = " ".join(statements)
+        definition_qasm = f"gate {new_name}{parameters_qasm} {qubits_qasm} {{ {body_qasm} }}"
+        gates_to_define[new_name] = (parameterized_operation, definition_qasm)
+    return operation
 
 
 def _qasm_escape_name(name: str, prefix: str) -> str:
@@ -4938,72 +5082,6 @@ def _make_unique(name: str, already_defined: collections.abc.Set[str]) -> str:
             return name + suffix
     # This isn't actually reachable because the above loop is infinite.
     return name
-
-
-def _get_composite_circuit_qasm_from_instruction(instruction: Instruction) -> str:
-    """Returns OpenQASM string composite circuit given an instruction.
-    The given instruction should be the result of composite_circuit.to_instruction()."""
-
-    if instruction.definition is None:
-        raise ValueError(f'Instruction "{instruction.name}" is not defined.')
-
-    gate_parameters = ",".join(["param%i" % num for num in range(len(instruction.params))])
-    qubit_parameters = ",".join(["q%i" % num for num in range(instruction.num_qubits)])
-    composite_circuit_gates = ""
-
-    definition = instruction.definition
-    definition_bit_labels = {
-        bit: idx for bits in (definition.qubits, definition.clbits) for idx, bit in enumerate(bits)
-    }
-    for sub_instruction in definition:
-        sub_operation = sub_instruction.operation
-        escaped = _qasm_escape_name(sub_operation.name, "gate_")
-        if escaped != sub_operation.name:
-            sub_operation = sub_operation.copy(name=escaped)
-
-        gate_qargs = ",".join(
-            "q%i" % index
-            for index in [definition_bit_labels[qubit] for qubit in sub_instruction.qubits]
-        )
-        composite_circuit_gates += f"{sub_operation.qasm()} {gate_qargs}; "
-
-    if composite_circuit_gates:
-        composite_circuit_gates = composite_circuit_gates.rstrip(" ")
-
-    if gate_parameters:
-        qasm_string = "gate {}({}) {} {{ {} }}".format(
-            instruction.name,
-            gate_parameters,
-            qubit_parameters,
-            composite_circuit_gates,
-        )
-    else:
-        qasm_string = "gate {} {} {{ {} }}".format(
-            instruction.name,
-            qubit_parameters,
-            composite_circuit_gates,
-        )
-
-    return qasm_string
-
-
-def _insert_composite_gate_definition_qasm(
-    string_temp: str, existing_composite_circuits: list[Instruction], extension_lib: str
-) -> str:
-    """Insert composite gate definition QASM code right after extension library in the header"""
-
-    gate_definition_string = ""
-
-    # Generate gate definition string
-    for instruction in existing_composite_circuits:
-        if hasattr(instruction, "_qasm_definition"):
-            qasm_string = instruction._qasm_definition
-        else:
-            qasm_string = _get_composite_circuit_qasm_from_instruction(instruction)
-        gate_definition_string += "\n" + qasm_string
-
-    string_temp = string_temp.replace(extension_lib, f"{extension_lib}{gate_definition_string}")
-    return string_temp
 
 
 def _bit_argument_conversion(specifier, bit_sequence, bit_set, type_) -> list[Bit]:
