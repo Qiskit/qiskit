@@ -1,7 +1,7 @@
 ---
 features_transpiler:
   - |
-    Added a new method, :meth:`~.DAGCircuit.swap_node`, to the
+    Added a new method, :meth:`~.DAGCircuit.swap_nodes`, to the
     :class:`~.DAGCircuit` to allow swapping nodes which are partially
     connected. Partially connected here means that the two nodes share at
     least one edge (which represents a qubit or clbit). If the nodes do not

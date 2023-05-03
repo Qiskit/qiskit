@@ -1,7 +1,7 @@
 ---
 features_transpiler:
   - |
-    Added a new function :func:`passmanager_stage_plugins` to the
+    Added a new function :func:`~.passmanager_stage_plugins` to the
     :mod:`qiskit.transpiler.preset_passmanagers.plugin` module. This function
     is used to obtain a mapping from plugin names to their their class type.
     This enables identifying and querying any defined passmanager stage plugin's

@@ -1,7 +1,7 @@
 ---
 features_transpiler:
   - |
-    The transpiler pass :class:`~.transpiler.passes.Error` now also accepts callables
+    The transpiler pass :class:`~.Error` now also accepts callables
     inputs for its ``msg`` parameter. If used these input callables will be passed
     the ``property_set`` attribute of the pass and are expected to return a string
     which will be used for the error message when the pass is run. For example::

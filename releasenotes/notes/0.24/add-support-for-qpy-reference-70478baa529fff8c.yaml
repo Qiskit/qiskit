@@ -1,7 +1,7 @@
 ---
 features_pulse:
   - |
-    Added support to QPY (:mod:`qiskit.qpy) for working with pulse
+    Added support to QPY (:mod:`qiskit.qpy`) for working with pulse
     :class:`~.ScheduleBlock` instances with unassigned references,
     and preserving the data structure for the reference to subroutines.
     This feature allows users to serialize and deserialize a template pulse

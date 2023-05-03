@@ -2,7 +2,7 @@
 features_transpiler:
   - |
     Added a new transpiler pass, :class:`~.UnrollForLoops`, which is used
-    to unroll any :class:`~ForLoopOp` operations in a circuit. This pass
+    to unroll any :class:`~.ForLoopOp` operations in a circuit. This pass
     unrolls for-loops when possible, if there are no
     :class:`~.ContinueLoopOp` or :class:`~.BreakLoopOp` inside the body
     block of the loop. For example:
