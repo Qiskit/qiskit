@@ -67,8 +67,8 @@ Quantum Fisher Information
    QFIResult
    QFI
 
-Reverse
-=======
+Classical Methods
+=================
 
 .. autosummary::
    :toctree: ../stubs/
