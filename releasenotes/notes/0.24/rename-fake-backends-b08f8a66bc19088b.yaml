@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_providers:
   - |
     The :attr:`~.BackendV2.name` attribute on the :class:`~.BackendV2` based
     fake backend classes in :mod:`qiskit.providers.fake_provider` have changed

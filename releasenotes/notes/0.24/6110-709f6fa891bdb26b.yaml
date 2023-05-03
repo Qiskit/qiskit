@@ -1,6 +1,9 @@
 ---
-upgrade:
+upgrade_transpiler:
   - |
-    For the class :class:`~DagDepNode`, the previously deprecated ``condition``
-    attribute has been removed. It was deprecated since 0.18 release.
-    You can use :meth:`~DAGDepNode.op.condition~ if the ``DAGDepNode`` is of type ``op``.
+    The previously deprecated ``condition`` attribute of the
+    :class:`~.DAGDepNode` class has been removed. It was marked as deprecated
+    in the 0.18 release (07-2021). Instead you should use the
+    :attr:`~.Instruction.condition` attribute of the ``op`` attribute to
+    access the condition of an operation node. For other node types there
+    is no condition to access.
