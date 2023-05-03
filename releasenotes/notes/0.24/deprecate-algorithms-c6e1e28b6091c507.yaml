@@ -16,18 +16,18 @@ deprecations_algorithms:
     * Class :class:`qiskit.algorithms.TrotterQRTE` is deprecated and superseded by
       :class:`qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE`.
 
-     * Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend`
-       is deprecated and superseded by :class:`~qiskit.primitives.BaseSampler` in the following
-       classes:
+    * Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend`
+      is deprecated and superseded by :class:`~qiskit.primitives.BaseSampler` in the following
+      classes:
 
-         * :class:`~qiskit.algorithms.amplitude_amplifiers.Grover`,
-         * :class:`~qiskit.algorithms.amplitude_estimators.AmplitudeEstimation`,
-         * :class:`~qiskit.algorithms.amplitude_estimators.FasterAmplitudeEstimation`,
-         * :class:`~qiskit.algorithms.amplitude_estimators.IterativePhaseEstimation`,
-         * :class:`~qiskit.algorithms.amplitude_estimators.MaximumLikelihoodAmplitudeEstimation`,
-         * :class:`~qiskit.algorithms.phase_estimators.HamiltonianPhaseEstimation`,
-         * :class:`~qiskit.algorithms.phase_estimators.IterativePhaseEstimation`,
-         * :class:`~qiskit.algorithms.phase_estimators.PhaseEstimation`
+         * :class:`~qiskit.algorithms.Grover`
+         * :class:`~qiskit.algorithms.AmplitudeEstimation`
+         * :class:`~qiskit.algorithms.FasterAmplitudeEstimation`
+         * :class:`~qiskit.algorithms.IterativePhaseEstimation`
+         * :class:`~qiskit.algorithms.MaximumLikelihoodAmplitudeEstimation`
+         * :class:`~qiskit.algorithms.HamiltonianPhaseEstimation`
+         * :class:`~qiskit.algorithms.IterativePhaseEstimation`
+         * :class:`~qiskit.algorithms.PhaseEstimation`
 
     * Using :class:`~qiskit.utils.QuantumInstance` or :class:`~qiskit.providers.Backend`
       or :class:`~qiskit.opflow.ExpectationBase` is deprecated and superseded by

@@ -11,6 +11,7 @@ upgrade_transpiler:
     with the matching ``metadata`` attribute of :class:`.QuantumCircuit`.
 deprecations_circuits:
   - |
-    Setting the :class:`.QuantumCircuit` :attr:`.QuantumCircuit.metadata` attribute
-    to ``None`` has been deprecated. Instead, users should set it to an empty
-    dictionary if they want it to contain no data.
+    Setting the :class:`.QuantumCircuit` :attr:`~.QuantumCircuit.metadata` attribute
+    to ``None`` has been deprecated and will no longer be supported in a future
+    release. Instead, users should set it to an empty dictionary if they want
+    it to contain no data.
