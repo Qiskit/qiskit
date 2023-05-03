@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_algorithms:
   - |
     All of the following features are now deprecated, after having been made pending deprecation
     since 0.22.0. More information is available at https://qisk.it/algo_migration.

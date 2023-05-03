@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_quantum_info:
   - |
     The :class:`~qiskit.quantum_info.PauliTable` and :class:`~qiskit.quantum_info.StabilizerTable`
     are deprecated and will be removed in a future release.
