@@ -1,7 +1,6 @@
 ---
 features:
   - |
-    The new function `mcsu2_real_diagonal(circuit, unitary, controls, target, ctrl_state)` 
-    applies a multi-controlled SU(2) gate unitary with one real diagonal. With n-1 controls, 
-    the decomposition requires approximately 16n cx gates. Synthesis of mcrx and mcry without 
-    auxiliary qubits now uses the `mcsu2_real_diagonal` decomposition.
+    Improve the decomposition of multi-controlled Pauli-X and Pauli-Y rotations on :math:`n`
+    controls to :math:`16n - 40` CX gates, for :math:`n \geq 4`. This improvement is based
+    on `arXiv:2302.06377 <https://arxiv.org/abs/2302.06377>`__.
