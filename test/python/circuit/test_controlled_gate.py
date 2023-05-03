@@ -77,7 +77,7 @@ from qiskit.circuit.library import (
 from qiskit.circuit._utils import _compute_control_matrix
 import qiskit.circuit.library.standard_gates as allGates
 from qiskit.extensions import UnitaryGate
-from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import mcsu2_real_diagonal
+from qiskit.circuit.library.standard_gates.multi_control_rotation_gates import _mcsu2_real_diagonal
 
 from .gate_utils import _get_free_params
 
@@ -612,7 +612,7 @@ class TestControlledGate(QiskitTestCase):
         theta = 0.3
         qc = QuantumCircuit(num_ctrls + 1)
         ry_matrix = RYGate(theta).to_matrix()
-        mcsu2_real_diagonal(qc, ry_matrix, list(range(num_ctrls)), num_ctrls)
+        _mcsu2_real_diagonal(qc, ry_matrix, list(range(num_ctrls)), num_ctrls)
 
         mcry_matrix = _compute_control_matrix(ry_matrix, 6)
         self.assertTrue(np.allclose(mcry_matrix, Operator(qc).to_matrix()))
