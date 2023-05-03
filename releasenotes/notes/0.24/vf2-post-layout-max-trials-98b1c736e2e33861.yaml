@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new parameter ``max_trials`` to pass :class:`~.VF2PostLayout`
     which, when specified, limits the number of layouts discovered and

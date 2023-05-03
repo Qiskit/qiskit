@@ -1,6 +1,7 @@
 ---
 encoding: utf8
 default_branch: main
+collapse_pre_releases: true
 sections:
     - [features, New Features]
     - [features_transpiler, Transpiler, 2]

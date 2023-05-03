@@ -1,9 +1,9 @@
 ---
-features:
+features_algorithms:
   - |
     Added extensions to the :class:`~.eigensolvers.VQD` algorithm, which allow
     to pass a list of optimizers and initial points for the different
-    minimization runs. For example, the ``k``-th initial point and 
+    minimization runs. For example, the ``k``-th initial point and
     ``k``-th optimizer will be used for the optimization of the
     ``k-1``-th exicted state.
 

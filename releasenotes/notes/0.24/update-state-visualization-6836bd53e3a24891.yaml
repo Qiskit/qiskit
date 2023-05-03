@@ -1,23 +1,25 @@
 ---
-features:
+features_visualization:
   - |
-    The ``figsize`` argument of
-    :obj:`~qiskit.visualization.plot_bloch_multivector` can now be used to
-    set a size for individual Bloch ball sub-plots: if there are ``num``
-    qubits and ``(w, h)`` is passed to ``figsize``, then the overall figure
-    width is set to ``num*w``, while the overall height is set to ``h``.
+    Added a new keyword argument, ``figsize``, to the
+    :func:`~qiskit.visualization.plot_bloch_multivector` function. This
+    argument can be used to set a size for individual Bloch sphere sub-plots.
+    For example, if there are :math:`n` qubits and ``figsize`` is set to
+    ``(w, h)``, then the overall figure width is set to :math:`n*w`, while the
+    overall height is set to :math:`h`.
   - |
-    A new ``font_size`` keyword argument for
-    :obj:`~qiskit.visualization.plot_bloch_multivector` can be used to
-    control the font size in Bloch ball sub-plots.
+    Added a new keyword argument, ``font_size``, to the
+    :func:`~qiskit.visualization.plot_bloch_multivector` function. This argument
+    can be used to control the font size in the output visualization.
   - |
-    New ``title_font_size`` and ``title_pad`` keyword arguments
-    for :obj:`~qiskit.visualization.plot_bloch_multivector` can be used to
-    control the font size of the overall title and its padding.
+    Added two new keyword arguments, ``title_font_size`` and ``title_pad``, to
+    the :func:`~qiskit.visualization.plot_bloch_multivector` function. These
+    arguments can be used to control the font size of the overall title and its
+    padding respectively.
 fixes:
   - |
     Previous to this release, the ``figsize`` argument of
-    :obj:`~qiskit.visualization.plot_bloch_multivector` was not used by the
+    :func:`~qiskit.visualization.plot_bloch_multivector` was not used by the
     visualization, making it impossible to change its size (e.g. to shrink
     it for single-qubit states). This release fixes it by introducing a use
     for the ``figsize`` argument.

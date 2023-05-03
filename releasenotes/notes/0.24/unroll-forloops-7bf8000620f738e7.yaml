@@ -1,6 +1,23 @@
 ---
-features:
+features_transpiler:
   - |
-    The transpiler pass :class:`~.UnrollForLoops` was added. It unrolls for-loops when possible (if
-    no :class:`~.ContinueLoopOp` or a :class:`~.BreakLoopOp` is inside the body block).
-    For example ``for x in {0, 3, 4} {rx(x) qr[1];}`` gets converted into ``rx(0) qr[1]; rx(3) qr[1]; rx(4) qr[1];``.
+    Added a new transpiler pass, :class:`~.UnrollForLoops`, which is used
+    to unroll any :class:`~ForLoopOp` operations in a circuit. This pass
+    unrolls for-loops when possible, if there are no
+    :class:`~.ContinueLoopOp` or :class:`~.BreakLoopOp` inside the body
+    block of the loop. For example:
+
+    .. plot::
+       :include-source:
+
+       from qiskit.transpiler.passes import UnrollForLoops
+       from qiskit import QuantumCircuit
+
+       unroll_pass = UnrollForLoops()
+
+       qc = QuantumCircuit(1)
+       # For loop over range 5
+       with qc.for_loop(range(5)) as i:
+           qc.rx(i, 0)
+       # Unroll loop into 5 rx gates
+       unroll_pass(qc).draw("mpl")
