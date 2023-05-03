@@ -22,7 +22,7 @@ from math import pi
 import numpy
 
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, transpile
-from qiskit.circuit import Gate, Parameter, Qubit, Clbit
+from qiskit.circuit import Gate, Parameter, Qubit, Clbit, Instruction
 from qiskit.quantum_info.operators import SuperOp
 from qiskit.quantum_info.random import random_unitary
 from qiskit.test import QiskitTestCase
@@ -1839,6 +1839,21 @@ class TestTextDrawerMultiQGates(QiskitTestCase):
 class TestTextDrawerParams(QiskitTestCase):
     """Test drawing parameters."""
 
+    def test_text_no_parameters(self):
+        """Test drawing with no parameters"""
+        expected = "\n".join(
+            [
+                "      ┌───┐",
+                "q: |0>┤ X ├",
+                "      └───┘",
+            ]
+        )
+
+        qr = QuantumRegister(1, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.x(0)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
     def test_text_parameters_mix(self):
         """cu3 drawing with parameters"""
         expected = "\n".join(
@@ -1903,6 +1918,39 @@ class TestTextDrawerParams(QiskitTestCase):
         circuit = QuantumCircuit(1)
         circuit.u(0, phi, lam, 0)
         self.assertEqual(circuit.draw(output="text").single_string(), expected)
+
+    def test_text_ndarray_parameters(self):
+        """Test that if params are type ndarray, params are not displayed."""
+        # fmt: off
+        expected = "\n".join(["      ┌─────────┐",
+                              "q: |0>┤ Unitary ├",
+                              "      └─────────┘"])
+        # fmt: on
+        qr = QuantumRegister(1, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.unitary(numpy.array([[0, 1], [1, 0]]), 0)
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
+
+    def test_text_qc_parameters(self):
+        """Test that if params are type QuantumCircuit, params are not displayed."""
+        expected = "\n".join(
+            [
+                "        ┌───────┐",
+                "q_0: |0>┤0      ├",
+                "        │  name │",
+                "q_1: |0>┤1      ├",
+                "        └───────┘",
+            ]
+        )
+
+        my_qc_param = QuantumCircuit(2)
+        my_qc_param.h(0)
+        my_qc_param.cx(0, 1)
+        inst = Instruction("name", 2, 0, [my_qc_param])
+        qr = QuantumRegister(2, "q")
+        circuit = QuantumCircuit(qr)
+        circuit.append(inst, [0, 1])
+        self.assertEqual(str(_text_circuit_drawer(circuit)), expected)
 
 
 class TestTextDrawerVerticalCompressionLow(QiskitTestCase):

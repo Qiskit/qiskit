@@ -136,8 +136,8 @@ class TestHamiltonianPhaseEstimation(QiskitAlgorithmsTestCase):
             )
             state_preparation = StateFn((I ^ H).to_circuit())
             evo = PauliTrotterEvolution(trotter_mode="suzuki", reps=4)
-
-        result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo)
+        with self.assertWarns(DeprecationWarning):
+            result = self.hamiltonian_pe(hamiltonian, state_preparation, evolution=evo)
         with self.subTest("Most likely eigenvalues"):
             self.assertAlmostEqual(result.most_likely_eigenvalue, -1.855, delta=0.001)
         with self.subTest("Most likely phase"):

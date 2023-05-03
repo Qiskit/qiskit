@@ -83,8 +83,8 @@ def _apply_mcu_graycode(circuit, theta, phi, lam, ctls, tgt, use_basis_gates):
         last_pattern = pattern
 
 
-def mcsu2_real_diagonal(
-    circuit: QuantumCircuit,
+def _mcsu2_real_diagonal(
+    circuit,
     unitary: np.ndarray,
     controls: Union[QuantumRegister, List[Qubit]],
     target: Union[Qubit, int],
@@ -236,7 +236,7 @@ def mcrx(
             use_basis_gates=use_basis_gates,
         )
     else:
-        mcsu2_real_diagonal(self, RXGate(theta).to_matrix(), control_qubits, target_qubit)
+        _mcsu2_real_diagonal(self, RXGate(theta).to_matrix(), control_qubits, target_qubit)
 
 
 def mcry(
@@ -306,7 +306,7 @@ def mcry(
                 use_basis_gates=use_basis_gates,
             )
         else:
-            mcsu2_real_diagonal(self, RYGate(theta).to_matrix(), control_qubits, target_qubit)
+            _mcsu2_real_diagonal(self, RYGate(theta).to_matrix(), control_qubits, target_qubit)
     else:
         raise QiskitError(f"Unrecognized mode for building MCRY circuit: {mode}.")
 
@@ -345,7 +345,7 @@ def mcrz(
     if n_c == 1:
         self.append(CRZGate(lam), control_qubits + [target_qubit])
     else:
-        mcsu2_real_diagonal(self, RZGate(lam).to_matrix(), control_qubits, target_qubit)
+        _mcsu2_real_diagonal(self, RZGate(lam).to_matrix(), control_qubits, target_qubit)
 
     if use_basis_gates:
         # pylint: disable=cyclic-import

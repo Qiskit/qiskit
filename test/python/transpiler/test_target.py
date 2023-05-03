@@ -488,6 +488,53 @@ class TestTarget(QiskitTestCase):
         )
         self.assertEqual(None, self.ideal_sim_target.build_coupling_map())
 
+    def test_coupling_map_mutations_do_not_propagate(self):
+        cm = CouplingMap.from_line(5, bidirectional=False)
+        cx_props = {
+            edge: InstructionProperties(duration=270.22e-9, error=0.00713)
+            for edge in cm.get_edges()
+        }
+        target = Target()
+        target.add_instruction(CXGate(), cx_props)
+        self.assertEqual(cm, target.build_coupling_map())
+        symmetric = target.build_coupling_map()
+        symmetric.make_symmetric()
+        self.assertNotEqual(cm, symmetric)  # sanity check for the test.
+        # Verify that mutating the output of `build_coupling_map` doesn't affect the target.
+        self.assertNotEqual(target.build_coupling_map(), symmetric)
+
+    def test_coupling_map_filtered_mutations_do_not_propagate(self):
+        cm = CouplingMap.from_line(5, bidirectional=False)
+        cx_props = {
+            edge: InstructionProperties(duration=270.22e-9, error=0.00713)
+            for edge in cm.get_edges()
+            if 2 not in edge
+        }
+        target = Target()
+        target.add_instruction(CXGate(), cx_props)
+        symmetric = target.build_coupling_map(filter_idle_qubits=True)
+        symmetric.make_symmetric()
+        self.assertNotEqual(cm, symmetric)  # sanity check for the test.
+        # Verify that mutating the output of `build_coupling_map` doesn't affect the target.
+        self.assertNotEqual(target.build_coupling_map(filter_idle_qubits=True), symmetric)
+
+    def test_coupling_map_no_filter_mutations_do_not_propagate(self):
+        cm = CouplingMap.from_line(5, bidirectional=False)
+        cx_props = {
+            edge: InstructionProperties(duration=270.22e-9, error=0.00713)
+            for edge in cm.get_edges()
+        }
+        target = Target()
+        target.add_instruction(CXGate(), cx_props)
+        # The filter here does not actually do anything, because there's no idle qubits.  This is
+        # just a test that this path is also not cached.
+        self.assertEqual(cm, target.build_coupling_map(filter_idle_qubits=True))
+        symmetric = target.build_coupling_map(filter_idle_qubits=True)
+        symmetric.make_symmetric()
+        self.assertNotEqual(cm, symmetric)  # sanity check for the test.
+        # Verify that mutating the output of `build_coupling_map` doesn't affect the target.
+        self.assertNotEqual(target.build_coupling_map(filter_idle_qubits=True), symmetric)
+
     def test_coupling_map_2q_gate(self):
         cmap = self.fake_backend_target.build_coupling_map("ecr")
         self.assertEqual(
