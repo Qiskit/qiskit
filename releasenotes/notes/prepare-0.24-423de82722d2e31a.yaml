@@ -1,15 +1,67 @@
 ---
 prelude: |
-  This release
+  This release is a major feature release that includes numerous new features
+  and bugfixes.
 
-  The main changes of this release are:
-
-   * QuantumInstance, OpFlow deprecation
-
-   * QASM2 improvements
-
-   * Transpiler support for devices with disjoint connectivity
-
-  This release is also the final release with support for running Qiskit
+  This release is the final release with support for running Qiskit
   with Python 3.7. Starting in the next minor version release Python >=3.8 will
   be required to run Qiskit.
+
+  The highlights of this release:
+
+  QuantumInstance, OpFlow, and algorithms usage deprecation
+  ---------------------------------------------------------
+
+  This release officially deprecates the :class:`~QuantumInstance` class (and
+  its associated helper methods and classes), the :mod:`qiskit.opflow` module,
+  and any usage of those in :mod:`qiskit.algorithms`. This deprecation comes
+  from a long thread of work that started in Qiskit Terra 0.21.0 to refactor
+  the :mod:`qiskit.algorithms` module to be based on the computational
+  :mod:`~qiskit.primitives`. There are associated migration guides for any
+  existing users to migrate to the new workflow:
+
+    * ``QuantumInstance`` migration guide: https://qisk.it/qi_migration
+    * ``Opflow`` migration guide: https://qisk.it/qi_migration
+    * Algorithms migration guide: https://qisk.it/algo_migration
+
+  OpenQASM2 improvements
+  ----------------------
+
+  In this release there have been major refactoring for the OpenQASM 2.0 support
+  in Qiskit. The first change is the introduction of a new parser for OpenQASM
+  2.0 in the :mod:`qiskit.qasm2` module. This new module replaces the
+  existing :mod:`qiskit.qasm` module. The new parser more explicit and
+  correct relative to the language specification. It is also implemented in
+  Rust and is significantly faster than the previous parser. Paired with the
+  new parser the OpenQASM2.0 exporter underwent a large refactor that
+  improved the correctness of the output when using the
+  :meth:`.QuantumCircuit.qasm` method to generate QASM output from a
+  :class:`~.QuantumCircuit` object.
+
+  Transpiler support for devices with disjoint connectivity
+  ---------------------------------------------------------
+
+  The transpiler now supports targeting backends with disjoint connectivity.
+  Previously, the transpiler only supported backends which were fully connected
+  (where the is path to run operations between all pairs of qubits in the
+  backend). Now, if a backend has disconnected connectivity the transpiler is
+  able to reason about how to apply layout (:ref:`layout_stage`) and
+  routing (:ref:`routing_stage`) on these backend. If the input circuit is
+  not able to be executed on the hardware given the lack of connectivity between
+  connected components a descriptive error will be returned.
+
+  For example, the Heron device outlined in IBM Quantum's
+  `hardware roadmap <https://research.ibm.com/blog/ibm-quantum-roadmap-2025>`__
+  describes a future backend which will have shared control hardware
+  and real-time classical communication between separate quantum processors.
+  This support enables the :class:`~.Target` to accurately model these types
+  of future devices or other hardware with similar constraints.
+
+  Switch Operation
+  ----------------
+
+  This release adds a new control flow operation the switch statement. This is
+  implemented using a new operation class :class:`~.SwitchCaseOp` and the
+  :meth:`.QuantumCircuit.switch` method. This allows switching on a numeric
+  input (such as a classical register or bit) and executing the circuit that
+  corresponds to the matching value.

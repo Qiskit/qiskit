@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Improve the type annotations on the
+    Fixed the type annotations on the
     :meth:`.QuantumCircuit.assign_parameters`
-    method to reflect the change in return type depending on the ``inplace``
-    argument.
+    method to correctly reflect the change in return type depending on the
+    value of the ``inplace`` argument.

@@ -1,18 +1,19 @@
 ---
 features:
   - |
-    Added the functions ``add_deprecation_to_docstring()``, ``@deprecate_arg``, and
-    ``@deprecate_func`` to ``qiskit.util.deprecation``.
+    Added the functions :func:`~.add_deprecation_to_docstring`,
+    :func:`~.deprecate_arg`, and :func:`~.deprecate_func` to the :mod:`qiskit.utils` module.
 
-    ``add_deprecation_to_docstring()`` will rewrite the function's docstring to include a
+    :func:`~.add_deprecation_to_docstring` will rewrite the function's docstring to include a
     Sphinx ``.. deprecated::`` directive so that the deprecation shows up in docs and with
-    ``help()``. The deprecation decorators from ``qiskit.util.deprecation`` call
-    ``add_deprecation_to_docstring()`` already for you; but you can call it directly if you
+    ``help()``. The deprecation decorators from :mod:`qiskit.utils` call
+    :func:`~.add_deprecation_to_docstring` already for you; but you can call it directly if you
     are using different mechanisms for deprecations.
 
-    ``@deprecate_func`` replaces ``@deprecate_function``. It will auto-generate most of the
-    deprecation message for you.
+    ``@deprecate_func`` replaces ``@deprecate_function`` and is used to deprecate an entire
+    function. It will auto-generate most of the deprecation message for you.
 
-    ``@deprecate_arg`` replaces ``@deprecate_arguments``. It will generate a more useful message
-    than before. It is also more flexible, like allowing you to set a ``predicate`` so that you
-    only deprecate certain situations, such as using a deprecated value or data type.
+    ``@deprecate_arg`` replaces ``@deprecate_arguments`` and is used to deprecate an
+    argument on a function. It will generate a more useful message than the previous function.
+    It is also more flexible, for example it allows setting a ``predicate`` so that you only
+    deprecate certain situations, such as using a deprecated value or data type.
