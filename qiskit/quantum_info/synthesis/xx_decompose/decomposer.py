@@ -227,7 +227,6 @@ class XXDecomposer:
         unitary: Operator | np.ndarray,
         basis_fidelity: dict | float | None = None,
         approximate: bool = True,
-        weyl_decomposition: TwoQubitWeylDecomposition | None = None,
     ) -> QuantumCircuit:
         """
         Fashions a circuit which (perhaps `approximate`ly) models the special unitary operation
@@ -244,9 +243,6 @@ class XXDecomposer:
                 interpreted as {pi: f, pi/2: f/2, pi/3: f/3}.
                 If given, overrides the basis_fidelity given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0 .
-            weyl_decomposition: If passed, this should be the result of
-                TwoQubitWeylDecomposition(unitary). This is an optimization. The Weyl decomposition
-                will be computed if not passed here.
         Returns:
             QuantumCircuit: Synthesized circuit.
         """
@@ -258,8 +254,7 @@ class XXDecomposer:
         from qiskit.extensions import UnitaryGate  # pylint: disable=cyclic-import
 
         # get the associated _positive_ canonical coordinate
-        if weyl_decomposition is None:
-            weyl_decomposition = TwoQubitWeylDecomposition(unitary)
+        weyl_decomposition = TwoQubitWeylDecomposition(unitary)
         target = [getattr(weyl_decomposition, x) for x in ("a", "b", "c")]
         if target[-1] < -EPSILON:
             target = [np.pi / 2 - target[0], target[1], -target[2]]

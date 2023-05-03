@@ -1092,7 +1092,6 @@ class TwoQubitBasisDecomposer:
         basis_fidelity: Optional[float] = None,
         approximate: bool = True,
         *,
-        weyl_decomposition: Optional[TwoQubitWeylDecomposition] = None,
         _num_basis_uses: int = None,
     ) -> QuantumCircuit:
         """Decompose a two-qubit `unitary` over fixed basis + SU(2) using the best approximation given
@@ -1103,9 +1102,6 @@ class TwoQubitBasisDecomposer:
             basis_fidelity (float or None): Fidelity to be assumed for applications of KAK Gate.
                 If given, overrides basis_fidelity given at init.
             approximate (bool): Approximates if basis fidelities are less than 1.0.
-            weyl_decomposition: If passed, this should be the result of
-                TwoQubitWeylDecomposition(unitary). This is an optimization. The Weyl
-                decomposition will be computed if not passed here.
             _num_basis_uses (int): force a particular approximation by passing a number in [0, 3].
         Returns:
             QuantumCircuit: Synthesized circuit.
@@ -1117,11 +1113,7 @@ class TwoQubitBasisDecomposer:
             basis_fidelity = 1.0
         unitary = np.asarray(unitary, dtype=complex)
 
-        target_decomposed = (
-            weyl_decomposition
-            if weyl_decomposition is not None
-            else TwoQubitWeylDecomposition(unitary)
-        )
+        target_decomposed = TwoQubitWeylDecomposition(unitary)
         traces = self.traces(target_decomposed)
         expected_fidelities = [trace_to_fid(traces[i]) * basis_fidelity**i for i in range(4)]
 
