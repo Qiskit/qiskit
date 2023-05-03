@@ -861,7 +861,7 @@ class TestUnitarySynthesis(QiskitTestCase):
         unitary_synth_pass = UnitarySynthesis(target=target)
         result_dag = unitary_synth_pass.run(dag)
         result_qc = dag_to_circuit(result_dag)
-        self.assertEqual(result_qc, QuantumCircuit(2))
+        self.assertEqual(result_qc, qc)
 
     def test_default_does_not_fail_on_no_syntheses(self):
         qc = QuantumCircuit(1)
