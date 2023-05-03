@@ -496,9 +496,6 @@ def _build_gate_lengths(props=None, target=None):
     The dictionary has the form:
     {gate_name: {(qubits,): duration}}
     """
-
-
-    This method differs from
     gate_lengths = {}
     if target is not None:
         for gate, prop_dict in target.items():
