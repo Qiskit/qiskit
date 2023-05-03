@@ -1,6 +1,11 @@
 ---
 fixes:
   - |
-    Throw ``TranspileError`` when routing passes (``StochasticSwap``, ``SabreSwap``, 
-    ``LookaheadSwap``, and ``BasicSwap``) run with ``coupling_map=None``. Refer to
-    `#7127 <https://github.com/Qiskit/qiskit-terra/issues/7127>` for more details.
+    Fixed the transpiler routing passes :class:`~.StochasticSwap`,
+    :class:`~.SabreSwap`, :class:`~.LookaheadSwap`, and :class:`~.BasicSwap`
+    so that they consistently raise a :class:`~.TranspilerError` when their
+    respective ``.run()`` method is called if the passes were initialized
+    with ``coupling_map=None``. Previously, these passes would raise errors
+    in this case but they were all caused by side effects and the specific
+    exception was not predictable.
+    Fixed `#7127 <https://github.com/Qiskit/qiskit-terra/issues/7127>`__
