@@ -350,9 +350,13 @@ class UnitarySynthesisPlugin(abc.ABC):
 
     @property
     def supports_gate_lengths_by_qubit(self):
-        """Return whether the plugin supports taking ``gate_lengths``
+        """Return whether the plugin supports taking ``gate_lengths_by_qubit``
 
-        ``gate_lengths`` will be a dictionary in the form of
+        This differs from ``supports_gate_lengths``/``gate_lengths`` by using a different
+        view of the same data. Instead of being keyed by gate name this is keyed by qubit
+        and uses :class:`~.Gate` instances to represent gates (instead of gate names)
+
+        ``gate_lengths_by_qubit`` will be a dictionary in the form of
         ``{(qubits,): [Gate, length]}``. For example::
 
             {
@@ -365,14 +369,20 @@ class UnitarySynthesisPlugin(abc.ABC):
         Do note that this dictionary might not be complete or could be empty
         as it depends on the target backend reporting gate lengths on every
         gate for each qubit.
+
+        This defaults to False
         """
         return False
 
     @property
     def supports_gate_errors_by_qubit(self):
-        """Return whether the plugin supports taking ``gate_errors``
+        """Return whether the plugin supports taking ``gate_errors_by_qubit``
 
-        ``gate_errors`` will be a dictionary in the form of
+        This differs from ``supports_gate_errors``/``gate_errors`` by using a different
+        view of the same data. Instead of being keyed by gate name this is keyed by qubit
+        and uses :class:`~.Gate` instances to represent gates (instead of gate names).
+
+        ``gate_errors_by_qubit`` will be a dictionary in the form of
         ``{(qubits,): [Gate, error]}``. For example::
 
             {
@@ -385,6 +395,8 @@ class UnitarySynthesisPlugin(abc.ABC):
         gate for each qubit. The gate error rates reported in ``gate_errors``
         are provided by the target device ``Backend`` object and the exact
         meaning might be different depending on the backend.
+
+        This defaults to False
         """
         return False
 

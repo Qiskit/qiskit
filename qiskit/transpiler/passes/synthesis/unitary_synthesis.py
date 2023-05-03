@@ -490,6 +490,15 @@ class UnitarySynthesis(TransformationPass):
 
 
 def _build_gate_lengths(props=None, target=None):
+    """Builds a ``gate_lengths`` dictionary from either ``props`` (BackendV1)
+    or ``target`` (BackendV2).
+
+    The dictionary has the form:
+    {gate_name: {(qubits,): duration}}
+    """
+
+
+    This method differs from
     gate_lengths = {}
     if target is not None:
         for gate, prop_dict in target.items():
@@ -510,6 +519,12 @@ def _build_gate_lengths(props=None, target=None):
 
 
 def _build_gate_errors(props=None, target=None):
+    """Builds a ``gate_error`` dictionary from either ``props`` (BackendV1)
+    or ``target`` (BackendV2).
+
+    The dictionary has the form:
+    {gate_name: {(qubits,): error_rate}}
+    """
     gate_errors = {}
     if target is not None:
         for gate, prop_dict in target.items():
