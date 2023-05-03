@@ -701,24 +701,25 @@ class DefaultUnitarySynthesis(plugin.UnitarySynthesisPlugin):
         # if we are using the approximation_degree knob, use it to scale already-given fidelities
         if approximation_degree is not None:
             basis_2q_fidelity = {k: v * approximation_degree for k, v in basis_2q_fidelity.items()}
-        for basis_1q in available_1q_basis:
-            if isinstance(pi2_basis, CXGate) and basis_1q == "ZSX":
-                pi2_decomposer = TwoQubitBasisDecomposer(
-                    pi2_basis,
-                    euler_basis=basis_1q,
+        if basis_2q_fidelity:
+            for basis_1q in available_1q_basis:
+                if isinstance(pi2_basis, CXGate) and basis_1q == "ZSX":
+                    pi2_decomposer = TwoQubitBasisDecomposer(
+                        pi2_basis,
+                        euler_basis=basis_1q,
+                        basis_fidelity=basis_2q_fidelity,
+                        pulse_optimize=True,
+                    )
+                    embodiments.update({pi / 2: XXEmbodiments[type(pi2_decomposer.gate)]})
+                else:
+                    pi2_decomposer = None
+                decomposer = XXDecomposer(
                     basis_fidelity=basis_2q_fidelity,
-                    pulse_optimize=True,
+                    euler_basis=basis_1q,
+                    embodiments=embodiments,
+                    backup_optimizer=pi2_decomposer,
                 )
-                embodiments.update({pi / 2: XXEmbodiments[type(pi2_decomposer.gate)]})
-            else:
-                pi2_decomposer = None
-            decomposer = XXDecomposer(
-                basis_fidelity=basis_2q_fidelity,
-                euler_basis=basis_1q,
-                embodiments=embodiments,
-                backup_optimizer=pi2_decomposer,
-            )
-            decomposers.append(decomposer)
+                decomposers.append(decomposer)
 
         self._decomposer_cache[qubits_tuple] = decomposers
         return decomposers
