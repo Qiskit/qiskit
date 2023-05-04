@@ -5,7 +5,7 @@ features_algorithms:
     parametrized operators) to the
     :class:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class.
     To facilitate working with this, added the
-    :attr:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE.num_timestamps`
+    :attr:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE.num_timesteps`
     attribute and a matching keyword argument to the
     :class:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE`
     constructor to control the number of time steps to divide the full evolution.

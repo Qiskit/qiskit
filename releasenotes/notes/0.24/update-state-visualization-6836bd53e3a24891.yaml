@@ -5,7 +5,7 @@ features_visualization:
     :func:`~qiskit.visualization.plot_bloch_multivector` function. This
     argument can be used to set a size for individual Bloch sphere sub-plots.
     For example, if there are :math:`n` qubits and ``figsize`` is set to
-    ``(w, h)``, then the overall figure width is set to :math:`n*w`, while the
+    ``(w, h)``, then the overall figure width is set to :math:`n \cdot w`, while the
     overall height is set to :math:`h`.
   - |
     Added a new keyword argument, ``font_size``, to the

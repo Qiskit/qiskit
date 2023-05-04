@@ -12,7 +12,7 @@ prelude: |
   QuantumInstance, OpFlow, and algorithms usage deprecation
   ---------------------------------------------------------
 
-  This release officially deprecates the :class:`~QuantumInstance` class (and
+  This release officially deprecates the :class:`~.QuantumInstance` class (and
   its associated helper methods and classes), the :mod:`qiskit.opflow` module,
   and any usage of those in :mod:`qiskit.algorithms`. This deprecation comes
   from a long thread of work that started in Qiskit Terra 0.21.0 to refactor
@@ -33,7 +33,7 @@ prelude: |
   existing :mod:`qiskit.qasm` module. The new parser more explicit and
   correct relative to the language specification. It is also implemented in
   Rust and is significantly faster than the previous parser. Paired with the
-  new parser the OpenQASM2.0 exporter underwent a large refactor that
+  new parser the OpenQASM 2.0 exporter underwent a large refactor that
   improved the correctness of the output when using the
   :meth:`.QuantumCircuit.qasm` method to generate QASM output from a
   :class:`~.QuantumCircuit` object.

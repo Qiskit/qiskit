@@ -6,6 +6,6 @@ features_quantum_info:
     from its unitary matrix and operator representation respectively.
   - |
     The constructor of :class:`.Clifford` now can take any Clifford gate object
-    up to 3 qubits as long it supports :meth:`to_matrix` method,
+    up to 3 qubits as long it implements a ``to_matrix`` method,
     including parameterized gates such as ``Rz(pi/2)``, which were not
     convertible before.
