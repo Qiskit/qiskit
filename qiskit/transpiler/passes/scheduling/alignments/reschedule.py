@@ -111,10 +111,8 @@ class ConstrainedReschedule(AnalysisPass):
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
         nodes_with_overlap = [(node, shift)]
-        shift_stack = []
         while nodes_with_overlap:
             node, shift = nodes_with_overlap.pop()
-            shift_stack.append((node, shift))
             # Compute shifted t1 of this node separately for qreg and creg
             this_t0 = node_start_time[node]
             new_t1q = this_t0 + node.op.duration + shift
@@ -131,6 +129,9 @@ class ConstrainedReschedule(AnalysisPass):
                 else:
                     new_t1c = None
                     this_clbits = set()
+
+            # Update start time of this node after all overlaps are resolved
+            node_start_time[node] += shift
 
             # Check successors for overlap
             for next_node in self._get_next_gate(dag, node):
@@ -163,10 +164,6 @@ class ConstrainedReschedule(AnalysisPass):
                 overlap = max(qreg_overlap, creg_overlap)
                 if overlap > 0:
                     nodes_with_overlap.append((next_node, overlap))
-        # Update start time of this node after all overlaps are resolved
-        while shift_stack:
-            node, shift = shift_stack.pop()
-            node_start_time[node] += shift
 
     def run(self, dag: DAGCircuit):
         """Run rescheduler.
