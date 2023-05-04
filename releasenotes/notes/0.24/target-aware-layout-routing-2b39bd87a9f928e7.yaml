@@ -7,7 +7,7 @@ features_transpiler:
     backend via the first positional argument (currently named either
     ``coupling_map`` or ``backend_properties``).
 
-    The list of these passes with the support for :class:`~.Target` input are:
+    The list of passes with the new support for :class:`~.Target` input are:
 
       * :class:`~.CSPLayout`
       * :class:`~.FullAncillaAllocation`

@@ -4,14 +4,13 @@ features_algorithms:
     Added support for handling time-dependent Hamiltonians (i.e. singly
     parametrized operators) to the
     :class:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class.
-    To facilitate working with this the
+    To facilitate working with this, added the
     :attr:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE.num_timestamps`
     attribute and a matching keyword argument to the
     :class:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE`
-    constructor to control the number of time steps to divide the full evolution
-    into.
+    constructor to control the number of time steps to divide the full evolution.
   - |
-    Added support for evaluating observable evaluations at every time-step
+    Added support for observable evaluations at every time-step
     during the execution of the
     :class:`~qiskit.algorithms.time_evolvers.trotterization.TrotterQRTE` class. The
     :attr:`.TimeEvolutionProblem.aux_operators` is evaluated at every time

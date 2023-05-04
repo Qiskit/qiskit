@@ -27,7 +27,7 @@ prelude: |
   OpenQASM2 improvements
   ----------------------
 
-  In this release there have been major refactoring for the OpenQASM 2.0 support
+  This release includes a major refactoring for the OpenQASM 2.0 support
   in Qiskit. The first change is the introduction of a new parser for OpenQASM
   2.0 in the :mod:`qiskit.qasm2` module. This new module replaces the
   existing :mod:`qiskit.qasm` module. The new parser more explicit and
@@ -43,12 +43,12 @@ prelude: |
 
   The transpiler now supports targeting backends with disjoint connectivity.
   Previously, the transpiler only supported backends which were fully connected
-  (where the is path to run operations between all pairs of qubits in the
+  (where there is a path to run operations between all pairs of qubits in the
   backend). Now, if a backend has disconnected connectivity the transpiler is
   able to reason about how to apply layout (:ref:`layout_stage`) and
-  routing (:ref:`routing_stage`) on these backend. If the input circuit is
+  routing (:ref:`routing_stage`) for the backend. If the input circuit is
   not able to be executed on the hardware given the lack of connectivity between
-  connected components a descriptive error will be returned.
+  connected components, a descriptive error will be returned.
 
   For example, the Heron device outlined in IBM Quantum's
   `hardware roadmap <https://research.ibm.com/blog/ibm-quantum-roadmap-2025>`__
@@ -60,7 +60,7 @@ prelude: |
   Switch Operation
   ----------------
 
-  This release adds a new control flow operation the switch statement. This is
+  This release adds a new control flow operation, the switch statement. This is
   implemented using a new operation class :class:`~.SwitchCaseOp` and the
   :meth:`.QuantumCircuit.switch` method. This allows switching on a numeric
   input (such as a classical register or bit) and executing the circuit that

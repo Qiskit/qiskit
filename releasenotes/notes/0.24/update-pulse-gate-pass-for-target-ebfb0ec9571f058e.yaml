@@ -14,8 +14,8 @@ upgrade_pulse:
   - |
     :meth:`.Target.update_from_instruction_schedule_map` no longer raises
     ``KeyError`` nor ``ValueError`` when qubits are missing in the target instruction
-    or ``inst_name_map`` is not provided for undefined instruction.
+    or ``inst_name_map`` is not provided for the undefined instruction.
     In the former case, it just ignores the input :class:`~.InstructionScheduleMap`\'s
-    definition for undefined qubits. In the latter case, gate mapping is pulled from
-    the standard Qiskit gates and finally custom opaque :class:`.Gate` object is defined
+    definition for undefined qubits. In the latter case, a gate mapping is pulled from
+    the standard Qiskit gates and finally, a custom opaque :class:`.Gate` object is defined
     from the schedule name if no mapping is found.

@@ -3,7 +3,7 @@ features_providers:
   - |
     The :class:`qiskit.providers.options.Options` class now implements the
     the ``Mapping`` protocol and ``__setitem__`` method. This means that
-    :class:`Options` instances now offer the same interface as standard
+    :class:`~.Options` instances now offer the same interface as standard
     dictionaries, except for the deletion methods (`__delitem__`, `pop`,
     `clear`). Key assignments are validated by the registered validators,
     if any are set.

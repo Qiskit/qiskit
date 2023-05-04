@@ -3,7 +3,7 @@ features_visualization:
   - |
     Added a new function, :func:`~.staged_pass_manager_drawer`, which is used
     for visualizing a :class:`~.StagedPassManager` instance. It draws the full
-    pass manager with each stage represented as an outer box
+    pass manager with each stage represented as an outer box.
 
     For example::
 
