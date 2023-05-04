@@ -348,10 +348,7 @@ def mcrz(
         _mcsu2_real_diagonal(self, RZGate(lam).to_matrix(), control_qubits, target_qubit)
 
     if use_basis_gates:
-        # pylint: disable=cyclic-import
-        from qiskit import transpile
-
-        self = transpile(self, basis_gates=["p", "u", "cx"], optimization_level=0)
+        pass
 
 
 QuantumCircuit.mcrx = mcrx
