@@ -92,8 +92,9 @@ class ConstrainedRescheduleNewImproved(AnalysisPass):
             if not isinstance(next_node, DAGOutNode):
                 yield next_node
 
-    def _update_node(self, dag: DAGCircuit, node: DAGOpNode):
-        """Update start time of current node. Successors are also shifted to avoid overlap.
+    def _push_node_back(self, dag: DAGCircuit, node: DAGOpNode):
+        """Update the start time of the current node to satisfy alignment constraints.
+        Immediate successors are pushed back to avoid overlap and will be processed later.
 
         .. note::
 
@@ -104,14 +105,10 @@ class ConstrainedRescheduleNewImproved(AnalysisPass):
         Args:
             dag: DAG circuit to be rescheduled with constraints.
             node: Current node.
-            shift: Amount of required time shift.
         """
         node_start_time = self.property_set["node_start_time"]
         conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
-
-        # Grab the starting time of a node (might not satisfy alignment constraints)
-        this_t0 = node_start_time[node]
 
         if isinstance(node.op, Gate):
             alignment = self.pulse_align
@@ -121,16 +118,15 @@ class ConstrainedRescheduleNewImproved(AnalysisPass):
             # Directive or delay. These can start at arbitrary time.
             alignment = None
 
+        this_t0 = node_start_time[node]
+
         if alignment is not None:
             misalignment = node_start_time[node] % alignment
-            # print(f"{node} has {alignment = } and {misalignment = }")
             if misalignment != 0:
                 shift = max(0, alignment - misalignment)
             else:
                 shift = 0
             this_t0 += shift
-
-            # print(f"Aligning start_time for {node} from {node_start_time[node]} to {this_t0}")
             node_start_time[node] = this_t0
 
         # Compute shifted t1 of this node separately for qreg and creg
@@ -149,7 +145,7 @@ class ConstrainedRescheduleNewImproved(AnalysisPass):
                 new_t1c = None
                 this_clbits = set()
 
-        # Check successors for overlap
+        # Check immediate successors for overlap
         for next_node in self._get_next_gate(dag, node):
             # Compute next node start time separately for qreg and creg
             next_t0q = node_start_time[next_node]
@@ -179,10 +175,7 @@ class ConstrainedRescheduleNewImproved(AnalysisPass):
 
             # Shift next node if there is finite overlap in either in qubits or clbits
             overlap = max(qreg_overlap, creg_overlap)
-
-            # print(f"Adjusting start_time for {next_node} from {node_start_time[next_node]} to {node_start_time[next_node] + overlap}")
             node_start_time[next_node] = node_start_time[next_node] + overlap
-
 
     def run(self, dag: DAGCircuit):
         """Run rescheduler.
@@ -207,7 +200,7 @@ class ConstrainedRescheduleNewImproved(AnalysisPass):
         2. If the start time of the node violates the alignment constraints,
             the scheduler increases the start time until it satisfies the constraint.
         3. Check overlap with successor nodes. If any overlap occurs, the rescheduler
-            recursively pushs the successor nodes backward towards the end of the wire.
+            pushes the successor nodes backward towards the end of the wire.
             Note that shifted location doesn't need to satisfy the constraints,
             thus it will be a minimum delay to resolve the overlap with the ancestor node.
         4. Repeat 1-3 until the node at the end of the wire. This will resolve
@@ -220,8 +213,6 @@ class ConstrainedRescheduleNewImproved(AnalysisPass):
             TranspilerError: If circuit is not scheduled.
         """
 
-        print("==> RUNNING IMPROVED RESCHEDULE")
-
         if "node_start_time" not in self.property_set:
             raise TranspilerError(
                 f"The input circuit {dag.name} is not scheduled. Call one of scheduling passes "
@@ -230,31 +221,18 @@ class ConstrainedRescheduleNewImproved(AnalysisPass):
 
         node_start_time = self.property_set["node_start_time"]
 
-        #
-        # print(f"\n\nBEFORE:")
-        # for node in dag.topological_op_nodes():
-        #     print(f"{node} --> {node_start_time[node]}")
-        #
-
-
-
         for node in dag.topological_op_nodes():
 
-            if node_start_time[node] == 0:
-                # Every instruction can start at t=0
-                continue
-
             try:
-                node_start_time[node]
+                start_time = node_start_time[node]
             except KeyError as ex:
                 raise TranspilerError(
                     f"Start time of {repr(node)} is not found. This node is likely added after "
                     "this circuit is scheduled. Run scheduler again."
                 ) from ex
 
-            self._update_node(dag, node)
+            if start_time == 0:
+                # Every instruction can start at t=0
+                continue
 
-        #
-        # print(f"\n\nAFTER:")
-        # for node in dag.topological_op_nodes():
-        #     print(f"{node} --> {node_start_time[node]}")
+            self._push_node_back(dag, node)
