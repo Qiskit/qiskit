@@ -479,7 +479,6 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_correction(self):
         """Test mapping works in previous failed case."""
-        backend = FakeRueschlikon()
         qr = QuantumRegister(name="qr", size=11)
         cr = ClassicalRegister(name="qc", size=11)
         circuit = QuantumCircuit(qr, cr)
@@ -536,7 +535,7 @@ class TestTranspile(QiskitTestCase):
         circuit.barrier(qr)
         circuit.measure(qr, cr)
 
-        circuits = transpile(circuit, backend)
+        circuits = transpile(circuit, basis_gates=["cx", "id", "rz", "sx", "x"])
 
         self.assertIsInstance(circuits, QuantumCircuit)
 
