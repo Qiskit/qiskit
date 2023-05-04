@@ -624,7 +624,6 @@ class TestTranspile(QiskitTestCase):
 
     def test_wrong_initial_layout(self):
         """Test transpile with a bad initial layout."""
-        backend = FakeMelbourne()
 
         qubit_reg = QuantumRegister(2, name="q")
         clbit_reg = ClassicalRegister(2, name="c")
@@ -640,7 +639,7 @@ class TestTranspile(QiskitTestCase):
         ]
 
         with self.assertRaises(TranspilerError) as cm:
-            transpile(qc, backend, initial_layout=bad_initial_layout)
+            transpile(qc, initial_layout=bad_initial_layout)
 
         self.assertEqual(
             "FullAncillaAllocation: The layout refers to a qubit that does not exist in circuit.",
