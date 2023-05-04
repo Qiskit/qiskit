@@ -21,38 +21,28 @@ from qiskit.transpiler.basepasses import AnalysisPass
 from qiskit.transpiler.exceptions import TranspilerError
 
 
-class ConstrainedReschedule(AnalysisPass):
+class ConstrainedRescheduleOriginal(AnalysisPass):
     """Rescheduler pass that updates node start times to conform to the hardware alignments.
-
     This pass shifts DAG node start times previously scheduled with one of
     the scheduling passes, e.g. :class:`ASAPScheduleAnalysis` or :class:`ALAPScheduleAnalysis`,
     so that every instruction start time satisfies alignment constraints.
-
     Examples:
-
         We assume executing the following circuit on a backend with 16 dt of acquire alignment.
-
         .. parsed-literal::
-
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(100[dt]) ├┤M├
                  └───┘└────────────────┘└╥┘
             c: 1/════════════════════════╩═
                                          0
-
         Note that delay of 100 dt induces a misalignment of 4 dt at the measurement.
         This pass appends an extra 12 dt time shift to the input circuit.
-
         .. parsed-literal::
-
                  ┌───┐┌────────────────┐┌─┐
             q_0: ┤ X ├┤ Delay(112[dt]) ├┤M├
                  └───┘└────────────────┘└╥┘
             c: 1/════════════════════════╩═
                                          0
-
     Notes:
-
         Your backend may execute circuits violating these alignment constraints.
         However, you may obtain erroneous measurement result because of the
         untracked phase originating in the instruction misalignment.
@@ -64,9 +54,7 @@ class ConstrainedReschedule(AnalysisPass):
         pulse_alignment: int = 1,
     ):
         """Create new rescheduler pass.
-
         The alignment values depend on the control electronics of your quantum processor.
-
         Args:
             acquire_alignment: Integer number representing the minimum time resolution to
                 trigger acquisition instruction in units of ``dt``.
@@ -80,27 +68,26 @@ class ConstrainedReschedule(AnalysisPass):
     @classmethod
     def _get_next_gate(cls, dag: DAGCircuit, node: DAGOpNode) -> List[DAGOpNode]:
         """Get next non-delay nodes.
-
         Args:
             dag: DAG circuit to be rescheduled with constraints.
             node: Current node.
-
         Returns:
             A list of non-delay successors.
         """
+        op_nodes = []
         for next_node in dag.successors(node):
-            if not isinstance(next_node, DAGOutNode):
-                yield next_node
+            if isinstance(next_node, DAGOutNode):
+                continue
+            op_nodes.append(next_node)
+
+        return op_nodes
 
     def _push_node_back(self, dag: DAGCircuit, node: DAGOpNode, shift: int):
         """Update start time of current node. Successors are also shifted to avoid overlap.
-
         .. note::
-
             This logic assumes the all bits in the qregs and cregs synchronously start and end,
             i.e. occupy the same time slot, but qregs and cregs can take
             different time slot due to classical I/O latencies.
-
         Args:
             dag: DAG circuit to be rescheduled with constraints.
             node: Current node.
@@ -110,77 +97,71 @@ class ConstrainedReschedule(AnalysisPass):
         conditional_latency = self.property_set.get("conditional_latency", 0)
         clbit_write_latency = self.property_set.get("clbit_write_latency", 0)
 
-        nodes_with_overlap = [(node, shift)]
-        while nodes_with_overlap:
-            node, shift = nodes_with_overlap.pop()
-            # Compute shifted t1 of this node separately for qreg and creg
-            this_t0 = node_start_time[node]
-            new_t1q = this_t0 + node.op.duration + shift
-            this_qubits = set(node.qargs)
-            if isinstance(node.op, Measure):
-                # creg access ends at the end of instruction
-                new_t1c = new_t1q
-                this_clbits = set(node.cargs)
+        # Compute shifted t1 of this node separately for qreg and creg
+        this_t0 = node_start_time[node]
+        new_t1q = this_t0 + node.op.duration + shift
+        this_qubits = set(node.qargs)
+        if isinstance(node.op, Measure):
+            # creg access ends at the end of instruction
+            new_t1c = new_t1q
+            this_clbits = set(node.cargs)
+        else:
+            if node.op.condition_bits:
+                # conditional access ends at the beginning of node start time
+                new_t1c = this_t0 + shift
+                this_clbits = set(node.op.condition_bits)
             else:
-                if node.op.condition_bits:
-                    # conditional access ends at the beginning of node start time
-                    new_t1c = this_t0 + shift
-                    this_clbits = set(node.op.condition_bits)
-                else:
-                    new_t1c = None
-                    this_clbits = set()
+                new_t1c = None
+                this_clbits = set()
 
-            node_start_time[node] += shift
+        # Check successors for overlap
+        for next_node in self._get_next_gate(dag, node):
+            # Compute next node start time separately for qreg and creg
+            next_t0q = node_start_time[next_node]
+            next_qubits = set(next_node.qargs)
+            if isinstance(next_node.op, Measure):
+                # creg access starts after write latency
+                next_t0c = next_t0q + clbit_write_latency
+                next_clbits = set(next_node.cargs)
+            else:
+                if next_node.op.condition_bits:
+                    # conditional access starts before node start time
+                    next_t0c = next_t0q - conditional_latency
+                    next_clbits = set(next_node.op.condition_bits)
+                else:
+                    next_t0c = None
+                    next_clbits = set()
+            # Compute overlap if there is qubits overlap
+            if any(this_qubits & next_qubits):
+                qreg_overlap = new_t1q - next_t0q
+            else:
+                qreg_overlap = 0
+            # Compute overlap if there is clbits overlap
+            if any(this_clbits & next_clbits):
+                creg_overlap = new_t1c - next_t0c
+            else:
+                creg_overlap = 0
+            # Shift next node if there is finite overlap in either in qubits or clbits
+            overlap = max(qreg_overlap, creg_overlap)
+            if overlap > 0:
+                self._push_node_back(dag, next_node, overlap)
 
-            # Check successors for overlap
-            for next_node in self._get_next_gate(dag, node):
-                # Compute next node start time separately for qreg and creg
-                next_t0q = node_start_time[next_node]
-                next_qubits = set(next_node.qargs)
-                if isinstance(next_node.op, Measure):
-                    # creg access starts after write latency
-                    next_t0c = next_t0q + clbit_write_latency
-                    next_clbits = set(next_node.cargs)
-                else:
-                    if next_node.op.condition_bits:
-                        # conditional access starts before node start time
-                        next_t0c = next_t0q - conditional_latency
-                        next_clbits = set(next_node.op.condition_bits)
-                    else:
-                        next_t0c = None
-                        next_clbits = set()
-                # Compute overlap if there is qubits overlap
-                if any(this_qubits & next_qubits):
-                    qreg_overlap = new_t1q - next_t0q
-                else:
-                    qreg_overlap = 0
-                # Compute overlap if there is clbits overlap
-                if any(this_clbits & next_clbits):
-                    creg_overlap = new_t1c - next_t0c
-                else:
-                    creg_overlap = 0
-                # Shift next node if there is finite overlap in either in qubits or clbits
-                overlap = max(qreg_overlap, creg_overlap)
-                if overlap > 0:
-                    nodes_with_overlap.append((next_node, overlap))
+        # Update start time of this node after all overlaps are resolved
+        # print(f"Aligning start_time for {node} from {node_start_time[node]} to {node_start_time[node] + shift}")
+
+        node_start_time[node] += shift
 
     def run(self, dag: DAGCircuit):
         """Run rescheduler.
-
         This pass should perform rescheduling to satisfy:
-
             - All DAGOpNode are placed at start time satisfying hardware alignment constraints.
             - The end time of current does not overlap with the start time of successor nodes.
             - Compiler directives are not necessary satisfying the constraints.
-
         Assumptions:
-
             - Topological order and absolute time order of DAGOpNode are consistent.
             - All bits in either qargs or cargs associated with node synchronously start.
             - Start time of qargs and cargs may different due to I/O latency.
-
         Based on the configurations above, rescheduler pass takes following strategy.
-
         1. Scan node from the beginning, i.e. from left of the circuit. The rescheduler
             calls ``node_start_time`` from the property set,
             and retrieves the scheduled start time of current node.
@@ -192,14 +173,12 @@ class ConstrainedReschedule(AnalysisPass):
             thus it will be a minimum delay to resolve the overlap with the ancestor node.
         4. Repeat 1-3 until the node at the end of the wire. This will resolve
             all misalignment without creating overlap between the nodes.
-
         Args:
             dag: DAG circuit to be rescheduled with constraints.
-
         Raises:
             TranspilerError: If circuit is not scheduled.
         """
-        print("==> RUNNING CURRENT RESCHEDULE")
+        print("==> RUNNING ORIGINAL RESCHEDULE")
 
         if "node_start_time" not in self.property_set:
             raise TranspilerError(
@@ -208,6 +187,14 @@ class ConstrainedReschedule(AnalysisPass):
             )
 
         node_start_time = self.property_set["node_start_time"]
+
+
+        #
+        # print(f"\n\nBEFORE:")
+        # for node in dag.topological_op_nodes():
+        #     print(f"{node} --> {node_start_time[node]}")
+
+
 
         for node in dag.topological_op_nodes():
             if node_start_time[node] == 0:
@@ -224,6 +211,7 @@ class ConstrainedReschedule(AnalysisPass):
 
             try:
                 misalignment = node_start_time[node] % alignment
+                # print(f"{node} has {alignment = } and {misalignment = }")
                 if misalignment == 0:
                     continue
                 shift = max(0, alignment - misalignment)
@@ -234,3 +222,9 @@ class ConstrainedReschedule(AnalysisPass):
                 ) from ex
             if shift > 0:
                 self._push_node_back(dag, node, shift)
+
+
+        #
+        # print(f"\n\nAFTER:")
+        # for node in dag.topological_op_nodes():
+        #     print(f"{node} --> {node_start_time[node]}")
