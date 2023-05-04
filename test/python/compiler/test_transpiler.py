@@ -161,11 +161,7 @@ class TestTranspile(QiskitTestCase):
                                  └───┘
 
         device:
-        0  -  1  -  2  -  3  -  4  -  5  -  6
-
-              |     |     |     |     |     |
-
-              13 -  12  - 11 -  10 -  9  -  8  -   7
+        0  -  1  -  2  -  3  -  4  -  5
         """
         qr = QuantumRegister(4, "qr")
         circuit = QuantumCircuit(qr)
@@ -174,8 +170,8 @@ class TestTranspile(QiskitTestCase):
         circuit.cx(qr[1], qr[2])
         circuit.cx(qr[2], qr[3])
 
-        coupling_map = FakeMelbourne().configuration().coupling_map
-        basis_gates = FakeMelbourne().configuration().basis_gates
+        coupling_map = CouplingMap().from_line(6)
+        basis_gates = ['cx', 'id', 'rz', 'sx', 'x']
         initial_layout = [None, qr[0], qr[1], qr[2], None, qr[3]]
 
         new_circuit = transpile(
@@ -189,7 +185,7 @@ class TestTranspile(QiskitTestCase):
 
         for instruction in new_circuit.data:
             if isinstance(instruction.operation, CXGate):
-                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
+                self.assertIn(tuple([qubit_indices[x] for x in instruction.qubits]), coupling_map)
 
     def test_transpile_qft_grid(self):
         """Transpile pipeline can handle 8-qubit QFT on 14-qubit grid."""
