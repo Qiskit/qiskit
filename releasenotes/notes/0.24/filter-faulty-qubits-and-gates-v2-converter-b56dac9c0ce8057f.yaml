@@ -1,5 +1,5 @@
 ---
-features:
+features_providers:
   - |
     The :class:`~.BackendV2Converter` class has a new keyword argument,
     ``filter_faulty``, on its constructor. When this argument is set to ``True``

@@ -1,4 +1,4 @@
-features:
+features_quantum_info:
   - |
     Natively support the construction of :class:`.SparsePauliOp` objects with
     :class:`.ParameterExpression` coefficients, without requiring the explicit construction

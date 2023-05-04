@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     The runtime performance of the :class:`~.Optimize1qGatesDecomposition`
     transpiler pass has been significantly improved. This was done by both

@@ -1,6 +1,21 @@
 ---
-features:
+features_transpiler:
   - |
-    The transpiler pass :class:`~.transpiler.passes.Error` now accepts callables
-    in its ``msg`` parameter.  These should be a callable that takes in the
-    ``property_set`` and returns a string.
+    The transpiler pass :class:`~.Error` now also accepts callable
+    inputs for its ``msg`` parameter. If used these input callables will be passed
+    the ``property_set`` attribute of the pass and are expected to return a string
+    which will be used for the error message when the pass is run. For example::
+
+        from qiskit.transpiler.passes import Error
+
+        def error_message(property_set):
+
+            size = property_set["size']
+            return f"The circuit size is: {size}"
+
+        error_pass = Error(error_message)
+
+    When ``error_pass`` is included in a pass manager it will error using the
+    message ``"The circuit size is: n"`` where ``n`` is the circuit size set
+    in the property set (typically from the previous execution of the
+    :class:`~.Size` pass).

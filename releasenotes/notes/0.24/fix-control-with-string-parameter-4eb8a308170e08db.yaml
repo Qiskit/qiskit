@@ -1,5 +1,6 @@
 ---
 fixes:
   - |
-    The method :meth:`.Gate.control` that is used to create controlled gates now properly handles string and 
-    ``None`` control state description.
+    Fixed an issue with the :meth:`.Gate.control` method where it previously
+    would incorrectly handle ``str`` or ``None`` input types for the
+    ``ctrl_state`` argument.

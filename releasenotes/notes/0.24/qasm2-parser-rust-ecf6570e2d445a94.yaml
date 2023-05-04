@@ -1,5 +1,5 @@
 ---
-features:
+features_circuits:
   - |
     A new OpenQASM 2 parser is available in :mod:`qiskit.qasm2`.  This has two entry points:
     :func:`.qasm2.load` and :func:`.qasm2.loads`, for reading the source code from a file and from a

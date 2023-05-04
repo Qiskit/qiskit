@@ -1,5 +1,5 @@
 ---
-upgrade:
+upgrade_algorithms:
   - |
     The deprecated modules ``factorizers`` and ``linear_solvers``, containing
     ``HHL`` and ``Shor`` have been removed from

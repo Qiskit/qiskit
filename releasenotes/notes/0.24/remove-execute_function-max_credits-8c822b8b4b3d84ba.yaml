@@ -1,8 +1,15 @@
 ---
-upgrade:
+upgrade_providers:
   - |
-    The ``max_credits`` argument to :func:`~.execute_function.execute`, :func:`~.compiler.assemble` and all
+    The deprecated ``max_credits`` argument to :func:`~.execute_function.execute`, :func:`~.compiler.assemble` and all
     of the ``Qobj`` configurations (e.g. :class:`.QasmQobjConfig` and
-    :class:`.PulseQobjConfig`) has been removed.
-    The credit system has not been in use on IBM Quantum backends for
-    nearly three years, and the option has no effect.  No alternative is necessary.
+    :class:`.PulseQobjConfig`) has been removed. This argument dates back
+    to early versions of Qiskit which was tied more closely to the IBM
+    Quantum service offering. At that time the ``max_credits`` field was part
+    of the "credit system" used by IBM Quantum's service offering. However,
+    that credit system has not been in use on IBM Quantum backends for
+    nearly three years and also Qiskit is not tied to IBM Quantum's service
+    offerings anymore (and hasn't been for a long time). If you were relying on
+    this option in some way for a backend you will need to ensure that your
+    :class:`~.BackendV2` implementation exposes a ``max_credits`` field in
+    its :class:`~.Options` object.

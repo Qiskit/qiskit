@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue in the :func:`~.state_to_latex` function where it would
+    potentially produce invalid LaTeX due to unintended coefficient rounding.
+    This could also result in errors when the :func:`~.state_drawer` was called.
+    Fixed `#9297 <https://github.com/Qiskit/qiskit-terra/issues/9297>`__.

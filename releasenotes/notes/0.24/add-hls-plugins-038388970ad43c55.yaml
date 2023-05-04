@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added high-level-synthesis plugins for :class:`.LinearFunction` and for
     :class:`qiskit.quantum_info.Clifford`, extending the set of synthesis

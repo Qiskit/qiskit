@@ -1,5 +1,9 @@
 ---
 fixes:
   - |
-    Fixed failure in using :func:`~qiskit.pulse.macros.measure` 
-    with :class:`.BackendV2` backends.
+    Fixed an issue when using the :mod:`~qiskit.pulse` macro
+    :func:`~qiskit.pulse.macros.measure` when working with a
+    :class:`.BackendV2` based backend. Previously, trying to use
+    :func:`qiskit.pulse.macros.measure` with a :class:`.BackendV2`
+    based backend would have resulted in an error.
+    Fixed `#9488 <https://github.com/Qiskit/qiskit-terra/issues/9488>`__

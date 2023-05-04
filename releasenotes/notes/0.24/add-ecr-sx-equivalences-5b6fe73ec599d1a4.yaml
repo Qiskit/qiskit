@@ -1,11 +1,13 @@
 ---
-features:
+features_transpiler:
   - |
-    Added a decomposition of an :class:`.CXGate` into :class:`.ECRGate` and 1-qubit Clifford gates
-    (up to a global phase) into the :class:`.EquivalenceLibrary`.
-  - |
-    Added a decomposition of an :class:`.HGate` into :class:`.SXGate` and :class:`.SGate`
-    (up to a global phase) into the :class:`.EquivalenceLibrary`.
-  - |
-    Added a decomposition of an :class:`.HGate` into :class:`.SXdgGate` and :class:`.SdgGate`
-    (up to a global phase) into the :class:`.EquivalenceLibrary`.
+    Added new rules to the built-in :class:`.EquivalenceLibrary` instance:
+    ``qiskit.circuit.equivalence_library.SessionEquivalenceLibrary``. The
+    new rules added are:
+
+      * :class:`.CXGate` into :class:`.ECRGate` and 1-qubit Clifford gates
+        (up to a global phase).
+      * :class:`.HGate` into :class:`.SXGate` and :class:`.SGate` (up to a
+        global phase).
+      * :class:`.HGate` into :class:`.SXdgGate` and :class:`.SdgGate` (up to a
+        global phase).

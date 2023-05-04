@@ -1,5 +1,8 @@
 ---
-features:
+features_transpiler:
   - |
-    The :class:`.GateDirection` transpiler pass can now flip the direction
-    of ``swap`` (:class`.SwapGate`) instructions.
+    The :class:`.GateDirection` transpiler pass can now correctly handle
+    :class:`~.SwapGate` instances that may be present in the circuit when
+    executing on a circuit. In these cases if the swap gate's qubit arguments
+    are on the non-native direction of an edge, the pass will flip the argument
+    order.

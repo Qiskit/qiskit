@@ -1,8 +1,7 @@
 ---
-features:
+features_transpiler:
   - |
-    This PR now allows the pulse scaling techniques found in RZXCalibrationBuilder
-    and RZXCalibrationBuilderNoEcho to consume `ecr` entangling gates from the
-    backend, in addition to the `cx` gates they were build for. These native gates
-    contain the calibrated pulse schedules that the pulse scaling passes use to 
-    generate arbitraty rotations of the :class:`~RZXGate` operation.
+    The :class:`~.RZXCalibrationBuilder` and :class:`~.RZXCalibrationBuilderNoEcho` transpiler passes now will correctly use
+    an :class:`~.ECRGate` for the entangling gate if the backend's native
+    entangling gate is :class:`~.ECRGate`. Previously, the passes would only
+    function correctly if the entangling gate was :class:`~.CXGate`.

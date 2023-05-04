@@ -1,4 +1,8 @@
 ---
 fixes:
   - |
-    Fixed the top-right corner of gates when using ``vertical_compression="low"`` in text visualizations of circuits.
+    Fixed an issue with the circuit drawer function :func:`~.circuit_drawer`
+    and :meth:`.QuantumCircuit.draw` method when using the ``text`` method and
+    the argument ``vertical_compression="low"`` where it would use an incorrect
+    character for the  top-right corner of boxes used to represent gates
+    in the circuit.

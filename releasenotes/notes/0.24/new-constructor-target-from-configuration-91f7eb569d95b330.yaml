@@ -1,5 +1,5 @@
 ---
-features:
+features_transpiler:
   - |
     Added a new constructor for the :class:`~.Target` class,
     :meth:`.Target.from_configuration`, which lets you construct a

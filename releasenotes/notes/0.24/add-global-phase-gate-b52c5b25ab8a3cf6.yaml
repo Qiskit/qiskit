@@ -1,6 +1,6 @@
 ---
-features:
+features_circuits:
   - |
-    Added :class:`.GlobalPhaseGate` which can be applied to add a global phase
-    on the :class:`.QuantumCircuit`.
+    Added a new gate class, :class:`.GlobalPhaseGate`, which can be used to add
+    a global phase on the :class:`.QuantumCircuit` instance.
 

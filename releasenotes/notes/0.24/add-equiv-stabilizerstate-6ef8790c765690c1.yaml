@@ -1,5 +1,5 @@
 ---
-features:
+features_quantum_info:
   - |
     Added the method :class:`.StabilizerState.equiv`,
     that checks if the generating sets of two stabilizer states generate the same stabilizer group.

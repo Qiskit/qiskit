@@ -1,5 +1,7 @@
 fixes:
   - |
-    Fixes the circuit drawer from displaying parameters when they are of type :class:`.QuantumCircuit`
-    since this resulted in an illegible drawing.
-    
+    Fixed an issue with the circuit drawer function :func:`~.circuit_drawer` and
+    :meth:`.QuantumCircuit.draw` method when displaying instruction parameters
+    that type :class:`.QuantumCircuit` which would result in an illegible
+    drawing.
+    Fixed `#9908 <https://github.com/Qiskit/qiskit-terra/issues/9908>`__

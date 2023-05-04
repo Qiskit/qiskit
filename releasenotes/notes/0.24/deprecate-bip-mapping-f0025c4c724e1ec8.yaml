@@ -1,5 +1,5 @@
 ---
-deprecations:
+deprecations_transpiler:
   - |
     The transpiler routing pass, :class:`~.BIPMapping` has been deprecated
     and will be removed in a future release. It has been replaced by an external
