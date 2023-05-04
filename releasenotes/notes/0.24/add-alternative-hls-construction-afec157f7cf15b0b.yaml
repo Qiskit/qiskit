@@ -2,7 +2,7 @@
 features_transpiler:
   - |
     Added an alternative way to specify in :class:`~.HLSConfig` the list of
-    synthesis methods used for a given high-level-object.
+    synthesis methods used for a given high-level object.
     As before, a synthesis method can be specified as a tuple consisting of
     the name of the method and additional arguments. Additionally, a synthesis method
     can be specified as a tuple consisting of an instance of :class:`.HighLevelSynthesisPlugin`
