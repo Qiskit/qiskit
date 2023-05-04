@@ -593,7 +593,6 @@ class TestTranspile(QiskitTestCase):
 
     def test_mapping_multi_qreg(self):
         """Test mapping works for multiple qregs."""
-        backend = FakeRueschlikon()
         qr = QuantumRegister(3, name="qr")
         qr2 = QuantumRegister(1, name="qr2")
         qr3 = QuantumRegister(4, name="qr3")
@@ -604,7 +603,7 @@ class TestTranspile(QiskitTestCase):
         qc.cx(qr[1], qr3[2])
         qc.measure(qr, cr)
 
-        circuits = transpile(qc, backend)
+        circuits = transpile(qc, basis_gates=["cx", "id", "rz", "sx", "x"])
 
         self.assertIsInstance(circuits, QuantumCircuit)
 
