@@ -3,6 +3,6 @@ features_quantum_info:
   - |
     Added a new method, :meth:`~.DensityMatrix.partial_transpose`, to the
     :mod:`qiskit.quantum_info` module's :class:`~.DensityMatrix` class. This
-    method is used to compute partial transposition of a density matrix,
+    method is used to compute the partial transposition of a density matrix,
     which is necessary for detecting entanglement between bipartite quantum
     systems.

@@ -15,7 +15,7 @@ features_transpiler:
 
         error_pass = Error(error_message)
 
-    when ``error_pass`` is included in a pass manager it will error using the
+    When ``error_pass`` is included in a pass manager it will error using the
     message ``"The circuit size is: n"`` where ``n`` is the circuit size set
     in the property set (typically from the previous execution of the
     :class:`~.Size` pass).
