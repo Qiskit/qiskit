@@ -196,15 +196,16 @@ class TestTranspile(QiskitTestCase):
                 circuit.cp(math.pi / float(2 ** (i - j)), qr[i], qr[j])
             circuit.h(qr[i])
 
-        coupling_map = FakeMelbourne().configuration().coupling_map
-        basis_gates = FakeMelbourne().configuration().basis_gates
+        # This makes a 14-qubit grid
+        coupling_map = CouplingMap().from_grid(num_rows=7, num_columns=2)
+        basis_gates = ['cx', 'id', 'rz', 'sx', 'x']
         new_circuit = transpile(circuit, basis_gates=basis_gates, coupling_map=coupling_map)
 
         qubit_indices = {bit: idx for idx, bit in enumerate(new_circuit.qubits)}
 
         for instruction in new_circuit.data:
             if isinstance(instruction.operation, CXGate):
-                self.assertIn([qubit_indices[x] for x in instruction.qubits], coupling_map)
+                self.assertIn(tuple([qubit_indices[x] for x in instruction.qubits]), coupling_map)
 
     def test_already_mapped_1(self):
         """Circuit not remapped if matches topology.
