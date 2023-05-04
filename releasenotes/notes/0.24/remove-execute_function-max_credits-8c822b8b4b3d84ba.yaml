@@ -3,7 +3,7 @@ upgrade_providers:
   - |
     The deprecated ``max_credits`` argument to :func:`~.execute_function.execute`, :func:`~.compiler.assemble` and all
     of the ``Qobj`` configurations (e.g. :class:`.QasmQobjConfig` and
-    :class:`.PulseQobjConfig`) has been removed. These arguments date back
+    :class:`.PulseQobjConfig`) has been removed. This argument dates back
     to early versions of Qiskit which was tied more closely to the IBM
     Quantum service offering. At that time the ``max_credits`` field was part
     of the "credit system" used by IBM Quantum's service offering. However,

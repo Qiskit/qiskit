@@ -3,4 +3,4 @@ fixes:
   - |
     Fixed the the type annotations for the :func:`~.transpile` function.
     The return type is now narrowed correctly depending on whether a
-    single circuit or a list of circuit was passed.
+    single circuit or a list of circuits was passed.

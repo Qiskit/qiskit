@@ -1,6 +1,6 @@
 ---
 prelude: |
-  This release is a major feature release that includes numerous new features
+  This is a major feature release that includes numerous new features
   and bugfixes.
 
   This release is the final release with support for running Qiskit
@@ -30,8 +30,8 @@ prelude: |
   This release includes a major refactoring for the OpenQASM 2.0 support
   in Qiskit. The first change is the introduction of a new parser for OpenQASM
   2.0 in the :mod:`qiskit.qasm2` module. This new module replaces the
-  existing :mod:`qiskit.qasm` module. The new parser more explicit and
-  correct relative to the language specification. It is also implemented in
+  existing :mod:`qiskit.qasm` module. The new parser is more explicit and
+  correct with respect to the language specification. It is also implemented in
   Rust and is significantly faster than the previous parser. Paired with the
   new parser the OpenQASM 2.0 exporter underwent a large refactor that
   improved the correctness of the output when using the
