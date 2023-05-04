@@ -212,9 +212,32 @@ class TestTranspile(QiskitTestCase):
 
         See: https://github.com/Qiskit/qiskit-terra/issues/342
         """
-        backend = FakeRueschlikon()
-        coupling_map = backend.configuration().coupling_map
-        basis_gates = backend.configuration().basis_gates
+        coupling_map = [
+            [1, 0],
+            [1, 2],
+            [2, 3],
+            [3, 4],
+            [3, 14],
+            [5, 4],
+            [6, 5],
+            [6, 7],
+            [6, 11],
+            [7, 10],
+            [8, 7],
+            [9, 8],
+            [9, 10],
+            [11, 10],
+            [12, 5],
+            [12, 11],
+            [12, 13],
+            [13, 4],
+            [13, 14],
+            [15, 0],
+            [15, 2],
+            [15, 14],
+        ]
+
+        basis_gates = ["cx", "id", "rz", "sx", "x"]
 
         qr = QuantumRegister(16, "qr")
         cr = ClassicalRegister(16, "cr")
