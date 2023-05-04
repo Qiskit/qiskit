@@ -609,7 +609,6 @@ class TestTranspile(QiskitTestCase):
 
     def test_transpile_circuits_diff_registers(self):
         """Transpile list of circuits with different qreg names."""
-        backend = FakeRueschlikon()
         circuits = []
         for _ in range(2):
             qr = QuantumRegister(2)
@@ -620,7 +619,7 @@ class TestTranspile(QiskitTestCase):
             circuit.measure(qr, cr)
             circuits.append(circuit)
 
-        circuits = transpile(circuits, backend)
+        circuits = transpile(circuits, basis_gates=["cx", "id", "rz", "sx", "x"])
         self.assertIsInstance(circuits[0], QuantumCircuit)
 
     def test_wrong_initial_layout(self):
