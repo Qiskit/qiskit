@@ -25,7 +25,7 @@ the :mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qis
 
     - Aer primitives (:class:`qiskit_aer.primitives.Sampler`, :class:`qiskit_aer.primitives.Estimator`)
     - IBM's Qiskit Runtime primitives (:class:`qiskit_ibm_runtime.Sampler`, :class:`qiskit_ibm_runtime.Estimator`)
-    - Qiskit backend primitives (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`)
+    - Qiskit wrapper for backends without native primitives support (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`)
 
     Certain classes, such as the
     :class:`~qiskit.opflow.expectations.AerPauliExpectation`, can only be replaced by a specific primitive instance
