@@ -15,9 +15,10 @@ stestr>=2.0.0,!=4.0.0
 pylatexenc>=1.4
 ddt>=1.2.0,!=1.4.0,!=1.4.3
 seaborn>=0.9.0
-reno>=3.4.0
+# TODO: switch to stable release when 4.1 is released
+reno @ git+https://github.com/openstack/reno.git@81587f616f17904336cdc431e25c42b46cd75b8f
 Sphinx>=5.0
-qiskit-sphinx-theme~=1.10.3
+qiskit-sphinx-theme~=1.11.0
 sphinx-design>=0.2.0
 pygments>=2.4
 scikit-learn>=0.20.0
