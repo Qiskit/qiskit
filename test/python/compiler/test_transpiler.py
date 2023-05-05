@@ -758,7 +758,32 @@ class TestTranspile(QiskitTestCase):
         circ = QuantumCircuit.from_qasm_file(os.path.join(qasm_dir, "example.qasm"))
         layout = Layout.generate_trivial_layout(*circ.qregs)
         coupling_map = []
-        for node1, node2 in FakeRueschlikon().configuration().coupling_map:
+        c_map = [
+            [1, 0],
+            [1, 2],
+            [2, 3],
+            [3, 4],
+            [3, 14],
+            [5, 4],
+            [6, 5],
+            [6, 7],
+            [6, 11],
+            [7, 10],
+            [8, 7],
+            [9, 8],
+            [9, 10],
+            [11, 10],
+            [12, 5],
+            [12, 11],
+            [12, 13],
+            [13, 4],
+            [13, 14],
+            [15, 0],
+            [15, 2],
+            [15, 14],
+        ]
+
+        for node1, node2 in c_map:
             coupling_map.append([node1, node2])
             coupling_map.append([node2, node1])
 
