@@ -24,8 +24,8 @@ the :mod:`~qiskit.opflow` module to the :mod:`~qiskit.primitives` and :mod:`~qis
     can be replaced with instances of the:
 
     - Aer primitives (:class:`qiskit_aer.primitives.Sampler`, :class:`qiskit_aer.primitives.Estimator`)
-    - Runtime primitives (:class:`qiskit_ibm_runtime.Sampler`, :class:`qiskit_ibm_runtime.Estimator`)
-    - Terra backend primitives (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`)
+    - IBM's Qiskit Runtime primitives (:class:`qiskit_ibm_runtime.Sampler`, :class:`qiskit_ibm_runtime.Estimator`)
+    - Qiskit backend primitives (:class:`qiskit.primitives.BackendSampler`, :class:`qiskit.primitives.BackendEstimator`)
 
     Certain classes, such as the
     :class:`~qiskit.opflow.expectations.AerPauliExpectation`, can only be replaced by a specific primitive instance
