@@ -15,6 +15,7 @@
 from typing import List
 
 from qiskit.circuit.gate import Gate
+from qiskit.circuit.delay import Delay
 from qiskit.circuit.measure import Measure
 from qiskit.dagcircuit import DAGCircuit, DAGOpNode, DAGOutNode
 from qiskit.transpiler.basepasses import AnalysisPass
@@ -114,9 +115,11 @@ class ConstrainedReschedule(AnalysisPass):
             alignment = self.pulse_align
         elif isinstance(node.op, Measure):
             alignment = self.acquire_align
-        else:
+        elif isinstance(node.op, Delay) or getattr(node.op, "_directive", False):
             # Directive or delay. These can start at arbitrary time.
             alignment = None
+        else:
+            raise TranspilerError(f"Unknown operation type for {repr(node)}.")
 
         this_t0 = node_start_time[node]
 
@@ -134,7 +137,7 @@ class ConstrainedReschedule(AnalysisPass):
         this_qubits = set(node.qargs)
         if isinstance(node.op, Measure):
             # creg access ends at the end of instruction
-            new_t1c = this_t0 + node.op.duration
+            new_t1c = new_t1q
             this_clbits = set(node.cargs)
         else:
             if node.op.condition_bits:
@@ -223,16 +226,16 @@ class ConstrainedReschedule(AnalysisPass):
 
         for node in dag.topological_op_nodes():
 
-            try:
-                start_time = node_start_time[node]
-            except KeyError as ex:
+            start_time = node_start_time.get(node)
+
+            if start_time is None:
                 raise TranspilerError(
                     f"Start time of {repr(node)} is not found. This node is likely added after "
                     "this circuit is scheduled. Run scheduler again."
-                ) from ex
+                )
 
             if start_time == 0:
-                # Every instruction can start at t=0
+                # Every instruction can start at t=0.
                 continue
 
             self._push_node_back(dag, node)
