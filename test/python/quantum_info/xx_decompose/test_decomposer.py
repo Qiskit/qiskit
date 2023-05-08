@@ -22,6 +22,7 @@ import numpy as np
 from scipy.stats import unitary_group
 
 import qiskit
+from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.synthesis.xx_decompose.decomposer import (
     XXDecomposer,
@@ -132,3 +133,25 @@ class TestXXDecomposer(unittest.TestCase):
         # the following are taken from Fig 14 of the XX synthesis paper
         self.assertAlmostEqual(mean(clever_costs), 1.445e-2, delta=5e-3)
         self.assertAlmostEqual(mean(naive_costs), 2.058e-2, delta=5e-3)
+
+    def test_error_on_empty_basis_fidelity(self):
+        """Test synthesizing entangling gate with no entangling basis fails."""
+        decomposer = XXDecomposer(basis_fidelity={})
+        qc = QuantumCircuit(2)
+        qc.cx(0, 1)
+        mat = Operator(qc).to_matrix()
+        with self.assertRaisesRegex(
+            qiskit.exceptions.QiskitError,
+            "Attempting to synthesize entangling gate with no controlled gates in basis set.",
+        ):
+            decomposer(mat)
+
+    def test_no_error_on_empty_basis_fidelity_trivial_target(self):
+        """Test synthesizing non-entangling gate with no entangling basis succeeds."""
+        decomposer = XXDecomposer(basis_fidelity={})
+        qc = QuantumCircuit(2)
+        qc.x(0)
+        qc.y(1)
+        mat = Operator(qc).to_matrix()
+        dqc = decomposer(mat)
+        self.assertTrue(np.allclose(mat, Operator(dqc).to_matrix()))
