@@ -23,7 +23,7 @@ from qiskit.synthesis.linear import (
     synth_cnot_depth_line_kms,
 )
 from qiskit.synthesis.linear_phase import synth_cz_depth_line_mr
-from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_line_my
+from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_depth_line_my
 
 
 from qiskit.synthesis.linear.linear_matrix_utils import (
@@ -439,7 +439,7 @@ def synth_clifford_depth_lnn(cliff):
         cliff,
         cx_synth_func=synth_cnot_depth_line_kms,
         cz_synth_func=synth_cz_depth_line_mr,
-        cx_cz_synth_func=synth_cx_cz_line_my,
+        cx_cz_synth_func=synth_cx_cz_depth_line_my,
         cz_func_reverse_qubits=True,
     )
     return circ

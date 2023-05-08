@@ -20,7 +20,7 @@ from qiskit import QuantumCircuit
 
 from qiskit.quantum_info import Clifford
 
-from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_line_my
+from qiskit.synthesis.linear_phase.cx_cz_depth_lnn import synth_cx_cz_depth_line_my
 from qiskit.synthesis.linear import (
     synth_cnot_depth_line_kms,
     random_invertible_binary_matrix,
@@ -66,7 +66,7 @@ class TestCXCZSynth(QiskitTestCase):
 
             cir_zx_test = QuantumCircuit.compose(cir_z, cir_x)
 
-            cir_zx = synth_cx_cz_line_my(mat_x, mat_z)
+            cir_zx = synth_cx_cz_depth_line_my(mat_x, mat_z)
 
             # Check that the output circuit 2-qubit depth is at most 5n
 

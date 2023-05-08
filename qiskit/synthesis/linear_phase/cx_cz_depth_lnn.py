@@ -207,7 +207,7 @@ def _apply_phase_to_nw_circuit(n, phase_schedule, seq, swap_plus):
     return cir
 
 
-def synth_cx_cz_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
+def synth_cx_cz_depth_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
     """
     Joint synthesis of a -CZ-CX- circuit for linear nearest neighbour (LNN) connectivity,
     with 2-qubit depth at most 5n, based on Maslov and Yang [2].
