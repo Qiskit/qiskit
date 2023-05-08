@@ -46,6 +46,7 @@ Linear-Phase Synthesis
    :toctree: ../stubs/
 
     synth_cz_depth_line_mr
+    synth_cx_cz_line_my
 
 Permutation Synthesis
 =====================
