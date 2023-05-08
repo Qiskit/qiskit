@@ -107,7 +107,8 @@ class SATLayoutForCommutingGateRouter(AnalysisPass):
             dag: A dag in which there is a ``Commuting2qBlock``.
 
         Returns:
-            The program graph representing the two-qubit gates in the first encountered ``Commuting2qBlock``.
+            The program graph representing the two-qubit gates in the first encountered
+            ``Commuting2qBlock``.
 
         Raises:
             TranspilerError: If the ``Commuting2qBlock`` contains more than two qubits.
