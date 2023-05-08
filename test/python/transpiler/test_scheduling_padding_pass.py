@@ -16,12 +16,20 @@ import unittest
 
 from ddt import ddt, data, unpack
 from qiskit import QuantumCircuit
+from qiskit.circuit import Measure
+from qiskit.circuit.library import CXGate, HGate
 from qiskit.pulse import Schedule, Play, Constant, DriveChannel
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler.instruction_durations import InstructionDurations
-from qiskit.transpiler.passes import ASAPSchedule, ALAPSchedule, PadDelay
+from qiskit.transpiler.passes import (
+    ASAPScheduleAnalysis,
+    ALAPScheduleAnalysis,
+    PadDelay,
+    SetIOLatency,
+)
 from qiskit.transpiler.passmanager import PassManager
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target, InstructionProperties
 
 
 @ddt
@@ -40,17 +48,46 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
             [("h", 0, 200), ("cx", [0, 1], 700), ("measure", None, 1000)]
         )
 
-        pm = PassManager([ALAPSchedule(durations), PadDelay()])
+        pm = PassManager([ALAPScheduleAnalysis(durations), PadDelay()])
         alap_qc = pm.run(qc)
 
-        pm = PassManager([ASAPSchedule(durations), PadDelay()])
+        pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
         new_qc = pm.run(qc.reverse_ops())
         new_qc = new_qc.reverse_ops()
         new_qc.name = new_qc.name
 
         self.assertEqual(alap_qc, new_qc)
 
-    @data(ALAPSchedule, ASAPSchedule)
+    def test_alap_agree_with_reverse_asap_with_target(self):
+        """Test if ALAP schedule agrees with doubly-reversed ASAP schedule."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.delay(500, 1)
+        qc.cx(0, 1)
+        qc.measure_all()
+
+        target = Target(num_qubits=2, dt=3.5555555555555554)
+        target.add_instruction(HGate(), {(0,): InstructionProperties(duration=200)})
+        target.add_instruction(CXGate(), {(0, 1): InstructionProperties(duration=700)})
+        target.add_instruction(
+            Measure(),
+            {
+                (0,): InstructionProperties(duration=1000),
+                (1,): InstructionProperties(duration=1000),
+            },
+        )
+
+        pm = PassManager([ALAPScheduleAnalysis(target=target), PadDelay()])
+        alap_qc = pm.run(qc)
+
+        pm = PassManager([ASAPScheduleAnalysis(target=target), PadDelay()])
+        new_qc = pm.run(qc.reverse_ops())
+        new_qc = new_qc.reverse_ops()
+        new_qc.name = new_qc.name
+
+        self.assertEqual(alap_qc, new_qc)
+
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_classically_controlled_gate_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with c_if after measure with a common clbit.
         See: https://github.com/Qiskit/qiskit-terra/issues/7654
@@ -91,7 +128,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(expected, scheduled)
 
-    @data(ALAPSchedule, ASAPSchedule)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_measure_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with measure after measure with a common clbit.
         See: https://github.com/Qiskit/qiskit-terra/issues/7654
@@ -132,7 +169,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(expected, scheduled)
 
-    @data(ALAPSchedule, ASAPSchedule)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_c_if_on_different_qubits(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with `c_if`s on different qubits.
 
@@ -180,7 +217,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(expected, scheduled)
 
-    @data(ALAPSchedule, ASAPSchedule)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_shorter_measure_after_measure(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with shorter measure after measure with a common clbit.
 
@@ -218,7 +255,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(expected, scheduled)
 
-    @data(ALAPSchedule, ASAPSchedule)
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
     def test_measure_after_c_if(self, schedule_pass):
         """Test if ALAP/ASAP schedules circuits with c_if after measure with a common clbit.
 
@@ -304,7 +341,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         durations = InstructionDurations(
             [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
         )
-        pm = PassManager([ALAPSchedule(durations), PadDelay()])
+        pm = PassManager([ALAPScheduleAnalysis(durations), PadDelay()])
         qc_alap = pm.run(qc)
 
         alap_expected = QuantumCircuit(2, 2)
@@ -316,7 +353,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(qc_alap, alap_expected)
 
-        pm = PassManager([ASAPSchedule(durations), PadDelay()])
+        pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
         qc_asap = pm.run(qc)
 
         asap_expected = QuantumCircuit(2, 2)
@@ -368,7 +405,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         durations = InstructionDurations(
             [("x", [0], 200), ("x", [1], 400), ("measure", None, 1000)]
         )
-        pm = PassManager([ALAPSchedule(durations), PadDelay()])
+        pm = PassManager([ALAPScheduleAnalysis(durations), PadDelay()])
         qc_alap = pm.run(qc)
 
         alap_expected = QuantumCircuit(2, 2)
@@ -381,7 +418,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         self.assertEqual(qc_alap, alap_expected)
 
-        pm = PassManager([ASAPSchedule(durations), PadDelay()])
+        pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
         qc_asap = pm.run(qc)
 
         asap_expected = QuantumCircuit(2, 2)
@@ -444,10 +481,18 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         # lock at the end edge
         actual_asap = PassManager(
-            [ASAPSchedule(durations, clbit_write_latency=1000), PadDelay()]
+            [
+                SetIOLatency(clbit_write_latency=1000),
+                ASAPScheduleAnalysis(durations),
+                PadDelay(),
+            ]
         ).run(qc)
         actual_alap = PassManager(
-            [ALAPSchedule(durations, clbit_write_latency=1000), PadDelay()]
+            [
+                SetIOLatency(clbit_write_latency=1000),
+                ALAPScheduleAnalysis(durations),
+                PadDelay(),
+            ]
         ).run(qc)
 
         # start times of 2nd measure depends on ASAP/ALAP
@@ -496,19 +541,19 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.x(0).c_if(0, 1)
 
         durations = InstructionDurations([("x", None, 100), ("measure", None, 1000)])
+
         actual_asap = PassManager(
             [
-                ASAPSchedule(
-                    durations, clbit_write_latency=write_lat, conditional_latency=cond_lat
-                ),
+                SetIOLatency(clbit_write_latency=write_lat, conditional_latency=cond_lat),
+                ASAPScheduleAnalysis(durations),
                 PadDelay(),
             ]
         ).run(qc)
+
         actual_alap = PassManager(
             [
-                ALAPSchedule(
-                    durations, clbit_write_latency=write_lat, conditional_latency=cond_lat
-                ),
+                SetIOLatency(clbit_write_latency=write_lat, conditional_latency=cond_lat),
+                ALAPScheduleAnalysis(durations),
                 PadDelay(),
             ]
         ).run(qc)
@@ -630,10 +675,19 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         )
 
         actual_asap = PassManager(
-            [ASAPSchedule(durations, clbit_write_latency=100, conditional_latency=200), PadDelay()]
+            [
+                SetIOLatency(clbit_write_latency=100, conditional_latency=200),
+                ASAPScheduleAnalysis(durations),
+                PadDelay(),
+            ]
         ).run(qc)
+
         actual_alap = PassManager(
-            [ALAPSchedule(durations, clbit_write_latency=100, conditional_latency=200), PadDelay()]
+            [
+                SetIOLatency(clbit_write_latency=100, conditional_latency=200),
+                ALAPScheduleAnalysis(durations),
+                PadDelay(),
+            ]
         ).run(qc)
 
         expected_asap = QuantumCircuit(3, 1)
@@ -721,7 +775,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.x(1).c_if(0, True)
 
         durations = InstructionDurations([("x", None, 160)])
-        pm = PassManager([ASAPSchedule(durations), PadDelay()])
+        pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2, 1)
@@ -744,7 +798,7 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
         qc.add_calibration("x", (0,), xsched)
 
         durations = InstructionDurations([("x", None, 160), ("cx", None, 600)])
-        pm = PassManager([ASAPSchedule(durations), PadDelay()])
+        pm = PassManager([ASAPScheduleAnalysis(durations), PadDelay()])
         scheduled = pm.run(qc)
 
         expected = QuantumCircuit(2)
@@ -790,12 +844,29 @@ class TestSchedulingAndPaddingPass(QiskitTestCase):
 
         scheduled = PassManager(
             [
-                ASAPSchedule(durations),
+                ASAPScheduleAnalysis(durations),
                 PadDelay(fill_very_end=False),
             ]
         ).run(qc)
 
         self.assertEqual(scheduled, qc)
+
+    @data(ALAPScheduleAnalysis, ASAPScheduleAnalysis)
+    def test_respect_target_instruction_constraints(self, schedule_pass):
+        """Test if DD pass does not pad delays for qubits that do not support delay instructions.
+        See: https://github.com/Qiskit/qiskit-terra/issues/9993
+        """
+        qc = QuantumCircuit(3)
+        qc.cx(1, 2)
+
+        target = Target(dt=1)
+        target.add_instruction(CXGate(), {(1, 2): InstructionProperties(duration=1000)})
+        # delays are not supported
+
+        pm = PassManager([schedule_pass(target=target), PadDelay(target=target)])
+        scheduled = pm.run(qc)
+
+        self.assertEqual(qc, scheduled)
 
 
 if __name__ == "__main__":

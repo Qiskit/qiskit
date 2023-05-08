@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The deprecated arguments ``epsilon`` and ``factr`` for the constructor of
+    the  :class:`~.L_BFGS_B` optimizer class have been removed. These arguments
+    were originally deprecated as part of the 0.18.0 release (released on
+    July 12, 2021). Instead the ``ftol`` argument should be used, you
+    can refer to the `scipy docs <https://docs.scipy.org/doc/scipy/reference/optimize.minimize-lbfgsb.html.>`__
+    on the optimizer for more detail on the relationship between these arguments.

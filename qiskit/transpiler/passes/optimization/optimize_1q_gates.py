@@ -26,6 +26,7 @@ from qiskit.circuit import ParameterExpression
 from qiskit.circuit.gate import Gate
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.quantum_info.synthesis import Quaternion
+from qiskit._accelerate.optimize_1q_gates import compose_u3_rust
 
 _CHOP_THRESHOLD = 1e-15
 
@@ -33,7 +34,7 @@ _CHOP_THRESHOLD = 1e-15
 class Optimize1qGates(TransformationPass):
     """Optimize chains of single-qubit u1, u2, u3 gates by combining them into a single gate."""
 
-    def __init__(self, basis=None, eps=1e-15):
+    def __init__(self, basis=None, eps=1e-15, target=None):
         """Optimize1qGates initializer.
 
         Args:
@@ -41,10 +42,14 @@ class Optimize1qGates(TransformationPass):
                 of this pass, the basis is the set intersection between the `basis` parameter and
                 the set `{'u1','u2','u3', 'u', 'p'}`.
             eps (float): EPS to check against
+            target (Target): The :class:`~.Target` representing the target backend, if both
+                ``basis`` and this are specified then this argument will take
+                precedence and ``basis`` will be ignored.
         """
         super().__init__()
-        self.basis = basis if basis else ["u1", "u2", "u3"]
+        self.basis = set(basis) if basis else {"u1", "u2", "u3"}
         self.eps = eps
+        self.target = target
 
     def run(self, dag):
         """Run the Optimize1qGates pass on `dag`.
@@ -61,18 +66,30 @@ class Optimize1qGates(TransformationPass):
         use_u = "u" in self.basis
         use_p = "p" in self.basis
         runs = dag.collect_runs(["u1", "u2", "u3", "u", "p"])
+        qubit_mapping = {}
+        if self.target is not None:
+            qubit_mapping = {bit: index for index, bit in enumerate(dag.qubits)}
         runs = _split_runs_on_parameters(runs)
         for run in runs:
-            if use_p:
-                right_name = "p"
+            run_qubits = None
+            if self.target is not None:
+                run_qubits = tuple(qubit_mapping[x] for x in run[0].qargs)
+
+                if self.target.instruction_supported("p", run_qubits):
+                    right_name = "p"
+                else:
+                    right_name = "u1"
             else:
-                right_name = "u1"
+                if use_p:
+                    right_name = "p"
+                else:
+                    right_name = "u1"
             right_parameters = (0, 0, 0)  # (theta, phi, lambda)
             right_global_phase = 0
             for current_node in run:
                 left_name = current_node.name
                 if (
-                    current_node.op.condition is not None
+                    getattr(current_node.op, "condition", None) is not None
                     or len(current_node.qargs) != 1
                     or left_name not in ["p", "u1", "u2", "u3", "u", "id"]
                 ):
@@ -255,16 +272,30 @@ class Optimize1qGates(TransformationPass):
                 ):
                     right_name = "nop"
 
-            if right_name == "u2" and "u2" not in self.basis:
-                if use_u:
-                    right_name = "u"
-                else:
-                    right_name = "u3"
-            if right_name in ("u1", "p") and right_name not in self.basis:
-                if use_u:
-                    right_name = "u"
-                else:
-                    right_name = "u3"
+            if self.target is not None:
+                if right_name == "u2" and not self.target.instruction_supported("u2", run_qubits):
+                    if self.target.instruction_supported("u", run_qubits):
+                        right_name = "u"
+                    else:
+                        right_name = "u3"
+                if right_name in ("u1", "p") and not self.target.instruction_supported(
+                    right_name, run_qubits
+                ):
+                    if self.target.instruction_supported("u", run_qubits):
+                        right_name = "u"
+                    else:
+                        right_name = "u3"
+            else:
+                if right_name == "u2" and "u2" not in self.basis:
+                    if use_u:
+                        right_name = "u"
+                    else:
+                        right_name = "u3"
+                if right_name in ("u1", "p") and right_name not in self.basis:
+                    if use_u:
+                        right_name = "u"
+                    else:
+                        right_name = "u3"
 
             new_op = Gate(name="", num_qubits=1, params=[])
             if right_name == "u1":
@@ -307,10 +338,7 @@ class Optimize1qGates(TransformationPass):
 
         Return theta, phi, lambda.
         """
-        # Careful with the factor of two in yzy_to_zyz
-        thetap, phip, lambdap = Optimize1qGates.yzy_to_zyz((lambda1 + phi2), theta1, theta2)
-        (theta, phi, lamb) = (thetap, phi1 + phip, lambda2 + lambdap)
-
+        (theta, phi, lamb) = compose_u3_rust(theta1, phi1, lambda1, theta2, phi2, lambda2)
         return (theta, phi, lamb)
 
     @staticmethod

@@ -236,7 +236,7 @@ def update_backend_info(self, interval=60):
     """Updates the monitor info
     Called from another thread.
     """
-    my_thread = threading.currentThread()
+    my_thread = threading.current_thread()
     current_interval = 0
     started = False
     all_dead = False

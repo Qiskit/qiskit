@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -19,6 +19,8 @@ import numpy as np
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterExpression, ParameterVector
 from qiskit.utils import optionals as _optionals
+from qiskit.utils.deprecation import deprecate_func
+from .circuit_gradients.circuit_gradient import CircuitGradient
 from ..expectations.pauli_expectation import PauliExpectation
 from .gradient_base import GradientBase
 from .derivative_base import _coeff_derivative
@@ -33,7 +35,14 @@ from ..exceptions import OpflowError
 
 
 class Gradient(GradientBase):
-    """Convert an operator expression to the first-order gradient."""
+    """Deprecated: Convert an operator expression to the first-order gradient."""
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self, grad_method: Union[str, CircuitGradient] = "param_shift", **kwargs):
+        super().__init__(grad_method=grad_method, **kwargs)
 
     def convert(
         self,
@@ -108,6 +117,12 @@ class Gradient(GradientBase):
                 return expr == c
             return coeff == c
 
+        def is_coeff_c_abs(coeff, c):
+            if isinstance(coeff, ParameterExpression):
+                expr = coeff._symbol_expr
+                return np.abs(expr) == c
+            return np.abs(coeff) == c
+
         if isinstance(params, (ParameterVector, list)):
             param_grads = [self.get_gradient(operator, param) for param in params]
             # If get_gradient returns None, then the corresponding parameter was probably not
@@ -126,10 +141,17 @@ class Gradient(GradientBase):
         # By now params is a single parameter
         param = params
         # Handle Product Rules
-        if not is_coeff_c(operator._coeff, 1.0):
+        if not is_coeff_c(operator._coeff, 1.0) and not is_coeff_c(operator._coeff, 1.0j):
             # Separate the operator from the coefficient
             coeff = operator._coeff
             op = operator / coeff
+            if np.iscomplex(coeff):
+                from .circuit_gradients.lin_comb import LinComb
+
+                if isinstance(self.grad_method, LinComb):
+                    op *= 1j
+                    coeff /= 1j
+
             # Get derivative of the operator (recursively)
             d_op = self.get_gradient(op, param)
             # ..get derivative of the coeff
@@ -152,7 +174,7 @@ class Gradient(GradientBase):
         if isinstance(operator, ComposedOp):
 
             # Gradient of an expectation value
-            if not is_coeff_c(operator._coeff, 1.0):
+            if not is_coeff_c_abs(operator._coeff, 1.0):
                 raise OpflowError(
                     "Operator pre-processing failed. Coefficients were not properly "
                     "collected inside the ComposedOp."
@@ -193,7 +215,7 @@ class Gradient(GradientBase):
                 grad_combo_fn = operator.grad_combo_fn
             else:
                 _optionals.HAS_JAX.require_now("automatic differentiation")
-                from jax import jit, grad  # pylint: disable=import-error
+                from jax import jit, grad
 
                 grad_combo_fn = jit(grad(operator.combo_fn, holomorphic=True))
 

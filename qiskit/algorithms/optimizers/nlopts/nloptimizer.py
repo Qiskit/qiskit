@@ -10,9 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Minimize using objective function """
+"""Minimize using objective function"""
+from __future__ import annotations
 
-from typing import List, Optional, Tuple, Callable
+from collections.abc import Callable
 from enum import Enum
 from abc import abstractmethod
 import logging
@@ -39,8 +40,6 @@ class NLoptOptimizer(Optimizer):
     """
     NLopt global optimizer base class
     """
-
-    # pylint: disable=import-error
 
     _OPTIONS = ["max_evals"]
 
@@ -84,28 +83,12 @@ class NLoptOptimizer(Optimizer):
     def settings(self):
         return {"max_evals": self._options.get("max_evals", 1000)}
 
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(
-            objective_function, initial_point, gradient_function, variable_bounds
-        )
-        return result.x, result.fun, result.nfev
-
     def minimize(
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         import nlopt
 

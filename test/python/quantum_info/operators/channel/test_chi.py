@@ -141,7 +141,11 @@ class TestChi(ChannelTestCase):
         chan1 = Chi(chi1, input_dims=2, output_dims=2)
         chan2 = Chi(chi2, input_dims=2, output_dims=2)
         target = rho.evolve(chan1).evolve(chan2)
-        output = rho.evolve(chan2.dot(chan1))
+        chan = chan2.dot(chan1)
+        output = rho.evolve(chan)
+        self.assertEqual(output, target)
+        chan = chan2 @ chan1
+        output = rho.evolve(chan)
         self.assertEqual(output, target)
 
     def test_compose_front(self):
@@ -359,6 +363,8 @@ class TestChi(ChannelTestCase):
         targ = Chi(val * self.chiI)
         self.assertEqual(chan._multiply(val), targ)
         self.assertEqual(val * chan, targ)
+        targ = Chi(self.chiI * val)
+        self.assertEqual(chan * val, targ)
 
     def test_multiply_except(self):
         """Test multiply method raises exceptions."""

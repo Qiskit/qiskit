@@ -12,12 +12,16 @@
 
 """Tests for the converters."""
 
+import math
 import unittest
+
+import numpy as np
 
 from qiskit.converters import circuit_to_instruction
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.circuit import Qubit, Clbit, Instruction
 from qiskit.circuit import Parameter
+from qiskit.quantum_info import Operator
 from qiskit.test import QiskitTestCase
 from qiskit.exceptions import QiskitError
 
@@ -40,9 +44,9 @@ class TestCircuitToInstruction(QiskitTestCase):
         q = QuantumRegister(10, "q")
         c = ClassicalRegister(5, "c")
 
-        self.assertEqual(inst.definition[0][1], [q[1], q[6]])
-        self.assertEqual(inst.definition[1][1], [q[7]])
-        self.assertEqual(inst.definition[1][2], [c[4]])
+        self.assertEqual(inst.definition[0].qubits, (q[1], q[6]))
+        self.assertEqual(inst.definition[1].qubits, (q[7],))
+        self.assertEqual(inst.definition[1].clbits, (c[4],))
 
     def test_flatten_registers_of_circuit_single_bit_cond(self):
         """Check correct mapping of registers gates conditioned on single classical bits."""
@@ -60,13 +64,13 @@ class TestCircuitToInstruction(QiskitTestCase):
         q = QuantumRegister(5, "q")
         c = ClassicalRegister(6, "c")
 
-        self.assertEqual(inst.definition[0][1], [q[0]])
-        self.assertEqual(inst.definition[1][1], [q[3]])
-        self.assertEqual(inst.definition[2][1], [q[1], q[4]])
+        self.assertEqual(inst.definition[0].qubits, (q[0],))
+        self.assertEqual(inst.definition[1].qubits, (q[3],))
+        self.assertEqual(inst.definition[2].qubits, (q[1], q[4]))
 
-        self.assertEqual(inst.definition[0][0].condition, (c[1], True))
-        self.assertEqual(inst.definition[1][0].condition, (c[3], False))
-        self.assertEqual(inst.definition[2][0].condition, (c[5], True))
+        self.assertEqual(inst.definition[0].operation.condition, (c[1], True))
+        self.assertEqual(inst.definition[1].operation.condition, (c[3], False))
+        self.assertEqual(inst.definition[2].operation.condition, (c[5], True))
 
     def test_flatten_circuit_registerless(self):
         """Test that the conversion works when the given circuit has bits that are not contained in
@@ -85,12 +89,12 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.num_qubits, len(qr1) + len(qubits) + len(qr2))
         self.assertEqual(inst.num_clbits, len(cr1) + len(clbits) + len(cr2))
         inst_definition = inst.definition
-        _, cx_qargs, cx_cargs = inst_definition.data[0]
-        _, measure_qargs, measure_cargs = inst_definition.data[1]
-        self.assertEqual(cx_qargs, [inst_definition.qubits[3], inst_definition.qubits[5]])
-        self.assertEqual(cx_cargs, [])
-        self.assertEqual(measure_qargs, [inst_definition.qubits[4]])
-        self.assertEqual(measure_cargs, [inst_definition.clbits[4]])
+        cx = inst_definition.data[0]
+        measure = inst_definition.data[1]
+        self.assertEqual(cx.qubits, (inst_definition.qubits[3], inst_definition.qubits[5]))
+        self.assertEqual(cx.clbits, ())
+        self.assertEqual(measure.qubits, (inst_definition.qubits[4],))
+        self.assertEqual(measure.clbits, (inst_definition.clbits[4],))
 
     def test_flatten_circuit_overlapping_registers(self):
         """Test that the conversion works when the given circuit has bits that are contained in more
@@ -109,12 +113,12 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertEqual(inst.num_qubits, len(qubits))
         self.assertEqual(inst.num_clbits, len(clbits))
         inst_definition = inst.definition
-        _, cx_qargs, cx_cargs = inst_definition.data[0]
-        _, measure_qargs, measure_cargs = inst_definition.data[1]
-        self.assertEqual(cx_qargs, [inst_definition.qubits[3], inst_definition.qubits[5]])
-        self.assertEqual(cx_cargs, [])
-        self.assertEqual(measure_qargs, [inst_definition.qubits[4]])
-        self.assertEqual(measure_cargs, [inst_definition.clbits[4]])
+        cx = inst_definition.data[0]
+        measure = inst_definition.data[1]
+        self.assertEqual(cx.qubits, (inst_definition.qubits[3], inst_definition.qubits[5]))
+        self.assertEqual(cx.clbits, ())
+        self.assertEqual(measure.qubits, (inst_definition.qubits[4],))
+        self.assertEqual(measure.clbits, (inst_definition.clbits[4],))
 
     def test_flatten_parameters(self):
         """Verify parameters from circuit are moved to instruction.params"""
@@ -133,10 +137,10 @@ class TestCircuitToInstruction(QiskitTestCase):
         inst = circuit_to_instruction(qc)
 
         self.assertEqual(inst.params, [phi, theta])
-        self.assertEqual(inst.definition[0][0].params, [theta])
-        self.assertEqual(inst.definition[1][0].params, [phi])
-        self.assertEqual(inst.definition[2][0].params, [theta, phi, 0])
-        self.assertEqual(str(inst.definition[3][0].params[0]), "phi + theta")
+        self.assertEqual(inst.definition[0].operation.params, [theta])
+        self.assertEqual(inst.definition[1].operation.params, [phi])
+        self.assertEqual(inst.definition[2].operation.params, [theta, phi, 0])
+        self.assertEqual(str(inst.definition[3].operation.params[0]), "phi + theta")
 
     def test_underspecified_parameter_map_raises(self):
         """Verify we raise if not all circuit parameters are present in parameter_map."""
@@ -181,10 +185,10 @@ class TestCircuitToInstruction(QiskitTestCase):
         inst = circuit_to_instruction(qc, {theta: gamma, phi: phi})
 
         self.assertEqual(inst.params, [gamma, phi])
-        self.assertEqual(inst.definition[0][0].params, [gamma])
-        self.assertEqual(inst.definition[1][0].params, [phi])
-        self.assertEqual(inst.definition[2][0].params, [gamma, phi, 0])
-        self.assertEqual(str(inst.definition[3][0].params[0]), "gamma + phi")
+        self.assertEqual(inst.definition[0].operation.params, [gamma])
+        self.assertEqual(inst.definition[1].operation.params, [phi])
+        self.assertEqual(inst.definition[2].operation.params, [gamma, phi, 0])
+        self.assertEqual(str(inst.definition[3].operation.params[0]), "gamma + phi")
 
     def test_registerless_classical_bits(self):
         """Test that conditions on registerless classical bits can be handled during the conversion.
@@ -198,10 +202,21 @@ class TestCircuitToInstruction(QiskitTestCase):
         self.assertIsInstance(test.definition, QuantumCircuit)
 
         self.assertEqual(len(test.definition.data), 1)
-        test_instruction, _, _ = test.definition.data[0]
-        expected_instruction, _, _ = expected.data[0]
-        self.assertIs(type(test_instruction), type(expected_instruction))
-        self.assertEqual(test_instruction.condition, (test.definition.clbits[0], 0))
+        test_instruction = test.definition.data[0]
+        expected_instruction = expected.data[0]
+        self.assertIs(type(test_instruction.operation), type(expected_instruction.operation))
+        self.assertEqual(test_instruction.operation.condition, (test.definition.clbits[0], 0))
+
+    def test_zero_operands(self):
+        """Test that an instruction can be created, even if it has zero operands."""
+        base = QuantumCircuit(global_phase=math.pi)
+        instruction = base.to_instruction()
+        self.assertEqual(instruction.num_qubits, 0)
+        self.assertEqual(instruction.num_clbits, 0)
+        self.assertEqual(instruction.definition, base)
+        compound = QuantumCircuit(1)
+        compound.append(instruction, [], [])
+        np.testing.assert_allclose(-np.eye(2), Operator(compound), atol=1e-16)
 
 
 if __name__ == "__main__":

@@ -9,13 +9,13 @@ features:
     is the equivalent output from ``__repr__`` but this default can be changed
     in a user config file by setting the ``state_drawer`` option. For example:
 
-    .. jupyter-execute::
+    .. code-block::
 
             from qiskit.quantum_info import DensityMatrix
             dm = DensityMatrix.from_label('r0')
             dm.draw('latex')
 
-    .. jupyter-execute::
+    .. code-block::
 
             from qiskit.quantum_info import Statevector
             sv = Statevector.from_label('+r')

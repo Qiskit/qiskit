@@ -1,0 +1,39 @@
+---
+features:
+  - |
+    Added a new keyword argument ``sampler`` to the constructors of the
+    phase estimation classes:
+
+     * :class:`~qiskit.algorithms.IterativePhaseEstimation`
+     * :class:`~qiskit.algorithms.PhaseEstimation`
+     * :class:`~qiskit.algorithms.HamiltonianPhaseEstimation`
+
+    This argument is used to provide an implementation of the
+    :class:`~qiskit.primitives.BaseSampler` interface such as :class:`~.Sampler`,
+    :class:`~.BackendSampler`, or any provider implementations such as those
+    as those present in ``qiskit-ibm-runtime`` and ``qiskit-aer``.
+
+    For example:
+
+    .. code-block:: python
+
+      from qiskit.primitives import Sampler
+      from qiskit.algorithms.phase_estimators import HamiltonianPhaseEstimation
+      from qiskit.synthesis import MatrixExponential
+      from qiskit.quantum_info import SparsePauliOp
+      from qiskit.opflow import PauliSumOp
+
+
+      sampler = Sampler()
+      num_evaluation_qubits = 6
+      phase_est = HamiltonianPhaseEstimation(
+          num_evaluation_qubits=num_evaluation_qubits, sampler=sampler
+      )
+
+      hamiltonian = PauliSumOp(SparsePauliOp.from_list([("X", 0.5), ("Y", 0.6), ("I", 0.7)]))
+      result = phase_est.estimate(
+          hamiltonian=hamiltonian,
+          state_preparation=None,
+          evolution=MatrixExponential(),
+          bound=1.05,
+      )

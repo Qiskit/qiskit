@@ -112,12 +112,12 @@ workflow for writing and compiling release notes.
 #### Adding a new release note
 
 Making a new release note is quite straightforward. Ensure that you have reno
-installed with::
+installed with:
 
     pip install -U reno
 
 Once you have reno installed you can make a new release note by running in
-your local repository checkout's root::
+your local repository checkout's root:
 
     reno new short-description-string
 
@@ -134,13 +134,13 @@ changes. When you open the newly created file it will be a full template of
 the different categories with a description of a category as a single entry
 in each category. You'll want to delete all the sections you aren't using and
 update the contents for those you are. For example, the end result should
-look something like::
+look something like:
 
 ```yaml
 features:
   - |
     Introduced a new feature foo, that adds support for doing something to
-    ``QuantumCircuit`` objects. It can be used by using the foo function,
+    :class:`.QuantumCircuit` objects. It can be used by using the foo function,
     for example::
 
       from qiskit import foo
@@ -148,10 +148,10 @@ features:
       foo(QuantumCircuit())
 
   - |
-    The ``qiskit.QuantumCircuit`` module has a new method ``foo()``. This is
-    the equivalent of calling the ``qiskit.foo()`` to do something to your
-    QuantumCircuit. This is the equivalent of running ``qiskit.foo()`` on
-    your circuit, but provides the convenience of running it natively on
+    The :class:`.QuantumCircuit` class has a new method :meth:`~.QuantumCircuit.foo`. 
+    This is the equivalent of calling the :func:`~qiskit.foo` to do something to your
+    :class:`.QuantumCircuit`. This is the equivalent of running :func:`~qiskit.foo` 
+    on your circuit, but provides the convenience of running it natively on
     an object. For example::
 
       from qiskit import QuantumCircuit
@@ -163,14 +163,15 @@ deprecations:
   - |
     The ``qiskit.bar`` module has been deprecated and will be removed in a
     future release. Its sole function, ``foobar()`` has been superseded by the
-    ``qiskit.foo()`` function which provides similar functionality but with
-    more accurate results and better performance. You should update your calls
-    ``qiskit.bar.foobar()`` calls to ``qiskit.foo()``.
+    :func:`~qiskit.foo` function which provides similar functionality but with
+    more accurate results and better performance. You should update your
+    :func:`~qiskit.bar.foobar` calls to :func:`~qiskit.foo`.
 ```
 
-You can also look at other release notes for other examples.
+You can also look at other release notes for other examples. 
 
-You can use any restructured text feature in them (code sections, tables,
+Note that you can use sphinx [restructured text syntax](https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html).
+In fact, you can use any restructured text feature in them (code sections, tables,
 enumerated lists, bulleted list, etc) to express what is being changed as
 needed. In general you want the release notes to include as much detail as
 needed so that users will understand what has changed, why it changed, and how
@@ -197,17 +198,17 @@ fixes:
 
 #### Generating the release notes
 
-After release notes have been added if you want to see what the full output of
-the release notes. In general the output from reno that we'll get is a rst
+After release notes have been added, you can use reno to see what the full output
+of the release notes is. In general the output from reno that we'll get is a rst
 (ReStructuredText) file that can be compiled by
 [sphinx](https://www.sphinx-doc.org/en/master/). To generate the rst file you
 use the ``reno report`` command. If you want to generate the full terra release
-notes for all releases (since we started using reno during 0.9) you just run::
+notes for all releases (since we started using reno during 0.9) you just run:
 
     reno report
 
 but you can also use the ``--version`` argument to view a single release (after
-it has been tagged::
+it has been tagged:
 
     reno report --version 0.9.0
 
@@ -236,12 +237,15 @@ building and installing from source you will need a rust compiler installed. You
 using rustup: https://rustup.rs/ which provides a single tool to install and
 configure the latest version of the rust compiler.
 [Other installation methods](https://forge.rust-lang.org/infra/other-installation-methods.html)
-exist too. For windows users besides rustup you will also need install
-the Visual C++ build tools so that rust can link against the system c/c++
+exist too. For Windows users, besides rustup, you will also need install
+the Visual C++ build tools so that Rust can link against the system c/c++
 libraries. You can see more details on this in the
 [rustup documentation](https://rust-lang.github.io/rustup/installation/windows.html).
 
-Once you have a rust compiler installed you can rely on the normal Python
+If you use Rustup, it will automatically install the correct Rust version
+currently used by the project.
+
+Once you have a Rust compiler installed, you can rely on the normal Python
 build/install steps to install Qiskit Terra. This means you just run
 `pip install .` in your local git clone to build and install Qiskit Terra.
 
@@ -250,6 +254,10 @@ without any optimizations enabled. This will result in poor runtime performance.
 If you'd like to use an editable install with an optimized binary you can
 run `python setup.py build_rust --release --inplace` after you install in
 editable mode to recompile the rust extensions in release mode.
+
+Note that in order to run `python setup.py ...` commands you need have build
+dependency packages installed in your environment, which are listed in the
+`pyproject.toml` file under the `[build-system]` section.
 
 
 ## Test
@@ -268,12 +276,12 @@ environment that tox sets up matches the CI environment more closely and it
 runs the tests in parallel (resulting in much faster execution). To run tests
 on all installed supported python versions and lint/style checks you can simply
 run `tox`. Or if you just want to run the tests once run for a specific python
-version: `tox -epy37` (or replace py37 with the python version you want to use,
-py35 or py36).
+version: `tox -epy310` (or replace py310 with the python version you want to use,
+py39 or py311).
 
 If you just want to run a subset of tests you can pass a selection regex to
 the test runner. For example, if you want to run all tests that have "dag" in
-the test id you can run: `tox -epy37 -- dag`. You can pass arguments directly to
+the test id you can run: `tox -epy310 -- dag`. You can pass arguments directly to
 the test runner after the bare `--`. To see all the options on test selection
 you can refer to the stestr manual:
 https://stestr.readthedocs.io/en/stable/MANUAL.html#test-selection
@@ -283,21 +291,21 @@ you can do this faster with the `-n`/`--no-discover` option. For example:
 
 to run a module:
 ```
-tox -epy37 -- -n test.python.test_examples
+tox -epy310 -- -n test.python.test_examples
 ```
 or to run the same module by path:
 
 ```
-tox -epy37 -- -n test/python/test_examples.py
+tox -epy310 -- -n test/python/test_examples.py
 ```
 to run a class:
 
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples
+tox -epy310 -- -n test.python.test_examples.TestPythonExamples
 ```
 to run a method:
 ```
-tox -epy37 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
+tox -epy310 -- -n test.python.test_examples.TestPythonExamples.test_all_examples
 ```
 
 Alternatively there is a makefile provided to run tests, however this
@@ -460,23 +468,28 @@ merged to it are bugfixes.
 
 ### Release cycle
 
-When it is time to release a new minor version of qiskit-terra we will:
+In the lead up to a release there are a few things to keep in mind. Prior to
+the release date there is a feature, removal, and deprecation proposal freeze
+date. This date in each release cycle is the last day where a new PR adding a
+new feature, removing something, or adding a new deprecation can be proposed (in
+a ready for review state) for potential inclusion in the release. If a new
+PR is opened after this date it will not be considered for inclusion in that
+release. Note, that meeting these deadlines does not guarantee inclusion in a
+release: they are preconditions. You can refer to the milestone page for each
+release to see these dates for each release (for example for 0.21.0 the page is:
+https://github.com/Qiskit/qiskit-terra/milestone/23).
 
-1.  Create a new tag with the version number and push it to github
-2.  Change the `main` version to the next release version.
-
-The release automation processes will be triggered by the new tag and perform
-the following steps:
-
-1.  Create a stable branch for the new minor version from the release tag
-    on the `main` branch
-2.  Build and upload binary wheels to pypi
-3.  Create a github release page with a generated changelog
-4.  Generate a PR on the meta-repository to bump the terra version and
-    meta-package version.
-
-The `stable/*` branches should only receive changes in the form of bug
-fixes.
+After the proposal freeze a release review period will begin, during this time
+release candidate PRs will be reviewed as we finalize the feature set and merge
+the last PRs for the release. Following the review period a release candidate will be
+tagged and published. This release candidate is pre-release that enables users and
+developers to test the release ahead of time. When the pre-release is tagged the release
+automation will publish the pre-release to PyPI (but only get installed on user request),
+create the `stable/*` branch, and generate a pre-release changelog/release page. At
+this point the `main` opens up for development of the next release. The `stable/*`
+branches should only  receive changes in the form of bug fixes at this point. If there
+is a need additional release candidates can be published from `stable/*` and when the
+release is ready a full release will be tagged and published from `stable/*`.
 
 ## Adding deprecation warnings
 The qiskit-terra code is part of Qiskit and, therefore, the [Qiskit Deprecation Policy](https://qiskit.org/documentation/contributing_to_qiskit.html#deprecation-policy) fully applies here. Additionally, qiskit-terra does not allow `DeprecationWarning`s in its testsuite. If you are deprecating code, you should add a test to use the new/non-deprecated method (most of the time based on the existing test of the deprecated method) and alter the existing test to check that the deprecated method still works as expected, [using `assertWarns`](https://docs.python.org/3/library/unittest.html#unittest.TestCase.assertWarns). The `assertWarns` context will silence the deprecation warning while checking that it raises.

@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixed a bug where decomposing an instruction with one qubit and one classical bit 
+    containing a single quantum gate failed. Now the following decomposes as expected::
+
+        block = QuantumCircuit(1, 1)
+        block.h(0)
+
+        circuit = QuantumCircuit(1, 1)
+        circuit.append(block, [0], [0])
+
+        decomposed = circuit.decompose()

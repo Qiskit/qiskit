@@ -296,6 +296,7 @@ def default_style() -> Dict[str, Any]:
         "formatter.box_height.opaque_shape": 0.5,
         "formatter.axis_break.length": 3000,
         "formatter.axis_break.max_length": 1000,
+        "formatter.control.fill_waveform": True,
         "formatter.control.apply_phase_modulation": True,
         "formatter.control.show_snapshot_channel": True,
         "formatter.control.show_acquire_channel": True,

@@ -1,7 +1,0 @@
----
-fixes:
-  - |
-    Negative numbers in array outputs from the drawers will now appear as
-    decimal numbers instead of fractions with huge numerators and
-    denominators.  Like positive numbers, they will still be fractions if the
-    ratio is between small numbers.

@@ -12,8 +12,7 @@
 
 
 """Implementations of boolean logic quantum circuits."""
-
-from typing import List, Optional
+from __future__ import annotations
 
 from qiskit.circuit import QuantumRegister, QuantumCircuit, AncillaRegister
 from qiskit.circuit.library.standard_gates import MCXGate
@@ -30,32 +29,30 @@ class AND(QuantumCircuit):
 
     The AND gate without special flags equals the multi-controlled-X gate:
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import AND
-        import qiskit.tools.jupyter
-        circuit = AND(5)
-        %circuit_library_info circuit
+       from qiskit.circuit.library import AND
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       circuit = AND(5)
+       _generate_circuit_library_visualization(circuit)
 
     Using flags we can negate qubits or skip them. For instance, if we have 5 qubits and want to
     return ``True`` if the first qubit is ``False`` and the last two are ``True`` we use the flags
     ``[-1, 0, 0, 1, 1]``.
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import AND
-        import qiskit.tools.jupyter
-        circuit = AND(5, flags=[-1, 0, 0, 1, 1])
-        %circuit_library_info circuit
+       from qiskit.circuit.library import AND
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       circuit = AND(5, flags=[-1, 0, 0, 1, 1])
+       _generate_circuit_library_visualization(circuit)
 
     """
 
     def __init__(
         self,
         num_variable_qubits: int,
-        flags: Optional[List[int]] = None,
+        flags: list[int] | None = None,
         mcx_mode: str = "noancilla",
     ) -> None:
         """Create a new logical AND circuit.
@@ -88,7 +85,7 @@ class AND(QuantumCircuit):
             qr_ancilla = AncillaRegister(num_ancillas, "ancilla")
             circuit.add_register(qr_ancilla)
         else:
-            qr_ancilla = []
+            qr_ancilla = AncillaRegister(0)
 
         if len(flip_qubits) > 0:
             circuit.x(flip_qubits)

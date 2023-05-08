@@ -1,5 +1,0 @@
----
-features:
-  - |
-      Added new abstract base primitive types under :mod:`qiskit.primitives`
-      Concrete implementations will come from providers.

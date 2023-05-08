@@ -21,7 +21,7 @@
 import argparse
 import sys
 
-from junitxml import JUnitXmlResult  # pylint: disable=import-error
+from junitxml import JUnitXmlResult
 from subunit.filters import run_tests_from_stream
 from testtools import StreamToExtendedDecorator
 

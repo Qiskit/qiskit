@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -10,13 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-""" Measurement error mitigation """
+"""Measurement error mitigation"""
 
 import copy
 from typing import List, Optional, Tuple, Dict, Callable
 
 from qiskit import compiler
-from qiskit.providers import BaseBackend
+from qiskit.providers import Backend
 from qiskit.circuit import QuantumCircuit
 from qiskit.qobj import QasmQobj
 from qiskit.assembler.run_config import RunConfig
@@ -27,15 +27,18 @@ from qiskit.utils.mitigation import (
     CompleteMeasFitter,
     TensoredMeasFitter,
 )
+from qiskit.utils.deprecation import deprecate_func
 
-# pylint: disable=invalid-name
 
-
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def get_measured_qubits(
     transpiled_circuits: List[QuantumCircuit],
 ) -> Tuple[List[int], Dict[str, List[int]]]:
     """
-    Retrieve the measured qubits from transpiled circuits.
+    Deprecated: Retrieve the measured qubits from transpiled circuits.
 
     Args:
         transpiled_circuits: a list of transpiled circuits
@@ -51,12 +54,12 @@ def get_measured_qubits(
     qubit_mappings = {}
     for idx, qc in enumerate(transpiled_circuits):
         measured_qubits = []
-        for inst, qargs, _ in qc.data:
-            if inst.name != "measure":
+        for instruction in qc.data:
+            if instruction.operation.name != "measure":
                 continue
             for qreg in qc.qregs:
-                if qargs[0] in qreg:
-                    index = qreg[:].index(qargs[0])
+                if instruction.qubits[0] in qreg:
+                    index = qreg[:].index(instruction.qubits[0])
                     measured_qubits.append(index)
                     break
         measured_qubits_str = "_".join([str(x) for x in measured_qubits])
@@ -75,9 +78,13 @@ def get_measured_qubits(
     return sorted(qubit_index), qubit_mappings
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, List[int]]]:
     """
-    Retrieve the measured qubits from transpiled circuits.
+    Deprecated: Retrieve the measured qubits from transpiled circuits.
 
     Args:
         qobj: qobj
@@ -116,15 +123,19 @@ def get_measured_qubits_from_qobj(qobj: QasmQobj) -> Tuple[List[int], Dict[str, 
     return sorted(qubit_index), qubit_mappings
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def build_measurement_error_mitigation_circuits(
     qubit_list: List[int],
     fitter_cls: Callable,
-    backend: BaseBackend,
+    backend: Backend,
     backend_config: Optional[Dict] = None,
     compile_config: Optional[Dict] = None,
     mit_pattern: Optional[List[List[int]]] = None,
 ) -> Tuple[QuantumCircuit, List[str], List[str]]:
-    """Build measurement error mitigation circuits
+    """Deprecated: Build measurement error mitigation circuits
     Args:
         qubit_list: list of ordered qubits used in the algorithm
         fitter_cls: CompleteMeasFitter or TensoredMeasFitter
@@ -191,10 +202,14 @@ def build_measurement_error_mitigation_circuits(
     return t_meas_calibs_circuits, state_labels, circlabel
 
 
+@deprecate_func(
+    since="0.24.0",
+    additional_msg="For code migration guidelines, visit https://qisk.it/qi_migration.",
+)
 def build_measurement_error_mitigation_qobj(
     qubit_list: List[int],
     fitter_cls: Callable,
-    backend: BaseBackend,
+    backend: Backend,
     backend_config: Optional[Dict] = None,
     compile_config: Optional[Dict] = None,
     run_config: Optional[RunConfig] = None,

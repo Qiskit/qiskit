@@ -18,7 +18,7 @@ import unittest
 import numpy as np
 
 from qiskit.circuit import QuantumCircuit, QuantumRegister
-from qiskit.circuit.library import U2Gate
+from qiskit.circuit.library import U2Gate, SwapGate, CXGate
 from qiskit.extensions import UnitaryGate
 from qiskit.converters import circuit_to_dag
 from qiskit.transpiler.passes import ConsolidateBlocks
@@ -26,6 +26,7 @@ from qiskit.quantum_info.operators import Operator
 from qiskit.quantum_info.operators.measures import process_fidelity
 from qiskit.test import QiskitTestCase
 from qiskit.transpiler import PassManager
+from qiskit.transpiler import Target
 from qiskit.transpiler.passes import Collect1qRuns
 from qiskit.transpiler.passes import Collect2qBlocks
 
@@ -66,7 +67,7 @@ class TestConsolidateBlocks(QiskitTestCase):
         new_dag = pass_.run(dag)
 
         new_node = new_dag.op_nodes()[0]
-        self.assertEqual(new_node.qargs, [qr[0], qr[1]])
+        self.assertEqual(new_node.qargs, (qr[0], qr[1]))
         unitary = Operator(qc)
         fidelity = process_fidelity(Operator(new_node.op), unitary)
         self.assertAlmostEqual(fidelity, 1.0, places=7)
@@ -97,8 +98,8 @@ class TestConsolidateBlocks(QiskitTestCase):
 
         new_topo_ops = list(new_dag.topological_op_nodes())
         self.assertEqual(len(new_topo_ops), 2)
-        self.assertEqual(new_topo_ops[0].qargs, [qr[1], qr[2]])
-        self.assertEqual(new_topo_ops[1].qargs, [qr[0], qr[1]])
+        self.assertEqual(new_topo_ops[0].qargs, (qr[1], qr[2]))
+        self.assertEqual(new_topo_ops[1].qargs, (qr[0], qr[1]))
 
     def test_3q_blocks(self):
         """blocks of more than 2 qubits work."""
@@ -320,8 +321,8 @@ class TestConsolidateBlocks(QiskitTestCase):
         # Assert output circuit is a single unitary gate equivalent to
         # unitary of original circuit
         self.assertEqual(len(result), 1)
-        self.assertIsInstance(result.data[0][0], UnitaryGate)
-        self.assertTrue(np.allclose(result.data[0][0].to_matrix(), expected))
+        self.assertIsInstance(result.data[0].operation, UnitaryGate)
+        self.assertTrue(np.allclose(result.data[0].operation.to_matrix(), expected))
 
     def test_classical_conditions_maintained(self):
         """Test that consolidate blocks doesn't drop the classical conditions
@@ -358,6 +359,74 @@ class TestConsolidateBlocks(QiskitTestCase):
         expected = QuantumCircuit(2)
         expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
         self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_basis_with_target(self):
+        """Test a gate outside basis defined in target gets converted."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal basis gates to all qubits
+        target.add_instruction(CXGate())
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(target=target)
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0], [0, 0, 0, 1]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_local_basis_with_target(self):
+        """Test that a gate in basis but outside valid qubits is treated as outside basis with target."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal cx to (1, 0) only
+        target.add_instruction(CXGate(), {(1, 0): None})
+        qc.cx(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(target=target)
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.unitary(np.array([[1, 0, 0, 0], [0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0]]), [0, 1])
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_single_gate_block_outside_target_with_matching_basis_gates(self):
+        """Ensure the target is the source of truth with basis_gates also set."""
+        qc = QuantumCircuit(2)
+        target = Target(num_qubits=2)
+        # Add ideal cx to (1, 0) only
+        target.add_instruction(SwapGate())
+        qc.swap(0, 1)
+        consolidate_block_pass = ConsolidateBlocks(
+            basis_gates=["id", "cx", "rz", "sx", "x"], target=target
+        )
+        pass_manager = PassManager()
+        pass_manager.append(Collect2qBlocks())
+        pass_manager.append(consolidate_block_pass)
+        expected = QuantumCircuit(2)
+        expected.swap(0, 1)
+        self.assertEqual(expected, pass_manager.run(qc))
+
+    def test_identity_unitary_is_removed(self):
+        """Test that a 2q identity unitary is removed without a basis."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.cx(0, 1)
+        qc.h(0)
+
+        pm = PassManager([Collect2qBlocks(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5), pm.run(qc))
+
+    def test_identity_1q_unitary_is_removed(self):
+        """Test that a 1q identity unitary is removed without a basis."""
+        qc = QuantumCircuit(5)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+        qc.h(0)
+        pm = PassManager([Collect2qBlocks(), Collect1qRuns(), ConsolidateBlocks()])
+        self.assertEqual(QuantumCircuit(5), pm.run(qc))
 
 
 if __name__ == "__main__":

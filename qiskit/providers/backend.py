@@ -18,14 +18,11 @@
 from abc import ABC
 from abc import abstractmethod
 import datetime
-import logging
 from typing import List, Union, Iterable, Tuple
 
 from qiskit.providers.provider import Provider
 from qiskit.providers.models.backendstatus import BackendStatus
 from qiskit.circuit.gate import Instruction
-
-logger = logging.getLogger(__name__)
 
 
 class Backend:
@@ -211,10 +208,10 @@ class BackendV1(Backend, ABC):
     def run(self, run_input, **options):
         """Run on the backend.
 
-        This method that will return a :class:`~qiskit.providers.Job` object
-        that run circuits. Depending on the backend this may be either an async
-        or sync call. It is the discretion of the provider to decide whether
-        running should  block until the execution is finished or not. The Job
+        This method returns a :class:`~qiskit.providers.Job` object
+        that runs circuits. Depending on the backend this may be either an async
+        or sync call. It is at the discretion of the provider to decide whether
+        running should block until the execution is finished or not: the Job
         class can handle either situation.
 
         Args:
@@ -290,6 +287,26 @@ class BackendV2(Backend, ABC):
     will build a :class:`~qiskit.providers.models.BackendConfiguration` object
     and :class:`~qiskit.providers.models.BackendProperties` from the attributes
     defined in this class for backwards compatibility.
+
+    A backend object can optionally contain methods named
+    ``get_translation_stage_plugin`` and ``get_scheduling_stage_plugin``. If these
+    methods are present on a backend object and this object is used for
+    :func:`~.transpile` or :func:`~.generate_preset_pass_manager` the
+    transpilation process will default to using the output from those methods
+    as the scheduling stage and the translation compilation stage. This
+    enables a backend which has custom requirements for compilation to specify a
+    stage plugin for these stages to enable custom transformation of
+    the circuit to ensure it is runnable on the backend. These hooks are enabled
+    by default and should only be used to enable extra compilation steps
+    if they are **required** to ensure a circuit is executable on the backend or
+    have the expected level of performance. These methods are passed no input
+    arguments and are expected to return a ``str`` representing the method name
+    which should be a stage plugin (see: :mod:`qiskit.transpiler.preset_passmanagers.plugin`
+    for more details on plugins). The typical expected use case is for a backend
+    provider to implement a stage plugin for ``translation`` or ``scheduling``
+    that contains the custom compilation passes and then for the hook methods on
+    the backend object to return the plugin name so that :func:`~.transpile` will
+    use it by default when targetting the backend.
     """
 
     version = 2
@@ -337,6 +354,7 @@ class BackendV2(Backend, ABC):
         self.description = description
         self.online_date = online_date
         self.backend_version = backend_version
+        self._coupling_map = None
 
     @property
     def instructions(self) -> List[Tuple[Instruction, Tuple[int]]]:
@@ -351,15 +369,6 @@ class BackendV2(Backend, ABC):
     @property
     def operation_names(self) -> List[str]:
         """A list of instruction names that the backend supports."""
-        non_global_ops = self.target.get_non_global_operation_names(strict_direction=True)
-        if non_global_ops:
-            invalid_str = ",".join(non_global_ops)
-            msg = (
-                f"This backend's operations: {invalid_str} only apply to a subset of "
-                "qubits. Using this property to get 'basis_gates' for the "
-                "transpiler may potentially create invalid output"
-            )
-            logger.warning(msg)
         return list(self.target.operation_names)
 
     @property
@@ -379,7 +388,9 @@ class BackendV2(Backend, ABC):
     @property
     def coupling_map(self):
         """Return the :class:`~qiskit.transpiler.CouplingMap` object"""
-        return self.target.build_coupling_map()
+        if self._coupling_map is None:
+            self._coupling_map = self.target.build_coupling_map()
+        return self._coupling_map
 
     @property
     def instruction_durations(self):
@@ -474,12 +485,25 @@ class BackendV2(Backend, ABC):
                 be a single integer for 1 qubit or a list of qubits and a list
                 of :class:`~qiskit.provider.QubitProperties` objects will be
                 returned in the same order
+        Returns:
+            qubit_properties: The :class:`~.QubitProperties` object for the
+            specified qubit. If a list of qubits is provided a list will be
+            returned. If properties are missing for a qubit this can be
+            ``None``.
 
-        raises:
+        Raises:
             NotImplementedError: if the backend doesn't support querying the
                 qubit properties
         """
-        raise NotImplementedError
+        # Since the target didn't always have a qubit properties attribute
+        # to ensure the behavior here is backwards compatible with earlier
+        # BacekendV2 implementations where this would raise a NotImplemented
+        # error.
+        if self.target.qubit_properties is None:
+            raise NotImplementedError
+        if isinstance(qubit, int):
+            return self.target.qubit_properties[qubit]
+        return [self.target.qubit_properties[q] for q in qubit]
 
     def drive_channel(self, qubit: int):
         """Return the drive channel for the given qubit.
@@ -540,7 +564,7 @@ class BackendV2(Backend, ABC):
                 ``(control_qubit, target_qubit)``.
 
         Returns:
-            List[ControlChannel]: The Qubit measurement acquisition line.
+            List[ControlChannel]: The multi qubit control line.
 
         Raises:
             NotImplementedError: if the backend doesn't support querying the
@@ -590,10 +614,10 @@ class BackendV2(Backend, ABC):
     def run(self, run_input, **options):
         """Run on the backend.
 
-        This method that will return a :class:`~qiskit.providers.Job` object
-        that run circuits. Depending on the backend this may be either an async
-        or sync call. It is the discretion of the provider to decide whether
-        running should  block until the execution is finished or not. The Job
+        This method returns a :class:`~qiskit.providers.Job` object
+        that runs circuits. Depending on the backend this may be either an async
+        or sync call. It is at the discretion of the provider to decide whether
+        running should block until the execution is finished or not: the Job
         class can handle either situation.
 
         Args:

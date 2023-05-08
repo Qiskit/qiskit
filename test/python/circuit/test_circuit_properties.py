@@ -652,7 +652,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ.rz(0.1, 1)
         circ.cz(1, 3)
         circ.measure(1, 0)
-        self.assertEqual(circ.depth(lambda x: x[0].num_qubits == 2), 2)
+        self.assertEqual(circ.depth(lambda x: x.operation.num_qubits == 2), 2)
 
     def test_circuit_depth_multiqubit_or_conditional(self):
         """Test finding depth of multi-qubit or conditional gates."""
@@ -678,7 +678,8 @@ class TestCircuitProperties(QiskitTestCase):
         circ.measure(1, 0)
         circ.x(0).c_if(0, 1)
         self.assertEqual(
-            circ.depth(lambda x: x[0].num_qubits >= 2 or x[0].condition is not None), 4
+            circ.depth(lambda x: x.operation.num_qubits >= 2 or x.operation.condition is not None),
+            4,
         )
 
     def test_circuit_depth_first_qubit(self):
@@ -704,7 +705,7 @@ class TestCircuitProperties(QiskitTestCase):
         circ.rz(0.1, 1)
         circ.cz(1, 3)
         circ.measure(1, 0)
-        self.assertEqual(circ.depth(lambda x: circ.qubits[0] in x[1]), 3)
+        self.assertEqual(circ.depth(lambda x: circ.qubits[0] in x.qubits), 3)
 
     def test_circuit_size_empty(self):
         """Circuit.size should return 0 for an empty circuit."""
@@ -737,7 +738,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.cx(q[0], q[1])
         qc.rz(0.1, q[1])
         qc.rzz(0.1, q[1], q[2])
-        self.assertEqual(qc.size(lambda x: x[0].num_qubits == 2), 2)
+        self.assertEqual(qc.size(lambda x: x.operation.num_qubits == 2), 2)
 
     def test_circuit_size_ignores_barriers_snapshots(self):
         """Circuit.size should not count barriers or snapshots."""
@@ -763,7 +764,7 @@ class TestCircuitProperties(QiskitTestCase):
         qc.z(q[3:])
         result = qc.count_ops()
 
-        expected = dict([("h", 6), ("z", 3), ("y", 2), ("x", 1)])
+        expected = {"h": 6, "z": 3, "y": 2, "x": 1}
 
         self.assertIsInstance(result, dict)
         self.assertEqual(expected, result)
@@ -1265,6 +1266,35 @@ class TestCircuitProperties(QiskitTestCase):
         qc2.metadata["a"] = 1000
 
         self.assertEqual(qc1.metadata["a"], 0)
+
+    def test_metadata_is_dict(self):
+        """Verify setting metadata to None in the constructor results in an empty dict."""
+        qc = QuantumCircuit(1)
+        metadata1 = qc.metadata
+        self.assertEqual(metadata1, {})
+
+    def test_metadata_raises(self):
+        """Test that we must set metadata to a dict."""
+        qc = QuantumCircuit(1)
+        with self.assertRaises(TypeError):
+            qc.metadata = 1
+
+    def test_metdata_deprectation(self):
+        """Test that setting metadata to None emits a deprecation warning."""
+        qc = QuantumCircuit(1)
+        with self.assertWarns(DeprecationWarning):
+            qc.metadata = None
+        self.assertEqual(qc.metadata, {})
+
+    def test_scheduling(self):
+        """Test cannot return schedule information without scheduling."""
+        qc = QuantumCircuit(2)
+        qc.h(0)
+        qc.cx(0, 1)
+
+        with self.assertRaises(AttributeError):
+            # pylint: disable=pointless-statement
+            qc.op_start_times
 
 
 if __name__ == "__main__":

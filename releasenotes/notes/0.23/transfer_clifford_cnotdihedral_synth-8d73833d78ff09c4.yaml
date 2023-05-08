@@ -1,0 +1,25 @@
+---
+upgrade:
+  - |
+    Added to Qiskit documentation the function
+    :func:`qiskit.synthesis.synth_clifford_full` for synthesizing Clifford circuits for
+    all-to-all architecture, which contains the following sub-functions:
+    :func:`qiskit.synthesis.synth_clifford_ag` which is based on Aaronson and Gottesman,
+    :func:`qiskit.synthesis.synth_clifford_greedy` which is based on the greedy
+    Clifford compiler of Bravyi et. al., and :func:`qiskit.synthesis.synth_clifford_bm`
+    for optimal synthesis of 2-qubit and 3-qubit Clifford circuits which is based on
+    Bravyi and Maslov.
+    Added to Qiskit documentation the function
+    :func:`qiskit.synthesis.synth_cnotdihedral_full` for synthesizing CNOTDihedral circuits for
+    all-to-all architecture, which contains the following sub-functions:
+    :func:`qiskit.synthesis.synth_cnotdihedral_general` which is based on Cross et. al.,
+    and :func:`qiskit.synthesis.synth_cnotdihedral_two_qubits` for optimal synthesis of 2-qubit
+    CNOTDihedral elements which is based on Garion and Cross.
+deprecations:
+  - |
+    The functions :func:`qiskit.quantum_info.synthesis.decompose_clifford`
+    and :func:`qiskit.quantum_info.synthesis.decompose_cnot_dihedral`
+    will be deprecated in the future release and subsequently removed after that.
+    They are replaced by the two functions
+    :func:`qiskit.synthesis.synth_clifford_full` and
+    :func:`qiskit.synthesis.synth_cnotdihedral_full` respectively.

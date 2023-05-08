@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -22,6 +22,7 @@ import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter, ParameterExpression, ParameterVector
+from qiskit.utils.deprecation import deprecate_func
 from .circuit_gradient import CircuitGradient
 from ...operator_base import OperatorBase
 from ...state_fns.state_fn import StateFn
@@ -39,13 +40,17 @@ from ..derivative_base import _coeff_derivative
 
 
 class ParamShift(CircuitGradient):
-    """Compute the gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the sampling
+    """Deprecated: Compute the gradient d⟨ψ(ω)|O(θ)|ψ(ω)〉/ dω respectively the gradients of the sampling
     probabilities of the basis states of a state |ψ(ω)〉w.r.t. ω with the parameter shift
     method.
     """
 
     SUPPORTED_GATES = {"x", "y", "z", "h", "rx", "ry", "rz", "p", "u", "cx", "cy", "cz"}
 
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
     def __init__(self, analytic: bool = True, epsilon: float = 1e-6):
         r"""
         Args:
@@ -57,7 +62,7 @@ class ParamShift(CircuitGradient):
         Raises:
             ValueError: If method != ``fin_diff`` and ``epsilon`` is not None.
         """
-
+        super().__init__()
         self._analytic = analytic
         self._epsilon = epsilon
 
@@ -107,6 +112,7 @@ class ParamShift(CircuitGradient):
         Returns:
             An operator corresponding to the gradient resp. Hessian. The order is in accordance with
             the order of the given parameters.
+
         Raises:
             OpflowError: If the parameters are given in an invalid format.
 
@@ -146,6 +152,7 @@ class ParamShift(CircuitGradient):
             operator: The operator containing circuits we are taking the derivative of.
             params: The parameters (ω) we are taking the derivative with respect to. If
                     a ParameterVector is provided, each parameter will be shifted.
+
         Returns:
             param_shifted_op: An operator object which evaluates to the respective gradients.
 
@@ -205,8 +212,13 @@ class ParamShift(CircuitGradient):
 
             shifted_ops = []
             summed_shifted_op = None
-            for m, param_occurence in enumerate(circ._parameter_table[param]):
-                param_index = param_occurence[1]
+
+            iref_to_data_index = {id(inst.operation): idx for idx, inst in enumerate(circ.data)}
+
+            for param_reference in circ._parameter_table[param]:
+                original_gate, param_index = param_reference
+                m = iref_to_data_index[id(original_gate)]
+
                 pshift_op = deepcopy(operator)
                 mshift_op = deepcopy(operator)
 
@@ -214,8 +226,8 @@ class ParamShift(CircuitGradient):
                 pshift_circ = self.get_unique_circuits(pshift_op)[0]
                 mshift_circ = self.get_unique_circuits(mshift_op)[0]
 
-                pshift_gate = pshift_circ._parameter_table[param][m][0]
-                mshift_gate = mshift_circ._parameter_table[param][m][0]
+                pshift_gate = pshift_circ.data[m].operation
+                mshift_gate = mshift_circ.data[m].operation
 
                 p_param = pshift_gate.params[param_index]
                 m_param = mshift_gate.params[param_index]
@@ -285,7 +297,7 @@ class ParamShift(CircuitGradient):
             TypeError: if ``x`` is not DictStateFn, VectorStateFn or their list.
 
         """
-        # In the probability gradient case, the amplitudes still need to be converted
+        # Note: In the probability gradient case, the amplitudes still need to be converted
         # into sampling probabilities.
 
         def get_primitives(item):

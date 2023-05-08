@@ -1,0 +1,28 @@
+---
+upgrade:
+  - |
+    The QPY version format version emitted by :func:`.qpy.dump` has been
+    increased to version 5. This new format version is incompatible with the
+    previous versions and will result in an error when trying to load it with
+    a deserializer that isn't able to handle QPY version 5. This change was
+    necessary to fix support for representing controlled gates properly and
+    representing non-default control states.
+fixes:
+  - |
+    Fixed support for QPY serialization (:func:`.qpy.dump`) and deserialization
+    (:func:`.qpy.load`) of a :class:`~.QuantumCircuit` object containing custom
+    :class:`~.ControlledGate` objects. Previously, an exception would be raised
+    by :func:`.qpy.load` when trying to reconstruct the custom
+    :class:`~.ControlledGate`.
+    Fixed `#7999 <https://github.com/Qiskit/qiskit-terra/issues/7999>`__.
+  - |
+    Fixed support for QPY serialization (:func:`.qpy.dump`) and deserialization
+    (:func:`.qpy.load`) of a :class:`~.QuantumCircuit` object containing custom
+    :class:`~.MCPhaseGate` objects. Previously, an exception would be raised
+    by :func:`.qpy.load` when trying to reconstruct the :class:`~.MCPhaseGate`.
+  - |
+    Fixed support for QPY serialization (:func:`.qpy.dump`) and deserialization
+    (:func:`.qpy.load`) of a :class:`~.QuantumCircuit` object containing
+    controlled gates with an open control state. Previously, the open control
+    state would be lost by the serialization process and the reconstructed
+    circuit.

@@ -12,11 +12,18 @@
 
 """Quantum Operators."""
 
+from .channel import PTM, Chi, Choi, Kraus, Stinespring, SuperOp
+from .dihedral import CNOTDihedral
+from .measures import average_gate_fidelity, diamond_norm, gate_error, process_fidelity
 from .operator import Operator
 from .scalar_op import ScalarOp
-from .channel import Choi, SuperOp, Kraus, Stinespring, Chi, PTM
-from .measures import process_fidelity, average_gate_fidelity, gate_error, diamond_norm
-from .symplectic import Clifford, Pauli, PauliList, SparsePauliOp, PauliTable, StabilizerTable
-from .symplectic import pauli_basis
-from .pauli import pauli_group
-from .dihedral import CNOTDihedral
+from .symplectic import (
+    Clifford,
+    Pauli,
+    PauliList,
+    PauliTable,
+    SparsePauliOp,
+    StabilizerTable,
+    pauli_basis,
+)
+from .utils import anti_commutator, commutator, double_commutator

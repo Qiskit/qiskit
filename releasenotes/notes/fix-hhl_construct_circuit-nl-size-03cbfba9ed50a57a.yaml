@@ -1,4 +1,0 @@
----
-fixes:
-  - |
-    Fixes an issue where HHL().construct_circuit() didn't always return a correct circuit. Issue arose for some matrices due to not allocating enough qubits to represent the eigenvalues.

@@ -69,15 +69,15 @@ class TestPauliTwoDesign(QiskitTestCase):
     def test_resize(self):
         """Test resizing the Random Pauli circuit preserves the gates."""
         circuit = PauliTwoDesign(1)
-        top_gates = [op.name for op, _, _ in circuit.decompose().data]
+        top_gates = [instruction.operation.name for instruction in circuit.decompose().data]
 
         circuit.num_qubits = 3
         decomposed = circuit.decompose()
         with self.subTest("assert existing gates remain"):
             new_top_gates = []
-            for op, qargs, _ in decomposed:
-                if qargs == [decomposed.qubits[0]]:  # if top qubit
-                    new_top_gates.append(op.name)
+            for instruction in decomposed:
+                if instruction.qubits == (decomposed.qubits[0],):  # if top qubit
+                    new_top_gates.append(instruction.operation.name)
 
             self.assertEqual(top_gates, new_top_gates)
 

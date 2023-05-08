@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2019, 2021.
+# (C) Copyright IBM 2019, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -11,7 +11,7 @@
 # that they have been altered from the originals.
 # =============================================================================
 
-""" Test Quantum Gradient Framework """
+"""Test Quantum Gradient Framework"""
 
 import unittest
 from test.python.opflow import QiskitOpflowTestCase
@@ -40,6 +40,7 @@ from qiskit.opflow import (
 )
 from qiskit.opflow.gradients import Gradient, NaturalGradient, Hessian
 from qiskit.opflow.gradients.qfi import QFI
+from qiskit.opflow.gradients.circuit_gradients import LinComb
 from qiskit.opflow.gradients.circuit_qfis import LinCombFull, OverlapBlockDiag, OverlapDiag
 from qiskit.circuit import Parameter
 from qiskit.circuit import ParameterVector
@@ -685,6 +686,87 @@ class TestGradients(QiskitOpflowTestCase):
         except MissingOptionalLibraryError as ex:
             self.skipTest(str(ex))
 
+    def test_gradient_p_imag(self):
+        """Test the imaginary state gradient for p
+        |psi(a)> = 1/sqrt(2)[[1, exp(ia)]]
+        <psi(a)|X|da psi(a)> = iexp(-ia)/2 <1|H(|0>+exp(ia)|1>)
+        Im(<psi(a)|X|da psi(a)>) = 0.5 cos(a).
+        """
+        ham = X
+        a = Parameter("a")
+        params = a
+        q = QuantumRegister(1)
+        qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.p(a, q[0])
+        op = ~StateFn(ham) @ CircuitStateFn(primitive=qc, coeff=1.0)
+
+        state_grad = LinComb(aux_meas_op=(-1) * Y).convert(operator=op, params=params)
+        values_dict = [{a: np.pi / 4}, {a: 0}, {a: np.pi / 2}]
+        correct_values = [1 / np.sqrt(2), 1, 0]
+
+        for i, value_dict in enumerate(values_dict):
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values[i], decimal=1
+            )
+
+    def test_qfi_p_imag(self):
+        """Test the imaginary state QFI for RXRY"""
+        x = Parameter("x")
+        y = Parameter("y")
+        circuit = QuantumCircuit(1)
+        circuit.ry(y, 0)
+        circuit.rx(x, 0)
+        state = StateFn(circuit)
+
+        dx = (
+            lambda x, y: (-1)
+            * 0.5j
+            * np.array(
+                [
+                    [
+                        -1j * np.sin(x / 2) * np.cos(y / 2) + np.cos(x / 2) * np.sin(y / 2),
+                        np.cos(x / 2) * np.cos(y / 2) - 1j * np.sin(x / 2) * np.sin(y / 2),
+                    ]
+                ]
+            )
+        )
+        dy = (
+            lambda x, y: (-1)
+            * 0.5j
+            * np.array(
+                [
+                    [
+                        -1j * np.cos(x / 2) * np.sin(y / 2) + np.sin(x / 2) * np.cos(y / 2),
+                        1j * np.cos(x / 2) * np.cos(y / 2) - 1 * np.sin(x / 2) * np.sin(y / 2),
+                    ]
+                ]
+            )
+        )
+
+        state_grad = LinCombFull(aux_meas_op=-1 * Y, phase_fix=False).convert(
+            operator=state, params=[x, y]
+        )
+        values_dict = [{x: 0, y: np.pi / 4}, {x: 0, y: np.pi / 2}, {x: np.pi / 2, y: 0}]
+
+        for value_dict in values_dict:
+            x_ = list(value_dict.values())[0]
+            y_ = list(value_dict.values())[1]
+            correct_values = [
+                [
+                    4 * np.imag(np.dot(dx(x_, y_), np.conj(np.transpose(dx(x_, y_))))[0][0]),
+                    4 * np.imag(np.dot(dy(x_, y_), np.conj(np.transpose(dx(x_, y_))))[0][0]),
+                ],
+                [
+                    4 * np.imag(np.dot(dy(x_, y_), np.conj(np.transpose(dx(x_, y_))))[0][0]),
+                    4 * np.imag(np.dot(dy(x_, y_), np.conj(np.transpose(dy(x_, y_))))[0][0]),
+                ],
+            ]
+
+            np.testing.assert_array_almost_equal(
+                state_grad.assign_parameters(value_dict).eval(), correct_values, decimal=3
+            )
+
     @unittest.skipIf(not optionals.HAS_JAX, "Skipping test due to missing jax module.")
     @idata(product(["lin_comb", "param_shift", "fin_diff"], [True, False]))
     @unpack
@@ -758,6 +840,7 @@ class TestGradients(QiskitOpflowTestCase):
         qc = RealAmplitudes(2, reps=1)
         grad_op = ListOp([StateFn(qc.decompose())], combo_fn=combo_fn, grad_combo_fn=grad_combo_fn)
         grad = Gradient(grad_method=method).convert(grad_op)
+
         value_dict = dict(zip(qc.ordered_parameters, np.random.rand(len(qc.ordered_parameters))))
         correct_values = [
             [(-0.16666259133549044 + 0j)],
@@ -916,13 +999,17 @@ class TestGradients(QiskitOpflowTestCase):
         ]
 
         backend = BasicAer.get_backend("qasm_simulator")
-        q_instance = QuantumInstance(backend=backend, shots=shots)
+        with self.assertWarns(DeprecationWarning):
+            q_instance = QuantumInstance(backend=backend, shots=shots)
 
-        for i, value_dict in enumerate(values_dict):
-            sampler = CircuitSampler(backend=q_instance).convert(
-                state_grad, params={k: [v] for k, v in value_dict.items()}
-            )
-            np.testing.assert_array_almost_equal(sampler.eval()[0], correct_values[i], decimal=1)
+        with self.assertWarns(DeprecationWarning):
+            for i, value_dict in enumerate(values_dict):
+                sampler = CircuitSampler(backend=q_instance).convert(
+                    state_grad, params={k: [v] for k, v in value_dict.items()}
+                )
+                np.testing.assert_array_almost_equal(
+                    sampler.eval()[0], correct_values[i], decimal=1
+                )
 
     @data("lin_comb", "param_shift", "fin_diff")
     def test_circuit_sampler2(self, method):
@@ -966,13 +1053,15 @@ class TestGradients(QiskitOpflowTestCase):
         ]
 
         backend = BasicAer.get_backend("qasm_simulator")
-        q_instance = QuantumInstance(backend=backend, shots=shots)
+        with self.assertWarns(DeprecationWarning):
+            q_instance = QuantumInstance(backend=backend, shots=shots)
 
-        for i, value_dict in enumerate(values_dict):
-            sampler = CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict)
-            result = sampler.eval()[0]
-            self.assertTrue(np.allclose(result[0].toarray(), correct_values[i][0], atol=0.1))
-            self.assertTrue(np.allclose(result[1].toarray(), correct_values[i][1], atol=0.1))
+        with self.assertWarns(DeprecationWarning):
+            for i, value_dict in enumerate(values_dict):
+                sampler = CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict)
+                result = sampler.eval()[0]
+                self.assertTrue(np.allclose(result[0].toarray(), correct_values[i][0], atol=0.1))
+                self.assertTrue(np.allclose(result[1].toarray(), correct_values[i][1], atol=0.1))
 
     @idata(["statevector_simulator", "qasm_simulator"])
     def test_gradient_wrapper(self, backend_type):
@@ -997,31 +1086,38 @@ class TestGradients(QiskitOpflowTestCase):
 
         shots = 8000
         backend = BasicAer.get_backend(backend_type)
-        q_instance = QuantumInstance(
-            backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
-        )
+
+        with self.assertWarns(DeprecationWarning):
+            q_instance = QuantumInstance(
+                backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
+            )
+
         if method == "fin_diff":
             np.random.seed(8)
             prob_grad = Gradient(grad_method=method, epsilon=shots ** (-1 / 6.0)).gradient_wrapper(
                 operator=op, bind_params=params, backend=q_instance
             )
         else:
-            prob_grad = Gradient(grad_method=method).gradient_wrapper(
-                operator=op, bind_params=params, backend=q_instance
-            )
+
+            with self.assertWarns(DeprecationWarning):
+                prob_grad = Gradient(grad_method=method).gradient_wrapper(
+                    operator=op, bind_params=params, backend=q_instance
+                )
+
         values = [[np.pi / 4, 0], [np.pi / 4, np.pi / 4], [np.pi / 2, np.pi]]
         correct_values = [
             [[0, 0], [1 / (2 * np.sqrt(2)), -1 / (2 * np.sqrt(2))]],
             [[1 / 4, -1 / 4], [1 / 4, -1 / 4]],
             [[0, 0], [-1 / 2, 1 / 2]],
         ]
-        for i, value in enumerate(values):
-            result = prob_grad(value)
-            if backend_type == "qasm_simulator":  # sparse result
-                result = [result[0].toarray(), result[1].toarray()]
+        with self.assertWarns(DeprecationWarning):
+            for i, value in enumerate(values):
+                result = prob_grad(value)
+                if backend_type == "qasm_simulator":  # sparse result
+                    result = [result[0].toarray(), result[1].toarray()]
 
-            self.assertTrue(np.allclose(result[0], correct_values[i][0], atol=0.1))
-            self.assertTrue(np.allclose(result[1], correct_values[i][1], atol=0.1))
+                self.assertTrue(np.allclose(result[0], correct_values[i][0], atol=0.1))
+                self.assertTrue(np.allclose(result[1], correct_values[i][1], atol=0.1))
 
     @data(("statevector_simulator", 1e-7), ("qasm_simulator", 2e-1))
     @unpack
@@ -1057,13 +1153,14 @@ class TestGradients(QiskitOpflowTestCase):
         correct_values = [[-4.0, 0], [-2.0, -4.82842712], [-0.68404029, -7.01396121]]
         for i, value in enumerate(values):
             backend = BasicAer.get_backend(backend_type)
-            q_instance = QuantumInstance(
-                backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
-            )
-            grad = NaturalGradient(grad_method=method).gradient_wrapper(
-                operator=op, bind_params=params, backend=q_instance
-            )
-            result = grad(value)
+            with self.assertWarns(DeprecationWarning):
+                q_instance = QuantumInstance(
+                    backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
+                )
+                grad = NaturalGradient(grad_method=method).gradient_wrapper(
+                    operator=op, bind_params=params, backend=q_instance
+                )
+                result = grad(value)
             self.assertTrue(np.allclose(result, correct_values[i], atol=atol))
 
     @slow_test
@@ -1072,9 +1169,12 @@ class TestGradients(QiskitOpflowTestCase):
 
         method = "lin_comb"
         backend = "qasm_simulator"
-        q_instance = QuantumInstance(
-            BasicAer.get_backend(backend), seed_simulator=79, seed_transpiler=2
-        )
+
+        with self.assertWarns(DeprecationWarning):
+            q_instance = QuantumInstance(
+                BasicAer.get_backend(backend), seed_simulator=79, seed_transpiler=2
+            )
+
         # Define the Hamiltonian
         h2_hamiltonian = (
             -1.05 * (I ^ I) + 0.39 * (I ^ Z) - 0.39 * (Z ^ I) - 0.01 * (Z ^ Z) + 0.18 * (X ^ X)
@@ -1101,11 +1201,11 @@ class TestGradients(QiskitOpflowTestCase):
         grad = Gradient(grad_method=method)
 
         # Gradient callable
-        vqe = VQE(
-            ansatz=wavefunction, optimizer=optimizer, gradient=grad, quantum_instance=q_instance
-        )
-
-        result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
+        with self.assertWarns(DeprecationWarning):
+            vqe = VQE(
+                ansatz=wavefunction, optimizer=optimizer, gradient=grad, quantum_instance=q_instance
+            )
+            result = vqe.compute_minimum_eigenvalue(operator=h2_hamiltonian)
         np.testing.assert_almost_equal(result.optimal_value, h2_energy, decimal=0)
 
     def test_qfi_overlap_works_with_bound_parameters(self):
@@ -1196,6 +1296,29 @@ class TestQFI(QiskitOpflowTestCase):
         for i, value_dict in enumerate(values_dict):
             actual = qfi.assign_parameters(value_dict).eval()
             np.testing.assert_array_almost_equal(actual, correct_values[i], decimal=1)
+
+    def test_qfi_phase_fix(self):
+        """Test the phase-fix argument in a QFI calculation
+
+        QFI = [[1, 0], [0, 1]].
+        """
+        # create the circuit
+        a, b = Parameter("a"), Parameter("b")
+        qc = QuantumCircuit(1)
+        qc.h(0)
+        qc.rz(a, 0)
+        qc.rx(b, 0)
+
+        # convert the circuit to a QFI object
+        op = CircuitStateFn(qc)
+        qfi = LinCombFull(phase_fix=False).convert(operator=op, params=[a, b])
+
+        # test for different values
+        value_dict = {a: np.pi / 4, b: 0.1}
+        correct_values = [[1, 0], [0, 1]]
+
+        actual = qfi.assign_parameters(value_dict).eval()
+        np.testing.assert_array_almost_equal(actual, correct_values, decimal=2)
 
     def test_qfi_maxcut(self):
         """Test the QFI for a simple MaxCut problem.
@@ -1322,9 +1445,8 @@ class TestQFI(QiskitOpflowTestCase):
         for i, (circuit_set, list_op) in enumerate(zip(circuit_sets, list_ops)):
             for j, (reference, composed_op) in enumerate(zip(circuit_set, list_op)):
                 with self.subTest(f"set {i} circuit {j}"):
-                    self.assertEqual(
-                        base.compose(composed_op[1].primitive), base.compose(reference)
-                    )
+                    primitive = composed_op[1].primitive
+                    self.assertEqual(base.compose(primitive), base.compose(reference))
 
     def test_overlap_qfi_bound_parameters(self):
         """Test the overlap QFI works on a circuit with multi-parameter bound gates."""
@@ -1355,6 +1477,138 @@ class TestQFI(QiskitOpflowTestCase):
 
         with self.assertRaises(NotImplementedError):
             _ = QFI("overlap_diag").convert(StateFn(circuit), [x])
+
+    @data(-Y, Z - 1j * Y)
+    def test_aux_meas_op(self, aux_meas_op):
+        """Test various auxiliary measurement operators for probability gradients with LinComb
+        Gradient.
+
+        """
+
+        a = Parameter("a")
+        b = Parameter("b")
+        params = [a, b]
+
+        q = QuantumRegister(1)
+        qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.rz(params[0], q[0])
+        qc.rx(params[1], q[0])
+
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
+
+        shots = 10000
+
+        prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
+        value_dicts = [{a: [np.pi / 4], b: [0]}, {a: [np.pi / 2], b: [np.pi / 4]}]
+        if aux_meas_op == -Y:
+            correct_values = [
+                [[-0.5, 0.5], [-1 / (np.sqrt(2) * 2), -1 / (np.sqrt(2) * 2)]],
+                [[-1 / (np.sqrt(2) * 2), 1 / (np.sqrt(2) * 2)], [0, 0]],
+            ]
+        else:
+            correct_values = [
+                [[-0.5j, 0.5j], [(1 - 1j) / (np.sqrt(2) * 2), (-1 - 1j) / (np.sqrt(2) * 2)]],
+                [
+                    [-1j / (np.sqrt(2) * 2), 1j / (np.sqrt(2) * 2)],
+                    [1 / (np.sqrt(2) * 2), -1 / (np.sqrt(2) * 2)],
+                ],
+            ]
+
+        for backend_type in ["qasm_simulator", "statevector_simulator"]:
+
+            for j, value_dict in enumerate(value_dicts):
+                with self.assertWarns(DeprecationWarning):
+                    q_instance = QuantumInstance(
+                        backend=BasicAer.get_backend(backend_type), shots=shots
+                    )
+                    result = (
+                        CircuitSampler(backend=q_instance)
+                        .convert(prob_grad, params=value_dict)
+                        .eval()[0]
+                    )
+                if backend_type == "qasm_simulator":  # sparse result
+                    result = [result[0].toarray()[0], result[1].toarray()[0]]
+                for i, item in enumerate(result):
+                    np.testing.assert_array_almost_equal(item, correct_values[j][i], decimal=1)
+
+    def test_unsupported_aux_meas_op(self):
+        """Test error for unsupported auxiliary measurement operator in LinComb Gradient.
+
+        dp0/da = cos(a)sin(b) / 2
+        dp1/da = - cos(a)sin(b) / 2
+        dp0/db = sin(a)cos(b) / 2
+        dp1/db = - sin(a)cos(b) / 2
+        """
+
+        a = Parameter("a")
+        b = Parameter("b")
+        params = [a, b]
+
+        q = QuantumRegister(1)
+        qc = QuantumCircuit(q)
+        qc.h(q)
+        qc.rz(params[0], q[0])
+        qc.rx(params[1], q[0])
+
+        op = CircuitStateFn(primitive=qc, coeff=1.0)
+
+        shots = 8000
+
+        aux_meas_op = X
+
+        with self.assertRaises(ValueError):
+            prob_grad = LinComb(aux_meas_op=aux_meas_op).convert(operator=op, params=params)
+            value_dict = {a: [np.pi / 4], b: [0]}
+
+            backend = BasicAer.get_backend("qasm_simulator")
+            with self.assertWarns(DeprecationWarning):
+                q_instance = QuantumInstance(backend=backend, shots=shots)
+            CircuitSampler(backend=q_instance).convert(prob_grad, params=value_dict).eval()
+
+    def test_nat_grad_error(self):
+        """Test the NaturalGradient throws an Error.
+
+        dp0/da = cos(a)sin(b) / 2
+        dp1/da = - cos(a)sin(b) / 2
+        dp0/db = sin(a)cos(b) / 2
+        dp1/db = - sin(a)cos(b) / 2
+        """
+        method = "lin_comb"
+        a = Parameter("a")
+        b = Parameter("b")
+        params = [a, b]
+
+        qc = QuantumCircuit(2)
+        qc.h(1)
+        qc.h(0)
+        qc.sdg(1)
+        qc.cz(0, 1)
+        qc.ry(params[0], 0)
+        qc.rz(params[1], 0)
+        qc.h(1)
+
+        obs = (Z ^ X) - (Y ^ Y)
+        op = StateFn(obs, is_measurement=True) @ CircuitStateFn(primitive=qc)
+
+        backend_type = "qasm_simulator"
+        shots = 1
+        value = [0, np.pi / 2]
+
+        backend = BasicAer.get_backend(backend_type)
+        with self.assertWarns(DeprecationWarning):
+            q_instance = QuantumInstance(
+                backend=backend, shots=shots, seed_simulator=2, seed_transpiler=2
+            )
+
+        with self.assertWarns(DeprecationWarning):
+            grad = NaturalGradient(grad_method=method).gradient_wrapper(
+                operator=op, bind_params=params, backend=q_instance
+            )
+
+        with self.assertWarns(DeprecationWarning):
+            with self.assertRaises(ValueError):
+                grad(value)
 
 
 if __name__ == "__main__":

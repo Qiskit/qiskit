@@ -17,8 +17,8 @@ Primitives (:mod:`qiskit.primitives`)
 
 .. currentmodule:: qiskit.primitives
 
-.. automodule:: qiskit.primitives.base_estimator
-.. automodule:: qiskit.primitives.base_sampler
+.. automodule:: qiskit.primitives.base.base_estimator
+.. automodule:: qiskit.primitives.base.base_sampler
 
 .. currentmodule:: qiskit.primitives
 
@@ -29,6 +29,8 @@ Estimator
    :toctree: ../stubs/
 
    BaseEstimator
+   Estimator
+   BackendEstimator
 
 Sampler
 =======
@@ -37,6 +39,8 @@ Sampler
    :toctree: ../stubs/
 
    BaseSampler
+   Sampler
+   BackendSampler
 
 Results
 =======
@@ -48,7 +52,11 @@ Results
    SamplerResult
 """
 
-from .base_estimator import BaseEstimator
-from .base_sampler import BaseSampler
-from .estimator_result import EstimatorResult
-from .sampler_result import SamplerResult
+from .base import BaseEstimator
+from .base import BaseSampler
+from .backend_estimator import BackendEstimator
+from .estimator import Estimator
+from .base.estimator_result import EstimatorResult
+from .backend_sampler import BackendSampler
+from .sampler import Sampler
+from .base.sampler_result import SamplerResult

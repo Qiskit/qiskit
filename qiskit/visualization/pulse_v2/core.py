@@ -65,11 +65,13 @@ If a plotter provides object handler for plotted shapes, the plotter API can man
 the lookup table of the handler and the drawing by using this data key.
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from enum import Enum
 from functools import partial
 from itertools import chain
-from typing import Union, List, Tuple, Iterator, Optional
 
 import numpy as np
 from qiskit import pulse
@@ -108,24 +110,30 @@ class DrawerCanvas:
 
         # chart
         self.global_charts = Chart(parent=self, name="global")
-        self.charts = []
+        self.charts: list[Chart] = []
 
         # visible controls
-        self.disable_chans = set()
-        self.disable_types = set()
+        self.disable_chans: set[pulse.channels.Channel] = set()
+        self.disable_types: set[str] = set()
 
         # data scaling
-        self.chan_scales = {}
+        self.chan_scales: dict[
+            pulse.channels.DriveChannel
+            | pulse.channels.MeasureChannel
+            | pulse.channels.ControlChannel
+            | pulse.channels.AcquireChannel,
+            float,
+        ] = {}
 
         # global time
         self._time_range = (0, 0)
-        self._time_breaks = []
+        self._time_breaks: list[tuple[int, int]] = []
 
         # title
         self.fig_title = ""
 
     @property
-    def time_range(self) -> Tuple[int, int]:
+    def time_range(self) -> tuple[int, int]:
         """Return current time range to draw.
 
         Calculate net duration and add side margin to edge location.
@@ -147,12 +155,12 @@ class DrawerCanvas:
         return new_t0, new_t1
 
     @time_range.setter
-    def time_range(self, new_range: Tuple[int, int]):
+    def time_range(self, new_range: tuple[int, int]):
         """Update time range to draw."""
         self._time_range = new_range
 
     @property
-    def time_breaks(self) -> List[Tuple[int, int]]:
+    def time_breaks(self) -> list[tuple[int, int]]:
         """Return time breaks with time range.
 
         If an edge of time range is in the axis break period,
@@ -191,22 +199,29 @@ class DrawerCanvas:
         return axis_breaks
 
     @time_breaks.setter
-    def time_breaks(self, new_breaks: List[Tuple[int, int]]):
+    def time_breaks(self, new_breaks: list[tuple[int, int]]):
         """Set new time breaks."""
         self._time_breaks = sorted(new_breaks, key=lambda x: x[0])
 
-    def load_program(self, program: Union[pulse.Waveform, pulse.ParametricPulse, pulse.Schedule]):
+    def load_program(
+        self,
+        program: pulse.Waveform
+        | pulse.ParametricPulse
+        | pulse.SymbolicPulse
+        | pulse.Schedule
+        | pulse.ScheduleBlock,
+    ):
         """Load a program to draw.
 
         Args:
-            program: `Waveform`, `ParametricPulse`, or `Schedule` to draw.
+            program: Pulse program or waveform to draw.
 
         Raises:
             VisualizationError: When input program is invalid data format.
         """
         if isinstance(program, (pulse.Schedule, pulse.ScheduleBlock)):
             self._schedule_loader(program)
-        elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse)):
+        elif isinstance(program, (pulse.Waveform, pulse.ParametricPulse, pulse.SymbolicPulse)):
             self._waveform_loader(program)
         else:
             raise VisualizationError("Data type %s is not supported." % type(program))
@@ -217,7 +232,10 @@ class DrawerCanvas:
         # set title
         self.fig_title = self.layout["figure_title"](program=program, device=self.device)
 
-    def _waveform_loader(self, program: Union[pulse.Waveform, pulse.ParametricPulse]):
+    def _waveform_loader(
+        self,
+        program: pulse.Waveform | pulse.ParametricPulse | pulse.SymbolicPulse,
+    ):
         """Load Waveform instance.
 
         This function is sub-routine of py:method:`load_program`.
@@ -243,7 +261,7 @@ class DrawerCanvas:
 
         self.charts.append(chart)
 
-    def _schedule_loader(self, program: Union[pulse.Schedule, pulse.ScheduleBlock]):
+    def _schedule_loader(self, program: pulse.Schedule | pulse.ScheduleBlock):
         """Load Schedule instance.
 
         This function is sub-routine of py:method:`load_program`.
@@ -311,7 +329,7 @@ class DrawerCanvas:
         # calculate axis break
         self.time_breaks = self._calculate_axis_break(program)
 
-    def _calculate_axis_break(self, program: pulse.Schedule) -> List[Tuple[int, int]]:
+    def _calculate_axis_break(self, program: pulse.Schedule) -> list[tuple[int, int]]:
         """A helper function to calculate axis break of long pulse sequence.
 
         Args:
@@ -423,7 +441,7 @@ class Chart:
         str(types.WaveformType.OPAQUE.value),
     ]
 
-    def __init__(self, parent: DrawerCanvas, name: Optional[str] = None):
+    def __init__(self, parent: DrawerCanvas, name: str | None = None):
         """Create new chart.
 
         Args:
@@ -433,13 +451,13 @@ class Chart:
         self.parent = parent
 
         # data stored in this channel
-        self._collections = {}
-        self._output_dataset = {}
+        self._collections: dict[str, drawings.ElementaryData] = {}
+        self._output_dataset: dict[str, drawings.ElementaryData] = {}
 
         # channel metadata
         self.index = self._cls_index()
         self.name = name or ""
-        self._channels = set()
+        self._channels: set[pulse.channels.Channel] = set()
 
         # vertical axis information
         self.vmax = 0
@@ -577,7 +595,7 @@ class Chart:
         return False
 
     @property
-    def collections(self) -> Iterator[Tuple[str, drawings.ElementaryData]]:
+    def collections(self) -> Iterator[tuple[str, drawings.ElementaryData]]:
         """Return currently active entries from drawing data collection.
 
         The object is returned with unique name as a key of an object handler.
@@ -591,7 +609,7 @@ class Chart:
                 yield unique_id, data
 
     @property
-    def channels(self) -> List[pulse.channels.Channel]:
+    def channels(self) -> list[pulse.channels.Channel]:
         """Return a list of channels associated with this chart.
 
         Returns:
@@ -599,7 +617,7 @@ class Chart:
         """
         return list(self._channels)
 
-    def _truncate_data(self, data: drawings.ElementaryData) -> Tuple[np.ndarray, np.ndarray]:
+    def _truncate_data(self, data: drawings.ElementaryData) -> tuple[np.ndarray, np.ndarray]:
         """A helper function to truncate drawings according to time breaks.
 
         # TODO: move this function to common module to support axis break for timeline.
@@ -625,7 +643,7 @@ class Chart:
 
     def _truncate_pulse_labels(
         self, xvals: np.ndarray, yvals: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """A helper function to remove text according to time breaks.
 
         Args:
@@ -652,7 +670,7 @@ class Chart:
 
     def _truncate_boxes(
         self, xvals: np.ndarray, yvals: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """A helper function to clip box object according to time breaks.
 
         Args:
@@ -728,7 +746,7 @@ class Chart:
 
     def _truncate_vectors(
         self, xvals: np.ndarray, yvals: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """A helper function to remove sequential data points according to time breaks.
 
         Args:
@@ -834,7 +852,7 @@ class Chart:
 
         return np.asarray(new_x, dtype=float), np.asarray(new_y, dtype=float)
 
-    def _bind_coordinate(self, vals: Iterator[types.Coordinate]) -> np.ndarray:
+    def _bind_coordinate(self, vals: Sequence[types.Coordinate] | np.ndarray) -> np.ndarray:
         """A helper function to bind actual coordinates to an `AbstractCoordinate`.
 
         Args:

@@ -10,8 +10,6 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=arguments-differ
-
 """Contains a (slow) Python simulator.
 
 It simulates a qasm quantum circuit (an experiment) that has been compiled
@@ -38,6 +36,7 @@ from collections import Counter
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
+from qiskit.utils.deprecation import deprecate_arg
 from qiskit.utils.multiprocessing import local_hardware_info
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
@@ -68,7 +67,7 @@ class QasmSimulatorPy(BackendV1):
         "conditional": True,
         "open_pulse": False,
         "memory": True,
-        "max_shots": 65536,
+        "max_shots": 0,
         "coupling_map": None,
         "description": "A python simulator for qasm experiments",
         "basis_gates": ["u1", "u2", "u3", "rz", "sx", "x", "cx", "id", "unitary"],
@@ -194,7 +193,7 @@ class QasmSimulatorPy(BackendV1):
         """
         # Get unique qubits that are actually measured and sort in
         # ascending order
-        measured_qubits = sorted(list({qubit for qubit, cmembit in measure_params}))
+        measured_qubits = sorted({qubit for qubit, cmembit in measure_params})
         num_measured = len(measured_qubits)
         # We use the axis kwarg for numpy.sum to compute probabilities
         # this sums over all non-measured qubits to return a vector
@@ -295,7 +294,10 @@ class QasmSimulatorPy(BackendV1):
 
         # Check for custom initial statevector in backend_options first,
         # then config second
-        if "initial_statevector" in backend_options:
+        if (
+            "initial_statevector" in backend_options
+            and backend_options["initial_statevector"] is not None
+        ):
             self._initial_statevector = np.array(
                 backend_options["initial_statevector"], dtype=complex
             )
@@ -370,6 +372,13 @@ class QasmSimulatorPy(BackendV1):
             # measure sampling is allowed
             self._sample_measure = True
 
+    @deprecate_arg(
+        "qobj",
+        deprecation_description="Using a qobj for the first argument to QasmSimulatorPy.run()",
+        since="0.22.0",
+        pending=True,
+        predicate=lambda qobj: not isinstance(qobj, (QuantumCircuit, list)),
+    )
     def run(self, qobj, **backend_options):
         """Run qobj asynchronously.
 
@@ -409,11 +418,6 @@ class QasmSimulatorPy(BackendV1):
             qobj = assemble(qobj, self, **out_options)
             qobj_options = qobj.config
         else:
-            warnings.warn(
-                "Using a qobj for run() is deprecated and will be removed in a future release.",
-                PendingDeprecationWarning,
-                stacklevel=2,
-            )
             qobj_options = qobj.config
         self._set_options(qobj_config=qobj_options, backend_options=backend_options)
         job_id = str(uuid.uuid4())

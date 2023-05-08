@@ -10,13 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-# pylint: disable=no-name-in-module,broad-except,cyclic-import,import-error
+# pylint: disable=no-name-in-module,broad-except,cyclic-import
 
 """Contains the terra version."""
 
-from collections.abc import Mapping
 import os
 import subprocess
+from collections.abc import Mapping
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -96,15 +96,16 @@ class QiskitVersion(Mapping):
             "qiskit-aer": None,
             "qiskit-ignis": None,
             "qiskit-ibmq-provider": None,
-            "qiskit-aqua": None,
             "qiskit": None,
         }
         self._loaded = False
 
     def _load_versions(self):
-        import pkg_resources
+        from importlib.metadata import version
 
         try:
+            # TODO: Update to use qiskit_aer instead when we remove the
+            # namespace redirect
             from qiskit.providers import aer
 
             self._version_dict["qiskit-aer"] = aer.__version__
@@ -122,14 +123,6 @@ class QiskitVersion(Mapping):
             self._version_dict["qiskit-ibmq-provider"] = ibmq.__version__
         except Exception:
             self._version_dict["qiskit-ibmq-provider"] = None
-        # TODO: Remove aqua after deprecation is complete and it is removed from
-        # the metapackage
-        try:
-            from qiskit import aqua
-
-            self._version_dict["qiskit-aqua"] = aqua.__version__
-        except Exception:
-            self._version_dict["qiskit-aqua"] = None
         try:
             import qiskit_nature
 
@@ -155,7 +148,7 @@ class QiskitVersion(Mapping):
         except Exception:
             self._version_dict["qiskit-machine-learning"] = None
         try:
-            self._version_dict["qiskit"] = pkg_resources.get_distribution("qiskit").version
+            self._version_dict["qiskit"] = version("qiskit")
         except Exception:
             self._version_dict["qiskit"] = None
         self._loaded = True

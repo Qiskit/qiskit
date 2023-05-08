@@ -11,18 +11,38 @@
 # that they have been altered from the originals.
 
 """ALAP Scheduling."""
-from qiskit.circuit import Measure
+
+import warnings
+
+from qiskit.circuit import Delay, Qubit, Measure
+from qiskit.dagcircuit import DAGCircuit
 from qiskit.transpiler.exceptions import TranspilerError
 
-from .base_scheduler import BaseScheduler
+from .base_scheduler import BaseSchedulerTransform
 
 
-class ALAPSchedule(BaseScheduler):
+class ALAPSchedule(BaseSchedulerTransform):
     """ALAP Scheduling pass, which schedules the **stop** time of instructions as late as possible.
 
-    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseScheduler` for the
+    See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
     detailed behavior of the control flow operation, i.e. ``c_if``.
+
+    .. note::
+
+        This base class has been superseded by :class:`~.ALAPScheduleAnalysis` and
+        the new scheduling workflow. It will be deprecated and subsequently
+        removed in a future release.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warnings.warn(
+            "The ALAPSchedule class has been supersceded by the ALAPScheduleAnalysis class "
+            "which performs the as analysis pass that requires a padding pass to later modify "
+            "the circuit. This class will be deprecated in a future release and subsequently "
+            "removed after that.",
+            PendingDeprecationWarning,
+        )
 
     def run(self, dag):
         """Run the ALAPSchedule pass on `dag`.
@@ -40,7 +60,13 @@ class ALAPSchedule(BaseScheduler):
         if len(dag.qregs) != 1 or dag.qregs.get("q", None) is None:
             raise TranspilerError("ALAP schedule runs on physical circuits only")
 
-        node_start_time = dict()
+        time_unit = self.property_set["time_unit"]
+        new_dag = DAGCircuit()
+        for qreg in dag.qregs.values():
+            new_dag.add_qreg(qreg)
+        for creg in dag.cregs.values():
+            new_dag.add_creg(creg)
+
         idle_before = {q: 0 for q in dag.qubits + dag.clbits}
         bit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
         for node in reversed(list(dag.topological_op_nodes())):
@@ -110,15 +136,27 @@ class ALAPSchedule(BaseScheduler):
                     t1 = t0 + op_duration
 
             for bit in node.qargs:
+                delta = t0 - idle_before[bit]
+                if delta > 0 and self._delay_supported(bit_indices[bit]):
+                    new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
                 idle_before[bit] = t1
 
-            node_start_time[node] = t1
+            new_dag.apply_operation_front(node.op, node.qargs, node.cargs)
 
-        # Compute maximum instruction available time, i.e. very end of t1
         circuit_duration = max(idle_before.values())
+        for bit, before in idle_before.items():
+            delta = circuit_duration - before
+            if not (delta > 0 and isinstance(bit, Qubit)):
+                continue
+            if self._delay_supported(bit_indices[bit]):
+                new_dag.apply_operation_front(Delay(delta, time_unit), [bit], [])
 
-        # Note that ALAP pass is inversely schedule, thus
-        # t0 is computed by subtracting entire circuit duration from t1.
-        self.property_set["node_start_time"] = {
-            n: circuit_duration - t1 for n, t1 in node_start_time.items()
-        }
+        new_dag.name = dag.name
+        new_dag.metadata = dag.metadata
+        new_dag.calibrations = dag.calibrations
+
+        # set circuit duration and unit to indicate it is scheduled
+        new_dag.duration = circuit_duration
+        new_dag.unit = time_unit
+
+        return new_dag

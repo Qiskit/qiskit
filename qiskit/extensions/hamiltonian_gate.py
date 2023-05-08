@@ -27,16 +27,20 @@ from .unitary import UnitaryGate
 
 
 class HamiltonianGate(Gate):
-    """Class for representing evolution by a Hermitian Hamiltonian operator as a gate. This gate
-    resolves to a UnitaryGate U(t) = exp(-1j * t * H), which can be decomposed into basis gates if
-    it is 2 qubits or less, or simulated directly in Aer for more qubits."""
+    """Class for representing evolution by a Hamiltonian operator as a gate.
+
+    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
+    which can be decomposed into basis gates if it is 2 qubits or less, or
+    simulated directly in Aer for more qubits. Note that you can also directly
+    use :meth:`.QuantumCircuit.hamiltonian`.
+    """
 
     def __init__(self, data, time, label=None):
         """Create a gate from a hamiltonian operator and evolution time parameter t
 
         Args:
             data (matrix or Operator): a hermitian operator.
-            time (float): time evolution parameter.
+            time (float or ParameterExpression): time evolution parameter.
             label (str): unitary name for backend [Default: None].
 
         Raises:
@@ -127,7 +131,25 @@ class HamiltonianGate(Gate):
 
 
 def hamiltonian(self, operator, time, qubits, label=None):
-    """Apply hamiltonian evolution to qubits."""
+    """Apply hamiltonian evolution to qubits.
+
+    This gate resolves to a :class:`.UnitaryGate` as :math:`U(t) = exp(-i t H)`,
+    which can be decomposed into basis gates if it is 2 qubits or less, or
+    simulated directly in Aer for more qubits.
+
+    Args:
+        operator (matrix or Operator): a hermitian operator.
+        time (float or ParameterExpression): time evolution parameter.
+        qubits (Union[int, Tuple[int]]): The circuit qubits to apply the
+            transformation to.
+        label (str): unitary name for backend [Default: None].
+
+    Returns:
+        QuantumCircuit: The quantum circuit.
+
+    Raises:
+        ExtensionError: if input data is not an N-qubit unitary operator.
+    """
     if not isinstance(qubits, list):
         qubits = [qubits]
 

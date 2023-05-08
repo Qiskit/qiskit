@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    The `InstructionDurations` class is upgraded to accept gate parameters. Now,
-    an instruction duration is a tuple of `(inst_name, qubits, duration, parameters, unit)`.

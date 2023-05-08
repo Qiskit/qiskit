@@ -12,7 +12,9 @@
 """
 ParameterExpression Class to enable creating simple expressions of Parameters.
 """
-from typing import Callable, Dict, Set, Union
+
+from __future__ import annotations
+from typing import Callable, Union
 
 import numbers
 import operator
@@ -21,7 +23,6 @@ import numpy
 
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.utils import optionals as _optionals
-
 
 # This type is redefined at the bottom to insert the full reference to "ParameterExpression", so it
 # can safely be used by runtime type-checkers like Sphinx.  Mypy does not need this because it
@@ -34,7 +35,7 @@ class ParameterExpression:
 
     __slots__ = ["_parameter_symbols", "_parameters", "_symbol_expr", "_name_map"]
 
-    def __init__(self, symbol_map: Dict, expr):
+    def __init__(self, symbol_map: dict, expr):
         """Create a new :class:`ParameterExpression`.
 
         Not intended to be called directly, but to be instantiated via operations
@@ -49,15 +50,15 @@ class ParameterExpression:
         self._parameter_symbols = symbol_map
         self._parameters = set(self._parameter_symbols)
         self._symbol_expr = expr
-        self._name_map = None
+        self._name_map: dict | None = None
 
     @property
-    def parameters(self) -> Set:
+    def parameters(self) -> set:
         """Returns a set of the unbound Parameters in the expression."""
         return self._parameters
 
     @property
-    def _names(self) -> Dict:
+    def _names(self) -> dict:
         """Returns a mapping of parameter names to Parameters in the expression."""
         if self._name_map is None:
             self._name_map = {p.name: p for p in self._parameters}
@@ -91,12 +92,17 @@ class ParameterExpression:
             return self.subs({parameter: value})
         return self.bind({parameter: value})
 
-    def bind(self, parameter_values: Dict) -> "ParameterExpression":
+    def bind(
+        self, parameter_values: dict, allow_unknown_parameters: bool = False
+    ) -> "ParameterExpression":
         """Binds the provided set of parameters to their corresponding values.
 
         Args:
             parameter_values: Mapping of Parameter instances to the numeric value to which
                               they will be bound.
+            allow_unknown_parameters: If ``False``, raises an error if ``parameter_values``
+                contains Parameters in the keys outside those present in the expression.
+                If ``True``, any such parameters are simply ignored.
 
         Raises:
             CircuitError:
@@ -109,14 +115,15 @@ class ParameterExpression:
             A new expression parameterized by any parameters which were not bound by
             parameter_values.
         """
-
-        self._raise_if_passed_unknown_parameters(parameter_values.keys())
+        if not allow_unknown_parameters:
+            self._raise_if_passed_unknown_parameters(parameter_values.keys())
         self._raise_if_passed_nan(parameter_values)
 
         symbol_values = {}
         for parameter, value in parameter_values.items():
-            param_expr = self._parameter_symbols[parameter]
-            symbol_values[param_expr] = value
+            if parameter in self._parameters:
+                param_expr = self._parameter_symbols[parameter]
+                symbol_values[param_expr] = value
 
         bound_symbol_expr = self._symbol_expr.subs(symbol_values)
 
@@ -141,12 +148,17 @@ class ParameterExpression:
 
         return ParameterExpression(free_parameter_symbols, bound_symbol_expr)
 
-    def subs(self, parameter_map: Dict) -> "ParameterExpression":
+    def subs(
+        self, parameter_map: dict, allow_unknown_parameters: bool = False
+    ) -> "ParameterExpression":
         """Returns a new Expression with replacement Parameters.
 
         Args:
             parameter_map: Mapping from Parameters in self to the ParameterExpression
                            instances with which they should be replaced.
+            allow_unknown_parameters: If ``False``, raises an error if ``parameter_map``
+                contains Parameters in the keys outside those present in the expression.
+                If ``True``, any such parameters are simply ignored.
 
         Raises:
             CircuitError:
@@ -157,36 +169,38 @@ class ParameterExpression:
         Returns:
             A new expression with the specified parameters replaced.
         """
-        inbound_parameters = set()
-        inbound_names = {}
-        for replacement_expr in parameter_map.values():
-            for p in replacement_expr.parameters:
-                inbound_parameters.add(p)
-                inbound_names[p.name] = p
+        if not allow_unknown_parameters:
+            self._raise_if_passed_unknown_parameters(parameter_map.keys())
 
-        self._raise_if_passed_unknown_parameters(parameter_map.keys())
+        inbound_names = {
+            p.name: p
+            for replacement_expr in parameter_map.values()
+            for p in replacement_expr.parameters
+        }
         self._raise_if_parameter_names_conflict(inbound_names, parameter_map.keys())
+
+        # Include existing parameters in self not set to be replaced.
+        new_parameter_symbols = {
+            p: s for p, s in self._parameter_symbols.items() if p not in parameter_map
+        }
+
         if _optionals.HAS_SYMENGINE:
             import symengine
 
-            new_parameter_symbols = {p: symengine.Symbol(p.name) for p in inbound_parameters}
+            symbol_type = symengine.Symbol
         else:
             from sympy import Symbol
 
-            new_parameter_symbols = {p: Symbol(p.name) for p in inbound_parameters}
-
-        # Include existing parameters in self not set to be replaced.
-        new_parameter_symbols.update(
-            {p: s for p, s in self._parameter_symbols.items() if p not in parameter_map}
-        )
+            symbol_type = Symbol
 
         # If new_param is an expr, we'll need to construct a matching sympy expr
         # but with our sympy symbols instead of theirs.
-
-        symbol_map = {
-            self._parameter_symbols[old_param]: new_param._symbol_expr
-            for old_param, new_param in parameter_map.items()
-        }
+        symbol_map = {}
+        for old_param, new_param in parameter_map.items():
+            if old_param in self._parameters:
+                symbol_map[self._parameter_symbols[old_param]] = new_param._symbol_expr
+                for p in new_param.parameters:
+                    new_parameter_symbols[p] = symbol_type(p.name)
 
         substituted_symbol_expr = self._symbol_expr.subs(symbol_map)
 
@@ -509,18 +523,38 @@ class ParameterExpression:
     def is_real(self):
         """Return whether the expression is real"""
 
-        if not self._symbol_expr.is_real and self._symbol_expr.is_real is not None:
+        # workaround for symengine behavior that const * (0 + 1 * I) is not real
+        # see https://github.com/symengine/symengine.py/issues/414
+        if _optionals.HAS_SYMENGINE and self._symbol_expr.is_real is None:
+            symbol_expr = self._symbol_expr.evalf()
+        else:
+            symbol_expr = self._symbol_expr
+
+        if not symbol_expr.is_real and symbol_expr.is_real is not None:
             # Symengine returns false for is_real on the expression if
             # there is a imaginary component (even if that component is 0),
             # but the parameter will evaluate as real. Check that if the
             # expression's is_real attribute returns false that we have a
             # non-zero imaginary
             if _optionals.HAS_SYMENGINE:
-                if self._symbol_expr.imag != 0.0:
-                    return False
-            else:
-                return False
-        return True
+                if symbol_expr.imag == 0.0:
+                    return True
+            return False
+        return symbol_expr.is_real
+
+    def sympify(self):
+        """Return symbolic expression as a raw Sympy or Symengine object.
+
+        Symengine is used preferentially; if both are available, the result will always be a
+        ``symengine`` object.  Symengine is a separate library but has integration with Sympy.
+
+        .. note::
+
+            This is for interoperability only.  Qiskit will not accept or work with raw Sympy or
+            Symegine expressions in its parameters, because they do not contain the tracking
+            information used in circuit-parameter binding and assignment.
+        """
+        return self._symbol_expr
 
 
 # Redefine the type so external imports get an evaluated reference; Sphinx needs this to understand

@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Added a new module ``qiskit.quantum_info.synthesis.qsd`` to apply Quantum
+    Shannon Decomposition of arbitrary unitaries. This functionality replaces
+    the previous isometry-based approach in the default unitary synthesis
+    transpiler pass as well as when adding unitaries to a circuit using a
+    :class:`.UnitaryGate`.
+
+    The Quantum Shannon Decomposition uses about half the cnot gates as the
+    isometry implementation when decomposing unitary matrices of greater than
+    two qubits.

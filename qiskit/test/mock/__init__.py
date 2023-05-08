@@ -20,17 +20,21 @@ testing local timeouts, arbitrary responses or behavior, etc.
 The mock devices are mainly for testing the compiler.
 """
 
-from .fake_provider import FakeProvider, FakeLegacyProvider
-from .fake_provider import FakeProviderFactory
-from .fake_backend import FakeBackend, FakeLegacyBackend
-from .fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
-from .fake_mumbai_v2 import FakeMumbaiV2
-from .fake_job import FakeJob, FakeLegacyJob
-from .fake_qobj import FakeQobj
+import warnings
 
-from .backends import *
+import qiskit.providers.fake_provider
 
-from .fake_qasm_simulator import FakeQasmSimulator
-from .fake_openpulse_2q import FakeOpenPulse2Q
-from .fake_openpulse_3q import FakeOpenPulse3Q
-from .fake_1q import Fake1Q
+
+def __getattr__(name):
+    if name.startswith("_"):
+        # Some Python components (including tests) do funny things with dunders.
+        raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
+
+    warnings.warn(
+        f"The module '{__name__}' is deprecated since "
+        "Qiskit Terra 0.21.0, and will be removed 3 months or more later. "
+        "Instead, you should import the desired object directly 'qiskit.providers.fake_provider'.",
+        category=DeprecationWarning,
+        stacklevel=2,
+    )
+    return getattr(qiskit.providers.fake_provider, name)

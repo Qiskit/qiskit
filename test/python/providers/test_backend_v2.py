@@ -21,10 +21,19 @@ from ddt import ddt, data
 
 from qiskit.circuit import QuantumCircuit, ClassicalRegister, QuantumRegister
 from qiskit.compiler import transpile
+from qiskit.compiler.transpiler import _parse_inst_map
+from qiskit.pulse.instruction_schedule_map import InstructionScheduleMap
 from qiskit.test.base import QiskitTestCase
-from qiskit.test.mock.fake_backend_v2 import FakeBackendV2, FakeBackend5QV2
-from qiskit.test.mock.fake_mumbai_v2 import FakeMumbaiV2
+from qiskit.providers.fake_provider import FakeMumbaiFractionalCX
+from qiskit.providers.fake_provider.fake_backend_v2 import (
+    FakeBackendV2,
+    FakeBackend5QV2,
+    FakeBackendSimple,
+    FakeBackendV2LegacyQubitProps,
+)
+from qiskit.providers.fake_provider.backends import FakeBogotaV2
 from qiskit.quantum_info import Operator
+from qiskit.pulse import channels
 
 
 @ddt
@@ -35,13 +44,14 @@ class TestBackendV2(QiskitTestCase):
 
     def assertMatchesTargetConstraints(self, tqc, target):
         qubit_indices = {qubit: index for index, qubit in enumerate(tqc.qubits)}
-        for instr, qargs, _ in tqc.data:
-            qargs = tuple(qubit_indices[x] for x in qargs)
-            target_set = target[instr.name].keys()
+        for instruction in tqc.data:
+            qubits = tuple(qubit_indices[x] for x in instruction.qubits)
+            target_set = target[instruction.operation.name].keys()
             self.assertIn(
-                qargs,
+                qubits,
                 target_set,
-                f"qargs: {qargs} not found in target for operation {instr.name}: {set(target_set)}",
+                f"qargs: {qubits} not found in target for operation {instruction.operation.name}:"
+                f" {set(target_set)}",
             )
 
     def test_qubit_properties(self):
@@ -50,6 +60,18 @@ class TestBackendV2(QiskitTestCase):
         self.assertEqual([73.09352e-6, 63.48783e-6], [x.t1 for x in props])
         self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
         self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
+
+    def test_legacy_qubit_properties(self):
+        """Test that qubit props work for backends not using properties in target."""
+        props = FakeBackendV2LegacyQubitProps().qubit_properties([1, 0])
+        self.assertEqual([73.09352e-6, 63.48783e-6], [x.t1 for x in props])
+        self.assertEqual([126.83382e-6, 112.23246e-6], [x.t2 for x in props])
+        self.assertEqual([5.26722e9, 5.17538e9], [x.frequency for x in props])
+
+    def test_no_qubit_properties_raises(self):
+        """Ensure that if no qubit properties are defined we raise correctly."""
+        with self.assertRaises(NotImplementedError):
+            FakeBackendSimple().qubit_properties(0)
 
     def test_option_bounds(self):
         """Test that option bounds are enforced."""
@@ -66,17 +88,7 @@ class TestBackendV2(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.h(1)
         qc.cz(1, 0)
-        with self.assertLogs("qiskit.providers.backend", level="WARN") as log:
-            tqc = transpile(qc, self.backend, optimization_level=opt_level)
-        self.assertEqual(
-            log.output,
-            [
-                "WARNING:qiskit.providers.backend:This backend's operations: "
-                "cx,ecr only apply to a subset of qubits. Using this property to "
-                "get 'basis_gates' for the transpiler may potentially create "
-                "invalid output"
-            ],
-        )
+        tqc = transpile(qc, self.backend, optimization_level=opt_level)
         self.assertTrue(Operator.from_circuit(tqc).equiv(qc))
         self.assertMatchesTargetConstraints(tqc, self.backend.target)
 
@@ -148,7 +160,7 @@ class TestBackendV2(QiskitTestCase):
 
     def test_transpile_mumbai_target(self):
         """Test that transpile respects a more involved target for a fake mumbai."""
-        backend = FakeMumbaiV2()
+        backend = FakeMumbaiFractionalCX()
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(1, 0)
@@ -161,7 +173,54 @@ class TestBackendV2(QiskitTestCase):
         expected.sx(0)
         expected.rz(math.pi / 2, 0)
         expected.cx(1, 0)
-        expected.barrier(qr[0:2])
+        expected.barrier(qr[0], qr[1])
         expected.measure(qr[0], cr[0])
         expected.measure(qr[1], cr[1])
         self.assertEqual(expected, tqc)
+
+    def test_transpile_parse_inst_map(self):
+        """Test that transpiler._parse_inst_map() supports BackendV2."""
+        inst_map = _parse_inst_map(inst_map=None, backend=self.backend)
+        self.assertIsInstance(inst_map, InstructionScheduleMap)
+
+    @data(0, 1, 2, 3, 4)
+    def test_drive_channel(self, qubit):
+        """Test getting drive channel with qubit index."""
+        backend = FakeBogotaV2()
+        chan = backend.drive_channel(qubit)
+        ref = channels.DriveChannel(qubit)
+        self.assertEqual(chan, ref)
+
+    @data(0, 1, 2, 3, 4)
+    def test_measure_channel(self, qubit):
+        """Test getting measure channel with qubit index."""
+        backend = FakeBogotaV2()
+        chan = backend.measure_channel(qubit)
+        ref = channels.MeasureChannel(qubit)
+        self.assertEqual(chan, ref)
+
+    @data(0, 1, 2, 3, 4)
+    def test_acquire_channel(self, qubit):
+        """Test getting acquire channel with qubit index."""
+        backend = FakeBogotaV2()
+        chan = backend.acquire_channel(qubit)
+        ref = channels.AcquireChannel(qubit)
+        self.assertEqual(chan, ref)
+
+    @data((4, 3), (3, 4), (3, 2), (2, 3), (1, 2), (2, 1), (1, 0), (0, 1))
+    def test_control_channel(self, qubits):
+        """Test getting acquire channel with qubit index."""
+        bogota_cr_channels_map = {
+            (4, 3): 7,
+            (3, 4): 6,
+            (3, 2): 5,
+            (2, 3): 4,
+            (1, 2): 2,
+            (2, 1): 3,
+            (1, 0): 1,
+            (0, 1): 0,
+        }
+        backend = FakeBogotaV2()
+        chan = backend.control_channel(qubits)[0]
+        ref = channels.ControlChannel(bogota_cr_channels_map[qubits])
+        self.assertEqual(chan, ref)

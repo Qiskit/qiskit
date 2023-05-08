@@ -24,6 +24,8 @@ Experiment Results (:mod:`qiskit.result`)
    ResultError
    Counts
    marginal_counts
+   marginal_distribution
+   marginal_memory
 
 Distributions
 =============
@@ -33,6 +35,14 @@ Distributions
 
    ProbDistribution
    QuasiDistribution
+
+Expectation values
+==================
+
+.. autosummary::
+   :toctree: ../stubs/
+
+   sampled_expectation_value
 
 Mitigation
 ==========
@@ -48,10 +58,12 @@ Mitigation
 from .result import Result
 from .exceptions import ResultError
 from .utils import marginal_counts
+from .utils import marginal_distribution
+from .utils import marginal_memory
 from .counts import Counts
 
-from .distributions.probability import ProbDistribution
-from .distributions.quasi import QuasiDistribution
+from .distributions import QuasiDistribution, ProbDistribution
+from .sampled_expval import sampled_expectation_value
 from .mitigation.base_readout_mitigator import BaseReadoutMitigator
 from .mitigation.correlated_readout_mitigator import CorrelatedReadoutMitigator
 from .mitigation.local_readout_mitigator import LocalReadoutMitigator

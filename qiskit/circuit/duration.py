@@ -63,19 +63,20 @@ def convert_durations_to_dt(qc: QuantumCircuit, dt_in_sec: float, inplace=True):
     else:
         circ = qc.copy()
 
-    for inst, _, _ in circ.data:
-        if inst.unit == "dt" or inst.duration is None:
+    for instruction in circ.data:
+        operation = instruction.operation
+        if operation.unit == "dt" or operation.duration is None:
             continue
 
-        if not inst.unit.endswith("s"):
-            raise CircuitError(f"Invalid time unit: '{inst.unit}'")
+        if not operation.unit.endswith("s"):
+            raise CircuitError(f"Invalid time unit: '{operation.unit}'")
 
-        duration = inst.duration
-        if inst.unit != "s":
-            duration = apply_prefix(duration, inst.unit)
+        duration = operation.duration
+        if operation.unit != "s":
+            duration = apply_prefix(duration, operation.unit)
 
-        inst.duration = duration_in_dt(duration, dt_in_sec)
-        inst.unit = "dt"
+        operation.duration = duration_in_dt(duration, dt_in_sec)
+        operation.unit = "dt"
 
     if circ.duration is not None:
         circ.duration = duration_in_dt(circ.duration, dt_in_sec)

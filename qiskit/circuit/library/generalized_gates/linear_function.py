@@ -12,10 +12,11 @@
 
 """Linear Function."""
 
-from typing import Union, List, Optional
+from __future__ import annotations
 import numpy as np
 from qiskit.circuit import QuantumCircuit, Gate
 from qiskit.circuit.exceptions import CircuitError
+from qiskit.synthesis.linear import check_invertible_binary_matrix
 
 
 class LinearFunction(Gate):
@@ -62,8 +63,8 @@ class LinearFunction(Gate):
 
     def __init__(
         self,
-        linear: Union[List[List[int]], np.ndarray, QuantumCircuit],
-        validate_input: Optional[bool] = False,
+        linear: list[list[int]] | np.ndarray | QuantumCircuit,
+        validate_input: bool | None = False,
     ) -> None:
         """Create a new linear function.
 
@@ -90,9 +91,12 @@ class LinearFunction(Gate):
 
         if isinstance(linear, QuantumCircuit):
             # The following function will raise a CircuitError if there are nonlinear gates.
+            original_circuit = linear
             linear = _linear_quantum_circuit_to_mat(linear)
 
         else:
+            original_circuit = None
+
             # Normalize to numpy array (coercing entries to 0s and 1s)
             try:
                 linear = np.array(linear, dtype=bool, copy=True)
@@ -107,13 +111,14 @@ class LinearFunction(Gate):
 
             # Optionally, check that the matrix is invertible
             if validate_input:
-                det = np.linalg.det(linear) % 2
-                if not np.allclose(det, 1):
+                if not check_invertible_binary_matrix(linear):
                     raise CircuitError(
                         "A linear function must be represented by an invertible matrix."
                     )
 
-        super().__init__(name="linear_function", num_qubits=len(linear), params=[linear])
+        super().__init__(
+            name="linear_function", num_qubits=len(linear), params=[linear, original_circuit]
+        )
 
     def validate_parameter(self, parameter):
         """Parameter validation"""
@@ -129,14 +134,21 @@ class LinearFunction(Gate):
         Returns:
             QuantumCircuit: A circuit implementing the evolution.
         """
-        from qiskit.transpiler.synthesis import cnot_synth
+        from qiskit.synthesis.linear import synth_cnot_count_full_pmh
 
-        return cnot_synth(self.linear)
+        return synth_cnot_count_full_pmh(self.linear)
 
     @property
     def linear(self):
         """Returns the n x n matrix representing this linear function"""
         return self.params[0]
+
+    @property
+    def original_circuit(self):
+        """Returns the original circuit used to construct this linear function
+        (including None, when the linear function is not constructed from a circuit).
+        """
+        return self.params[1]
 
     def is_permutation(self) -> bool:
         """Returns whether this linear function is a permutation,
@@ -165,14 +177,14 @@ def _linear_quantum_circuit_to_mat(qc: QuantumCircuit):
     nq = qc.num_qubits
     mat = np.eye(nq, nq, dtype=bool)
 
-    for inst, qargs, _ in qc.data:
-        if inst.name == "cx":
-            cb = qc.find_bit(qargs[0]).index
-            tb = qc.find_bit(qargs[1]).index
+    for instruction in qc.data:
+        if instruction.operation.name == "cx":
+            cb = qc.find_bit(instruction.qubits[0]).index
+            tb = qc.find_bit(instruction.qubits[1]).index
             mat[tb, :] = (mat[tb, :]) ^ (mat[cb, :])
-        elif inst.name == "swap":
-            cb = qc.find_bit(qargs[0]).index
-            tb = qc.find_bit(qargs[1]).index
+        elif instruction.operation.name == "swap":
+            cb = qc.find_bit(instruction.qubits[0]).index
+            tb = qc.find_bit(instruction.qubits[1]).index
             mat[[cb, tb]] = mat[[tb, cb]]
         else:
             raise CircuitError("A linear quantum circuit can include only CX and SWAP gates.")

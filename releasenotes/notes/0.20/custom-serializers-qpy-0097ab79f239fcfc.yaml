@@ -1,0 +1,78 @@
+---
+features:
+  - |
+    Added a new kwarg, ``metadata_serializer``, to the
+    :func:`.qpy.dump` function for specifying a custom
+    ``JSONEncoder`` subclass for use when serializing the
+    :attr:`.QuantumCircuit.metadata` attribute and a dual kwarg
+    ``metadata_deserializer`` to the :func:`.qpy.load` function
+    for specifying a ``JSONDecoder`` subclass. By default the
+    :func:`~qiskit.qpy.dump` and
+    :func:`~qiskit.qpy.load` functions will attempt to
+    JSON serialize and deserialize with the stdlib default json encoder and
+    decoder. Since :attr:`.QuantumCircuit.metadata` can contain any Python
+    dictionary, even those with contents not JSON serializable by the default
+    encoder, will lead to circuits that can't be serialized. The new
+    ``metadata_serializer`` argument for
+    :func:`~qiskit.qpy.dump` enables users to specify a
+    custom ``JSONEncoder`` that will be used with the internal ``json.dump()``
+    call for  serializing the :attr:`.QuantumCircuit.metadata` dictionary. This
+    can then be paired with the new ``metadata_deserializer`` argument of the
+    :func:`.qpy.load` function to decode those custom JSON
+    encodings. If ``metadata_serializer`` is specified on
+    :func:`~qiskit.qpy.dump` but ``metadata_deserializer``
+    is not specified on :func:`~qiskit.qpy.load` calls
+    the QPY will be loaded, but the circuit metadata may not be reconstructed
+    fully.
+
+    For example if you wanted to define a custom serialization for metadata and
+    then load it you can do something like::
+
+        from qiskit.qpy import dump, load
+        from qiskit.circuit import QuantumCircuit, Parameter
+        import json
+        import io
+
+        class CustomObject:
+            """Custom string container object."""
+
+            def __init__(self, string):
+                self.string = string
+
+            def __eq__(self, other):
+                return self.string == other.string
+
+        class CustomSerializer(json.JSONEncoder):
+            """Custom json encoder to handle CustomObject."""
+
+            def default(self, o):
+                if isinstance(o, CustomObject):
+                    return {"__type__": "Custom", "value": o.string}
+                return json.JSONEncoder.default(self, o)
+
+        class CustomDeserializer(json.JSONDecoder):
+            """Custom json decoder to handle CustomObject."""
+
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, object_hook=self.object_hook, **kwargs)
+
+            def object_hook(self, o):
+                """Hook to override default decoder."""
+                if "__type__" in o:
+                    obj_type = o["__type__"]
+                    if obj_type == "Custom":
+                        return CustomObject(o["value"])
+                return o
+
+        theta = Parameter("theta")
+        qc = QuantumCircuit(2, global_phase=theta)
+        qc.h(0)
+        qc.cx(0, 1)
+        qc.measure_all()
+        circuits = [qc, qc.copy()]
+        circuits[0].metadata = {"key": CustomObject("Circuit 1")}
+        circuits[1].metadata = {"key": CustomObject("Circuit 2")}
+        with io.BytesIO() as qpy_buf:
+            dump(circuits, qpy_buf, metadata_serializer=CustomSerializer)
+            qpy_buf.seek(0)
+            new_circuits = load(qpy_buf, metadata_deserializer=CustomDeserializer)

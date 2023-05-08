@@ -14,11 +14,11 @@
 
 from typing import Callable, Optional, Union
 
-import warnings
 import numpy as np
 
 from qiskit.circuit.quantumcircuit import QuantumCircuit
 from qiskit.quantum_info.operators import SparsePauliOp, Pauli
+from qiskit.utils.deprecation import deprecate_arg
 
 from .product_formula import ProductFormula
 
@@ -40,14 +40,28 @@ class SuzukiTrotter(ProductFormula):
 
     .. math::
 
-        e^{-it(XX + ZZ)} = e^{-it/2 ZZ}e^{-it XX}e^{-it/2 ZZ} + \mathcal{O}(t^2).
+        e^{-it(XX + ZZ)} = e^{-it/2 ZZ}e^{-it XX}e^{-it/2 ZZ} + \mathcal{O}(t^3).
 
     References:
         [1]: D. Berry, G. Ahokas, R. Cleve and B. Sanders,
         "Efficient quantum algorithms for simulating sparse Hamiltonians" (2006).
         `arXiv:quant-ph/0508139 <https://arxiv.org/abs/quant-ph/0508139>`_
+        [2]: N. Hatano and M. Suzuki,
+        "Finding Exponential Product Formulas of Higher Orders" (2005).
+        `arXiv:math-ph/0506007 <https://arxiv.org/pdf/math-ph/0506007.pdf>`_
     """
 
+    @deprecate_arg(
+        "order",
+        deprecation_description=(
+            "Setting `order` to an odd number in the constructor of SuzukiTrotter"
+        ),
+        additional_msg=(
+            "Suzuki product formulae are symmetric and therefore only defined for even orders."
+        ),
+        since="0.20.0",
+        predicate=lambda order: order % 2 == 1,
+    )
     def __init__(
         self,
         order: int = 2,
@@ -70,18 +84,10 @@ class SuzukiTrotter(ProductFormula):
                 Pauli string. Per default, a single Pauli evolution is decomopsed in a CX chain
                 and a single qubit Z rotation.
         """
-        if order % 2 == 1:
-            warnings.warn(
-                "SuzukiTrotter for odd orders is deprecated as of 0.20.0, and will be "
-                "removed no earlier than 3 months after that release date. Suzuki "
-                "product formulae are symmetric and therefore only defined for even"
-                "orders.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            # TODO replace deprecation warning by the following error and add unit test for odd
-            # raise ValueError("Suzuki product formulae are symmetric and therefore only defined "
-            #                  "for even orders.")
+        # TODO replace deprecation warning by the following error and add unit test for odd
+        # if order % 2 == 1:
+        #   raise ValueError("Suzuki product formulae are symmetric and therefore only defined "
+        #                  "for even orders.")
         super().__init__(order, reps, insert_barriers, cx_structure, atomic_evolution)
 
     def synthesize(self, evolution):

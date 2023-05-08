@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed an issue with the :func:`~.transpile` where it would previously
+    fail with a ``TypeError`` if a custom :class:`~.Target` object was
+    passed in via the ``target`` argument and a list of multiple circuits
+    were specified for the ``circuits`` argument.

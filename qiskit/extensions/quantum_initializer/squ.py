@@ -67,11 +67,10 @@ class SingleQubitUnitary(Gate):
             name=self.name + "_dg", num_qubits=self.num_qubits, params=[]
         )  # removing the params because arrays are deprecated
 
-        inverse_gate.definition = QuantumCircuit(*self.definition.qregs)
-        inverse_gate.definition._data = [
-            (inst.inverse(), qargs, []) for inst, qargs, _ in reversed(self._definition)
-        ]
-
+        definition = QuantumCircuit(*self.definition.qregs)
+        for inst in reversed(self._definition):
+            definition._append(inst.replace(operation=inst.operation.inverse()))
+        inverse_gate.definition = definition
         return inverse_gate
 
     @property
@@ -169,7 +168,7 @@ def squ(
     """Decompose an arbitrary 2*2 unitary into three rotation gates.
 
     Note that the decomposition is up to a global phase shift.
-    (This is a well known decomposition, which can be found for example in Nielsen and Chuang's book
+    (This is a well known decomposition which can be found for example in Nielsen and Chuang's book
     "Quantum computation and quantum information".)
 
     Args:

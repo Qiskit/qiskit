@@ -14,6 +14,7 @@
 Testing InverseCancellation
 """
 
+import unittest
 import numpy as np
 
 from qiskit import QuantumCircuit
@@ -176,3 +177,100 @@ class TestInverseCancellation(QiskitTestCase):
         gates_after = new_circ.count_ops()
         self.assertNotIn("t", gates_after)
         self.assertNotIn("tdg", gates_after)
+
+    def test_three_alternating_inverse_gates(self):
+        """Test that inverse cancellation works correctly for alternating sequences
+        of inverse gates of odd-length."""
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        pass_ = InverseCancellation([(PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4))])
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertIn("p", gates_after)
+        self.assertEqual(gates_after["p"], 1)
+
+    def test_four_alternating_inverse_gates(self):
+        """Test that inverse cancellation works correctly for alternating sequences
+        of inverse gates of even-length."""
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        pass_ = InverseCancellation([(PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4))])
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertNotIn("p", gates_after)
+
+    def test_five_alternating_inverse_gates(self):
+        """Test that inverse cancellation works correctly for alternating sequences
+        of inverse gates of odd-length."""
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        pass_ = InverseCancellation([(PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4))])
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertIn("p", gates_after)
+        self.assertEqual(gates_after["p"], 1)
+
+    def test_sequence_of_inverse_gates_1(self):
+        """Test that inverse cancellation works correctly for more general sequences
+        of inverse gates. In this test two pairs of inverse gates are supposed to
+        cancel out."""
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        pass_ = InverseCancellation([(PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4))])
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertIn("p", gates_after)
+        self.assertEqual(gates_after["p"], 1)
+
+    def test_sequence_of_inverse_gates_2(self):
+        """Test that inverse cancellation works correctly for more general sequences
+        of inverse gates. In this test, in theory three pairs of inverse gates can
+        cancel out, but in practice only two pairs are back-to-back."""
+        qc = QuantumCircuit(2, 2)
+        qc.p(np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(-np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        qc.p(np.pi / 4, 0)
+        pass_ = InverseCancellation([(PhaseGate(np.pi / 4), PhaseGate(-np.pi / 4))])
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertIn("p", gates_after)
+        self.assertEqual(gates_after["p"] % 2, 1)
+
+    def test_cx_do_not_wrongly_cancel(self):
+        """Test that CX(0,1) and CX(1, 0) do not cancel out, when (CX, CX) is passed
+        as an inverse pair."""
+        qc = QuantumCircuit(2, 0)
+        qc.cx(0, 1)
+        qc.cx(1, 0)
+        pass_ = InverseCancellation([(CXGate(), CXGate())])
+        pm = PassManager(pass_)
+        new_circ = pm.run(qc)
+        gates_after = new_circ.count_ops()
+        self.assertIn("cx", gates_after)
+        self.assertEqual(gates_after["cx"], 2)
+
+
+if __name__ == "__main__":
+    unittest.main()

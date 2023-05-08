@@ -78,9 +78,7 @@ class TestDecompose(QiskitTestCase):
         circuit = QuantumCircuit(qr)
         circuit.h(qr[0])
         dag = circuit_to_dag(circuit)
-        pass_ = Decompose(HGate)
-        with self.assertWarns(DeprecationWarning):
-            pass_.gate = None
+        pass_ = Decompose()
         after_dag = pass_.run(dag)
         op_nodes = after_dag.op_nodes()
         self.assertEqual(len(op_nodes), 1)
@@ -263,12 +261,16 @@ class TestDecompose(QiskitTestCase):
         decom_circ = self.complex_circuit.decompose(["circuit-*"])
         dag = circuit_to_dag(decom_circ)
 
-        self.assertEqual(len(dag.op_nodes()), 5)
-        self.assertEqual(dag.op_nodes()[0].op.label, "gate1")
-        self.assertEqual(dag.op_nodes()[1].op.label, "gate2")
-        self.assertEqual(dag.op_nodes()[2].name, "mcx")
+        self.assertEqual(len(dag.op_nodes()), 9)
+        self.assertEqual(dag.op_nodes()[0].name, "h")
+        self.assertEqual(dag.op_nodes()[1].name, "t")
+        self.assertEqual(dag.op_nodes()[2].name, "x")
         self.assertEqual(dag.op_nodes()[3].name, "h")
-        self.assertRegex(dag.op_nodes()[4].name, "x")
+        self.assertRegex(dag.op_nodes()[4].name, "cx")
+        self.assertEqual(dag.op_nodes()[5].name, "x")
+        self.assertEqual(dag.op_nodes()[6].name, "mcx")
+        self.assertEqual(dag.op_nodes()[7].name, "h")
+        self.assertEqual(dag.op_nodes()[8].name, "x")
 
     def test_decompose_label_wildcards(self):
         """Test decomposition parameters so that label wildcards is decomposed"""
@@ -294,3 +296,24 @@ class TestDecompose(QiskitTestCase):
 
         decomposed = circuit.decompose()
         self.assertEqual(len(decomposed.data), 0)
+
+    def test_decompose_reps(self):
+        """Test decompose reps function is decomposed correctly"""
+        decom_circ = self.complex_circuit.decompose(reps=2)
+        decomposed = self.complex_circuit.decompose().decompose()
+        self.assertEqual(decom_circ, decomposed)
+
+    def test_decompose_single_qubit_clbit(self):
+        """Test the decomposition of a block with a single qubit and clbit works.
+
+        Regression test of Qiskit/qiskit-terra#8591.
+        """
+        block = QuantumCircuit(1, 1)
+        block.h(0)
+
+        circuit = QuantumCircuit(1, 1)
+        circuit.append(block, [0], [0])
+
+        decomposed = circuit.decompose()
+
+        self.assertEqual(decomposed, block)

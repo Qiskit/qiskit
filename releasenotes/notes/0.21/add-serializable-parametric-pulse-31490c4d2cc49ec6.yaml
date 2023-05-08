@@ -1,0 +1,20 @@
+---
+features:
+  - |
+    Added a new pulse base class :class:`.SymbolicPulse`. This is a
+    replacement of the conventional :class:`.ParametricPulse`, which will be deprecated.
+    In the new base class, pulse-envelope and parameter-validation functions are
+    represented by symbolic-expression objects.
+    The new class provides self-contained and portable pulse data since these symbolic equations
+    can be easily serialized through symbolic computation libraries.
+upgrade:
+  - |
+    The pulse classes in :mod:`qiskit.pulse.library` are now subclasses of
+    :class:`.SymbolicPulse` rather than :class:`.ParametricPulse`.  The available
+    classes remain unchanged as
+    :class:`~qiskit.pulse.library.Gaussian`,
+    :class:`~qiskit.pulse.library.GaussianSquare`,
+    :class:`~qiskit.pulse.library.Drag`, and
+    :class:`~qiskit.pulse.library.Constant`.
+    :class:`.SymbolicPulse` has full backward compatibility, and there should be
+    no loss of functionality.

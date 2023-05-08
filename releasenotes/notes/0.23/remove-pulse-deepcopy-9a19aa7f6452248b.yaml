@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The Pulse expression parser should no longer periodically hang when called
+    from Jupyter notebooks.  This is achieved by avoiding an internal ``deepycopy``
+    of a recursive object that seemed to be particularly difficult for the
+    memoization to evaluate.

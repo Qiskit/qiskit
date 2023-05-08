@@ -41,16 +41,15 @@ class GMS(QuantumCircuit):
 
     **Expanded Circuit:**
 
-    .. jupyter-execute::
-        :hide-code:
+    .. plot::
 
-        from qiskit.circuit.library import GMS
-        import qiskit.tools.jupyter
-        import numpy as np
-        circuit = GMS(num_qubits=3, theta=[[0, np.pi/4, np.pi/8],
-                                           [0, 0, np.pi/2],
-                                           [0, 0, 0]])
-        %circuit_library_info circuit.decompose()
+       from qiskit.circuit.library import GMS
+       from qiskit.tools.jupyter.library import _generate_circuit_library_visualization
+       import numpy as np
+       circuit = GMS(num_qubits=3, theta=[[0, np.pi/4, np.pi/8],
+                                          [0, 0, np.pi/2],
+                                          [0, 0, 0]])
+       _generate_circuit_library_visualization(circuit.decompose())
 
     The Mølmer–Sørensen gate is native to ion-trap systems. The global MS
     can be applied to multiple ions to entangle multiple qubits simultaneously [1].

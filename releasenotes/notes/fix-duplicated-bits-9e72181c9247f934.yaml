@@ -1,5 +1,0 @@
----
-fixes:
-  - |
-    Registers will now correctly reject duplicate bits.  Fixed `#7446
-    <https://github.com/Qiskit/qiskit-terra/issues/7446>`__.

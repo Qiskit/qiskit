@@ -18,7 +18,7 @@ import unittest
 from qiskit import QuantumCircuit, pulse
 from qiskit.compiler import sequence, transpile, schedule
 from qiskit.pulse.transforms import pad
-from qiskit.test.mock import FakeParis
+from qiskit.providers.fake_provider import FakeParis
 
 from qiskit.test import QiskitTestCase
 

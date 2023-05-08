@@ -18,6 +18,7 @@ from typing import Optional, Union, Tuple
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.pulse.channels import PulseChannel
 from qiskit.pulse.instructions.instruction import Instruction
+from qiskit.pulse.exceptions import PulseError
 
 
 class SetFrequency(Instruction):
@@ -47,9 +48,16 @@ class SetFrequency(Instruction):
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
         """
-        if not isinstance(frequency, ParameterExpression):
-            frequency = float(frequency)
         super().__init__(operands=(frequency, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -73,10 +81,6 @@ class SetFrequency(Instruction):
         """Duration of this instruction."""
         return 0
 
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.frequency, ParameterExpression) or super().is_parameterized()
-
 
 class ShiftFrequency(Instruction):
     """Shift the channel frequency away from the current frequency."""
@@ -94,9 +98,16 @@ class ShiftFrequency(Instruction):
             channel: The channel this instruction operates on.
             name: Name of this set channel frequency instruction.
         """
-        if not isinstance(frequency, ParameterExpression):
-            frequency = float(frequency)
         super().__init__(operands=(frequency, channel), name=name)
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
+
+        Raises:
+            PulseError: If the input ``channel`` is not type :class:`PulseChannel`.
+        """
+        if not isinstance(self.channel, PulseChannel):
+            raise PulseError(f"Expected a pulse channel, got {self.channel} instead.")
 
     @property
     def frequency(self) -> Union[float, ParameterExpression]:
@@ -119,7 +130,3 @@ class ShiftFrequency(Instruction):
     def duration(self) -> int:
         """Duration of this instruction."""
         return 0
-
-    def is_parameterized(self) -> bool:
-        """Return True iff the instruction is parameterized."""
-        return isinstance(self.frequency, ParameterExpression) or super().is_parameterized()

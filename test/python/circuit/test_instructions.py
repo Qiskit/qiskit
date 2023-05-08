@@ -185,7 +185,7 @@ class TestInstructions(QiskitTestCase):
         circ = QuantumCircuit(q, c, name="circ")
         opaque_gate = Gate(name="crz_2", num_qubits=2, params=[0.5])
         circ.append(opaque_gate, [q[2], q[0]])
-        self.assertEqual(circ.data[0][0].name, "crz_2")
+        self.assertEqual(circ.data[0].operation.name, "crz_2")
         self.assertEqual(circ.decompose(), circ)
 
     def test_opaque_instruction(self):
@@ -195,7 +195,7 @@ class TestInstructions(QiskitTestCase):
         circ = QuantumCircuit(q, c)
         opaque_inst = Instruction(name="my_inst", num_qubits=3, num_clbits=1, params=[0.5])
         circ.append(opaque_inst, [q[3], q[1], q[0]], [c[1]])
-        self.assertEqual(circ.data[0][0].name, "my_inst")
+        self.assertEqual(circ.data[0].operation.name, "my_inst")
         self.assertEqual(circ.decompose(), circ)
 
     def test_reverse_gate(self):
@@ -400,7 +400,7 @@ class TestInstructions(QiskitTestCase):
 
         qr = QuantumRegister(2)
         qc = QuantumCircuit(qr)
-        with self.assertRaisesRegex(CircuitError, r"Object is a subclass of Instruction"):
+        with self.assertRaisesRegex(CircuitError, r"Object is a subclass of Operation"):
             qc.append(HGate, qr[:], [])
 
     def test_repr_of_instructions(self):
@@ -437,7 +437,7 @@ class TestInstructions(QiskitTestCase):
         def case(resource):
             qc = QuantumCircuit(cr1, qubits, loose_clbits, cr2, cr3)
             qc.x(0).c_if(resource, 0)
-            c_if_resource = qc.data[0][0].condition[0]
+            c_if_resource = qc.data[0].operation.condition[0]
             self.assertIs(c_if_resource, resource)
 
         with self.subTest("classical register"):
@@ -471,8 +471,8 @@ class TestInstructions(QiskitTestCase):
             with self.subTest(index=index):
                 qc.x(0).c_if(index, 0)
                 qc.measure(0, index)
-                from_c_if = qc.data[-2][0].condition[0]
-                from_measure = qc.data[-1][2][0]
+                from_c_if = qc.data[-2].operation.condition[0]
+                from_measure = qc.data[-1].clbits[0]
                 self.assertIs(from_c_if, from_measure)
                 # Sanity check that the bit is also the one we expected.
                 self.assertIs(from_c_if, clbit)
@@ -486,13 +486,13 @@ class TestInstructions(QiskitTestCase):
 
         with self.subTest("classical register"):
             qc.x(0).c_if(cr, 0)
-            self.assertIs(qc.data[-1][0].condition[0], cr)
+            self.assertIs(qc.data[-1].operation.condition[0], cr)
         with self.subTest("classical bit by value"):
             qc.x(0).c_if(cr[0], 0)
-            self.assertIs(qc.data[-1][0].condition[0], cr[0])
+            self.assertIs(qc.data[-1].operation.condition[0], cr[0])
         with self.subTest("classical bit by index"):
             qc.x(0).c_if(0, 0)
-            self.assertIs(qc.data[-1][0].condition[0], cr[0])
+            self.assertIs(qc.data[-1].operation.condition[0], cr[0])
 
     def test_instructionset_c_if_no_classical_registers(self):
         """Test that using :meth:`.InstructionSet.c_if` works if there are no classical registers
@@ -503,10 +503,10 @@ class TestInstructions(QiskitTestCase):
         qc = QuantumCircuit(bits)
         with self.subTest("by value"):
             qc.x(0).c_if(bits[1], 0)
-            self.assertIs(qc.data[-1][0].condition[0], bits[1])
+            self.assertIs(qc.data[-1].operation.condition[0], bits[1])
         with self.subTest("by index"):
             qc.x(0).c_if(0, 0)
-            self.assertIs(qc.data[-1][0].condition[0], bits[1])
+            self.assertIs(qc.data[-1].operation.condition[0], bits[1])
 
     def test_instructionset_c_if_rejects_invalid_specifiers(self):
         """Test that calling the :meth:`.InstructionSet.c_if` method on instructions added to a
@@ -691,6 +691,19 @@ class TestInstructions(QiskitTestCase):
             dummy_requester.assert_called_once_with(register)
             for instruction in instruction_list:
                 self.assertIs(instruction.condition[0], sentinel_register)
+
+    def test_label_type_enforcement(self):
+        """Test instruction label type enforcement."""
+        with self.subTest("accepts string labels"):
+            instruction = Instruction("h", 1, 0, [], label="label")
+            self.assertEqual(instruction.label, "label")
+        with self.subTest("raises when a non-string label is provided to constructor"):
+            with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
+                Instruction("h", 1, 0, [], label=0)
+        with self.subTest("raises when a non-string label is provided to setter"):
+            with self.assertRaisesRegex(TypeError, r"label expects a string or None"):
+                instruction = HGate()
+                instruction.label = 0
 
 
 if __name__ == "__main__":

@@ -61,24 +61,32 @@ class Acquire(Instruction):
             discriminator: A ``Discriminator`` for discriminating kerneled IQ data into 0/1
                            results.
             name: Name of the instruction for display purposes.
+        """
+        super().__init__(
+            operands=(duration, channel, mem_slot, reg_slot, kernel, discriminator),
+            name=name,
+        )
+
+    def _validate(self):
+        """Called after initialization to validate instruction data.
 
         Raises:
-            PulseError: If channels are supplied, and the number of register and/or memory slots
-                        does not equal the number of channels.
+            PulseError: If the input ``channel`` is not type :class:`AcquireChannel`.
+            PulseError: If the input ``mem_slot`` is not type :class:`MemorySlot`.
+            PulseError: If the input ``reg_slot`` is not type :class:`RegisterSlot`.
+            PulseError: When memory slot and register slot are both empty.
         """
-        if isinstance(channel, list) or isinstance(mem_slot, list) or isinstance(reg_slot, list):
-            raise PulseError(
-                "The Acquire instruction takes only one AcquireChannel and one "
-                "classical memory destination for the measurement result."
-            )
+        if not isinstance(self.channel, AcquireChannel):
+            raise PulseError(f"Expected an acquire channel, got {self.channel} instead.")
 
-        if not (mem_slot or reg_slot):
+        if self.mem_slot and not isinstance(self.mem_slot, MemorySlot):
+            raise PulseError(f"Expected a memory slot, got {self.mem_slot} instead.")
+
+        if self.reg_slot and not isinstance(self.reg_slot, RegisterSlot):
+            raise PulseError(f"Expected a register slot, got {self.reg_slot} instead.")
+
+        if self.mem_slot is None and self.reg_slot is None:
             raise PulseError("Neither MemorySlots nor RegisterSlots were supplied.")
-
-        self._kernel = kernel
-        self._discriminator = discriminator
-
-        super().__init__(operands=(duration, channel, mem_slot, reg_slot), name=name)
 
     @property
     def channel(self) -> AcquireChannel:
@@ -100,12 +108,12 @@ class Acquire(Instruction):
     @property
     def kernel(self) -> Kernel:
         """Return kernel settings."""
-        return self._kernel
+        return self._operands[4]
 
     @property
     def discriminator(self) -> Discriminator:
         """Return discrimination settings."""
-        return self._discriminator
+        return self._operands[5]
 
     @property
     def acquire(self) -> AcquireChannel:

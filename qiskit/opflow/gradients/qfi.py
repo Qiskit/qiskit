@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2020.
+# (C) Copyright IBM 2020, 2023.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -17,14 +17,16 @@ import functools
 
 from qiskit.circuit.quantumcircuit import _compare_parameters
 from qiskit.circuit import ParameterExpression, ParameterVector
+from qiskit.utils.deprecation import deprecate_func
 from ..list_ops.list_op import ListOp
 from ..expectations.pauli_expectation import PauliExpectation
 from ..state_fns.circuit_state_fn import CircuitStateFn
 from .qfi_base import QFIBase
+from .circuit_qfis import CircuitQFI
 
 
 class QFI(QFIBase):
-    r"""Compute the Quantum Fisher Information (QFI).
+    r"""Deprecated: Compute the Quantum Fisher Information (QFI).
 
     Computes the QFI given a pure, parameterized quantum state, where QFI is:
 
@@ -34,6 +36,13 @@ class QFI(QFIBase):
             − \langle\partial_k \psi | \psi \rangle \langle\psi | \partial_l \psi \rangle].
 
     """
+
+    @deprecate_func(
+        since="0.24.0",
+        additional_msg="For code migration guidelines, visit https://qisk.it/opflow_migration.",
+    )
+    def __init__(self, qfi_method: Union[str, CircuitQFI] = "lin_comb_full"):
+        super().__init__(qfi_method=qfi_method)
 
     def convert(
         self,

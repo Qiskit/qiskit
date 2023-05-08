@@ -217,7 +217,7 @@ class LayoutTest(QiskitTestCase):
         layout.add(self.qr[1], 2)
         layout.add(self.qr[0])
 
-        self.assertDictEqual(layout.get_virtual_bits(), {self.qr[0]: 1, self.qr[1]: 2})
+        self.assertDictEqual(layout.get_virtual_bits(), {self.qr[0]: 0, self.qr[1]: 2})
 
     def test_layout_combine_smaller(self):
         """combine_into_edge_map() method with another_layout is smaller and raises an Error"""

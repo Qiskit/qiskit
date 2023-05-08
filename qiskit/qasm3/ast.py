@@ -15,7 +15,7 @@
 """QASM3 AST Nodes"""
 
 import enum
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Iterable, Tuple
 
 
 class ASTNode:
@@ -126,6 +126,13 @@ class FloatType(ClassicalType, enum.Enum):
     DOUBLE = 64
     QUAD = 128
     OCT = 256
+
+
+class IntType(ClassicalType):
+    """Type information for a signed integer."""
+
+    def __init__(self, size: Optional[int] = None):
+        self.size = size
 
 
 class BitArrayType(ClassicalType):
@@ -262,6 +269,24 @@ class Integer(Expression):
     """Integer : Digit+ ;"""
 
 
+class DurationUnit(enum.Enum):
+    """Valid values for the unit of durations."""
+
+    NANOSECOND = "ns"
+    MICROSECOND = "us"
+    MILLISECOND = "ms"
+    SECOND = "s"
+    SAMPLE = "dt"
+
+
+class DurationLiteral(Expression):
+    """Duration literal."""
+
+    def __init__(self, value: float, unit: DurationUnit):
+        self.value = value
+        self.unit = unit
+
+
 class Designator(ASTNode):
     """
     designator
@@ -279,6 +304,14 @@ class ClassicalDeclaration(Statement):
         self.type = type_
         self.identifier = identifier
         self.initializer = initializer
+
+
+class AssignmentStatement(Statement):
+    """Assignment of an expression to an l-value."""
+
+    def __init__(self, lvalue: SubscriptedIdentifier, rvalue: Expression):
+        self.lvalue = lvalue
+        self.rvalue = rvalue
 
 
 class QuantumDeclaration(ASTNode):
@@ -372,6 +405,14 @@ class QuantumReset(QuantumInstruction):
 
     def __init__(self, identifier: Identifier):
         self.identifier = identifier
+
+
+class QuantumDelay(QuantumInstruction):
+    """A built-in ``delay[duration] q0;`` statement."""
+
+    def __init__(self, duration: Expression, qubits: List[Identifier]):
+        self.duration = duration
+        self.qubits = qubits
 
 
 class ProgramBlock(ASTNode):
@@ -603,3 +644,20 @@ class IODeclaration(ClassicalDeclaration):
     def __init__(self, modifier: IOModifier, type_: ClassicalType, identifier: Identifier):
         super().__init__(type_, identifier)
         self.modifier = modifier
+
+
+class DefaultCase(Expression):
+    """An object representing the `default` special label in switch statements."""
+
+    def __init__(self):
+        super().__init__(None)
+
+
+class SwitchStatement(Statement):
+    """AST node for the proposed 'switch-case' extension to OpenQASM 3."""
+
+    def __init__(
+        self, target: Expression, cases: Iterable[Tuple[Iterable[Expression], ProgramBlock]]
+    ):
+        self.target = target
+        self.cases = [(tuple(values), case) for values, case in cases]

@@ -11,15 +11,14 @@
 # that they have been altered from the originals.
 
 """X, CX, CCX and multi-controlled X gates."""
-
-from typing import Optional, Union
-from math import ceil
+from __future__ import annotations
+from typing import Optional, Union, Type
+from math import ceil, pi
 import numpy
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit._utils import _compute_control_matrix, _ctrl_state_to_int
-from qiskit.qasm import pi
 from .h import HGate
 from .t import TGate, TdgGate
 from .u1 import U1Gate
@@ -29,6 +28,9 @@ from .sx import SXGate
 
 class XGate(Gate):
     r"""The single-qubit Pauli-X gate (:math:`\sigma_x`).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.x` method.
 
     **Matrix Representation:**
 
@@ -124,6 +126,10 @@ class XGate(Gate):
 
 class CXGate(ControlledGate):
     r"""Controlled-X gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.cx` and
+    :meth:`~qiskit.circuit.QuantumCircuit.cnot` methods.
 
     **Circuit symbol:**
 
@@ -253,6 +259,10 @@ class CXGate(ControlledGate):
 
 class CCXGate(ControlledGate):
     r"""CCX gate, also known as Toffoli gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.ccx` and
+    :meth:`~qiskit.circuit.QuantumCircuit.toffoli` methods.
 
     **Circuit symbol:**
 
@@ -412,6 +422,9 @@ class RCCXGate(Gate):
 
     This concrete implementation is from https://arxiv.org/abs/1508.03273, the dashed box
     of Fig. 3.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rccx` method.
     """
 
     def __init__(self, label: Optional[str] = None):
@@ -555,6 +568,20 @@ class C3SXGate(ControlledGate):
 
         self.definition = qc
 
+    def qasm(self):
+        # Gross hack to override the Qiskit name with the name this gate has in Terra's version of
+        # 'qelib1.inc'.  In general, the larger exporter mechanism should know about this to do the
+        # mapping itself, but right now that's not possible without a complete rewrite of the OQ2
+        # exporter code (low priority), or we would need to modify 'qelib1.inc' which would be
+        # needlessly disruptive this late in OQ2's lifecycle.  The current OQ2 exporter _always_
+        # outputs the `include 'qelib1.inc' line.  ---Jake, 2022-11-21.
+        try:
+            old_name = self.name
+            self.name = "c3sqrtx"
+            return super().qasm()
+        finally:
+            self.name = old_name
+
 
 class C3XGate(ControlledGate):
     r"""The X gate controlled on 3 qubits.
@@ -691,6 +718,9 @@ class RC3XGate(Gate):
 
     This concrete implementation is from https://arxiv.org/abs/1508.03273, the complete circuit
     of Fig. 4.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.rcccx` method.
     """
 
     def __init__(self, label: Optional[str] = None):
@@ -880,7 +910,11 @@ class C4XGate(ControlledGate):
 
 
 class MCXGate(ControlledGate):
-    """The general, multi-controlled X gate."""
+    """The general, multi-controlled X gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.mcx` method.
+    """
 
     def __new__(
         cls,
@@ -895,7 +929,7 @@ class MCXGate(ControlledGate):
         """
         # The CXGate and CCXGate will be implemented for all modes of the MCX, and
         # the C3XGate and C4XGate will be implemented in the MCXGrayCode class.
-        explicit = {1: CXGate, 2: CCXGate}
+        explicit: dict[int, Type[ControlledGate]] = {1: CXGate, 2: CCXGate}
         if num_ctrl_qubits in explicit:
             gate_class = explicit[num_ctrl_qubits]
             gate = gate_class.__new__(gate_class, label=label, ctrl_state=ctrl_state)

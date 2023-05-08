@@ -11,8 +11,10 @@
 # that they have been altered from the originals.
 
 """IMplicit FILtering (IMFIL) optimizer."""
+from __future__ import annotations
 
-from typing import Any, Dict, Callable, Optional, List, Tuple
+from collections.abc import Callable
+from typing import Any
 
 from qiskit.utils import optionals as _optionals
 from .optimizer import Optimizer, OptimizerSupportLevel, OptimizerResult, POINT
@@ -55,7 +57,7 @@ class IMFIL(Optimizer):
         }
 
     @property
-    def settings(self) -> Dict[str, Any]:
+    def settings(self) -> dict[str, Any]:
         return {
             "maxiter": self._maxiter,
         }
@@ -64,8 +66,8 @@ class IMFIL(Optimizer):
         self,
         fun: Callable[[POINT], float],
         x0: POINT,
-        jac: Optional[Callable[[POINT], POINT]] = None,
-        bounds: Optional[List[Tuple[float, float]]] = None,
+        jac: Callable[[POINT], POINT] | None = None,
+        bounds: list[tuple[float, float]] | None = None,
     ) -> OptimizerResult:
         from skquant import opt as skq
 
@@ -82,20 +84,3 @@ class IMFIL(Optimizer):
         optimizer_result.fun = res.optval
         optimizer_result.nfev = len(history)
         return optimizer_result
-
-    def optimize(
-        self,
-        num_vars,
-        objective_function,
-        gradient_function=None,
-        variable_bounds=None,
-        initial_point=None,
-    ):
-        """Runs the optimization."""
-        super().optimize(
-            num_vars, objective_function, gradient_function, variable_bounds, initial_point
-        )
-        result = self.minimize(
-            objective_function, initial_point, gradient_function, variable_bounds
-        )
-        return result.x, result.fun, result.nfev

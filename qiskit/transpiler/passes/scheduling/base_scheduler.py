@@ -12,20 +12,28 @@
 
 """Base circuit scheduling pass."""
 
-import warnings
-
 from typing import Dict
 from qiskit.transpiler import InstructionDurations
-from qiskit.transpiler.basepasses import AnalysisPass
+from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion
 from qiskit.dagcircuit import DAGOpNode, DAGCircuit
 from qiskit.circuit import Delay, Gate
 from qiskit.circuit.parameterexpression import ParameterExpression
 from qiskit.transpiler.exceptions import TranspilerError
+from qiskit.transpiler.target import Target
 
 
-class BaseScheduler(AnalysisPass):
+class BaseSchedulerTransform(TransformationPass):
     """Base scheduler pass.
+
+    .. warning::
+
+        This base class is not part of the public interface for this module
+        it should not be used to develop new scheduling passes as the passes
+        which are using this are pending a future deprecation and subsequent
+        removal. If you are developing new scheduling passes look at the
+        ``BaseScheduler`` class instead which is used in the new scheduling
+        pass workflow.
 
     Policy of topological node ordering in scheduling
 
@@ -210,9 +218,10 @@ class BaseScheduler(AnalysisPass):
 
     def __init__(
         self,
-        durations: InstructionDurations,
+        durations: InstructionDurations = None,
         clbit_write_latency: int = 0,
         conditional_latency: int = 0,
+        target: Target = None,
     ):
         """Scheduler initializer.
 
@@ -230,25 +239,22 @@ class BaseScheduler(AnalysisPass):
                 The gate operation occurs after this latency. This appears as a delay
                 in front of the DAGOpNode of the gate.
                 This defaults to 0 dt.
+            target: The :class:`~.Target` representing the target backend, if both
+                ``durations`` and this are specified then this argument will take
+                precedence and ``durations`` will be ignored.
         """
         super().__init__()
         self.durations = durations
+        # Ensure op node durations are attached and in consistent unit
+        if target is not None:
+            self.durations = target.durations()
+        self.requires.append(TimeUnitConversion(self.durations))
 
         # Control flow constraints.
         self.clbit_write_latency = clbit_write_latency
         self.conditional_latency = conditional_latency
 
-        # Ensure op node durations are attached and in consistent unit
-        self.requires.append(TimeUnitConversion(durations))
-
-        # Initialize timeslot
-        if "node_start_time" in self.property_set:
-            warnings.warn(
-                "This circuit has been already scheduled. "
-                "The output of previous scheduling pass will be overridden.",
-                UserWarning,
-            )
-        self.property_set["node_start_time"] = dict()
+        self.target = target
 
     @staticmethod
     def _get_node_duration(
@@ -263,9 +269,6 @@ class BaseScheduler(AnalysisPass):
             # If node has calibration, this value should be the highest priority
             cal_key = tuple(indices), tuple(float(p) for p in node.op.params)
             duration = dag.calibrations[node.op.name][cal_key].duration
-
-            # Note that node duration is updated (but this is analysis pass)
-            node.op.duration = duration
         else:
             duration = node.op.duration
 
@@ -278,6 +281,12 @@ class BaseScheduler(AnalysisPass):
             raise TranspilerError(f"Duration of {node.op.name} on qubits {indices} is not found.")
 
         return duration
+
+    def _delay_supported(self, qarg: int) -> bool:
+        """Delay operation is supported on the qubit (qarg) or not."""
+        if self.target is None or self.target.instruction_supported("delay", qargs=(qarg,)):
+            return True
+        return False
 
     def run(self, dag: DAGCircuit):
         raise NotImplementedError

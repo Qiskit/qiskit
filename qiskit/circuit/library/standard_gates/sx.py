@@ -12,9 +12,9 @@
 
 """Sqrt(X) and C-Sqrt(X) gates."""
 
+from math import pi
 from typing import Optional, Union
 import numpy
-from qiskit.qasm import pi
 from qiskit.circuit.controlledgate import ControlledGate
 from qiskit.circuit.gate import Gate
 from qiskit.circuit.quantumregister import QuantumRegister
@@ -22,6 +22,9 @@ from qiskit.circuit.quantumregister import QuantumRegister
 
 class SXGate(Gate):
     r"""The single-qubit Sqrt(X) gate (:math:`\sqrt{X}`).
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.sx` method.
 
     **Matrix Representation:**
 
@@ -51,7 +54,7 @@ class SXGate(Gate):
                         1 & -i \\
                         -i & 1
                       \end{pmatrix}
-                    = e^{-i pi/4} \sqrt{X}
+                    = e^{-i \pi/4} \sqrt{X}
 
     """
 
@@ -71,7 +74,8 @@ class SXGate(Gate):
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=pi / 4)
         rules = [(SdgGate(), [q[0]], []), (HGate(), [q[0]], []), (SdgGate(), [q[0]], [])]
-        qc.data = rules
+        for operation, qubits, clbits in rules:
+            qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def inverse(self):
@@ -110,6 +114,9 @@ class SXGate(Gate):
 
 class SXdgGate(Gate):
     r"""The inverse single-qubit Sqrt(X) gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.sxdg` method.
 
     .. math::
 
@@ -150,7 +157,8 @@ class SXdgGate(Gate):
         q = QuantumRegister(1, "q")
         qc = QuantumCircuit(q, name=self.name, global_phase=-pi / 4)
         rules = [(SGate(), [q[0]], []), (HGate(), [q[0]], []), (SGate(), [q[0]], [])]
-        qc.data = rules
+        for operation, qubits, clbits in rules:
+            qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def inverse(self):
@@ -164,6 +172,9 @@ class SXdgGate(Gate):
 
 class CSXGate(ControlledGate):
     r"""Controlled-√X gate.
+
+    Can be applied to a :class:`~qiskit.circuit.QuantumCircuit`
+    with the :meth:`~qiskit.circuit.QuantumCircuit.csx` method.
 
     **Circuit symbol:**
 
@@ -250,7 +261,8 @@ class CSXGate(ControlledGate):
         q = QuantumRegister(2, "q")
         qc = QuantumCircuit(q, name=self.name)
         rules = [(HGate(), [q[1]], []), (CU1Gate(pi / 2), [q[0], q[1]], []), (HGate(), [q[1]], [])]
-        qc.data = rules
+        for operation, qubits, clbits in rules:
+            qc._append(operation, qubits, clbits)
         self.definition = qc
 
     def __array__(self, dtype=None):

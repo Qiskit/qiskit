@@ -1,6 +1,6 @@
 # This code is part of Qiskit.
 #
-# (C) Copyright IBM 2017, 2021.
+# (C) Copyright IBM 2022.
 #
 # This code is licensed under the Apache License, Version 2.0. You may
 # obtain a copy of this license in the LICENSE.txt file in the root directory
@@ -13,78 +13,55 @@
 
 """Replace each sequence of CX and SWAP gates by a single LinearFunction gate."""
 
+from functools import partial
+
 from qiskit.circuit.library.generalized_gates import LinearFunction
-from qiskit.transpiler.basepasses import TransformationPass
-from qiskit.circuit import QuantumCircuit
+from qiskit.transpiler.passes.optimization.collect_and_collapse import (
+    CollectAndCollapse,
+    collect_using_filter_function,
+    collapse_to_operation,
+)
 
 
-class CollectLinearFunctions(TransformationPass):
+class CollectLinearFunctions(CollectAndCollapse):
     """Collect blocks of linear gates (:class:`.CXGate` and :class:`.SwapGate` gates)
     and replaces them by linear functions (:class:`.LinearFunction`)."""
 
-    @staticmethod
-    def _is_linear_gate(op):
-        return op.name in ("cx", "swap") and op.condition is None
-
-    # Called when reached the end of the linear block (either the next gate
-    # is not linear, or no more nodes)
-    @staticmethod
-    def _finalize_processing_block(cur_nodes, blocks):
-        # Collect only blocks comprising at least 2 gates.
-        if len(cur_nodes) >= 2:
-            blocks.append(cur_nodes)
-
-    # For now, we implement the naive greedy algorithm that makes a linear sweep over
-    # nodes in DAG (using the topological order) and collects blocks of linear gates.
-    def run(self, dag):
-        """Run the CollectLinearFunctions pass on `dag`.
+    def __init__(self, do_commutative_analysis=False, split_blocks=True, min_block_size=2):
+        """CollectLinearFunctions initializer.
 
         Args:
-            dag (DAGCircuit): the DAG to be optimized.
-
-        Returns:
-            DAGCircuit: the optimized DAG.
+            do_commutative_analysis (bool): if True, exploits commutativity relations
+                between nodes.
+            split_blocks (bool): if True, splits collected blocks into sub-blocks
+                over disjoint qubit subsets.
+            min_block_size (int): specifies the minimum number of gates in the block
+                for the block to be collected.
         """
-        blocks = []
 
-        cur_nodes = []
-        for node in dag.topological_op_nodes():
-            # If the current gate is not linear, we are done processing the current block
-            if not self._is_linear_gate(node.op):
-                self._finalize_processing_block(cur_nodes, blocks)
-                cur_nodes = []
+        collect_function = partial(
+            collect_using_filter_function,
+            filter_function=_is_linear_gate,
+            split_blocks=split_blocks,
+            min_block_size=min_block_size,
+        )
+        collapse_function = partial(
+            collapse_to_operation, collapse_function=_collapse_to_linear_function
+        )
 
-            else:
-                # This is a linear gate, we add the node and its qubits
-                cur_nodes.append(node)
+        super().__init__(
+            collect_function=collect_function,
+            collapse_function=collapse_function,
+            do_commutative_analysis=do_commutative_analysis,
+        )
 
-        # Last block
-        self._finalize_processing_block(cur_nodes, blocks)
 
-        # Replace every discovered block by a linear function
-        global_index_map = {wire: idx for idx, wire in enumerate(dag.qubits)}
-        for cur_nodes in blocks:
-            # Find the set of all qubits used in this block
-            cur_qubits = set()
-            for node in cur_nodes:
-                cur_qubits.update(node.qargs)
+def _is_linear_gate(node):
+    """Specifies whether a node holds a linear gate."""
+    return node.op.name in ("cx", "swap") and getattr(node.op, "condition", None) is None
 
-            # For reproducibility, order these qubits compatibly with the global order
-            sorted_qubits = sorted(cur_qubits, key=lambda x: global_index_map[x])
-            wire_pos_map = dict((qb, ix) for ix, qb in enumerate(sorted_qubits))
 
-            # Construct a linear circuit
-            qc = QuantumCircuit(len(cur_qubits))
-            for node in cur_nodes:
-                if node.op.name == "cx":
-                    qc.cx(wire_pos_map[node.qargs[0]], wire_pos_map[node.qargs[1]])
-                elif node.op.name == "swap":
-                    qc.swap(wire_pos_map[node.qargs[0]], wire_pos_map[node.qargs[1]])
-
-            # Create a linear function from this quantum circuit
-            op = LinearFunction(qc)
-
-            # Replace the block by the constructed circuit
-            dag.replace_block_with_op(cur_nodes, op, wire_pos_map, cycle_check=False)
-
-        return dag
+def _collapse_to_linear_function(circuit):
+    """Specifies how to construct a ``LinearFunction`` from a quantum circuit (that must
+    consist of linear gates only)."""
+    return LinearFunction(circuit)

@@ -15,6 +15,8 @@
 from .value import (
     dumps_value,
     loads_value,
+    write_value,
+    read_value,
     # for backward compatibility; provider, runtime, experiment call this private methods.
     _write_parameter_expression,
     _read_parameter_expression,
@@ -27,4 +29,8 @@ from .circuits import (
     # for backward compatibility; provider calls this private methods.
     _write_instruction,
     _read_instruction,
+)
+from .schedules import (
+    write_schedule_block,
+    read_schedule_block,
 )

@@ -21,11 +21,12 @@
 import abc
 import itertools
 import typing
-from typing import Callable, Collection, Iterable, List, FrozenSet, Tuple, Union
+from typing import Callable, Collection, Iterable, List, FrozenSet, Tuple, Union, Optional
 
 from qiskit.circuit.classicalregister import Clbit, ClassicalRegister
 from qiskit.circuit.exceptions import CircuitError
 from qiskit.circuit.instruction import Instruction
+from qiskit.circuit.quantumcircuitdata import CircuitInstruction
 from qiskit.circuit.quantumregister import Qubit, QuantumRegister
 from qiskit.circuit.register import Register
 
@@ -94,8 +95,13 @@ class InstructionPlaceholder(Instruction, abc.ABC):
         The returned resources may not be the full width of the given resources, but will certainly
         be a subset of them; this can occur if (for example) a placeholder ``if`` statement is
         present, but does not itself contain any placeholder instructions.  For resource efficiency,
-        the returned :obj:`.IfElseOp` will not unnecessarily span all resources, but only the ones
-        that it needs.
+        the returned :class:`.ControlFlowOp` will not unnecessarily span all resources, but only the
+        ones that it needs.
+
+        .. note::
+
+            The caller of this function is responsible for ensuring that the inputs to this function
+            are non-strict supersets of the bits returned by :meth:`placeholder_resources`.
 
         Any condition added in by a call to :obj:`.Instruction.c_if` will be propagated through, but
         set properties like ``duration`` will not; it doesn't make sense for control-flow operations
@@ -201,6 +207,7 @@ class ControlFlowBuilderBlock:
         "_allow_jumps",
         "_resource_requester",
         "_built",
+        "_forbidden_message",
     )
 
     def __init__(
@@ -211,6 +218,7 @@ class ControlFlowBuilderBlock:
         registers: Iterable[Register] = (),
         resource_requester: Callable,
         allow_jumps: bool = True,
+        forbidden_message: Optional[str] = None,
     ):
         """
         Args:
@@ -237,14 +245,20 @@ class ControlFlowBuilderBlock:
                 :meth:`.QuantumCircuit._resolve_classical_resource` for the normal expected input
                 here, and the documentation of :obj:`.InstructionSet`, which uses this same
                 callback.
+            forbidden_message: If a string is given here, a :exc:`.CircuitError` will be raised on
+                any attempts to append instructions to the scope with this message.  This is used by
+                pseudo scopes where the state machine of the builder scopes has changed into a
+                position where no instructions should be accepted, such as when inside a ``switch``
+                but outside any cases.
         """
-        self.instructions: List[Tuple[Instruction, Tuple[Qubit, ...], Tuple[Clbit, ...]]] = []
+        self.instructions: List[CircuitInstruction] = []
         self.qubits = set(qubits)
         self.clbits = set(clbits)
         self.registers = set(registers)
         self._allow_jumps = allow_jumps
         self._resource_requester = resource_requester
         self._built = False
+        self._forbidden_message = forbidden_message
 
     @property
     def allow_jumps(self):
@@ -260,32 +274,28 @@ class ControlFlowBuilderBlock:
         """
         return self._allow_jumps
 
-    def append(
-        self,
-        operation: Instruction,
-        qubits: Iterable[Qubit],
-        clbits: Iterable[Clbit],
-    ) -> Instruction:
+    def append(self, instruction: CircuitInstruction) -> CircuitInstruction:
         """Add an instruction into the scope, keeping track of the qubits and clbits that have been
         used in total."""
+        if self._forbidden_message is not None:
+            raise CircuitError(self._forbidden_message)
+
         if not self._allow_jumps:
             # pylint: disable=cyclic-import
             from .break_loop import BreakLoopOp, BreakLoopPlaceholder
             from .continue_loop import ContinueLoopOp, ContinueLoopPlaceholder
 
             forbidden = (BreakLoopOp, BreakLoopPlaceholder, ContinueLoopOp, ContinueLoopPlaceholder)
-            if isinstance(operation, forbidden):
+            if isinstance(instruction.operation, forbidden):
                 raise CircuitError(
-                    f"The current builder scope cannot take a '{operation.name}'"
+                    f"The current builder scope cannot take a '{instruction.operation.name}'"
                     " because it is not in a loop."
                 )
 
-        qubits = tuple(qubits)
-        clbits = tuple(clbits)
-        self.instructions.append((operation, qubits, clbits))
-        self.qubits.update(qubits)
-        self.clbits.update(clbits)
-        return operation
+        self.instructions.append(instruction)
+        self.qubits.update(instruction.qubits)
+        self.clbits.update(instruction.clbits)
+        return instruction
 
     def request_classical_resource(self, specifier):
         """Resolve a single classical resource specifier into a concrete resource, raising an error
@@ -314,19 +324,18 @@ class ControlFlowBuilderBlock:
             self.add_register(resource)
         return resource
 
-    def peek(self) -> Tuple[Instruction, Tuple[Qubit, ...], Tuple[Clbit, ...]]:
+    def peek(self) -> CircuitInstruction:
         """Get the value of the most recent instruction tuple in this scope."""
         if not self.instructions:
             raise CircuitError("This scope contains no instructions.")
         return self.instructions[-1]
 
-    def pop(self) -> Tuple[Instruction, Tuple[Qubit, ...], Tuple[Clbit, ...]]:
-        """Get the value of the most recent instruction tuple in this scope, and remove it from this
+    def pop(self) -> CircuitInstruction:
+        """Get the value of the most recent instruction in this scope, and remove it from this
         object."""
         if not self.instructions:
             raise CircuitError("This scope contains no instructions.")
-        operation, qubits, clbits = self.instructions.pop()
-        return (operation, qubits, clbits)
+        return self.instructions.pop()
 
     def add_bits(self, bits: Iterable[Union[Qubit, Clbit]]):
         """Add extra bits to this scope that are not associated with any concrete instruction yet.
@@ -400,6 +409,10 @@ class ControlFlowBuilderBlock:
         # that may have been built into other objects.
         self._built = True
 
+        if self._forbidden_message is not None:
+            # Reaching this implies a logic error in the builder interface.
+            raise RuntimeError("Cannot build a forbidden scope. Please report this as a bug.")
+
         potential_qubits = all_qubits - self.qubits
         potential_clbits = all_clbits - self.clbits
 
@@ -407,11 +420,14 @@ class ControlFlowBuilderBlock:
         # more later as needed.
         out = QuantumCircuit(list(self.qubits), list(self.clbits), *self.registers)
 
-        for operation, qubits, clbits in self.instructions:
-            if isinstance(operation, InstructionPlaceholder):
-                operation, resources = operation.concrete_instruction(all_qubits, all_clbits)
+        for instruction in self.instructions:
+            if isinstance(instruction.operation, InstructionPlaceholder):
+                operation, resources = instruction.operation.concrete_instruction(
+                    all_qubits, all_clbits
+                )
                 qubits = tuple(resources.qubits)
                 clbits = tuple(resources.clbits)
+                instruction = CircuitInstruction(operation, qubits, clbits)
                 # We want to avoid iterating over the tuples unnecessarily if there's no chance
                 # we'll need to add bits to the circuit.
                 if potential_qubits and qubits:
@@ -430,19 +446,15 @@ class ControlFlowBuilderBlock:
                         # a register is already present, so we use our own tracking.
                         self.add_register(register)
                         out.add_register(register)
-            if operation.condition is not None:
-                for register in condition_registers(operation.condition):
+            if getattr(instruction.operation, "condition", None) is not None:
+                for register in condition_registers(instruction.operation.condition):
                     if register not in self.registers:
                         self.add_register(register)
                         out.add_register(register)
             # We already did the broadcasting and checking when the first call to
             # QuantumCircuit.append happened (which the user wrote), and added the instruction into
             # this scope.  We just need to finish the job now.
-            #
-            # We have to convert to lists, because some parts of QuantumCircuit still expect
-            # exactly this type.
-            out._append(operation, list(qubits), list(clbits))
-
+            out._append(instruction)
         return out
 
     def copy(self) -> "ControlFlowBuilderBlock":
@@ -460,4 +472,5 @@ class ControlFlowBuilderBlock:
         out.clbits = self.clbits.copy()
         out.registers = self.registers.copy()
         out._allow_jumps = self._allow_jumps
+        out._forbidden_message = self._forbidden_message
         return out
