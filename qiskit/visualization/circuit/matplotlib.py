@@ -1334,7 +1334,11 @@ class MatplotlibDrawer:
                 self._ctrl_qubit(xy[num_ctrl_qubits + 1], fc=ec, ec=ec, tc=tc)
 
             self._sidetext(
-                node, node_data, qubit_b, tc=tc, text=f"{gate_text} ({node_data[node]['param_text']})"
+                node,
+                node_data,
+                qubit_b,
+                tc=tc,
+                text=f"{gate_text} ({node_data[node]['param_text']})",
             )
             self._line(qubit_b, qubit_t, lc=lc)
 
