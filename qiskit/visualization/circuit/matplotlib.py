@@ -55,6 +55,8 @@ PORDER_REGLINE = 2
 PORDER_GRAY = 3
 PORDER_TEXT = 6
 
+INFINITE_FOLD = 10000000
+
 
 @_optionals.HAS_MATPLOTLIB.require_in_instance
 @_optionals.HAS_PYLATEX.require_in_instance
@@ -360,17 +362,18 @@ class MatplotlibDrawer:
         """Compute the layer_widths for the layers"""
 
         layer_widths = {}
+        layer_num = -1
         for i, layer in enumerate(self._nodes):
             widest_box = WID
+            layer_num += 1
             first_node = True
-            save_layer = {}
             for node in layer:
                 if first_node:
+                    save_layer = i
                     first_node = False
-                    save_layer[node] = i
                 else:
-                    save_layer[node] = -1
-                layer_widths[node] = (1, save_layer[node])
+                    save_layer = -1
+                layer_widths[node] = [1, layer_num, save_layer]
 
                 op = node.op
                 node_data[node] = {}
@@ -447,7 +450,7 @@ class MatplotlibDrawer:
                     widest_box = box_width
                 node_data[node]["width"] = max(raw_gate_width, raw_param_width)
             for node in layer:
-                layer_widths[node] = (int(widest_box) + 1, save_layer[node])
+                layer_widths[node][0] = int(widest_box) + 1
 
         return layer_widths
 
@@ -1434,7 +1437,7 @@ class MatplotlibDrawer:
     def _plot_coord(self, x_index, y_index, gate_width, x_offset):
         """Get the coord positions for an index"""
         # check folding
-        fold = self._fold if self._fold > 0 else 100000
+        fold = self._fold if self._fold > 0 else INFINITE_FOLD
         h_pos = x_index % fold + 1
 
         if h_pos + (gate_width - 1) > fold:
