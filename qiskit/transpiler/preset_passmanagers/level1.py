@@ -133,6 +133,7 @@ def level_1_pass_manager(pass_manager_config: PassManagerConfig) -> StagedPassMa
             call_limit=int(5e4),  # Set call limit to ~100ms with rustworkx 0.10.2
             properties=backend_properties,
             target=target,
+            max_trials=2500,  # Limits layout scoring to < 600ms on ~400 qubit devices
         )
     )
 

@@ -16,9 +16,9 @@
 
 import hashlib
 import re
-import sys
 import warnings
 from enum import Enum
+from functools import singledispatchmethod
 from typing import Union, List, Iterator, Optional
 import numpy as np
 
@@ -31,11 +31,6 @@ from qiskit.pulse.schedule import Schedule
 from qiskit.qobj import QobjMeasurementOption, PulseLibraryItem, PulseQobjInstruction
 from qiskit.qobj.utils import MeasLevel
 from qiskit.utils.deprecation import deprecate_func
-
-if sys.version_info >= (3, 8):
-    from functools import singledispatchmethod
-else:
-    from singledispatchmethod import singledispatchmethod
 
 
 class ParametricPulseShapes(Enum):
