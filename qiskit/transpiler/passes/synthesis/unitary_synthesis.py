@@ -448,7 +448,7 @@ class UnitarySynthesis(TransformationPass):
 
         for node in dag.op_nodes(ControlFlowOp):
             node.op = control_flow.map_blocks(_recurse, node.op)
-            
+
         for node in dag.named_nodes(*self._synth_gates):
             if self._min_qubits is not None and len(node.qargs) < self._min_qubits:
                 continue

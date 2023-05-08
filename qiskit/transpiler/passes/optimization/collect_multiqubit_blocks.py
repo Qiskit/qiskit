@@ -141,7 +141,6 @@ class CollectMultiQBlocks(AnalysisPass):
 
             cur_qubits = {dag.find_bit(bit) for bit in nd.qargs}
 
-
             if can_process:
                 # if the gate is valid, check if grouping up the bits
                 # in the gate would fit within our desired max size

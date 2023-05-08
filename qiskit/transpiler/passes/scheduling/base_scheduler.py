@@ -12,7 +12,6 @@
 
 """Base circuit scheduling pass."""
 
-from typing import Dict
 from qiskit.transpiler import InstructionDurations
 from qiskit.transpiler.basepasses import TransformationPass
 from qiskit.transpiler.passes.scheduling.time_unit_conversion import TimeUnitConversion

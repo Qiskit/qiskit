@@ -57,7 +57,6 @@ class Unroller(TransformationPass):
             return dag
 
         # if self.target is not None:
-        #     qubit_mapping = {bit: dag.find_bit(bit).index for bit in dag.qubits}
         # Walk through the DAG and expand each non-basis node
         basic_insts = ["measure", "reset", "barrier", "snapshot", "delay"]
         for node in dag.op_nodes():

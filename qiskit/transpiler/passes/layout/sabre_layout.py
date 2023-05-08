@@ -189,7 +189,9 @@ class SabreLayout(TransformationPass):
 
             physical_qubits = rng.choice(self.coupling_map.size(), len(dag.qubits), replace=False)
             physical_qubits = rng.permutation(physical_qubits)
-            initial_layout = Layout({q: dag.find_bit(dag.qubits[i]).index for i, q in enumerate(physical_qubits)})
+            initial_layout = Layout(
+                {q: dag.find_bit(dag.qubits[i]).index for i, q in enumerate(physical_qubits)}
+            )
 
             self.routing_pass.fake_run = True
 
@@ -304,7 +306,6 @@ class SabreLayout(TransformationPass):
             coupling_map.make_symmetric()
         neighbor_table = NeighborTable(rx.adjacency_matrix(coupling_map.graph))
         dist_matrix = coupling_map.distance_matrix
-
 
         dag_list = []
         for node in dag.topological_op_nodes():

@@ -74,7 +74,5 @@ class CheckGateDirection(AnalysisPass):
         """
 
         self.property_set["is_direction_mapped"] = (
-            self._coupling_map_visit(dag)
-            if self.target is None
-            else self._target_visit(dag)
+            self._coupling_map_visit(dag) if self.target is None else self._target_visit(dag)
         )

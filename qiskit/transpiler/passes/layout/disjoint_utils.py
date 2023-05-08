@@ -118,7 +118,7 @@ def split_barriers(dag: DAGCircuit):
 
 def combine_barriers(dag: DAGCircuit, retain_uuid: bool = True):
     """Mutate input dag to combine barriers with UUID labels into a single barrier."""
-    qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+    qubit_indices = {bit: dag.find_bit(bit) for bit in dag.qubits}
     uuid_map = {}
     for node in dag.op_nodes(Barrier):
         if isinstance(node.op.label, uuid.UUID):
@@ -146,7 +146,7 @@ def require_layout_isolated_to_component(
         coupling_map = components_source.build_coupling_map(filter_idle_qubits=True)
     else:
         coupling_map = components_source
-    qubit_indices = {bit: index for index, bit in enumerate(dag.qubits)}
+    qubit_indices = {bit: dag.find_bit(bit) for bit in dag.qubits}
     component_sets = [set(x.graph.nodes()) for x in coupling_map.connected_components()]
     for inst in dag.two_qubit_ops():
         component_index = None

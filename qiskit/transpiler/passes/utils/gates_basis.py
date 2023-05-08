@@ -65,7 +65,6 @@ class GatesInBasis(AnalysisPass):
                                 return True
                 return False
 
-            
             gates_out_of_basis = _visit_target(dag)
         else:
             for gate in dag.count_ops(recurse=True):

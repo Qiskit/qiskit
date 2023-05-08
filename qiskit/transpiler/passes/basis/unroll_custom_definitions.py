@@ -60,7 +60,7 @@ class UnrollCustomDefinitions(TransformationPass):
         if self._target is None:
             basic_insts = {"measure", "reset", "barrier", "snapshot", "delay"}
             device_insts = basic_insts | set(self._basis_gates)
-        
+
         for node in dag.op_nodes():
             if isinstance(node.op, ControlFlowOp):
                 node.op = control_flow.map_blocks(self.run, node.op)
@@ -77,7 +77,7 @@ class UnrollCustomDefinitions(TransformationPass):
                 inst_supported = (
                     self._target.instruction_supported(
                         operation_name=node.op.name,
-                        qargs=tuple(dag.find_bit(x).index for x in node.qargs),
+                        qargs=tuple(dag.find_bit(x) for x in node.qargs),
                     )
                     if self._target is not None
                     else node.name in device_insts

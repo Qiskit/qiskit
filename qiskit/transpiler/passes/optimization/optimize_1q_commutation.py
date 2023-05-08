@@ -217,7 +217,7 @@ class Optimize1qGatesSimpleCommutation(TransformationPass):
                 )
 
             # re-synthesize
-            qubit = dag.find_bit(run[0].qargs[0]) 
+            qubit = dag.find_bit(run[0].qargs[0])
             new_preceding_run = self._resynthesize(preceding_run + commuted_preceding, qubit)
             new_succeeding_run = self._resynthesize(commuted_succeeding + succeeding_run, qubit)
             new_run = self._resynthesize(run_clone, qubit)
