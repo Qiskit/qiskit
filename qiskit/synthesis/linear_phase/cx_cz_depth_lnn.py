@@ -220,7 +220,7 @@ def synth_cx_cz_line_my(mat_x: np.ndarray, mat_z: np.ndarray):
         mat_x : a boolean invertible matrix representing a CX circuit.
 
     Return:
-        QuantumCircuit: a circuit implementation of a CX circuit following a CZ circuit,
+        qc : a circuit implementation of a CX circuit following a CZ circuit,
         denoted as a -CZ-CX- circuit,in two-qubit depth at most 5n, for LNN connectivity.
 
     Reference:
