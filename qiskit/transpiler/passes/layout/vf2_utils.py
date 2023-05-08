@@ -116,9 +116,9 @@ def score_layout(
             bit_list[node_index] = sum(im_graph[node_index].values())
         # If node_index not in im_graph that means there was a standalone
         # node we will score/sort separately outside the vf2 mapping, so we
-        # can finish here
+        # can skip the hole
         except IndexError:
-            break
+            pass
     edge_list = {
         (edge[0], edge[1]): sum(edge[2].values()) for edge in im_graph.edge_index_map().values()
     }
