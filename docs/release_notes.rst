@@ -58,7 +58,7 @@ the :mod:`qiskit.algorithms` module to be based on the computational
 existing users to migrate to the new workflow:
 
   * ``QuantumInstance`` migration guide: https://qisk.it/qi_migration
-  * ``Opflow`` migration guide: https://qisk.it/qi_migration
+  * ``Opflow`` migration guide: https://qisk.it/opflow_migration
   * Algorithms migration guide: https://qisk.it/algo_migration
 
 OpenQASM2 improvements
