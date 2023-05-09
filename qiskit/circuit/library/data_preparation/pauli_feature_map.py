@@ -105,8 +105,9 @@ class PauliFeatureMap(NLocal):
         OrderedDict([('cx', 39), ('rx', 36), ('u1', 21), ('h', 15), ('ry', 12), ('rz', 12)])
 
     References:
-        [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces.
-            `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__
+
+    [1] Havlicek et al. Supervised learning with quantum enhanced feature spaces,
+    `Nature 567, 209-212 (2019) <https://www.nature.com/articles/s41586-019-0980-2>`__.
 
     """
 
