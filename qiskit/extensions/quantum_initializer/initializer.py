@@ -55,7 +55,7 @@ class Initialize(Instruction):
                 and the remaining 3 qubits to be initialized to :math:`|0\rangle`.
             normalize (bool): Whether to normalize an input array to a unit vector.
         """
-        self._stateprep = StatePreparation(params, num_qubits)
+        self._stateprep = StatePreparation(params, num_qubits, normalize=normalize)
 
         super().__init__("initialize", self._stateprep.num_qubits, 0, self._stateprep.params)
 
