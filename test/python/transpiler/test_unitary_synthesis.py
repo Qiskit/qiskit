@@ -17,7 +17,6 @@ Tests for the default UnitarySynthesis transpiler pass.
 """
 
 from test import combine
-from collections import OrderedDict
 import unittest
 import numpy as np
 
