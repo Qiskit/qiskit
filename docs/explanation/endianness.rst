@@ -27,7 +27,7 @@ while in a physics textbook it would be written as
 
 For more details about how this ordering of MSB and LSB affects the matrix representation of any particular gate, check its entry in the circuit :mod:`~qiskit.circuit.library`.
 
-This different order can also make the circuit corresponding to an algorithm from a textbook a bit more complicated to visualize. Fortunately, Qiskit provides a way to represent a :class:`~.QuantumCircuit` with the most significant qubits on top, similarly to what they look like in the textbooks. This can be done by setting the ``reverse_bits`` argument of the :meth:`~.QuantumCircuit.draw` method to ``True``.
+This different order can also make the circuit corresponding to an algorithm from a textbook a bit more complicated to visualize. Fortunately, Qiskit provides a way to represent a :class:`~.QuantumCircuit` with the most significant qubits on top, just like in the textbooks. This can be done by setting the ``reverse_bits`` argument of the :meth:`~.QuantumCircuit.draw` method to ``True``.
 
 Let's try this for a 3-qubit Quantum Fourier Transform (:class:`~.QFT`).
 
