@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 100
-target-version = ['py37', 'py38', 'py39', 'py310', 'py311']
+target-version = ['py38', 'py39', 'py310', 'py311']
 
 [tool.cibuildwheel]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
-skip = "pp* cp36-* *musllinux*"
+skip = "pp* cp36-* cp37-* *musllinux*"
 test-skip = "cp310-win32 cp310-manylinux_i686 cp311-win32 cp311-manylinux_i686"
 test-command = "python {project}/examples/python/stochastic_swap.py"
 # We need to use pre-built versions of Numpy and Scipy in the tests; they have a
@@ -24,7 +24,15 @@ before-all = "yum install -y wget && {package}/tools/install_rust.sh"
 environment = 'PATH="$PATH:$HOME/.cargo/bin" CARGO_NET_GIT_FETCH_WITH_CLI="true" RUSTUP_TOOLCHAIN="stable"'
 
 [tool.pylint.main]
-extension-pkg-allow-list = ["retworkx", "numpy", "tweedledum", "qiskit._accelerate", "rustworkx"]
+extension-pkg-allow-list = [
+    "numpy",
+    "qiskit._accelerate",
+    # We can't allow pylint to load qiskit._qasm2 because it's not able to
+    # statically resolve the cyclical load of the exception and it bugs out.
+    "retworkx",
+    "rustworkx",
+    "tweedledum",
+]
 load-plugins = ["pylint.extensions.docparams", "pylint.extensions.docstyle"]
 py-version = "3.7"  # update it when bumping minimum supported python version
 
