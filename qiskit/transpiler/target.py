@@ -19,7 +19,7 @@ from a backend
 
 from __future__ import annotations
 
-
+import itertools
 import warnings
 
 from typing import Tuple, Union, Optional, Dict, List, Any
@@ -996,12 +996,12 @@ class Target(Mapping):
         if self._coupling_graph.num_edges() == 0 and any(x is None for x in self._qarg_gate_map):
             self._coupling_graph = None
 
-    def build_coupling_map(self, two_q_gate=None):
+    def build_coupling_map(self, two_q_gate=None, filter_idle_qubits=False):
         """Get a :class:`~qiskit.transpiler.CouplingMap` from this target.
 
         If there is a mix of two qubit operations that have a connectivity
         constraint and those that are globally defined this will also return
-        ``None`` because the globally connectivity means there is no contstraint
+        ``None`` because the globally connectivity means there is no constraint
         on the target. If you wish to see the constraints of the two qubit
         operations that have constraints you should use the ``two_q_gate``
         argument to limit the output to the gates which have a constraint.
@@ -1011,6 +1011,14 @@ class Target(Mapping):
                 the Target to generate the coupling map for. If specified the
                 output coupling map will only have edges between qubits where
                 this gate is present.
+            filter_idle_qubits (bool): If set to ``True`` the output :class:`~.CouplingMap`
+                will remove any qubits that don't have any operations defined in the
+                target. Note that using this argument will result in an output
+                :class:`~.CouplingMap` object which has holes in its indices
+                which might differ from the assumptions of the class. The typical use
+                case of this argument is to be paired with with
+                :meth:`.CouplingMap.connected_components` which will handle the holes
+                as expected.
         Returns:
             CouplingMap: The :class:`~qiskit.transpiler.CouplingMap` object
                 for this target. If there are no connectivity constraints in
@@ -1048,10 +1056,21 @@ class Target(Mapping):
         # existing and return
         if self._coupling_graph is not None:
             cmap = CouplingMap()
-            cmap.graph = self._coupling_graph
+            if filter_idle_qubits:
+                cmap.graph = self._filter_coupling_graph()
+            else:
+                cmap.graph = self._coupling_graph.copy()
             return cmap
         else:
             return None
+
+    def _filter_coupling_graph(self):
+        has_operations = set(itertools.chain.from_iterable(self.qargs))
+        graph = self._coupling_graph.copy()
+        to_remove = set(graph.node_indices()).difference(has_operations)
+        if to_remove:
+            graph.remove_nodes_from(list(to_remove))
+        return graph
 
     @property
     def physical_qubits(self):

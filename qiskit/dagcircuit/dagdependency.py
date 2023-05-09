@@ -91,7 +91,7 @@ class DAGDependency:
         self.name = None
 
         # Circuit metadata
-        self.metadata = None
+        self.metadata = {}
 
         # Directed multigraph whose nodes are operations(gates) and edges
         # represent non-commutativity between two gates.

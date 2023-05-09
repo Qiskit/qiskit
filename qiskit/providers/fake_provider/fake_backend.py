@@ -25,20 +25,20 @@ import re
 from typing import List, Iterable
 
 from qiskit import circuit
-from qiskit.providers.models import BackendProperties
+from qiskit.providers.models import BackendProperties, BackendConfiguration, PulseDefaults
 from qiskit.providers import BackendV2, BackendV1
 from qiskit import pulse
 from qiskit.exceptions import QiskitError
 from qiskit.utils import optionals as _optionals
 from qiskit.providers import basicaer
 from qiskit.transpiler import Target
+from qiskit.providers.backend_compat import convert_to_target
 
 from .utils.json_decoder import (
     decode_backend_configuration,
     decode_backend_properties,
     decode_pulse_defaults,
 )
-from .utils.backend_converter import convert_to_target
 
 
 class _Credentials:
@@ -168,10 +168,16 @@ class FakeBackendV2(BackendV2):
                 self._set_props_dict_from_json()
             if self._defs_dict is None:
                 self._set_defs_dict_from_json()
+            conf = BackendConfiguration.from_dict(self._conf_dict)
+            props = None
+            if self._props_dict is not None:
+                props = BackendProperties.from_dict(self._props_dict)
+            defaults = None
+            if self._defs_dict is not None:
+                defaults = PulseDefaults.from_dict(self._defs_dict)
+
             self._target = convert_to_target(
-                conf_dict=self._conf_dict,
-                props_dict=self._props_dict,
-                defs_dict=self._defs_dict,
+                conf, props, defaults, add_delay=True, filter_faulty=True
             )
 
         return self._target
