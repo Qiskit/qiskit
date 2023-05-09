@@ -73,21 +73,19 @@ pub fn score_layout(
     } else {
         edge_list.par_iter().filter_map(edge_filter_map).product()
     };
-    if strict_direction {
-        fidelity *= if bit_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
-            bit_counts
-                .iter()
-                .enumerate()
-                .filter_map(bit_filter_map)
-                .product::<f64>()
-        } else {
-            bit_counts
-                .par_iter()
-                .enumerate()
-                .filter_map(bit_filter_map)
-                .product()
-        };
-    }
+    fidelity *= if bit_list.len() < PARALLEL_THRESHOLD || !run_in_parallel {
+        bit_counts
+            .iter()
+            .enumerate()
+            .filter_map(bit_filter_map)
+            .product::<f64>()
+    } else {
+        bit_counts
+            .par_iter()
+            .enumerate()
+            .filter_map(bit_filter_map)
+            .product()
+    };
     Ok(1. - fidelity)
 }
 
