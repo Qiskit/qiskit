@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Adding ``qubit_coordinates_map`` for 443 qubits. This allows the coupling map visualization of IBM's ``ibm_seattle``
+    via :func:`~qiskit.visualization.plot_gate_map` and :func:`~qiskit.visualization.plot_error_map`.
