@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added an option to normalize statevector inputs by setting the new argument
+    ``normalize`` to ``True`` in the :class:`.StatePreparation` and :class:`~.extensions.Initialize`
+    classes, and the :meth:`.QuantumCircuit.prepare_state` and :meth:`.QuantumCircuit.initialize`
+    methods. By default, this new argument is ``False`` and, as before, an unnormalized statevector
+    will raise an error.
+
