@@ -926,7 +926,8 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.cp(np.pi / 2, 0, 1)
         circ = transpile(qc, target=target, optimization_level=3)
-        self.assertEqual(circ.count_ops(), {'rz': 8, 'rx': 6, 'rxx': 2})
+        self.assertEqual(circ.count_ops(), {"rz": 8, "rx": 6, "rxx": 2})
+
 
 if __name__ == "__main__":
     unittest.main()
