@@ -1904,7 +1904,9 @@ class TestTranspileParallel(QiskitTestCase):
         qc.measure_all()
         backend = FakeMumbaiV2()
         pm = generate_preset_pass_manager(opt_level, backend)
-        pm.run([qc, qc])
+        res = pm.run([qc, qc])
+        for circ in res:
+            self.assertIsInstance(circ, QuantumCircuit)
 
     @data(0, 1, 2, 3)
     def test_parallel_with_target(self, opt_level):
