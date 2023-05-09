@@ -417,7 +417,7 @@ class TestLinearFunctionsPasses(QiskitTestCase):
         """Test that collection recurses into a simple if-else."""
         pass_ = CollectLinearFunctions(do_commutative_analysis=do_commutative_analysis)
 
-        circuit = QuantumCircuit(4)
+        circuit = QuantumCircuit(4, 1)
         circuit.cx(0, 1)
         circuit.cx(1, 0)
         circuit.cx(2, 3)

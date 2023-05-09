@@ -14,7 +14,7 @@
 
 from __future__ import annotations
 
-from typing import Callable, List, Union, Optional
+from typing import Callable, Union, List, Optional
 import logging
 import numpy as np
 from scipy import sparse as scisparse
@@ -29,7 +29,6 @@ from ..exceptions import AlgorithmError
 from ..list_or_dict import ListOrDict
 
 logger = logging.getLogger(__name__)
-# pylint: disable=invalid-name
 
 FilterType = Callable[[Union[List, np.ndarray], float, Optional[ListOrDict[float]]], bool]
 
@@ -311,7 +310,7 @@ class NumPyEigensolverResult(EigensolverResult):
 
     def __init__(self) -> None:
         super().__init__()
-        self._eigenstates = None
+        self._eigenstates: list[Statevector] | None = None
 
     @property
     def eigenstates(self) -> list[Statevector] | None:

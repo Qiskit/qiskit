@@ -319,7 +319,7 @@ class TestGateSequence(QiskitTestCase):
 
         ref = GateSequence([HGate()])
 
-        self.assertEqual(seq.gates, list())
+        self.assertEqual(seq.gates, [])
         self.assertTrue(np.allclose(seq.product, ref.product))
         self.assertEqual(seq.global_phase, 0)
 
@@ -330,7 +330,7 @@ class TestGateSequence(QiskitTestCase):
 
         ref = GateSequence([HGate()])
 
-        self.assertEqual(seq.gates, list())
+        self.assertEqual(seq.gates, [])
         self.assertTrue(np.allclose(seq.product, ref.product))
         self.assertEqual(seq.global_phase, 0)
 

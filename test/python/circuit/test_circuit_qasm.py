@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Test Qiskit's QuantumCircuit class."""
+"""Test Qiskit's gates in QASM2."""
 
 import unittest
 from math import pi
@@ -19,7 +19,7 @@ import re
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
 from qiskit.test import QiskitTestCase
 from qiskit.circuit import Parameter, Qubit, Clbit, Gate
-from qiskit.circuit.library import C3SXGate
+from qiskit.circuit.library import C3SXGate, CCZGate, CSGate, CSdgGate, PermutationGate
 from qiskit.qasm.exceptions import QasmError
 
 # Regex pattern to match valid OpenQASM identifiers
@@ -27,7 +27,7 @@ VALID_QASM2_IDENTIFIER = re.compile("[a-z][a-zA-Z_0-9]*")
 
 
 class TestCircuitQasm(QiskitTestCase):
-    """QuantumCircuit Qasm tests."""
+    """QuantumCircuit QASM2 tests."""
 
     def test_circuit_qasm(self):
         """Test circuit qasm() method."""
@@ -249,7 +249,9 @@ nG0(pi,pi/2) q[0],r[0];\n"""
         self.assertEqual(original_str, qc.qasm())
 
     def test_c3sxgate_roundtrips(self):
-        """Test that C3SXGate correctly round trips.  Qiskit gives this gate a different name
+        """Test that C3SXGate correctly round trips.
+
+        Qiskit gives this gate a different name
         ('c3sx') to the name in Qiskit's version of qelib1.inc ('c3sqrtx') gate, which can lead to
         resolution issues."""
         qc = QuantumCircuit(4)
@@ -263,6 +265,115 @@ c3sqrtx q[0],q[1],q[2],q[3];
         self.assertEqual(qasm, expected)
         parsed = QuantumCircuit.from_qasm_str(qasm)
         self.assertIsInstance(parsed.data[0].operation, C3SXGate)
+
+    def test_cczgate_qasm(self):
+        """Test that CCZ dumps definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(3)
+        qc.append(CCZGate(), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate ccz q0,q1,q2 { h q2; ccx q0,q1,q2; h q2; }
+qreg q[3];
+ccz q[0],q[1],q[2];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_csgate_qasm(self):
+        """Test that CS dumps definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(2)
+        qc.append(CSGate(), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate cs q0,q1 { p(pi/4) q0; cx q0,q1; p(-pi/4) q1; cx q0,q1; p(pi/4) q1; }
+qreg q[2];
+cs q[0],q[1];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_csdggate_qasm(self):
+        """Test that CSdg dumps definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(2)
+        qc.append(CSdgGate(), qc.qubits, [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate csdg q0,q1 { p(-pi/4) q0; cx q0,q1; p(pi/4) q1; cx q0,q1; p(-pi/4) q1; }
+qreg q[2];
+csdg q[0],q[1];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_rzxgate_qasm(self):
+        """Test that RZX dumps definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(2)
+        qc.rzx(0, 0, 1)
+        qc.rzx(pi / 2, 1, 0)
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate rzx(param0) q0,q1 { h q1; cx q0,q1; rz(param0) q1; cx q0,q1; h q1; }
+qreg q[2];
+rzx(0) q[0],q[1];
+rzx(pi/2) q[1],q[0];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_ecrgate_qasm(self):
+        """Test that ECR dumps its definition as a non-qelib1 gate."""
+        qc = QuantumCircuit(2)
+        qc.ecr(0, 1)
+        qc.ecr(1, 0)
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate rzx(param0) q0,q1 { h q1; cx q0,q1; rz(param0) q1; cx q0,q1; h q1; }
+gate ecr q0,q1 { rzx(pi/4) q0,q1; x q0; rzx(-pi/4) q0,q1; }
+qreg q[2];
+ecr q[0],q[1];
+ecr q[1],q[0];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_unitary_qasm(self):
+        """Test that UnitaryGate can be dumped to OQ2 correctly."""
+        qc = QuantumCircuit(1)
+        qc.unitary([[1, 0], [0, 1]], 0)
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate unitary q0 { u3(0,0,0) q0; }
+qreg q[1];
+unitary q[0];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_multiple_unitary_qasm(self):
+        """Test that multiple UnitaryGate instances can all dump successfully."""
+        custom = QuantumCircuit(1, name="custom")
+        custom.unitary([[1, 0], [0, -1]], 0)
+
+        qc = QuantumCircuit(2)
+        qc.unitary([[1, 0], [0, 1]], 0)
+        qc.unitary([[0, 1], [1, 0]], 1)
+        qc.append(custom.to_gate(), [0], [])
+        qasm = qc.qasm()
+        expected = re.compile(
+            r"""OPENQASM 2.0;
+include "qelib1.inc";
+gate unitary q0 { u3\(0,0,0\) q0; }
+gate (?P<u1>unitary_[0-9]*) q0 { u3\(pi,-pi/2,pi/2\) q0; }
+gate (?P<u2>unitary_[0-9]*) q0 { u3\(0,pi/2,pi/2\) q0; }
+gate custom q0 { (?P=u2) q0; }
+qreg q\[2\];
+unitary q\[0\];
+(?P=u1) q\[1\];
+custom q\[0\];
+""",
+            re.MULTILINE,
+        )
+        self.assertRegex(qasm, expected)
 
     def test_unbound_circuit_raises(self):
         """Test circuits with unbound parameters raises."""
@@ -311,9 +422,9 @@ mcx q[0],q[1],q[2],q[3];\n"""
         # param0 for "gate mcuq(param0) is not used inside the definition
         expected_qasm = """OPENQASM 2.0;
 include "qelib1.inc";
-gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
 gate mcu1(param0) q0,q1,q2,q3,q4,q5 { cu1(pi/16) q4,q5; cx q4,q3; cu1(-pi/16) q3,q5; cx q4,q3; cu1(pi/16) q3,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q3,q2; cu1(-pi/16) q2,q5; cx q4,q2; cu1(pi/16) q2,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q2,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q3,q1; cu1(-pi/16) q1,q5; cx q4,q1; cu1(pi/16) q1,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q1,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q2,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; cx q3,q0; cu1(-pi/16) q0,q5; cx q4,q0; cu1(pi/16) q0,q5; }
 gate mcx_gray q0,q1,q2,q3,q4,q5 { h q5; mcu1(pi) q0,q1,q2,q3,q4,q5; h q5; }
+gate mcx q0,q1,q2,q3 { h q3; p(pi/8) q0; p(pi/8) q1; p(pi/8) q2; p(pi/8) q3; cx q0,q1; p(-pi/8) q1; cx q0,q1; cx q1,q2; p(-pi/8) q2; cx q0,q2; p(pi/8) q2; cx q1,q2; p(-pi/8) q2; cx q0,q2; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q1,q3; p(pi/8) q3; cx q2,q3; p(-pi/8) q3; cx q0,q3; h q3; }
 gate mcx_recursive q0,q1,q2,q3,q4,q5,q6 { mcx q0,q1,q2,q6; mcx q3,q4,q6,q5; mcx q0,q1,q2,q6; mcx q3,q4,q6,q5; }
 gate mcx_vchain q0,q1,q2,q3,q4,q5,q6,q7,q8 { rccx q0,q1,q6; rccx q2,q6,q7; rccx q3,q7,q8; ccx q4,q8,q5; rccx q3,q7,q8; rccx q2,q6,q7; rccx q0,q1,q6; }
 qreg q[9];
@@ -409,9 +520,6 @@ custom_{id(gate2)} q[1],q[0];\n"""
         gate2 = custom2.to_gate()
         gate2.name = "invalid[name]"
 
-        # Unitary gate, for which qasm string is produced by internal method
-        qc.unitary([[0, 1], [1, 0]], 0, label="[valid?]")
-
         # Append gates
         qc.append(gate, [0])
         qc.append(gate2, [1, 0])
@@ -421,13 +529,9 @@ custom_{id(gate2)} q[1],q[0];\n"""
             [
                 "OPENQASM 2.0;",
                 'include "qelib1.inc";',
-                "gate gate__valid__ p0 {",
-                "	u3(pi,-pi/2,pi/2) p0;",
-                "}",
                 "gate gate_A___ q0 { x q0; u(0,0,pi) q0; }",
                 "gate invalid_name_ q0,q1 { x q0; gate_A___ q1; }",
                 "qreg q[2];",
-                "gate__valid__ q[0];",
                 "gate_A___ q[0];",
                 "invalid_name_ q[1],q[0];",
                 "",
@@ -438,7 +542,7 @@ custom_{id(gate2)} q[1],q[0];\n"""
         self.assertEqual(expected_qasm, qc.qasm())
 
         # Check instruction names were not changed by qasm()
-        names = ["unitary", "A[$]", "invalid[name]"]
+        names = ["A[$]", "invalid[name]"]
         for idx, instruction in enumerate(qc._data):
             self.assertEqual(instruction.operation.name, names[idx])
 
@@ -550,7 +654,6 @@ p(pi) q[0];\n"""
 
     def test_circuit_qasm_with_permutations(self):
         """Test circuit qasm() method with Permutation gates."""
-        from qiskit.circuit.library import PermutationGate
 
         qc = QuantumCircuit(4)
         qc.append(PermutationGate([2, 1, 0]), [0, 1, 2])
@@ -561,6 +664,109 @@ gate permutation__2_1_0_ q0,q1,q2 { swap q0,q2; }
 qreg q[4];
 permutation__2_1_0_ q[0],q[1],q[2];\n"""
         self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_multiple_permutation(self):
+        """Test that multiple PermutationGates can be added to a circuit."""
+        custom = QuantumCircuit(3, name="custom")
+        custom.append(PermutationGate([2, 1, 0]), [0, 1, 2])
+        custom.append(PermutationGate([0, 1, 2]), [0, 1, 2])
+
+        qc = QuantumCircuit(4)
+        qc.append(PermutationGate([2, 1, 0]), [0, 1, 2], [])
+        qc.append(PermutationGate([1, 2, 0]), [0, 1, 2], [])
+        qc.append(custom.to_gate(), [1, 3, 2], [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+gate permutation__2_1_0_ q0,q1,q2 { swap q0,q2; }
+gate permutation__1_2_0_ q0,q1,q2 { swap q1,q2; swap q0,q2; }
+gate permutation__0_1_2_ q0,q1,q2 {  }
+gate custom q0,q1,q2 { permutation__2_1_0_ q0,q1,q2; permutation__0_1_2_ q0,q1,q2; }
+qreg q[4];
+permutation__2_1_0_ q[0],q[1],q[2];
+permutation__1_2_0_ q[0],q[1],q[2];
+custom q[1],q[3],q[2];
+"""
+        self.assertEqual(qasm, expected)
+
+    def test_circuit_qasm_with_reset(self):
+        """Test circuit qasm() method with Reset."""
+        qc = QuantumCircuit(2)
+        qc.reset([0, 1])
+
+        expected_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[2];
+reset q[0];
+reset q[1];\n"""
+        self.assertEqual(qc.qasm(), expected_qasm)
+
+    def test_nested_gate_naming_clashes(self):
+        """Test that gates that have naming clashes but only appear in the body of another gate
+        still get exported correctly."""
+
+        # pylint: disable=missing-class-docstring
+
+        class Inner(Gate):
+            def __init__(self, param):
+                super().__init__("inner", 1, [param])
+
+            def _define(self):
+                self._definition = QuantumCircuit(1)
+                self._definition.rx(self.params[0], 0)
+
+        class Outer(Gate):
+            def __init__(self, param):
+                super().__init__("outer", 1, [param])
+
+            def _define(self):
+                self._definition = QuantumCircuit(1)
+                self._definition.append(Inner(self.params[0]), [0], [])
+
+        qc = QuantumCircuit(1)
+        qc.append(Outer(1.0), [0], [])
+        qc.append(Outer(2.0), [0], [])
+        qasm = qc.qasm()
+
+        expected = re.compile(
+            r"""OPENQASM 2\.0;
+include "qelib1\.inc";
+gate inner\(param0\) q0 { rx\(1\.0\) q0; }
+gate outer\(param0\) q0 { inner\(1\.0\) q0; }
+gate (?P<inner1>inner_[0-9]*)\(param0\) q0 { rx\(2\.0\) q0; }
+gate (?P<outer1>outer_[0-9]*)\(param0\) q0 { (?P=inner1)\(2\.0\) q0; }
+qreg q\[1\];
+outer\(1\.0\) q\[0\];
+(?P=outer1)\(2\.0\) q\[0\];
+""",
+            re.MULTILINE,
+        )
+        self.assertRegex(qasm, expected)
+
+    def test_opaque_output(self):
+        """Test that gates with no definition are exported as `opaque`."""
+        custom = QuantumCircuit(1, name="custom")
+        custom.append(Gate("my_c", 1, []), [0])
+
+        qc = QuantumCircuit(2)
+        qc.append(Gate("my_a", 1, []), [0])
+        qc.append(Gate("my_a", 1, []), [1])
+        qc.append(Gate("my_b", 2, [1.0]), [1, 0])
+        qc.append(custom.to_gate(), [0], [])
+        qasm = qc.qasm()
+        expected = """OPENQASM 2.0;
+include "qelib1.inc";
+opaque my_a q0;
+opaque my_b(param0) q0,q1;
+opaque my_c q0;
+gate custom q0 { my_c q0; }
+qreg q[2];
+my_a q[0];
+my_a q[1];
+my_b(1.0) q[1],q[0];
+custom q[0];
+"""
+        self.assertEqual(qasm, expected)
 
 
 if __name__ == "__main__":

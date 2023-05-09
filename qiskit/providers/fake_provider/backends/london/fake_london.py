@@ -33,7 +33,7 @@ class FakeLondonV2(fake_backend.FakeBackendV2):
     dirname = os.path.dirname(__file__)
     conf_filename = "conf_london.json"
     props_filename = "props_london.json"
-    backend_name = "fake_london_v2"
+    backend_name = "fake_london"
 
 
 class FakeLondon(fake_qasm_backend.FakeQasmBackend):

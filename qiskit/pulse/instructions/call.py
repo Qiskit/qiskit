@@ -67,7 +67,7 @@ class Call(instruction.Instruction):
             assigned_subroutine = subroutine
 
         # create cache data of parameter-assigned subroutine
-        self._assigned_cache = tuple((self._get_arg_hash(), assigned_subroutine))
+        self._assigned_cache = (self._get_arg_hash(), assigned_subroutine)
 
         super().__init__(operands=(subroutine,), name=name or f"{self.prefix}_{subroutine.name}")
 
@@ -81,7 +81,6 @@ class Call(instruction.Instruction):
         """Returns the channels that this schedule uses."""
         return self.assigned_subroutine().channels
 
-    # pylint: disable=missing-return-type-doc
     @property
     def subroutine(self):
         """Return attached subroutine.
@@ -106,7 +105,7 @@ class Call(instruction.Instruction):
         if self._get_arg_hash() != self._assigned_cache[0]:
             subroutine = self.subroutine.assign_parameters(value_dict=self.arguments, inplace=False)
             # update cache data
-            self._assigned_cache = tuple((self._get_arg_hash(), subroutine))
+            self._assigned_cache = (self._get_arg_hash(), subroutine)
         else:
             subroutine = self._assigned_cache[1]
 

@@ -8,6 +8,7 @@ Qiskit Terra documentation
 
   How to <how_to/index>
   API References <apidocs/terra>
+  Migration Guides <migration_guides/index>
   Release Notes <release_notes>
 
 .. Hiding - Indices and tables
