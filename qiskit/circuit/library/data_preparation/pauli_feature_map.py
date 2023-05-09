@@ -36,7 +36,7 @@ class PauliFeatureMap(NLocal):
 
     Here, :math:`S` is a set of qubit indices that describes the connections in the feature map,
     :math:`\mathcal{I}` is a set containing all these index sets, and
-    :math:`P_i \in \{I, X, Y, Z\}. Per default the data-mapping
+    :math:`P_i \in \{I, X, Y, Z\}`. Per default the data-mapping
     :math:`\phi_S` is
 
     .. math::
@@ -48,9 +48,8 @@ class PauliFeatureMap(NLocal):
 
     The possible connections can be set using the ``entanglement`` and ``paulis`` argument.
     For example, for single-qubit :math:`Z` rotations and two-qubit :math:`YY` interactions
-    between all qubit pairs, we can set
+    between all qubit pairs, we can set::
 
-    .. code::python
 
         feature_map = PauliFeatureMap(..., paulis=["Z", "YY"], entanglement="full")
 
