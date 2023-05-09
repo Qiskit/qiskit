@@ -100,6 +100,7 @@ class TestOptimize1qGatesDecomposition(QiskitTestCase):
     """Test for 1q gate optimizations."""
 
     def test_run_pass_in_parallel(self):
+        """Test running pass on multiple circuits in parallel."""
         qr = QuantumRegister(1, "qr")
         circuit = QuantumCircuit(qr)
         passmanager = PassManager([Optimize1qGatesDecomposition(target=target_u1_u2_u3)])

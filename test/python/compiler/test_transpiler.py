@@ -1897,7 +1897,7 @@ class TestTranspileParallel(QiskitTestCase):
 
     @data(0, 1, 2, 3)
     def test_parallel_multiprocessing(self, opt_level):
-        """Test that parallel dispatch works with a manual target."""
+        """Test parallel dispatch works with multiprocessing."""
         qc = QuantumCircuit(2)
         qc.h(0)
         qc.cx(0, 1)
