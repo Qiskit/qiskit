@@ -17,6 +17,7 @@ Tests for the default UnitarySynthesis transpiler pass.
 """
 
 from test import combine
+from collections import OrderedDict
 import unittest
 import numpy as np
 
@@ -926,7 +927,11 @@ class TestUnitarySynthesis(QiskitTestCase):
         qc = QuantumCircuit(2)
         qc.cp(np.pi / 2, 0, 1)
         circ = transpile(qc, target=target, optimization_level=3)
-        self.assertEqual(circ.count_ops(), {"rz": 8, "rx": 6, "rxx": 2})
+        opcount = circ.count_ops()
+        self.assertEqual(opcount["rz"], 8)
+        self.assertEqual(opcount["rx"], 6)
+        self.assertEqual(opcount["rxx"], 2)
+        self.assertEqual(len(opcount), 3)
 
 
 if __name__ == "__main__":
