@@ -57,6 +57,11 @@ Now that you have built the circuits, they can be combined with two different me
 * :meth:`~.QuantumCircuit.compose`
 * :meth:`~.QuantumCircuit.append`
 
+.. warning::
+
+     The usage of the ``+`` operator to combine :class:`~.QuantumCircuit`\ s is no longer supported so if you try to define
+     a circuit as ``composed_qc = qc1 + qc2`` you will get an error.
+
 One detail these two methods have in common is that if the circuits have different sizes, they have to be applied to the one that has the most of both qubits and classical bits.
 
 :meth:`~.QuantumCircuit.compose`
