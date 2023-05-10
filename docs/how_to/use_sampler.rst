@@ -37,6 +37,10 @@ The first step is to create the :class:`~qiskit.circuit.QuantumCircuit` from whi
 
 .. testsetup::
 
+    # This code is repeated (but hidden) because we will need to use the variables with the extension sphinx.ext.doctest (testsetup/testcode/testoutput directives)
+    # and we can't reuse the variables from the plot directive above because they are incompatible.
+    # The plot directive is used to draw the circuit with matplotlib and the code is shown because of the include-source flag.
+
     from qiskit import QuantumCircuit
 
     qc = QuantumCircuit(2)
