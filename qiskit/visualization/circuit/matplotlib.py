@@ -273,7 +273,7 @@ class MatplotlibDrawer:
         clbits_dict = {}
 
         # get layer widths
-        layer_widths = self._get_layer_widths(node_data, wire_map)
+        layer_widths = self._get_layer_widths(node_data)
 
         # load the _qubit_dict and _clbit_dict with register info
         self._set_bit_reg_info(wire_map, qubits_dict, clbits_dict)
@@ -343,9 +343,7 @@ class MatplotlibDrawer:
                 xl, yt, "Global Phase: %s" % pi_check(self._global_phase, output="mpl")
             )
         self._draw_regs_wires(num_folds, xmax, max_x_index, qubits_dict, clbits_dict)
-        self._draw_ops(
-            self._nodes, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, verbose
-        )
+        self._draw_ops(self._nodes, node_data, wire_map, layer_widths, clbits_dict, verbose)
 
         if filename:
             self._figure.savefig(
@@ -358,7 +356,7 @@ class MatplotlibDrawer:
             matplotlib_close_if_inline(self._figure)
             return self._figure
 
-    def _get_layer_widths(self, node_data, wire_map):
+    def _get_layer_widths(self, node_data):
         """Compute the layer_widths for the layers"""
 
         layer_widths = {}
@@ -531,7 +529,7 @@ class MatplotlibDrawer:
         """Load all the coordinate info needed to place the gates on the drawing."""
 
         prev_x_index = -1
-        for i, layer in enumerate(self._nodes):
+        for layer in self._nodes:
             curr_x_index = prev_x_index + 1
             l_width = []
             for node in layer:
@@ -749,13 +747,11 @@ class MatplotlibDrawer:
                     zorder=PORDER_TEXT,
                 )
 
-    def _draw_ops(
-        self, nodes, node_data, wire_map, layer_widths, qubits_dict, clbits_dict, verbose=False
-    ):
+    def _draw_ops(self, nodes, node_data, wire_map, layer_widths, clbits_dict, verbose=False):
         """Draw the gates in the circuit"""
 
         prev_x_index = -1
-        for i, layer in enumerate(nodes):
+        for layer in nodes:
             l_width = []
             curr_x_index = prev_x_index + 1
 
