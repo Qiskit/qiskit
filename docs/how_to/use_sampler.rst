@@ -200,7 +200,7 @@ passing them as keyword arguments.
 
     SamplerResult(quasi_dists=[{0: 0.5205078125, 3: 0.4794921875}], metadata=[{'shots': 2048}])
 
-Change :class:`~qiskit.primitives.Sampler` options
+Modify :class:`~qiskit.primitives.Sampler` options
 ---------------------------------------------------
 
 If you want to keep some configuration values for several runs, it can be better to
