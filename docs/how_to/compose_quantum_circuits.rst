@@ -1,6 +1,6 @@
-########################
-Compose quantum circuits
-########################
+#####################
+Join quantum circuits
+#####################
 
 This guide shows how to combine different :class:`~.QuantumCircuit` objects.
 
