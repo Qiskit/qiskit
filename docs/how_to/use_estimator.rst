@@ -196,7 +196,7 @@ passing them as keyword arguments.
 
     3.999999998697238
 
-Change :class:`~qiskit.primitives.Estimator` options
+Modify :class:`~qiskit.primitives.Estimator` options
 -----------------------------------------------------
 
 If you want to keep some configuration values for several runs, it can be better to
