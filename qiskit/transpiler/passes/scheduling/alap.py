@@ -25,12 +25,6 @@ class ALAPSchedule(BaseSchedulerTransform):
 
     See :class:`~qiskit.transpiler.passes.scheduling.base_scheduler.BaseSchedulerTransform` for the
     detailed behavior of the control flow operation, i.e. ``c_if``.
-
-    .. note::
-
-        This base class has been superseded by :class:`~.ALAPScheduleAnalysis` and
-        the new scheduling workflow. It will be deprecated and subsequently
-        removed in a future release.
     """
 
     @deprecate_func(
